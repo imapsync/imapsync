@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.149 $
+$Revision: 1.152 $
 
 =head1 INSTALL
 
@@ -42,21 +42,21 @@ $Revision: 1.149 $
            [--folder <string> --folder <string> ...]
            [--include <regex>] [--exclude <regex>]
            [--prefix2 <string>] [--prefix1 <string>] 
-           [--regextrans2 <regex> --regextrans2 <regex> ...] 
+           [--regextrans2 <regex> --regextrans2 <regex> ...]
            [--sep1 <char>]
            [--sep2 <char>]
-           [--justfolders] [--justconnect]
+           [--justfolders] [--justfoldersizes] [--justconnect]
            [--syncinternaldates]
            [--buffersize  <int>]
            [--syncacls]
-           [--regexmess <regex>] [--regexmess <regex>] 
+           [--regexmess <regex>] [--regexmess <regex>]
            [--maxsize <int>]
            [--maxage <int>]
            [--minage <int>]
            [--skipheader <regex>]
            [--useheader <string>] [--useheader <string>]
            [--skipsize]
-           [--delete] [--expunge] [--expunge1] [--expunge2] 
+           [--delete] [--expunge] [--expunge1] [--expunge2]
            [--subscribed] [--subscribe]
            [--nofoldersizes]
            [--dry]
@@ -192,9 +192,11 @@ Report any bugs to the author: lamiral@linux-france.org
 
 =head1 IMAP SERVERS
 
-Failure story  reported with the following imap server :
+Failure stories reported with the following imap servers :
 
-- MailEnable 1.54 (Proprietary) http://www.mailenable.com/
+ - MailEnable 1.54 (Proprietary) http://www.mailenable.com/
+ - DBMail 2.0.7 (GPL). But DBMail 1.2.1 works.
+   Patient and confident testers are welcome.
 
 Success stories reported with the following imap servers 
 (softwares names are in alphabetic order) : 
@@ -207,7 +209,7 @@ Success stories reported with the following imap servers
  - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.1.16, 2.1.18 
    2.2.1, 2.2.2-BETA, 2.2.10, 2.2.12, 2.3-alpha (OSI Approved)
    (http://asg.web.cmu.edu/cyrus/)
- - DBMail 1.2.1 (GPL) (http://www.dbmail.org/)
+ - DBMail 1.2.1 (GPL) (http://www.dbmail.org/). 2.0.7 seems buggy.
  - Dovecot 0.99.10.4  0.99.14 (LGPL) (http://www.dovecot.org/)
  - Domino (Notes) 6.5, 5.0.6, 5.0.7
  - Groupwise IMAP (Novell). Buggy so see the FAQ.
@@ -237,6 +239,9 @@ are useful to know the softwares. Example:
  To   software :* OK Courier-IMAP ready
 
 You can use option --justconnect to get those lines.
+Example :
+
+  imapsync --host1 imap.troc.org --host2 imap.trac.org --justconnect
 
 And please rate imapsync at http://freshmeat.net/projects/imapsync/
 
@@ -308,7 +313,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.149 2006/02/14 00:44:44 gilles Exp gilles $
+$Id: imapsync,v 1.152 2006/02/17 02:57:21 gilles Exp $
 
 =cut
 
@@ -337,7 +342,8 @@ my(
 	$maxsize, $maxage, $minage, 
         $skipheader, @useheader,
         $skipsize, $foldersizes, $buffersize,
-	$delete, $expunge, $expunge1, $expunge2, $dry, 
+	$delete, $expunge, $expunge1, $expunge2, $dry,
+        $justfoldersizes,
         $authmd5,
         $subscribed, $subscribe,
 	$version, $VERSION, $help, 
@@ -355,7 +361,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.149 2006/02/14 00:44:44 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.152 2006/02/17 02:57:21 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -392,8 +398,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.149 $ ',
-		  '$Date: 2006/02/14 00:44:44 $ ',
+		  '$Revision: 1.152 $ ',
+		  '$Date: 2006/02/17 02:57:21 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -414,10 +420,37 @@ sub missing_option {
 
 $host1 || missing_option("--host1") ;
 $port1 = (defined($port1)) ? $port1 : 143;
-$user1 || missing_option("--user1");
 
 $host2 || missing_option("--host2") ;
 $port2 = (defined($port2)) ? $port2 : 143;
+
+sub connect_imap {
+	my($host, $port, $debugimap) = @_;
+	my $imap = Mail::IMAPClient->new();
+	$imap->Server($host);
+	$imap->Port($port);
+	$imap->Debug($debugimap);
+	$imap->connect()
+	  or die "Can not open imap connection on [$host] : $@\n";	
+}
+
+if ($justconnect) {
+	my $from = ();
+	my $to = ();
+	
+	$from = connect_imap($host1, $port1);
+	print "From software : ", ($from->Report())[0];
+	print "From capability : ", join(" ", $from->capability()), "\n";
+	$to   = connect_imap($host2, $port2);
+	print "To   software : ", ($to->Report())[0];
+	print "To   capability : ", join(" ", $to->capability()), "\n";
+	$from->logout();
+	$to->logout();
+	exit(0);
+}
+	
+
+$user1 || missing_option("--user1");
 $user2 || missing_option("--user2");
 
 $authmd5 = (defined($authmd5)) ? $authmd5 : 1;
@@ -530,6 +563,8 @@ sub md5auth() {
 	}
 	return;
 }
+
+
 
 
 print "From software : ", ($from->Report())[0];
@@ -705,7 +740,7 @@ sub timenext {
 	return($timerel);
 }
 
-exit if ($justconnect);
+exit if ($justfoldersizes);
 
 # needed for setting flags
 my $tohasuidplus = $to->has_capability("UIDPLUS");
@@ -1011,6 +1046,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 print "Time : ", timenext(), " s\n";
 }
+$from->logout();
+$to->logout();
 
 $timeend = time();
 
@@ -1106,6 +1143,7 @@ sub get_options
                                    "subscribe!"  => \$subscribe,
                                    "justconnect!"=> \$justconnect,
                                    "justfolders!"=> \$justfolders,
+				   "justfoldersizes!" => \$justfoldersizes,
 				   "fast!"       => \$fast,
                                    "version"     => \$version,
                                    "help"        => \$help,
@@ -1230,6 +1268,9 @@ Several options are mandatory.
                          have NAMESPACE capability.
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
 --regextrans2 <regex>  : and this one. etc.
+                         When you play with the --regextrans2 option, first
+                         add also the safe options --dry --justfolders
+                         Then, when happy, remove --dry, remove --justfolders
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
                          Exemple : 's/\\000/ /g' # to replace null by space.
 --regexmess   <regex>  : and this one.
@@ -1275,14 +1316,15 @@ Several options are mandatory.
                          on the "source" server.
 --(no)foldersizes      : Calculate the size of each "From" folder in bytes
                          and message counts. Meant to be used with
-                         --justconnect. Turned on by default.
+                         --justfoldersizes. Turned on by default.
+--justfoldersizes      : exit after printed the folder sizes.
 --syncacls             : Synchronizes acls (Access Control Lists).
 --nosyncacls           : Does not synchronize acls. This is the default.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
 --version              : print sotfware version.
 --justconnect          : just connect to both servers and print useful
-                         information.
+                         information. Need only --host1 and --host2 options.
 --justfolders          : just do things about folders (ignore messages).
 --fast                 : be faster (does not sync flags).
 --nofastio1            : don't use fastio with the "from" server.
@@ -1294,7 +1336,7 @@ Example: to synchronise imap account "foo" on "imap.truc.org"
                      to imap account "bar" on "imap.trac.org"
 
 $0 \\
-   --host1 imap.troc.org --user1 foo --passfile1 /etc/secret1 \\
+   --host1 imap.truc.org --user1 foo --passfile1 /etc/secret1 \\
    --host2 imap.trac.org --user2 bar --passfile2 /etc/secret2
 
 

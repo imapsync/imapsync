@@ -44,6 +44,38 @@ b) Use stunnel
    then use imapsync on localhost (or bar machine) imap (143) port.
 
 
+======================================================================
+Q. I have moved from Braunschweig to Graz, so I would like to have my whole 
+Braunschweig mail sorted into a folder INBOX.Braunschweig of my new mail 
+account.
+
+R.
+1) First try (safe mode):
+
+imapsync \
+ ...
+ --regextrans2 's/INBOX(.*)/INBOX.Braunschweig$1/' \
+ --dry --justfolders
+
+2) See if the output says everything you want imapsync to do, 
+   --dry option is safe and does nothing real.
+   
+3) Remove --dry 
+   Check the imap folder tree on the target side
+
+4) Remove --justfolders
+
+=======================================================================
+Q. Give examples about --regextrans2
+
+R. Examples: 
+
+1) To remove INBOX. in the name of destination folders:
+    --regextrans2 's/^INBOX\.(.+)/$1/'
+
+2) To sync a complete account in a subfolder called FOO:
+    --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
+
 =======================================================================
 Q. I'm migrating from WU to Cyrus, and the mail folders are
 under /home/user/mail but the tool copies everything in

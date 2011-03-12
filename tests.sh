@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.44 2005/11/28 01:27:44 gilles Exp $	
+# $Id: tests.sh,v 1.45 2006/02/17 02:51:12 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -266,16 +266,31 @@ lp_justconnect()
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
+		./imapsync    \
+		--host2 plume \
+		--host1 loul  \
 		--justconnect
 	else
 		:
 	fi
 }
+
+lp_justfoldersizes() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--justfoldersizes
+	else
+		:
+	fi
+}
+
+
 
 lp_authmd5() 
 {
@@ -705,6 +720,7 @@ test $# -eq 0 && run_tests \
 	lp_subscribed \
 	lp_subscribe \
 	lp_justconnect \
+	lp_justfoldersizes \
 	lp_authmd5 \
 	lp_maxage \
 	lp_maxsize \
