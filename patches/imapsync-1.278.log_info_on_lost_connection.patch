@@ -1,0 +1,349 @@
+--- imapsync.ORIG	2009-03-30 12:34:43.562500000 -0400
++++ imapsync	2009-03-30 12:32:59.890625000 -0400
+@@ -70,7 +73,7 @@
+            [--minage <int>]
+            [--skipheader <regex>]
+            [--useheader <string>] [--useheader <string>]
+-           [--skipsize]
++           [--skipsize] [--allowsizemismatch]
+            [--delete] [--delete2]
+            [--expunge] [--expunge1] [--expunge2]
+            [--subscribed] [--subscribe]
+@@ -454,7 +457,7 @@
+         $fastio1, $fastio2, 
+ 	$maxsize, $maxage, $minage, 
+         $skipheader, @useheader,
+-        $skipsize, $foldersizes, $buffersize,
++        $skipsize, $allowsizemismatch, $foldersizes, $buffersize,
+ 	$delete, $delete2,
+         $expunge, $expunge1, $expunge2, $dry,
+         $justfoldersizes,
+@@ -795,20 +798,16 @@
+ 	$imap->Authuser($authuser);
+ 	$imap->Password($password);
+ 	unless ($imap->login()) {
+-		print "Error login: [$host] with user [$user] auth [$authmech]: $@\n";
+ 		my $info  = "Error login: [$host] with user [$user] auth";
+ 		my $einfo = $imap->LastError || @{$imap->History}[-1];
+ 		chomp($einfo);
+ 		my $error = "$info [$authmech]: $einfo\n";
+ 		print $error; # note: duplicating error on stdout/stderr
+-		die $error if ($authmech eq 'LOGIN' or $imap->IsUnconnected() or
+-$authuser);
+-		die if ($authmech eq 'LOGIN');
+-		die if $imap->IsUnconnected();
++		die $error if ($authmech eq 'LOGIN' or $imap->IsUnconnected() or $authuser);
+ 		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
+ 		$imap->Authmechanism("");
+ 		$imap->login() or
+-		  die "Error login: [$host] with user [$user] auth [LOGIN]: $@";
++		  die "$info [LOGIN]: ", $imap->LastError, "\n";
+ 	}
+ 	print "Success login on [$host] with user [$user] auth [$authmech]\n";
+ 	return($imap);
+@@ -1294,8 +1293,8 @@
+ 	$t_fold = to_folder_name($f_fold);
+ 	print "To   Folder [$t_fold]\n";
+ 
+-	last FOLDER if (lost_connection($from,"(from) host1 [$host1]"));
+-	last FOLDER if (lost_connection($to,"(to) host2 [$host2]"));
++	last FOLDER if $from->IsUnconnected();
++	last FOLDER if   $to->IsUnconnected();
+ 
+ 	unless ($from->select($f_fold)) {
+ 		warn 
+@@ -1343,8 +1342,8 @@
+ 	
+ 	next FOLDER if ($justfolders);
+ 
+-	last FOLDER if (lost_connection($from,"(from) host1 [$host1]"));
+-	last FOLDER if (lost_connection($to,"(to) host2 [$host2]"));
++	last FOLDER if $from->IsUnconnected();
++	last FOLDER if   $to->IsUnconnected();
+ 
+ 	my @f_msgs = select_msgs($from);
+ 
+@@ -1361,33 +1360,40 @@
+ 	my %t_hash = ();
+ 	
+ 	print "++++ From [$f_fold] Parse 1 ++++\n";
+-	last FOLDER if (lost_connection($from,"(from) host1 [$host1]"));
+-	last FOLDER if (lost_connection($to,"(to) host2 [$host2]"));
++	last FOLDER if $from->IsUnconnected();
++	last FOLDER if   $to->IsUnconnected();
+ 
+ 	my $f_heads = $from->parse_headers([@f_msgs],
+ 					    @useheader)if (@f_msgs) ;
+ 	$debug and print "Time headers: ", timenext(), " s\n";
++	last FOLDER if $from->IsUnconnected();
+ 	my $f_fir  = $from->fetch_hash("FLAGS",
+ 				       "INTERNALDATE",
+ 				       "RFC822.SIZE") if (@f_msgs);
+ 	$debug and print "Time fir: ", timenext(), " s\n";
+-	
++	last FOLDER if $from->IsUnconnected();
++
+ 	foreach my $m (@f_msgs) {
+-		parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash);
++		unless (parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash)) {
++			my $f_size = $f_fir->{$m}->{"RFC822.SIZE"} || 0;
++			print "+ Skipping msg #$m:$f_size in folder $f_fold (no header so we ignore this message)\n";
++			$mess_size_total_skipped += $f_size;
++			$mess_skipped += 1;
++		}
+ 	}
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+ 	
+ 	print "++++ To   [$t_fold] Parse 1 ++++\n";
+-	last FOLDER if (lost_connection($from,"(from) host1 [$host1]"));
+-	last FOLDER if (lost_connection($to,"(to) host2 [$host2]"));
+ 
+ 	my $t_heads =   $to->parse_headers([@t_msgs],
+ 					    @useheader) if (@t_msgs);
+ 	$debug and print "Time headers: ", timenext(), " s\n";
++	last FOLDER if   $to->IsUnconnected();
+ 	my $t_fir  =   $to->fetch_hash("FLAGS",
+ 				       "INTERNALDATE",
+ 				       "RFC822.SIZE") if (@t_msgs);
+ 	$debug and print "Time fir: ", timenext(), " s\n";
++	last FOLDER if   $to->IsUnconnected();
+ 	foreach my $m (@t_msgs) {
+ 		parse_header_msg1($to, $m, $t_heads, $t_fir, "T", \%t_hash);
+ 	}
+@@ -1411,7 +1417,10 @@
+ 			unless (exists($f_hash{$m_id})) {
+ 				my $t_msg  = $t_hash{$m_id}{'m'};
+ 				print "deleting message $m_id  $t_msg\n";
+-				$to->delete_message($t_msg) unless ($dry);	
++				unless ($dry) {
++					$to->delete_message($t_msg);
++					last FOLDER if $to->IsUnconnected();
++				}
+ 			}
+ 		}
+ 	}
+@@ -1432,10 +1441,18 @@
+ 			print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
+ 			# copy
+ 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
+-			last FOLDER if (lost_connection($from,"(from) host1 [$host1]"));
+-			last FOLDER if (lost_connection($to,"(to) host2 [$host2]"));
++			last FOLDER if $from->IsUnconnected();
++			last FOLDER if   $to->IsUnconnected();
+ 			my $string;
+ 			$string = $from->message_string($f_msg);
++			unless (defined($string)) {
++				warn
++				"Could not fetch message #$f_msg from $f_fold ",
++				$from->LastError, "\n";
++				$error++;
++				$mess_size_total_error += $f_size;
++				next MESS;
++			}
+ 			#print "AAAmessage_string[$string]ZZZ\n";
+ 			#my $message_file = "tmp_imapsync_$$";
+ 			#$from->select($f_fold);
+@@ -1514,8 +1531,8 @@
+ 			
+ 			my $new_id;
+ 			print "flags from: [$flags_f][$d]\n";
+-			last FOLDER if (lost_connection($from,"(from) host1 [$host1]"));
+-			last FOLDER if (lost_connection($to,"(to) host2 [$host2]"));
++			last FOLDER if $from->IsUnconnected();
++			last FOLDER if   $to->IsUnconnected();
+ 			unless ($dry) {
+ 				
+ 				if ($OSNAME eq "MSWin32") {
+@@ -1528,6 +1545,7 @@
+ 					$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
+ 				}
+ 				unless($new_id){
++					no warnings 'uninitialized';
+ 					warn "Couldn't append msg #$f_msg (Subject:[".
+ 					  $from->subject($f_msg)."]) to folder $t_fold: ",
+ 					  $to->LastError, "\n";
+@@ -1544,8 +1562,12 @@
+ 					$mess_trans += 1;
+ 					if($delete) {
+ 						print "Deleting msg #$f_msg in folder $f_fold\n";
+-						$from->delete_message($f_msg) unless ($dry);
+-						$from->expunge() if ($expunge and not $dry);
++						unless($dry) {
++							$from->delete_message($f_msg);
++							last FOLDER if $from->IsUnconnected();
++							$from->expunge() if ($expunge);
++							last FOLDER if $from->IsUnconnected();
++						}
+ 					}
+ 				}
+ 			}
+@@ -1568,8 +1590,8 @@
+ 		
+ 		
+ 		$debug and print "Setting flags\n";
+-		last FOLDER if (lost_connection($from,"(from) host1 [$host1]"));
+-		last FOLDER if (lost_connection($to,"(to) host2 [$host2]"));
++		last FOLDER if $from->IsUnconnected();
++		last FOLDER if   $to->IsUnconnected();
+ 
+ 
+ 		my (@flags_f,@flags_t);
+@@ -1585,8 +1607,11 @@
+ 		$to->store($t_msg,
+ 			   "+FLAGS.SILENT (" . $flags_f . ")"
+ 			  ) unless ($dry);
++		last FOLDER if   $to->IsUnconnected();
+ 		
+ 		my $flags_t_rv = $to->flags($t_msg);
++		last FOLDER if   $to->IsUnconnected();
++
+ 		@flags_t = @{$flags_t_rv} if ref($flags_t_rv);
+ 		my $flags_t = join(" ", @flags_t);
+ 		$debug and print 
+@@ -1618,6 +1643,7 @@
+ 			if ($opt_G){
+ 				print "Deleting msg f:#$t_msg in folder $t_fold\n";
+ 				$to->delete_message($t_msg) unless ($dry);
++				last FOLDER if   $to->IsUnconnected();
+ 			}
+ 		}
+ 		else {
+@@ -1626,8 +1652,12 @@
+ 			"Message $m_id SZ_GOOD f:$f_msg:$f_size t:$t_msg:$t_size\n";
+ 			if($delete) {
+ 				print "Deleting msg #$f_msg in folder $f_fold\n";
+-				$from->delete_message($f_msg) unless ($dry);
+-				$from->expunge() if ($expunge and not $dry);
++				unless($dry) {
++					$from->delete_message($f_msg);
++					last FOLDER if $from->IsUnconnected();
++					$from->expunge() if ($expunge);
++					last FOLDER if $from->IsUnconnected();
++				}
+ 			}
+ 		}
+ 	}
+@@ -1656,15 +1686,25 @@
+ 	my($imap, $error_message) = @_;
+ 	if ( $imap->IsUnconnected() ) {
+ 		$error++;
+-		warn("error: lost connection $error_message\n");
++		my $einfo = $imap->LastError || @{$imap->History}[-1] || "";
++		my $sz = 64;
++		# if einfo is long try reduce to a more reasonable size
++		if ( ! $debug and length($einfo) > $sz*2 ) {
++			my $beg = substr($einfo, 0, $sz);
++			my $end = substr($einfo, -$sz, $sz);
++			$einfo = $beg . "..." . $end;
++		}
++		chomp($einfo);
++		$einfo = ": $einfo" if $einfo;
++		warn("error: lost connection $error_message $einfo\n");
+ 		return(1);
+ 	}else{
+ 		return(0);
+ 	}
+ }
+ 
+-$from->logout() unless $from->isUnconnected();
+-$to->logout()   unless $to->isUnconnected();
++$from->logout() unless (lost_connection($from,"(from) host1 [$host1]"));
++$to->logout()   unless (lost_connection($to,"(to) host2 [$host2]"));
+ 
+ $timeend = time();
+ 
+@@ -1789,6 +1829,7 @@
+ 				   "skipheader=s" => \$skipheader,
+ 				   "useheader=s" => \@useheader,
+ 				   "skipsize!"   => \$skipsize,
++				   "allowsizemismatch!" => \$allowsizemismatch,
+ 				   "fastio1!"     => \$fastio1,
+ 				   "fastio2!"     => \$fastio2,
+ 				   "ssl1!"        => \$ssl1,
+@@ -2037,6 +2078,9 @@
+                          Ex: Message-ID or Subject or Date.
+ --useheader   <string>   and this one, etc.
+ --skipsize             : Don't take message size into account.
++--allowsizemismatch    : allow RFC822.SIZE != fetched msg size
++                         consider --skipsize to avoid duplicate messages
++                         when running syncs more than one time per mailbox
+ --dry                  : do nothing, just print what would be done.
+ --subscribed           : transfers subscribed folders.
+ --subscribe            : subscribe to the folders transferred on the 
+@@ -2648,20 +2692,8 @@
+ 	return $self->{SSL};
+ };
+ 
+-{
+-no warnings 'once';
+-*Mail::IMAPClient::Authuser = sub {
+-	my $self = shift;
+-	
+-	if (@_) { $self->{AUTHUSER} = shift }
+-	return $self->{AUTHUSER};
+-};
+-}
+-
+-# End of sub override_imapclient (yes, very bad indentation)
+ }
+ 
+-# *Mail::IMAPClient::connect = sub {
+ sub myconnect {
+ 	my $self = shift;
+ 	
+@@ -2691,20 +2723,22 @@
+ 	$self->Socket($sock);
+ 	if ( $Mail::IMAPClient::VERSION =~ /^2/ ) {
+ 	    return undef unless myconnect_v2($self);
+-        }
+-        if ($self->User and $self->Password) {
+- 	       return $self->login ;
+-        } 
+-        else {
+- 	       return $self;   
+-        }
++	}
++	else {
++		$self->Ignoresizeerrors($allowsizemismatch);
++	}
++	if ($self->User and $self->Password) {
++		return $self->login ;
++	} 
++	else {
++		return $self;	
++	}
+ }
+ 
+ 	
+ sub myconnect_v2 {
+-        my $self = shift;	
++	my $self = shift;
+ 	$self->State(Connected);
+-	# $sock->autoflush(1);
+ 	$self->Socket->autoflush(1);
+ 	my ($code, $output);
+         $output = "";
+@@ -2719,9 +2753,23 @@
+                 }
+ 
+         }
++
++	if ($code =~ /BYE|NO /) {
++		$self->State(Unconnected);
++		return undef ;
++	}
+ 	return $self;
+ }
+ 
++# HACK: Mail::IMAPClient 2.2.9 does not have Authuser, but 3.x does
++# - avoid warning: "Mail::IMAPClient::Authuser" used only once w/2.x too
++$Mail::IMAPClient::Authuser = $Mail::IMAPClient::Authuser = sub {
++	my $self = shift;
++	
++	if (@_) { $self->{AUTHUSER} = shift }
++	return $self->{AUTHUSER};
++} if ( $Mail::IMAPClient::VERSION =~ /^2/ );
++
+ package Mail::IMAPClient;
+ 
+ 

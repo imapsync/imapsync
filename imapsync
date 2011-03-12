@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.267 $
+$Revision: 1.284 $
 
 =head1 INSTALL
 
@@ -38,12 +38,12 @@ $Revision: 1.267 $
 
   imapsync [options]
 
-To get a description of each option just run imapsync like this :
+To get a description of each option just run imapsync like this:
 
   imapsync --help
   imapsync
 
-The option list :
+The option list:
 
   imapsync [--host1 server1]  [--port1 <num>]
            [--user1 <string>] [--passfile1 <string>]
@@ -59,7 +59,7 @@ The option list :
            [--regextrans2 <regex> --regextrans2 <regex> ...]
            [--sep1 <char>]
            [--sep2 <char>]
-           [--justfolders] [--justfoldersizes] [--justconnect]
+           [--justfolders] [--justfoldersizes] [--justconnect] [--justbanner]
            [--syncinternaldates]
            [--idatefromheader]
            [--buffersize  <int>]
@@ -70,15 +70,16 @@ The option list :
            [--minage <int>]
            [--skipheader <regex>]
            [--useheader <string>] [--useheader <string>]
-           [--skipsize]
+           [--skipsize] [--allowsizemismatch]
            [--delete] [--delete2]
-           [--expunge] [--expunge1] [--expunge2]
+           [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
            [--subscribed] [--subscribe]
            [--nofoldersizes]
            [--dry]
            [--debug] [--debugimap]
            [--timeout <int>] [--fast]
            [--split1] [--split2] 
+           [--reconnectretry1 <int>] [--reconnectretry2 <int>]
            [--version] [--help]
   
 =cut
@@ -91,19 +92,19 @@ The option list :
 The command imapsync is a tool allowing incremental and
 recursive imap transfer from one mailbox to another. 
 
-By default all folders are transfered, recursively.
+By default all folders are transferred, recursively.
 
 We sometimes need to transfer mailboxes from one imap server to
 another. This is called migration.
 
-imapsync is the adequate tool because it reduces the amount
+imapsync is a good tool because it reduces the amount
 of data transferred by not transferring a given message if it
 is already on both sides. Same headers, same message size
 and the transfer is done only once. All flags are
 preserved, unread will stay unread, read will stay read,
 deleted will stay deleted. You can stop the transfer at any
-time and restart it later, imapsync is adapted to a bad
-connection. imapsync is CPU hungry so nice and renice 
+time and restart it later, imapsync works well with bad 
+connections. imapsync is CPU hungry so nice and renice 
 commands can be a good help. imapsync can be memory hungry too,
 especially with large messages.
 
@@ -123,11 +124,11 @@ imapsync --help
 =head1 HISTORY
 
 I wrote imapsync because an enterprise (basystemes) paid me to install
-a new imap server without loosing huge old mailboxes located on a far
+a new imap server without losing huge old mailboxes located on a far
 away remote imap server accessible by a low bandwith link. The tool
 imapcp (written in python) could not help me because I had to verify
 every mailbox was well transferred and delete it after a good
-transfer. imapsync started its life being a copy_folder.pl patch.
+transfer. imapsync started life as a copy_folder.pl patch.
 The tool copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl
 module tarball source (in the examples/ directory of the tarball).
 
@@ -140,7 +141,7 @@ option. Nothing bad can be done this way.
 To synchronize the imap account "buddy" on host
 "imap.src.fr" to the imap account "max" on host
 "imap.dest.fr" (the passwords are located in two files
-"/etc/secret1" for "buddy", "/etc/secret2" for "max") :
+"/etc/secret1" for "buddy", "/etc/secret2" for "max"):
 
  imapsync --host1 imap.src.fr  --user1 buddy --passfile1 /etc/secret1 \
           --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
@@ -159,8 +160,8 @@ the password in a well protected file (600 or rw-------) is
 the best solution.
 
 imasync is not totally protected against sniffers on the
-network since passwords may be transferred in plain text in
-case CRAM-MD5 is not supported by your imap servers.  Use
+network since passwords may be transferred in plain text
+if CRAM-MD5 is not supported by your imap servers.  Use
 --ssl1 and --ssl2 to enable encryption on host1 and host2.
 
 You may authenticate as one user (typically an admin user),
@@ -178,26 +179,12 @@ Same behavior with the --authuser2 option.
 imapsync will exit with a 0 status (return code) if everything went good.
 Otherwise, it exits with a non-zero status.
 
-So if you have a buggy internet connection, you can use this loop 
+So if you have an unreliable internet connection, you can use this loop 
 in a Bourne shell:
 
         while ! imapsync ...; do 
               echo imapsync not complete
         done
-
-=head1 AUTHOR
-
-Gilles LAMIRAL <lamiral@linux-france.org>
-
-Feedback good or bad is always welcome.
-
-The newsgroup comp.mail.imap is a good place to talk about
-imapsync. I read it when imapsync is concerned.
-
-Gilles LAMIRAL earn his living writing, installing,
-configuring and teaching free open and gratis
-softwares. Do not hesitate to pay him for that services.
-
 
 =head1 LICENSE
 
@@ -208,24 +195,19 @@ http://www.gnu.org/licenses/licenses.html
 
 =head1 MAILING-LIST
 
-Here is the welcome message:
+The public mailing-list may be the best way to get support.
 
-Welcome on the imapsync mailing-list.
-
-This list is dedicated to the users of imapsync
-http://www.linux-france.org/prj/imapsync/
-
-To write on the list, the address is:
-mailto:imapsync@linux-france.org
-
-To unsubscribe, send a message to:
-mailto:imapsync-unsubscribe@listes.linux-france.org
+To write on the mailing-list, the address is:
+<imapsync@linux-france.org>
 
 To subscribe, send a message to:
-mailto:imapsync-subscribe@listes.linux-france.org
+<imapsync-subscribe@listes.linux-france.org>
+
+To unsubscribe, send a message to:
+<imapsync-unsubscribe@listes.linux-france.org>
 
 To contact the person in charge for the list:
-mailto:imapsync-request@listes.linux-france.org
+<imapsync-request@listes.linux-france.org>
 
 The list archives may be available at:
 http://www.linux-france.org/prj/imapsync_list/
@@ -235,45 +217,58 @@ post to this list if you want to stay private.
 
 Thank you for your participation.
 
+=head1 AUTHOR
+
+Gilles LAMIRAL <lamiral@linux-france.org>
+
+Feedback good or bad is always welcome.
+
+The newsgroup comp.mail.imap may be a good place to talk about
+imapsync. I read it when imapsync is concerned.
+A better place is the public imapsync mailing-list
+(see below).
+
+Gilles LAMIRAL earns his living writing, installing,
+configuring and teaching free, open and gratis
+softwares. Do not hesitate to pay him for that services.
+
 =head1 BUGS and BUG REPORT
 
 No known serious bug.  
 
-Report any bug or feature request to the author
-or the mailing-list.
+Report any bugs or feature requests to the public mailing-list 
+or to the author.
 
-Before reporting bugs, read the FAQ, this README and the
-TODO files.
+Help us to help you: follow the following guidelines.
 
-Don't write imapsync in uppercase in the email title, I'll
-know you run windows and you haven't read the README yet.
+Before reporting bugs, read the FAQ, the README and the
+TODO files. http://www.linux-france.org/prj/imapsync/
 
 Make a good title, not just "imapsync" or "problem",
 a good title is made of keywords summary,  not too long (one visible line).
 
-Before reporting bugs, read the FAQ, this README and the
-TODO files. http://www.linux-france.org/prj/imapsync/
+Don't write imapsync in uppercase in the email title, we'll
+know you run windows(tm) and you haven't read the README yet.
 
-Help me to help you: in your report, please include:
+Help us to help you: in your report, please include:
 
  - imapsync version.
  - output given with --debug --debugimap near the failure point.
- - operating system running imapsync.
- - imap servers softwares on both side and their version number.
+   Isolate a message in a folder 'BUG' and use --folder 'BUG'
+ - imap server software on both side and their version number.
  - imapsync with all the options you use,  the full command line
    you use (except the passwords of course). 
  - IMAPClient.pm version.
-
- Those values can be found as a copy/paste at the begining of the output.
-
- And also, if it can help :
-
+ - operating system running imapsync.
  - operating systems on both sides and the third side in case
    you run imapsync on a foreign host from the both.
+ - virtual software context (vmware, xen etc.)
 
-=head1 IMAP SERVERS
+ Most of those values can be found as a copy/paste at the begining of the output.
 
-Failure stories reported with the following 4 imap servers :
+=head1 IMAP SERVERS 
+
+Failure stories reported with the following 4 imap servers:
 
  - MailEnable 1.54 (Proprietary) http://www.mailenable.com/
  - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 works.
@@ -282,12 +277,12 @@ Failure stories reported with the following 4 imap servers :
  - Imail 7.04 (maybe).
 
 Success stories reported with the following 35 imap servers 
-(softwares names are in alphabetic order) : 
+(software names are in alphabetic order): 
 
  - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [dest], 3.0.0 [dest]
    (OSL 3.0) http://www.archiveopteryx.org/
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
- - CommuniGatePro server (Redhat 8.0)
+ - CommuniGatePro server (Redhat 8.0) (Solaris)
  - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
    (http://www.courier-mta.org/)
  - Critical Path (7.0.020)
@@ -314,7 +309,7 @@ Success stories reported with the following 35 imap servers
  - IMail 7.15 (Ipswitch/Win2003), 8.12
  - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform)
  - Mercury 4.1 (Windows server 2000 platform)
- - Microsoft Exchange Server 5.5, 6.0.6249.0[from], 6.5.7638.1 [dest]
+ - Microsoft Exchange Server 5.5, 6.0.6249.0[from], 6.0.6487.0[from], 6.5.7638.1 [dest]
  - Netscape Mail Server 3.6 (Wintel !)
  - Netscape Messaging Server 4.15 Patch 7
  - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
@@ -325,7 +320,7 @@ Success stories reported with the following 35 imap servers
  - Scalix v10.1, 10.0.1.3, 11.0.0.431
  - SmarterMail
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
- - Sun Java System Messaging Server 6.2-2.05
+ - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05
  - Surgemail 3.6f5-5
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
    (RedHat uses UW like 2003.338rh), v12.264 Solaris 5.7 (OSI Approved) 
@@ -341,11 +336,11 @@ future users. To help the author maintaining this section
 report the two lines at the begining of the output if they
 are useful to know the softwares. Example:
 
- From software :* OK louloutte Cyrus IMAP4 v1.5.19 server ready
- To   software :* OK Courier-IMAP ready
+ From software:* OK louloutte Cyrus IMAP4 v1.5.19 server ready
+ To   software:* OK Courier-IMAP ready
 
 You can use option --justconnect to get those lines.
-Example :
+Example:
 
   imapsync --host1 imap.troc.org --host2 imap.trac.org --justconnect
 
@@ -356,8 +351,7 @@ http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/
 
 =head1 HUGE MIGRATION
 
-
-Have a special attention on options 
+Pay special attention to options 
 --subscribed
 --subscribe
 --delete
@@ -365,23 +359,25 @@ Have a special attention on options
 --expunge
 --expunge1
 --expunge2
+--uidexpunge2
 --maxage
 --minage
 --maxsize
 --useheader
+--fast
 
 If you have many mailboxes to migrate think about a little
 shell program. Write a file called file.csv (for example)
 containing users and passwords.
 The separator used in this example is ';'
 
-The file.csv file content is :
+The file.csv file contains:
 
 user0001;password0001;user0002;password0002
 user0011;password0011;user0012;password0012
 ...
 
-And the shell program is just :
+And the shell program is just:
 
  { while IFS=';' read  u1 p1 u2 p2; do 
 	imapsync --user1 "$u1" --password1 "$p1" --user2 "$u2" --password2 "$p2" ...
@@ -420,14 +416,11 @@ Entries for imapsync:
   pop2imap      : http://www.linux-france.org/prj/pop2imap/
 
 
-Feedback (good or bad) will be always welcome.
+Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.267 2008/10/07 11:36:02 gilles Exp $
-
-
+$Id: imapsync,v 1.284 2009/06/30 03:14:24 gilles Exp gilles $
 
 =cut
-
 
 use warnings;
 ++$|;
@@ -463,14 +456,14 @@ my(
         $fastio1, $fastio2, 
 	$maxsize, $maxage, $minage, 
         $skipheader, @useheader,
-        $skipsize, $foldersizes, $buffersize,
+        $skipsize, $allowsizemismatch, $foldersizes, $buffersize,
 	$delete, $delete2,
-        $expunge, $expunge1, $expunge2, $dry,
+        $expunge, $expunge1, $expunge2, $uidexpunge2, $dry,
         $justfoldersizes,
         $authmd5,
         $subscribed, $subscribe,
 	$version, $VERSION, $help, 
-        $justconnect, $justfolders,
+        $justconnect, $justfolders, $justbanner,
         $fast,
         $mess_size_total_trans,
         $mess_size_total_skipped,
@@ -483,16 +476,17 @@ my(
         $authuser1, $authuser2,
         $authmech1, $authmech2,
         $split1, $split2,
+        $reconnectretry1, $reconnectretry2,
 	$tests, $test_builder,
-	$allow3xx,
+	$allow3xx, $justlogin,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.267 2008/10/07 11:36:02 gilles Exp $ ';
+$rcs = '$Id: imapsync,v 1.284 2009/06/30 03:14:24 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
-$VERSION = ($1) ? $1 : "UNKNOWN";
+$VERSION = ($1) ? $1: "UNKNOWN";
 
 my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
 
@@ -505,23 +499,14 @@ $mess_trans = $mess_skipped = $mess_skipped_dry = 0;
 
 
 sub check_lib_version {
-	$debug and print "VERSION_IMAPClient $1 $2 $3\n";
+	$debug and print "VERSION_IMAPClient $VERSION_IMAPClient\n";
 	if ($VERSION_IMAPClient eq '2.2.9') {
 		override_imapclient();
 		return(1);
 	}
 	else{
-		# 3.x.x is still buggy with imapsync.
-		# uncomment "return 1" if you want to check it.
-		#return 1;
-		#return 0;
+		# 3.x.x is no longer buggy with imapsync.
 		if ($allow3xx) {
-*Mail::IMAPClient::Ssl = sub {
-	my $self = shift;
-	
-	if (@_) { $self->{SSL} = shift }
-	return $self->{SSL};
-};
 			return(1);
 
 		}else{
@@ -548,16 +533,27 @@ Date::Manip       $Date::Manip::VERSION
 
 }
 
+my @argv_nopassord;
+my @argv_copy = @ARGV;
+while (@argv_copy) {
+	my $arg = shift(@argv_copy);
+	if ($arg =~ m/-password[12]/) {
+		shift(@argv_copy);
+		push(@argv_nopassord, $arg, "MASKED");
+	}else{
+		push(@argv_nopassord, $arg);
+	}
+}
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.267 $ ',
-		  '$Date: 2008/10/07 11:36:02 $ ',
+		  '$Revision: 1.284 $ ',
+		  '$Date: 2009/06/30 03:14:24 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
-		  "Command line used :\n",
-		  "$0 @ARGV\n",
+		  "Command line used:\n",
+		  "$0 @argv_nopassord\n",
 		 );
 
 unless(defined(&_SYSEXITS_H)) {
@@ -568,10 +564,12 @@ unless(defined(&_SYSEXITS_H)) {
 get_options();
 
 check_lib_version() or 
-  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9 exactly, future imapsync release may suppoort 3.0.x, but sorry not now. See file BUG_IMAPClient_3.xx\n";
+  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.0.19 or superior \n";
 
 
 print $banner;
+
+exit(0) if ($justbanner);
 
 sub missing_option {
 	my ($option) = @_;
@@ -588,7 +586,8 @@ $port1 ||= defined $ssl1 ? 993 : 143;
 $host2 || missing_option("--host2") ;
 $port2 ||= defined $ssl2 ? 993 : 143;
 
-
+# allow Mail::IMAPClient 3.0.xx by default
+$allow3xx = defined($allow3xx) ? $allow3xx : 1;
 
 sub connect_imap {
 	my($host, $port, $debugimap, $ssl) = @_;
@@ -597,8 +596,9 @@ sub connect_imap {
 	$imap->Port($port);
 	$imap->Debug($debugimap);
 	$imap->Ssl($ssl) if ($ssl);
-	$imap->connect()
-	  or die "Can not open imap connection on [$host] : $@\n";	
+	#$imap->connect()
+	myconnect($imap)
+	  or die "Can not open imap connection on [$host]: $@\n";	
 }
 
 sub localhost_info {
@@ -622,11 +622,11 @@ if ($justconnect) {
 	my $to = ();
 	
 	$from = connect_imap($host1, $port1, $debugimap, $ssl1);
-	print "From software : ", server_banner($from);
-	print "From capability : ", join(" ", $from->capability()), "\n";
+	print "From software: ", server_banner($from);
+	print "From capability: ", join(" ", $from->capability()), "\n";
 	$to   = connect_imap($host2, $port2, $debugimap, $ssl2);
-	print "To   software : ", server_banner($to);
-	print "To   capability : ", join(" ", $to->capability()), "\n";
+	print "To   software: ", server_banner($to);
+	print "To   capability: ", join(" ", $to->capability()), "\n";
 	$from->logout();
 	$to->logout();
 	exit(0);
@@ -645,7 +645,7 @@ if($idatefromheader) {
 }
 if ($syncinternaldates) {
 	print "Turned ON syncinternaldates, ",
-	      "will set the internal dates on host2 same as host1.\n";
+	      "will set the internal dates (arrival dates) on host2 same as host1.\n";
 }else{
 	print "Turned OFF syncinternaldates\n";
 }
@@ -655,12 +655,12 @@ if ($syncinternaldates || $idatefromheader) {
 	local *Carp::confess = sub { return undef; };
 	require Date::Manip;
 	Date::Manip->import(qw(ParseDate Date_Cmp UnixDate Date_Init Date_TimeZone));
-	#print "Date_init : [", join(" ",Date_Init()), "]\n";
-	print "TimeZone :[", Date_TimeZone(), "]\n";
+	#print "Date_init: [", join(" ",Date_Init()), "]\n";
+	print "TimeZone:[", Date_TimeZone(), "]\n";
 	if (not (Date_TimeZone())) {
 		warn "TimeZone not defined, setting it to GMT";
 		Date_Init("TZ=GMT");
-		print "TimeZone : [", Date_TimeZone(), "]\n";
+		print "TimeZone: [", Date_TimeZone(), "]\n";
 	}
 }
 
@@ -730,29 +730,29 @@ $timebefore = $timestart;
 $debugimap and print "From connection\n";
 $from = login_imap($host1, $port1, $user1, $password1, 
 		   $debugimap, $timeout, $fastio1, $ssl1, 
-		   $authmech1, $authuser1);
+		   $authmech1, $authuser1, $reconnectretry1);
 
 $debugimap and print "To  connection\n";
 $to = login_imap($host2, $port2, $user2, $password2, 
 		 $debugimap, $timeout, $fastio2, $ssl2, 
-		 $authmech2, $authuser2);
+		 $authmech2, $authuser2, $reconnectretry2);
 
 #  history
 
-$debug and print "From Buffer I/O : ", $from->Buffer(), "\n";
-$debug and print "To   Buffer I/O : ", $to->Buffer(), "\n";
+$debug and print "From Buffer I/O: ", $from->Buffer(), "\n";
+$debug and print "To   Buffer I/O: ", $to->Buffer(), "\n";
 
 
 sub login_imap {
 	my($host, $port, $user, $password, 
 	   $debugimap, $timeout, $fastio, 
-	   $ssl, $authmech, $authuser) = @_;
+	   $ssl, $authmech, $authuser, $reconnectretry) = @_;
 	my ($imap);
 	
 	$imap = Mail::IMAPClient->new();
 	
 	$imap->Ssl($ssl) if ($ssl);
-	$imap->Clear(20);
+	$imap->Clear(5);
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Fast_io($fastio);
@@ -761,11 +761,17 @@ sub login_imap {
 	$imap->Peek(1);
 	$imap->Debug($debugimap);
 	$timeout and $imap->Timeout($timeout);
+
+	( Mail::IMAPClient->VERSION =~ /^2/ or !$imap->can("Reconnectretry"))
+	  ? warn("--reconnectretry* requires IMAPClient >= 3.17\n")
+	  : $imap->Reconnectretry($reconnectretry)
+	  if ($reconnectretry);
+
+	#$imap->connect()
+	myconnect($imap)
+	  or die "Can not open imap connection on [$host] with user [$user]: $@\n";
 	
-	$imap->connect()
-	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
-	
-	print "Banner : ", server_banner($imap);
+	print "Banner: ", server_banner($imap);
 	
 	if ($imap->has_capability("AUTH=$authmech")
 	    or $imap->has_capability($authmech)
@@ -789,13 +795,16 @@ sub login_imap {
 	$imap->Authuser($authuser);
 	$imap->Password($password);
 	unless ($imap->login()) {
-		print "Error login : [$host] with user [$user] auth [$authmech]: $@\n";
-		die if ($authmech eq 'LOGIN');
-		die if $imap->IsUnconnected();
+		my $info  = "Error login: [$host] with user [$user] auth";
+		my $einfo = $imap->LastError || @{$imap->History}[-1];
+		chomp($einfo);
+		my $error = "$info [$authmech]: $einfo\n";
+		print $error; # note: duplicating error on stdout/stderr
+		die $error if ($authmech eq 'LOGIN' or $imap->IsUnconnected() or $authuser);
 		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
 		$imap->Authmechanism("");
 		$imap->login() or
-		  die "Error login : [$host] with user [$user] auth [LOGIN] : $@";
+		  die "$info [LOGIN]: ", $imap->LastError, "\n";
 	}
 	print "Success login on [$host] with user [$user] auth [$authmech]\n";
 	return($imap);
@@ -822,13 +831,15 @@ sub server_banner {
 
 
 
-print "From capability : ", join(" ", $from->capability()), "\n";
-print "To   capability : ", join(" ", $to->capability()), "\n";
+$debug and print "From capability: ", join(" ", $from->capability()), "\n";
+$debug and print "To   capability: ", join(" ", $to->capability()), "\n";
 
 die unless $from->IsAuthenticated();
-print "From state Authenticated\n";
+print "host1: state Authenticated\n";
 die unless   $to->IsAuthenticated();
-print "To   state Authenticated\n";
+print "host2: state Authenticated\n";
+
+exit(0) if ($justlogin);
 
 $split1 and $from->Split($split1);
 $split2 and $to->Split($split2);
@@ -949,7 +960,7 @@ if (scalar(@exclude)) {
 
 foreach my $folder (keys(%requested_folder)) {
         if ( not $from->selectable($folder)) {
-		print "Warning : ignoring folder $folder because it is not selectable\n";
+		print "Warning: ignoring folder $folder because it is not selectable\n";
                 remove_from_requested_folders($folder);
         }
 }
@@ -1089,20 +1100,24 @@ sub get_separator {
 	$debug and print "Calling namespace capability\n";
 	if ($imap->has_capability("namespace")) {
 		$sep_out = $imap->separator();
-		return($sep_out);
+		return($sep_out) if defined $sep_out;
+		warn 
+		  "NAMESPACE request failed for ", 
+		  $imap->Server(), ": ", $imap->LastError, "\n";
+		exit(1);
 	}
 	else{
-		print 
+		warn
 		  "No NAMESPACE capability in imap server ", 
 		    $imap->Server(),"\n",
-		      "Give the separator caracter with the $sep_opt option\n";
+		      "Give the separator character with the $sep_opt option\n";
 		exit(1);
 	}
 }
 
 
-print "From separator and prefix : [$f_sep][$f_prefix]\n";
-print "To   separator and prefix : [$t_sep][$t_prefix]\n";
+print "From separator and prefix: [$f_sep][$f_prefix]\n";
+print "To   separator and prefix: [$t_sep][$t_prefix]\n";
 
 
 sub foldersizes {
@@ -1122,9 +1137,9 @@ sub foldersizes {
 		}
 		unless ($imap->select($folder)) {
 			warn 
-			  "$side Folder $folder : Could not select ",
+			  "$side Folder $folder: Could not select: ",
 			    $imap->LastError,  "\n";
-			#$error++;
+			$error++;
 			next;
 		}
 		if (defined($maxage) or defined($minage)) {
@@ -1155,7 +1170,7 @@ sub foldersizes {
 	}
 	print "Total size: $tot\n";
 	print "Total messages: $tmess\n";
-	print "Time : ", timenext(), " s\n";
+	print "Time: ", timenext(), " s\n";
 }
 
 
@@ -1166,7 +1181,6 @@ foreach my $f_fold (@f_folders) {
 }
 
 @t_folders = sort keys(%t_folders);
-
 
 if ($foldersizes) {
 	foldersizes("From", $from, \@f_folders);
@@ -1198,16 +1212,16 @@ foreach my $folder (@t_folders_list) {
 
 print 
   "++++ Listing folders ++++\n",
-  "From folders list : ", map("[$_] ",@f_folders),"\n",
-  "To   folders list : ", map("[$_] ",@t_folders_list),"\n";
+  "From folders list: ", map("[$_] ",@f_folders),"\n",
+  "To   folders list: ", map("[$_] ",@t_folders_list),"\n";
 
 print 
-  "From subscribed folders list : ", 
+  "From subscribed folders list: ", 
   map("[$_] ", sort keys(%subscribed_folder)), "\n" 
   if ($subscribed);
 
 sub separator_invert {
-	# The separator we hope we'll never encounter
+	# The separator we hope we'll never encounter: 00000000
 	my $o_sep="\000";
 
 	my($f_fold, $f_sep, $t_sep) = @_;
@@ -1224,20 +1238,43 @@ sub to_folder_name {
 	my ($x_fold) = @_;
 	# first we remove the prefix
 	$x_fold =~ s/^$f_prefix//;
-	$debug and print "removed source prefix : [$x_fold]\n";
+	$debug and print "removed source prefix: [$x_fold]\n";
 	$t_fold = separator_invert($x_fold,$f_sep, $t_sep);
-	$debug and print "inverted   separators : [$t_fold]\n";
+	$debug and print "inverted   separators: [$t_fold]\n";
 	# Adding the prefix supplied by namespace or the --prefix2 option
 	$t_fold = $t_prefix . $t_fold 
-	  unless(($t_prefix eq "INBOX.") and ($t_fold =~ m/^INBOX$/i));
-	$debug and print "added   target prefix : [$t_fold]\n";
+	  unless(($t_prefix eq "INBOX" . $t_sep) and ($t_fold =~ m/^INBOX$/i));
+	$debug and print "added   target prefix: [$t_fold]\n";
 
 	# Transforming the folder name by the --regextrans2 option(s)
 	foreach my $regextrans2 (@regextrans2) {
 		$debug and print "eval \$t_fold =~ $regextrans2\n";
 		eval("\$t_fold =~ $regextrans2");
+		die("error: eval regextrans2 '$regextrans2': $@\n") if $@;
 	}
 	return($t_fold);
+}
+
+sub tests_flags_regex {
+	
+	my $string;
+	ok('' eq flags_regex(''), "flags_regex, null string ''");
+	ok('\Seen NonJunk $Spam' eq flags_regex('\Seen NonJunk $Spam'), 'flags_regex, nothing to do');
+	ok('\Seen NonJunk $Spam' eq flags_regex('\Seen NonJunk $Spam'), 'flags_regex,');
+	@regexflag = ('s/NonJunk//g');
+	ok('\Seen  $Spam' eq flags_regex('\Seen NonJunk $Spam'), "flags_regex, remove NonJunk: 's/NonJunk//g'");
+	@regexflag = ('s/\$Spam//g');
+	ok('\Seen NonJunk ' eq flags_regex('\Seen NonJunk $Spam'), 'flags_regex, remove $Spam: '."'s/\$Spam//g'");
+	
+	@regexflag = ('s/\\\\Seen//g');
+	
+	ok(' NonJunk $Spam' eq flags_regex('\Seen NonJunk $Spam'), 'flags_regex, remove \Seen: '. "'s/\\\\\\\\Seen//g'");
+	
+	@regexflag = ('s/(\s|^)[^\\\\]\w+//g');
+	ok('\Seen \Middle \End' eq flags_regex('\Seen NonJunk \Middle $Spam \End'), 'flags_regex, only \word [' . flags_regex('\Seen NonJunk \Middle $Spam \End'.']'));
+	ok(' \Seen \Middle \End1' eq flags_regex('Begin \Seen NonJunk \Middle $Spam \End1 End'), 'flags_regex, only \word [' . flags_regex('Begin \Seen NonJunk \Middle $Spam \End1 End'.']'));
+
+	
 }
 
 sub flags_regex {
@@ -1245,6 +1282,7 @@ sub flags_regex {
 	foreach my $regexflag (@regexflag) {
 		$debug and print "eval \$flags_f =~ $regexflag\n";
 		eval("\$flags_f =~ $regexflag");
+		die("error: eval regexflag '$regexflag': $@\n") if $@;
 	}
 	return($flags_f);
 }
@@ -1259,7 +1297,7 @@ sub acls_sync {
 		my %users = map({ ($_, 1) } (keys(%$f_hash), keys(%$t_hash)));
 		foreach my $user (sort(keys(%users))) {
 			my $acl = $f_hash->{$user} || "none";
-			print "acl $user : [$acl]\n";
+			print "acl $user: [$acl]\n";
 			next if ($f_hash->{$user} && $t_hash->{$user} &&
 				 $f_hash->{$user} eq $t_hash->{$user});
 			unless ($dry) {
@@ -1282,12 +1320,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	last FOLDER if $from->IsUnconnected();
 	last FOLDER if   $to->IsUnconnected();
-	
+
 	unless ($from->select($f_fold)) {
 		warn 
-		"From Folder $f_fold : Could not select ",
+		"From Folder $f_fold: Could not select: ",
 		$from->LastError,  "\n";
-		#$error++;
+		$error++;
 		next FOLDER;
 	}
 	if ( ! exists($t_folders_list{$t_fold})) {
@@ -1295,7 +1333,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		print "Creating folder [$t_fold]\n";
 		unless ($dry){
 			unless ($to->create($t_fold)){
-				warn "Couldn't create [$t_fold]",
+				warn "Couldn't create [$t_fold]: ",
 				$to->LastError,"\n";
 				$error++;
 				next FOLDER;
@@ -1310,9 +1348,9 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	unless ($to->select($t_fold)) { 
 		warn 
-		"To   Folder $t_fold : Could not select ",
+		"To   Folder $t_fold: Could not select: ",
 		$to->LastError, "\n";
-		#$error++;
+		$error++;
 		next FOLDER;
 	}
 	
@@ -1336,12 +1374,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 
 
-	$debug and print "LIST FROM : ", scalar(@f_msgs), " messages [@f_msgs]\n";
+	$debug and print "LIST FROM: ", scalar(@f_msgs), " messages [@f_msgs]\n";
 	# internal dates on "TO" are after the ones on "FROM"
 	# normally...
 	my @t_msgs = select_msgs($to);
 	
-	$debug and print "LIST TO   : ", scalar(@t_msgs), " messages [@t_msgs]\n";
+	$debug and print "LIST TO  : ", scalar(@t_msgs), " messages [@t_msgs]\n";
 
 	my %f_hash = ();
 	my %t_hash = ();
@@ -1350,35 +1388,49 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	last FOLDER if $from->IsUnconnected();
 	last FOLDER if   $to->IsUnconnected();
 
-	my $f_heads = $from->parse_headers([@f_msgs],
-					    @useheader)if (@f_msgs) ;
+	my ($f_heads, $f_fir) = ({}, {});
+	$f_heads = $from->parse_headers([@f_msgs], @useheader) if (@f_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $f_fir  = $from->fetch_hash("FLAGS",
-				       "INTERNALDATE",
-				       "RFC822.SIZE") if (@f_msgs);
-	$debug and print "Time fir  : ", timenext(), " s\n";
-	
+	last FOLDER if $from->IsUnconnected();
+
+	$f_fir   = $from->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
+	  if (@f_msgs);
+	$debug and print "Time fir: ", timenext(), " s\n";
+	unless ($f_fir) {
+		warn
+		"From Folder $f_fold: Could not fetch_hash ",
+		scalar(@f_msgs), " msgs: ", $from->LastError, "\n";
+		$error++;
+		next FOLDER;
+	}
+	last FOLDER if $from->IsUnconnected();
+
 	foreach my $m (@f_msgs) {
-		parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash);
+		unless (parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash)) {
+			my $f_size = $f_fir->{$m}->{"RFC822.SIZE"} || 0;
+			print "+ Skipping msg #$m:$f_size in folder $f_fold (no header so we ignore this message)\n";
+			$mess_size_total_skipped += $f_size;
+			$mess_skipped += 1;
+		}
 	}
 	$debug and print "Time headers: ", timenext(), " s\n";
 	
 	print "++++ To   [$t_fold] Parse 1 ++++\n";
-	last FOLDER if $from->IsUnconnected();
+
+	my ($t_heads, $t_fir) = ({}, {});
+	$t_heads =   $to->parse_headers([@t_msgs], @useheader) if (@t_msgs);
+	$debug and print "Time headers: ", timenext(), " s\n";
 	last FOLDER if   $to->IsUnconnected();
 
-	my $t_heads =   $to->parse_headers([@t_msgs],
-					    @useheader) if (@t_msgs);
-	$debug and print "Time headers: ", timenext(), " s\n";
-	my $t_fir  =   $to->fetch_hash("FLAGS",
-				       "INTERNALDATE",
-				       "RFC822.SIZE") if (@t_msgs);
-	$debug and print "Time fir  : ", timenext(), " s\n";
+	$t_fir   =   $to->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
+	  if (@t_msgs);
+	$debug and print "Time fir: ", timenext(), " s\n";
+	last FOLDER if   $to->IsUnconnected();
 	foreach my $m (@t_msgs) {
 		parse_header_msg1($to, $m, $t_heads, $t_fir, "T", \%t_hash);
 	}
 	$debug and print "Time headers: ", timenext(), " s\n";
-	
+
 	print "++++ Verifying [$f_fold] -> [$t_fold] ++++\n";
 	# messages in "from" that are not good in "to"
 	
@@ -1392,13 +1444,30 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	
 	if($delete2) {
+		my @expunge;
 		foreach my $m_id (@t_hash_keys_sorted_by_uid) {
 			#print "$m_id ";
 			unless (exists($f_hash{$m_id})) {
 				my $t_msg  = $t_hash{$m_id}{'m'};
-				print "deleting message $m_id  $t_msg\n";
-				$to->delete_message($t_msg) unless ($dry);	
+				my $flags  = $t_hash{$m_id}{'F'} || "";
+				my $isdel  = $flags =~ /\B\\Deleted\b/ ? 1 : 0;
+				print "deleting message $m_id  $t_msg\n"
+				  if ! $isdel;
+				push(@expunge,$t_msg) if $uidexpunge2;
+				unless ($dry or $isdel) {
+					$to->delete_message($t_msg);
+					last FOLDER if $to->IsUnconnected();
+				}
 			}
+		}
+
+		my $cnt = scalar @expunge;
+		if(@expunge and !$to->can("uidexpunge")) {
+			warn "uidexpunge not supported (< IMAPClient 3.17)\n";
+		}
+		elsif(@expunge) {
+			print "uidexpunge $cnt message(s)\n";
+			$to->uidexpunge(\@expunge) if !$dry;
 		}
 	}
 
@@ -1419,8 +1488,17 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			# copy
 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			last FOLDER if $from->IsUnconnected();
+			last FOLDER if   $to->IsUnconnected();
 			my $string;
 			$string = $from->message_string($f_msg);
+			unless (defined($string)) {
+				warn
+				"Could not fetch message #$f_msg from $f_fold: ",
+				$from->LastError, "\n";
+				$error++;
+				$mess_size_total_error += $f_size;
+				next MESS;
+			}
 			#print "AAAmessage_string[$string]ZZZ\n";
 			#my $message_file = "tmp_imapsync_$$";
 			#$from->select($f_fold);
@@ -1459,6 +1537,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 				foreach my $regexmess (@regexmess) {
 					$debug and print "eval \$string =~ $regexmess\n";
 					eval("\$string =~ $regexmess");
+					die("error: eval regexmess '$regexmess': $@\n") if $@;
 				}
 				return($string);
 			}
@@ -1492,12 +1571,13 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			}
 
 			my $flags_f = $f_hash{$m_id}{'F'} || "";
-			# RFC 2060 : This flag can not be altered by any client
+			# RFC 2060: This flag can not be altered by any client
 			$flags_f =~ s@\\Recent@@gi;
 			$flags_f = flags_regex($flags_f) if @regexflag;
 			
 			my $new_id;
-			print "flags from : [$flags_f][$d]\n";
+			print "flags from: [$flags_f][$d]\n";
+			last FOLDER if $from->IsUnconnected();
 			last FOLDER if   $to->IsUnconnected();
 			unless ($dry) {
 				
@@ -1511,6 +1591,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
 				}
 				unless($new_id){
+					no warnings 'uninitialized';
 					warn "Couldn't append msg #$f_msg (Subject:[".
 					  $from->subject($f_msg)."]) to folder $t_fold: ",
 					  $to->LastError, "\n";
@@ -1527,8 +1608,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					$mess_trans += 1;
 					if($delete) {
 						print "Deleting msg #$f_msg in folder $f_fold\n";
-						$from->delete_message($f_msg) unless ($dry);
-						$from->expunge() if ($expunge and not $dry);
+						unless($dry) {
+							$from->delete_message($f_msg);
+							last FOLDER if $from->IsUnconnected();
+							$from->expunge() if ($expunge);
+							last FOLDER if $from->IsUnconnected();
+						}
 					}
 				}
 			}
@@ -1545,46 +1630,39 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		}
 		
 		$fast and next MESS;
-		#$debug and print "MESSAGE $m_id\n"; 
+		#$debug and print "MESSAGE $m_id\n";
 		my $t_size = $t_hash{$m_id}{'s'};
 		my $t_msg  = $t_hash{$m_id}{'m'};
-		
-		
-		$debug and print "Setting flags\n";
-		last FOLDER if $from->IsUnconnected();
+
+		# used cached flag values for efficiency
+		my $flags_f = $f_hash{$m_id}{'F'} || "";
+		my $flags_t = $t_hash{$m_id}{'F'} || "";
+
+		# No flag \Recent here, no ?
+		$flags_f = flags_regex($flags_f) if @regexflag;
+
+		$debug and print "Setting flags from($flags_f) to($flags_t)\n";
+
+		# This add or change flags but no flag are removed with this
+		$to->store($t_msg, "+FLAGS.SILENT ($flags_f)" )
+		  if (!$dry and $flags_f ne $flags_t);
 		last FOLDER if   $to->IsUnconnected();
 
-		my (@flags_f,@flags_t);
-		my $flags_f_rv = $from->flags($f_msg);
-		@flags_f = @{$flags_f_rv} if ref($flags_f_rv);
-		
-		# No flag \Recent here, no ?
-		my $flags_f = join(" ", @flags_f);
-		
-		$flags_f = flags_regex($flags_f) if @regexflag;
-		
-		# This add or change flags but no flag are removed with this
-		$to->store($t_msg,
-			   "+FLAGS (" . $flags_f . ")"
-			  ) unless ($dry) ;
-		
-		my $flags_t_rv = $to->flags($t_msg);
-		@flags_t = @{$flags_t_rv} if ref($flags_t_rv);
-		my $flags_t = join(" ", @flags_t);
-		$debug and print 
-		  "flags from : $flags_f\n",
-		  "flags to   : $flags_t\n";
-		
-
 		$debug and do {
+			my @flags_t = @{ $to->flags($t_msg) || [] };
+			last FOLDER if   $to->IsUnconnected();
+
+			print "flags from: $flags_f\n",
+			      "flags to  : @flags_t\n";
+
 			print "Looking dates\n"; 
 			#my $d_f = $from->internaldate($f_msg);
 			#my $d_t = $to->internaldate($t_msg);
 			my $d_f = $f_hash{$m_id}{'D'};
 			my $d_t = $t_hash{$m_id}{'D'};
 			print 
-			  "idate from : $d_f\n",
-			    "idate to   : $d_t\n";
+			  "idate from: $d_f\n",
+			    "idate to  : $d_t\n";
 			
 			#unless ($d_f eq $d_t) {
 			#	print "!!! Dates differ !!!\n";
@@ -1600,6 +1678,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			if ($opt_G){
 				print "Deleting msg f:#$t_msg in folder $t_fold\n";
 				$to->delete_message($t_msg) unless ($dry);
+				last FOLDER if   $to->IsUnconnected();
 			}
 		}
 		else {
@@ -1608,8 +1687,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			"Message $m_id SZ_GOOD f:$f_msg:$f_size t:$t_msg:$t_size\n";
 			if($delete) {
 				print "Deleting msg #$f_msg in folder $f_fold\n";
-				$from->delete_message($f_msg) unless ($dry);
-				$from->expunge() if ($expunge and not $dry);
+				unless($dry) {
+					$from->delete_message($f_msg);
+					last FOLDER if $from->IsUnconnected();
+					$from->expunge() if ($expunge);
+					last FOLDER if $from->IsUnconnected();
+				}
 			}
 		}
 	}
@@ -1622,23 +1705,57 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		unless($dry) { $to->expunge() };
 	}
 
-print "Time : ", timenext(), " s\n";
+print "Time: ", timenext(), " s\n";
 }
 
+print "++++ End looping on each folder ++++\n";
 
 
-$from->logout();
-$to->logout();
+# FOLDER loop is exited any time a connection is lost be sure to log it!
+# Example: 
+# lost_connection($from,"(from) host1 [$host1]");
+# 
+# can be tested with a "killall /usr/bin/imapd" (or equivalent) in command line.
+#
+sub _filter {
+	my $str = shift or return "";
+	my $sz  = 64;
+        my $len = length($str);
+	if ( ! $debug and $len > $sz*2 ) {
+		my $beg = substr($str, 0, $sz);
+		my $end = substr($str, -$sz, $sz);
+		$str = $beg . "..." . $end;
+	}
+	$str =~ s/\012?\015$//;
+	return "(len=$len) " . $str;
+}
+
+sub lost_connection {
+	my($imap, $error_message) = @_;
+	if ( $imap->IsUnconnected() ) {
+		$error++;
+		my $lcomm = $imap->LastIMAPCommand || "";
+		my $einfo = $imap->LastError || @{$imap->History}[-1] || "";
+
+		# if string is long try reduce to a more reasonable size
+		$lcomm = _filter($lcomm);
+		$einfo = _filter($einfo);
+		warn("error: last command: $lcomm\n") if ($debug && $lcomm);
+		warn("error: lost connection $error_message", $einfo, "\n");
+		return(1);
+	}else{
+		return(0);
+	}
+}
+
+$from->logout() unless (lost_connection($from,"(from) host1 [$host1]"));
+$to->logout()   unless (lost_connection($to,"(to) host2 [$host2]"));
 
 $timeend = time();
 
 $timediff = $timeend - $timestart;
 
 stats();
-
-
-
-
 
 exit(1) if($error);
 
@@ -1691,13 +1808,20 @@ sub thank_author {
 	return(join("", "Happy with this free, open and gratis GPL software?\n",
 	  "Please, thank the author (Gilles LAMIRAL) by giving him a book:\n",
 	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n",
-          "and rate imapsync at http://freshmeat.net/projects/imapsync/\n"));
-
+          "or rate imapsync at http://freshmeat.net/projects/imapsync/\n"));
 }
 
-sub get_options
-{
+sub get_options {
 	my $numopt = scalar(@ARGV);
+	my $argv   = join("¤", @ARGV);
+	
+	$test_builder = Test::More->builder;
+	$test_builder->no_ending(1);
+
+	if($argv =~ m/-delete¤2/) {
+		print "May be you mean --delete2 instead of --delete 2\n";
+		exit 1;
+	}
         my $opt_ret = GetOptions(
                                    "debug!"       => \$debug,
                                    "debugimap!"   => \$debugimap,
@@ -1737,8 +1861,10 @@ sub get_options
                                    "expunge!"    => \$expunge,
                                    "expunge1!"    => \$expunge1,
                                    "expunge2!"    => \$expunge2,
+                                   "uidexpunge2!" => \$uidexpunge2,
                                    "subscribed!" => \$subscribed,
                                    "subscribe!"  => \$subscribe,
+				   "justbanner!" => \$justbanner,
                                    "justconnect!"=> \$justconnect,
                                    "justfolders!"=> \$justfolders,
 				   "justfoldersizes!" => \$justfoldersizes,
@@ -1749,6 +1875,7 @@ sub get_options
 				   "skipheader=s" => \$skipheader,
 				   "useheader=s" => \@useheader,
 				   "skipsize!"   => \$skipsize,
+				   "allowsizemismatch!" => \$allowsizemismatch,
 				   "fastio1!"     => \$fastio1,
 				   "fastio2!"     => \$fastio2,
 				   "ssl1!"        => \$ssl1,
@@ -1759,15 +1886,15 @@ sub get_options
 				   "authuser2=s" => \$authuser2,
 				   "split1=i"    => \$split1,
 				   "split2=i"    => \$split2,
+				   "reconnectretry1=i" => \$reconnectretry1,
+				   "reconnectretry2=i" => \$reconnectretry2,
                                    "tests"       => \$tests,
                                    "allow3xx!"   => \$allow3xx,
+                                   "justlogin!"   => \$justlogin,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
 
-	$test_builder = Test::More->builder;
-	$test_builder->no_ending(1);
-		
 	# just the version
         print "$VERSION\n" and exit if ($version) ;
 	
@@ -1785,9 +1912,7 @@ sub get_options
 
 	# don't go on if options are not all known.
         exit(EX_USAGE()) unless ($opt_ret) ;
-	
-	
-	
+
 }
 
 
@@ -1812,7 +1937,7 @@ sub parse_header_msg1 {
 	my $head = $s_heads->{$m_uid};
 	my $headnum =  scalar(keys(%$head));
 	$debug and print "Head NUM:", $headnum, "\n";
-	unless($headnum) { print "Warning : no header used or found for message $m_uid\n"; }
+	unless($headnum) { print "Warning: no header used or found for message $m_uid\n"; }
 	my $headstr;
 	
 	foreach my $h (sort keys(%$head)){
@@ -1878,7 +2003,7 @@ sub  firstline {
         open FILE, $file or die("error [$file]: $! ");
         chomp($line = <FILE>);
         close FILE;
-        $line = ($line) ? $line : "error !EMPTY! [$file]";
+        $line = ($line) ? $line: "error !EMPTY! [$file]";
         return $line;
 }
 
@@ -1956,11 +2081,11 @@ Several options are mandatory.
                          add also the safe options --dry --justfolders
                          Then, when happy, remove --dry, remove --justfolders
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
-                         Example : 's/\\000/ /g' # to replace null by space.
+                         Example: 's/\\000/ /g' # to replace null by space.
 --regexmess   <regex>  : and this one.
 --regexmess   <regex>  : and this one, etc.
 --regexflag   <regex>  : Apply the whole regex to each flags list.
-                         Example : 's/\"Junk"//g' # to remove "Junk" flag.
+                         Example: 's/\"Junk"//g' # to remove "Junk" flag.
 --regexflag   <regex>  : and this one, etc.
 --sep1        <string> : separator in case namespace is not supported.
 --sep2        <string> : idem.
@@ -1980,6 +2105,8 @@ Several options are mandatory.
                          it will change in future releases.
 --expunge1             : expunge messages on source account.
 --expunge2             : expunge messages on target account.
+--uidexpunge2          : uidexpunge messages on the destination imap server
+                         that are not on the source server, requires --delete2
 --syncinternaldates    : sets the internal dates on host2 same as host1.
                          Turned on by default.
 --idatefromheader      : sets the internal dates on host2 same as the 
@@ -2002,14 +2129,16 @@ Several options are mandatory.
                          Ex: Message-ID or Subject or Date.
 --useheader   <string>   and this one, etc.
 --skipsize             : Don't take message size into account.
+--allowsizemismatch    : allow RFC822.SIZE != fetched msg size
+                         consider --skipsize to avoid duplicate messages
+                         when running syncs more than one time per mailbox
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfers subscribed folders.
 --subscribe            : subscribe to the folders transferred on the 
                          "destination" server that are subscribed
                          on the "source" server.
---(no)foldersizes      : Calculate the size of each "From" folder in bytes
-                         and message counts. Meant to be used with
-                         --justfoldersizes. Turned on by default.
+--nofoldersizes        : Do not calculate the size of each folder in bytes
+                         and message counts. Default is to calculate them.
 --justfoldersizes      : exit after printed the folder sizes.
 --syncacls             : Synchronises acls (Access Control Lists).
 --nosyncacls           : Does not synchronise acls. This is the default.
@@ -2018,10 +2147,14 @@ Several options are mandatory.
 --version              : print software version.
 --justconnect          : just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
+--justlogin            : just login to both servers with users credentials 
+                         and exit.
 --justfolders          : just do things about folders (ignore messages).
 --fast                 : be faster (just does not sync flags).
+--reconnectretry1 <int>: reconnect if connection is lost up to <int> times
+--reconnectretry2 <int>: reconnect if connection is lost up to <int> times
 --split1     <int>     : split the requests in several parts on source server.
-                         <int > is the number of messages handled per request.
+                         <int> is the number of messages handled per request.
                          default is like --split1 1000
 --split2     <int>     : same thing on the "destination" server.
 --fastio1              : use fastio with the "from" server.
@@ -2030,7 +2163,9 @@ Several options are mandatory.
 --help                 : print this.
 
 Example: to synchronise imap account "foo" on "imap.truc.org"
-                     to imap account "bar" on "imap.trac.org"
+                    to  imap account "bar" on "imap.trac.org"
+                    with foo password stored in /etc/secret1
+                    and  bar password stored in /etc/secret2
 
 $0 \\
    --host1 imap.truc.org --user1 foo --passfile1 /etc/secret1 \\
@@ -2052,6 +2187,7 @@ sub tests {
 		tests_folder_routines();
 		tests_compare_lists();
 		tests_regexmess();
+		tests_flags_regex();
 	}
 }
 
@@ -2069,7 +2205,6 @@ use constant TYPE => 1;                         # Array index for line type
 use constant DATA => 2;                         # Array index for output line data
 use constant NonFolderArg => 1;                 # Value to pass to Massage to 
                                                 # indicate non-folder argument
-
 
 
 *Mail::IMAPClient::append_file = sub  {
@@ -2606,6 +2741,10 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
         return $string;
 };
 
+
+{
+no warnings 'once';
+
 *Mail::IMAPClient::Ssl = sub {
 	my $self = shift;
 	
@@ -2614,7 +2753,19 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 };
 
 
-*Mail::IMAPClient::connect = sub {
+*Mail::IMAPClient::Authuser = sub {
+	my $self = shift;
+	
+	if (@_) { $self->{AUTHUSER} = shift }
+	return $self->{AUTHUSER};
+};
+
+}
+
+# End of sub override_imapclient (yes, very bad indentation)
+}
+
+sub myconnect {
 	my $self = shift;
 	
 	$self->Port(143) 
@@ -2641,12 +2792,28 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 		return undef;
 	}
 	$self->Socket($sock);
+	if ( $Mail::IMAPClient::VERSION =~ /^2/ ) {
+	    return undef unless myconnect_v2($self);
+	}
+	else {
+		$self->Ignoresizeerrors($allowsizemismatch);
+	}
+	if ($self->User and $self->Password) {
+		return $self->login ;
+	} 
+	else {
+		return $self;	
+	}
+}
+
+	
+sub myconnect_v2 {
+	my $self = shift;
 	$self->State(Connected);
-	$sock->autoflush(1)				;
+	$self->Socket->autoflush(1);
 	my ($code, $output);
         $output = "";
         until ( $code ) {
-
                 $output = $self->_read_line or return undef;
                 for my $o (@$output) {
 			$self->_debug("Connect: Received this from readline: " . 
@@ -2662,28 +2829,11 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 		$self->State(Unconnected);
 		return undef ;
 	}
-
-	if ($self->User and $self->Password) {
-		return $self->login ;
-	} 
-	else {
-		return $self;	
-	}
+	return $self;
 }
-	
 
-
-}
 
 package Mail::IMAPClient;
-
-
-sub Authuser {
-	my $self = shift;
-	
-	if (@_) { $self->{AUTHUSER} = shift }
-	return $self->{AUTHUSER};
-}
 
 
 sub Split {

@@ -1,0 +1,191 @@
+--- imapsync-orig	2007-03-06 13:12:23.000000000 +0000
++++ imapsync	2008-01-19 21:20:58.000000000 +0000
+@@ -48,10 +48,11 @@
+   imapsync [--host1 server1]  [--port1 <num>]
+            [--user1 <string>] [--passfile1 <string>]
+            [--host2 server2]  [--port2 <num>]
+            [--user2 <string>] [--passfile2 <string>]
+            [--ssl1] [--ssl2]
++           [--tls1] [--tls2]
+            [--authmech1 <string>] [--authmech2 <string>] 
+            [--noauthmd5]
+            [--folder <string> --folder <string> ...]
+            [--folderrec <string> --folderrec <string> ...]
+            [--include <regex>] [--exclude <regex>]
+@@ -157,11 +158,12 @@
+ the best solution.
+ 
+ imasync is not totally protected against sniffers on the
+ network since passwords may be transferred in plain text in
+ case CRAM-MD5 is not supported by your imap servers.  Use
+---ssl1 and --ssl2 to enable encryption on host1 and host2.
++--ssl1 (or --tls1) and --ssl2 (or --tls2) to enable encryption on
++host1 and host2.
+ 
+ You may authenticate as one user (typically an admin user),
+ but be authorized as someone else, which means you don't
+ need to know every user's personal password.  Specify
+ --authuser1 "adminuser" to enable this on host1.  In this
+@@ -420,10 +422,11 @@
+         $mess_trans, $mess_skipped, $mess_skipped_dry, 
+         $timeout,   # whr (ESS/PRW)
+ 	$timestart, $timeend, $timediff,
+         $timesize, $timebefore,
+         $ssl1, $ssl2,
++        $tls1, $tls2,
+         $authuser1, $authuser2,
+         $authmech1, $authmech2,
+         $split1, $split2,
+ );
+ 
+@@ -493,15 +496,15 @@
+ $split1 ||= 1000;
+ $split2 ||= 1000;
+ 
+ $host1 || missing_option("--host1") ;
+ # $port1 = (defined($port1)) ? $port1 : 143;
+-$port1 ||= defined $ssl1 ? 993 : 143;
++$port1 ||= (defined $ssl1 && !defined $tls1) ? 993 : 143;
+ 
+ $host2 || missing_option("--host2") ;
+ # $port2 = (defined($port2)) ? $port2 : 143;
+-$port2 ||= defined $ssl2 ? 993 : 143;
++$port2 ||= (defined $ssl2 && !defined $tls2) ? 993 : 143;
+ 
+ sub connect_imap {
+ 	my($host, $port, $debugimap) = @_;
+ 	my $imap = Mail::IMAPClient->new();
+ 	$imap->Server($host);
+@@ -593,30 +596,74 @@
+ $timestart = time();
+ $timebefore = $timestart;
+ 
+ $debugimap and print "From connection\n";
+ $from = login_imap($host1, $port1, $user1, $password1, 
+-		   $debugimap, $timeout, $fastio1, $ssl1, 
++		   $debugimap, $timeout, $fastio1, $ssl1, $tls1, 
+ 		   $authmech1, $authuser1);
+ 
+ $debugimap and print "To  connection\n";
+ $to = login_imap($host2, $port2, $user2, $password2, 
+-		 $debugimap, $timeout, $fastio2, $ssl2, 
++		 $debugimap, $timeout, $fastio2, $ssl2, $tls2,
+ 		 $authmech2, $authuser2);
+ 
+ #  history
+ 
+ $debug and print "From Buffer I/O : ", $from->Buffer(), "\n";
+ $debug and print "To   Buffer I/O : ", $to->Buffer(), "\n";
+ 
++sub starttls {
++  my $socket	= shift;
++  my $banner = $socket->getline();
++  unless ($banner =~ /^\* OK \[CAPABILITY.*STARTTLS.*\]/) {
++    die "No STARTTLS capability: $banner";
++  }
++  print $socket "STARTTLS\015\012";
++  my $txt = $socket->getline();
++  unless($txt =~ /^STARTTLS OK/){
++    die "Invalid response for STARTTLS: $txt\n";
++  }
++  unless(IO::Socket::SSL->start_SSL($socket,
++      {SSL_startHandshake => 1, SSL_version	=>	"TLSv1",
++             SSL_verify_depth => 1,
++             # this would add verification of the certificate:   SSL_verify_mode  => Net::SSLeay::VERIFY_PEER(),
++      })){
++    die "Couldn't start TLS: ".IO::Socket::SSL::errstr()."\n";
++  }
++  if (ref($socket) ne "IO::Socket::SSL") {
++    die "Socket has not been converted to SSL";
++  }
++  $banner;
++}
++
+ 
+ sub login_imap {
+ 	my($host, $port, $user, $password, 
+ 	   $debugimap, $timeout, $fastio, 
+-	   $ssl, $authmech, $authuser) = @_;
++	   $ssl, $tls, $authmech, $authuser) = @_;
+ 	my ($imap);
+-	if ($ssl) {
++  if ($tls) {
++		require IO::Socket::SSL;
++    require Net::SSLeay;
++
++		my $socssl = new IO::Socket::INET("$host:$port");
++		die "Error connecting to $host:$port: $@\n" unless $socssl;
++		$socssl->autoflush(1);
++		
++    my $banner = starttls($socssl);
++
++		$imap = Mail::IMAPClient->new(
++					      Socket => $socssl,
++					      Server => $host,
++					     );
++
++    # put the banner into the IMAPClient's history
++    my $count = $imap->Count($imap->Count+1);
++
++    $imap->_record($count,[ $imap->_next_index($count), "OUTPUT", "$banner"] );
++
++  } elsif ($ssl) {
+ 		require IO::Socket::SSL;
+ 		my $socssl = new IO::Socket::SSL("$host:$port");
+ 		die "Error connecting to $host:$port: $@\n" unless $socssl;
+ 		$socssl->autoflush(1);
+ 		
+@@ -635,11 +682,11 @@
+ 	$imap->Uid(1);
+ 	$imap->Peek(1);
+ 	$imap->Debug($debugimap);
+ 	$timeout and $imap->Timeout($timeout);
+ 	
+-	if ($ssl) {
++	if ($ssl || $tls) {
+ 		$imap->State(Mail::IMAPClient::Connected);
+ 	} else {
+ 		$imap->connect()
+ 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
+ 	}
+@@ -652,12 +699,12 @@
+ 		       $imap->Server, $authmech);
+ 	} else {
+ 		printf("Host %s says it has NO CAPABILITY for AUTHENTICATE %s\n",
+ 		       $imap->Server, $authmech);
+ 		if ($authmech eq 'PLAIN') {
+-			print "Frequently PLAIN is only supported with SSL, ",
+-			  "try --ssl1 or --ssl2 option\n";
++			print "Frequently PLAIN is only supported with SSL or TLS, ",
++			  "try --ssl1/--tls1 or --ssl2/--tls2 option\n";
+ 		}
+ 	}
+ 	
+ 	$imap->Authmechanism($authmech) unless ($authmech eq 'LOGIN');
+ 	$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
+@@ -1391,10 +1438,12 @@
+ 				   "skipsize!"   => \$skipsize,
+ 				   "fastio1!"     => \$fastio1,
+ 				   "fastio2!"     => \$fastio2,
+ 				   "ssl1!"        => \$ssl1,
+ 				   "ssl2!"        => \$ssl2,
++				   "tls1!"        => \$tls1,
++				   "tls2!"        => \$tls2,
+ 				   "authmech1=s" => \$authmech1,
+ 				   "authmech2=s" => \$authmech2,
+ 				   "authuser1=s" => \$authuser1,
+ 				   "authuser2=s" => \$authuser2,
+ 				   "split1=i"    => \$split1,
+@@ -1525,10 +1574,12 @@
+ --authmech1   <string> : auth mechanism to use with host1:
+                          PLAIN, LOGIN, CRAM-MD5 etc.
+ --authmech2   <string> : auth mechanism to use with host2. See --authmech1
+ --ssl1                 : use an SSL connection on host1.
+ --ssl2                 : use an SSL connection on host2.
++--tls1                 : use an TLS connection on host1.
++--tls2                 : use an TLS connection on host2.
+ --folder      <string> : sync this folder.
+ --folder      <string> : and this one, etc.
+ --folderrec   <string> : sync this folder recursively.
+ --folderrec   <string> : and this one, etc.
+ --include     <regex>  : sync folders matching this regular expression

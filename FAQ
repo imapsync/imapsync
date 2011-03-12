@@ -1,3 +1,5 @@
+#!/bin/cat
+# $Id: FAQ,v 1.59 2009/04/30 02:09:09 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -19,9 +21,34 @@ Q. Can you give some configuration examples ?
 R. http://www.linux-france.org/prj/imapsync/FAQ
 
 =======================================================================
+Q. How can I have support ?
+
+R. Use the mailing-list
+
+To write on the mailing-list, the address is:
+<imapsync@linux-france.org>
+
+To subscribe, send a message to:
+<imapsync-subscribe@listes.linux-france.org>
+
+To unsubscribe, send a message to:
+<imapsync-unsubscribe@listes.linux-france.org>
+
+To contact the person in charge for the list:
+<imapsync-request@listes.linux-france.org>
+
+The list archives may be available at:
+http://www.linux-france.org/prj/imapsync_list/
+So consider that the list is public, anyone
+can see your post. Use a pseudonym or do not
+post to this list if you want to stay private.
+
+Thank you for your participation.
+
+=======================================================================
 Q. Where I can read IMAP RFCs ?
 
-R. 
+R. Here:
 
 RFC 3501 - INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1
 http://www.faqs.org/rfcs/rfc3501.html
@@ -45,7 +72,22 @@ Q. Where I can find old imapsync releases ?
 R. ftp://www.linux-france.org/pub/prj/imapsync/
 
 =======================================================================
-Q. imapsync does not work with Mail::IMAPClient 3.0.x
+Q. How can I try imapsync with Mail::IMAPClient 3.xx perl library?
+
+R. - Download latest Mail::IMAPClient 3.xx at
+   http://search.cpan.org/dist/Mail-IMAPClient/
+   - untar it anywhere:
+        tar xzvf Mail-IMAPClient-3.xx.tar.gz
+
+   - Download latest imapsync at
+   http://lamiral.info/~gilles/imapsync/imapsync
+
+   - run imapsync with perl and -I option tailing to use Mail-IMAPClient-3.xx
+     and add also option --allow3xx:
+       perl -I./Mail-IMAPClient-3.16/lib  imapsync ... --allow3xx 
+
+=======================================================================
+Q. imapsync does not work with Mail::IMAPClient 3.xx
    How can I downgrade to 2.2.9 release?
 
 R. - Download Mail::IMAPClient 2.2.9 at 
@@ -278,14 +320,33 @@ To skip several headers you can use --skipheader one time
 
  imapsync ... --skipheader '^X-|^Status|^Bcc'
 
-or several times (same result)
-
- imapsync ... --skipheader '^X-' --skipheader  '^Status' --skipheader  '^Bcc'
-
 If you think you have too many header to avoid just use
 
  imapsync ... --useheader 'Message-ID' --skipsize
 
+Remark. (Trick found by Tomasz Kaczmarski)
+Option --useheader 'Message-ID' asks the server
+to send only header lines begining with 'Message-ID'. 
+Some (buggy) servers send the whole header (all lines)
+instead of the 'Message-ID' line. In that case, a trick
+to keep the --useheader filtering behavior is to use
+--skipheader with a negative lookahead pattern :
+
+ imapsync ... --skipheader '^(?!Message-ID)' --skipsize
+
+ Read it as "skip every header except Message-ID".
+
+======================================================================
+Q. I am transferring mails from one IMAP server to another. I am using
+   an SSL connection. Transferring huge mails (>10MB) takes ages.
+
+R. try to transfer the mails without SSL connection. SSL code outside
+   imapsync uses a memory buffer, which gets increased upon reading of
+   mails by 4096 bytes. This creates a huge load on the host imapsync
+   runs on by copying the memory buffers for every 4096 byte step.
+   This does not occur without SSL.
+
+(Written by Stefan Schmidt)
 
 ======================================================================
 Q. I want to exclude a folder hierarchy like "public"
@@ -471,6 +532,31 @@ Also, you must take imapsync 1.159 at least since I tested
 what I just wrote above and found 2 bugs about --mindate
 --maxdate options behavior.
 
+=======================================================================
+Q. I want to play with headers line and --regexmess but I want to leave
+   the body as is
+
+R. The header/body separation is a blank line so an example:
+   --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nX-Date:$2}gxms'
+
+Will replace 
+
+HeaderBegin
+Message-ID: <499EF800.4030002@blabla.fr>
+Date: Fri, 20 Feb 2009 19:35:44 +0100
+From: Gilles LAMIRAL <lamiral@linux-france.org>
+HeaderEnd
+
+by
+
+HeaderBegin
+Message-ID: <499EF800.4030002@blabla.fr>
+Date: Fri, 20 Feb 2009 19:35:44 +0100
+X-Date: Fri, 20 Feb 2009 19:35:44 +0100
+From: Gilles LAMIRAL <lamiral@linux-france.org>
+HeaderEnd
+
+This example just add an header line "X-Date:" based on "Date:" line.
 
 =======================================================================
 Q. My imap server does not accept a message and warns
@@ -531,6 +617,7 @@ imapsync --syncinternaldates \
          --host2 imap.gmail.com --port2 993 --ssl2 \
          --user2 my_email@gmail.com \
          --password2 password \
+         --useheader 'Message-Id'  --skipsize \
          --prefix2 '[Gmail]/' \
          --folder 'INBOX.Sent' \
          --regextrans2 's/Sent/Sent Mail/'
@@ -555,6 +642,41 @@ If your destination imap server doesn't like "[Gmail]" name, just add
 option:
            --regextrans2 's/\[Gmail\]/Gmail/'
 
+
+=======================================================================
+Q. migrate email from gmail to google apps
+
+R. Take a look at:
+http://biasecurities.com/2009/migrate-email-from-gmail-to-google-apps/
+http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
+
+=======================================================================
+Q. from Microsoft's Exchange 2007 to Google Apps for your Domain 
+   (GAFYD)
+
+R. Take a look at:
+http://mark.ossdl.de/2009/02/migrating-from-exchange-2007-to-google-apps-mail/
+
+=======================================================================
+Q. Syncing from Google Apps domain to Googlemail account
+
+A known bug encountered with this output (Alexander is a folder name):
+++++ Verifying [Alexander] -> [Alexander] ++++
++ NO msg #16 [A96Dh4AwlLVphOAW5MS/eQ:779824] in Alexander
++ Copying msg #16:779824 to folder Alexander
+flags from : [\Seen]["04-Jul-2007 14:32:22 +0100"]
+Couldn't append msg #16 (Subject:[Rieter-Event    (please accept with
+comments)]) to folder Alexander: 46 NO Invalid folder: Sent (Failure)
+
+In fact folder "Sent" is just the last folder listed previously
+as a:
+...
+To   Folder [Sent]                             does not exist yet
+To   Folder [Sonja]                             Size:   1024546 Messages:    96
+...
+
+R. Just run imapsync a time like this :
+imapsync ... --folder Alexander
 
 =======================================================================
 Q. I'm migrating from WU to Cyrus, and the mail folders are
@@ -729,6 +851,11 @@ R. http://www.archiveopteryx.org/migration/imapsync
 Use:
    --useheader Message-Id --skipsize
 
+======================================================================
+Q. To Sun Java(tm) System Messaging Server 6.2-7.05
+Q. To Communigate Pro - Solaris version
+
+R. See and run patches/imapsync_1.267_jari
 
 ======================================================================
 Q. From any to Exchange2007 
@@ -749,6 +876,12 @@ R2. Other solution
 Two users succeded by using "MS Transporter Suite" (which is closed
 expensive nonfree software).
 
+======================================================================
+Q. From Microsoft Exchange 2000 IMAP4rev1 server version 6.0.6487.0.
+
+R. imapsync ... \
+   --prefix1 INBOX. --prefix2 INBOX. --syncinternaldates --subscribe \
+   --maxsize 10485760
 
 ======================================================================
 Q: How can I write an .rpm with imapsync

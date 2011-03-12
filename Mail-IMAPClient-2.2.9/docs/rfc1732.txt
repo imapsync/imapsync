@@ -1,0 +1,283 @@
+
+
+
+
+
+
+Network Working Group                                         M. Crispin
+Request for Comments: 1732                      University of Washington
+Category: Informational                                    December 1994
+
+
+              IMAP4 COMPATIBILITY WITH IMAP2 AND IMAP2BIS
+
+
+Status of this Memo
+
+   This memo provides information for the Internet community.  This memo
+   does not specify an Internet standard of any kind.  Distribution of
+   this memo is unlimited.
+
+Introduction
+
+   This is a summary of hints and recommendations to enable an IMAP4
+   implementation to interoperate with implementations that conform to
+   earlier specifications.  None of these hints and recommendations are
+   required by the IMAP4 specification; implementors must decide for
+   themselves whether they want their implementation to fail if it
+   encounters old software.
+
+   IMAP4 has been designed to be upwards compatible with earlier
+   specifications.  For the most part, IMAP4 facilities that were not in
+   earlier specifications should be invisible to clients unless the
+   client asks for the facility.
+
+   In some cases, older servers may support some of the capabilities
+   listed as being "new in IMAP4" as experimental extensions to the
+   IMAP2 protocol described in RFC 1176.
+
+   This information may not be complete; it reflects current knowledge
+   of server and client implementations as well as "folklore" acquired
+   in the evolution of the protocol.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Crispin                                                         [Page 1]
+
+RFC 1732                 IMAP4 - Compatibility             December 1994
+
+
+IMAP4 client interoperability with old servers
+
+   In general, a client should be able to discover whether an IMAP2
+   server supports a facility by trial-and-error; if an attempt to use a
+   facility generates a BAD response, the client can assume that the
+   server does not support the facility.
+
+   A quick way to check whether a server implementation supports the
+   IMAP4 specification is to try the CAPABILITY command.  An OK response
+   that includes the IMAP4 capability value indicates a server that
+   supports IMAP4; a BAD response or one without the IMAP4 capability
+   value indicates an older server.
+
+   The following is a list of facilities that are only in IMAP4, and
+   suggestions for how new clients might interoperate with old servers:
+
+   CAPABILITY command
+            A BAD response to this command indicates that the server
+            implements IMAP2 (or IMAP2bis) and not IMAP4.
+
+   AUTHENTICATE command.
+            Use the LOGIN command.
+
+   LSUB and LIST commands
+            Try the RFC 1176 FIND command.
+
+   * in a sequence
+            Use the number of messages in the mailbox from the EXISTS
+            unsolicited response.
+
+   SEARCH extensions (character set, additional criteria)
+            Reformulate the search request using only the searching
+            options listed in search_old in the IMAP4 grammar.  This may
+            entail doing multiple searches to achieve the desired
+            results.
+
+   BODYSTRUCTURE fetch data item
+            Try to fetch the non-extensible BODY data item.
+
+   body section number 0
+            Fetch the entire message and extract the header.
+
+   RFC822.HEADER.LINES and RFC822.HEADER.LINES.NOT fetch data items
+            Use RFC822.HEADER and remove the unwanted information.
+
+   BODY.PEEK[section], RFC822.PEEK, and RFC822.TEXT.PEEK fetch data
+            items Use the corresponding non-PEEK versions and manually
+            clear the \Seen flag as necessary.
+
+
+
+Crispin                                                         [Page 2]
+
+RFC 1732                 IMAP4 - Compatibility             December 1994
+
+
+   UID fetch data item and the UID commands
+            No equivalent capabilitity exists in older servers.
+
+   FLAGS.SILENT, +FLAGS.SILENT, and -FLAGS.SILENT store data items
+            Use the corresponding non-SILENT versions and ignore the
+            untagged FETCH responses which com eback.
+
+
+   The following IMAP4 facilities were introduced in the experimental
+   IMAP2bis revisions to RFC-1176, and may be present in a server that
+   does not support the CAPABILITY command:
+
+   CREATE, DELETE, and RENAME commands
+            To test whether these commands are present, try a CREATE
+            INBOX command.  If the response is NO, these commands are
+            supported by the server.  If the response is BAD, they are
+            not.  Older servers without the CREATE capability may sup-
+            port implicit creation of a mailbox by a COPY command with a
+            non-existant name as the destination.
+
+   APPEND command
+            To test whether this command is present, try to append a
+            zero-length stream to a mailbox name that is known not to
+            exist (or at least, highly unlikely to exist) on the remote
+            system.
+
+   SUBSCRIBE and UNSUBSCRIBE commands
+            Try the form of these commands with the optional MAILBOX
+            keyword.
+
+   EXAMINE command
+            Use the SELECT command instead.
+
+   flags and internal date argument to APPEND command
+            Try the APPEND without any flag list and internal date argu-
+            ments.
+
+   BODY, BODY[section], and FULL fetch data items
+            Use RFC822.TEXT and ALL instead.  Server does not support
+            MIME.
+
+   PARTIAL command
+            Use the appropriate FETCH command and ignore the unwanted
+            data.
+
+
+   IMAP4 client implementations must accept all responses and data for-
+   mats documented in the IMAP4 specification, including those labeled
+
+
+
+Crispin                                                         [Page 3]
+
+RFC 1732                 IMAP4 - Compatibility             December 1994
+
+
+   as obsolete.  This includes the COPY and STORE unsolicited responses
+   and the old format of dates and times.  In particular, client imple-
+   mentations must not treat a date/time as a fixed format string; nor
+   may they assume that the time begins at a particular octet.
+
+   IMAP4 client implementations must not depend upon the presence of any
+   server extensions that are not in the base IMAP4 specification.
+
+   The experimental IMAP2bis version specified that the TRYCREATE spe-
+   cial information token is sent as a separate unsolicited OK response
+   instead of inside the NO response.
+
+   The FIND BBOARDS, FIND ALL.BBOARDS, and BBOARD commands of RFC 1176
+   are removed from IMAP4.  There is no equivalent to the bboard com-
+   mands, which provided a separate namespace with implicit restrictions
+   on what may be done in that namespace.
+
+   Older server implementations may automatically create the destination
+   mailbox on COPY if that mailbox does not already exist.  This was how
+   a new mailbox was created in older specifications.  If the server
+   does not support the CREATE command (see above for how to test for
+   this), it will probably create a mailbox on COPY.
+
+   Older server implementations may not preserve flags or internal dates
+   on COPY.  Some server implementations may not permit the preservation
+   of certain flags on COPY or their setting with APPEND as site policy.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Crispin                                                         [Page 4]
+
+RFC 1732                 IMAP4 - Compatibility             December 1994
+
+
+IMAP4 server interoperability with old clients
+
+   In general, there should be no interoperation problem between a
+   server conforming to the IMAP4 specification and a well-written
+   client that conforms to an earlier specification.  Known problems are
+   noted below:
+
+      Poor wording in the description of the CHECK command in earlier
+      specifications implied that a CHECK command is the way to get the
+      current number of messages in the mailbox.  This is incorrect.  A
+      CHECK command does not necessarily result in an EXISTS response.
+      Clients must remember the most recent EXISTS value sent from the
+      server, and should not generate unnecessary CHECK commands.
+
+      An incompatibility exists with COPY in IMAP4.  COPY in IMAP4
+      servers does not automatically create the destination mailbox if
+      that mailbox does not already exist.  This may cause problems with
+      old clients that expect automatic mailbox creation in COPY.
+
+      The PREAUTH unsolicited response is new in IMAP4.  It is highly
+      unlikely that an old client would ever see this response.
+
+      The format of dates and times has changed due to the impending end
+      of the century.  Clients that fail to accept a four-digit year or
+      a signed four-digit timezone value will not work properly with
+      IMAP4.
+
+      An incompatibility exists with the use of "\" in quoted strings.
+      This is best avoided by using literals instead of quoted strings
+      if "\" or <"> is embedded in the string.
+
+Security Considerations
+
+   Security issues are not discussed in this memo.
+
+Author's Address:
+
+   Mark R. Crispin
+   Networks and Distributed Computing, JE-30
+   University of Washington
+   Seattle, WA  98195
+
+   Phone: (206) 543-5762
+
+   EMail: MRC@CAC.Washington.EDU
+
+
+
+
+
+
+Crispin                                                         [Page 5]
+

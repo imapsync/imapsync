@@ -1,0 +1,1141 @@
+IMAP Extensions Working Group                               R. Gellens
+Internet Draft: IMAP ANNOTATE Extension                       C. Daboo
+Document: draft-ietf-imapext-annotate-04.txt                March 2002
+
+                        IMAP ANNOTATE Extension
+    
+Status of this Memo
+    
+    This document is an Internet-Draft and is in full conformance with
+    all provisions of Section 10 of RFC2026.
+    
+    Internet-Drafts are working documents of the Internet Engineering
+    Task Force (IETF), its areas, and its working groups.  Note that
+    other groups may also distribute working documents as
+    Internet-Drafts.
+    
+    Internet-Drafts are draft documents valid for a maximum of six
+    months and may be updated, replaced, or obsoleted by other documents
+    at any time.  It is inappropriate to use Internet-Drafts as
+    reference material or to cite them other than as "work in progress."
+    
+    The list of current Internet-Drafts can be accessed at
+    http://www.ietf.org/ietf/1id-abstracts.txt.
+    
+    The list of Internet- Draft Shadow Directories can be accessed at
+    http://www.ietf.org/shadow.html.
+    
+    
+Copyright Notice
+    
+     Copyright (C) The Internet Society 2002. All Rights Reserved.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gellens & Daboo               Expires August 2002               [Page 1]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+                           Table of Contents
+     1  Abstract  . . . . . . . . . . . . . . . . . . . . . . . . . .  2
+     2  Discussion . . . . . . . . . . . . . . . . . . . . . . . . .   2
+     3  Conventions Used in This Document . . . . . . . . . . . . . .  2
+     4  Change History . . . . . . . . . . . . . . . . . . . . . . .   3
+     5  Introduction and Overview . . . . . . . . . . . . . . . . . .  4
+     6  Data Model . . . . . . . . . . . . . . . . . . . . . . . . .   5
+       6.1  Overview  . . . . . . . . . . . . . . . . . . . . . . . .  5
+       6.2  Namespace of Entries and Attributes  . . . . . . . . . .   5
+         6.2.1  Entry Names . . . . . . . . . . . . . . . . . . . . .  6
+         6.2.2  Attribute Names  . . . . . . . . . . . . . . . . . .   8
+     7  Private versus Shared and Access Control  . . . . . . . . . .  8
+     8  IMAP Protocol Changes  . . . . . . . . . . . . . . . . . . .   9
+       8.1  Optional parameters with the SELECT/EXAMINE commands  . .  9
+       8.2  ANNOTATION Message Data Item in FETCH Command  . . . . .  10
+       8.3  ANNOTATION Message Data Item in FETCH Response  . . . . . 12
+       8.4  ANNOTATION Message Data Item in STORE  . . . . . . . . .  13
+       8.5  ANNOTATION interaction with COPY  . . . . . . . . . . . . 14
+       8.6  ANNOTATION Message Data Item in APPEND . . . . . . . . .  14
+       8.7  ANNOTATION Criterion in SEARCH  . . . . . . . . . . . . . 15
+       8.8  ANNOTATION Key in SORT . . . . . . . . . . . . . . . . .  15
+     9  Formal Syntax . . . . . . . . . . . . . . . . . . . . . . . . 16
+    10  IANA Considerations  . . . . . . . . . . . . . . . . . . . .  18
+      10.1  Entry and Attribute Registration Template . . . . . . . . 18
+    11  Security Considerations  . . . . . . . . . . . . . . . . . .  18
+    12  References  . . . . . . . . . . . . . . . . . . . . . . . . . 18
+    13  Acknowledgments  . . . . . . . . . . . . . . . . . . . . . .  19
+    14  Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . 19
+    15  Full Copyright Statement . . . . . . . . . . . . . . . . . .  19
+    
+1 Abstract
+    
+    The ANNOTATE extension to the Internet Message Access Protocol
+    [IMAP4] permits clients and servers to maintain "metadata" for
+    messages stored in an IMAP4 mailbox.
+    
+    
+2 Discussion
+    
+    Public comments can be sent to the IETF IMAP Extensions mailing
+    list, <ietf-imapext@imc.org>.  To subscribe, send a message to
+    <ietf-imapext-request@imc.org> with the word SUBSCRIBE as the body.
+    Private comments should be sent to the authors.
+    
+    
+3 Conventions Used in This Document
+    
+    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+    "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+    document are to be interpreted as described in RFC 2119 [KEYWORDS].
+    
+
+
+
+Gellens & Daboo               Expires August 2002               [Page 2]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    Formal syntax is defined using ABNF [ABNF] as modified by [IMAP4].
+    
+    In examples, "C:" and "S:" indicate lines sent by the client and
+    server respectively.  Line breaks not preceded by a "C:" or "S:" are
+    for editorial clarity only.
+    
+    
+4 Change History
+    
+    Changes from -03 to -04:
+     1.  Fixed attrib/attrib-match grammar to use "." instead of "/".
+     2.  Add text for server to reject unknown <part-specifier>.
+     3.  Do not allow empty part-specifier.
+     4.  Store NIL to value to delete.
+     5.  Comment on COPY interaction with ANNOTATE.
+     6.  Added comment that IMAP flags are mapped one-to-one with their
+         corresponding FLAGS items.
+     7.  Added comment that the recent flag annotation is read-only.
+
+    Changes from -02 to -03:
+     1.  Removed reference to status modtime item.
+     2.  Added missing 'notify' and 'ret' dsn annotations for
+         /message/smtp-envelope.
+     3.  Added requirement to store data permanently - no
+         'session only' annotations.
+     4.  Removed Access Control section. Replaced with comments
+         on read-only/read-write mailboxes and storing private or
+         shared annotations.
+     5.  Removed STORE to default .priv or .shared.
+     6.  Added section on optional select parameters.
+
+    Changes from -01 to -02:
+     1.  Now require .priv or .shared on store operations.
+
+    Changes from -00 to -01:
+     1.  MODTIME moved to its own draft, which this draft now
+         depends on.  Thus, Conditional Annotation STORE and
+         related items deleted from this draft. 
+     2.  Private versus Shared Annotations: both are possible
+         (separately addressable using ".priv" and ".shared"
+         suffixes).  There is a per-mailbox setting for the
+         default.  It is an open issue how this is viewed or
+         changed by the client.
+     3.  In ACLs, the "w" right is needed to updated shared state;
+         the "s" right is needed to update private state.
+     4.  Various clarifications and text modifications.
+     5.  Added 'forwarded' flag for message parts.
+    
+    Changes from pre-imapext to -00:
+     1.  Clarified text describing attributions, entries, and
+         attributes.
+     2.  Changed 'modifiedsince' to 'modtime'; referenced ACAP spec.
+
+
+Gellens & Daboo               Expires August 2002               [Page 3]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+     3.  Deleted 'queued' flag.
+     4.  Expanded and explained smtp-envelope entry.
+     5.  Restricted including ANNOTATION data in unsolicited responses
+         until the client uses it first.  (Open issue as to if needed).
+     6.  Examples now only use valid entries and attributes.
+     7.  Updated Security Considerations.
+     8.  Content-Type now defaults to text/plain.
+     9.  Open Issue: Shared vs. private annotations.
+    10.  Open issue: Annotation Modtime untagged response or VALIDTIME
+         FETCH data.
+    11.  Open issue: Conditional annotation STORE.
+    12.  ANNOTATION criterion available if both "ANNOTATE" and "SORT"
+         in CAPABILITY command response.
+    13.  Prohibition on annotations in lieu of base spec functionality.
+    14.  Specified required ACL rights.
+    15.  ANNOTATION message data item in APPEND.
+    16.  ANNOTATION-MODTIME message data item in STATUS.
+    17.  Replaced ATOM_CHAR with utf8-char.
+    18.  Updated other ABNF entries.
+    
+    
+5 Introduction and Overview
+    
+    The ANNOTATE extension is present in any IMAP4 implementation which
+    returns "ANNOTATE" as one of the supported capabilities in the
+    CAPABILITY response.
+    
+    The ANNOTATE extension adds a new message data item to the FETCH and
+    STORE commands, as well as adding SEARCH and SORT keys and an APPEND
+    modifier.
+    
+    This extension makes the following changes to the IMAP4 protocol:
+    
+        a) adds a new ANNOTATION message data item for use in FETCH
+        b) adds a new ANNOTATION message data item for use in STORE
+        c) adds a new ANNOTATION search criterion for use in SEARCH
+        d) adds a new ANNOTATION sort key for use in SORT extension
+        e) adds a new ANNOTATION data item for use in APPEND
+        f) adds a new requirement on the COPY command
+        g) adds a extension mechanism for adding parameters to the
+           SELECT/EXAMINE commands and defines the ANNOTATE parameter
+    
+    The data model used for the storage of annotations is based on that
+    of the Application Configuration Access Protocol [ACAP].  Note that
+    there is no inheritance in annotations.
+    
+    Clients MUST NOT use annotations in lieu of equivalent IMAP base
+    specification facilities.  For example, use of a "seen" flag in the
+    vendor namespace together with ".PEEK" in fetches.  Such behaviour
+    would significantly reduce IMAP interoperability.
+    
+
+
+
+Gellens & Daboo               Expires August 2002               [Page 4]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    If a server supports annotations, then it MUST store all annotation
+    data permanently, i.e. there is no concept of 'session only'
+    annotations that would correspond to the behaviour of 'session'
+    flags as defined in the IMAP base specification.  The exception to
+    this is IMAP flags (which are accessible directly through
+    annotations) which may be 'session only' as determined by the FLAGS
+    and PERMANENTFLAGS responses to a SELECT or EXAMINE command.
+    
+    This extension also introduces a generalised mechanism for adding
+    parameters to the SELECT or EXAMINE commands.  It is anticipated
+    that other extensions may want to utilise this, so it is not
+    strictly dependent on the ANNOTATE extension being present.
+    
+    The rest of this document describes the data model and protocol
+    changes more rigorously.
+    
+    
+6 Data Model
+    
+6.1 Overview
+    
+    The data model used in ANNOTATE is that of a uniquely named entry
+    which contains a set of standard attributes.  A single coherent unit
+    of "metadata" for a message is stored as a single entry, made up of
+    several attributes.
+    
+    For example, a comment added to a message has an entry name of
+    "/message/comment".  This entry is composed of several attributes
+    such as "value", "size", etc. which contain the properties and data
+    of the entry.
+    
+    The protocol changes to IMAP described below allow a client to
+    access or change the values of any attributes in any entries in a
+    message annotation, assuming it has sufficient access rights to do
+    so (see Section 7 for specifics).
+    
+    
+6.2 Namespace of Entries and Attributes
+    
+    Each message annotation is made up of a set of entries.  Each entry
+    has a hierarchical name in UTF-8, with each component of the name
+    separated by a slash ("/").
+    
+    Each entry is made up of a set of attributes.  Each attribute has a
+    hierarchical name in UTF-8, with each component of the name
+    separated by a period (".").
+    
+    The value of an attribute is NIL (has no value), or is a string of
+    zero or more octets.
+    
+    Entry and attribute names MUST NOT contain asterisk ("*") or percent
+    ("%") characters and MUST be valid UTF-8 strings which do not
+
+
+Gellens & Daboo               Expires August 2002               [Page 5]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    contain the NULL octet.  Invalid entry or attribute names result in
+    a BAD response in any IMAP commands where they are used.
+    
+    Use of non-visible UTF-8 characters in entry and attribute names is
+    strongly discouraged.
+    
+    This specification defines an initial set of entry and attribute
+    names available for use in message annotations.  In addition, an
+    extension mechanism is described to allow additional names to be
+    added for extensibility.
+    
+    
+6.2.1 Entry Names
+    
+    Entry names MUST be specified in a standards track or IESG approved
+    experimental RFC, or fall under the vendor namespace.  See Section
+    10.1 for the registration template.
+    
+    /message
+        Defines the top-level of entries associated with an entire
+        message.  This entry itself does not contain any attributes.
+    
+    /message/comment
+        Defines a comment or note associated with an entire message.
+    
+    /message/flags
+        Defines the top-level of entries for flags associated with an
+        entire message.  The "value" attribute of each of the entries
+        described below must be either "1", "0" or NIL. "1" corresponds
+        to the flag being set.
+    
+    /message/flags/answered
+    /message/flags/flagged
+    /message/flags/deleted
+    /message/flags/seen
+    /message/flags/draft
+    /message/flags/recent
+        These attributes represent the standard IMAP flags as returned
+        by the FLAGS fetch item.  Changes to these annotations are
+        reflected in the standard IMAP flags.  The recent attribute is
+        read only, clients MUST NOT attempt to change it.
+    
+    /message/flags/redirected
+    /message/flags/forwarded
+        The 'redirected' flag indicates that a message has been handed
+        off to someone else, by resending the message with minimal
+        alterations, and in such a way that a reply by the new recipient
+        is addressed to the original author, not the user who performed
+        the redirection.  The 'forwarded' flag indicates the message was
+        resent to another user, embedded within or attached to a new
+        message.
+    
+
+
+Gellens & Daboo               Expires August 2002               [Page 6]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    /message/smtp-envelope
+        Defines the top-level of entries which together describe the
+        SMTP envelope used in delivery of the message.  There are no
+        attributes at this level.  The client SHOULD NOT modify the
+        /message/smtp-envelope entry or any sub-entries or any of their
+        attributes, except in messages which have the DRAFT flag set.
+    /message/smtp-envelope/from
+    /message/smtp-envelope/to
+    /message/smtp-envelope/orcpt
+    /message/smtp-envelope/envid
+	/message/smtp-envelope/notify
+	/message/smtp-envelope/ret
+        Contains the properties of the SMTP envelope: 'from' is the
+        return-path of the message; 'to' is the recipient of the
+        message. 'notify', 'orcpt', 'ret' and 'envid' contain the
+        notification options, original recipient, envelope ID and return
+        options as specified in [SMTP-DSN].
+    
+    /message/subject
+        Contains text supplied by the message recipient, to be used by
+        the client instead of the original message Subject.
+    
+    /message/vendor/<vendor-token>
+        Defines the top-level of entries associated with an entire
+        message as created by a particular product of some vendor.
+        These sub-entries can be used by vendors to provide
+        client-specific attributes.  The vendor-token MUST be registered
+        with IANA.
+    
+    /body/<part-specifier>
+        Defines the top-level of entries associated with a specific body
+        part of a message.  This entry itself does not contain any
+        attributes.  The part-specifier uses the same part specifier
+        syntax as the BODY message data item in the FETCH command
+        [IMAP4].  The server MUST return a BAD response if the client
+        uses an incorrect part specifier (either incorrect syntax or a
+        specifier referring to a non-existent part).  The server MUST
+        return a BAD response if the client uses an empty part specifier
+        (which is used in [IMAP4] to represent the entire message).
+    
+    /body/<part-specifier>/comment
+        Defines a comment or note associated with a specific body part
+        of a message.
+    
+    /body/<part-specifier>/flags
+        Defines the top-level of entries associated with flag state for
+        a specific body part of a message.  All sub-entries are
+        maintained entirely by the client.  There is no implicit change
+        to any flag by the server.
+    
+    /body/<part-specifier>/flags/seen
+    /body/<part-specifier>/flags/answered
+
+
+Gellens & Daboo               Expires August 2002               [Page 7]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    /body/<part-specifier>/flags/flagged
+    /body/<part-specifier>/flags/forwarded
+        Defines flags for a specific body part of a message.  The
+        "value" attribute of these entries must be either "1", "0" or
+        NIL.
+    
+    /body/<part-specifier>/vendor/<vendor-token>
+        Defines the top-level of entries associated with a specific body
+        part of a message as created by a particular product of some
+        vendor.  This entry can be used by vendors to provide client
+        specific attributes.  The vendor-token MUST be registered with
+        IANA.
+    
+    
+6.2.2 Attribute Names
+    
+    Attribute names MUST be specified in a standards track or IESG
+    approved experimental RFC, or fall under the vendor namespace.  See
+    Section 10.1 for the registration template.
+    
+    All attribute names implicitly have a ".priv" and a ".shared" suffix
+    which maps to private and shared versions of the entry.  Searching
+    or fetching without using either suffix includes both.  The client
+    MUST specify either a ".priv" or ".shared" suffix when storing an
+    annotation.
+    
+    value
+        A UTF8 string representing the data value of the attribute.  To
+        delete an annotation, the client can store NIL into the value.
+    
+    size
+        The size of the value, in octets.  Set automatically by the
+        server, read-only to clients.
+    
+    content-type
+        A MIME [MIME] content type and subtype that describes the nature
+        of the content of the "value" attribute.  If not present, a
+        value of "text/plain; charset=utf8" is assumed.
+    
+    vendor.<vendor-token>
+        Defines an attribute associated with a particular product of
+        some vendor.  This attribute can be used by vendors to provide
+        client specific attributes.  The vendor-token MUST be registered
+        with IANA.
+    
+    
+7 Private versus Shared and Access Control
+    
+    Some IMAP mailboxes are private, accessible only to the owning user.
+    Other mailboxes are not, either because the owner has set an ACL
+    [ACL-EXT] which permits access by other users, or because it is a
+    shared mailbox.
+
+
+Gellens & Daboo               Expires August 2002               [Page 8]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    This raises the issue of shared versus private annotations.
+    
+    If all annotations are private, it is impossible to set annotations
+    in a shared or otherwise non-private mailbox that are visible to
+    other users.  This eliminates what could be a useful aspect of
+    annotations in a shared environment.  An example of such use is a
+    shared IMAP folder containing bug reports.  Engineers may want to
+    use annotations to add information to existing messages, indicate
+    assignments, status, etc.  This use requires shared annotations.
+    
+    If all annotations are shared, it is impossible to use annotations
+    for private notes on messages in shared mailboxes.  Also, modifying
+    an ACL to permit access to a mailbox by other users may
+    unintentionally expose private information.
+    
+    There are also situations in which both shared and private
+    annotations are useful.  For example, an administrator may want to
+    set shared annotations on messages in a shared folder, which
+    individual users may wish to supplement with additional notes.
+    
+    If shared and private annotations are to coexist, we need a clear
+    way to differentiate them.  Also, it should be as easy as possible
+    for a client to access both and not overlook either.  There is also
+    a danger in allowing a client to store an annotation without knowing
+    if it is shared or private.
+    
+    This document proposes two standard suffixes for all attributes:
+    ".shared" and ".priv".  A search, fetch, or sort which specifies
+    neither uses both.  Store operations MUST explicitly use .priv or
+    .shared suffixes.
+    
+    A user can only store and fetch private annotations on messages in
+    any mailbox which they can SELECT or EXAMINE, including ones which
+    only open READ-ONLY.  A user can only store and fetch shared
+    annotations on messages in any mailbox that they can SELECT and
+    which opens READ-WRITE.  If a client attempts to store or fetch a
+    shared annotation on a READ-ONLY mailbox, the server MUST respond
+    with a NO response.
+    
+8 IMAP Protocol Changes
+    
+8.1 Optional parameters with the SELECT/EXAMINE commands
+    
+    This extension adds the ability to include one or more parameters
+    with the IMAP SELECT or EXAMINE commands, to turn on or off certain
+    standard behaviour, or to add new optional behaviours required for a
+    particular extension.  It is anticipated that other extensions may
+    want to use this facility, so a generalised approach is given here.
+    This facility is not dependent on the presence of the ANNOTATE
+    extension - other extensions can use it with a server that does not
+    implement ANNOTATE.
+    
+
+
+Gellens & Daboo               Expires August 2002               [Page 9]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    Optional parameters to the SELECT or EXAMINE commands are added as a
+    parenthesised list of atoms or strings, and appear after the mailbox
+    name in the standard SELECT or EXAMINE command.  The order of
+    individual parameters is arbitrary.  Individual parameters may
+    consist of one or more atoms or strings in a specific order.  If a
+    parameter consists of more than one atom or string, it MUST appear
+    in its own parenthesised list.  Any parameter not defined by
+    extensions that the server supports MUST be rejected with a NO
+    response.
+    
+    Example:
+        C: a SELECT INBOX (ANNOTATE)
+        S: ...
+        S: a OK SELECT complete
+    
+            In the above example, a single parameter is used with the
+            SELECT command.
+    
+        C: a EXAMINE INBOX (ANNOTATE (RESPONSES "UID Responses") MODTIME)
+        S: ...
+        S: a OK EXAMINE complete
+    
+            In the above example, three parameters are used with the
+            EXAMINE command.  The second parameter consists of two
+            items: an atom followed by a quoted string.
+    
+        C: a SELECT INBOX (BLURDYBLOOP)
+        S: a NO Unknown parameter in SELECT command
+    
+            In the above example, a parameter not supported by the
+            server is incorrectly used.
+    
+    The ANNOTATE extension defines a single optional select parameter
+    "ANNOTATE", which is used to turn on unsolicited responses for
+    annotations as described in Section 8.3.
+    
+8.2 ANNOTATION Message Data Item in FETCH Command
+    
+    This extension adds an ANNOTATION message data item to the FETCH
+    command.  This allows clients to retrieve annotations for a range of
+    messages in the currently selected mailbox.
+    
+    ANNOTATION <entry-specifier> <attribute-specifier>
+        The ANNOTATION message data item, when used by the client in the
+        FETCH command, takes an entry specifier and an attribute
+        specifier.
+    
+    Example:
+        C: a FETCH 1 (ANNOTATION ("/message/comment" "value"))
+        S: * 1 FETCH (ANNOTATION ("/message/comment"
+                                    ("value.priv"   "My comment"
+                                     "value.shared" "Group note")))
+
+
+Gellens & Daboo              Expires August 2002              [Page 10]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+        S: a OK Fetch complete
+    
+            In the above example, the content of the "value" attribute
+            for the "/message/comment" entry is requested by the client
+            and returned by the server.  Since neither ".shared" nor
+            ".priv" was specified, both are returned.
+    
+    "*" and "%" wildcard characters can be used in either specifier to
+    match one or more characters at that position, with the exception
+    that "%" does not match the hierarchy delimiter for the specifier it
+    appears in (that is, "/" for an entry specifier or "." for an
+    attribute specifier).  Thus an entry specifier of "/message/%"
+    matches entries such as "/message/comment" and "/message/subject",
+    but not "/message/flags/redirected".
+    
+    Examples:
+        C: a FETCH 1 (ANNOTATION ("/message/*" ("value.priv"
+           "size.priv")))
+        S: * 1 FETCH (ANNOTATION
+               (("/message/comment" ("value.priv" "My comment"
+                                    "size.priv" "10"))
+                ("/message/subject" ("value.priv" "Rhinoceroses!"
+                                    "size.priv" "13"))
+                ("/message/vendor/foobar/label.priv"
+                                    ("value.priv"   "label43"
+                                     "size.priv" "7"))
+                ("/message/vendor/foobar/personality" 
+                                    ("value.priv"   "Tallulah Bankhead"
+                                     "size.priv" "17"))))
+        S: a OK Fetch complete
+    
+    In the above example, the contents of the private "value" and "size"
+    attributes for any entries in the "/message" hierarchy are requested
+    by the client and returned by the server.
+    
+        C: a FETCH 1 (ANNOTATION ("/message/%" "value.shared"))
+        S: * 1 FETCH (ANNOTATION
+           (("/message/comment" ("value.shared" "Patch Mangler"))
+            ("/message/subject" ("value.shared" "Patches?  We don'
+            need no steenkin patches!"))))
+        S: a OK Fetch complete
+    
+            In the above example, the contents of the shared "value"
+            attributes for entries at the top level only of the
+            "/message" hierarchy are requested by the client and
+            returned by the server.
+    
+    Entry and attribute specifiers can be lists of atomic specifiers, so
+    that multiple items of each type may be returned in a single FETCH
+    command.
+    
+
+
+
+Gellens & Daboo              Expires August 2002              [Page 11]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    Examples:
+        C: a FETCH 1 (ANNOTATION
+             (("/message/comment" "/message/subject") "value.priv"))
+        S: * 1 FETCH (ANNOTATION
+             (("/message/comment" ("value.priv" "What a chowder-head"))
+              ("/message/subject" ("value.priv" "How to crush beer
+                cans"))))
+        S: a OK Fetch complete
+    
+    In the above example, the contents of the private "value" attributes
+    for the two entries "/message/comment" and "/message/subject" are
+    requested by the client and returned by the server.
+    
+    
+8.3 ANNOTATION Message Data Item in FETCH Response
+    
+    The ANNOTATION message data item in the FETCH response displays
+    information about annotations in a message.
+    
+    ANNOTATION parenthesised list
+    
+        The response consists of a list of entries, each of which has a
+        list of attribute-value pairs.
+    
+    Examples:
+        C: a FETCH 1 (ANNOTATION ("/message/comment" "value"))
+        S: * 1 FETCH (ANNOTATION ("/message/comment"
+                                   ("value.priv" "My comment"
+                                    "value.shared" NIL)))
+        S: a OK Fetch complete
+    
+    In the above example, a single entry with a single attribute-value
+    pair is returned by the server.  Since the client did not specify a
+    ".shared" or ".priv" suffix, both are returned.  Only the private
+    attribute has a value (the shared value is NIL).
+    
+        C: a FETCH 1 (ANNOTATION
+             (("/message/comment" "/message/subject") "value"))
+        S: * 1 FETCH (ANNOTATION
+             (("/message/comment" ("value.priv"   "My comment"
+                                   "value.shared" NIL))
+              ("/message/subject" ("value.priv"   "My subject"
+                                   "value.shared"  NIL))))
+        S: a OK Fetch complete
+    
+    In the above example, two entries each with a single attribute-value
+    pair are returned by the server.  Since the client did not specify a
+    ".shared" or ".priv" suffix, both are returned.  Only the private
+    attributes have values; the shared attributes are NIL.
+    
+        C: a FETCH 1 (ANNOTATION
+                        ("/message/comment" ("value" "size")))
+
+
+Gellens & Daboo              Expires August 2002              [Page 12]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+        S: * 1 FETCH (ANNOTATION
+                        (("/message/comment"
+                            ("value.priv"     "My comment"
+                             "value.shared"   NIL
+                             "size.priv"   "10"
+                             "size.shared" 0))))
+        S: a OK Fetch complete
+    
+    In the above example, a single entry with two attribute-value pairs
+    is returned by the server.  Since the client did not specify a
+    ".shared" or ".priv" suffix, both are returned.  Only the private
+    attributes have values; the shared attributes are NIL.
+    
+    Servers MUST NOT include ANNOTATION data in unsolicited responses
+    unless the client used the ANNOTATE select parameter when it issued
+    the last SELECT or EXAMINE command.  This restriction avoids sending
+    ANNOTATION data to a client unless the client explicitly asks for
+    it.
+    
+    Servers SHOULD send ANNOTATION message data items in unsolicited
+    FETCH responses if an annotation entry is changed by a third-party,
+    and the ANNOTATE select parameter was used.  This allows servers to
+    keep clients updated with changes to annotations by other clients.
+    
+    
+8.4 ANNOTATION Message Data Item in STORE
+    
+    ANNOTATION <parenthesised entry-attribute-value list>
+        Sets the specified list of entries by adding or replacing the
+        specified attributes with the values provided.  Clients can use
+        NIL for values of attributes it wants to remove from entries.
+    
+    The ANNOTATION message data item used with the STORE command has an
+    implicit ".SILENT" behaviour.  This means the server does not
+    generate an untagged FETCH in response to the STORE command and
+    assumes that the client updates its own cache if the command
+    succeeds.
+    
+    Examples:
+        C: a STORE 1 ANNOTATION ("/message/comment" 
+                                 ("value.priv" "My new comment"))
+        S: a OK Store complete
+    
+    In the above example, the entry "/message/comment" is created (if
+    not already present) and the private attribute "value" with data set
+    to "My new comment" is created if not already present, or replaced
+    if it exists.
+    
+        C: a STORE 1 ANNOTATION ("/message/comment"
+                                    ("value.shared" NIL))
+        S: a OK Store complete
+    
+
+
+Gellens & Daboo              Expires August 2002              [Page 13]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    In the above example, the shared "value" attribute of the entry
+    "/message/comment" is removed by storing NIL into the attribute.
+    
+    Multiple entries can be set in a single STORE command by listing
+    entry-attribute-value pairs in the list.
+    
+    Example:
+        C: a STORE 1 ANNOTATION ("/message/comment" ("value.priv" 
+                                                     "Get tix Tuesday")
+                                 "/message/subject" ("value.priv" 
+                                                     "Wots On"))
+        S: a OK Store complete
+    
+    In the above example, the entries "/message/comment" and
+    "/message/subject" are created (if not already present) and the
+    private attribute "value" is created for each entry if not already
+    present, or replaced if they exist.
+    
+    Multiple attributes can be set in a single STORE command by listing
+    multiple attribute-value pairs in the entry list.
+    
+    Example:
+        C: a STORE 1 ANNOTATION ("/message/comment" 
+                                 ("value.priv" "My new comment"
+                                  "vendor.foobar.priv" "foo's bar"))
+        S: a OK Store complete
+    
+    In the above example, the entry "/message/comment" is created (if
+    not already present) and the private attributes "value" and
+    "vendor.foobar" are created if not already present, or replaced if
+    they exist.
+    
+    
+8.5 ANNOTATION interaction with COPY
+    
+    The COPY command can be used to move messages from one mailbox to
+    another on the same server.  Servers that support the ANNOTATION
+    extension MUST copy all the annotation data associated with any
+    messages being copied via the COPY command.  The only exception to
+    this is if the destination mailbox permissions are such that either
+    the '.priv' or '.shared' annotations are not allowed.
+    
+8.6 ANNOTATION Message Data Item in APPEND
+    
+    ANNOTATION <parenthesised entry-attribute-value list>
+        Sets the specified list of entries and attributes in the
+        resulting message.
+    
+    Example:
+        C: a APPEND drafts ANNOTATION ("/message/comment" 
+             ("value.priv" "Don't send until we hear from Sally")) {310}
+        S: + Ready for literal data
+
+
+Gellens & Daboo              Expires August 2002              [Page 14]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+        C: MIME-Version: 1.0
+        ...
+        C:
+        S: a OK APPEND completed
+    
+    In the above example, a comment with a private value is added to a
+    new message appended to the mailbox.  The ellipsis represents the
+    bulk of the message.
+    
+    
+8.7 ANNOTATION Criterion in SEARCH
+    
+    The ANNOTATION criterion for the SEARCH command allows a client to
+    search for a specified string in the value of an annotation entry of
+    a message.
+        ANNOTATION <entry-name> <attribute-name> <value>
+    
+    Messages that have annotations with entries matching <entry-name>
+    and attributes matching <attribute-name> and the specified string
+    <value> in their values are returned in the SEARCH results.  The "*"
+    character can be used in the entry or attribute name fields to match
+    any content in those items.  The "%" character can be used in the
+    entry or attribute name fields to match a single level of hierarchy
+    only.
+    
+    Examples:
+        C: a SEARCH ANNOTATION "/message/comment" "value" "IMAP4"
+        S: * SEARCH 2 3 5 7 11 13 17 19 23
+        S: a OK Search complete
+    
+    In the above example, the message numbers of any messages containing
+    the string "IMAP4" in the shared or private "value" attribute of the
+    "/message/comment" entry are returned in the search results.
+    
+        C: a SEARCH ANNOTATION "*" "*" "IMAP4"
+        S: * SEARCH 1 2 3 5 8 13 21 34
+        S: a OK Search complete
+    
+    In the above example, the message numbers of any messages containing
+    the string "IMAP4" in any attribute (public or private) of any entry
+    are returned in the search results.
+    
+    
+8.8 ANNOTATION Key in SORT
+    
+    The ANNOTATION criterion for the SORT command [SORT-EXT] instructs
+    the server to return the message numbers or UIDs of a mailbox,
+    sorted using the values of the specified annotations.  The
+    ANNOTATION criterion is available if the server returns both
+    "ANNOTATE" and "SORT" as supported capabilities in the CAPABILITY
+    command response.
+
+
+
+Gellens & Daboo              Expires August 2002              [Page 15]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+        ANNOTATION <entry-name> <attribute-name>
+    
+    Messages are sorted using the values of the <attribute-name>
+    attributes in the <entry-name> entries. (The charset argument
+    determines sort order, as specified in the SORT extension
+    description.)
+    
+    Examples:
+        C: a SORT (ANNOTATION "/message/subject" "value.shared") UTF-8
+           ALL
+        S: * SORT 2 3 4 5 1 11 10 6 7 9 8
+        S: a OK Sort complete
+    
+    In the above example, the message numbers of all messages are
+    returned, sorted according to the shared "value" attribute of the
+    "/message/subject" entry.
+    
+    Note that the ANNOTATION sort key must include a fully specified
+    entry and attribute -- wildcards are not allowed.
+    
+    
+9 Formal Syntax
+    
+    The following syntax specification uses the Augmented Backus-Naur
+    Form (ABNF) notation as specified in [ABNF].
+    
+    Non-terminals referenced but not defined below are as defined by
+    [IMAP4].
+    
+    Except as noted otherwise, all alphabetic characters are case-
+    insensitive.  The use of upper or lower case characters to define
+    token strings is for editorial clarity only.  Implementations MUST
+    accept these strings in a case-insensitive fashion.
+    
+   append            = "APPEND" SP mailbox [SP flag-list] [SP date-time]
+                       [SP "ANNOTATION" SP att-annotate]
+                       SP literal
+                       ; modifies original IMAP4 APPEND command
+
+   att-annotate      = "(" entry-att *(SP entry-att) ")"
+
+   fetch-att         =/ fetch-annotate
+                       ; modifies original IMAP4 fetch-att
+
+   fetch-annotate    = "ANNOTATION" SP "(" entries SP attribs ")"
+   fetch-ann-resp    = "ANNOTATION" SP "(" entry-att *(SP entry-att) ")"
+
+   store-att-flags   =/ att-annotate
+                       ; modifies original IMAP4 STORE command
+
+   search-key        =/ search-annotate
+                       ; modifies original IMAP4 search-key
+
+
+Gellens & Daboo              Expires August 2002              [Page 16]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+
+   search-annotate   = "ANNOTATION" SP entry-match SP attrib-match
+                       SP value
+
+   sort-key          =/ sort-annotate
+                       ; modifies original
+                       ; draft-crispin-imapext-sort-xx.txt sort-key
+
+   sort-annotate     = "ANNOTATION" SP entry SP attrib
+
+   entries           = entry-match /
+                       "(" entry-match *(SP entry-match) ")"
+   attribs           = attrib-match /
+                       "(" attrib-match *(SP attrib-match) ")"
+   entry-att         = entry SP "(" att-value *(SP att-value) ")
+   att-value         = attrib SP value
+
+   utf8-char         =  %x01-FF
+                       ; any character, excluding NUL
+   atom-slash        = any utf8-char except "/"
+   atom-dot          = any utf8-char except "."
+
+   entry             = DQUOTE 1*atom-slash *("/" 1*atom-slash) DQUOTE
+   entry-match       = DQUOTE 1*entry-match-atom
+                       *("/" 1*entry-match-atom) DQUOTE
+   entry-match-atom  = 1*(list-wildcards / atom-slash)
+                       *(list-wildcards / atom-slash)
+
+   attrib            = DQUOTE 1*atom-dot *("." 1*atom-dot) DQUOTE
+   attrib-match      = DQUOTE 1*attrib-match-atom
+                       *("." 1*attrib-match-atom) DQUOTE
+   attrib-match-atom = 1*(list-wildcards / atom-dot)
+                       *(list-wildcards / atom-dot)
+
+   value             = nstring
+   
+   select            =/ *(SP "(" select-param *(SP select-param) ")"
+                       ; modifies the original IMAP4 select command to
+                       ; accept optional parameters
+   
+   examine            =/ *(SP "(" select-param *(SP select-param) ")"
+                       ; modifies the original IMAP4 examine command to
+                       ; accept optional parameters
+   
+   select-param      = astring / "(" astring SP astring *(SP astring) ")"
+                       ; parameters to SELECT may contain one or
+                       ; more atoms or strings - multiple items
+                       ; are always parenthesised
+   
+   annotate-param    = "ANNOTATE"
+                       ; defines the select parameter used with
+                       ; ANNOTATE extension
+
+
+Gellens & Daboo              Expires August 2002              [Page 17]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+10 IANA Considerations
+    
+    Both entry names and attribute names MUST be specified in a
+    standards track or IESG approved experimental RFC, or fall under the
+    vendor namespace.  Vendor names MUST be registered.
+    
+10.1 Entry and Attribute Registration Template
+    
+    To: iana@iana.org
+    Subject: IMAP Annotate Registration
+
+    Please register the following IMAP Annotate item:
+
+    [] Entry        [] Attribute
+    [] Vendor       [] Open: RFC _______
+
+    Name: ______________________________
+
+    Description: _______________________
+
+    ____________________________________
+
+    ____________________________________
+
+    Contact person: ____________________
+
+            email:  ____________________
+    
+11 Security Considerations
+    
+    Care must be taken to ensure that annotations whose values are
+    intended to remain private are not stored in mailboxes which are
+    accessible to other users.  This includes mailboxes owned by the
+    user by whose ACLs permit access by others as well as any shared
+    mailboxes.
+    
+    
+12 References
+    
+    [ABNF] Crocker, Overell, "Augmented BNF for Syntax Specifications:
+    ABNF", RFC 2234, Internet Mail Consortium, Demon Internet Ltd,
+    November 1997.
+    
+    [ACAP] Newman, Myers, "ACAP -- Application Configuration Access
+    Protocol", RFC 2244, Innosoft, Netscape, November 1997.
+    
+    [ACL-EXT] Myers, "IMAP4 ACL extension", RFC 2086, Carnegie Mellon,
+    January 1997.
+    
+    [IMAP4] Crispin, "Internet Message Access Protocol - Version 4rev1",
+    RFC 2060, University of Washington, December 1996.
+    
+
+
+Gellens & Daboo              Expires August 2002              [Page 18]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    [KEYWORDS] Bradner, "Key words for use in RFCs to Indicate
+    Requirement Levels", RFC 2119, Harvard University, March 1997.
+    
+    [SMTP-DSN] Moore, "SMTP Service Extension for Delivery Status
+    Notifications", RFC 1891, University of Tennessee, January 1996.
+    
+    [SORT-EXT] Crispin, "Internet Message Access Protocol -- SORT
+    Extension", work in progress.
+    <http://www.ietf.org/internet-drafts/draft-ietf-imapext-sort-07.txt>
+    
+    
+13 Acknowledgments
+    
+    Many thanks to Chris Newman for his detailed comments on the first
+    draft of this document, and to the participants at the ACAP working
+    dinner in Pittsburgh.
+    
+    
+14 Authors' Addresses
+    
+    Randall Gellens
+    QUALCOMM Incorporated
+    5775 Morehouse Dr.
+    San Diego, CA   92121-2779
+    U.S.A.
+
+    Email: randy@qualcomm.com
+    
+    
+    Cyrus Daboo
+    Cyrusoft International, Inc.
+    Suite 780, 5001 Baum Blvd.
+    Pittsburgh, PA 15213
+    U.S.A.
+
+    Email: daboo@cyrusoft.com
+    
+15 Full Copyright Statement
+    
+    Copyright (C) The Internet Society 2002.  All Rights Reserved.
+    
+    This document and translations of it may be copied and furnished to
+    others, and derivative works that comment on or otherwise explain it
+    or assist in its implementation may be prepared, copied, published
+    and distributed, in whole or in part, without restriction of any
+    kind, provided that the above copyright notice and this paragraph
+    are included on all such copies and derivative works.  However, this
+    document itself may not be modified in any way, such as by removing
+    the copyright notice or references to the Internet Society or other
+    Internet organizations, except as needed for the purpose of
+    developing Internet standards in which case the procedures for
+    copyrights defined in the Internet Standards process must be
+
+
+Gellens & Daboo              Expires August 2002              [Page 19]
+Internet Draft            IMAP ANNOTATE Extension            March 2002
+
+    followed, or as required to translate it into languages other than
+    English.
+    
+    The limited permissions granted above are perpetual and will not be
+    revoked by the Internet Society or its successors or assigns.
+    
+    This document and the information contained herein is provided on an
+    "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+    TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+    BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+    HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+    MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Gellens & Daboo              Expires August 2002              [Page 20]

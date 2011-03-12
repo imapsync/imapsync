@@ -1,0 +1,462 @@
+--- imapsync.ORIG	2009-05-21 02:30:56.828125000 -0400
++++ imapsync	2009-05-21 02:35:55.984375000 -0400
+@@ -72,13 +72,14 @@
+            [--useheader <string>] [--useheader <string>]
+            [--skipsize] [--allowsizemismatch]
+            [--delete] [--delete2]
+-           [--expunge] [--expunge1] [--expunge2]
++           [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
+            [--subscribed] [--subscribe]
+            [--nofoldersizes]
+            [--dry]
+            [--debug] [--debugimap]
+            [--timeout <int>] [--fast]
+            [--split1] [--split2] 
++           [--reconnectretry1 <int>] [--reconnectretry2 <int>]
+            [--version] [--help]
+   
+ =cut
+@@ -358,6 +359,7 @@
+ --expunge
+ --expunge1
+ --expunge2
++--uidexpunge2
+ --maxage
+ --minage
+ --maxsize
+@@ -456,7 +458,7 @@
+         $skipheader, @useheader,
+         $skipsize, $allowsizemismatch, $foldersizes, $buffersize,
+ 	$delete, $delete2,
+-        $expunge, $expunge1, $expunge2, $dry,
++        $expunge, $expunge1, $expunge2, $uidexpunge2, $dry,
+         $justfoldersizes,
+         $authmd5,
+         $subscribed, $subscribe,
+@@ -474,6 +476,7 @@
+         $authuser1, $authuser2,
+         $authmech1, $authmech2,
+         $split1, $split2,
++        $reconnectretry1, $reconnectretry2,
+ 	$tests, $test_builder,
+ 	$allow3xx, $justlogin,
+ );
+@@ -735,12 +738,12 @@
+ $debugimap and print "From connection\n";
+ $from = login_imap($host1, $port1, $user1, $password1, 
+ 		   $debugimap, $timeout, $fastio1, $ssl1, 
+-		   $authmech1, $authuser1);
++		   $authmech1, $authuser1, $reconnectretry1);
+ 
+ $debugimap and print "To  connection\n";
+ $to = login_imap($host2, $port2, $user2, $password2, 
+ 		 $debugimap, $timeout, $fastio2, $ssl2, 
+-		 $authmech2, $authuser2);
++		 $authmech2, $authuser2, $reconnectretry2);
+ 
+ #  history
+ 
+@@ -751,13 +754,13 @@
+ sub login_imap {
+ 	my($host, $port, $user, $password, 
+ 	   $debugimap, $timeout, $fastio, 
+-	   $ssl, $authmech, $authuser) = @_;
++	   $ssl, $authmech, $authuser, $reconnectretry) = @_;
+ 	my ($imap);
+ 	
+ 	$imap = Mail::IMAPClient->new();
+ 	
+ 	$imap->Ssl($ssl) if ($ssl);
+-	$imap->Clear(20);
++	$imap->Clear(5);
+ 	$imap->Server($host);
+ 	$imap->Port($port);
+ 	$imap->Fast_io($fastio);
+@@ -766,7 +769,12 @@
+ 	$imap->Peek(1);
+ 	$imap->Debug($debugimap);
+ 	$timeout and $imap->Timeout($timeout);
+-	
++
++	( Mail::IMAPClient->VERSION =~ /^2/ or !$imap->can("Reconnectretry"))
++	  ? warn("--reconnectretry* requires IMAPClient >= 3.17\n")
++	  : $imap->Reconnectretry($reconnectretry)
++	  if ($reconnectretry);
++
+ 	#$imap->connect()
+ 	myconnect($imap)
+ 	  or die "Can not open imap connection on [$host] with user [$user]: $@\n";
+@@ -831,13 +839,13 @@
+ 
+ 
+ 
+-#print "From capability: ", join(" ", $from->capability()), "\n";
+-#print "To   capability: ", join(" ", $to->capability()), "\n";
++$debug and print "From capability: ", join(" ", $from->capability()), "\n";
++$debug and print "To   capability: ", join(" ", $to->capability()), "\n";
+ 
+ die unless $from->IsAuthenticated();
+-print "host1 :state Authenticated\n";
++print "host1: state Authenticated\n";
+ die unless   $to->IsAuthenticated();
+-print "host2 :state Authenticated\n";
++print "host2: state Authenticated\n";
+ 
+ exit(0) if ($justlogin);
+ 
+@@ -1100,13 +1108,17 @@
+ 	$debug and print "Calling namespace capability\n";
+ 	if ($imap->has_capability("namespace")) {
+ 		$sep_out = $imap->separator();
+-		return($sep_out);
++		return($sep_out) if defined $sep_out;
++		warn 
++		  "NAMESPACE request failed for ", 
++		  $imap->Server(), ": ", $imap->LastError, "\n";
++		exit(1);
+ 	}
+ 	else{
+-		print 
++		warn
+ 		  "No NAMESPACE capability in imap server ", 
+ 		    $imap->Server(),"\n",
+-		      "Give the separator caracter with the $sep_opt option\n";
++		      "Give the separator character with the $sep_opt option\n";
+ 		exit(1);
+ 	}
+ }
+@@ -1133,9 +1145,9 @@
+ 		}
+ 		unless ($imap->select($folder)) {
+ 			warn 
+-			  "$side Folder $folder: Could not select ",
++			  "$side Folder $folder: Could not select: ",
+ 			    $imap->LastError,  "\n";
+-			#$error++;
++			$error++;
+ 			next;
+ 		}
+ 		if (defined($maxage) or defined($minage)) {
+@@ -1319,9 +1331,9 @@
+ 
+ 	unless ($from->select($f_fold)) {
+ 		warn 
+-		"From Folder $f_fold: Could not select ",
++		"From Folder $f_fold: Could not select: ",
+ 		$from->LastError,  "\n";
+-		#$error++;
++		$error++;
+ 		next FOLDER;
+ 	}
+ 	if ( ! exists($t_folders_list{$t_fold})) {
+@@ -1329,7 +1341,7 @@
+ 		print "Creating folder [$t_fold]\n";
+ 		unless ($dry){
+ 			unless ($to->create($t_fold)){
+-				warn "Couldn't create [$t_fold]",
++				warn "Couldn't create [$t_fold]: ",
+ 				$to->LastError,"\n";
+ 				$error++;
+ 				next FOLDER;
+@@ -1344,9 +1356,9 @@
+ 
+ 	unless ($to->select($t_fold)) { 
+ 		warn 
+-		"To   Folder $t_fold: Could not select ",
++		"To   Folder $t_fold: Could not select: ",
+ 		$to->LastError, "\n";
+-		#$error++;
++		$error++;
+ 		next FOLDER;
+ 	}
+ 	
+@@ -1384,17 +1396,22 @@
+ 	last FOLDER if $from->IsUnconnected();
+ 	last FOLDER if   $to->IsUnconnected();
+ 
+-	my $f_heads = $from->parse_headers([@f_msgs],
+-					    @useheader)if (@f_msgs) ;
++	my ($f_heads, $f_fir) = ({}, {});
++	$f_heads = $from->parse_headers([@f_msgs], @useheader) if (@f_msgs);
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+ 	last FOLDER if $from->IsUnconnected();
+-	last FOLDER if   $to->IsUnconnected();
+-	my $f_fir  = $from->fetch_hash("FLAGS",
+-				       "INTERNALDATE",
+-				       "RFC822.SIZE") if (@f_msgs);
++
++	$f_fir   = $from->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
++	  if (@f_msgs);
+ 	$debug and print "Time fir: ", timenext(), " s\n";
++	unless ($f_fir) {
++		warn
++		"From Folder $f_fold: Could not fetch_hash ",
++		scalar(@f_msgs), " msgs: ", $from->LastError, "\n";
++		$error++;
++		next FOLDER;
++	}
+ 	last FOLDER if $from->IsUnconnected();
+-	last FOLDER if   $to->IsUnconnected();
+ 
+ 	foreach my $m (@f_msgs) {
+ 		unless (parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash)) {
+@@ -1407,25 +1424,21 @@
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+ 	
+ 	print "++++ To   [$t_fold] Parse 1 ++++\n";
+-	last FOLDER if $from->IsUnconnected();
+-	last FOLDER if   $to->IsUnconnected();
+ 
+-	my $t_heads =   $to->parse_headers([@t_msgs],
+-					    @useheader) if (@t_msgs);
++	my ($t_heads, $t_fir) = ({}, {});
++	$t_heads =   $to->parse_headers([@t_msgs], @useheader) if (@t_msgs);
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+-	last FOLDER if $from->IsUnconnected();
+ 	last FOLDER if   $to->IsUnconnected();
+-	my $t_fir  =   $to->fetch_hash("FLAGS",
+-				       "INTERNALDATE",
+-				       "RFC822.SIZE") if (@t_msgs);
++
++	$t_fir   =   $to->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
++	  if (@t_msgs);
+ 	$debug and print "Time fir: ", timenext(), " s\n";
+-	last FOLDER if $from->IsUnconnected();
+ 	last FOLDER if   $to->IsUnconnected();
+ 	foreach my $m (@t_msgs) {
+ 		parse_header_msg1($to, $m, $t_heads, $t_fir, "T", \%t_hash);
+ 	}
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+-	
++
+ 	print "++++ Verifying [$f_fold] -> [$t_fold] ++++\n";
+ 	# messages in "from" that are not good in "to"
+ 	
+@@ -1439,18 +1452,31 @@
+ 
+ 	
+ 	if($delete2) {
++		my @expunge;
+ 		foreach my $m_id (@t_hash_keys_sorted_by_uid) {
+ 			#print "$m_id ";
+ 			unless (exists($f_hash{$m_id})) {
+ 				my $t_msg  = $t_hash{$m_id}{'m'};
+-				print "deleting message $m_id  $t_msg\n";
+-				unless ($dry) {
+-					last FOLDER if $from->IsUnconnected();
+-                                        last FOLDER if   $to->IsUnconnected();
++				my $flags  = $t_hash{$m_id}{'F'} || "";
++				my $isdel  = $flags =~ /\B\\Deleted\b/ ? 1 : 0;
++				print "deleting message $m_id  $t_msg\n"
++				  if ! $isdel;
++				push(@expunge,$t_msg) if $uidexpunge2;
++				unless ($dry or $isdel) {
+ 					$to->delete_message($t_msg);
++					last FOLDER if $to->IsUnconnected();
+ 				}
+ 			}
+ 		}
++
++		my $cnt = scalar @expunge;
++		if(@expunge and !$to->can("uidexpunge")) {
++			warn "uidexpunge not supported (< IMAPClient 3.17)\n";
++		}
++		elsif(@expunge) {
++			print "uidexpunge $cnt message(s)\n";
++			$to->uidexpunge(\@expunge) if !$dry;
++		}
+ 	}
+ 
+ 	MESS: foreach my $m_id (@f_hash_keys_sorted_by_uid) {
+@@ -1475,7 +1501,7 @@
+ 			$string = $from->message_string($f_msg);
+ 			unless (defined($string)) {
+ 				warn
+-				"Could not fetch message #$f_msg from $f_fold ",
++				"Could not fetch message #$f_msg from $f_fold: ",
+ 				$from->LastError, "\n";
+ 				$error++;
+ 				$mess_size_total_error += $f_size;
+@@ -1591,10 +1617,10 @@
+ 					if($delete) {
+ 						print "Deleting msg #$f_msg in folder $f_fold\n";
+ 						unless($dry) {
+-			                                last FOLDER if $from->IsUnconnected();
+-			                                last FOLDER if   $to->IsUnconnected();
+ 							$from->delete_message($f_msg);
++							last FOLDER if $from->IsUnconnected();
+ 							$from->expunge() if ($expunge);
++							last FOLDER if $from->IsUnconnected();
+ 						}
+ 					}
+ 				}
+@@ -1612,44 +1638,31 @@
+ 		}
+ 		
+ 		$fast and next MESS;
+-		#$debug and print "MESSAGE $m_id\n"; 
++		#$debug and print "MESSAGE $m_id\n";
+ 		my $t_size = $t_hash{$m_id}{'s'};
+ 		my $t_msg  = $t_hash{$m_id}{'m'};
+-		
+-		
+-		$debug and print "Setting flags\n";
+-		last FOLDER if $from->IsUnconnected();
+-		last FOLDER if   $to->IsUnconnected();
+ 
++		# used cached flag values for efficiency
++		my $flags_f = $f_hash{$m_id}{'F'} || "";
++		my $flags_t = $t_hash{$m_id}{'F'} || "";
+ 
+-		my (@flags_f,@flags_t);
+-		my $flags_f_rv = $from->flags($f_msg);
+-		@flags_f = @{$flags_f_rv} if ref($flags_f_rv);
+-		
+ 		# No flag \Recent here, no ?
+-		my $flags_f = join(" ", @flags_f);
+-		
+ 		$flags_f = flags_regex($flags_f) if @regexflag;
+-		
+-		# This add or change flags but no flag are removed with this
+-		$to->store($t_msg,
+-			   "+FLAGS.SILENT (" . $flags_f . ")"
+-			  ) unless ($dry);
+-	        
+-		# I think one IsUnconnected() is enough before all flags operations.
+-		#last FOLDER if   $to->IsUnconnected();
+-		
+-		my $flags_t_rv = $to->flags($t_msg);
+-		#last FOLDER if   $to->IsUnconnected();
+ 
+-		@flags_t = @{$flags_t_rv} if ref($flags_t_rv);
+-		my $flags_t = join(" ", @flags_t);
+-		$debug and print 
+-		  "flags from: $flags_f\n",
+-		  "flags to  : $flags_t\n";
+-		
++		$debug and print "Setting flags from($flags_f) to($flags_t)\n";
++
++		# This add or change flags but no flag are removed with this
++		$to->store($t_msg, "+FLAGS.SILENT ($flags_f)" )
++		  if (!$dry and $flags_f ne $flags_t);
++		last FOLDER if   $to->IsUnconnected();
+ 
+ 		$debug and do {
++			my @flags_t = @{ $to->flags($t_msg) || [] };
++			last FOLDER if   $to->IsUnconnected();
++
++			print "flags from: $flags_f\n",
++			      "flags to  : @flags_t\n";
++
+ 			print "Looking dates\n"; 
+ 			#my $d_f = $from->internaldate($f_msg);
+ 			#my $d_t = $to->internaldate($t_msg);
+@@ -1657,7 +1670,7 @@
+ 			my $d_t = $t_hash{$m_id}{'D'};
+ 			print 
+ 			  "idate from: $d_f\n",
+-			  "idate to  : $d_t\n";
++			    "idate to  : $d_t\n";
+ 			
+ 			#unless ($d_f eq $d_t) {
+ 			#	print "!!! Dates differ !!!\n";
+@@ -1673,8 +1686,7 @@
+ 			if ($opt_G){
+ 				print "Deleting msg f:#$t_msg in folder $t_fold\n";
+ 				$to->delete_message($t_msg) unless ($dry);
+-				# $opt_G is fake
+-				#last FOLDER if   $to->IsUnconnected();
++				last FOLDER if   $to->IsUnconnected();
+ 			}
+ 		}
+ 		else {
+@@ -1684,10 +1696,10 @@
+ 			if($delete) {
+ 				print "Deleting msg #$f_msg in folder $f_fold\n";
+ 				unless($dry) {
+-				        last FOLDER if $from->IsUnconnected();
+-					last FOLDER if   $to->IsUnconnected();
+ 					$from->delete_message($f_msg);
++					last FOLDER if $from->IsUnconnected();
+ 					$from->expunge() if ($expunge);
++					last FOLDER if $from->IsUnconnected();
+ 				}
+ 			}
+ 		}
+@@ -1713,21 +1725,31 @@
+ # 
+ # can be tested with a "killall /usr/bin/imapd" (or equivalent) in command line.
+ #
++sub _filter {
++	my $str = shift or return "";
++	my $sz  = 64;
++        my $len = length($str);
++	if ( ! $debug and $len > $sz*2 ) {
++		my $beg = substr($str, 0, $sz);
++		my $end = substr($str, -$sz, $sz);
++		$str = $beg . "..." . $end;
++	}
++	$str =~ s/\012?\015$//;
++	return "(len=$len) " . $str;
++}
++
+ sub lost_connection {
+ 	my($imap, $error_message) = @_;
+ 	if ( $imap->IsUnconnected() ) {
+ 		$error++;
++		my $lcomm = $imap->LastIMAPCommand || "";
+ 		my $einfo = $imap->LastError || @{$imap->History}[-1] || "";
+-		my $sz = 64;
+-		# if einfo is long try reduce to a more reasonable size
+-		if ( ! $debug and length($einfo) > $sz*2 ) {
+-			my $beg = substr($einfo, 0, $sz);
+-			my $end = substr($einfo, -$sz, $sz);
+-			$einfo = $beg . "..." . $end;
+-		}
+-		chomp($einfo);
+-		$einfo = ": $einfo" if $einfo;
+-		warn("error: lost connection $error_message $einfo\n");
++
++		# if string is long try reduce to a more reasonable size
++		$lcomm = _filter($lcomm);
++		$einfo = _filter($einfo);
++		warn("error: last command: $lcomm\n") if ($debug && $lcomm);
++		warn("error: lost connection $error_message", $einfo, "\n");
+ 		return(1);
+ 	}else{
+ 		return(0);
+@@ -1847,6 +1869,7 @@
+                                    "expunge!"    => \$expunge,
+                                    "expunge1!"    => \$expunge1,
+                                    "expunge2!"    => \$expunge2,
++                                   "uidexpunge2!" => \$uidexpunge2,
+                                    "subscribed!" => \$subscribed,
+                                    "subscribe!"  => \$subscribe,
+ 				   "justbanner!" => \$justbanner,
+@@ -1871,6 +1894,8 @@
+ 				   "authuser2=s" => \$authuser2,
+ 				   "split1=i"    => \$split1,
+ 				   "split2=i"    => \$split2,
++				   "reconnectretry1=i" => \$reconnectretry1,
++				   "reconnectretry2=i" => \$reconnectretry2,
+                                    "tests"       => \$tests,
+                                    "allow3xx!"   => \$allow3xx,
+                                    "justlogin!"   => \$justlogin,
+@@ -2088,6 +2113,8 @@
+                          it will change in future releases.
+ --expunge1             : expunge messages on source account.
+ --expunge2             : expunge messages on target account.
++--uidexpunge2          : uidexpunge messages on the destination imap server
++                         that are not on the source server, requires --delete2
+ --syncinternaldates    : sets the internal dates on host2 same as host1.
+                          Turned on by default.
+ --idatefromheader      : sets the internal dates on host2 same as the 
+@@ -2132,6 +2159,8 @@
+                          and exit.
+ --justfolders          : just do things about folders (ignore messages).
+ --fast                 : be faster (just does not sync flags).
++--reconnectretry1 <int>: reconnect if connection is lost up to <int> times
++--reconnectretry2 <int>: reconnect if connection is lost up to <int> times
+ --split1     <int>     : split the requests in several parts on source server.
+                          <int> is the number of messages handled per request.
+                          default is like --split1 1000

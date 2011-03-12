@@ -3,7 +3,7 @@ NAME
     Synchronise mailboxes between two imap servers. Good at IMAP migration.
     More than 32 different IMAP server softwares supported with success.
 
-    $Revision: 1.267 $
+    $Revision: 1.284 $
 
 INSTALL
      imapsync works fine under any Unix OS with perl.
@@ -30,12 +30,12 @@ INSTALL
 SYNOPSIS
       imapsync [options]
 
-    To get a description of each option just run imapsync like this :
+    To get a description of each option just run imapsync like this:
 
       imapsync --help
       imapsync
 
-    The option list :
+    The option list:
 
       imapsync [--host1 server1]  [--port1 <num>]
                [--user1 <string>] [--passfile1 <string>]
@@ -51,7 +51,7 @@ SYNOPSIS
                [--regextrans2 <regex> --regextrans2 <regex> ...]
                [--sep1 <char>]
                [--sep2 <char>]
-               [--justfolders] [--justfoldersizes] [--justconnect]
+               [--justfolders] [--justfoldersizes] [--justconnect] [--justbanner]
                [--syncinternaldates]
                [--idatefromheader]
                [--buffersize  <int>]
@@ -62,32 +62,33 @@ SYNOPSIS
                [--minage <int>]
                [--skipheader <regex>]
                [--useheader <string>] [--useheader <string>]
-               [--skipsize]
+               [--skipsize] [--allowsizemismatch]
                [--delete] [--delete2]
-               [--expunge] [--expunge1] [--expunge2]
+               [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
                [--subscribed] [--subscribe]
                [--nofoldersizes]
                [--dry]
                [--debug] [--debugimap]
                [--timeout <int>] [--fast]
                [--split1] [--split2] 
+               [--reconnectretry1 <int>] [--reconnectretry2 <int>]
                [--version] [--help]
   
 DESCRIPTION
     The command imapsync is a tool allowing incremental and recursive imap
     transfer from one mailbox to another.
 
-    By default all folders are transfered, recursively.
+    By default all folders are transferred, recursively.
 
     We sometimes need to transfer mailboxes from one imap server to another.
     This is called migration.
 
-    imapsync is the adequate tool because it reduces the amount of data
+    imapsync is a good tool because it reduces the amount of data
     transferred by not transferring a given message if it is already on both
     sides. Same headers, same message size and the transfer is done only
     once. All flags are preserved, unread will stay unread, read will stay
     read, deleted will stay deleted. You can stop the transfer at any time
-    and restart it later, imapsync is adapted to a bad connection. imapsync
+    and restart it later, imapsync works well with bad connections. imapsync
     is CPU hungry so nice and renice commands can be a good help. imapsync
     can be memory hungry too, especially with large messages.
 
@@ -105,13 +106,13 @@ OPTIONS
 
 HISTORY
     I wrote imapsync because an enterprise (basystemes) paid me to install a
-    new imap server without loosing huge old mailboxes located on a far away
+    new imap server without losing huge old mailboxes located on a far away
     remote imap server accessible by a low bandwith link. The tool imapcp
     (written in python) could not help me because I had to verify every
     mailbox was well transferred and delete it after a good transfer.
-    imapsync started its life being a copy_folder.pl patch. The tool
-    copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl module tarball
-    source (in the examples/ directory of the tarball).
+    imapsync started life as a copy_folder.pl patch. The tool copy_folder.pl
+    comes from the Mail-IMAPClient-2.1.3 perl module tarball source (in the
+    examples/ directory of the tarball).
 
 EXAMPLE
     While working on imapsync parameters please run imapsync in dry mode (no
@@ -120,7 +121,7 @@ EXAMPLE
 
     To synchronize the imap account "buddy" on host "imap.src.fr" to the
     imap account "max" on host "imap.dest.fr" (the passwords are located in
-    two files "/etc/secret1" for "buddy", "/etc/secret2" for "max") :
+    two files "/etc/secret1" for "buddy", "/etc/secret2" for "max"):
 
      imapsync --host1 imap.src.fr  --user1 buddy --passfile1 /etc/secret1 \
               --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
@@ -136,9 +137,9 @@ SECURITY
     solution.
 
     imasync is not totally protected against sniffers on the network since
-    passwords may be transferred in plain text in case CRAM-MD5 is not
-    supported by your imap servers. Use --ssl1 and --ssl2 to enable
-    encryption on host1 and host2.
+    passwords may be transferred in plain text if CRAM-MD5 is not supported
+    by your imap servers. Use --ssl1 and --ssl2 to enable encryption on
+    host1 and host2.
 
     You may authenticate as one user (typically an admin user), but be
     authorized as someone else, which means you don't need to know every
@@ -152,24 +153,12 @@ EXIT STATUS
     imapsync will exit with a 0 status (return code) if everything went
     good. Otherwise, it exits with a non-zero status.
 
-    So if you have a buggy internet connection, you can use this loop in a
-    Bourne shell:
+    So if you have an unreliable internet connection, you can use this loop
+    in a Bourne shell:
 
             while ! imapsync ...; do 
                   echo imapsync not complete
             done
-
-AUTHOR
-    Gilles LAMIRAL <lamiral@linux-france.org>
-
-    Feedback good or bad is always welcome.
-
-    The newsgroup comp.mail.imap is a good place to talk about imapsync. I
-    read it when imapsync is concerned.
-
-    Gilles LAMIRAL earn his living writing, installing, configuring and
-    teaching free open and gratis softwares. Do not hesitate to pay him for
-    that services.
 
 LICENSE
     imapsync is free, gratis and open source software cover by the GNU
@@ -177,23 +166,19 @@ LICENSE
     the web site http://www.gnu.org/licenses/licenses.html
 
 MAILING-LIST
-    Here is the welcome message:
+    The public mailing-list may be the best way to get support.
 
-    Welcome on the imapsync mailing-list.
-
-    This list is dedicated to the users of imapsync
-    http://www.linux-france.org/prj/imapsync/
-
-    To write on the list, the address is: mailto:imapsync@linux-france.org
-
-    To unsubscribe, send a message to:
-    mailto:imapsync-unsubscribe@listes.linux-france.org
+    To write on the mailing-list, the address is:
+    <imapsync@linux-france.org>
 
     To subscribe, send a message to:
-    mailto:imapsync-subscribe@listes.linux-france.org
+    <imapsync-subscribe@listes.linux-france.org>
+
+    To unsubscribe, send a message to:
+    <imapsync-unsubscribe@listes.linux-france.org>
 
     To contact the person in charge for the list:
-    mailto:imapsync-request@listes.linux-france.org
+    <imapsync-request@listes.linux-france.org>
 
     The list archives may be available at:
     http://www.linux-france.org/prj/imapsync_list/ So consider that the list
@@ -202,41 +187,54 @@ MAILING-LIST
 
     Thank you for your participation.
 
+AUTHOR
+    Gilles LAMIRAL <lamiral@linux-france.org>
+
+    Feedback good or bad is always welcome.
+
+    The newsgroup comp.mail.imap may be a good place to talk about imapsync.
+    I read it when imapsync is concerned. A better place is the public
+    imapsync mailing-list (see below).
+
+    Gilles LAMIRAL earns his living writing, installing, configuring and
+    teaching free, open and gratis softwares. Do not hesitate to pay him for
+    that services.
+
 BUGS and BUG REPORT
     No known serious bug.
 
-    Report any bug or feature request to the author or the mailing-list.
+    Report any bugs or feature requests to the public mailing-list or to the
+    author.
 
-    Before reporting bugs, read the FAQ, this README and the TODO files.
+    Help us to help you: follow the following guidelines.
 
-    Don't write imapsync in uppercase in the email title, I'll know you run
-    windows and you haven't read the README yet.
+    Before reporting bugs, read the FAQ, the README and the TODO files.
+    http://www.linux-france.org/prj/imapsync/
 
     Make a good title, not just "imapsync" or "problem", a good title is
     made of keywords summary, not too long (one visible line).
 
-    Before reporting bugs, read the FAQ, this README and the TODO files.
-    http://www.linux-france.org/prj/imapsync/
+    Don't write imapsync in uppercase in the email title, we'll know you run
+    windows(tm) and you haven't read the README yet.
 
-    Help me to help you: in your report, please include:
+    Help us to help you: in your report, please include:
 
      - imapsync version.
      - output given with --debug --debugimap near the failure point.
-     - operating system running imapsync.
-     - imap servers softwares on both side and their version number.
+       Isolate a message in a folder 'BUG' and use --folder 'BUG'
+     - imap server software on both side and their version number.
      - imapsync with all the options you use,  the full command line
        you use (except the passwords of course). 
      - IMAPClient.pm version.
-
-     Those values can be found as a copy/paste at the begining of the output.
-
-     And also, if it can help :
-
+     - operating system running imapsync.
      - operating systems on both sides and the third side in case
        you run imapsync on a foreign host from the both.
+     - virtual software context (vmware, xen etc.)
+
+     Most of those values can be found as a copy/paste at the begining of the output.
 
 IMAP SERVERS
-    Failure stories reported with the following 4 imap servers :
+    Failure stories reported with the following 4 imap servers:
 
      - MailEnable 1.54 (Proprietary) http://www.mailenable.com/
      - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 works.
@@ -244,13 +242,13 @@ IMAP SERVERS
      - dkimap4 2.39
      - Imail 7.04 (maybe).
 
-    Success stories reported with the following 35 imap servers (softwares
-    names are in alphabetic order) :
+    Success stories reported with the following 35 imap servers (software
+    names are in alphabetic order):
 
      - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [dest], 3.0.0 [dest]
        (OSL 3.0) http://www.archiveopteryx.org/
      - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
-     - CommuniGatePro server (Redhat 8.0)
+     - CommuniGatePro server (Redhat 8.0) (Solaris)
      - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
        (http://www.courier-mta.org/)
      - Critical Path (7.0.020)
@@ -277,7 +275,7 @@ IMAP SERVERS
      - IMail 7.15 (Ipswitch/Win2003), 8.12
      - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform)
      - Mercury 4.1 (Windows server 2000 platform)
-     - Microsoft Exchange Server 5.5, 6.0.6249.0[from], 6.5.7638.1 [dest]
+     - Microsoft Exchange Server 5.5, 6.0.6249.0[from], 6.0.6487.0[from], 6.5.7638.1 [dest]
      - Netscape Mail Server 3.6 (Wintel !)
      - Netscape Messaging Server 4.15 Patch 7
      - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
@@ -288,7 +286,7 @@ IMAP SERVERS
      - Scalix v10.1, 10.0.1.3, 11.0.0.431
      - SmarterMail
      - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
-     - Sun Java System Messaging Server 6.2-2.05
+     - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05
      - Surgemail 3.6f5-5
      - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
        (RedHat uses UW like 2003.338rh), v12.264 Solaris 5.7 (OSI Approved) 
@@ -303,10 +301,10 @@ IMAP SERVERS
     this section report the two lines at the begining of the output if they
     are useful to know the softwares. Example:
 
-     From software :* OK louloutte Cyrus IMAP4 v1.5.19 server ready
-     To   software :* OK Courier-IMAP ready
+     From software:* OK louloutte Cyrus IMAP4 v1.5.19 server ready
+     To   software:* OK Courier-IMAP ready
 
-    You can use option --justconnect to get those lines. Example :
+    You can use option --justconnect to get those lines. Example:
 
       imapsync --host1 imap.troc.org --host2 imap.trac.org --justconnect
 
@@ -316,20 +314,20 @@ IMAP SERVERS
     account gilles.lamiral@laposte.net)
 
 HUGE MIGRATION
-    Have a special attention on options --subscribed --subscribe --delete
-    --delete2 --expunge --expunge1 --expunge2 --maxage --minage --maxsize
-    --useheader
+    Pay special attention to options --subscribed --subscribe --delete
+    --delete2 --expunge --expunge1 --expunge2 --uidexpunge2 --maxage
+    --minage --maxsize --useheader --fast
 
     If you have many mailboxes to migrate think about a little shell
     program. Write a file called file.csv (for example) containing users and
     passwords. The separator used in this example is ';'
 
-    The file.csv file content is :
+    The file.csv file contains:
 
     user0001;password0001;user0002;password0002
     user0011;password0011;user0012;password0012 ...
 
-    And the shell program is just :
+    And the shell program is just:
 
      { while IFS=';' read  u1 p1 u2 p2; do 
             imapsync --user1 "$u1" --password1 "$p1" --user2 "$u2" --password2 "$p2" ...
@@ -362,7 +360,7 @@ SIMILAR SOFTWARES
                       see also tools/wonko_ruby_imapsync
       pop2imap      : http://www.linux-france.org/prj/pop2imap/
 
-    Feedback (good or bad) will be always welcome.
+    Feedback (good or bad) will always be welcome.
 
-    $Id: imapsync,v 1.267 2008/10/07 11:36:02 gilles Exp $
+    $Id: imapsync,v 1.284 2009/06/30 03:14:24 gilles Exp gilles $
 

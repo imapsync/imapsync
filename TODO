@@ -1,22 +1,30 @@
+#!/bin/cat
+# $Id: TODO,v 1.64 2009/03/22 18:39:57 gilles Exp gilles $
+
 TODO file for imapsync
 ----------------------
 
-Add failure return code in case of 
-last FOLDER if $from->IsUnconnected();
-last FOLDER if   $to->IsUnconnected();
-See Phil Lobbes messages (18 Sep 2008)
-Subject: BUG: imapsync may silently disconnect leading to unmigrated data without warnings
+There was a time imapsync took the whole message when the
+header was bad (empty). But it was bad for speed with big
+messages (nowadays there are always big messages in
+mailboxes). May be the best is to take a part of the
+body. Have to code this.
+
+Add an option to store flags with "FLAGS.SILENT" instead of "+FLAGS.SILENT".
 
 
-Remove --password secret  in outpout.
+Add TLS support with patches/imapsync-1.217_tls_support.patch
 
-Post on imapsync mailing-list  when a new release comes.
+Add Rick Romero patch with
+--quiet   No output at all
+--showstats  intended for use with --quiet
 
-Fix bad english language.
+Take a look at Mail::IMAPTalk 
+Simon Bertrang said "way better performance, less problems, easier to use and no
+issues so far". Sounds good! 
 
-Write to zimbra coders about the date presentation:
-Sorting by default by internal date is bad  with migrations
-and delays arrivals. An option would be good.
+
+Post on imapsync mailing-list when a new release comes.
 
 Add an option to implement the faq entry about copying a contact folder.
 
@@ -28,10 +36,6 @@ Fix bug "not possible to use space in the imap password"
 Add kerberos authentification
 
 Add NOOP commands to avoid timeouts.
-
-Make "--delete 2" be a fatal error.
-
-Explain howto change only the header with --regexmess
 
 Start a wiki for imapsync.
 
@@ -65,8 +69,6 @@ problem by default.
 Add --justlogin --justlogin1 --justlogin2 options
 to check username and passwort.
 
-Change IsUnconnected behavior. If IsUnconnected then print
-stats and die. Avoid logout.
 
 Add --subscribeall option.
 Is it possible to have a option that subscribes all folders regardless of
@@ -135,8 +137,29 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
 Explain expunge behavior.
 
+DONE. Explain howto change only the header with --regexmess
 
+DONE.
+Change IsUnconnected behavior. If IsUnconnected then print
+stats and die. Avoid logout.
 
+DONE. Remove --password "secret"  in outpout.
+
+DONE. Make "--delete 2" be a fatal error.
+
+DONE.
+Write to zimbra coders about the date presentation:
+Sorting by default by internal date is bad with migrations
+and delayed arrivals. An user option would be good.
+
+DONE.
+Add failure return code in case of 
+last FOLDER if $from->IsUnconnected();
+last FOLDER if   $to->IsUnconnected();
+See Phil Lobbes messages (18 Sep 2008)
+Subject: BUG: imapsync may silently disconnect leading to unmigrated data without warnings
+
+DONE. Fix bad english language.
 
 DONE. Add a better test to check non existing folders on destination
 server. (status and select are bad).

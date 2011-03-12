@@ -1,14 +1,101 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.267
+head: 1.284
 branch:
 locks: strict
+	gilles: 1.284
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 267;	selected revisions: 267
+total revisions: 284;	selected revisions: 284
 description:
+----------------------------
+revision 1.284	locked by: gilles;
+date: 2009/06/30 03:14:24;  author: gilles;  state: Exp;  lines: +15 -19
+allow Mail::IMAPClient 3.0.xx by default
+Removed Mail::IMAPClient::Ssl since 3.0.19 has it now.
+----------------------------
+revision 1.283
+date: 2009/06/30 02:54:57;  author: gilles;  state: Exp;  lines: +123 -94
+Applied Phil Lobbes patch as is : ./patches/imapsync.1.282.patch
+----------------------------
+revision 1.282
+date: 2009/05/11 00:05:39;  author: gilles;  state: Exp;  lines: +15 -10
+Added option --justlogin
+----------------------------
+revision 1.281
+date: 2009/04/24 13:58:15;  author: gilles;  state: Exp;  lines: +29 -6
+Added tests_flags_regex() regression tests.
+----------------------------
+revision 1.280
+date: 2009/04/02 11:32:10;  author: gilles;  state: Exp;  lines: +103 -47
+Applied Phil patch with many IsUnconnected() calls.
+----------------------------
+revision 1.279
+date: 2009/03/22 00:12:15;  author: gilles;  state: Exp;  lines: +9 -7
+isUnconnected BAD IsUnconnected GOOD!
+----------------------------
+revision 1.278
+date: 2009/02/23 00:40:25;  author: gilles;  state: Exp;  lines: +14 -12
+Less imap output with +FLAGS.SILENT
+Changed unsubscribe subscribe order in documentation.
+Typos.
+----------------------------
+revision 1.277
+date: 2009/02/21 12:10:50;  author: gilles;  state: Exp;  lines: +8 -6
+Better example explanation.
+----------------------------
+revision 1.276
+date: 2009/02/21 04:04:08;  author: gilles;  state: Exp;  lines: +15 -22
+Removed mailto: in MAILING-LIST section.
+----------------------------
+revision 1.275
+date: 2009/02/21 02:04:26;  author: gilles;  state: Exp;  lines: +25 -14
+Change real password to "MASKED" in command line output.
+----------------------------
+revision 1.274
+date: 2009/02/21 01:10:02;  author: gilles;  state: Exp;  lines: +14 -8
+--delete 2 is now a fatal error.
+----------------------------
+revision 1.273
+date: 2009/02/21 00:48:40;  author: gilles;  state: Exp;  lines: +36 -37
+Print a warning and return error code each time a disconnection occurs.
+----------------------------
+revision 1.272
+date: 2009/02/20 23:41:09;  author: gilles;  state: Exp;  lines: +78 -78
+Fixed many English errors (thanks to Reuben Thomas)
+----------------------------
+revision 1.271
+date: 2009/02/19 23:38:32;  author: gilles;  state: Exp;  lines: +28 -35
+Bug fix about $t_prefix and INBOX '.' was hardcoded.
+Small change on documentation.
+----------------------------
+revision 1.270
+date: 2009/02/14 22:21:35;  author: gilles;  state: Exp;  lines: +16 -11
+Another Phil Lobbes patch.
+Exit with error code and warning when a server disconnect
+during the folder loop.
+----------------------------
+revision 1.269
+date: 2009/02/14 22:08:18;  author: gilles;  state: Exp;  lines: +65 -38
+Applied Phil Lobbes patches.
+- catch (what should be) fatal eval errors for regextrans2,
+  $regexflag, $regexmess, instead of silently ignoring them
+  and letting the user think they are working/OK
+- fix login_imap() Died at .../imapsync line 780 when IsUnconnected()
+  and log some more useful into to stderr than just 'Died at...'
+- check_lib_version() contains a bad use of unset match/capture variables
+- added and now use new function myconnect() and myconnect_v2()
+  does not require hack/override of Mail::IMAPClient::connect
+  and is backwards compatible with Mail::IMAPClient v2.x
+- redo $Mail::IMAPClient::Authuser hack since only
+  Mail::IMAPClient v2 does not have Authuser()
+Many thanks to Phil.
+----------------------------
+revision 1.268
+date: 2009/02/14 03:27:51;  author: gilles;  state: Exp;  lines: +22 -21
+Fixed  bad VERSION_IMAPClient output
 ----------------------------
 revision 1.267
 date: 2008/10/07 11:36:02;  author: gilles;  state: Exp;  lines: +14 -10
