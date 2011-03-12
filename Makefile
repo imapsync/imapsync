@@ -103,7 +103,7 @@ tarball:
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
 	rsync -aCv --delete  --exclude dist/ ./  ../prepa_dist/$(DIST_NAME)
-	cd ../prepa_dist && tar czfv $(DIST_FILE) $(DIST_NAME)
+	cd ../prepa_dist && tar czfv --verify $(DIST_FILE) $(DIST_NAME)
 	ln -f ../prepa_dist/$(DIST_FILE) dist/
 	cd dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	cd dist && md5sum -c $(DIST_FILE).md5.txt
@@ -112,7 +112,7 @@ tarball:
 deb: 
 	echo making debball $(DEB_FILE)
 	mkdir -p ../prepa_deb
-	cd  ../prepa_deb && tar xzvf ../prepa_dist/$(DIST_FILE) &&\
+	cd  ../prepa_deb && tar  xzvf ../prepa_dist/$(DIST_FILE) &&\
 	cd ../prepa_dist/$(DIST_NAME) 
 
 .PHONY: cidone clean_dist

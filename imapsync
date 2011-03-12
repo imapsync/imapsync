@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.285 $
+$Revision: 1.286 $
 
 =head1 INSTALL
 
@@ -418,7 +418,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.285 2009/07/03 00:59:20 gilles Exp gilles $
+$Id: imapsync,v 1.286 2009/07/24 15:53:04 gilles Exp gilles $
 
 =cut
 
@@ -484,7 +484,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.285 2009/07/03 00:59:20 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.286 2009/07/24 15:53:04 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -547,8 +547,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.285 $ ',
-		  '$Date: 2009/07/03 00:59:20 $ ',
+		  '$Revision: 1.286 $ ',
+		  '$Date: 2009/07/24 15:53:04 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -562,6 +562,10 @@ unless(defined(&_SYSEXITS_H)) {
 }
 
 get_options();
+
+# allow Mail::IMAPClient 3.0.xx by default
+
+$allow3xx = defined($allow3xx) ? $allow3xx : 1;
 
 check_lib_version() or 
   die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.0.19 or superior \n";
@@ -586,8 +590,7 @@ $port1 ||= defined $ssl1 ? 993 : 143;
 $host2 || missing_option("--host2") ;
 $port2 ||= defined $ssl2 ? 993 : 143;
 
-# allow Mail::IMAPClient 3.0.xx by default
-$allow3xx = defined($allow3xx) ? $allow3xx : 1;
+
 
 sub connect_imap {
 	my($host, $port, $debugimap, $ssl) = @_;

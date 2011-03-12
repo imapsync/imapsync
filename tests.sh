@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.92 2009/07/03 01:00:42 gilles Exp gilles $  
+# $Id: tests.sh,v 1.93 2009/07/24 17:20:41 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -808,13 +808,7 @@ gmail_gmail2() {
 
 
 allow3xx() {
-        if can_send; then
-                #echo3 Here is plume
-                sendtestmessage
-        else
-                :
-        fi
-                $CMD_PERL  ./imapsync \
+                perl -I./Mail-IMAPClient-3.19/lib  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -822,6 +816,14 @@ allow3xx() {
 		--allow3xx 
 }
 
+noallow3xx() {
+                ! perl -I./Mail-IMAPClient-3.19/lib  ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+		--noallow3xx 
+}
 
 
 archiveopteryx_1() {
@@ -1102,6 +1104,7 @@ test $# -eq 0 && run_tests \
         option_version \
         option_tests \
 	option_bad_delete2 \
+	first_sync_dry \
         first_sync \
         locallocal \
         ll_timeout \
@@ -1149,6 +1152,7 @@ test $# -eq 0 && run_tests \
 	archiveopteryx_1 \
         ssl_justconnect \
 	allow3xx \
+	noallow3xx \
         justlogin \
 	
 #       msw
