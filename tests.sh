@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.37 2005/05/19 01:50:02 gilles Exp $	
+# $Id: tests.sh,v 1.38 2005/05/20 02:51:33 gilles Exp $	
 
 #### Shell pragmas
 
@@ -476,7 +476,8 @@ big_transfert()
 	--host2 plume --user2 tete@est.belle \
 	--passfile2 /var/tmp/secret.tete \
 	--subscribed --foldersizes --noauthmd5 \
-        --fast --folder INBOX.Backup || \
+        --fast --folder INBOX.Backup \
+	--useheader Message-ID --useheader Received || \
     true
     }
     date2=`date`
@@ -576,6 +577,27 @@ essnet_plume2()
         --prefix2 INBOX. --regextrans2 's¤INBOX.INBOX¤INBOX¤'
 }
 
+useheader() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--folder INBOX.yop.yap \
+		--useheader 'Message-ID' \
+		--dry --debug
+		
+		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
+	else
+		:
+	fi
+}
+
+
 regexmess() 
 {
 	if test X`hostname` = X"plume"; then
@@ -633,7 +655,8 @@ test $# -eq 0 && run_tests \
 	foldersizes \
 	big_transfert_sizes_only \
 	regexmess \
-	
+	useheader \
+
 
 
 # selective tests

@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.129 $
+$Revision: 1.132 $
 
 =head1 INSTALL
 
@@ -35,25 +35,31 @@ $Revision: 1.129 $
   imapsync
 
   imapsync [--host1 server1]  [--port1 <num>]
-           [--user1 <string>] [--passfile1 <string>] 
+           [--user1 <string>] [--passfile1 <string>]
            [--host2 server2]  [--port2 <num>]
-           [--user2 <string>] [--passfile2 <string>] 
+           [--user2 <string>] [--passfile2 <string>]
+           [--noauthmd5]
            [--folder <string> --folder <string> ...]
-	   [--include <regex>] [--exclude <regex>]
-           [--prefix2 <string>]
+           [--include <regex>] [--exclude <regex>]
+           [--prefix2 <string>] [--regextrans2 <regex>]
            [--sep1 <char>]
            [--sep2 <char>]
+           [--justfolders] [--justconnect]
            [--syncinternaldates]
-	   [--maxsize <int>]
-	   [--maxage <int>]
+           [--buffersize  <int>]
+           [--syncacls]
+           [--regexmess <regex>] [--regexmess <regex>] 
+           [--maxsize <int>]
+           [--maxage <int>]
            [--skipheader <regex>]
+           [--useheader <string>] [--useheader <string>]
            [--skipsize]
            [--delete] [--expunge]
            [--subscribed] [--subscribe]
-           [--foldersizes]
+           [--nofoldersizes]
            [--dry]
            [--debug] [--debugimap]
-           [--timeout <int>]
+           [--timeout <int>] [--fast]
            [--version] [--help]
   
 =cut
@@ -289,7 +295,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.129 2005/05/19 01:54:31 gilles Exp $
+$Id: imapsync,v 1.132 2005/05/20 03:18:48 gilles Exp $
 
 =cut
 
@@ -313,7 +319,8 @@ my(
         $sep1, $sep2,
 	$syncinternaldates, $syncacls,
 	$maxsize, $maxage,
-        $skipheader, $skipsize, $foldersizes, $buffersize,
+        $skipheader, @useheader,
+        $skipsize, $foldersizes, $buffersize,
 	$delete, $expunge, $dry, 
         $authmd5,
         $subscribed, $subscribe,
@@ -333,7 +340,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.129 2005/05/19 01:54:31 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.132 2005/05/20 03:18:48 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -370,8 +377,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.129 $ ',
-		  '$Date: 2005/05/19 01:54:31 $ ',
+		  '$Revision: 1.132 $ ',
+		  '$Date: 2005/05/20 03:18:48 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -403,6 +410,8 @@ $authmd5 = (defined($authmd5)) ? $authmd5 : 1;
 
 $syncacls = (defined($syncacls)) ? $syncacls : 0;
 $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
+
+@useheader = ("ALL") unless (@useheader);
 
 print "From imap server [$host1] port [$port1] user [$user1]\n";
 print "To   imap server [$host2] port [$port2] user [$user2]\n";
@@ -443,6 +452,11 @@ $from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout);
 
 $debugimap and print "To  connection\n";
 $to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout);
+
+# No history
+$from->Clear(1);
+$to->Clear(1);
+
 
 sub login_imap {
 	my($host, $port, $user, $password, 
@@ -745,21 +759,16 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my %f_hash = ();
 	my %t_hash = ();
 	
-	# No history
-	$from->Clear(1);
-	$to->Clear(1);
 
 	
 	print "From Buffer I/O : ", $from->Buffer(), "\n";
 	print "To   Buffer I/O : ", $to->Buffer(), "\n";
-#	$from->Buffer(4096*64);
-#	$to->Buffer(4096*64);
-#	print "From Buffer I/O : ", $from->Buffer(), "\n";
-#	print "To   Buffer I/O : ", $to->Buffer(), "\n";
 
+	
 	print "++++ From Parse 1 ++++\n";
 	
-	my $f_heads = $from->parse_headers([@f_msgs],"ALL") if (@f_msgs) ;
+	my $f_heads = $from->parse_headers($from->Range([@f_msgs]),@useheader) 
+	  if (@f_msgs) ;
 	print "Time headers: ", timenext(), " s\n";
 	my $f_size  = $from->fetch_hash("RFC822.SIZE") if (@f_msgs);
 	print "Time sizes  : ", timenext(), " s\n";
@@ -776,7 +785,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	print "Time headers: ", timenext(), " s\n";
 	
 	print "\n++++ To   Parse 1 ++++\n";
-	my $t_heads =   $to->parse_headers([@t_msgs],"ALL") if (@t_msgs);
+	my $t_heads =   $to->parse_headers($to->Range([@t_msgs]),@useheader) 
+	  if (@t_msgs);
 	print "Time headers: ", timenext(), " s\n";
 	my $t_size  =   $to->fetch_hash("RFC822.SIZE") if (@t_msgs);
 	print "Time sizes  : ", timenext(), " s\n";
@@ -993,6 +1003,7 @@ sub get_options
                                    "help"        => \$help,
                                    "timeout=i"   => \$timeout,
 				   "skipheader=s" => \$skipheader,
+				   "useheader=s" => \@useheader,
 				   "skipsize!"   => \$skipsize,
                                   );
 
@@ -1030,7 +1041,7 @@ sub parse_header_msg1 {
 			$debug and print "${s}H $h:", $val, "\n";
 			if ($skipheader and $h =~ m/$skipheader/) {
 				$debug and print "Skipping header $h\n";
-		      next;
+				next;
 			}
 			$headstr .= "$h:". $val;
 		}
@@ -1047,38 +1058,6 @@ sub parse_header_msg1 {
 	$s_hash->{"$m_md5:$size"}{'m'} = $m_uid;
 }
 
-sub parse_header_msg {
-
-	my ($m, $imap, $s, $s_hash) = @_;
-	$debug and print "-" x 50, "\nMSG $m\n";
-	my $head = $imap->parse_headers($m,"ALL");
-	my $headstr;
-	$debug and print "Head NUM:", scalar(keys(%$head)), "\n";
-	# no header -> return
-	return unless(scalar(keys(%$head)));	    
-	foreach my $h (sort keys(%$head)){
-		foreach my $val (sort @{$head->{$h}}) {
-			# no 8-bit data in headers !
-			$val =~ s/[\x80-\xff]/X/g;
-			# remove the first blanks (dbmail bug ?)
-			$val =~ s/^\s+//;
-			# show stuff in debug mode
-			$debug and print "${s}H $h:", $val, "\n";
-			if ($skipheader and $h =~ m/$skipheader/) {
-				$debug and print "Skipping header $h\n";
-				next;
-			}
-			$headstr .= "$h:". $val;
-		}
-	}
-	my $m_md5 = md5_base64($headstr);
-	my $size = $imap->size($m);
-	$debug and print "$s msg $m:$m_md5:$size\n";
-	$size = 0 if ($skipsize);
-	$s_hash->{"$m_md5:$size"}{'5'} = "$m_md5:$size";
-	$s_hash->{"$m_md5:$size"}{'s'} = $size;
-	$s_hash->{"$m_md5:$size"}{'m'} = $m;
-}
 
 sub  firstline {
         # extract the first line of a file (without \n)
@@ -1110,7 +1089,8 @@ Several options are mandatory.
 --user2       <string> : user to login.   Mandatory.
 --password2   <string> : password for the user2. Dangerous, use --passfile2
 --passfile2   <string> : password file for the user2. Contains the password.
---noauthmd5            : don't use MD5 authentification
+--noauthmd5            : don't use MD5 authentification.
+--authmd5              : use MD5 authentification.
 --folder      <string> : sync only this folder.
 --folder      <string> : and this one.
 --folder      <string> : and this one, etc.
@@ -1148,6 +1128,9 @@ Several options are mandatory.
                          final stats (skipped) don't count older messages
 --skipheader  <regex>  : Don't take into account header keyword 
                          matching <string> ex: --skipheader 'X.*'
+--useheader   <string> : Use this header to compare messages on both sides.
+                         Ex: Message-ID or Subject or Date.
+--useheader   <string>   and this one, etc.
 --skipsize             : Don't take message size into account.
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfer only subscribed folders.
@@ -1162,7 +1145,7 @@ Several options are mandatory.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
 --version              : print sotfware version.
---justconnect          : just connect to both servers and print useful 
+--justconnect          : just connect to both servers and print useful
                          information.
 --justfolders          : just do things about folders (ignore messages).
 --fast                 : be faster.
