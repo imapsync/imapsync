@@ -1,0 +1,81 @@
+#!/usr/bin/perl -w
+
+use Mail::IMAPClient;
+use IO::Socket::SSL qw(debug1 debug2 debug3) ;
+
+$ARGV[3] or die "usage: $0 host user password folder\n";
+
+$host = $ARGV[0];
+$user = $ARGV[1];
+$password = $ARGV[2];
+$folder = $ARGV[3];
+
+my $imap = Mail::IMAPClient->new();
+
+
+my $socket  = IO::Socket::INET->new(
+             Proto    => 'tcp',
+             PeerAddr => $host,
+             PeerPort => 143,
+);
+
+$socket->autoflush(1);
+
+my $banner = $socket->getline();
+unless ($banner =~ /^\* OK \[CAPABILITY.*STARTTLS.*\]/) {
+  die "No STARTTLS capability: $banner";
+}
+
+
+print $socket "STARTTLS\015\012";
+my $txt = $socket->getline();
+unless($txt =~ /^STARTTLS OK/){
+  die "Invalid response for STARTTLS: $txt\n";
+}
+
+my $result = IO::Socket::SSL->start_SSL($socket,
+    {
+    SSL_startHandshake => 1, 
+    SSL_version    =>      "TLSv1",
+    SSL_verify_depth => 1,
+    }
+);
+
+print "start_SSL return $result\n";
+
+unless ($result){
+  
+  die "Couldn't start TLS: ".IO::Socket::SSL::errstr()."\n";
+}
+
+if (ref($socket) ne "IO::Socket::SSL") {
+  die "Socket has not been converted to SSL";
+}else{
+  print "Socket has been converted to SSL\n";
+}
+$imap->State(Mail::IMAPClient::Connected);
+
+
+$imap->Debug(1);
+print "Socket\n";
+$imap->RawSocket($socket);
+#$imap->Socket($socket);
+
+print $socket "a02 CAPABILITY\n";
+print "getline\n";
+$txt = $socket->getline();
+
+print "getline : $txt \n";
+
+
+#$imap->connect() or die;
+print "User\n";
+$imap->User($user);
+$imap->Password($password);
+print "login\n";
+
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+$imap->select($folder) or die;
+$imap->close();

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.96 2010/01/14 23:40:54 gilles Exp gilles $  
+# $Id: tests.sh,v 1.98 2010/01/20 04:13:59 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -634,8 +634,8 @@ ll_flags()
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
-                --dry --debug \
-                --allow3xx
+                --debug
+                
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
@@ -647,7 +647,7 @@ ll_regex_flag()
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
-                --debug --regexflag 's/\\Answered/\\Flagged/g'
+                --debug --regexflag 's/\\Answered/\\Seen/g'
                 
                 echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
@@ -680,17 +680,62 @@ ll_regex_flag3()
 }
 
 
+ll_tls_justconnect() {
+ $CMD_PERL ./imapsync \
+  --host1 l \
+  --host2 l \
+  --tls1 --tls2 \
+  --justconnect  --debug 
+}
+
+ll_tls_justlogin() {
+ $CMD_PERL ./imapsync \
+  --host1 $HOST1 --user1 tata \
+  --passfile1 ../../var/pass/secret.tata \
+  --host2 $HOST2 --user2 titi \
+  --passfile2 ../../var/pass/secret.titi \
+  --tls1 --tls2 \
+  --justlogin --debug 
+}
 
 
-ssl_justconnect() {
 
+ll_tls_devel() {
+   CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_justlogin ll_ssl_justlogin \
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.19/lib' ll_justlogin ll_ssl_justlogin \
+&& CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_tls_justconnect  ll_tls_justlogin \
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.19/lib' ll_tls_justconnect ll_tls_justlogin
+}
+
+ll_tls() {
+ $CMD_PERL ./imapsync \
+  --host1 $HOST1 --user1 tata \
+  --passfile1 ../../var/pass/secret.tata \
+  --host2 $HOST2 --user2 titi \
+  --passfile2 ../../var/pass/secret.titi \
+  --tls1 --tls2
+}
+
+
+
+ll_ssl_justconnect() {
                 $CMD_PERL ./imapsync \
 		--host1 $HOST1 \
                 --host2 $HOST2 \
                 --ssl1 --ssl2 \
-                --justconnect \
-            --allow3xx
+                --justconnect
 }
+
+ll_ssl_justlogin() {
+        $CMD_PERL ./imapsync \
+	 --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --ssl1 --ssl2 \
+         --justlogin
+}
+
 
 ll_ssl() {
         if can_send; then
@@ -892,7 +937,7 @@ archiveopteryx_1() {
 		--allow3xx 
 }
 
-justlogin() {
+ll_justlogin() {
 # Look in the file ../../var/pass/secret.tptp to see 
 # strange \ character behavior
                 $CMD_PERL  ./imapsync \
@@ -903,7 +948,7 @@ justlogin() {
 		--allow3xx --justlogin --noauthmd5
 }
 
-justlogin_backslash_char() {
+ll_justlogin_backslash_char() {
 # Look in the file ../../var/pass/secret.tptp to see 
 # strange \ character behavior
                 $CMD_PERL  ./imapsync \
@@ -1169,7 +1214,6 @@ test $# -eq 0 && run_tests \
         ll_folder_rev \
         ll_subscribed \
         ll_subscribe \
-        ll_justconnect \
         ll_justfoldersizes \
         ll_authmd5 \
         ll_noauthmd5 \
@@ -1190,7 +1234,14 @@ test $# -eq 0 && run_tests \
         ll_regexmess_scwchu \
         ll_flags \
         ll_regex_flag \
+        ll_justconnect \
+        ll_justlogin \
         ll_ssl \
+        ll_ssl_justconnect \
+        ll_ssl_justlogin \
+        ll_tls_justconnect \
+        ll_tls_justlogin \
+        ll_tls \
         ll_authmech_PLAIN \
         ll_authmech_LOGIN \
         ll_authmech_CRAMMD5 \
@@ -1202,13 +1253,11 @@ test $# -eq 0 && run_tests \
 	gmail_gmail \
 	gmail_gmail2 \
 	archiveopteryx_1 \
-        ssl_justconnect \
 	allow3xx \
 	noallow3xx \
-        justlogin \
 	
 #       msw
-#	justlogin_backslash_char
+#	ll_justlogin_backslash_char
 
 
 # selective tests

@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.70 2010/01/16 03:38:47 gilles Exp gilles $
+# $Id: TODO,v 1.72 2010/01/20 04:13:42 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
@@ -8,6 +8,36 @@ Post on newsgroup comp.mail.imap when a new release comes.
 http://groups.google.fr/group/comp.mail.imap
 
 Post on imapsync mailing-list when a new release comes.
+
+Start a wiki for imapsync.
+
+Add a best practice migration tips document.
+
+Add "output to reflect everything that imapsync was doing".
+Not everything but flag synchronization will be nice"
+
+Add and option to sync to & from files.
+
+Add an option to make imapsync automatically
+reconnect when the connection drops
+
+Add an --aclregextrans2 flag.
+"Today we discovered, that Cyrus and Dovecot use different characters for 
+their ACLs. Syncing ACLs vom Cyrus to Dovecot (at least 1.2) doesn't 
+work. Cyrus uses c and d, Dovecot uses k and x instead." 
+Peer Heinlein.
+
+Add --subscribeall option.
+Is it possible to have a option that subscribes all folders regardless of
+subscription on the source server? Perhaps --subscribeall?
+
+Add a --delete2folders option
+"When syncing mailboxes with imapsync, is there a way to delete folders in the
+target account? The --delete2 option only seems to delete individual
+messages, not folders."
+
+Add different levels of output to see clearly the
+problem by default.
 
 Add option --exclude_messages_with_flag
 
@@ -20,11 +50,6 @@ mailboxes). May be the best is to take a part of the
 body. Have to code this.
 
 
-Add an option to store flags with "FLAGS.SILENT" instead of "+FLAGS.SILENT".
-No, be "FLAGS.SILENT" the default and "+FLAGS.SILENT" an option.
-
-
-Add TLS support with patches/imapsync-1.217_tls_support.patch
 
 Add Rick Romero patch with
 --quiet   No output at all
@@ -45,8 +70,6 @@ Add kerberos authentification
 
 Add NOOP commands to avoid timeouts.
 
-Start a wiki for imapsync.
-
 Add a --pidfile option.
 
 Write a clean_exit() replacing each die() or exit() call.
@@ -63,18 +86,6 @@ Fix this:
 >         # No NL Count on Windows my $length = ( -s $file ) + $bare_nl_count;
 >         my $length = ( -s $file );
 
-Add a --delete2folders option
-"When syncing mailboxes with imapsync, is there a way to delete folders in the
-target account? The --delete2 option only seems to delete individual
-messages, not folders."
-
-Add different levels of output to see clearly the
-problem by default.
-
-
-Add --subscribeall option.
-Is it possible to have a option that subscribes all folders regardless of
-subscription on the source server? Perhaps --subscribeall?
 
 Add stdin/stdout filter before transfer:
 "Now i asked me, how to modify your perl program to work with
@@ -97,9 +108,6 @@ vs 250s avec la version 1.217". Marc Jauvin
 
 Add LITERAL+ [RFC 2088] support to imapsync.
 
-Add an option to make imapsync automatically
-reconnect when the connection drops
-
 Add an entry to
 http://lsm.execpc.com/lsm/
 See template lsm.imapsync
@@ -108,13 +116,6 @@ Add an option to tell imapsync that the domain
 is changing and have it replace the domain in all user names that are
 related to ACLs.
 See patches/imapsync-acls-users
-
-Add a best practice migration tips document.
-
-Add "output to reflect everything that imapsync was doing".
-Not everything but flag synchronization will be nice"
-
-Add and option to sync to & from files.
 
 Use examine() instead of select() in --dry mode.
 Add a method doing the switch automagicaly.
@@ -136,6 +137,14 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
 Explain expunge behavior.
 
+
+
+
+
+
+DONE. Be "FLAGS.SILENT" the normal behavior instead of "+FLAGS.SILENT".
+
+DONE. Add TLS support with patches/imapsync-1.217_tls_support.patch
 
 USELESS. Make --skipheader be multiple. Useless since we can
 use the or perl regex '^X-|^Date|^From'

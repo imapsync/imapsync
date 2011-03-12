@@ -157,7 +157,7 @@ sub _addresses($$$)
     foreach ( @{$self->{$name}} )
     {   my $pn   = $_->personalname;
         my $name = $pn && $pn ne 'NIL' ? "$pn " : '';
-        push @list, $pn. '<'.$_->mailboxname .'@'.  $_->hostname.'>';
+        push @list, $name . '<' . $_->mailboxname . '@' . $_->hostname . '>';
     }
 
       wantarray ? @list

@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.26 2010/01/15 00:01:40 gilles Exp gilles $	
+# $Id: Makefile,v 1.27 2010/01/19 15:26:12 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -12,20 +12,20 @@ usage:
 	@echo "make install # as root"
 	@echo "make testf   # run tests"
 	@echo "make testv   # run tests verbosely"
-	@echo "make test3xx # run tests with Mail-IMAPClient-3.xy"
+	@echo "make test3xx # run tests with (last) Mail-IMAPClient-3.xy"
 	@echo "make test229 # run tests with Mail-IMAPClient-2.2.9"
 	@echo "make all     "
 
 all: ChangeLog README VERSION
 
-.PHONY: test testp testf test3xx
+.PHONY: test tests testp testf test3xx
 
 .test: $(TARGET) tests.sh
 	/usr/bin/time sh tests.sh 1>/dev/null
 	touch .test
 
 .test_3xx: $(TARGET) tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.19/lib' /usr/bin/time sh tests.sh 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-3.21/lib' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_3xx
 
 test_quick : test_quick_229 test_quick_3xx
@@ -34,13 +34,14 @@ test_quick_229: $(TARGET) tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 test_quick_3xx: $(TARGET) tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.19/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-3.21/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 testv:
 	nice -40 sh -x tests.sh
 
 test: .test_229 .test_3xx
 
+tests: test
 
 test3xx: .test_3xx
 

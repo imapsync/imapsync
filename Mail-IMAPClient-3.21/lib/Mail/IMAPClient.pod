@@ -754,16 +754,14 @@ Example:
 
   $imap->close or die "Could not close: $@\n";
 
-The B<close> method is implemented via the default method and is used
-to close the currently selected folder via the CLOSE IMAP client
-command.  According to RFC3501, the CLOSE command performs an implicit
-EXPUNGE, which means that any messages that you've flagged as
-I<\Deleted> (say, with the L</delete_message> method) will now be
-deleted.  If you haven't deleted any messages then B<close> can be
-thought of as an "unselect".
+The B<close> method is used to close the currently selected folder via
+the CLOSE IMAP client command.  According to RFC3501, the CLOSE
+command performs an implicit EXPUNGE, which means that any messages
+that are flagged as I<\Deleted> (i.e. with the L</delete_message>
+method) will now be deleted.  If you haven't deleted any messages then
+B<close> can be thought of as an "unselect".
 
-Note again that this closes the currently selected folder, not the
-IMAP session.
+Note: this closes the currently selected folder, not the IMAP session.
 
 See also L</delete_message>, L</expunge>, and RFC3501.
 
@@ -1063,19 +1061,14 @@ Example:
 
 The B<expunge> method accepts one optional argument, a folder name.
 It expunges the folder specified as the argument, or the currently
-selected folder if no argument is supplied.
+selected folder (if any) when no argument is supplied.
 
 Although RFC3501 does not permit optional arguments (like a folder
-name) to the EXPUNGE client command, the L</expunge> method does,
-which is especially interesting given that the L</expunge> method
-doesn't technically exist.  In case you're curious, expunging a folder
-deletes the messages that you thought were already deleted via
-L</delete_message> but really weren't, which means you have to use a
-method that doesn't exist to delete messages that you thought didn't
-exist.  (Seriously, I'm not making any of this stuff up.)
+name) to the EXPUNGE client command, the L</expunge> method does.
+Note: expunging a folder deletes the messages that have the \Deleted
+flag set (i.e. messages flagged via L</delete_message>).
 
-Or you could use the L</close> method, which deselects as well as
-expunges and which likewise doesn't technically exist.
+See also the L</close> method, which "deselects" as well as expunges.
 
 =head2 fetch
 
@@ -1168,27 +1161,12 @@ This would result in L<Data::Dumper> output similar to the following:
               }
      };
 
-You can specify I<BODY[HEADER.FIELDS ($fieldlist)> as an argument, but
-you should keep the following in mind if you do:
-
-B<1.> You can only specify one argument of this type per call.  If you
-need multiple fields, then you'll have to call B<fetch_hashref>
-multiple times, each time specifying a different FETCH attribute but
-the same.
-
-B<2.> Fetch operations that return RFC822 message headers return the
-whole header line, including the field name and the colon.  For
-example, if you do a C<$imap-E<gt>fetch_hash("BODY[HEADER.FIELDS
-(Subject)]")>, you will get back subject lines that start with
-"Subject: ".
-
-By itself this method may be useful for, say, speeding up programs
-that want the size of every message in a folder.  It issues one
-command and receives one (possibly long!) response from the server.
-However, it's true power lies in the as-yet-unwritten methods that
-will rely on this method to deliver even more powerful result hashes
-(and which may even remove the restrictions mentioned in B<1> and
-B<2>, above).  Look for more new function in later releases.
+By itself this method may be useful for, say, speeding up programs that
+want the size of every message in a folder.  It issues one command and
+receives one (possibly long!) response from the server.  However, it's
+true power lies in the as-yet-unwritten methods that will rely on this
+method to deliver even more powerful result hashes.  Look for more new
+function in later releases.
 
 This method is new with version 2.2.3 and is thus still experimental.
 If you decide to try this method and run into problems, please see the
@@ -1268,6 +1246,76 @@ For example:
 Notice that if you just want to list a folder's subfolders (and not
 the folder itself), then you need to include the hierarchy separator
 character (as returned by the L</separator> method).
+
+=head2 xlist_folders
+
+Example:
+
+  my $xlist = $imap->xlist_folders
+    or die "Could not get xlist folders.\n";
+
+IMAP servers implementing the XLIST extension (such as Gmail)
+designate particular folders to be used for particular functions.
+This is useful in the case where you want to know which folder should
+be used for Trash when the actual folder name can't be predicted
+(e.g. in the case of Gmail, the folder names change depending on the
+user's locale settings).
+
+The B<xlist_folders> method returns a hash listing any "xlist" folder
+names, with the values listing the actual folders that should be used
+for those names.  For example, using this method with a Gmail user
+using the English (US) locale might give this output from
+L<Data::Dumper>:
+
+  $VAR1 = {
+      'Inbox'   => 'Inbox',
+      'AllMail' => '[Gmail]/All Mail',
+      'Trash'   => '[Gmail]/Trash',
+      'Drafts'  => '[Gmail]/Drafts',
+      'Sent'    => '[Gmail]/Sent Mail',
+      'Spam'    => '[Gmail]/Spam',
+      'Starred' => '[Gmail]/Starred'
+  };
+
+The same list for a user using the French locale might look like this:
+
+  $VAR1 = {
+      'Inbox'   => 'Bo&AO4-te de r&AOk-ception',
+      'AllMail' => '[Gmail]/Tous les messages',
+      'Trash'   => '[Gmail]/Corbeille',
+      'Drafts'  => '[Gmail]/Brouillons',
+      'Sent'    => '[Gmail]/Messages envoy&AOk-s',
+      'Spam'    => '[Gmail]/Spam',
+      'Starred' => '[Gmail]/Suivis'
+  };
+
+Mail::IMAPClient recognizes the following "xlist" folder names:
+
+=over 4
+
+=item Inbox
+
+=item AllMail
+
+=item Trash
+
+=item Drafts
+
+=item Sent
+
+=item Spam
+
+=item Starred
+
+=back
+
+These are currently the only ones supported by Gmail.  The XLIST
+extension is not documented, and there are no other known
+implementations other than Gmail, so this list is based on what Gmail
+provides.
+
+If the server does not support the XLIST extension, this method
+returns undef.
 
 =head2 has_capability
 
@@ -2522,6 +2570,9 @@ B<uidexpunge> returns an array or arrayref (scalar context) of output
 lines returned from the UID EXPUNGE command.
 
 B<uidexpunge> returns undef on failure.
+
+If the server does not support the UIDPLUS extension, this method
+returns undef.
 
 =head2 uidnext
 
