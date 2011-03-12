@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.135 $
+$Revision: 1.136 $
 
 =head1 INSTALL
 
@@ -256,9 +256,9 @@ user0011;password0011;user0012;password0012
 
 And the shell program is just :
 
-{ while IFS=';' read  u1 p1 u2 p2; do 
-	imapsync --user1 $u1 --password1 $p1 --user2 $u2 --password2 $p2 ...
-done ; } < file.csv
+ { while IFS=';' read  u1 p1 u2 p2; do 
+	imapsync --user1 "$u1" --password1 "$p1" --user2 "$u2" --password2 "$p2" ...
+ done ; } < file.csv
 
 Welcome in shell programming !
 
@@ -296,7 +296,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.135 2005/06/21 01:29:44 gilles Exp $
+$Id: imapsync,v 1.136 2005/06/23 02:24:19 gilles Exp gilles $
 
 =cut
 
@@ -341,7 +341,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.135 2005/06/21 01:29:44 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.136 2005/06/23 02:24:19 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -378,8 +378,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.135 $ ',
-		  '$Date: 2005/06/21 01:29:44 $ ',
+		  '$Revision: 1.136 $ ',
+		  '$Date: 2005/06/23 02:24:19 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -455,6 +455,10 @@ $to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout, $fast
 $from->Clear(2);
 $to->Clear(2);
 
+$debug and print "From Buffer I/O : ", $from->Buffer(), "\n";
+$debug and print "To   Buffer I/O : ", $to->Buffer(), "\n";
+
+	
 
 sub login_imap {
 	my($host, $port, $user, $password, 
@@ -556,6 +560,11 @@ my($f_sep,$t_sep);
 $debug and print "Getting separators\n";
 $f_sep = get_separator($from, $sep1, "--sep1");
 $t_sep = get_separator($to, $sep2, "--sep2");
+
+my $f_namespace = $from->namespace();
+my $t_namespace = $to->namespace();
+$debug and print "From namespace:\n", Data::Dumper->Dump($f_namespace);
+$debug and print "To   namespace:\n", Data::Dumper->Dump($t_namespace);
 
 sub get_separator {
 	my($imap, $sep_in, $sep_opt) = @_;
@@ -767,11 +776,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	
 
 	
-	#print "From Buffer I/O : ", $from->Buffer(), "\n";
-	#print "To   Buffer I/O : ", $to->Buffer(), "\n";
-
-	
-	print "++++ From Parse 1 ++++\n";
+	print "++++ From [$f_fold] Parse 1 ++++\n";
 	
 	my $f_heads = $from->parse_headers($from->Range([@f_msgs]),@useheader) 
 	  if (@f_msgs) ;
@@ -784,13 +789,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	#print Data::Dumper->Dump([$f_heads]);
 	#print Data::Dumper->Dump([$f_flags]);
 	
-	#exit;
 	foreach my $m (@f_msgs) {
-	  parse_header_msg1($m, $f_heads, $f_size, "F", \%f_hash);
+		parse_header_msg1($from, $m, $f_heads, $f_size, "F", \%f_hash);
 	}
 	$debug and print "Time headers: ", timenext(), " s\n";
 	
-	print "++++ To   Parse 1 ++++\n";
+	print "++++ To   [$t_fold] Parse 1 ++++\n";
 	my $t_heads =   $to->parse_headers($to->Range([@t_msgs]),@useheader) 
 	  if (@t_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
@@ -800,12 +804,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	#print "Time flags  : ", timenext(), " s\n";
 	
 	foreach my $m (@t_msgs) {
-	  parse_header_msg1($m, $t_heads, $t_size, "T", \%t_hash);
+		parse_header_msg1($to, $m, $t_heads, $t_size, "T", \%t_hash);
 	}
 	$debug and print "Time headers: ", timenext(), " s\n";
 	#exit;
 
-	print "++++ Verifying ++++\n";
+	print "++++ Verifying [$f_fold] -> [$t_fold] ++++\n";
 	# messages in "from" that are not good in "to"
 	
 	my @f_hash_keys_sorted_by_uid 
@@ -918,7 +922,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			#	print "!!! Dates differ !!!\n";
 			#}
 		};
-		unless ($f_size == $t_size) {
+		unless (($f_size == $t_size) or $skipsize) {
 			# Bad size
 			print 
 			"Message $m_id SZ_BAD  f:$f_msg:$f_size t:$t_msg:$t_size\n";
@@ -1029,12 +1033,12 @@ sub get_options
 
 
 sub parse_header_msg1 {
-	my ($m_uid, $s_heads, $s_size, $s, $s_hash) = @_;
+	my ($imap, $m_uid, $s_heads, $s_size, $s, $s_hash) = @_;
 	
 	my $head = $s_heads->{$m_uid};
 	my $headnum =  scalar(keys(%$head));
 	$debug and print "Head NUM:", $headnum, "\n";
-	return unless($headnum);
+	unless($headnum) { print "Warning : no header used or found \n"; }
 	my $headstr;
 	
 	foreach my $h (sort keys(%$head)){
@@ -1052,16 +1056,25 @@ sub parse_header_msg1 {
 			$headstr .= "$h:". $val;
 		}
 	}
-	return unless ($headstr);
+	#return unless ($headstr);
+	unless ($headstr){
+		# no header so taking everything
+		$headstr = $imap->message_string($m_uid);
+	}
 	my $size = $s_size->{$m_uid}->{"RFC822.SIZE"};
-	return unless ($size);
-	my $m_md5 = md5_base64($headstr);
-	
+	#return unless ($size);
+	$size = length($headstr) unless ($size);
+	my $m_md5 = md5_base64($headstr);	
 	$debug and print "$s msg $m_uid:$m_md5:$size\n";
-	$size = 0 if ($skipsize);
-	$s_hash->{"$m_md5:$size"}{'5'} = "$m_md5:$size";
-	$s_hash->{"$m_md5:$size"}{'s'} = $size;
-	$s_hash->{"$m_md5:$size"}{'m'} = $m_uid;
+	my $key;
+        if ($skipsize) {
+                $key = "$m_md5";
+        }else {
+                $key = "$m_md5:$size";
+        }
+	$s_hash->{"$key"}{'5'} = $m_md5;
+	$s_hash->{"$key"}{'s'} = $size;
+	$s_hash->{"$key"}{'m'} = $m_uid;
 }
 
 
