@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: paypal_functions,v 1.10 2011/01/11 01:41:31 gilles Exp gilles $
+# $Id: paypal_functions,v 1.12 2011/02/02 22:32:26 gilles Exp gilles $
 
 
 
@@ -60,8 +60,8 @@ get_mail() {
 
 
 extract_mail() {
-	test -z "`ls $tmpdir/msg_in/`" && echo no mail && return
 	mkdir -p $tmpdir/msg_out/
+	test -z "`ls $tmpdir/msg_in/`" && echo no mail && return
 	(
 	cd  $tmpdir/msg_out/
 	test -z "`ls .`" || rm -rf *_d
@@ -69,24 +69,11 @@ extract_mail() {
 	)
 	#ls -d $tmpdir/msg_out/
 }
-
-extract_mail_test() {
-	test -z "`ls $tmpdir/msg_in/`" && echo no mail && return
-	mkdir -p $tmpdir/msg_out/
-	(
-	cd  $tmpdir/msg_out/
-	test -z "`ls .`" || rm -rf *_d
-	paypal_mimeexplode ../msg_in/*
-	)
-	#ls -d $tmpdir/msg_out/
-}
-
-
 
 
 convert_utf8() {
-	test -z "`ls $tmpdir/msg_out/`" && echo no mail && return
 	mkdir -p $tmpdir/msg_out_utf8/
+	test -z "`ls $tmpdir/msg_out/`" && echo no mail && return
 	for f in $tmpdir/msg_out/*_d/*.txt; do
 		b=`basename "$f"`
 		d=`dirname  "$f"`
@@ -94,9 +81,15 @@ convert_utf8() {
 		d_utf8="$tmpdir/msg_out_utf8/$bd"
 		f_utf8="$d_utf8/$b"
 		test -d "$d_utf8" && continue
-		echo converting "$f" to "$f_utf8"
 		mkdir  "$d_utf8"
-		8859_utf8 "$f" > "$f_utf8"
+		if file "$f"  | grep -i UTF-8 > /dev/null
+		then
+			echo copying "$f" to "$f_utf8"
+			cp "$f" "$f_utf8"
+		else
+			echo converting "$f" to "$f_utf8"
+			8859_utf8 "$f" > "$f_utf8"
+		fi
 	done
 }
 
@@ -123,6 +116,20 @@ build_reply() {
 	done
 }
 
+build_reply_arg() {
+	for f in "$@"; do
+		#echo "$f"
+		d=`dirname  "$f"`
+		bd=`basename "$d"`
+		file_id=`troncate_last_2_chars $bd`
+		d_reply="$tmpdir/msg_reply/$file_id"
+		test -f "$d_reply/$file_id.txt" && continue
+		mkdir -p "$d_reply"
+		echo building "$d_reply/$file_id.txt"
+		paypal_build_reply "$f" "$tmpdir/msg_id/$file_id"
+	done
+}
+
 
 send_reply() {
 	mkdir -p $tmpdir/msg_sent/
@@ -134,8 +141,10 @@ send_reply() {
 		test -f "$d_sent/$b" && continue
 		mkdir -p "$d_sent"
 		test X"--send" = X"$1" && paypal_send --send "$f" && touch "$d_sent/$b"
+		#test X"--send" = X"$1" && touch "$d_sent/$b"
 		test X"" = X"$1" && paypal_send "$f" 
 	done
+	mailq
 }
 
 paypal_all() {

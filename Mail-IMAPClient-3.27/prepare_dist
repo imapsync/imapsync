@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use File::Copy qw/move/;
+use Parse::RecDescent 1.94;
+
+sub read_file {
+    my $file = shift;
+    local ( $/, *FH );
+    open( FH, $file ) or return undef;
+    return <FH>;
+}
+
+build_parser(
+    'lib/Mail/IMAPClient/BodyStructure/Parse.grammar',
+    'Mail::IMAPClient::BodyStructure::Parse'
+);
+
+build_parser( 'lib/Mail/IMAPClient/Thread.grammar',
+    'Mail::IMAPClient::Thread' );
+
+sub build_parser {
+    my ( $grammarfn, $package ) = @_;
+
+    print("* building $package\n");
+
+    my $grammar = read_file($grammarfn)
+      or die("cannot read grammar from $grammarfn: $!\n");
+
+    Parse::RecDescent->Precompile( $grammar, $package );
+
+    # clumpsy output by Parse::RecDescent
+    my $outfn = $package . '.pm';
+    $outfn =~ s/.*\:\://;
+
+    my $realfn = $grammarfn;
+    $realfn =~ s/\.\w+$/.pm/;
+
+    move( $outfn, $realfn )
+      or die("cannot move $outfn to $realfn: $!\n");
+}
