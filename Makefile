@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.5 2004/03/24 00:59:41 gilles Exp $	
+# $Id: Makefile,v 1.7 2005/04/13 11:44:17 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -54,11 +54,12 @@ clean_tilde:
 .PHONY: install dist
 
 install: testp
-	cp $(TARGET) /usr/bin/$(TARGET)
-	chmod 755 /usr/bin/$(TARGET)
+	cp $(TARGET) $(DESTDIR)/usr/bin/$(TARGET)
+	chmod 755 $(DESTDIR)/usr/bin/$(TARGET)
 
 DIST_NAME=$(TARGET)-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
+DEB_FILE=$(DIST_NAME).deb
 VERSION=$(shell ./$(TARGET) --version)
 
 dist: cidone test clean clean_dist all INSTALL  
@@ -71,6 +72,12 @@ dist: cidone test clean clean_dist all INSTALL
 	cd dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5
 	cd dist && md5sum -c $(DIST_FILE).md5
 
+
+deb: 
+	echo making debball $(DEB_FILE)
+	mkdir -p ../prepa_deb
+	cd  ../prepa_deb && tar xzvf ../prepa_dist/$(DIST_FILE) &&\
+	cd ../prepa_dist/$(DIST_NAME) 
 
 .PHONY: cidone clean_dist
 

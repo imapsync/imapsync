@@ -1,6 +1,31 @@
 TODO file for imapsync
 ----------------------
 
+Update doc with ALL options.
+
+Add in doc:
+> The problem seems to be that one of the imap servers (the destination
+> one) only supports connections over TLS, and refuses logins via plain tcp.
+> Does imapsync support IMAP over TLS (IMAPS)?
+
+Not natively. 
+but, 2 ways, at least :
+
+a) There are patches in patches/ directory to do this 
+   in imapsync code.
+   I tried to include them but it broke my tests.
+   It works but not always.
+
+b) Use stunnel
+   http://www.stunnel.org/
+   Assuming there is an imaps (993) server on imap.foo.org,
+   on your localhost machine (or bar machine) run :
+       stunnel -c -d imap -r imap.foo.org:imaps
+   or
+       stunnel -c -d 143 -r imap.foo.org:993
+   then use imapsync on localhost (or bar machine) imap (143) port.
+   
+
 Read:
 http://www.washington.edu/imap/documentation/commndmt.txt.html
 
