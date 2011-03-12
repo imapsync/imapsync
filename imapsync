@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.310 $
+$Revision: 1.311 $
 
 =head1 INSTALL
 
@@ -426,7 +426,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.310 2010/02/26 01:24:59 gilles Exp gilles $
+$Id: imapsync,v 1.311 2010/04/27 23:03:39 gilles Exp gilles $
 
 =cut
 
@@ -489,7 +489,7 @@ my(
         $authmech1, $authmech2,
         $split1, $split2,
         $reconnectretry1, $reconnectretry2,
-	$tests, $test_builder,
+	$tests, $test_builder, $tests_debug,
 	$allow3xx, $justlogin,
 	$tmpdir,
 );
@@ -497,7 +497,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.310 2010/02/26 01:24:59 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.311 2010/04/27 23:03:39 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -562,8 +562,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.310 $ ',
-		  '$Date: 2010/02/26 01:24:59 $ ',
+		  '$Revision: 1.311 $ ',
+		  '$Date: 2010/04/27 23:03:39 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -1010,14 +1010,16 @@ sub compare_lists {
 	my ($list_1_ref, $list_2_ref) = @_;
 	
 	return(-1) if ((not defined($list_1_ref)) and defined($list_2_ref));
-	return(0)  if (! $list_1_ref); # end if no list
-	return(1)  if (! $list_2_ref); # end if only one list
+	return(0)  if ((not defined($list_1_ref)) and not defined($list_2_ref)); # end if no list
+	return(1)  if (not defined($list_2_ref)); # end if only one list
 	
 	if (not ref($list_1_ref)) {$list_1_ref = [$list_1_ref]};
 	if (not ref($list_2_ref)) {$list_2_ref = [$list_2_ref]};
 
 
-	my $last_used_indice = 0;
+	my $last_used_indice = -1;
+	#print "\$#$list_1_ref:", $#$list_1_ref, "\n";
+	#print "\$#$list_2_ref:", $#$list_2_ref, "\n";
 	ELEMENT:
 	foreach my $indice ( 0 .. $#$list_1_ref ) {
 		$last_used_indice = $indice;
@@ -1047,15 +1049,23 @@ sub tests_compare_lists {
 	ok( 0 == compare_lists(undef)          , 'compare_lists, undef = nothing');
 	ok( 0 == compare_lists(undef, undef)   , 'compare_lists, undef = undef');
 	ok(-1 == compare_lists(undef , [])     , 'compare_lists, undef < []');
+	ok(-1 == compare_lists(undef , [1])    , 'compare_lists, undef < [1]');
+	ok(-1 == compare_lists(undef , [0])    , 'compare_lists, undef < [0]');
       	ok(+1 == compare_lists([])             , 'compare_lists, [] > nothing');
         ok(+1 == compare_lists([], undef)      , 'compare_lists, [] > undef');
 	ok( 0 == compare_lists([] , [])        , 'compare_lists, [] = []');
+
+	ok(-1 == compare_lists([] , [1])        , 'compare_lists, [] < [1]');
+	ok(+1 == compare_lists([1] , [])        , 'compare_lists, [1] > []');
+
 	
 	ok( 0 == compare_lists([1],  1 )          , "compare_lists, [1] =  1 ") ;
 	ok( 0 == compare_lists( 1 , [1])          , "compare_lists,  1  = [1]") ;
 	ok( 0 == compare_lists( 1 ,  1 )          , "compare_lists,  1  =  1 ") ;
-	ok(-1 == compare_lists( 1 ,  2 )          , "compare_lists,  1  =  1 ") ;
-	ok(+1 == compare_lists( 2 ,  1 )          , "compare_lists,  1  =  1 ") ;
+	ok(-1 == compare_lists( 0 ,  1 )          , "compare_lists,  0  <  1 ") ;
+	ok(-1 == compare_lists(-1 ,  0 )          , "compare_lists, -1  <  0 ") ;
+	ok(-1 == compare_lists( 1 ,  2 )          , "compare_lists,  1  <  2 ") ;
+	ok(+1 == compare_lists( 2 ,  1 )          , "compare_lists,  2  >  1 ") ;
 
 
 	ok( 0 == compare_lists([1,2], [1,2])   , "compare_lists, [1,2] = [1,2]") ;
@@ -1880,7 +1890,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		$h1_flags = flags_filter($h1_flags, $permanentflags2) if ($permanentflags2);
 		
 		
-		# compare flags - set flags if there a diffrence
+		# compare flags - set flags if there a difference
 		my @h1_flags = sort split(' ', $h1_flags );
 		my @h2_flags = sort split(' ', $h2_flags );
 		my $diff = compare_lists(\@h1_flags, \@h2_flags);
@@ -2149,6 +2159,7 @@ sub get_options {
 				   "reconnectretry1=i" => \$reconnectretry1,
 				   "reconnectretry2=i" => \$reconnectretry2,
                                    "tests"       => \$tests,
+                                   "tests_debug" => \$tests_debug,
                                    "allow3xx!"   => \$allow3xx,
                                    "justlogin!"  => \$justlogin,
 				   "tmpdir=s"    => \$tmpdir,
@@ -2162,6 +2173,11 @@ sub get_options {
 	if ($tests) {
 		$test_builder->no_ending(0);
 		tests();
+		exit;
+	}
+	if ($tests_debug) {
+		$test_builder->no_ending(0);
+		tests_debug();
 		exit;
 	}
 
@@ -2449,6 +2465,13 @@ EOF
 }
 
 
+sub tests_debug {
+	
+      SKIP: {
+		skip "No test in normal run" if (not $tests_debug);
+		tests_compare_lists();
+	}
+}
 
 sub tests {
 	
