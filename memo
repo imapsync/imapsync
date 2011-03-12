@@ -35,23 +35,41 @@ niouzes_compil
 }
 
 
+fm_read_param() {
+
+# read definitions
+. $NEWS_FILE_FM_INP
+
+}
+
 fm_announce() {
 software_version
 NEWS_FILE_FM="/home/gilles/public_html/imapsync/freshmeat_submition"
-if ! newer VERSION $NEWS_FILE_FM; then 
-	echo "$VERSION already announced"
+NEWS_FILE_FM_INP=${NEWS_FILE_FM}.inp
+NEWS_FILE_FM_OUT=${NEWS_FILE_FM}.out
+
+if ! newer VERSION $NEWS_FILE_FM_OUT; then 
+	echo "$VERSION already submitted on freshmeat"
 else
-	cat > $NEWS_FILE_FM << EOF
+    if newer VERSION $NEWS_FILE_FM_INP; then
+	echo "Update $NEWS_FILE_FM_INP please"
+	return
+    fi
+
+    fm_read_param
+	cat > $NEWS_FILE_FM_OUT << EOF
 Project: imapsync
 Version: $VERSION
-Release-Focus: Major bugfixes
+Release-Focus: $RELEASE_FOCUS
 Hide: Y
 Home-Page-URL: http://www.linux-france.org/prj/imapsync/
 Gzipped-Tar-URL: http://www.linux-france.org/prj/imapsync/dist/
 
-Code cleanup.
+$TEXT_BODY
+
 EOF
-freshmeat-submit < $NEWS_FILE_FM
+return
+freshmeat-submit < $NEWS_FILE_FM_OUT
 fi
 
 }
