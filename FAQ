@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.70 2010/07/12 00:18:33 gilles Exp gilles $
+# $Id: FAQ,v 1.71 2010/07/15 12:07:00 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -91,7 +91,10 @@ R. - Download latest Mail::IMAPClient 3.xx at
    - run imapsync with perl and -I option tailing to use the perl
      module Mail-IMAPClient-3.xx. Example:
 
-       perl -I./Mail-IMAPClient-3.23/lib  imapsync ...
+         perl -I./Mail-IMAPClient-3.23/lib  ./imapsync ...
+
+     or if imapsync is in directory /path/
+        perl -I./Mail-IMAPClient-3.23/lib   /path/imapsync ...
 
 =======================================================================
 Q. imapsync does not work with Mail::IMAPClient 3.xx
@@ -102,10 +105,12 @@ R. - Download Mail::IMAPClient 2.2.9 at
    http://search.cpan.org/CPAN/authors/id/D/DJ/DJKERNEN/Mail-IMAPClient-2.2.9.tar.gz
    - untar it anywhere:
         tar xzvf Mail-IMAPClient-2.2.9.tar.gz
+
    - run imapsync with perl and -I option tailing to use Mail-IMAPClient-2.2.9:
-        perl -I./Mail-IMAPClient-2.2.9 imapsync [...]
+        perl -I./Mail-IMAPClient-2.2.9  ./imapsync [...]
+
      or if imapsync is in directory /path/
-        perl -I./Mail-IMAPClient-2.2.9 /path/imapsync [...]
+        perl -I./Mail-IMAPClient-2.2.9  /path/imapsync [...]
 
 =======================================================================
 Q. Can I use imapsync to migrate emails from pop server to imap server?
@@ -162,6 +167,23 @@ c) Don't use buggy Eudora.
 d) Use the --syncinternaldates option and keep using Eudora.
    --syncinternaldates is now turn on by default.
 
+
+=======================================================================
+Q. imapsync calculates 479 messages in a folder but only transfers 400 
+   messages. What's happen?
+
+R. imapsync considers the header part of a message (as a whole or
+   only specific lines depending on --useheader --skipheader) 
+   to identify a message on both sides.
+
+Two consequences:
+
+  1) Messages with no header are not transferred.
+  2) Duplicate messages (identical header) are not transferred
+     several times.
+
+The result is that you can have more messages on host1 than on host2.
+
 =======================================================================
 Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
 INBOX.Ops/foo/bar 
@@ -208,6 +230,8 @@ only the flags listed in PERMANENTFLAGS.
 
 Some imap servers have problems with flags not beginning with
 the backslash character \ 
+(see next question to find a solution to this issue)
+
 
 =======================================================================
 Q. I need to keep only a defind list of flags, how can I do?
@@ -244,6 +268,9 @@ IMAP system flags have to begin with \ character.
 Any other flag must begin with another character.
 System flags are just flags defined by an RFC instead of by users.
 Conclusion, some imap server coders don't read the RFCs (so do I).
+
+recent imapsync deals with this issue by filter with PERMANENTFLAGS
+automatically.
 
 =======================================================================
 Q. Flags are not well synchonized. Is it a bug?
@@ -295,6 +322,8 @@ R. May be spending too much time on the source server, the connection
 timed out on the destination server.
 Try options :
   --nofoldersizes --useheader Message-ID --fast
+
+recent imapsync reconnects automatically.
 
 =======================================================================
 Q. imapsync failed with a "word too long" error from the imap server,
@@ -430,20 +459,23 @@ From folders list : [INBOX] [public.dreams] [etc.]
 ======================================================================
 Q. I want the --folder 'MyFolder' option be recursive.
 
+Two solutions:
+
+R. Use
+
+--folderrec 'MyFolder'
+
 R. Do not use the --folder option. 
    Instead, use --include '^MyFolder'
    Then the folder "MyFolder" and all its subfolders will be handled
    and only them.
-
-R. Use 
-
---folderrec 'MyFolder'
 
 
 ======================================================================
 Q. How to migrate from uw-imap with an admin/authuser account?
 
 R. Use 
+
 --user1="user*admin_user" --password1 "admin_user_password"
 
 
@@ -479,7 +511,7 @@ Here is an example:
 Q. Is there anyway of making imapsync purge the destination folder
    when the source folder is deleted?
 
-R. No, that's too dangerous.
+R. No, that's too dangerous. May be coded in future release.
 
 But if the source folder is empty (not deleted) and options --delete2
 --expunge2 are used then the destination folder will be empty.
@@ -489,6 +521,10 @@ Q. Is it possible to synchronize all messages from one server to
 another without recreating the folder structure and the target server.
 
 R. Yes.
+
+For example, to synchronize all messages in all forders on host1
+to folder INBOX only on host2:
+
 1) First try (safe mode):
 
 imapsync \
@@ -530,7 +566,9 @@ imapsync \
 =======================================================================
 Q. Give examples about --regextrans2
 
-R. Examples: 
+R. --regextrans2 is used to transform folder names
+
+Examples: 
 
 0) First try with --dry --justfolders options since imapsync shows the
    transformations it will do without really doing them. Then when
@@ -603,7 +641,7 @@ Q. I want to play with headers line and --regexmess but I want to leave
 R. The header/body separation is a blank line so an example:
    --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nX-Date:$2}gxms'
 
-Will replace 
+Will replace (HeaderBegin and HeaderEnd are not part of the header)
 
 HeaderBegin
 Message-ID: <499EF800.4030002@blabla.fr>
@@ -639,23 +677,24 @@ Received: ...
 
 Any Maildir/ configured imap server may refuse this message since its
 header is invalid. The first "From " line is not valid. It lacks a
-colon character ":". To solve this problem you have several solutions
+colon character ":". To solve this issue you have several solutions
 
 a) Remove manually this first "From " line for each message before
    using imapsync. 
 
 b) Replace manually the whitespace by a colon in string "From " but you
-   might end with two "From:" lines (just have a look at the other header lines)
+   might end with two "From:" lines (just have a look at the other 
+   header lines of the message)
 
-c) Run imapsync with the following option :
+c) Run imapsync with the following option (this replaces "From "by "From:"):
    --regexmess 's/\AFrom /From:/'
 
 or may be better (no other "From:" collision):
 
-d) Run imapsync with the following option :
+d) Run imapsync with the following option (this replaces "From "by "X-om:"):
    --regexmess 's/\AFrom /X-om:/'
 
-e) Run imapsync with the following option :
+e) Run imapsync with the following option (this removes the whole "From " line):
    --regexmess 's{\AFrom\ [^\n]*(\n)?}{}gxms'
 
 Solution e) is solution a) made by imapsync itself.
@@ -679,6 +718,10 @@ using the same server, we can use $from->copy Therefore we seem to not
 download and upload the message and therefore we do not have any
 format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
 
+=======================================================================
+              Server specific issues and solutions
+=======================================================================
+
 
 =======================================================================
 Q. Synchronising from XXX to Gmail
@@ -687,8 +730,7 @@ R. There are some details to get the special [Gmail] sub-folders
    right. Here's an example of migrating an old "Sent" folder to
    Gmail's structure:
 
-imapsync --syncinternaldates \
-         --host1 mail.oldhost.com \
+imapsync --host1 mail.oldhost.com \
          --user1 my_email@oldhost.com \
          --password1 password \
          --host2 imap.gmail.com --port2 993 --ssl2 \
@@ -761,9 +803,12 @@ Q. I'm migrating from WU to Cyrus, and the mail folders are under
    /home/user/mail but the tool copies everything in /home/user, how
    can i avoid that?
 
+Two solutions:
+
 R. Use
    imapsync ... --include '^mail'
-or (better)
+
+R. or (better)
    imapsync ... --subscribed --subscribe
 
 

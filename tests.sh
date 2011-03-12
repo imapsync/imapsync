@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.106 2010/07/14 23:25:14 gilles Exp gilles $  
+# $Id: tests.sh,v 1.109 2010/07/16 23:28:12 gilles Exp gilles $  
 
 # Example:
-# CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
+# CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
 
 
 HOST1=${HOST1:-'localhost'}
@@ -11,7 +11,12 @@ echo HOST1=$HOST1
 HOST2=${HOST2:-'localhost'}
 echo HOST2=$HOST2
 
+# most tests use:
 CMD_PERL=${CMD_PERL:-'perl -I./Mail-IMAPClient-2.2.9'}
+
+# few debugging tests use:
+CMD_PERL_2xx='perl -I./Mail-IMAPClient-2.2.9'
+CMD_PERL_3xx='perl -I./Mail-IMAPClient-3.25/lib'
 
 #### Shell pragmas
 
@@ -74,8 +79,6 @@ no_args() {
 
 # mailbox tata titi on most ll_*() tests
 
-# tutu@est.belle # not used
-
 # mailbox tete@est.belle # used on big size tests
 #                          big_transfert()
 #                          big_transfert_sizes_only()
@@ -127,8 +130,6 @@ first_sync_dry() {
             --passfile2 ../../var/pass/secret.titi \
             --noauthmd5 --dry
 }
-
-
 
 first_sync() {
         $CMD_PERL ./imapsync \
@@ -284,23 +285,34 @@ ll_prefix12() {
 
 
 
-ll_internaldate() {
-        if can_send; then
-                #echo3 Here is plume
-                sendtestmessage
-        else
-                :
-        fi
-        $CMD_PERL ./imapsync \
-         --host1 $HOST1  --user1 tata \
-         --passfile1 ../../var/pass/secret.tata \
+ll_nosyncinternaldates() {
+        can_send && sendtestmessage toto
+        $CMD_PERL_2xx ./imapsync \
+         --host1 $HOST1  --user1 toto \
+         --passfile1 ../../var/pass/secret.toto \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-         --folder INBOX  \
-         --syncinternaldates \
-         --allow3xx
-}
+         --folder INBOX  --noauthmd5 \
+         --nosyncinternaldates  --delete2 --expunge2 
+         #--debugimap2
 
+        can_send && sendtestmessage toto
+        $CMD_PERL_3xx ./imapsync \
+         --host1 $HOST1  --user1 toto \
+         --passfile1 ../../var/pass/secret.toto \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX  --noauthmd5 \
+         --nosyncinternaldates  --delete2 --expunge2 
+         #--debugimap2
+}
+# bug:
+# $d=""; # no bug with $d=undef
+# $imap2->append_string($h2_fold,$string, $h1_flags, $d);
+# 3.25 idate  : Sending: 16 APPEND INBOX () "16-Jul-2010 22:09:42 +0200" {428}
+# 2.xx idate  : Sending: 62 APPEND INBOX "16-Jul-2010 22:14:00 +0200" {428}
+# 3.25 noidate: Sending: 16 APPEND INBOX () "" {428} # Fails: NO IMAP!
+# 2.xx noidate: Sending: 62 APPEND INBOX {428}
 
 ll_idatefromheader() {
         if can_send; then
@@ -935,9 +947,17 @@ ll_bigmail() {
 
 
 msw() {
-        sendtestmessage toto
-        scp imapsync  Admin@192.168.68.77:'C:/msys/1.0/home/Admin/imapsync/imapsync'
-        ssh Admin@192.168.68.77 'C:/msys/1.0/home/Admin/imapsync/test.bat'
+	if can_send; then
+        	sendtestmessage toto
+	fi
+        scp imapsync test.bat \
+            ../../var/pass/secret.toto \
+            ../../var/pass/secret.titi \
+            ../../var/pass/secret.tata \
+            Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+
+        ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test.bat'
+	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
 }
 
 
@@ -1075,7 +1095,7 @@ big_transfert()
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
         --noauthmd5 \
-        --fast --folder INBOX.Trash \
+        --fast --folder INBOX.Junk \
         --useheader Message-ID --useheader Received || \
     true
     }
@@ -1092,7 +1112,7 @@ big_transfert_sizes_only()
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
         --noauthmd5 \
-        --justfoldersizes  --folder INBOX.Trash || \
+        --justfoldersizes  --folder INBOX.Junk || \
     true
     }
     date2=`date`
@@ -1101,22 +1121,47 @@ big_transfert_sizes_only()
 
 
 
-dprof()
+dprof_justfoldersizes()
 {
     date1=`date`
-    { perl -d:DProf ./imapsync \
-        --host1 louloutte --user1 gilles \
-        --passfile1 ../../var/pass/secret \
-        --host2 plume --user2 tete@est.belle \
+    { $CMD_PERL -d:DProf ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
-        --subscribed --foldersizes --noauthmd5 \
-        --folder INBOX.Trash || \
+        --noauthmd5 \
+        --justfoldersizes  --folder INBOX.Junk || \
     true
     }
     date2=`date`
     echo3 "[$date1] [$date2]"
-    dprofpp tmon.out
+    mv tmon.out dprof_justfoldersizes_tmon.out
+    dprofpp -O 30    dprof_justfoldersizes_tmon.out
+    dprofpp -O 30 -I dprof_justfoldersizes_tmon.out
 }
+
+
+dprof_bigfolder()
+{
+    date1=`date`
+    { $CMD_PERL -d:DProf ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --noauthmd5 \
+        --nofoldersizes  --folder INBOX.15_imapsync.imapsync-list || \
+    true
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+    mv tmon.out dprof_bigfolder_tmon.out
+    dprofpp -O 30    dprof_bigfolder_tmon.out
+    dprofpp -O 30 -I dprof_bigfolder_tmon.out
+}
+
+
+
 
 essnet_justconnect()
 {
@@ -1293,6 +1338,7 @@ no_args
 option_version 
 option_tests 
 option_bad_delete2 
+passwords_masked 
 first_sync_dry 
 first_sync 
 locallocal 
@@ -1304,7 +1350,7 @@ ll_folder
 ll_buffersize 
 ll_justfolders 
 ll_prefix12 
-ll_internaldate 
+ll_nosyncinternaldates 
 ll_idatefromheader 
 ll_folder_rev 
 ll_subscribed 
