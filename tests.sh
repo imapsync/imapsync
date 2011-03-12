@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.101 2010/02/25 23:16:45 gilles Exp gilles $  
+# $Id: tests.sh,v 1.102 2010/06/11 02:50:28 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -755,9 +755,9 @@ ll_tls_justlogin() {
 
 ll_tls_devel() {
    CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_justlogin ll_ssl_justlogin \
-&& CMD_PERL='perl -I./Mail-IMAPClient-3.23/lib' ll_justlogin ll_ssl_justlogin \
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' ll_justlogin ll_ssl_justlogin \
 && CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_tls_justconnect  ll_tls_justlogin \
-&& CMD_PERL='perl -I./Mail-IMAPClient-3.23/lib' ll_tls_justconnect ll_tls_justlogin
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' ll_tls_justconnect ll_tls_justlogin
 }
 
 ll_tls() {
@@ -979,7 +979,7 @@ allow3xx() {
 }
 
 noallow3xx() {
-                ! perl -I./Mail-IMAPClient-3.23/lib ./imapsync \
+                ! perl -I./Mail-IMAPClient-3.25/lib ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \

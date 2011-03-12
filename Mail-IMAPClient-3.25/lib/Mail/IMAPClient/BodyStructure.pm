@@ -4,6 +4,9 @@ use strict;
 package Mail::IMAPClient::BodyStructure;
 use Mail::IMAPClient::BodyStructure::Parse;
 
+# BUG?: old code used name "HEAD" instead of "HEADER", change?
+my $HEAD = "HEAD";
+
 # my has file scope, not limited to package!
 my $parser = Mail::IMAPClient::BodyStructure::Parse->new
    or die "Cannot parse rules: $@\n"
@@ -17,7 +20,7 @@ sub new
        or return undef;
 
     $self->{_prefix} = "";
-    $self->{_id}     = exists $self->{bodystructure} ? 'HEAD' : 1;
+    $self->{_id}     = exists $self->{bodystructure} ? $HEAD : 1;
     $self->{_top}    = 1;
 
     bless $self, ref($class)||$class;
@@ -63,9 +66,10 @@ sub parts
     my @parts;
     $self->{PartsList} = \@parts;
 
+    # BUG?: should this default to ($HEAD, TEXT)
     unless(exists $self->{bodystructure})
     {   $self->{PartsIndex}{1} = $self;
-        @parts = ("HEAD", 1);
+        @parts = ($HEAD, 1);
         return wantarray ? @parts : \@parts;
     }
 
@@ -75,7 +79,7 @@ sub parts
         $self->{PartsIndex}{$id} = $p ;
         my $type = uc $p->bodytype || '';
 
-        push @parts, "$id.HEAD"
+        push @parts, "$id.$HEAD"
             if $type eq 'MESSAGE';
     }
 
@@ -88,8 +92,8 @@ sub bodystructure
     my @parts;
 
     if($self->{_top})
-    {   $self->{_id}     ||= "HEAD";
-        $self->{_prefix} ||= "HEAD";
+    {   $self->{_id}     ||= $HEAD;
+        $self->{_prefix} ||= $HEAD;
         $partno = 0;
         foreach my $b ( @{$self->{bodystructure}} )
         {   $b->{_id}     = ++$partno;
@@ -104,8 +108,26 @@ sub bodystructure
 
     foreach my $p ( @{$self->{bodystructure}} )
     {   $partno++;
-        $p->{_prefix} = "$prefix$partno";
-        $p->{_id}   ||= "$prefix$partno";
+
+        # BUG?: old code didn't add .TEXT sections, should we skip these?
+        # - This code needs to be generalised (maybe it belongs in parts()?)
+        # - Should every message should have HEAD (actually MIME) and TEXT?
+        #   at least dovecot and iplanet appear to allow this even for
+        #   non-multipart sections
+        my $pno   = $partno;
+        my $stype = $self->{bodytype} || "";
+        my $ptype = $p->{bodytype} || "";
+
+        # a message and the multipart inside of it "collapse together"
+        if ($partno == 1 and $stype eq 'MESSAGE' and $ptype eq 'MULTIPART') {
+            $pno = "TEXT";
+            $p->{_prefix} = "$prefix";
+        }
+        else {
+            $p->{_prefix} = "$prefix$partno";
+        }
+        $p->{_id}   ||= "$prefix$pno";
+
         push @parts, $p, $p->{bodystructure} ? $p->bodystructure : ();
     }
 
@@ -117,9 +139,10 @@ sub id
     return $self->{_id}
         if exists $self->{_id};
 
-    return "HEAD"
+    return $HEAD
         if $self->{_top};
 
+    # BUG?: can this be removed? ... seems wrong
     if ($self->{bodytype} eq 'MULTIPART')
     {   my $p = $self->{_id} || $self->{_prefix};
         $p =~ s/\.$//;

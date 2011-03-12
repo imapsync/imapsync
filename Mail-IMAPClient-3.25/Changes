@@ -5,6 +5,49 @@ Changes from 2.99_01 to 3.16    made by Mark Overmeer
 Changes from 0.09    to 2.99_01 made by David Kernen
 	- Potential compatibility issues from 3.17+ highlighted with '*'
 
+version 3.25: Fri May 28 00:07:40 EDT 2010
+	- fix body_string parsing bug and added tests in t/body_string.t
+	  [Heiko Schlittermann] 
+	- rt.cpan.org#57661: uninitialized value warning in IMAPClient::thread
+	  [Max Bowsher]
+	- rt.cpan.org#57337: Correctly handle multiparts in BodyStructure.pm
+	  [Robert Norris]
+	  fixes in Mail::IMAPClient::BodyStructure::bodystructure for
+	  bugs still in release 3.24
+	- rt.cpan.org#57659: install fails when using cPanel GUI
+	  [Ken Parisi]
+	  hack Makefile.PL to use alarm() and timeout prompt() gracefully
+	- relax t/basic.t logout() error check (allow 'BYE' instead of 'OK')
+	- left examples/idle.pl out of MANIFEST for 3.24
+
+version 3.24: Fri May  7 17:02:35 EDT 2010
+	- rt.cpan.org#48912: wrong part numbers in multipart messages
+	  [Dmitry Bigunyak, Gabor Leszlauer]
+	- fix Mail::IMAPClient::BodyStructure::bodystructure to
+	  properly assign parts for messages using multipart and also
+	  include .TEXT parts as well (still not including top level
+	  HEADER and TEXT though - bug?)
+	- allow _load_module() to set $@ and LastError if module load fails
+	- rt.cpan.org#55527: [no] disconnect during DESTROY
+	  [Stefan Seifert]
+	- updated logout documentation to correctly state that DESTROY
+	  is not used to force an automatic logout on DESTROY despite
+	  documentation that indicated otherwise
+	- update append* documentation to match current implementation
+	- rt.cpan.org#55898: append_file can send too many bytes
+	  [Jeremy Robst]
+	- avoid append_file corner cases operating on lines instead of buffers
+	- use binmode on filehandle in append_file
+	- add tests to t/basic.t for append_file
+	- rt.cpan.org#57048: _quote_search() using $_ in loop instead of $v
+	  [Matthaus Kiem]
+	- added examples/idle.pl program showing use of idle and idle_data
+	- idle_data() should not read/block after server returns data
+	  [Marc Thielemann]
+	- idle_data() _get_response regexp updated to not match errors
+	- idle_data() now uses a timeout of 0 by default as documented
+	- _get_response() now checks for defined($code) to allow $code==0
+
 version 3.23: Fri Jan 29 00:39:27 EST 2010
 	- new beta idle_data() method to retrieve untagged messages during idle
 	  similar to method suggested by Daniel Richard G

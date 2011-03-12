@@ -1,4 +1,4 @@
 #!/bin/sh
 
-perl -IMail-IMAPClient-3.23/lib ./imapsync "$@"
+perl -IMail-IMAPClient-3.25/lib ./imapsync "$@"
 

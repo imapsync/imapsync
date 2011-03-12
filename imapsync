@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.311 $
+$Revision: 1.315 $
 
 =head1 INSTALL
 
@@ -281,9 +281,10 @@ Failure stories reported with the following 4 imap servers:
  - dkimap4 2.39
  - Imail 7.04 (maybe).
 
-Success stories reported with the following 35 imap servers 
+Success stories reported with the following 36 imap servers 
 (software names are in alphabetic order): 
 
+ - 1und1 H mimap1 84498 [host1]
  - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
    (OSL 3.0) http://www.archiveopteryx.org/
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
@@ -426,7 +427,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.311 2010/04/27 23:03:39 gilles Exp gilles $
+$Id: imapsync,v 1.315 2010/06/11 02:51:54 gilles Exp gilles $
 
 =cut
 
@@ -445,6 +446,9 @@ use POSIX qw(uname);
 use Fcntl;
 use File::Spec;
 use File::Path qw(mkpath rmtree);
+use IO::Socket qw(:crlf SOL_SOCKET SO_KEEPALIVE);
+use Errno qw(EAGAIN EPIPE ECONNRESET);
+
 
 #use Test::Simple tests => 1;
 use Test::More 'no_plan';
@@ -497,7 +501,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.311 2010/04/27 23:03:39 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.315 2010/06/11 02:51:54 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -562,8 +566,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.311 $ ',
-		  '$Date: 2010/04/27 23:03:39 $ ',
+		  '$Revision: 1.315 $ ',
+		  '$Date: 2010/06/11 02:51:54 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -725,7 +729,8 @@ $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
 $fastio1 = (defined($fastio1)) ? $fastio1 : 0;
 $fastio2 = (defined($fastio2)) ? $fastio2 : 0;
 
-
+$reconnectretry1 = (defined($reconnectretry1)) ? $reconnectretry1 : 10;
+$reconnectretry2 = (defined($reconnectretry2)) ? $reconnectretry2 : 10;
 
 @useheader = ("ALL") unless (@useheader);
 
@@ -799,10 +804,7 @@ sub login_imap {
 	$imap->Debug($debugimap);
 	$timeout and $imap->Timeout($timeout);
 
-	( Mail::IMAPClient->VERSION =~ /^2/ or !$imap->can("Reconnectretry"))
-	  ? warn("--reconnectretry* requires IMAPClient >= 3.17\n")
-	  : $imap->Reconnectretry($reconnectretry)
-	  if ($reconnectretry);
+	$imap->Reconnectretry($reconnectretry) if ($reconnectretry);
 
 	#$imap->connect()
 	myconnect($imap)
@@ -827,6 +829,7 @@ sub login_imap {
 	
 	$imap->Authmechanism($authmech) unless ($authmech eq 'LOGIN');
 	$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
+	
 
 	$imap->User($user);
 	$imap->Authuser($authuser);
@@ -1764,15 +1767,32 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			
 			sub tests_regexmess {
 				
-				ok("blabla" eq regexmess("blabla"), "regexmess, nothing to do");
+				ok("blabla" eq regexmess("blabla"), "regexmess, no regexmess, nothing to do");
+				
 				@regexmess = ('s/p/Z/g');
 				ok("ZoZoZo" eq regexmess("popopo"), "regexmess, s/p/Z/g");
+				
 				@regexmess = 's{c}{C}gxms';
-				#print "RRR¤\n", regexmess("H1: abc\nH2: cde\n\nBody abc"), "\n";
 				ok("H1: abC\nH2: Cde\n\nBody abC" 
 					   eq regexmess("H1: abc\nH2: cde\n\nBody abc"), 
 				   "regexmess, c->C");
+				   
+				@regexmess = 's{\AFrom\ }{From:}gxms';
+				ok(          '' 
+				eq regexmess(''),
+				'From mbox 1 blank');
 				
+				ok(          'From:<tartanpion@machin.truc>' 
+				eq regexmess('From <tartanpion@machin.truc>'),
+				'From mbox 2');
+				
+				ok(          "\n" . 'From <tartanpion@machin.truc>' 
+				eq regexmess("\n" . 'From <tartanpion@machin.truc>'),
+				'From mbox 3');
+				
+				ok(          "From: zzz\n" . 'From <tartanpion@machin.truc>' 
+				eq regexmess("From  zzz\n" . 'From <tartanpion@machin.truc>'),
+				'From mbox 4');
 			}
 
 			sub regexmess {
@@ -2469,7 +2489,7 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if (not $tests_debug);
-		tests_compare_lists();
+		tests_regexmess();
 	}
 }
 
@@ -3060,12 +3080,436 @@ no warnings 'once';
 };
 
 
-
 *Mail::IMAPClient::Ignoresizeerrors = sub {
 	my $self = shift;
 	
 	if (@_) { $self->{IGNORESIZEERRORS} = shift }
 	return $self->{IGNORESIZEERRORS};
+};
+
+*Mail::IMAPClient::Reconnectretry = sub {
+	my $self = shift;
+	
+	if (@_) { $self->{RECONNECTRETRY} = shift }
+	return $self->{RECONNECTRETRY};
+};
+
+
+*Mail::IMAPClient::reconnect  = sub {
+    my $self = shift;
+
+    if ( $self->IsAuthenticated ) {
+        $self->_debug("reconnect called but already authenticated");
+        return $self;
+    }
+
+    my $einfo = $self->LastError || "";
+    $self->_debug( "reconnecting to ", $self->Server, ", last error: $einfo" );
+
+    # reconnect and select appropriate folder
+    $self->connect or return undef;
+
+    return ( defined $self->Folder ) ? $self->select( $self->Folder ) : $self;
+};
+
+
+# wrapper for _imap_command_do to enable retrying on lost connections
+*Mail::IMAPClient::_imap_command  = sub {
+    my $self = shift;
+
+    my $tries = 0;
+    my $retry = $self->Reconnectretry || 0;
+    my ( $rc, @err );
+
+    # LastError (if set) will be overwritten masking any earlier errors
+    while ( $tries++ <= $retry ) {
+        # do command on the first try or if Connected (reconnect ongoing)
+        if ( $tries == 1 or $self->IsConnected ) {
+	    #print "call @_\n";
+            $rc = $self->_imap_command_do(@_);
+            push( @err, $self->LastError ) if $self->LastError;
+	    #print "call @_ done [$rc] [$retry][" . $self->IsUnconnected . "]\n";
+        }
+
+        if ( !defined($rc) and $retry and $self->IsUnconnected) {
+	    #print "maybe not good: $!\n";
+            last
+              unless (
+                   $! == EPIPE
+                or $! == ECONNRESET
+                or $self->LastError =~ /(?:error\(.*?\)|timeout) waiting\b/i
+                or $self->LastError =~ /(?:socket closed|\* BYE)\b/i
+
+                # BUG? reconnect if caller ignored/missed earlier errors?
+                # or $self->LastError =~ /NO not connected/
+              );
+            if ( $self->reconnect ) {
+                print "reconnect successful on try #$tries";
+            }
+            else {
+                print "reconnect failed on try #$tries";
+                push( @err, $self->LastError ) if $self->LastError;
+            }
+        }
+        else {
+            last;
+        }
+    }
+
+    unless ($rc) {
+        my ( %seen, @keep, @info );
+
+        foreach my $str (@err) {
+            my ( $sz, $len ) = ( 96, length($str) );
+            $str =~ s/$CR?$LF$/\\n/omg;
+            if ( !$self->Debug and $len > $sz * 2 ) {
+                my $beg = substr( $str, 0,    $sz );
+                my $end = substr( $str, -$sz, $sz );
+                $str = $beg . "..." . $end;
+            }
+            next if $seen{$str}++;
+            push( @keep, $str );
+        }
+        foreach my $msg (@keep) {
+            push( @info, $msg . ( $seen{$msg} > 1 ? " ($seen{$msg}x)" : "" ) );
+        }
+        $self->LastError( join( "; ", @info ) );
+    }
+
+    return $rc;
+};
+
+
+*Mail::IMAPClient::_imap_command_do = sub {
+	
+	my $self 	= shift;
+	my $string 	= shift 	or return undef;
+	my $good 	= shift 	|| 'GOOD';
+
+	my $qgood = quotemeta($good);
+
+	my $clear = "";
+	$clear = $self->Clear;
+
+	$self->Clear($clear) 
+		if $self->Count >= $clear and $clear > 0;
+
+	my $count 	= $self->Count($self->Count+1);
+
+	$string 	= "$count $string" ;
+
+	$self->_record($count,[ 0, "INPUT", "$string\x0d\x0a"] );
+
+	my $feedback = $self->_send_line("$string");
+
+	unless ($feedback) {
+		$self->LastError( "Error sending '$string' to IMAP: $!\n");
+		$@ = "Error sending '$string' to IMAP: $!";
+		carp "Error sending '$string' to IMAP: $!";
+		return undef;
+	}
+
+	my ($code, $output);	
+	$output = "";
+
+	READ: until ( $code)  {
+	    	# escape infinite loop if read_line never returns any data:
+              	$output = $self->_read_line or return undef; 
+
+		for my $o (@$output) { 
+			$self->_record($count,$o);	# $o is a ref
+                      # $self->_debug("Received from readline: ${\($o->[DATA])}<<END OF RESULT>>\n");
+			next unless $self->_is_output($o);
+			if ( $good eq '+' ) {
+                      		$o->[DATA] =~ /^$count (OK|BAD|NO|$qgood)|^($qgood)/mi ;
+				$code = $1||$2 ;
+			} else {
+                      		($code) = $o->[DATA] =~ /^$count (OK|BAD|NO|$qgood)/mi ;
+			}
+                      if ($o->[DATA] =~ /^\*\s+BYE/im) {
+				$self->State(Unconnected);
+				return undef ;
+			}
+		}
+	}	
+	
+	# $self->_debug("Command $string: returned $code\n");
+	return $code =~ /^OK|$qgood/im ? $self : undef ;
+
+};
+
+*Mail::IMAPClient::_read_line = sub {
+	my $self 	= shift;	
+	my $sh		= $self->Socket;
+	my $literal_callback    = shift;
+	my $output_callback = shift;
+	
+	unless ($self->IsConnected and $self->Socket) {
+		$self->LastError("NO Not connected.\n");
+		carp "Not connected" if $^W;
+		return undef;
+	}
+
+	my $iBuffer	= ""; 
+	my $oBuffer	= [];
+	my $count	= 0;
+	my $index	= $self->_next_index($self->Transaction);
+	my $rvec 	= my $ready = my $errors = 0; 
+	my $timeout	= $self->Timeout;
+
+	my $readlen 	= 1;
+	my $fast_io	= $self->Fast_io;	# Remember setting to reduce future method calls
+
+	if ( $fast_io ) {
+		
+		# set fcntl if necessary:
+		exists $self->{_fcntl} or $self->Fast_io($fast_io);
+		$readlen = $self->{Buffer}||4096;
+	}
+	until (	
+		# there's stuff in output buffer:
+		scalar(@$oBuffer)	and 			
+
+		# the last thing there has cr-lf:
+                $oBuffer->[-1][DATA] =~ /\x0d\x0a$/  and     
+
+		# that thing is an output line:
+                $oBuffer->[-1][TYPE]    eq "OUTPUT"  and     
+
+		# and the input buffer has been MT'ed:
+		$iBuffer		eq "" 		
+
+	) {
+              my $transno = $self->Transaction;  # used below in several places
+		if ($timeout) {
+			vec($rvec, fileno($self->Socket), 1) = 1;
+			my @ready = $self->{_select}->can_read($timeout) ;
+			unless ( @ready ) {
+				$self->LastError("Tag $transno: " .
+					"Timeout after $timeout seconds " .
+					"waiting for data from server\n");	
+				$self->_record($transno,
+					[	$self->_next_index($transno),
+						"ERROR",
+						"$transno * NO Timeout after ".
+						"$timeout seconds " .
+						"during read from " .
+						"server\x0d\x0a"
+					]
+				);
+				$self->LastError(
+					"Timeout after $timeout seconds " .
+					"during read from server\x0d\x0a"
+				);
+				return undef;
+			}
+		}
+		
+		#local($^W) = undef;	# Now quiet down warnings
+
+		# read "$readlen" bytes (or less):
+              # need to check return code from $self->_sysread 
+  	      #	in case other end has shut down!!!
+              my $ret = $self->_sysread( $sh, \$iBuffer, $readlen, length($iBuffer)) ;
+	      # $self->_debug("Read so far: $iBuffer<<END>>\n");
+              if($timeout and ! defined($ret)) { # Blocking read error...
+                  my $msg = "Error while reading data from server: $!\x0d\x0a";
+		  $self->LastError('Error while reading data from server');
+		  $self->State(Unconnected);
+		  print $msg;
+                  $self->_record($transno,
+                                 [ $self->_next_index($transno),
+                                   "ERROR", "$transno * NO $msg "
+                                   ]);
+                  $@ = "$msg";
+		  
+                  return undef;
+              }
+              elsif(defined($ret) and $ret == 0) {    # Caught EOF...
+                  my $msg="Socket closed while reading data from server [$!]\x0d\x0a";
+		  print "$msg";
+		  $self->LastError('Socket closed while reading data from server');
+		  $self->State(Unconnected);
+                  $self->_record($transno,
+                                 [ $self->_next_index($transno),
+                                   "ERROR", "$transno * NO $msg "
+                                   ]);
+                  $@ = "$msg";
+                  return undef;
+              }
+              # successfully wrote to other end, keep going...
+              $count += $ret;
+		LINES: while ( $iBuffer =~ s/^(.*?\x0d?\x0a)// ) {
+		   my $current_line = $1;
+
+		   # $self->_debug("BUFFER: pulled from buffer: <BEGIN>${current_line}<END>\n" .
+		   # 	"and left with buffer contents of: <BEGIN>${iBuffer}<END>\n");
+
+		   LITERAL: if ($current_line =~ s/\{(\d+)\}\x0d\x0a$//) {
+			# This part handles IMAP "Literals", 
+			# which according to rfc2060 look something like this:
+			# [tag]|* BLAH BLAH {nnn}\r\n
+			# [nnn bytes of literally transmitted stuff]
+			# [part of line that follows literal data]\r\n
+
+			# Set $len to be length of impending literal:
+			my $len = $1 ;
+			
+			$self->_debug("LITERAL: received literal in line ".
+				"$current_line of length $len; ".
+				"attempting to ".
+				"retrieve from the " . length($iBuffer) . 
+				" bytes in: $iBuffer<END_OF_iBuffer>\n");
+
+			# Xfer up to $len bytes from front of $iBuffer to $litstring: 
+			my $litstring = substr($iBuffer, 0, $len);
+			$iBuffer = substr($iBuffer, length($litstring), 
+					length($iBuffer) - length($litstring) ) ;
+
+			# Figure out what's left to read (i.e. what part of 
+			# literal wasn't in buffer):
+			my $remainder_count = $len - length($litstring);
+			my $callback_value = "";
+
+			if ( defined($literal_callback) ) 	{	
+				if 	( $literal_callback =~ /GLOB/) 	{	
+					print $literal_callback $litstring ;
+					$litstring = "";
+				} elsif ($literal_callback =~ /CODE/ ) {
+					# Don't do a thing
+
+				} else 	{
+					$self->LastError(
+						ref($literal_callback) . 
+						" is an invalid callback type; " .
+						"must be a filehandle or coderef\n"
+					); 
+				}
+
+		
+			}
+			if ($remainder_count > 0 and $timeout) {
+				# If we're doing timeouts then here we set up select 
+				# and wait for data from the the IMAP socket.
+				vec($rvec, fileno($self->Socket), 1) = 1;
+				unless ( CORE::select( $ready = $rvec, 
+							undef, 
+							$errors = $rvec, 
+							$timeout) 
+				) {	
+					# Select failed; that means bad news. 
+					# Better tell someone.
+					$self->LastError("Tag " . $transno . 
+						": Timeout waiting for literal data " .
+						"from server\n");	
+					carp "Tag " . $transno . 
+						": Timeout waiting for literal data " .
+						"from server\n"
+						if $self->Debug or $^W;	
+					return undef;
+				}	
+			} 
+			
+			fcntl($sh, F_SETFL, $self->{_fcntl}) 
+				if $fast_io and defined($self->{_fcntl});
+			while ( $remainder_count > 0 ) {	   # As long as not done,
+				$self->_debug("Still need $remainder_count to " .
+					"complete literal string\n");
+				my $ret	= $self->_sysread(   	   # bytes read
+						$sh, 		   # IMAP handle 
+						\$litstring,	   # place to read into
+						$remainder_count,  # bytes left to read
+						length($litstring) # offset to read into
+				) ;
+				$self->_debug("Received ret=$ret and buffer = " .
+				"\n$litstring<END>\nwhile processing LITERAL\n");
+				if ( $timeout and !defined($ret)) { # possible timeout
+					$self->_record($transno, [ 
+						$self->_next_index($transno),
+						"ERROR",
+						"$transno * NO Error reading data " .
+						"from server: $!\n"
+						]
+					);
+					return undef;
+				} elsif ( $ret == 0 and eof($sh) ) {
+					$self->_record($transno, [ 
+						$self->_next_index($transno),
+						"ERROR",
+						"$transno * ".
+						"BYE Server unexpectedly " .
+						"closed connection: $!\n"	
+						]
+					);
+					$self->State(Unconnected);
+					return undef;
+				}
+				# decrement remaining bytes by amt read:
+				$remainder_count -= $ret;	   
+
+				if ( length($litstring) > $len ) {
+                                    # copy the extra struff into the iBuffer:
+                                    $iBuffer = substr(
+                                        $litstring,   
+                                        $len, 
+                                        length($litstring) - $len 
+                                    );
+                                    $litstring = substr($litstring, 0, $len) ;
+                                }
+
+				if ( defined($literal_callback) ) {
+					if ( $literal_callback =~ /GLOB/ ) {
+						print $literal_callback $litstring;
+						$litstring = "";
+					} 
+				}
+
+			}
+			$literal_callback->($litstring) 
+				if defined($litstring) and 
+				defined($literal_callback) and $literal_callback =~ /CODE/;
+
+			$self->Fast_io($fast_io) if $fast_io;
+
+		# Now let's make sure there are no IMAP server output lines 
+		# (i.e. [tag|*] BAD|NO|OK Text) embedded in the literal string
+		# (There shouldn't be but I've seen it done!), but only if
+		# EnableServerResponseInLiteral is set to true
+
+			my $embedded_output = 0;
+			my $lastline = ( split(/\x0d?\x0a/,$litstring))[-1] 
+				if $litstring;
+
+			if ( 	$self->EnableServerResponseInLiteral and
+				$lastline and 
+				$lastline =~ /^(?:\*|(\d+))\s(BAD|NO|OK)/i 
+			) {
+			  $litstring =~ s/\Q$lastline\E\x0d?\x0a//;
+			  $embedded_output++;
+
+			  $self->_debug("Got server output mixed in " .
+					"with literal: $lastline\n"
+			  ) 	if $self->Debug;
+
+			}
+		  	# Finally, we need to stuff the literal onto the 
+			# end of the oBuffer:
+			push @$oBuffer, [ $index++, "OUTPUT" , $current_line],
+					[ $index++, "LITERAL", $litstring   ];
+			push @$oBuffer,	[ $index++, "OUTPUT",  $lastline    ] 
+					if $embedded_output;
+
+		  } else { 
+			push @$oBuffer, [ $index++, "OUTPUT" , $current_line ]; 
+		  }
+		
+		}
+		#$self->_debug("iBuffer is now: $iBuffer<<END OF BUFFER>>\n");
+	}
+	#	_debug $self, "Buffer is now $buffer\n";
+      _debug $self, "Read: " . join("",map {$_->[DATA]} @$oBuffer) ."\n" 
+		if $self->Debug;
+	return scalar(@$oBuffer) ? $oBuffer : undef ;
 };
 
 
@@ -3124,8 +3568,6 @@ sub myconnect {
 		return $self;
 	}
 }
-
-	
 
 
 sub starttls {

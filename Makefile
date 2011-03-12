@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.28 2010/02/25 23:17:25 gilles Exp gilles $	
+# $Id: Makefile,v 1.29 2010/06/11 02:51:20 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -25,7 +25,7 @@ all: ChangeLog README VERSION
 	touch .test
 
 .test_3xx: $(TARGET) tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.23/lib' /usr/bin/time sh tests.sh 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_3xx
 
 test_quick : test_quick_229 test_quick_3xx
@@ -34,7 +34,7 @@ test_quick_229: $(TARGET) tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 test_quick_3xx: $(TARGET) tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.23/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 testv:
 	nice -40 sh -x tests.sh

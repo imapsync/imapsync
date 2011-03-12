@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.66 2010/03/04 19:22:17 gilles Exp gilles $
+# $Id: FAQ,v 1.68 2010/06/22 00:11:56 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -154,10 +154,13 @@ imapsync does not touch any header since the header is used to
 identify the messages in both parts.
 
 Solutions: 
-a) Don't use buggy Eudora.
-b) Use the --syncinternaldates option and keep using Eudora :-)
-c) Use the script learn/adjust_time.pl to change the internal dates
-   from the "Date:" header.
+a) use --idatefromheader to set the internal dates on host2 same as the 
+   "Date:" headers.
+b) In Maildir boxes, after the sync (too late...), use the script
+learn/adjust_time.pl to change the internal dates from the "Date:" header.
+c) Don't use buggy Eudora.
+d) Use the --syncinternaldates option and keep using Eudora.
+   --syncinternaldates is now turn on by default.
 
 =======================================================================
 Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
@@ -643,7 +646,12 @@ a) Remove these first "From " line manually for each message before
    will end with two "From:" lines (just look at the other lines)
 
 b) Run imapsync with the following options :
-   --regexmess 's/\AFrom \w  .*\n//'  --skipsize
+   --regexmess 's/\AFrom /From:/'
+
+or may be better (no other "From:" collision):
+
+  --regexmess 's/\AFrom /X-om:/'
+
 
 =======================================================================
 Q. The contact folder isn't well copied. 

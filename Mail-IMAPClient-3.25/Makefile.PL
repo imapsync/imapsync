@@ -56,7 +56,7 @@ WriteMakefile(
     clean => { FILES => 'test.txt' },
     $] >= 5.005
     ?    ## keywords supported since 5.005
-      ( AUTHOR => 'Phil Lobbes <phil@zimbra.com>' )
+      ( AUTHOR => 'Phil Pearl (Lobbes) <phil@zimbra.com>' )
     : ()
 );
 
@@ -74,17 +74,28 @@ sub set_test_data {
         return;
     }
 
-    return if -f "./test.txt";
+    return if -s "./test.txt";
 
     print <<'__INTRO';
 You have the option of running an extended suite of tests during
 'make test'. This requires an IMAP server name, user account, and
 password to test with.
 
+Note: this prompt will automatically timeout after 60 seconds.
+
 __INTRO
 
-    my $yes = prompt "Do you want to run the extended tests? (n/y)";
-    return if $yes !~ /^y(?:es)?$/i;
+    # HACK: alarm() allows broken interfaces to timeout gracefully...
+    # - rt.cpan.org#57659: install fails when using cPanel GUI
+    my $yes;
+    eval {
+        local $SIG{ALRM} = sub { die "alarm\n" };
+        alarm(60);
+        $yes = prompt "Do you want to run the extended tests? (n/y)";
+        alarm(0);
+    };
+    print "\n" if $@;
+    return unless ( $yes and $yes =~ /^y(?:es)?$/i );
 
     unless ( open TST, '>', "./test.txt" ) {
         warn "ERROR: couldn't open ./test.txt: $!\n";

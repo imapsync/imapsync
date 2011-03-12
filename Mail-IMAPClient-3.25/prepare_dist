@@ -4,10 +4,14 @@ use warnings;
 use strict;
 
 use Parse::RecDescent 1.94;
-use File::Slurp qw/read_file/;
 use File::Copy  qw/move/;
 
-sub build_parser($$);
+sub read_file {
+    my $file = shift;
+    local( $/, *FH );
+    open( FH, $file ) or return undef;
+    return <FH>;
+}
 
 build_parser 'lib/Mail/IMAPClient/BodyStructure/Parse.grammar'
            , 'Mail::IMAPClient::BodyStructure::Parse';
@@ -15,8 +19,8 @@ build_parser 'lib/Mail/IMAPClient/BodyStructure/Parse.grammar'
 build_parser 'lib/Mail/IMAPClient/Thread.grammar'
            , 'Mail::IMAPClient::Thread';
 
-sub build_parser($$)
-{   my ($grammarfn, $package) = @_;
+sub build_parser {
+    my ($grammarfn, $package) = @_;
 
     print "* building $package\n";
 

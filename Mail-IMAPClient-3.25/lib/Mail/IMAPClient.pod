@@ -549,7 +549,7 @@ error-prone and stalled the progress of this module.
 
 Example:
 
-  my $uid = $imap->append($folder,$msg_text)
+  my $uid = $imap->append( $folder, $msg_text )
     or die "Could not append: ", $imap->LastError;
 
 The B<append> method adds a message to the specified folder.  It takes
@@ -557,17 +557,12 @@ two arguments, the name of the folder to append the message to, and
 the text of the message (including headers).  Additional arguments are
 added to the message text, separated with <CR><LF>.
 
-The B<append> method returns the UID of the new message (a true value)
-if successful, or C<undef> if not, if the IMAP server has the UIDPLUS
-capability.  If it doesn't then you just get true on success and undef
-on failure.
+On success, the B<append> method returns the UID of the new message
+(if the server has the UIDPLUS capability) or a true value otherwise.
+On error, C<undef> is returned and L</LastError> will be set.
 
-Note that many servers will get really ticked off if you try to append
-a message that contains "bare newlines", which is the titillating term
-given to newlines that are not preceded by a carriage return.  To
-protect against this, B<append> will insert a carriage return before
-any newline that is "bare".  If you don't like this behavior then you
-can avoid it by not passing naked newlines to B<append>.
+To protect against "bare newlines", B<append> will insert a carriage
+return before any newline that is "bare".
 
 Note that B<append> does not allow you to specify the internal date or
 initial flags of an appended message.  If you need this capability
@@ -580,41 +575,37 @@ Example:
   my $new_msg_uid = $imap->append_file(
       $folder,
       $filename,
-      [ $input_record_separator, flags, date ] # optional
+      [ undef, flags, date ] # optional
   ) or die "Could not append_file: ", $imap->LastError;
 
 The B<append_file> method adds a message to the specified folder.  It
 takes two arguments, the name of the folder to append the message to,
 and the file name of an RFC822-formatted message.
 
-An optional third argument is the value to use for
-C<input_record_separator>.  The default is to use "" for the first
-read (to get the headers) and "\n" for the rest.  Any valid value for
-C<$/> is acceptable, even the funky stuff, like C<\1024>.  (See
-L<perlvar|perlvar> for more information on C<$/>).  (The brackets in
-the example indicate that this argument is optional; they do not mean
-that the argument should be an array reference.)
+Note: The brackets in the example indicate optional arguments; they do
+not mean that the argument should be an array reference.
 
-The B<append_file> method returns the UID of the new message (a true
-value) if successful, or C<undef> if not, if the IMAP server has the
-UIDPLUS capability.  If it doesn't then you just get true on success
-and undef on failure.  If you supply a filename that doesn't exist
-then you get an automatic C<undef>.  The L</LastError> method will
-remind you of this if you forget that your file doesn't exist but
-somehow manage to remember to check L</LastError>.
+On success, the B<append_file> method returns the UID of the new
+message (if the server has the UIDPLUS capability) or a true value
+otherwise.  On error, C<undef> is returned and L</LastError> will be
+set.
 
-In case you're wondering, B<append_file> is provided mostly as a way
-to allow large messages to be appended without having to have the
-whole file in memory.  It uses the C<-s> operator to obtain the size
-of the file and then reads and sends the contents line by line (or
-not, depending on whether you supplied that optional third argument).
+To protect against "bare newlines", B<append_file> will insert a
+carriage return before any newline that is "bare".
+
+The B<append_file> method provides a mechanism for allowing large
+messages to be appended without holding the whole file in memory.
+
+Version note: In 2.x an optional third argument to use for
+C<input_record_separator> was allowed, however this argument is
+ignored/not supported as of 3.x.
 
 =head2 append_string
 
 Example:
 
    # brackets indicate optional arguments (not array refs):
-   my $uid = $imap->append_string( $folder, $text [,$flags [,$date ] ])
+   my $uid = $imap->append_string( $folder, $text [ ,$flags [ ,$date ] ] )
        or die "Could not append_string: $@\n";
 
 The B<append_string> method adds a message to the specified folder.
@@ -636,18 +627,13 @@ hh:mm:ss +0000".
 If you want to specify a date/time but you don't want any flags then
 specify I<undef> as the third argument.
 
-The B<append_string> method returns the UID of the new message (a true
-value) if successful, or C<undef> if not, if the IMAP server has the
-UIDPLUS capability.  If it doesn't then you just get true on success
-and undef on failure.
+On success, the B<append_string> method returns the UID of the new
+message (if the server has the UIDPLUS capability) or a true value
+otherwise.  On error, C<undef> is returned and L</LastError> will be
+set.
 
-Note that many servers will get really ticked off if you try to append
-a message that contains "bare newlines", which is the titillating term
-given to newlines that are not preceded by a carriage return.  To
-protect against this, B<append_string> will insert a carriage return
-before any newline that is "bare".  If you don't like this behavior
-then you can avoid it by not passing naked newlines to
-B<append_string>.
+To protect against "bare newlines", B<append_string> will insert a
+carriage return before any newline that is "bare".
 
 =head2 authenticate
 
@@ -1583,8 +1569,16 @@ client enters the I<Unconnected> state.  This method does not, destroy
 the IMAPClient object, thus the L</connect> and L</login> methods can
 be used to establish a new IMAP session.
 
-Per RFC2683, Mail::IMAPClient will attempt to log out of the server
-during B<DESTROY> if the object is in the L</Connected> state.
+Note that RFC2683 section 3.1.2 (Severed connections) makes some
+recommendations on how IMAP clients should behave.  It is up to the
+user of this module to decide on the preferred behavior and code
+accordingly.
+
+Version note: documentation (from 2.x through 3.23) claimed that
+Mail::IMAPClient would attempt to log out of the server during
+B<DESTROY> if the object is in the L</Connected> state.  This
+documentation was apparently incorrect from at least 2.2.2 and
+possibly earlier versions on up.
 
 =head2 lsub
 

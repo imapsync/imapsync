@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.23';
+our $VERSION = '3.25';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -57,7 +57,6 @@ sub _load_module {
     my $modkey = shift;
     my $module = $Load_Module{$modkey} || $modkey;
 
-    local ($@);    # avoid stomping on global $@
     eval "require $module";
     if ($@) {
         $self->LastError("Unable to load '$module': $@");
@@ -1192,9 +1191,9 @@ sub body_string {
     }
 
     my $popped;
-    $popped = pop @$ref    # (-: vi
-      until ( $popped && $popped =~ /\)$CRLF$/o )    # (-: vi
-      || !grep /\)$CRLF$/o, @$ref;
+    $popped = pop @$ref
+      until ( $popped && $popped =~ /^\)$CRLF$/o )
+      || !grep /^\)$CRLF$/o, @$ref;
 
     if ( $head =~ /BODY\[TEXT\]\s*$/i ) {            # Next line is a literal
         $string .= shift @$ref while @$ref;
@@ -1227,23 +1226,30 @@ sub idle {
 
 sub idle_data {
     my $self    = shift;
-    my $timeout = defined( $_[0] ) ? shift : 0.025;
+    my $timeout = scalar(@_) ? shift : 0;
     my $socket  = $self->Socket;
 
     # current index in Results array
     my $trans_c1 = $self->_next_index;
 
     # look for all untagged responses
-    my $rc;
-    while (
-        (
-            $rc =
-            $self->_read_more( { error_on_timeout => 0 }, $socket, $timeout )
-        ) > 0
-      )
-    {
-        $self->_get_response( '*', qr/\S+/ ) or return undef;
-    }
+    my ( $rc, $ret );
+
+    do {
+        $ret =
+          $self->_read_more( { error_on_timeout => 0 }, $socket, $timeout );
+
+        # set rc on first pass or on errors
+        $rc = $ret if ( !defined($rc) or $ret < 0 );
+
+        # not using /\S+/ because that can match 0 in "* 0 RECENT"
+        # leading the library to act as if things failed
+        if ( $ret > 0 ) {
+            $self->_get_response( '*', qr/(?!BAD|BYE|NO)(?:\d+\s+\w+|\S+)/ )
+              or return undef;
+            $timeout = 0;    # check for more data without blocking!
+        }
+    } while $ret > 0;
 
     # select returns -1 on errors
     return undef if $rc < 0;
@@ -1425,7 +1431,7 @@ sub _get_response {
     my @readopt = defined( $opt->{outref} ) ? ( $opt->{outref} ) : ();
 
     my ( $count, $out, $code, $byemsg ) = ( $self->Count, [], undef, undef );
-    until ($code) {
+    until ( defined($code) ) {
         my $output = $self->_read_line(@readopt) or return undef;
         $out = $output;    # keep last response just in case
 
@@ -1457,7 +1463,7 @@ sub _get_response {
         }
     }
 
-    if ($code) {
+    if ( defined($code) ) {
         $code =~ s/$CR?$LF?$//o;
         $code = uc($code) unless ( $good and $code eq $good );
 
@@ -2627,7 +2633,7 @@ sub _quote_search {
         if ( ref($v) eq "SCALAR" ) {
             push( @ret, $$v );
         }
-        elsif ( exists $SEARCH_KEYS{ uc($_) } ) {
+        elsif ( exists $SEARCH_KEYS{ uc($v) } ) {
             push( @ret, $v );
         }
         elsif ( @args == 1 ) {
@@ -2691,7 +2697,7 @@ sub thread {
       or return undef;
 
     unless ($thread_parser) {
-        return if $thread_parser == 0;
+        return if ( defined($thread_parser) and $thread_parser == 0 );
 
         my $class = $self->_load_module("Thread");
         unless ($class) {
@@ -2959,6 +2965,8 @@ sub append_file {
         return undef;
     }
 
+    binmode($fh);
+
     my $date;
     if ( $fh and $use_filetime ) {
         my $f = $self->Rfc2060_datetime( ( stat($fh) )[9] );
@@ -2990,9 +2998,30 @@ sub append_file {
     my $count = $self->Count;
 
     # Now send the message itself
-    my $buffer;
-    while ( $fh->sysread( $buffer, APPEND_BUFFER_SIZE ) ) {
-        $buffer =~ s/\r?\n/$CRLF/og;
+    my ( $buffer, $buflen ) = ( "", 0 );
+    until ( !$buflen and eof($fh) ) {
+
+        if ( $buflen < APPEND_BUFFER_SIZE ) {
+          FILLBUFF:
+            while ( my $line = <$fh> ) {
+                $line =~ s/\r?\n$/$CRLF/;
+                $buffer .= $line;
+                $buflen = length($buffer);
+                last FILLBUFF if ( $buflen >= APPEND_BUFFER_SIZE );
+            }
+        }
+
+        # exit loop entirely if we are out of data
+        last unless $buflen;
+
+        # save anything over desired buffer size for next iteration
+        my $savebuff =
+          ( $buflen > APPEND_BUFFER_SIZE )
+          ? substr( $buffer, APPEND_BUFFER_SIZE )
+          : undef;
+
+        # reduce buffer to desired size
+        $buffer = substr( $buffer, 0, APPEND_BUFFER_SIZE );
 
         $self->_record(
             $count,
@@ -3007,6 +3036,10 @@ sub append_file {
             $self->LastError( "Error appending message: " . $self->LastError );
             return undef;
         }
+
+        # retain any saved data and continue loop
+        $buffer = defined($savebuff) ? $savebuff : "";
+        $buflen = length($buffer);
     }
 
     # finish off append
