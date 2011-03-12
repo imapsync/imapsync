@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.82 $
+$Revision: 1.83 $
 
 =head1 INSTALL
 
@@ -249,7 +249,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.82 2004/03/12 01:40:27 gilles Exp $
+$Id: imapsync,v 1.83 2004/03/12 02:29:00 gilles Exp $
 
 =cut
 
@@ -286,7 +286,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.82 2004/03/12 01:40:27 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.83 2004/03/12 02:29:00 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -322,8 +322,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.82 $ ',
-		  '$Date: 2004/03/12 01:40:27 $ ',
+		  '$Revision: 1.83 $ ',
+		  '$Date: 2004/03/12 02:29:00 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -779,6 +779,9 @@ sub parse_header_msg {
 		foreach my $val ( @{$head->{$h}}) {
 			# no 8-bit data in headers !
 			$val =~ s/[\x80-\xff]/X/g;
+			# remove the first blanks (dbmail bug)
+			$val =~ s/^\s+//;
+			# show stuff in debug mode
 			$debug and print "${s}H $h:", $val, "\n";
 			$headstr .= "$h:". $val;
 		}
