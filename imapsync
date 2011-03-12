@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.25 $
+$Revision: 1.27 $
 
 =head1 INSTALL
 
@@ -64,13 +64,12 @@ Invoke: imapsync --help
 =head1 HISTORY
 
 I wrote imapsync because an enterprise (basystemes) paid me to install
-a new imap server without loosing huge old mailboxes located on a far 
+a new imap server without loosing huge old mailboxes located on a far
 away remote imap server accessible by a low bandwith link. The tool
-imapcp (written in python)  could not help me because I had to verify
-every mailbox was well
-transfered and delete it after a good transfert. imapsync started its life
-being a copy_folder.pl patch.
-The tool copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl 
+imapcp (written in python) could not help me because I had to verify
+every mailbox was well transfered and delete it after a good
+transfert. imapsync started its life being a copy_folder.pl patch.
+The tool copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl
 module tarball source (in the examples/ directory of the tarball).
 
 =head1 EXAMPLES
@@ -112,7 +111,11 @@ http://www.gnu.org/licenses/licenses.html
 
 =head1 BUGS
 
-No known bug.
+No known serious bug.
+
+Flags : with some IMAP servers the flags are not very well copied the
+first time.  Run imapsync twice if you want the flags set correctly.
+
 Report any bugs to the author: lamiral@linux-france.org
 
 =head1 IMAP SERVERS
@@ -123,10 +126,14 @@ Success stories reported :
  - Cyrus IMAP 1.5, 1.6, 2.1
  - Netscape Mail Server 3.6 (Wintel)
  - CommunicatePro server (Redhat 8.0)
+ - SunONE Messaging server 5.2
+ - iPlanet Messaging server 4.15
 
 Please report to the author any success or bad story with imapsync and
 don't forget to mention the IMAP server software names and version on
 both sides. This will help future users.
+
+Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 =head1 SIMILAR SOFTWARES
 
@@ -137,7 +144,7 @@ both sides. This will help future users.
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.25 2003/08/23 01:44:33 gilles Exp $
+$Id: imapsync,v 1.27 2003/08/23 14:40:57 gilles Exp $
 
 =cut
 
@@ -160,12 +167,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.25 2003/08/23 01:44:33 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.27 2003/08/23 14:40:57 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.25 $ ' . '$Date: 2003/08/23 01:44:33 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.27 $ ' . '$Date: 2003/08/23 14:40:57 $ ' . "\n";
 
 
 get_options();
@@ -303,12 +310,6 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my %f_hash = ();
 	my %t_hash = ();
 
-sub header_parse {
-	# @msgs_all;
-	# %hash;
-
-}
-    
 	$debug and print "From Parse\n";
 	foreach my $m (@f_msgs) {
 		$debug and print "-" x 50, "\nMSG $m\n";
