@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.167 $
+$Revision: 1.168 $
 
 =head1 INSTALL
 
@@ -58,7 +58,8 @@ $Revision: 1.167 $
            [--skipheader <regex>]
            [--useheader <string>] [--useheader <string>]
            [--skipsize]
-           [--delete] [--expunge] [--expunge1] [--expunge2]
+           [--delete] [--delete2]
+           [--expunge] [--expunge1] [--expunge2]
            [--subscribed] [--subscribe]
            [--nofoldersizes]
            [--dry]
@@ -275,6 +276,7 @@ Have a special attention on options
 --subscribed
 --subscribe
 --delete
+--delete2
 --expunge
 --expunge1
 --expunge2
@@ -337,7 +339,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.167 2006/03/30 02:33:00 gilles Exp $
+$Id: imapsync,v 1.168 2006/04/02 01:49:10 gilles Exp $
 
 =cut
 
@@ -369,7 +371,8 @@ my(
 	$maxsize, $maxage, $minage, 
         $skipheader, @useheader,
         $skipsize, $foldersizes, $buffersize,
-	$delete, $expunge, $expunge1, $expunge2, $dry,
+	$delete, $delete2,
+        $expunge, $expunge1, $expunge2, $dry,
         $justfoldersizes,
         $authmd5,
         $subscribed, $subscribe,
@@ -392,7 +395,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.167 2006/03/30 02:33:00 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.168 2006/04/02 01:49:10 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -429,8 +432,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.167 $ ',
-		  '$Date: 2006/03/30 02:33:00 $ ',
+		  '$Revision: 1.168 $ ',
+		  '$Date: 2006/04/02 01:49:10 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -981,6 +984,21 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	
 	#print map { $f_hash{$_}{'m'} . " "} @f_hash_keys_sorted_by_uid;
 	
+	my @t_hash_keys_sorted_by_uid 
+	  = sort {$t_hash{$a}{'m'} <=> $t_hash{$b}{'m'}} keys(%t_hash);
+
+	
+	if($delete2) {
+		foreach my $m_id (@t_hash_keys_sorted_by_uid) {
+			#print "$m_id ";
+			unless (exists($f_hash{$m_id})) {
+				my $t_msg  = $t_hash{$m_id}{'m'};
+				print "deleting message $m_id  $t_msg\n";
+				$to->delete_message($t_msg) unless ($dry);	
+			}
+		}
+	}
+
 	MESS: foreach my $m_id (@f_hash_keys_sorted_by_uid) {
 		my $f_size = $f_hash{$m_id}{'s'};
 		my $f_msg = $f_hash{$m_id}{'m'};
@@ -1196,6 +1214,7 @@ sub get_options
 				   "regextrans2=s" => \@regextrans2,
 				   "regexmess=s" => \@regexmess,
                                    "delete!"     => \$delete,
+                                   "delete2!"    => \$delete2,
                                    "syncinternaldates!" => \$syncinternaldates,
                                    "syncacls!"   => \$syncacls,
 				   "maxsize=i"   => \$maxsize,
@@ -1366,11 +1385,13 @@ Several options are mandatory.
 --regexmess   <regex>  : and this one, etc.
 --sep1        <string> : separator in case namespace is not supported.
 --sep2        <string> : idem.
---delete               : delete messages in source imap server after
+--delete               : delete messages on source imap server after
                          a successful transfert. Useful in case you
                          want to migrate from one server to another one.
 			 With imap, delete tags messages as deleted, they
 			 are not really deleted. See expunge.
+--delete2              : delete messages on the destination imap server that
+                         are not on the source server.
 --expunge              : expunge messages on source account.
                          expunge really deletes messages marked deleted.
                          expunge is made at the begining on the 
@@ -1417,8 +1438,9 @@ Several options are mandatory.
                          information. Need only --host1 and --host2 options.
 --justfolders          : just do things about folders (ignore messages).
 --fast                 : be faster (just does not sync flags).
---split1               : split the requests in several parts on source server.
---split2               : same thing on the "destination" server.
+--split1     <int>     : split the requests in several parts on source server.
+                         <int > is the number of messages handled per request.
+--split2     <int>     : same thing on the "destination" server.
 --nofastio1            : don't use fastio with the "from" server.
 --nofastio2            : don't use fastio with the "destination" server.
 --timeout     <int>    : imap connect timeout.

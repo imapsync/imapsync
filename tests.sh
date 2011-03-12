@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.51 2006/03/30 02:22:56 gilles Exp $	
+# $Id: tests.sh,v 1.52 2006/04/02 03:32:55 gilles Exp $	
 
 #### Shell pragmas
 
@@ -758,6 +758,21 @@ lp_authmech_CRAMMD5() {
 		--passfile1 /var/tmp/secret.tata \
 		--justfoldersizes --nofoldersizes \
 		--authmech1 CRAM-MD5 --authmech2 CRAM-MD5 
+	else
+		:
+	fi
+}
+
+lp_delete2() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+                --folder INBOX \
+		--delete2 --expunge2
 	else
 		:
 	fi
