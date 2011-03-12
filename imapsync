@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.29 $
+$Revision: 1.30 $
 
 =head1 INSTALL
 
@@ -146,7 +146,7 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.29 2003/08/24 02:01:28 gilles Exp $
+$Id: imapsync,v 1.30 2003/08/27 16:40:38 gilles Exp $
 
 =cut
 
@@ -169,12 +169,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.29 2003/08/24 02:01:28 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.30 2003/08/27 16:40:38 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.29 $ ' . '$Date: 2003/08/24 02:01:28 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.30 $ ' . '$Date: 2003/08/27 16:40:38 $ ' . "\n";
 
 
 get_options();
@@ -241,6 +241,10 @@ my (@f_folders, @t_folders);
 my $f_sep = $from->namespace()->[0][0][1];
 my $t_sep = $to->namespace()->[0][0][1];
 
+print "From separator : [$f_sep]\n";
+print "To   separator : [$t_sep]\n";
+
+
 # needed for setting flags
 my $tohasuidplus = $to->has_capability("UIDPLUS");
 
@@ -258,7 +262,7 @@ my $tohasuidplus = $to->has_capability("UIDPLUS");
 @t_folders = @{$to->folders()};
 print 
   "From folders : ", map("[$_] ",@f_folders),"\n",
-  "To   folders : ", map("[$_] ",@f_folders),"\n";
+  "To   folders : ", map("[$_] ",@t_folders),"\n";
 #exit;
 
 FOLDER: foreach my $f_fold (@f_folders) {
