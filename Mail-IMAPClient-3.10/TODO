@@ -1,0 +1,68 @@
+
+=== README
+
+Starting with release 2.99_01, I (Mark Overmeer) try to revive the
+module.  The original author David Kernen cannot be reached and didn't
+release any fixes in four years.  That is far too long.
+
+The code and installation procedure has been cleaned-up radically,
+
+ and some minimal improvements in the code are made to
+fix things people reported.
+
+=== wishlist:
+
+- A start was made in cleanup of the code in Mail/IMAPClient.pm
+  The file Mail/IMAPClient-cleanup shows the progress (30%)
+  But I lack the time (a weeks work at least) to complete this
+  task.  There is a lot of code replication to be stripped.
+  If anyone buys me time, I will complete that task.
+
+=== wishlist from the original author:
+
+The following is a list of some items that I hope to include in a future 
+release:
+
+- Support for threaded perl programs (still pending as of version 2.2.0.).
+
+- Support for imaps (Imap via SSL). I don't have any way to test this
+  right now but if you get this to work or know someone who has I'd be
+  really interested in hearing from you.
+
+- Support for more authentication mechanisms. Currently plain
+  authentication and cram-md5 authentication are supported. I have
+  DIGEST-MD5 working at the AUTH qop, but haven't incorporated it into
+  a released version because I'm still trying to get at least the
+  integrity qop working, and maybe even privacy, but considering how
+  much trouble I'm having with just the integrity level I wouldn't
+  hold my breath if I were you ;-).
+
+- Currently a number of IMAP Client commands are implemented using the 
+  'default method', which is an AUTOLOAD hack. I'd like to reduce that
+  if possible to a bare minimum. (Some are still pending as of version 2.2.7.)
+
+- I'd like to see this module certified for more OS's and more IMAP servers. 
+  This is (hopefully) just a matter of testing; the code should already
+  be compatible with the IMAP servers that are out there and with any OS
+  that allows the IO::Socket module to work. ** A number of platforms
+  have been added to the list of tested platforms since this was first
+  written. Please contact DJKernen@cpan.org if you have any to add.
+
+- Support for newer/older/other versions of IMAP. Currently only RFC2060 is 
+  explicitly supported, although thanks to the 'default method'
+  (implemented via an AUTOLOAD hack) virtually any IMAP command is
+  supported, even proprietary commands, X- extensions, and so forth. But
+  not necessarily other authentication mechanisms... :-( (NOTE: the
+  AUTHENTICATE method partially addresses this issue.)
+
+- Support for piping output from (some?) imap commands directly to a 
+  thingy of some sort (perhaps a coderef, a filehandle, or both). 
+
+- Your thingy here!!! Send me your request, and I'll do it in the order of 
+  ($popularity/$difficulty ).
+
+- Support for perl version 6. This will probably involve a rewrite that
+  will make portions of the Mail::IMAPClient module look more like the
+  Mail::IMAPClient::BodyStructure module. (Perl 6 will have built-in
+  support for semantics that look remarkably like Damian Conway's
+  Parse::RecDescent module, which will solve a lot of problems for me.)

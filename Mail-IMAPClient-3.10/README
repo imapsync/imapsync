@@ -1,0 +1,111 @@
+				Mail::IMAPClient 
+
+Copyright 1999-2003 The Kernen Group, Inc.
+Copyright 2007 Mark Overmeer
+All rights reserved.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of either:
+
+	a) the "Artistic License" which comes with this Kit, or
+
+	b) the GNU General Public License as published by the Free Software 
+	Foundation; either version 1, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either
+the GNU General Public License or the Artistic License for more details.
+
+DESCRIPTION
+
+This module provides perl routines that simplify a sockets connection 
+to and an IMAP conversation with an IMAP server. 
+
+COMPATIBILITY
+
+[This paragraph has not been updated for many years]
+This module was developed on Solaris 2.5.1 and 2.6 against Netscape IMAP 
+servers versions 3.6 and 4.1. However, since it is written in perl and 
+designed for flexibility, it should run on any OS with a TCP/IP stack and 
+a version of perl that includes the Socket and IO::Socket modules. It also 
+should be able to talk to any IMAP server, even those that have, um, 
+proprietary features (assuming that the programmer knows what those features 
+are). 
+
+To date, I know that the test suite runs successfully with the following IMAP 
+servers:
+
+-Netscape Messenging Server v4.x
+-Netscape Messenging Server v3.x
+-UW-IMAP (I think it was 4.5)
+-Cyrus IMAP4 v1.5.19
+-Mirapoint Message Server Appliances (OS versions 1.6.1, 1.7.1, and 2.0.2)
+
+Version 2.0.3 has been tested with the mdaemon server with mixed
+results. It seems that mdaemon does not comply strictly with RFC2060 and
+so you may have problems using this module with mdaemon, especially with
+folder names with embedded spaces or embedded double quotes. You may be
+able to get some simple tasks to work but you won't be able to run the
+test suite successfully.  Use with caution.
+
+If your server requires the use of the AUTHENTICATE IMAP client command
+(say, for strong authentication) then you can still use this module,
+provided you can come up with the appropriate responses to any challenges
+offered by your server. Mark Bush's Authen::NTLM module can assist with
+this if you specifically are interested in NTLM authentication.
+
+REPORING BUGS
+
+See http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient
+
+INSTALLATION
+
+Generally, gunzipping and untarring the source file, running 'perl
+Makefile.PL' and 'make install' are all it takes to install this
+module. And if that's too much work you can always use the CPAN module!
+
+OVERVIEW OF FUNCTIONALITY
+
+Mail::IMAPClient.pm provides methods to simplify the connection to and
+the conversation between a perl script and an IMAP server. Virtually
+all IMAP Client commands (as defined in rfc2060) are supported, either
+through IMAPClient object methods or the 'default method', which is an
+AUTOLOAD hack that assumes a default syntax for IMAP Client commands of:
+
+	 tagvalue COMMAND [Arg1 [Arg2 [... Arg3]]]"
+
+By remarkable coincidence, AUTOLOAD's default syntax mimics the
+general syntax of IMAP Client commands. This means that if a script
+tries to use any undefined method then that method will be interpreted
+as an unimplemented IMAP command, and the default syntax will be used
+to create the command string. I did this as a short cut to writing a
+bunch of methods that were practically the same.  There are inheritance
+implications because of this approach but as far as I can tell this is
+not a serious limitation. However, if you decide to write modules that
+inherit from this class that require AUTOLOAD logic of their own then you
+will have to take the Mail::IMAPClient's AUTOLOAD strategy into account.
+
+Where methods are defined, they usually exist to add functionality,
+perhaps by massaging output or by supplying default arguments. An example
+is the search method, which accepts the same arguments as the SEARCH
+IMAP Client command (as documented in RFC2060) but which massages the
+results so that the return value is an array of message sequence numbers
+matching the search criteria, rather than a line of text listing the
+sequence numbers.
+
+Some methods exists solely to add functionality, such as the folders
+method, which invokes the list method but then massages the results to
+produce an array containing all folder names. The message_count and
+delete_messsage methods are similarly examples of methods that add
+function to "raw" IMAP Client commands.
+
+Further information is provided in the module's documentation, which you are 
+encouraged to read and enjoy.
+
+Good Luck!
+
+Dave Kernen
+The Kernen Group, Inc.
+DJKERNEN@cpan.org
+

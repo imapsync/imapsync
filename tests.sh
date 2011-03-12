@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.79 2008/08/27 15:18:12 gilles Exp gilles $  
+# $Id: tests.sh,v 1.82 2008/10/07 17:39:42 gilles Exp gilles $  
 
 #### Shell pragmas
 
@@ -112,7 +112,8 @@ first_sync() {
             --passfile1 /var/tmp/secret1 \
             --host2 localhost --user2 titi@est.belle \
             --passfile2 /var/tmp/secret.titi \
-            --noauthmd5
+            --noauthmd5 \
+            --allow3xx 
 }
 
 
@@ -124,7 +125,8 @@ locallocal() {
                 --host1 localhost --user1 tata@est.belle \
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
-                --passfile2 /var/tmp/secret.titi
+                --passfile2 /var/tmp/secret.titi \
+            --allow3xx
         else
                 :
         fi
@@ -138,7 +140,8 @@ ll_timeout() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --folder INBOX --timeout 1
+                --folder INBOX --timeout 1 \
+            --allow3xx
         else
                 :
         fi
@@ -152,7 +155,8 @@ ll_timeout_ssl() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --folder INBOX --timeout 5 --ssl1 --ssl2
+                --folder INBOX --timeout 5 --ssl1 --ssl2 \
+            --allow3xx
         else
                 :
         fi
@@ -169,7 +173,8 @@ ll_folder() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --folder INBOX.yop --folder INBOX.Trash
+                --folder INBOX.yop --folder INBOX.Trash \
+            --allow3xx
         else
                 :
         fi
@@ -183,7 +188,8 @@ ll_oneemail() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --folder INBOX.oneemail
+                --folder INBOX.oneemail \
+            --allow3xx
         else
                 :
         fi
@@ -199,7 +205,8 @@ ll_folderrec() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --folderrec INBOX.yop 
+                --folderrec INBOX.yop  \
+            --allow3xx
         else
                 :
         fi
@@ -215,12 +222,12 @@ ll_buffersize() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --buffersize 8
+                --buffersize 8 \
+            --allow3xx
         else
                 :
         fi
 }
-
 
 
 ll_justfolders() {
@@ -231,7 +238,9 @@ ll_justfolders() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --justfolders 
+                --justfolders  \
+                --allow3xx
+                echo "rm -rf /home/vmail/titi/.new_folder/"
         else
                 :
         fi
@@ -248,7 +257,8 @@ ll_prefix12() {
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX.qqq  \
                 --prefix1 INBOX.\
-                --prefix2 INBOX. 
+                --prefix2 INBOX.  \
+            --allow3xx
         else
                 :
         fi
@@ -266,7 +276,8 @@ ll_internaldate() {
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX  \
-                --syncinternaldates
+                --syncinternaldates \
+            --allow3xx
         else
                 :
         fi
@@ -283,7 +294,8 @@ ll_idatefromheader() {
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX.oneemail  \
-                --idatefromheader  --debug --dry
+                --idatefromheader  --debug --dry \
+            --allow3xx
         else
                 :
         fi
@@ -299,7 +311,8 @@ ll_folder_rev() {
                 --passfile1 /var/tmp/secret.titi \
                 --host2 localhost --user2 tata@est.belle \
                 --passfile2 /var/tmp/secret.tata \
-                --folder INBOX.yop
+                --folder INBOX.yop \
+            --allow3xx
         else
                 :
         fi
@@ -314,7 +327,8 @@ ll_subscribed()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --subscribed
+                --subscribed \
+            --allow3xx
         else
                 :
         fi
@@ -330,7 +344,8 @@ ll_subscribe()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --subscribed --subscribe
+                --subscribed --subscribe \
+            --allow3xx
         else
                 :
         fi
@@ -343,7 +358,8 @@ ll_justconnect()
                 $CMD_PERL ./imapsync    \
                 --host2 localhost \
                 --host1 localhost \
-                --justconnect
+                --justconnect \
+            --allow3xx
         else
                 :
         fi
@@ -358,7 +374,8 @@ ll_justfoldersizes()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --justfoldersizes
+                --justfoldersizes \
+            --allow3xx
         else
                 :
         fi
@@ -375,7 +392,8 @@ ll_authmd5()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --justfoldersizes --authmd5
+                --justfoldersizes --authmd5 \
+            --allow3xx
         else
                 :
         fi
@@ -390,7 +408,8 @@ ll_noauthmd5()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --justfoldersizes --noauthmd5
+                --justfoldersizes --noauthmd5 \
+            --allow3xx
         else
                 :
         fi
@@ -407,7 +426,8 @@ ll_maxage()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --maxage 1
+                --maxage 1 \
+            --allow3xx
         else
                 :
         fi
@@ -425,7 +445,8 @@ ll_maxsize()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --maxsize 10
+                --maxsize 10 \
+            --allow3xx
         else
                 :
         fi
@@ -441,7 +462,8 @@ ll_skipsize()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --skipsize --folder INBOX.yop.yap
+                --skipsize --folder INBOX.yop.yap \
+            --allow3xx
         else
                 :
         fi
@@ -457,7 +479,8 @@ ll_skipheader()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --skipheader 'X-.*' --folder INBOX.yop.yap
+                --skipheader 'X-.*' --folder INBOX.yop.yap \
+            --allow3xx
         else
                 :
         fi
@@ -475,7 +498,8 @@ ll_include()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --include '^INBOX.yop'
+                --include '^INBOX.yop' \
+            --allow3xx
         else
                 :
         fi
@@ -491,7 +515,8 @@ ll_exclude()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --exclude '^INBOX.yop'
+                --exclude '^INBOX.yop' \
+            --allow3xx
         else
                 :
         fi
@@ -509,7 +534,8 @@ ll_regextrans2()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --regextrans2 's/yop/yopX/'
+                --regextrans2 's/yop/yopX/' \
+            --allow3xx
         else
                 :
         fi
@@ -525,7 +551,8 @@ ll_sep2()
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX.yop.yap \
-                --sep2 '\\' --dry
+                --sep2 '\\' --dry \
+            --allow3xx
         else
                 :
         fi
@@ -537,7 +564,8 @@ ll_bad_login()
         --host1 localhost --user1 toto@est.belle \
         --passfile1 /var/tmp/secret1 \
         --host2 localhost --user2 notiti@est.belle \
-        --passfile2 /var/tmp/secret2
+        --passfile2 /var/tmp/secret2 \
+            --allow3xx
    
 }
 
@@ -547,7 +575,8 @@ ll_bad_host()
         --host1 badhost --user1 toto@est.belle \
         --passfile1 /var/tmp/secret1 \
         --host2 badhost --user2 titi@est.belle \
-        --passfile2 /var/tmp/secret2
+        --passfile2 /var/tmp/secret2 \
+            --allow3xx
    
 }
 
@@ -558,7 +587,8 @@ ll_bad_host_ssl()
         --passfile1 /var/tmp/secret1 \
         --host2 badhost --user2 titi@est.belle \
         --passfile2 /var/tmp/secret2 \
-        --ssl1 --ssl2
+        --ssl1 --ssl2 \
+            --allow3xx
 }
 
 
@@ -571,7 +601,8 @@ ll_justfoldersizes()
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --justfoldersizes
+                --justfoldersizes \
+            --allow3xx
         else
                 :
         fi
@@ -590,7 +621,8 @@ ll_useheader()
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX.yop.yap \
                 --useheader 'Message-ID' \
-                --dry --debug   
+                --dry --debug    \
+            --allow3xx
                 echo 'rm /home/vmail/tata/.yop.yap/cur/*'
         else
                 :
@@ -611,7 +643,8 @@ ll_regexmess()
                 --folder INBOX.yop.yap \
                 --regexmess 's/\157/O/g' \
                 --regexmess 's/p/Z/g' \
-                 --debug
+                 --debug \
+            --allow3xx
                 file=`ls -t /home/vmail/titi/.yop.yap/cur/* | tail -1`
                 diff /var/tmp/imapsync/tests/ll_regexmess/dest_01 $file
                 #echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
@@ -632,7 +665,8 @@ ll_regexmess_scwchu()
                 --folder INBOX.scwchu \
                 --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nReceived: From; $2}gxms' \
                 --skipsize --skipheader 'Received: From;' \
-                --debug 
+                --debug  \
+		--allow3xx 
                 echo 'rm /home/vmail/titi/.scwchu/cur/*'
         else
                 :
@@ -650,7 +684,8 @@ ll_flags()
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX.yop.yap \
-                --dry --debug
+                --dry --debug \
+            --allow3xx
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
         else
                 :
@@ -668,7 +703,8 @@ ll_regex_flag()
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX.yop.yap \
-                --dry --debug --regexflag 's/\\Answered/\\AnXweXed/g'
+                --dry --debug --regexflag 's/\\Answered/\\AnXweXed/g' \
+            --allow3xx
                 
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
         else
@@ -684,7 +720,8 @@ ssl_justconnect() {
 		--host1 localhost \
                 --host2 localhost \
                 --ssl1 --ssl2 \
-                --justconnect
+                --justconnect \
+            --allow3xx
         else
                 :
         fi
@@ -699,7 +736,8 @@ ll_ssl() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --ssl1 --ssl2
+                --ssl1 --ssl2 \
+            --allow3xx
         else
                 :
         fi
@@ -714,7 +752,8 @@ ll_authmech_PLAIN() {
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --justfoldersizes --nofoldersizes \
-                --authmech1 PLAIN --authmech2 PLAIN
+                --authmech1 PLAIN --authmech2 PLAIN \
+            --allow3xx
         else
                 :
         fi
@@ -729,7 +768,8 @@ ll_authuser() {
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --justfoldersizes --nofoldersizes \
-                --authuser2 titi@est.belle
+                --authuser2 titi@est.belle \
+            --allow3xx
         else
                 :
         fi
@@ -747,7 +787,8 @@ ll_authmech_LOGIN() {
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --justfoldersizes --nofoldersizes \
-                --authmech1 LOGIN --authmech2 LOGIN 
+                --authmech1 LOGIN --authmech2 LOGIN  \
+            --allow3xx
         else
                 :
         fi
@@ -762,7 +803,8 @@ ll_authmech_CRAMMD5() {
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --justfoldersizes --nofoldersizes \
-                --authmech1 CRAM-MD5 --authmech2 CRAM-MD5 
+                --authmech1 CRAM-MD5 --authmech2 CRAM-MD5  \
+            --allow3xx
         else
                 :
         fi
@@ -771,13 +813,15 @@ ll_authmech_CRAMMD5() {
 ll_delete2() {
         if test X`hostname` = X"plume"; then
                 echo3 Here is plume
+		sendtestmessage titi@est.belle
                 $CMD_PERL ./imapsync \
                 --host1 localhost --user1 tata@est.belle \
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
                 --folder INBOX \
-                --delete2 --expunge2
+                --delete2 --expunge2 \
+            --allow3xx
         else
                 :
         fi
@@ -791,14 +835,13 @@ ll_bigmail() {
                 --passfile1 /var/tmp/secret.tata \
                 --host2 localhost --user2 titi@est.belle \
                 --passfile2 /var/tmp/secret.titi \
-                --folder INBOX.bigmail
+                --folder INBOX.bigmail \
+            --allow3xx
                 echo 'rm  /home/vmail/titi/.bigmail/cur/*'
         else
                 :
         fi
 }
-
-
 
 
 msw() {
@@ -829,7 +872,67 @@ gmail() {
         else
                 :
         fi
+}
 
+gmail_gmail() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 /var/tmp/secret.gilles_gmail \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 /var/tmp/secret.gilles_gmail \
+                --useheader 'Message-Id'  --skipsize \
+                --regextrans2 's¤INBOX¤inbox_copy¤' \
+                --folder INBOX \
+		#--dry # --debug --debugimap # --authmech1 LOGIN
+
+
+        else
+                :
+        fi
+}
+
+gmail_gmail2() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 /var/tmp/secret.gilles_gmail \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 /var/tmp/secret.imapsync.gl_gmail \
+                --useheader 'Message-Id'  --skipsize \
+                --folder INBOX \
+		#--dry # --debug --debugimap # --authmech1 LOGIN
+
+
+        else
+                :
+        fi
+}
+
+
+allow3xx() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                sendtestmessage
+                $CMD_PERL  ./imapsync \
+                --host1 localhost --user1 tata@est.belle \
+                --passfile1 /var/tmp/secret.tata \
+                --host2 localhost --user2 titi@est.belle \
+                --passfile2 /var/tmp/secret.titi \
+		--allow3xx 
+        else
+                :
+        fi
 }
 
 
@@ -1115,7 +1218,10 @@ test $# -eq 0 && run_tests \
         ll_folderrec \
         ll_bigmail \
         gmail \
+	gmail_gmail \
+	gmail_gmail2 \
         ssl_justconnect \
+	allow3xx \
 #        msw
 
 

@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.264 $
+$Revision: 1.267 $
 
 =head1 INSTALL
 
@@ -422,7 +422,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.264 2008/08/27 15:19:05 gilles Exp gilles $
+$Id: imapsync,v 1.267 2008/10/07 11:36:02 gilles Exp $
 
 
 
@@ -484,19 +484,18 @@ my(
         $authmech1, $authmech2,
         $split1, $split2,
 	$tests, $test_builder,
+	$allow3xx,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.264 2008/08/27 15:19:05 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.267 2008/10/07 11:36:02 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
 my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
 
-check_lib_version() or 
-  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9 exactly, future imapsync release may suppoort 3.0.x, but sorry not now. See file BUG_IMAPClient_3.xx\n";
 
 
 $mess_size_total_trans   = 0;
@@ -515,7 +514,19 @@ sub check_lib_version {
 		# 3.x.x is still buggy with imapsync.
 		# uncomment "return 1" if you want to check it.
 		#return 1;
-		return 0;
+		#return 0;
+		if ($allow3xx) {
+*Mail::IMAPClient::Ssl = sub {
+	my $self = shift;
+	
+	if (@_) { $self->{SSL} = shift }
+	return $self->{SSL};
+};
+			return(1);
+
+		}else{
+			return(0);
+		}
 	}
 }
 
@@ -540,8 +551,8 @@ Date::Manip       $Date::Manip::VERSION
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.264 $ ',
-		  '$Date: 2008/08/27 15:19:05 $ ',
+		  '$Revision: 1.267 $ ',
+		  '$Date: 2008/10/07 11:36:02 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -555,6 +566,11 @@ unless(defined(&_SYSEXITS_H)) {
 }
 
 get_options();
+
+check_lib_version() or 
+  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9 exactly, future imapsync release may suppoort 3.0.x, but sorry not now. See file BUG_IMAPClient_3.xx\n";
+
+
 print $banner;
 
 sub missing_option {
@@ -580,7 +596,7 @@ sub connect_imap {
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Debug($debugimap);
-	$imap->Ssl($ssl);
+	$imap->Ssl($ssl) if ($ssl);
 	$imap->connect()
 	  or die "Can not open imap connection on [$host] : $@\n";	
 }
@@ -735,7 +751,7 @@ sub login_imap {
 	
 	$imap = Mail::IMAPClient->new();
 	
-	$imap->Ssl($ssl);
+	$imap->Ssl($ssl) if ($ssl);
 	$imap->Clear(20);
 	$imap->Server($host);
 	$imap->Port($port);
@@ -821,7 +837,7 @@ $split2 and $to->Split($split2);
 # Folder stuff
 #
 
-my (@f_folders, %requested_folder, @t_folders, %subscribed_folder, %t_folders);
+my (@f_folders, %requested_folder, @t_folders, @t_folders_list, %t_folders_list, %subscribed_folder, %t_folders);
 
 sub tests_folder_routines {
 	ok( !give_requested_folders()                ,"no requested folders"  );
@@ -1014,7 +1030,8 @@ sub tests_compare_lists {
 }
 
 
-@t_folders = sort @{$to->folders()};
+
+
 
 my($f_sep,$t_sep); 
 # what are the private folders separators for each server ?
@@ -1174,11 +1191,15 @@ exit if ($justfoldersizes);
 my $tohasuidplus = $to->has_capability("UIDPLUS");
 
 
+@t_folders_list = sort @{$to->folders()};
+foreach my $folder (@t_folders_list) {
+	$t_folders_list{$folder}++;
+}
 
 print 
   "++++ Listing folders ++++\n",
   "From folders list : ", map("[$_] ",@f_folders),"\n",
-  "To   folders list : ", map("[$_] ",@t_folders),"\n";
+  "To   folders list : ", map("[$_] ",@t_folders_list),"\n";
 
 print 
   "From subscribed folders list : ", 
@@ -1269,8 +1290,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		#$error++;
 		next FOLDER;
 	}
-
-	unless ($to->exists($t_fold) or $to->select($t_fold)) { 
+	if ( ! exists($t_folders_list{$t_fold})) {
 		print "To   Folder $t_fold does not exist\n";
 		print "Creating folder [$t_fold]\n";
 		unless ($dry){
@@ -1740,6 +1760,7 @@ sub get_options
 				   "split1=i"    => \$split1,
 				   "split2=i"    => \$split2,
                                    "tests"       => \$tests,
+                                   "allow3xx!"   => \$allow3xx,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -2575,9 +2596,9 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 	# No bug, somme servers are buggy.
 
         if ( length($string) != $expected_size ) {
-                carp "message_string: " .
+                warn "message_string: " .
                         "expected $expected_size bytes but received " .
-                        length($string);
+                        length($string) . "\n";
 		$self->LastError("message_string: expected ".
                         "$expected_size bytes but received " .
                         length($string)."\n");

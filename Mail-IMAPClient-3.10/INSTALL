@@ -1,0 +1,82 @@
+Mail::IMAPClient Installation
+
+The Mail::IMAPClient is written entirely in Perl, so it should install
+on any reasonably recent version of Perl. See the README file for a perl
+one-liner that you can run to verify that your perl has what it takes
+to run Mail::IMAPClient.
+
+The installation is standard:
+
+ 0) cd to installation directory
+ 1) perl Makefile.PL (and reply to the prompts)
+ 2) make             (optional)
+ 3) make test        (optional)
+ 4) make install 				
+
+The 'make install' and 'make test' will both do step 2 ('make') if you
+haven't done it already. Currently the test script is lame (although
+not as lame as in the last release!)  but I hope to incorporate more
+thorough testing in a future version. You should at least try it and
+let me know if your tests fail.
+
+Version 1.0 changed the installation script so that it reuses the
+parameter file for the tests if it finds one. Installation can be run in
+the background if the test.txt file exists. Touching it is good enough
+to prevent prompts; having a correctly formatted version (as shown in
+test_template.txt) is even better, as it will allow you to do a thorough
+'make test'. Invalid data in test.txt (either from precreating it or from
+responding inaccurately to prompts) will cause 'make test' to report 'not
+ok' results but won't break anything important (like the IMAPClient.pm
+file, or your car).
+
+If you have tests that fail it may be more illuminating to run the
+tests by hand. IE: perl -I./blib/lib t/basic.t from the installation
+dir will pinpoint the failing test.  Better yet, supply an argument to
+basic/t (any 'true' argument will do; I use '1') to turn on debugging,
+which will be placed in your installation directory in 'imap1.debug'
+and 'imap2.debug'.  E-mail me the results.
+
+If you don't have a test.txt file in your installation directory then you
+will have to answer at least one prompt. If you do have a test.txt file,
+and you run 'make clean', then you won't have a test.txt file anymore,
+so take precautions.
+
+If you do have a test.txt file and you don't run 'make clean' then
+a text file will be sitting around containing logon credentials, so,
+again, take precautions. (It's just a test account anyway, right?)
+
+If, when replying to the "perl Makefile.PL" prompts, you supply server,
+id, and password credentials for an id that has a ridiculously huge number
+of folders and subfolders then the 'make test' may run approximately
+forever. Next time try an id with less stuff.
+
+For examples on using Mail::IMAPClient, check out the examples
+subdirectory. If you have better examples, then why haven't you e-mailed
+them to me? Also, I totally recommend that you have a copy of RFC2060
+handy when using this module, since the documentation for this module is
+meant to compliment, not replace, RFC2060. In fact, I am so convinced that
+you'll need the RFC that I've included a copy of it in the distribution,
+under the "docs/" subdirectory. It's a smashing good read so have at
+it. Other IMAP related rfcs are there as well.
+
+One of the examples in the examples/ subdirectory is called
+cleanTest.pl. If you find your 'make test' has had trouble and left some
+folders named "IMAPClient_*" in your test account, you can run this
+example to clean up the account. But probably only after you've fixed
+any problems encountered with 'make test'!
+
+This module uses Damian Conway's excellent Parse::RecDescent module
+for some advanced features. If you don't have that module installed
+then you can still install Mail::IMAPClient but you won't have the
+full functionality. If you have Parse::RecDescent installed and then
+upgrade it, you may find that some features in Mail::IMAPClient suddenly
+start throwing compile-time errors. Just 'make clean' and then 'make',
+'make test', and 'make install'. This happens because grammers compiled
+under older releases of Parse::RecDescent are sometimes incompatible
+with newer Parse::RecDescent runtime engines. This would never be a
+problem if Mail::IMAPClient recompiled grammers at run time, but for
+performance reasons it precompiles them at install time. TANSTAAFL.
+
+Now go and write IMAP clients.
+
+Dave Kernen
