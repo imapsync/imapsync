@@ -1,0 +1,111 @@
+diff -urN imapsync-1.366.orig/imapsync imapsync-1.366/imapsync
+--- imapsync-1.366.orig/imapsync	2010-10-30 12:24:10.965674761 +0200
++++ imapsync-1.366/imapsync	2010-10-30 14:13:31.456674582 +0200
+@@ -204,6 +204,9 @@
+ with --authuser1 "adminuser", it will not work.
+ Same behavior with the --authuser2 option.
+ 
++When working on Sun/iPlanet/Netscape IMAP servers you must use 
++--proxyauth1 to enable administrative user to masquerade as another user. 
++Can also be used on destination server with --proxyauth2 
+ 
+ =head1 EXIT STATUS
+ 
+@@ -560,6 +563,7 @@
+         $ssl1, $ssl2,
+ 	$tls1, $tls2,
+         $authuser1, $authuser2,
++        $proxyauth1, $proxyauth2,
+         $authmech1, $authmech2,
+         $split1, $split2,
+         $reconnectretry1, $reconnectretry2,
+@@ -680,6 +684,14 @@
+ $authmech1 = uc($authmech1);
+ $authmech2 = uc($authmech2);
+ 
++if (defined $proxyauth1 && !$authuser1) {
++        missing_option("With --proxyauth1, --authuser1");
++}
++
++if (defined $proxyauth2 && !$authuser2) {
++        missing_option("With --proxyauth2, --authuser2");
++}
++
+ $authuser1 ||= $user1;
+ $authuser2 ||= $user2;
+ 
+@@ -721,12 +733,14 @@
+ $debugimap1 and print "Host1 connection\n";
+ $imap1 = login_imap($host1, $port1, $user1, $password1, 
+ 		   $debugimap1, $timeout, $fastio1, $ssl1, $tls1,
+-		   $authmech1, $authuser1, $reconnectretry1);
++		   $authmech1, $authuser1, $reconnectretry1,
++		   $proxyauth1);
+ 
+ $debugimap2 and print "Host2 connection\n";
+ $imap2 = login_imap($host2, $port2, $user2, $password2, 
+ 		 $debugimap2, $timeout, $fastio2, $ssl2, $tls2,
+-		 $authmech2, $authuser2, $reconnectretry2);
++		 $authmech2, $authuser2, $reconnectretry2,
++		 $proxyauth2);
+ 
+ #  history
+ 
+@@ -1551,7 +1565,8 @@
+ sub login_imap {
+ 	my($host, $port, $user, $password, 
+ 	   $debugimap, $timeout, $fastio, 
+-	   $ssl, $tls, $authmech, $authuser, $reconnectretry) = @_;
++	   $ssl, $tls, $authmech, $authuser, $reconnectretry,
++	   $proxyauth) = @_;
+ 	my ($imap);
+ 	
+ 	$imap = Mail::IMAPClient->new();
+@@ -1591,13 +1606,25 @@
+ 		}
+ 	}
+ 	
+-	$imap->Authmechanism($authmech) unless ($authmech eq 'LOGIN');
++        if ($proxyauth) {
++                $imap->Authmechanism("");
++        } else {
++                $imap->Authmechanism($authmech) unless ($authmech eq 'LOGIN');
++        }
++
+ 	$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
+ 	
+ 
+-	$imap->User($user);
+-	$imap->Authuser($authuser);
+-	$imap->Password($password);
++        if ($proxyauth) {
++                $imap->User($authuser);
++                $imap->Authuser($authuser);
++                $imap->Password($password);
++        } else {
++                $imap->User($user);
++                $imap->Authuser($authuser);
++                $imap->Password($password);
++        }
++
+ 	unless ($imap->login()) {
+ 		my $info  = "Error login: [$host] with user [$user] auth";
+ 		my $einfo = $imap->LastError || @{$imap->History}[-1];
+@@ -1610,6 +1637,8 @@
+ 		$imap->login() or
+ 		  die_clean("$info [LOGIN]: ", $imap->LastError, "\n");
+ 	}
++	$proxyauth && $imap->proxyauth($user);
++
+ 	print "Success login on [$host] with user [$user] auth [$authmech]\n";
+ 	return($imap);
+ }
+@@ -2423,6 +2452,8 @@
+ 				   "authmech2=s" => \$authmech2,
+ 				   "authuser1=s" => \$authuser1,
+ 				   "authuser2=s" => \$authuser2,
++				   "proxyauth1"        => \$proxyauth1,
++				   "proxyauth2"        => \$proxyauth1,
+ 				   "split1=i"    => \$split1,
+ 				   "split2=i"    => \$split2,
+ 				   "reconnectretry1=i" => \$reconnectretry1,

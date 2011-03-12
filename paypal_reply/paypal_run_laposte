@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# $Id: paypal_run_laposte,v 1.2 2010/11/28 05:27:12 gilles Exp gilles $
+
+set -e
+#set -x
+
+
+# Add path to commands at home
+PATH=$PATH:/g/public_html/imapsync/paypal_reply
+PERL5LIB=/g/public_html/imapsync/Mail-IMAPClient-3.25/lib
+export PERL5LIB
+
+test -f /g/public_html/imapsync/paypal_reply/paypal_functions \
+&& . /g/public_html/imapsync/paypal_reply/paypal_functions
+
+
+DATE_1=`date`
+
+echo "==== paypal_reply_laposte ===="
+paypal_reply_laposte "$@"
+echo
+
+
+
+DATE_2=`date`
+
+echo "Debut : $DATE_1" 
+echo "Fin   : $DATE_2"
+echo "Yo Bery GOOD !"

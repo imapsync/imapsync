@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.75 2010/10/19 23:31:10 gilles Exp gilles $
+# $Id: FAQ,v 1.82 2011/01/15 06:32:12 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -450,7 +450,7 @@ R. try to transfer the mails without SSL connection. SSL code outside
 ======================================================================
 Q. I want to exclude a folder hierarchy like "public"
 
-R. Use
+R. Use:
 
 --exclude '^public\.'
 or maybe
@@ -461,6 +461,18 @@ can ommit it. Just take the string as it appears on the imapsync
 output line :
 
 From folders list : [INBOX] [public.dreams] [etc.]
+
+======================================================================
+Q. I want to exclude only INBOX
+
+R. Use:
+
+  imapsync ... --exclude '^INBOX$' 
+
+A good way to see what will be done is to first use:
+
+  imapsync ...  --exclude '^INBOX$' --justfolders --nofoldersizes --dry
+
 
 ======================================================================
 Q. I want the --folder 'MyFolder' option be recursive.
@@ -475,6 +487,19 @@ R. Do not use the --folder option.
    Instead, use --include '^MyFolder'
    Then the folder "MyFolder" and all its subfolders will be handled
    and only them.
+
+
+======================================================================
+Q. How to migrate from or to Exchange 2007/2010 with an 
+   admin/authuser account?
+   
+R. The trick comes from Michele Marcionelli:
+
+This doesn't work:
+imapsync ... --user2 user2 --authuser2 admin2 --password2 adminpassword2 ...
+
+This works:
+imapsync ... --user2 'domain\admin2\user2' --password2 adminpassword2 ...
 
 
 ======================================================================
@@ -514,6 +539,34 @@ Here is an example:
 	--exclude '^user\.'
 
 ======================================================================
+Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
+Netscape servers with an admin account?
+
+R: Those imap servers don't allow the typical use of --authuser1 to use an
+administrative account. They expect the use of an IMAP command called
+proxyauth that is issued after login in as an administrative account.
+
+For example, consider the administrative account 'administrator' and your
+real user 'real_user'. The IMAP sequence would be:
+
+  OK [CAPABILITY IMAP4 IMAP4rev1 ACL QUOTA LITERAL+ NAMESPACE UIDPLUS
+  CHILDREN BINARY UNSELECT LANGUAGE STARTTLS XSENDER X-NETSCAPE XSERVERINFO
+  AUTH=PLAIN] imap.server IMAP4 service (Sun Java(tm) System Messaging
+  Server ...))
+  1 LOGIN administrator password
+  1 OK User logged in
+  2 PROXYAUTH real_user
+  2 OK Completed
+
+In imapsync, you can achieve this by using the following options:
+
+  --host1 source.imap.server \
+  --user1 real_user \
+  --authuser1 administrator \
+  --proxyauth1 \
+  --passfile admin.txt
+
+======================================================================
 Q. Is there anyway of making imapsync purge the destination folder
    when the source folder is deleted?
 
@@ -550,8 +603,8 @@ imapsync \
 
 ======================================================================
 Q. I have moved from Braunschweig to Graz, so I would like to have my
-   whole Braunschweig mail sorted into a folder INBOX.Braunschweig of my
-   new mail account.
+   whole Braunschweig mail sorted into a subfolder INBOX.Braunschweig 
+   of my new mail account.
 
 R.
 1) First try (safe mode):
@@ -581,16 +634,32 @@ Examples:
    happy with the output remove the --dry --justfolders options.
 
 1) To remove INBOX. in the name of destination folders:
+
     --regextrans2 's/^INBOX\.(.+)/$1/'
 
 2) To sync a complete account in a subfolder called FOO:
   
   a) Seperator is dot character "." and "INBOX" prefixes every folder
+  
     --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
 
-  Or
-  b) Seperator is slash character "/" 
+  or:
+  
+  b) Seperator is slash character "/" and there is no prefix 
+  
    --regextrans2 's#(.*)#FOO/$1#'
+   
+   or:
+   
+   
+  c) Any separator, any prefix solution, FOO is the subfolder:
+
+  It is a complicated line because every case is taken into account.
+  Type it in one line (or with the \ at the end of first line on Unix shells.
+   
+   --regextrans2 's,${h1_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
+   --regextrans2 's,^INBOX$,${h2_prefix}NEW${h2_sep}INBOX,'
+
 
 3) to substitute all characters dot "." by underscores "_"
     --regextrans2 's/\./_/g'
@@ -736,6 +805,34 @@ format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
               Server specific issues and solutions
 =======================================================================
 
+Q. From or to HMailServer version 4.4.1.
+
+R. You have to add prefix and separator manually because  4.4.1 doesn't
+honor the NAMESPACE imap command.
+
+Example for host1:
+
+imapsync ... \
+         --prefix1 "" --sep1 .
+
+No specific option for HMailServer 5.3.3 since NAMESPACE is supported.
+
+Maybe --subscribe_all will help you to see all migrated folders.
+
+
+=======================================================================
+Q. Synchronising from SmarterMail to XXX
+
+imapsync --host1 imap.d1.org --user1 joe --password1 secret1 --sep1 "/" \
+         --host2 imap.d2.org --user2 joe --password2 secret2  \
+         --noauthmd5 \
+         --prefix1 "Inbox/"  \
+         --regextrans2 's#^Inbox$#INBOX#' \
+         --regextrans2 's#Sent Items$#Sent#' \
+         --dry --justfolders
+
+Maybe add other --regextrans2 to change folder names and see the result.
+When satisfied, run without --dry --justfolders
 
 =======================================================================
 Q. Synchronising from XXX to Gmail
@@ -747,15 +844,15 @@ R. There are some details to get the special [Gmail] sub-folders
 imapsync --host1 mail.oldhost.com \
          --user1 my_email@oldhost.com \
          --password1 password \
-         --host2 imap.gmail.com --port2 993 --ssl2 \
+         --host2 imap.gmail.com --ssl2 \
          --user2 my_email@gmail.com \
          --password2 password \
-         --useheader 'Message-Id'  --skipsize \
+         --useheader 'Message-Id' \
          --prefix2 '[Gmail]/' \
          --folder 'INBOX.Sent' \
          --regextrans2 's/Sent/Sent Mail/'
 
-The same goes for the "All Mail" archive psuedo-folder.
+The same goes for the "All Mail" archive pseudo-folder.
 
 =======================================================================
 Q. Synchronising from Gmail to XXX
@@ -783,7 +880,9 @@ option:
 Q. migrate email from gmail to google apps
 
 R. Take a look at:
-http://biasecurities.com/2009/migrate-email-from-gmail-to-google-apps/
+http://www.linux-france.org/prj/imapsync_list/msg00639.html
+
+http://biasecurities.com/blog/2009/migrate-email-from-gmail-to-google-apps/
 http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
 
 =======================================================================

@@ -1,0 +1,54 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use English;
+use Mail::IMAPClient;
+
+$ARGV[3] or die "usage: $0 host user password folder uid\n";
+
+my $host     = $ARGV[0];
+my $user     = $ARGV[1];
+my $password = $ARGV[2];
+my $folder   = $ARGV[3];
+my $uid      = $ARGV[4];
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(0);
+$imap->Server($host);
+$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+$imap->Clear(1);
+
+#print map {"$_\n"} $imap->folders();
+
+$imap->select($folder) or die;
+my @msgs = $imap->messages or die "Could not messages: $@\n";
+print "@msgs\n";
+foreach my $msg (@msgs) {
+	$imap->fetch($msg, "BODY.PEEK[TEXT]<0.3000>");
+	my $text = $imap->_transaction_literals;
+	print '#' x 72, " $msg TEXT = \n$text\n";
+	my $part = $imap->bodypart_string($msg, '', 3000, 0);
+	print '#' x 72, " $msg PART = \n$part\n";
+}
+$imap->close();
+
+
+package Mail::IMAPClient;
+
+sub _transaction_literals() {
+	my $self = shift;
+	my $string = "";
+
+	foreach my $result  (@{$self->{"History"}{$self->Transaction}}) { 
+	      $string .= $result->[DATA] 
+		if defined($result) and $self->_is_literal($result) ;
+	}      
+	return $string;
+}
+

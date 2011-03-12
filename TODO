@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.86 2010/10/08 00:43:09 gilles Exp gilles $
+# $Id: TODO,v 1.92 2011/01/18 02:38:48 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
@@ -15,6 +15,8 @@ Add a best practice migration tips document.
 
 Write a Mail::imapsync package and use it.
 
+write a comment to http://blog.migrationwiz.com/2010/12/09/imapsync-vs-migrationwiz/
+
 Fix the mailing-list archive bug with From at
 the beginning of a line
 http://www.linux-france.org/prj/imapsync_list/msg00307.html
@@ -28,8 +30,6 @@ funny during the sync. It would be great - and presumably easy to code -
 to have an option to have imapsync display e.g. the subject of an
 e-mail when it gets synced, rather than just the message ID and the date/time.
 
-Add --noauthmd51 --noauthmd52 to permit noauthmd5 by host
-
 Add a well described problem for each problem detected
 and counted in error counter statistics.
 
@@ -39,9 +39,6 @@ http://www.bwebcentral.com/utils/imapsync-yahoo
 See patches/imapsync-yahoo
 
 
-Add NTLM authentification support
-http://cpansearch.perl.org/src/BUZZ/NTLM-1.05/NTLM.pm
-http://curl.haxx.se/rfc/ntlm.html
 
 Add "output to reflect everything that imapsync was doing".
 Not everything but flag synchronization will be nice"
@@ -60,24 +57,12 @@ their ACLs. Syncing ACLs vom Cyrus to Dovecot (at least 1.2) doesn't
 work. Cyrus uses c and d, Dovecot uses k and x instead." 
 Peer Heinlein.
 
-Add a --delete2folders option
-"When syncing mailboxes with imapsync, is there a way to delete folders in the
-target account? The --delete2 option only seems to delete individual
-messages, not folders."
-
 Add different levels of output to see clearly the
 problem by default.
 
 Add option --exclude_messages_with_flag
 
 Add more information about skipped messages.
-
-There was a time imapsync took the whole message when the
-header was bad (empty). But it was bad for speed with big
-messages (nowadays there are always big messages in
-mailboxes). May be the best is to take a part of the
-body. Have to code this.
-
 
 
 Add Rick Romero patch with
@@ -161,9 +146,37 @@ http://www.washington.edu/imap/documentation/commndmt.txt.html
 Add cyrus link about INBOX. namespace
 http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
-Explain expunge behavior.
-
 ===========================================================================
+
+DONE. Explain expunge behavior in help message.
+
+DONE. Add --authmd51 --authmd52 to permit authmd5 by host.
+
+DONE. Write option --delete2foldersonly regex.
+Example: to permit a sync in a subfolder with --delete2folder
+--regextrans2 's#(.*)#NEW/$1#'  --delete2foldersonly /^NEW/ 
+
+DONE. Write option --delete2foldersnot regex.
+Example: to permit a sync but not deleting folder OLD
+--delete2foldersnot /^OLD/ 
+
+DONE. Add cache to speed up transfer. Option --usecache 
+
+DONE. There was a time imapsync took the whole message when the
+header was bad (empty). But it was bad for speed with big
+messages (nowadays there are always big messages in
+mailboxes). May be the best is to take a part of the
+body. Have to code this.
+
+DONE. Add a --delete2folders option
+"When syncing mailboxes with imapsync, is there a way to delete folders in the
+target account? The --delete2 option only seems to delete individual
+messages, not folders."
+
+DONE. Add NTLM authentification support. Mail-IMAPClient-3.25
+support it. 
+http://cpansearch.perl.org/src/BUZZ/NTLM-1.05/NTLM.pm
+http://curl.haxx.se/rfc/ntlm.html
 
 DONE. Evaluate memory consumption with (or better):
 print qx{ ps o pid,pcpu,comm,vsz,rss,size $$ }, "\n"

@@ -1,0 +1,140 @@
+#!/usr/bin/perl 
+
+# $Id: paypal_build_reply,v 1.8 2010/12/29 23:51:23 gilles Exp gilles $
+
+use warnings;
+use strict;
+
+my ($msg_id_file, $msg_id);
+my ($amount, $name, $email);
+my (
+	$buyer, $object, $support, $description,
+	$url_source, $url_exe, $url, $release,
+);
+
+$msg_id_file = $ARGV[1];
+$msg_id = firstline($msg_id_file);
+
+while(<>) {
+	next if ( ! /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/);
+	($amount, $name, $email) = ($1, $2, $3);
+	last;
+}
+
+$url_source = firstline('/g/var/paypal_reply/url_source');
+$url_exe    = firstline('/g/var/paypal_reply/url_exe');
+$release    = firstline('/g/var/paypal_reply/url_release');
+
+# source code wanted
+if (('$35,00 USD' eq $amount) or ('$50,00 USD' eq $amount)) {
+	$object = 'imapsync source code';
+	$support = '';
+	$url = $url_source;
+}
+
+# win32 binary wanted
+if (('$25,00 USD' eq $amount) or ('$15,00 USD' eq $amount)) {
+	$object = 'imapsync.exe binary';
+	$support = '';
+	$url = $url_exe;
+}
+
+# source code + technical support wanted
+if ('$135,00 USD' eq $amount) {
+	$object = 'imapsync source code';
+	$support = "\nI'm ready to help you by email until success (I hope).\n";
+	$url = $url_source;
+}
+
+# win32 binary + technical support wanted
+if ('$125,00 USD' eq $amount) {
+	$object = 'imapsync.exe binary';
+	$support = "\nI'm ready to help you by email until success (I hope).\n";
+	$url = $url_exe;
+}
+
+
+
+while(<>) {
+	next if ( ! /^Acheteur/ );
+	$buyer .= "===== Acheteur =====\n";
+	last;
+}
+
+while(<>) { 
+	$buyer .= $_ if ( ! /^Instructions/ );
+	last if ( /^Instructions/ );
+}
+
+while(<>) { 
+	next if ( ! /^Description :(.*)/ );
+	$description  = "===== Details =====\n";
+	$description .= $_;
+	last;
+}
+
+while(<>) { 
+	$description .= $_;
+	last if ( /^Paiement envoy/ );
+}
+
+my $address = 'gilles.lamiral@laposte.net';
+my $address2 = 'gilles@lamiral.info';
+my $rcstag  = '$Id: paypal_build_reply,v 1.8 2010/12/29 23:51:23 gilles Exp gilles $';
+
+my $message = <<EOM
+X-Comment: $rcstag
+In-Reply-To: $msg_id
+From: Gilles LAMIRAL <$address>
+To: <$email>
+Bcc: Gilles LAMIRAL <$address>, <$address2>
+Subject: [imapsync download] $object release $release [$email]
+
+Hello $name,
+
+You will find the latest $object release $release at the following link:
+$url
+
+I thank you for buying and using imapsync,
+I wish you successful transfers!
+$support
+$buyer
+$description
+==== Vendeur ====
+Gilles LAMIRAL
+4 La Billais
+35580 Baulon
+FRANCE
+
+Tel: +33 951 84 42 42
+Mob: +33 620 79 76 06
+Fax: +33 956 84 42 42
+
+email: $address
+
+--
+Au revoir,                             09 51 84 42 42
+Gilles Lamiral. France, Baulon (35580) 06 20 79 76 06
+EOM
+;
+
+=pod
+=cut
+
+
+print $message;
+#print "[$amount] [$name] [$email] [$object]\n";
+
+
+sub firstline {
+        # extract the first line of a file (without \n)
+
+        my($file) = @_;
+        my $line  = "";
+        
+        open FILE, $file or die("error [$file]: $! ");
+        chomp($line = <FILE>);
+        close FILE;
+        $line = ($line) ? $line: "error !EMPTY! [$file]";
+        return $line;
+}
