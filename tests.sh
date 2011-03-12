@@ -1,8 +1,14 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.4 2003/08/21 15:40:32 gilles Exp $	
+# $Id: tests.sh,v 1.6 2003/08/24 01:56:49 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.6  2003/08/24 01:56:49  gilles
+# Indented long lines
+#
+# Revision 1.5  2003/08/24 01:05:35  gilles
+# Removed some variables
+#
 # Revision 1.4  2003/08/21 15:40:32  gilles
 # Added a email in loulplume test
 #
@@ -51,40 +57,26 @@ run_tests() {
 
 #### Variable definitions
 
-prog=imapsync
-host1=localhost
-host2=localhost
-passfile1=/var/tmp/secret1
-passfile2=/var/tmp/secret2
-user1=toto@est.belle
-user2=titi@est.belle
-
-dirtest=/tmp/${prog}/test
-
 test_count=0
 
 ##### The tests functions
 
 perl_syntax() {
-	perl -c ./${prog}
+	perl -c ./imapsync
 }
 
 
 no_args() {
-	./${prog}
-}
-
-cleaning_test_directory() {
-	test -d $dirtest && find  $dirtest -type d| xargs chmod 700
-	rm -rf $dirtest
-	mkdir -p $dirtest
+	./imapsync
 }
 
 
 first_sync() {
 	./imapsync \
-	   --host1 $host1 --user1 $user1 --passfile1 $passfile1 \
-	   --host2 $host2 --user2 $user2 --passfile2 $passfile2
+	    --host1 localhost --user1 toto@est.belle \
+	    --passfile1 /var/tmp/secret1 \
+	    --host2 localhost --user2 titi@est.belle \
+	    --passfile2 /var/tmp/secret2
 }
 
 loulplume() {
@@ -95,10 +87,12 @@ loulplume() {
 		cmd="echo $mess""| mail -s ""$mess"" tata"
 		echo $cmd
 		ssh gilles@loul $cmd
-		sleep 10
+		#sleep 10
 		./imapsync \
-		--host1 loul  --user1 tata --passfile1 /var/tmp/secret.tata \
-		--host2 plume --user2 tata@est.belle --passfile2 /var/tmp/secret.tata
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata
 	else
 		:
 	fi
@@ -108,8 +102,10 @@ plumeloul() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host1 plume --user1 tata@est.belle --passfile1 /var/tmp/secret.tata \
-		--host2 loul  --user2 tata --passfile2 /var/tmp/secret.tata
+		--host1 plume --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 loul  --user2 tata \
+		--passfile2 /var/tmp/secret.tata
 	else
 		:
 	fi
@@ -119,9 +115,11 @@ lp_folder() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle --passfile2 /var/tmp/secret.tata \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
 		--folder INBOX.yop --folder INBOX.Trash  \
-		--host1 loul  --user1 tata --passfile1 /var/tmp/secret.tata
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata
 	else
 		:
 	fi
@@ -131,9 +129,11 @@ pl_folder() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host1 plume --user1 tata@est.belle --passfile1 /var/tmp/secret.tata \
+		--host1 plume --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
 		--folder INBOX.yop \
-		--host2 loul  --user2 tata --passfile2 /var/tmp/secret.tata
+		--host2 loul  --user2 tata \
+		--passfile2 /var/tmp/secret.tata
 	else
 		:
 	fi

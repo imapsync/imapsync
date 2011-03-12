@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.27 $
+$Revision: 1.28 $
 
 =head1 INSTALL
 
@@ -144,7 +144,7 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.27 2003/08/23 14:40:57 gilles Exp $
+$Id: imapsync,v 1.28 2003/08/24 01:55:25 gilles Exp $
 
 =cut
 
@@ -167,12 +167,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.27 2003/08/23 14:40:57 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.28 2003/08/24 01:55:25 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.27 $ ' . '$Date: 2003/08/23 14:40:57 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.28 $ ' . '$Date: 2003/08/24 01:55:25 $ ' . "\n";
 
 
 get_options();
@@ -359,14 +359,15 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		my $f_msg = $f_hash{$m_id}{'m'};
 		$debug and print "key     $m_id #$f_msg\n";
 		unless (exists($t_hash{$m_id})) {
-			print "Message NO msg #$f_msg [$m_id] in $t_fold\n";
+			print "NO msg #$f_msg [$m_id] in $t_fold\n";
 			# copy
 			print "Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			unless ($dry) {
 				my $string = $from->message_string($f_msg);
-				#$opt_y and print $string;
+				my $flags_f = join(" ", @{$from->flags($f_msg)});
 				my $new_id;
-				unless($new_id = $to->append($t_fold,$string)){
+				print "flags from : [$flags_f]\n";
+				unless($new_id = $to->append_string($t_fold,$string, $flags_f)){
 					warn "Couldn't append msg #$f_msg to folder $t_fold",
 					$to->LastError, "\n";
 					$error++;
@@ -375,30 +376,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					# good
 					# $new_id is an id if the IMAP server has the 
 					# UIDPLUS capability else just a ref
-					
 					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
-					
-					unless ($tohasuidplus) {
-						next MESS;
-					}
-					print "Setting flags (UIDPLUS welcome)\n"; 
-					my @flags_f = @{$from->flags($f_msg)};
-
-					$debugimap and print "Store flags [@flags_f]";
-					$to->store($new_id,
-						   "+FLAGS (" . join(" ", @flags_f) . ")"
-						  );
-					my @flags_t;
-					my $flags_t = $to->flags($new_id);
-					# a bug ?
-					if ($flags_t) {
-						@flags_t = @$flags_t;
-						print 
-						  "flags from : @flags_f\n",
-						  "flags to   : @flags_t\n";
-					}else{
-						print "To flags could not be retrieved\n"
-					}
 				}
 			}
 	    		next MESS;
