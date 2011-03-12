@@ -1,0 +1,27 @@
+#!/usr/bin/perl -w
+
+
+
+sub file_to_string {
+	my($file) = @_;
+	my @string;
+	open FILE, $file or die("$! $file");
+	@string = <FILE>;
+	close FILE;
+	return join("", @string);
+}
+
+use Fcntl;
+sub string_to_file {
+	my($string, $file) = @_;
+	sysopen(FILE, $file,O_WRONLY|O_TRUNC|O_CREAT, 0600) or die("$! $file");
+	print FILE $string;
+	close FILE;
+}
+
+
+
+
+string_to_file("blabla $$ \n", "/tmp/imapsync_t01");
+print file_to_string("/tmp/imapsync_t01");
+#unlink("/tmp/imapsync_t01");

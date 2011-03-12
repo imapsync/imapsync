@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.57 2006/12/10 02:48:14 gilles Exp gilles $	
+# $Id: tests.sh,v 1.58 2007/01/02 08:23:04 gilles Exp $	
 
 #### Shell pragmas
 
@@ -640,11 +640,11 @@ ll_bigmail() {
 		--host2 localhost --user2 titi@est.belle \
 		--passfile2 /var/tmp/secret.titi \
 		--folder INBOX.bigmail
+		echo 'rm  /home/vmail/titi/.bigmail/cur/*'
 	else
 		:
 	fi
 }
-
 
 
 ##########################
@@ -852,7 +852,8 @@ test $# -eq 0 && run_tests \
 	ll_authmech_CRAMMD5 \
 	ll_authuser \
 	ll_delete2 \
-	ll_folderrec
+	ll_folderrec \
+	ll_bigmail
 
 
 
