@@ -1,0 +1,529 @@
+--- FAQ.orig	2009-04-30 04:09:14.000000000 +0200
++++ FAQ	2010-02-02 08:53:04.000000000 +0100
+@@ -6,12 +6,12 @@
+ +------------------+
+ 
+ =======================================================================
+-Q. How to install impasync ?
++Q. How to install imapsync ?
+ 
+ R. http://www.linux-france.org/prj/imapsync/INSTALL
+ 
+ =======================================================================
+-Q. How to configure impasync ?
++Q. How to configure imapsync ?
+ 
+ R. http://www.linux-france.org/prj/imapsync/README
+ 
+@@ -46,7 +46,7 @@
+ Thank you for your participation.
+ 
+ =======================================================================
+-Q. Where I can read IMAP RFCs ?
++Q. Where I can read up on the various IMAP RFCs ?
+ 
+ R. Here:
+ 
+@@ -67,12 +67,12 @@
+ 
+ 
+ =======================================================================
+-Q. Where I can find old imapsync releases ?
++Q. Where I can find old imapsync releases?
+ 
+ R. ftp://www.linux-france.org/pub/prj/imapsync/
+ 
+ =======================================================================
+-Q. How can I try imapsync with Mail::IMAPClient 3.xx perl library?
++Q. How can I try imapsync with the new Mail::IMAPClient 3.xx perl library?
+ 
+ R. - Download latest Mail::IMAPClient 3.xx at
+    http://search.cpan.org/dist/Mail-IMAPClient/
+@@ -105,8 +105,8 @@
+ =======================================================================
+ Q. I am interested in creating  a local clone of the IMAP on a LAN 
+ server for  faster synchronisations, Email will always be delivered 
+-to the remote server and so the synchronisation will be one way from 
+-remote to local. How suited is ImapSync to continouous one-way 
++to the remote server and so the synchronisation will be one way - from 
++remote to local. How suited is ImapSync for continuous one-way 
+ synchronisation of mailboxes? Is there a better solution?
+ 
+ R. If messages are delivered remotely and you play locally with the
+@@ -130,17 +130,16 @@
+    - Mutt
+    - Thunderbird
+ 
+-Eurora shows by default the time the imap server received the email.
+-I think it is quite a wrong behavior since the messages can
+-have travelled some time before the reception.
+-
+-The sent time and date are given by the "Date:" header
+-and it is set most of the time by the MUA (Mail User Agent, 
+-Mutt, Eudora, Thunderbird etc.).
+-
+-imapsync does not touch any header since the
+-header is used to identify the messages in
+-both parts.
++Eurora shows by default  the time the imap server received the email. I
++think   it is  quite   a  wrong  behavior  since  the messages can have
++travelled some time before the reception.
++
++The sent time and date are given by the "Date:" header and it is set
++most of the time by the MUA (Mail User Agent, Mutt, Eudora,
++Thunderbird etc.).
++
++imapsync does not touch any header since the header is used to
++identify the messages in both parts.
+ 
+ Solutions: 
+ a) Don't use buggy Eudora.
+@@ -156,7 +155,7 @@
+ =======================================================================
+ Q. Does imapsync retain the \Answered and $Forwarded flags?
+ 
+-R. imapsync retains all flags except \Recent 
++R. imapsync retains ALL flags except \Recent 
+ (RFC 3501 says "This flag can not be altered by the client.")
+ 
+ Some imap servers have problems with flags not beginning with
+@@ -195,11 +194,11 @@
+ 
+ =======================================================================
+ Q. Some passwords contain * and " characters. Login fails.
+-R. Use
++R. Use a backslash to escape the characters:
+ 
+     imapsync --password1 \"password\" 
+ 
+-Ii works for the star * character,
++It works for the star * character,
+ I don't know if it works for the " character.
+ 
+ =======================================================================
+@@ -273,46 +272,43 @@
+    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
+ 
+ =======================================================================
+-Q: I'm trying to use imapsync on win32 for gmail, but it requires ssl, 
+-or at least  claims to. Imapsync appears to require io-socket-ssl, 
+-which doesn't seem to be available on win32. Are there any other options?
++Q: I'm trying to use imapsync on win32 for gmail, but it requires ssl,
++or at least claims to. Imapsync appears to require io-socket-ssl, 
++which doesn't seem to be available on win32. Are there any other
++options?
+ 
+ R: (Q and R come as is from Bryce Walter)
+-I think I'm having success using cygwin perl instead of
+-ActiveState Perl. I wasn't able to get CPAN working and
+-building IO::Socket::SSL in ActiveState, but cygwin did
+-all right. I had to force the install of the Net::SSLeay
+-dependency, because it partially failed one test, but I think
+-it worked anyway. In order to get working in cygwin, I
+-installed the entire "perl" category, lynx, ncftp, and lftp
+-(specified as ftp program in cpan setup). I'm not sure if I
+-needed all those, or if cpan just kept asking because I didn't
+-have any installed at the time. Anyway, cpan worked, and
+-I installed all dependencies that imapsync complained
+-about until it started working. 
++
++I think I'm having success using cygwin perl instead of ActiveState
++Perl. I wasn't able to get CPAN working and building IO::Socket::SSL
++in ActiveState, but cygwin did all right. I had to force the install
++of the Net::SSLeay dependency, because it partially failed one test,
++but I think it worked anyway. In order to get working in cygwin, I
++installed the entire "perl" category, lynx, ncftp, and lftp (specified
++as ftp program in cpan setup). I'm not sure if I needed all those, or
++if cpan just kept asking because I didn't have any installed at the
++time. Anyway, cpan worked, and I installed all dependencies that
++imapsync complained about until it started working. 
+ 
+ =======================================================================
+ Q: Multiple copies when I run imapsync twice ore more.
+ 
+-R. Multiple copies of the emails on the destination
+-server. Some IMAP servers (Domino for example) add some
+-headers for each message transfered. The message is
+-transfered again and again each time you run imapsync. This
+-is bad of course. The explanation is that imapsync considers
+-the message is not the same since headers have changed (one
++R. Multiple copies of the emails on the destination server. Some IMAP
++servers (Domino for example) add some headers for each message
++transfered. The message is transfered again and again each time you
++run imapsync. This is bad of course. The explanation is that imapsync
++considers the message is not the same since headers have changed (one
+ line added) and size too (the header part). 
+ 
+-You can look at the headers found by imapsync by using the 
+---debug option (and search for the message on both part),
+-Header lines from the source server begin with a "FH:" prefix,
+-Header lines from the destination server begin with a "TH:" prefix.
+-Since --debug is very verbose I suggest to isolate a 
+-email in a specific folder in case you want to forward
+-me the output.
++You can look at the headers found by imapsync by using the --debug
++option (and search for the message on both part), Header lines from
++the source server begin with a "FH:" prefix, Header lines from the
++destination server begin with a "TH:" prefix. Since --debug is very
++verbose I suggest to isolate a email in a specific folder in case you
++want to forward me the output.
+ 
+ The way to avoid this problem is by using options --skipheader and
+---skipsize, like this (avoid headers beginning whith the
+-string "X-"):
++--skipsize, like this (avoid headers beginning whith the string "X-"):
+ 
+  imapsync ... --skipheader '^X-' --skipsize
+ 
+@@ -325,11 +321,11 @@
+  imapsync ... --useheader 'Message-ID' --skipsize
+ 
+ Remark. (Trick found by Tomasz Kaczmarski)
+-Option --useheader 'Message-ID' asks the server
+-to send only header lines begining with 'Message-ID'. 
+-Some (buggy) servers send the whole header (all lines)
+-instead of the 'Message-ID' line. In that case, a trick
+-to keep the --useheader filtering behavior is to use
++
++Option --useheader 'Message-ID' asks the server to send only header
++lines begining with 'Message-ID'.  Some (buggy) servers send the whole
++header (all lines) instead of the 'Message-ID' line. In that case, a
++trick to keep the --useheader filtering behavior is to use
+ --skipheader with a negative lookahead pattern :
+ 
+  imapsync ... --skipheader '^(?!Message-ID)' --skipsize
+@@ -357,14 +353,14 @@
+ or maybe
+ --exclude '^"public\.'
+ 
+-In the example given the character "." is the folder separator,
+-you can ommit it. Just take the string as it appears on the
+-imapsync output line :
++In the example given the character "." is the folder separator, you
++can ommit it. Just take the string as it appears on the imapsync
++output line :
+ 
+ From folders list : [INBOX] [public.dreams] [etc.]
+ 
+ ======================================================================
+-Q. I want the --folder 'MyFolder' option be recurse.
++Q. I want the --folder 'MyFolder' option be recursive.
+ 
+ R. Do not use the --folder option. 
+    Instead, use --include '^MyFolder'
+@@ -412,17 +408,17 @@
+ 	--exclude '^user\.'
+ 
+ ======================================================================
+-Q. Is anyway imapsync to purge destionation folder when the source
+-   folder is deleted?
++Q. Is there anyway of making imapsync purge the destination folder
++   when the source folder is deleted?
++
++R. No, that's too dangerous.
+ 
+-R. No, that's too much dangerous.
+-But if the source folder is empty (not deleted) and 
+-options --delete2 --expunge2 are used then 
+-the destination folder will be empty.
++But if the source folder is empty (not deleted) and options --delete2
++--expunge2 are used then the destination folder will be empty.
+ 
+ ======================================================================
+ Q. Is it possible to synchronize all messages from one server to 
+-another whithout recreating the folder structure and the target server.
++another without recreating the folder structure and the target server.
+ 
+ R. Yes.
+ 1) First try (safe mode):
+@@ -437,15 +433,15 @@
+    
+ 3) Remove --dry 
+    Check the imap folder tree on the target side, you should
+-   only have one : the classical INBOX.
++   only have one: the classical INBOX.
+ 
+ 4) Remove --justfolders
+ 
+ 
+ ======================================================================
+-Q. I have moved from Braunschweig to Graz, so I would like to have my whole 
+-Braunschweig mail sorted into a folder INBOX.Braunschweig of my new mail 
+-account.
++Q. I have moved from Braunschweig to Graz, so I would like to have my
++   whole Braunschweig mail sorted into a folder INBOX.Braunschweig of my
++   new mail account.
+ 
+ R.
+ 1) First try (safe mode):
+@@ -468,30 +464,29 @@
+ 
+ R. Examples: 
+ 
+-0) First try with --dry --justfolders options since imapsync shows the 
+-transformations it will do without really doing them. Then when happy 
+-with the output remove the --dry --justfolders options.
++0) First try with --dry --justfolders options since imapsync shows the
++   transformations it will do without really doing them. Then when
++   happy with the output remove the --dry --justfolders options.
+ 
+ 1) To remove INBOX. in the name of destination folders:
+     --regextrans2 's/^INBOX\.(.+)/$1/'
+ 
+ 2) To sync a complete account in a subfolder called FOO:
+   
+-  a) Separator is dot character "." and "INBOX" prefixes every folder
++  a) Seperator is dot character "." and "INBOX" prefixes every folder
+     --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
+ 
+   Or
+-  b) Separator is slash character "/" 
++  b) Seperator is slash character "/" 
+    --regextrans2 's#(.*)#FOO/$1#'
+ 
+ 3) to substitute all characters dot "." by underscores "_"
+     --regextrans2 's/\./_/g'
+ 
+ =======================================================================
+-Q. I would like to move emails from InBox to a sub-folder
+-called , say "2005-InBox" based on the date (Like all emails
+-received in the Year 2005 should be moved to the folder
+-called "2005-InBox").
++Q. I would like to move emails from InBox to a sub-folder called,
++   say "2005-InBox" based on the date (Like all emails received in the
++   Year 2005 should be moved to the folder called "2005-InBox").
+ 
+ R. 2 ways :
+ 
+@@ -499,17 +494,18 @@
+ ------------
+ 
+ 1) You create a folder INBOX.2005-INBOX
+-2) Mostly every email software allow sorting by date.
+-In inbox, you select from 1 january to 31 december
+-messages with the shift key.
++
++2) Mostly every email software allow sorting by date. In inbox, you
++   select from 1 january to 31 december messages with the shift key.
++   (in mutt, use ~d)
++
+ 3) Cut/paste in INBOX.2005-INBOX
+ 
+ b) With imapsync:
+ -----------------
+ 
+-You have to calculate the day of year (and
+-add 365).  For example, running it today, 
+-Sat Mar 11 13:06:01 CET 2006:
++You have to calculate the day of year (and add 365).  For example,
++running it today, Sat Mar 11 13:06:01 CET 2006:
+ 
+ imapsync ... 
+ --host1 imap.truc.org --host2 imap.trac.org \
+@@ -528,9 +524,9 @@
+ $ date +%j
+ 070
+ 
+-Also, you must take imapsync 1.159 at least since I tested
+-what I just wrote above and found 2 bugs about --mindate
+---maxdate options behavior.
++Also, you must take imapsync 1.159 at least since I tested what I just
++wrote above and found 2 bugs about --mindate --maxdate options
++behavior.
+ 
+ =======================================================================
+ Q. I want to play with headers line and --regexmess but I want to leave
+@@ -573,42 +569,39 @@
+ Return-Path: <foo@yoyo.org>
+ Received: ...
+ 
+-Any Maidir/ configured imap server may refuse this message
+-since its header is invalid. The first "From " line is not
+-valid. It lacks a colon character ":".
+-To solve this problem you have several solutions a) or b):
+-
+-a) Remove these first "From " line manually for each message
+-before using imapsync. Don't think to add a colon to this
+-line since you will end with two "From:" lines (just look at
+-the other lines)
++Any Maildir/ configured imap server may refuse this message since its
++header is invalid. The first "From " line is not valid. It lacks a
++colon character ":". To solve this problem you have several solutions
++
++a) Remove these first "From " line manually for each message before
++   using imapsync. Don't think to add a colon to this line since you
++   will end with two "From:" lines (just look at the other lines)
+ 
+ b) Run imapsync with the following options :
+---regexmess 's/\AFrom \w  .*\n//'  --skipsize
++   --regexmess 's/\AFrom \w  .*\n//'  --skipsize
+ 
+ =======================================================================
+ Q. The contact folder isn't well copied. 
+-   How to copy the contact folder ?
++   How to copy the contact folder?
+ 
+-R. Forget the destination server (chose the same)
++R. Forget the destination server (choose the same)
+ Change the script around line 1426
+        # ITSD
+        $new_id = $from->copy($t_fold,$f_msg);
+        #$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
+-and tried a copy of the mail instead an append_string.
+-Because we are using the same server, we can use $from->copy
+-Therefore we seem to not download and upload the message and therefore
+-we do not have any format issues.
+-And now it works fine.
+-(Thanks to Hansjoerg.Maurer)
++
++and tried a copy of the mail instead an append_string. Because we are
++using the same server, we can use $from->copy Therefore we seem to not
++download and upload the message and therefore we do not have any
++format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
+ 
+ 
+ =======================================================================
+-Q. Synchronysing from XXX to Gmail
++Q. Synchronising from XXX to Gmail
+ 
+-R. There are some details to get the special [Gmail]
+-sub-folders right. Here's an example of migrating an old "Sent"
+-folder to Gmail's structure:
++R. There are some details to get the special [Gmail] sub-folders
++   right. Here's an example of migrating an old "Sent" folder to
++   Gmail's structure:
+ 
+ imapsync --syncinternaldates \
+          --host1 mail.oldhost.com \
+@@ -625,9 +618,9 @@
+ The same goes for the "All Mail" archive psuedo-folder.
+ 
+ =======================================================================
+-Q. Synchronysing from Gmail to XXX
++Q. Synchronising from Gmail to XXX
+ 
+-R. Gmail needs ssl. 
++R. Gmail needs SSL 
+ 
+ ./imapsync \
+            --host1 imap.gmail.com --ssl1 \
+@@ -661,6 +654,7 @@
+ Q. Syncing from Google Apps domain to Googlemail account
+ 
+ A known bug encountered with this output (Alexander is a folder name):
++
+ ++++ Verifying [Alexander] -> [Alexander] ++++
+ + NO msg #16 [A96Dh4AwlLVphOAW5MS/eQ:779824] in Alexander
+ + Copying msg #16:779824 to folder Alexander
+@@ -679,9 +673,9 @@
+ imapsync ... --folder Alexander
+ 
+ =======================================================================
+-Q. I'm migrating from WU to Cyrus, and the mail folders are
+-under /home/user/mail but the tool copies everything in
+-/home/user, how can i avoid that?
++Q. I'm migrating from WU to Cyrus, and the mail folders are under
++   /home/user/mail but the tool copies everything in /home/user, how
++   can i avoid that?
+ 
+ R. Use
+    imapsync ... --include '^mail'
+@@ -690,12 +684,11 @@
+ 
+ 
+ =======================================================================
+-Q. I'm migrating from WU to Cyrus, and the mail folders are
+-under /home/user/mail directory.  When imapsync creates the
+-folders in the new cyrus imap server, it makes a folder
+-"mail" and below that folder puts all the mail folders the
+-user have in /home/user/mail, i would like to have all those
+-folders directly under INBOX.
++Q. I'm migrating from WU to Cyrus, and the mail folders are under
++   /home/user/mail directory.  When imapsync creates the folders in
++   the new cyrus imap server, it makes a folder "mail" and below that
++   folder puts all the mail folders the user have in /home/user/mail,
++   i would like to have all those folders directly under INBOX.
+ 
+ R. Use 
+    imapsync ... --regextrans2 's/^mail/INBOX/' --dry
+@@ -719,30 +712,32 @@
+ 
+ --skipheader '^Content-Type'
+   - MIME separator IDs seem to change every time a mail is accessed so 
+-this is required to stop duplicates.
++    this is required to stop duplicates.
+ 
+ --maxage 3650
+   - some messages just don't seem to want to transfer and produce the 
+-perl errors I mentioned before. This prevents the errors, but the bad 
+-messages don't transfer.
++    perl errors I mentioned before. This prevents the errors, but the
++    bad messages don't transfer.
+ 
+ Even though the mail migrated OK, there are a couple of gotchas with 
+ Groupwise IMAP:
+ 
+-1) Some of the GW folders are not real folders and are not available to 
+-IMAP, the main problem one being "Sent Items". I could find no way of 
+-coping the contents of these folders. The nearest I got was to create a 
+-"real" folder and copy/move the sent items into it, but imapsync still 
+-didn't see the messages (I think because there is something funny about 
+-the reported dates/sizes).
++1) Some of the GW folders are not real folders and are not available
++to IMAP, the main problem one being "Sent Items". I could find no way
++of coping the contents of these folders. The nearest I got was to
++create a "real" folder and copy/move the sent items into it, but
++imapsync still didn't see the messages (I think because there is
++something funny about the reported dates/sizes).
++
+ It think this problem has been rectified in GW6.5.
+ 
+ 2) The "skipheader '^Content-Type'" directive is required to stop 
+-duplicate messages being created. GW seems to generate this field on the 
+-fly for messages that have MIME separators and so it's different every time.
++duplicate messages being created. GW seems to generate this field on
++the fly for messages that have MIME separators and so it's different
++every time.
+ 
+ 3) Version 6.0.1 of the Groupwise Internet Connector sucks. I was 
+-getting server abends when I pushed it a bit hard! I eventually had to 
++getting server aborts when I pushed it a bit hard! I eventually had to
+ upgrade to 6.0.4 which seems to be a lot more stable.
+ 
+ 
+@@ -816,18 +811,19 @@
+          --sep1 '/' --exclude 'user/demo/Trash' \
+          --regextrans2 's/^user.//' --syncinternaldates
+ 
+-The 'exclude user/demo/Trash'  was used because there was one message 
+-there with 8 bit headers which dbmail doesn't accept, so I had to skip 
+-the whole folder. It would be nice to have an option to just ignore and 
+-log unsyncable messages, but do the rest, instead of stopping.
++The 'exclude user/demo/Trash' was used because there was one message 
++there with 8 bit headers which dbmail doesn't accept, so I had to skip
++the whole folder. It would be nice to have an option to just ignore
++and log unsyncable messages, but do the rest, instead of stopping.
+ 
+ ******************
+ 
+ There are two other major problems:
+-1) dbmail doesn't accept utf8 header, while cyrus does. imapsync stops 
++
++1) dbmail doesn't accept utf8 header, while cyrus does. imapsync stops
+ in that case, making sync impossible
+ 
+-To convert the wholes messages from 8bit to 7bit, use option :
++To convert the whole messages from 8bit to 7bit, use option :
+ 
+ --regexmess 's/[\x80-\xff]/X/g'
+ 
+@@ -861,7 +857,7 @@
+ Q. From any to Exchange2007 
+ 
+ Several problems:
+-- Big messages: increse the "send- and receive-connector" 
++- Big messages: increase the "send- and receive-connector" 
+   in exchange2007 to 40 MB.
+ 
+ R. 2 solutions
+

@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.303 $
+$Revision: 1.310 $
 
 =head1 INSTALL
 
@@ -243,6 +243,9 @@ or to the author.
 
 Help us to help you: follow the following guidelines.
 
+Read the paper "How To Ask Questions The Smart Way"
+http://www.catb.org/~esr/faqs/smart-questions.html
+
 Before reporting bugs, read the FAQ, the README and the
 TODO files. http://www.linux-france.org/prj/imapsync/
 
@@ -281,10 +284,10 @@ Failure stories reported with the following 4 imap servers:
 Success stories reported with the following 35 imap servers 
 (software names are in alphabetic order): 
 
- - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [dest], 3.0.0 [dest]
+ - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
    (OSL 3.0) http://www.archiveopteryx.org/
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
- - CommuniGatePro server (Redhat 8.0) (Solaris)
+ - CommuniGatePro server (Redhat 8.0) (Solaris), CommuniGate Pro 5.2.17[host2] (CentOS 5.4)
  - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
    (http://www.courier-mta.org/)
  - Critical Path (7.0.020)
@@ -300,10 +303,10 @@ Success stories reported with the following 35 imap servers
  - David Tobit V8 (proprietary Message system).
  - DBMail 1.2.1, 2.0.4, 2.0.9, 2.2rc1 (GPL) (http://www.dbmail.org/).
    2.0.7 seems buggy.
- - Deerfield VisNetic MailServer 5.8.6 [from]
+ - Deerfield VisNetic MailServer 5.8.6 [host1]
+ - Domino (Notes) 4.61[host1], 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1[host1], 8.0.1[host1]
  - Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
    1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)
- - Domino (Notes) 4.61[from], 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1 [from]
  - Eudora WorldMail v2
  - GMX IMAP4 StreamProxy.
  - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
@@ -311,7 +314,10 @@ Success stories reported with the following 35 imap servers
  - IMail 7.15 (Ipswitch/Win2003), 8.12
  - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform)
  - Mercury 4.1 (Windows server 2000 platform)
- - Microsoft Exchange Server 5.5, 6.0.6249.0[from], 6.0.6487.0[from], 6.5.7638.1 [dest]
+ - Microsoft Exchange Server 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
+   6.5.7638.1 [host2], Exchange 2007 SP1 (with Update Rollup 2), 
+   Exchange2007-EP-SP2, 
+   Exchange 2010 RTM (Release to Manufacturing) [host2]
  - Netscape Mail Server 3.6 (Wintel !)
  - Netscape Messaging Server 4.15 Patch 7
  - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
@@ -420,7 +426,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.303 2010/01/20 04:12:52 gilles Exp gilles $
+$Id: imapsync,v 1.310 2010/02/26 01:24:59 gilles Exp gilles $
 
 =cut
 
@@ -473,6 +479,7 @@ my(
         $mess_size_total_skipped,
         $mess_size_total_error,
         $mess_trans, $mess_skipped, $mess_skipped_dry, 
+	$h1_mess_deleted, $h2_mess_deleted, 
         $timeout,   # whr (ESS/PRW)
 	$timestart, $timeend, $timediff,
         $timesize, $timebefore,
@@ -490,7 +497,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.303 2010/01/20 04:12:52 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.310 2010/02/26 01:24:59 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -500,6 +507,7 @@ $mess_size_total_trans   = 0;
 $mess_size_total_skipped = 0;
 $mess_size_total_error   = 0;
 $mess_trans = $mess_skipped = $mess_skipped_dry = 0;
+$h1_mess_deleted = $h2_mess_deleted = 0;
 
 
 
@@ -554,8 +562,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.303 $ ',
-		  '$Date: 2010/01/20 04:12:52 $ ',
+		  '$Revision: 1.310 $ ',
+		  '$Date: 2010/02/26 01:24:59 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -638,8 +646,8 @@ sub localhost_info {
 	         ),
                  ")\n",
 	         "with perl ", 
-	         sprintf("%vd", $PERL_VERSION),
-	         modules_VERSION()
+	         sprintf("%vd", $PERL_VERSION),"\n",
+	         "Mail::IMAPClient  $Mail::IMAPClient::VERSION",
             );	  
 	return($infos);
 
@@ -851,11 +859,8 @@ sub plainauth() {
 
 sub server_banner {
 	my $imap = shift;
-	for my $line ($imap->Results()) {
-		#print "LR: $line";
-		return $line if $line =~ /^\* (OK|NO|BAD)/;
-        }
-	return "No banner\n";
+	my $banner = $imap->Banner() ||  "No banner\n";
+	return $banner;
  }
 
 
@@ -1209,7 +1214,7 @@ sub foldersizes {
 
 foreach my $h1_fold (@h1_folders) {
 	my $h2_fold;
-	$h2_fold = to_folder_name($h1_fold);
+	$h2_fold = imap2_folder_name($h1_fold);
 	$h2_folders{$h2_fold}++;
 }
 
@@ -1266,23 +1271,60 @@ sub separator_invert {
 	return($h2_fold);
 }
 
-sub to_folder_name {
+
+sub tests_imap2_folder_name {
+
+$h1_prefix = $h2_prefix = '';
+$h1_sep = '/';
+$h2_sep = '.';
+
+$debug and print 
+"prefix1: [$h1_prefix]
+prefix2: [$h2_prefix]
+sep1:[$h1_sep]
+sep2:[$h2_sep]
+";
+
+ok('' eq imap2_folder_name(''), 'imap2_folder_name: empty string');
+ok('blabla' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla');
+ok('spam.spam' eq imap2_folder_name('spam/spam'), 'imap2_folder_name: spam/spam');
+ok('spam/spam' eq imap2_folder_name('spam.spam'), 'imap2_folder_name: spam.spam');
+ok('spam.spam/spam' eq imap2_folder_name('spam/spam.spam'), 'imap2_folder_name: spam/spam.spam');
+@regextrans2 = ('s,/,X,g');
+ok('' eq imap2_folder_name(''), 'imap2_folder_name: empty string [s,/,X,g]');
+ok('blabla' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla [s,/,X,g]');
+ok('spam.spam' eq imap2_folder_name('spam/spam'), 'imap2_folder_name: spam/spam [s,/,X,g]');
+ok('spamXspam' eq imap2_folder_name('spam.spam'), 'imap2_folder_name: spam.spam [s,/,X,g]');
+ok('spam.spamXspam' eq imap2_folder_name('spam/spam.spam'), 'imap2_folder_name: spam/spam.spam [s,/,X,g]');
+
+@regextrans2 = ('s, ,_,g');
+ok('blabla' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla [s, ,_,g]');
+ok('bla_bla' eq imap2_folder_name('bla bla'), 'imap2_folder_name: blabla [s, ,_,g]');
+
+@regextrans2 = ('s,(.*),\U$1,');
+ok('BLABLA' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla [s,\U(.*)\E,$1,]');
+
+
+}
+
+sub imap2_folder_name {
 	my ($h2_fold);
 	my ($x_fold) = @_;
 	# first we remove the prefix
 	$x_fold =~ s/^\Q$h1_prefix\E//;
-	$debug and print "removed source prefix: [$x_fold]\n";
+	$debug and print "removed host1 prefix: [$x_fold]\n";
 	$h2_fold = separator_invert($x_fold,$h1_sep, $h2_sep);
-	$debug and print "inverted   separators: [$h2_fold]\n";
+	$debug and print "inverted  separators: [$h2_fold]\n";
 	# Adding the prefix supplied by namespace or the --prefix2 option
 	$h2_fold = $h2_prefix . $h2_fold 
 	  unless(($h2_prefix eq "INBOX" . $h2_sep) and ($h2_fold =~ m/^INBOX$/i));
-	$debug and print "added   target prefix: [$h2_fold]\n";
+	$debug and print "added   host2 prefix: [$h2_fold]\n";
 
 	# Transforming the folder name by the --regextrans2 option(s)
 	foreach my $regextrans2 (@regextrans2) {
-		$debug and print "eval \$h2_fold =~ $regextrans2\n";
+	        my $h2_fold_before = $h2_fold;
 		eval("\$h2_fold =~ $regextrans2");
+		$debug and print "[$h2_fold_before] -> [$h2_fold] using re [$regextrans2]\n";
 		die("error: eval regextrans2 '$regextrans2': $@\n") if $@;
 	}
 	return($h2_fold);
@@ -1306,14 +1348,98 @@ sub tests_flags_regex {
 	@regexflag = ('s/(\s|^)[^\\\\]\w+//g');
 	ok('\Seen \Middle \End' eq flags_regex('\Seen NonJunk \Middle $Spam \End'), 'flags_regex, only \word [' . flags_regex('\Seen NonJunk \Middle $Spam \End'.']'));
 	ok(' \Seen \Middle \End1' eq flags_regex('Begin \Seen NonJunk \Middle $Spam \End1 End'), 'flags_regex, only \word [' . flags_regex('Begin \Seen NonJunk \Middle $Spam \End1 End'.']'));
+
+	@regexflag = ('s/.*?(Keep1|Keep2|Keep3)/$1 /g');
+	ok('Keep1 Keep2  ReB' eq flags_regex('ReA Keep1 REM Keep2 ReB'), "Keep only regex");
+	#ok('Keep1 Keep2' eq flags_regex('Keep1 Keep2 Remove1'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('REM REM Keep1 Keep2'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('Keep1 REM REM Keep2'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('REM Keep1 REM REM  Keep2'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('Keep1 Keep2'), "Keep only regex");
+	ok('Keep1 ' eq flags_regex('REM Keep1'), "Keep only regex");
+
+	@regexflag = ('s/(Keep1|Keep2|Keep3) (?!(Keep1|Keep2|Keep3)).*/$1 /g');
+	ok('Keep1 Keep2 ' eq flags_regex('Keep1 Keep2 ReB'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('Keep1 Keep2 REM REM  REM'), "Keep only regex");
+	ok('Keep2 ' eq flags_regex('Keep2 REM REM  REM'), "Keep only regex");
+	#ok('' eq flags_regex('REM REM'), "Keep only regex");
+	
+	@regexflag = ('s/.*?(Keep1|Keep2|Keep3)/$1 /g', 
+	's/(Keep1|Keep2|Keep3) (?!(Keep1|Keep2|Keep3)).*/$1 /g');
+	ok('Keep1 Keep2 ' eq flags_regex('REM Keep1 REM Keep2 REM'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('Keep1 REM Keep2 REM'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('REM Keep1 Keep2 REM'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('REM Keep1 REM Keep2'), "Keep only regex");
+	ok('Keep1 Keep2 Keep3 ' eq flags_regex('REM Keep1 REM Keep2 REM REM Keep3 REM'), "Keep only regex");
+	ok('Keep1 ' eq flags_regex('REM  REM Keep1 REM REM REM '), "Keep only regex");
+	ok('Keep1 Keep3 ' eq flags_regex('RE1 Keep1 RE2 Keep3 RE3 RE4 RE5 '), "Keep only regex");
+	
+	@regexflag = ('s/(.*)/$1 jrdH8u/');
+	ok('REM  REM  REM REM REM jrdH8u' eq flags_regex('REM  REM  REM REM REM'), "Keep only regex 's/(.*)/\$1 jrdH8u/'");	
+	@regexflag = ('s/jrdH8u *//');
+	ok('REM  REM  REM REM REM ' eq flags_regex('REM  REM  REM REM REM jrdH8u'), "Keep only regex s/jrdH8u *//");	
+	
+	@regexflag = (
+	's/(.*)/$1 jrdH8u/',
+	's/.*?(Keep1|Keep2|Keep3|jrdH8u)/$1 /g', 
+	's/(Keep1|Keep2|Keep3|jrdH8u) (?!(Keep1|Keep2|Keep3|jrdH8u)).*/$1 /g',
+	's/jrdH8u *//'
+	);
+	
+	ok('Keep1 Keep2 ' eq flags_regex('REM Keep1 REM Keep2 REM'), "Keep only regex 'REM Keep1 REM Keep2 REM'");
+	ok('Keep1 Keep2 ' eq flags_regex('Keep1 REM Keep2 REM'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('REM Keep1 Keep2 REM'), "Keep only regex");
+	ok('Keep1 Keep2 ' eq flags_regex('REM Keep1 REM Keep2'), "Keep only regex");
+	ok('Keep1 Keep2 Keep3 ' eq flags_regex('REM Keep1 REM Keep2 REM REM Keep3 REM'), "Keep only regex");
+	ok('Keep1 ' eq flags_regex('REM  REM Keep1 REM REM REM '), "Keep only regex");
+	ok('Keep1 Keep3 ' eq flags_regex('RE1 Keep1 RE2 Keep3 RE3 RE4 RE5 '), "Keep only regex");
+	ok('' eq flags_regex('REM  REM REM REM REM'), "Keep only regex");
+	
+	@regexflag = (
+	's/(.*)/$1 jrdH8u/',
+	's/.*?(\\\\Seen|\\\\Answered|\\\\Flagged|\\\\Deleted|\\\\Draft|jrdH8u)/$1 /g', 
+	's/(\\\\Seen|\\\\Answered|\\\\Flagged|\\\\Deleted|\\\\Draft|jrdH8u) (?!(\\\\Seen|\\\\Answered|\\\\Flagged|\\\\Deleted|\\\\Draft|jrdH8u)).*/$1 /g',
+	's/jrdH8u *//'
+	);
+	
+	ok('\\Deleted \\Answered ' 
+	eq flags_regex('Blabla $Junk \\Deleted machin \\Answered truc'), "Keep only regex: Exchange case");
+	ok('' eq flags_regex(''), "Keep only regex: Exchange case, null string");
+	ok('' 
+	eq flags_regex('Blabla $Junk  machin  truc'), "Keep only regex: Exchange case, no accepted flags ");
+	ok('\\Deleted \\Answered \\Draft \\Flagged ' 
+	eq flags_regex('\\Deleted    \\Answered  \\Draft \\Flagged '), "Keep only regex: Exchange case");
+	
+	
+	@regexflag = (
+	's/.*?(?:(\\\\(?:Answered|Flagged|Deleted|Seen|Draft)\s?)|$)/defined($1)?$1:q()/eg'
+	);
+	
+	ok('\\Deleted \\Answered ' 
+	eq flags_regex('Blabla \$Junk \\Deleted machin \\Answered truc'), 
+	"Keep only regex: Exchange case (Phil)");
+	
+	ok('' eq flags_regex(''), "Keep only regex: Exchange case, null string (Phil)");
+	
+	ok('' 
+	eq flags_regex('Blabla $Junk  machin  truc'), 
+	"Keep only regex: Exchange case, no accepted flags (Phil)");
+	
+	ok('\\Deleted \\Answered \\Draft \\Flagged ' 
+	eq flags_regex('\\Deleted    \\Answered  \\Draft \\Flagged '), 
+	"Keep only regex: Exchange case (Phil)");
+	
+	
 }
 
 sub flags_regex {
 	my ($h1_flags) = @_;
 	foreach my $regexflag (@regexflag) {
+		my $h1_flags_orig = $h1_flags;
 		$debug and print "eval \$h1_flags =~ $regexflag\n";
 		eval("\$h1_flags =~ $regexflag");
 		die("error: eval regexflag '$regexflag': $@\n") if $@;
+		$debug and print "regexflag $regexflag [$h1_flags_orig] -> [$h1_flags]\n";
 	}
 	return($h1_flags);
 }
@@ -1402,7 +1528,7 @@ print "++++ Looping on each folder ++++\n";
 FOLDER: foreach my $h1_fold (@h1_folders) {
 	my $h2_fold;
 	print "Host1 Folder [$h1_fold]\n";
-	$h2_fold = to_folder_name($h1_fold);
+	$h2_fold = imap2_folder_name($h1_fold);
 	print "Host2 Folder [$h2_fold]\n";
 
 	last FOLDER if $imap1->IsUnconnected();
@@ -1528,7 +1654,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		if (!$rc) {
 			my $reason = !defined($rc) ? "no header" : "duplicate";
 			my $h2_size = $h2_fir->{$m}->{"RFC822.SIZE"} || 0;
-			print "+ Skipping msg #$m:$h2_size in 'to' folder $h2_fold ($reason so we ignore this message)\n";
+			print "+ Skipping msg #$m:$h2_size in host2 folder $h2_fold ($reason so we ignore this message)\n";
 			#$mess_size_total_skipped += $msize;
 			#$mess_skipped += 1;
 		}
@@ -1555,11 +1681,12 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 				my $h2_msg  = $h2_hash{$m_id}{'m'};
 				my $h2_flags  = $h2_hash{$m_id}{'F'} || "";
 				my $isdel  = $h2_flags =~ /\B\\Deleted\b/ ? 1 : 0;
-				print "deleting message $m_id  $h2_msg\n"
+				print "deleting message [$m_id] #$h2_msg in host2 folder $h2_fold\n"
 				  if ! $isdel;
 				push(@expunge,$h2_msg) if $uidexpunge2;
 				unless ($dry or $isdel) {
 					$imap2->delete_message($h2_msg);
+					$h2_mess_deleted += 1;
 					last FOLDER if $imap2->IsUnconnected();
 				}
 			}
@@ -1581,7 +1708,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		my $h1_idate = $h1_hash{$m_id}{'D'};
 		
 		if (defined $maxsize and $h1_size > $maxsize) {
-			print "+ Skipping msg #$h1_msg:$h1_size in folder $h1_fold (exceeds maxsize limit $maxsize bytes)\n";
+			print "+ Skipping msg #$h1_msg:$h1_size in host1 folder $h1_fold (exceeds maxsize limit $maxsize bytes)\n";
 			$mess_size_total_skipped += $h1_size;
 			$mess_skipped += 1;
 			next MESS;
@@ -1715,9 +1842,10 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 					$mess_size_total_trans += $h1_size;
 					$mess_trans += 1;
 					if($delete) {
-						print "Deleting msg #$h1_msg in folder $h1_fold\n";
+						print "Deleting msg #$h1_msg in host1 folder $h1_fold\n";
 						unless($dry) {
 							$imap1->delete_message($h1_msg);
+							$h1_mess_deleted += 1;
 							last FOLDER if $imap1->IsUnconnected();
 							$imap1->expunge() if ($expunge);
 							last FOLDER if $imap1->IsUnconnected();
@@ -1800,7 +1928,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			# NO recopy CODE HERE. to be written if needed.
 			$error++;
 			if ($opt_G){
-				print "Deleting msg f:#$h2_msg in folder $h2_fold\n";
+				print "Deleting msg f:#$h2_msg in host2 folder $h2_fold\n";
 				$imap2->delete_message($h2_msg) unless ($dry);
 				last FOLDER if   $imap2->IsUnconnected();
 			}
@@ -1810,9 +1938,10 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			$debug and print
 			"Message $m_id SZ_GOOD f:$h1_msg:$h1_size t:$h2_msg:$h2_size\n";
 			if($delete) {
-				print "Deleting msg #$h1_msg in folder $h1_fold\n";
+				print "Deleting msg #$h1_msg in host1 folder $h1_fold\n";
 				unless($dry) {
 					$imap1->delete_message($h1_msg);
+					$h1_mess_deleted += 1;
 					last FOLDER if $imap1->IsUnconnected();
 					$imap1->expunge() if ($expunge);
 					last FOLDER if $imap1->IsUnconnected();
@@ -1821,11 +1950,11 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		}
 	}
 	if ($expunge1){
-		print "Expunging source folder $h1_fold\n";
+		print "Expunging host1 folder $h1_fold\n";
 		unless($dry) { $imap1->expunge() };
 	}
 	if ($expunge2){
-		print "Expunging target folder $h2_fold\n";
+		print "Expunging host2 folder $h2_fold\n";
 		unless($dry) { $imap2->expunge() };
 	}
 
@@ -1914,17 +2043,21 @@ sub select_msgs {
 }
 
 sub stats {
-	print "++++ Statistics ++++\n";
-	print "Time                   : $timediff sec\n";
-	print "Messages transferred   : $mess_trans ";
-	print "(could be $mess_skipped_dry without dry mode)" if ($dry);
-	print "\n";
-	print "Messages skipped       : $mess_skipped\n";
-	print "Total bytes transferred: $mess_size_total_trans\n";
-	print "Total bytes skipped    : $mess_size_total_skipped\n";
-	print "Total bytes error      : $mess_size_total_error\n";
-	print "Detected $error errors\n\n";
-	print thank_author();
+	print   "++++ Statistics ++++\n";
+	print   "Time                     : $timediff sec\n";
+	print   "Messages transferred     : $mess_trans ";
+	print   "(could be $mess_skipped_dry without dry mode)" if ($dry);
+	print   "\n";
+	print   "Messages skipped         : $mess_skipped\n";
+	print   "Messages deleted on host1: $h1_mess_deleted\n";
+	print   "Messages deleted on host2: $h2_mess_deleted\n";
+	print   "Total bytes transferred  : $mess_size_total_trans\n";
+	print   "Total bytes skipped      : $mess_size_total_skipped\n";
+	print   "Total bytes error        : $mess_size_total_error\n";
+	$timediff ||= 1; # No division per 0
+	printf ("Average bandwith rate    : %.1f Ko/s\n", $mess_size_total_trans / 1024 / $timediff);
+	print   "Detected $error errors\n\n";
+	print   thank_author();
 }
 
 sub thank_author {
@@ -2327,6 +2460,7 @@ sub tests {
 		tests_flags_regex();
 		tests_permanentflags();
 		tests_flags_filter();
+		tests_imap2_folder_name();
 	}
 }
 
@@ -2869,16 +3003,19 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
         # BUG? should probably return undef if length != expected
 	# No bug, somme servers are buggy.
 
-        if ( length($string) != $expected_size ) {
-                warn "message_string: " .
-                        "expected $expected_size bytes but received " .
-                        length($string) . "\n";
-		$self->LastError("message_string: expected ".
-                        "$expected_size bytes but received " .
-                        length($string)."\n");
-        }
+	if (! $self->Ignoresizeerrors ) {
+        	if ( length($string) != $expected_size ) {
+                	warn "message_string: " .
+                        	"expected $expected_size bytes but received " .
+                        	length($string) . "\n";
+			$self->LastError("message_string: expected ".
+                        	"$expected_size bytes but received " .
+                        	length($string)."\n");
+        	}
+	}
         return $string;
 };
+
 
 
 {
@@ -2898,6 +3035,16 @@ no warnings 'once';
 	if (@_) { $self->{AUTHUSER} = shift }
 	return $self->{AUTHUSER};
 };
+
+
+
+*Mail::IMAPClient::Ignoresizeerrors = sub {
+	my $self = shift;
+	
+	if (@_) { $self->{IGNORESIZEERRORS} = shift }
+	return $self->{IGNORESIZEERRORS};
+};
+
 
 }
 
@@ -2928,32 +3075,24 @@ sub myconnect {
 				unless defined wantarray;	
 		return undef;
 	}
+	$sock->autoflush(1);
+	
+	my $banner = $sock->getline();
+	$debug and print "Read: $banner";
+	
+	$self->Banner($banner);
+	$self->RawSocket2($sock);
+	$self->State(Connected);
 	
 	if ($self->Tls) {
 	    $debug and print "Calling starttls\n";
-	    $sock->autoflush(1);
-	    my $banner = starttls($sock);
+	    
+	    my $banner = starttls($self);
 	    $debug and print "End starttls: $banner\n";
-	    $self->State(Mail::IMAPClient::Connected);
 	}
 	
-	$debug and print "Calling Socket\n";
+	$self->Ignoresizeerrors($allowsizemismatch);
 	
-	if ($Mail::IMAPClient::VERSION =~ /^3/ and $self->Tls) {
-		$self->RawSocket($sock);
-	}else{
-		$self->Socket($sock);
-	}
-
-	
-	if ( $Mail::IMAPClient::VERSION =~ /^2/ ) {
-	    $debug and print "Calling myconnect_v2\n";
-	    return undef unless myconnect_v2($self);
-	    $debug and print "End myconnect_v2\n";
-	}
-	else {
-		$self->Ignoresizeerrors($allowsizemismatch);
-	}
 	if ($self->User and $self->Password) {
 		$debug and print "Calling login\n";
 		return $self->login ;
@@ -2964,45 +3103,23 @@ sub myconnect {
 }
 
 	
-sub myconnect_v2 {
-	my $self = shift;
-	return $self if $self->Tls;
-	$self->State(Connected);
-	$self->Socket->autoflush(1);
-	my ($code, $output);
-        $output = "";
-        until ( $code ) {
-                $output = $self->_read_line or return undef;
-                for my $o (@$output) {
-			$self->_debug("Connect: Received this from readline: " . 
-					join("/",@$o) . "\n");
-                        $self->_record($self->Count,$o);	# $o is a ref
-                      next unless $o->[TYPE] eq "OUTPUT";
-                      ($code) = $o->[DATA] =~ /^\*\s+(OK|BAD|NO)/i  ;
-                }
-
-        }
-
-	if ($code =~ /BYE|NO /) {
-		$self->State(Unconnected);
-		return undef ;
-	}
-	return $self;
-}
 
 
 sub starttls {
-  my $socket   = shift;
+  my $self   = shift;
+  my $socket   = $self->RawSocket2();
   
   $debug and print "Entering starttls\n";
-  my $banner = $socket->getline();
+  my $banner = $self->Banner();
+  $debug and print $banner;
   unless ($banner =~ /^\* OK \[CAPABILITY.*STARTTLS.*\]/) {
     die "No STARTTLS capability: $banner";
   }
-  print $socket "STARTTLS\015\012";
+  print $socket, "\n";
+  print $socket "z00 STARTTLS\015\012";
   my $txt = $socket->getline();
-  $debug and print "$txt";
-  unless($txt =~ /^STARTTLS OK/){
+  $debug and print "Read: $txt";
+  unless($txt =~ /^z00 OK/){
     die "Invalid response for STARTTLS: $txt\n";
   }
   $debug and print "Calling start_SSL\n";
@@ -3042,3 +3159,22 @@ sub Tls {
 	return $self->{TLS};
 }
 
+sub Banner {
+	my $self = shift;
+	
+	if (@_) { $self->{BANNER} = shift }
+	return $self->{BANNER};
+}
+
+
+sub RawSocket2  {
+    my ( $self, $sock ) = @_;
+    defined $sock
+      or return $self->{Socket};
+
+    $self->{Socket}  = $sock;
+    $self->{_select} = IO::Select->new($sock);
+    delete $self->{_fcntl};
+    #$self->Fast_io( $self->Fast_io );
+    $sock;
+}

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.98 2010/01/20 04:13:59 gilles Exp gilles $  
+# $Id: tests.sh,v 1.101 2010/02/25 23:16:45 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -370,7 +370,7 @@ ll_authmd5()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --justfoldersizes --authmd5 \
+                --justlogin --authmd5 \
             --allow3xx
 }
 
@@ -509,9 +509,45 @@ ll_regextrans2()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --regextrans2 's/yop/yopX/' \
-            --allow3xx
+                --justfolders \
+                --nofoldersize \
+                --regextrans2 's/yop/yoX/' \
+                --folder 'INBOX.yop.yap'
 }
+
+ll_regextrans2_slash() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders \
+                --nofoldersize \
+                --folder 'INBOX.yop.yap' \
+                --sep1 '/' \
+                --regextrans2 's,/,_,'
+
+}
+
+
+ll_regextrans2_remove_space() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders \
+                --nofoldersize \
+                --folder 'INBOX.yop.y p' \
+                --regextrans2 's, ,,' \
+                --dry
+
+}
+
+
+
 
 ll_sep2() 
 {
@@ -679,6 +715,23 @@ ll_regex_flag3()
                 echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
 
+ll_regex_flag_keep_only() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --debug \
+                --regexflag 's/(.*)/$1 jrdH8u/' \
+                --regexflag 's/.*?(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u)/$1 /g' \
+                --regexflag 's/(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u) (?!(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u)).*/$1 /g' \
+                --regexflag 's/jrdH8u *//'
+                
+                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
 
 ll_tls_justconnect() {
  $CMD_PERL ./imapsync \
@@ -702,9 +755,9 @@ ll_tls_justlogin() {
 
 ll_tls_devel() {
    CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_justlogin ll_ssl_justlogin \
-&& CMD_PERL='perl -I./Mail-IMAPClient-3.19/lib' ll_justlogin ll_ssl_justlogin \
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.23/lib' ll_justlogin ll_ssl_justlogin \
 && CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_tls_justconnect  ll_tls_justlogin \
-&& CMD_PERL='perl -I./Mail-IMAPClient-3.19/lib' ll_tls_justconnect ll_tls_justlogin
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.23/lib' ll_tls_justconnect ll_tls_justlogin
 }
 
 ll_tls() {
@@ -805,7 +858,6 @@ ll_authmech_CRAMMD5() {
 
 ll_delete2() {
         if can_send; then
-                #echo3 Here is plume
 		sendtestmessage titi
         else
                 :
@@ -816,9 +868,24 @@ ll_delete2() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX \
-                --delete2 --expunge2 \
-            --allow3xx
+                --delete2 --expunge2
 }
+
+ll_delete() {
+        if can_send; then
+		sendtestmessage titi
+        else
+                :
+        fi
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 titi \
+                --passfile1 ../../var/pass/secret.titi \
+                --host2 $HOST2 --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --folder INBOX \
+                --delete --expunge
+}
+
 
 ll_bigmail() {
                 $CMD_PERL ./imapsync \
@@ -903,21 +970,21 @@ gmail_gmail2() {
 
 
 allow3xx() {
-                perl -I./Mail-IMAPClient-3.19/lib  ./imapsync \
+                $CMD_PERL  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-		--allow3xx 
+		--allow3xx --justlogin 
 }
 
 noallow3xx() {
-                ! perl -I./Mail-IMAPClient-3.19/lib  ./imapsync \
+                ! perl -I./Mail-IMAPClient-3.23/lib ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-		--noallow3xx 
+		--noallow3xx --justlogin 
 }
 
 
@@ -1234,6 +1301,7 @@ test $# -eq 0 && run_tests \
         ll_regexmess_scwchu \
         ll_flags \
         ll_regex_flag \
+        ll_regex_flag_keep_only \
         ll_justconnect \
         ll_justlogin \
         ll_ssl \
@@ -1247,6 +1315,7 @@ test $# -eq 0 && run_tests \
         ll_authmech_CRAMMD5 \
         ll_authuser \
         ll_delete2 \
+        ll_delete \
         ll_folderrec \
         ll_bigmail \
         gmail \
