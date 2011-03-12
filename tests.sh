@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.71 2008/03/19 02:13:55 gilles Exp $  
+# $Id: tests.sh,v 1.72 2008/04/21 03:44:35 gilles Exp gilles $  
 
 #### Shell pragmas
 
@@ -145,6 +145,22 @@ ll_folder() {
                 :
         fi
 }
+
+ll_oneemail() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                $CMD_PERL ./imapsync \
+                --host1 localhost  --user1 tata@est.belle \
+                --passfile1 /var/tmp/secret.tata \
+                --host2 localhost --user2 titi@est.belle \
+                --passfile2 /var/tmp/secret.titi \
+                --folder INBOX.oneemail
+        else
+                :
+        fi
+}
+
+
 
 ll_folderrec() {
         if test X`hostname` = X"plume"; then

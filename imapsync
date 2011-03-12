@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.249 $
+$Revision: 1.250 $
 
 =head1 INSTALL
 
@@ -17,7 +17,7 @@ $Revision: 1.249 $
  imapsync works fine under Windows 2000 (at least) and ActiveState's 5.8 Perl
 
  imapsync is already available directly on the following distributions (at least):
- FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva.
+ FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva and OpenBSD (yeah!).
 
  Get imapsync at
  http://www.linux-france.org/prj/imapsync/dist/
@@ -387,7 +387,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.249 2008/03/19 02:14:24 gilles Exp $
+$Id: imapsync,v 1.250 2008/04/21 03:46:01 gilles Exp gilles $
 
 
 
@@ -452,7 +452,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.249 2008/03/19 02:14:24 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.250 2008/04/21 03:46:01 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -486,8 +486,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.249 $ ',
-		  '$Date: 2008/03/19 02:14:24 $ ',
+		  '$Revision: 1.250 $ ',
+		  '$Date: 2008/04/21 03:46:01 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -1391,7 +1391,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 				else {
 					# just back to append_string since append_file 3.05 does not work. 
 					#$new_id = $to->append_file($t_fold, $message_file, "", $flags_f, $d);
-					# append_string 3.05 does not work too.
+					# append_string 3.05 does not work too some times with $d unset.
 					$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
 				}
 				unless($new_id){
@@ -2193,6 +2193,10 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
         my(%fieldmap) = map { ( lc($_),$_ )  } @fields;
         my $msg; my $string; my $field;
 	
+	if(ref($msgspec_all) eq 'HASH') {
+		$msgspec_all = [$msgspec_all];
+	}
+
 	unless(ref($msgspec_all) eq 'ARRAY') {
 		print "parse_headers want an ARRAY ref\n";
 		exit 1;
