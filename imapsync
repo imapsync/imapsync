@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.44 $
+$Revision: 1.47 $
 
 =head1 INSTALL
 
@@ -30,6 +30,7 @@ $Revision: 1.44 $
            [--sep2 <char>]
            [--syncinternaldate]
            [--delete] [--expunge]
+           [--subscribed]
            [--dry]
            [--debug] [--debugimap]
            [--version] [--help]
@@ -90,6 +91,20 @@ in too files "/etc/secret1" for "buddy", "/etc/secret2" for "max") :
           --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
 
 Then, you will have buddy's mailbox updated from max's mailbox.
+
+=head1 SECURITY
+
+You can use --password1 instead of --passfile1 to give the
+password but it is dangerous because any user on your host
+can see the password by using the 'ps auxwwww'
+command. Using a variable (like $PASSWORD1) is also
+dangerous because of the 'ps auxwwwwe' command. So, saving
+the password in a well protected file (600 or rw-------) is
+the best solution.
+
+imasync is not protected against sniffers on the network so
+the passwords are in plain text.
+
 
 =head1 EXIT STATUS
 
@@ -157,7 +172,7 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.44 2003/11/11 18:01:49 gilles Exp $
+$Id: imapsync,v 1.47 2003/11/21 03:15:31 gilles Exp $
 
 =cut
 
@@ -168,6 +183,9 @@ use Getopt::Long;
 use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
 
+eval { require 'usr/include/sysexits.ph' };
+
+
 my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
@@ -175,20 +193,24 @@ my(
         @folder, $prefix2,
         $sep1, $sep2,
 	$syncinternaldates,
-	$delete, $expunge, $dry, 
+	$delete, $expunge, $dry, $subscribed,
 	$version, $VERSION, $help, 
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.44 2003/11/11 18:01:49 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.47 2003/11/21 03:15:31 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.44 $ ' . '$Date: 2003/11/11 18:01:49 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.47 $ ' . '$Date: 2003/11/21 03:15:31 $ ' . "\n";
 
+unless(defined(&_SYSEXITS_H)) {
+	# 64 on my linux box.
+	eval 'sub EX_USAGE () {64;}' unless defined(&EX_USAGE);
+}
 
 get_options();
 print $banner;
@@ -248,7 +270,19 @@ print "From capability : ", join(" ", $from->capability()), "\n";
 print "To   capability : ", join(" ", $to->capability()), "\n";
 
 my (@f_folders, @t_folders);
-@f_folders = (scalar(@folder)) ? @folder : @{$from->folders()};
+
+#@f_folders = (scalar(@folder)) ? @folder : @{$from->folders()};
+
+if (scalar(@folder)) {
+	# folders given by option --folder
+	@f_folders = @folder;
+}elsif ($subscribed) {
+	# option --subscribed
+	@f_folders = $from->subscribed();
+}else {
+	# no option, all folders
+	@f_folders = $from->folders()
+}
 
 my($f_sep,$t_sep); 
 # what are the private folders separators for each server ?
@@ -279,7 +313,7 @@ print "To   separator : [$t_sep]\n";
 
 
 # needed for setting flags
-my $tohasuidplus = $to->has_capability("UIDPLUS");
+# my $tohasuidplus = $to->has_capability("UIDPLUS");
 
 
 @t_folders = @{$to->folders()};
@@ -471,6 +505,7 @@ sub get_options
                                    "syncinternaldates!" => \$syncinternaldates,
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
+                                   "subscribed!" => \$subscribed,
                                    "version"     => \$version,
                                    "help"        => \$help,
                                   );
@@ -478,7 +513,7 @@ sub get_options
         $debug and print "get options: [$opt_ret]\n";
         print "$VERSION\n" and exit if ($version) ;
         usage() and exit if ($help or ! $numopt) ;
-        exit unless ($opt_ret) ;
+        exit(EX_USAGE()) unless ($opt_ret) ;
 	
 	
 }
@@ -555,6 +590,7 @@ Several options are mandatory.
                          expunge delete messages marked deleted.
 --syncinternaldates    : set the internal dates on host2 same as host1
 --dry                  : do nothing, just print what would be done.
+--subscribed           : transfer only subscribed folders.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
 --version              : print sotfware version.
@@ -570,5 +606,6 @@ $0 \\
 
 $rcs
       imapsync copyleft is the GNU General Public License.
+      See http://www.gnu.org/copyleft/gpl.html
 EOF
 }

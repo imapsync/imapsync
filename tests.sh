@@ -1,8 +1,13 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.9 2003/10/20 22:53:29 gilles Exp $	
+# $Id: tests.sh,v 1.10 2003/11/21 03:20:14 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.10  2003/11/21 03:20:14  gilles
+# Renamed lp_folder_qqq() pl_folder_qqq()
+# Removed --prefix2 INBOX. in pl_folder_qqq()
+# Added lp_subscribed() test.
+#
 # Revision 1.9  2003/10/20 22:53:29  gilles
 # Added lp_internaldate()
 #
@@ -138,16 +143,17 @@ lp_folder() {
 	fi
 }
 
-lp_folder_qqq() {
+
+pl_folder_qqq() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
+		--host1 plume --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
 		--folder INBOX.qqq  \
-		--prefix2 INBOX. \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata
+		--prefix2 "" \
+		--host2 loul  --user2 tata \
+		--passfile2 /var/tmp/secret.tata
 	else
 		:
 	fi
@@ -186,7 +192,23 @@ pl_folder() {
 	fi
 }
 
+lp_subscribed() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--subscribed
+	else
+		:
+	fi
 
+    
+
+}
 
 
 
@@ -203,8 +225,9 @@ test $# -eq 0 && run_tests \
 	plumeloul \
 	lp_folder \
 	pl_folder \
-	lp_folder_qqq \
-	lp_internaldate
+        pl_folder_qqq \
+	lp_internaldate \
+	lp_subscribed
 
 # selective tests
 

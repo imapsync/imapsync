@@ -1,7 +1,7 @@
 NAME
     imapsync - synchronize mailboxes between two imap servers.
 
-    $Revision: 1.44 $
+    $Revision: 1.47 $
 
 INSTALL
      Get imapsync at http://www.linux-france.org/prj/imapsync/dist/
@@ -25,6 +25,7 @@ SYNOPSIS
                [--sep2 <char>]
                [--syncinternaldate]
                [--delete] [--expunge]
+               [--subscribed]
                [--dry]
                [--debug] [--debugimap]
                [--version] [--help]
@@ -76,6 +77,17 @@ EXAMPLES
               --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
 
     Then, you will have buddy's mailbox updated from max's mailbox.
+
+SECURITY
+    You can use --password1 instead of --passfile1 to give the password but
+    it is dangerous because any user on your host can see the password by
+    using the 'ps auxwwww' command. Using a variable (like $PASSWORD1) is
+    also dangerous because of the 'ps auxwwwwe' command. So, saving the
+    password in a well protected file (600 or rw-------) is the best
+    solution.
+
+    imasync is not protected against sniffers on the network so the
+    passwords are in plain text.
 
 EXIT STATUS
     imapsync will exit with a 0 status (return code) if everything went
@@ -136,5 +148,5 @@ SIMILAR SOFTWARES
 
     Feedback (good or bad) will be always welcome.
 
-    $Id: imapsync,v 1.44 2003/11/11 18:01:49 gilles Exp $
+    $Id: imapsync,v 1.47 2003/11/21 03:15:31 gilles Exp $
 
