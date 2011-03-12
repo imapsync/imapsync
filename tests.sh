@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.102 2010/06/11 02:50:28 gilles Exp gilles $  
+# $Id: tests.sh,v 1.104 2010/07/09 03:06:44 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -157,6 +157,8 @@ locallocal() {
          --allow3xx
 }
 
+
+
 ll_ask_password() {
                 { sleep 2; cat ../../var/pass/secret.tata; } | \
                 $CMD_PERL ./imapsync \
@@ -175,6 +177,8 @@ ll_timeout() {
                 --folder INBOX --timeout 1 \
             --allow3xx
 }
+
+
 
 ll_timeout_ssl() {
                 $CMD_PERL ./imapsync \
@@ -357,8 +361,23 @@ ll_justfoldersizes()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --justfoldersizes \
-            --allow3xx
+                --justfoldersizes
+}
+
+ll_dev_reconnect() 
+{
+# in another terminal:
+#
+#   while :; do killall -u vmail imapd; sleepenh 3; done
+#
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi 
+
+                #--folder INBOX 
+		#--debug --debugimap
 }
 
 

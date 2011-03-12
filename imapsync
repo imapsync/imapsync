@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.318 $
+$Revision: 1.321 $
 
 =head1 INSTALL
 
@@ -333,7 +333,7 @@ Success stories reported with the following 36 imap servers
  - Rockliffe Mailsite 5.3.11, 4.5.6
  - Samsung Contact IMAP server 8.5.0
  - Scalix v10.1, 10.0.1.3, 11.0.0.431
- - SmarterMail
+ - SmarterMail, Smarter Mail 5.0 Enterprise.
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05
  - Surgemail 3.6f5-5
@@ -433,7 +433,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.318 2010/07/07 23:44:35 gilles Exp gilles $
+$Id: imapsync,v 1.321 2010/07/09 03:27:31 gilles Exp gilles $
 
 =cut
 
@@ -507,7 +507,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.318 2010/07/07 23:44:35 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.321 2010/07/09 03:27:31 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -572,8 +572,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.318 $ ',
-		  '$Date: 2010/07/07 23:44:35 $ ',
+		  '$Revision: 1.321 $ ',
+		  '$Date: 2010/07/09 03:27:31 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -2037,8 +2037,8 @@ sub lost_connection {
 	}
 }
 
-$imap1->logout() unless (lost_connection($imap1,"host1 [$host1]"));
-$imap2->logout() unless (lost_connection($imap2,"host2 [$host2]"));
+$imap1->logout();
+$imap2->logout();
 
 $timeend = time();
 
@@ -3081,6 +3081,12 @@ no warnings 'once';
 	return $self->{SSL};
 };
 
+*Mail::IMAPClient::exists = sub  {
+    my ( $self, $folder ) = @_;
+    $self->status($folder) ? $self : undef;
+};
+
+
 
 *Mail::IMAPClient::Authuser = sub {
 	my $self = shift;
@@ -3140,24 +3146,15 @@ no warnings 'once';
             push( @err, $self->LastError ) if $self->LastError;
 	    #print "call @_ done [$rc] [$retry][" . $self->IsUnconnected . "]\n";
         }
-
-        if ( !defined($rc) and $retry and $self->IsUnconnected) {
-	    #print "maybe not good: $!\n";
-            last
-              unless (
-                   $! == EPIPE
-                or $! == ECONNRESET
-                or $self->LastError =~ /(?:error\(.*?\)|timeout) waiting\b/i
-                or $self->LastError =~ /(?:socket closed|\* BYE)\b/i
-
-                # BUG? reconnect if caller ignored/missed earlier errors?
-                # or $self->LastError =~ /NO not connected/
-              );
-            if ( $self->reconnect ) {
-                print "reconnect successful on try #$tries";
+	
+        if ( !defined($rc) and $retry and $self->IsUnconnected
+	     and $self->LastIMAPCommand !~ /LOGOUT/) {
+	   print "\nWarning: disconnected. ";
+           if ( $self->reconnect ) {
+                print "Reconnect successful on try #$tries\n";
             }
             else {
-                print "reconnect failed on try #$tries";
+                print "Reconnect failed on try #$tries\n";
                 push( @err, $self->LastError ) if $self->LastError;
             }
         }
@@ -3619,11 +3616,13 @@ sub starttls {
 
 package Mail::IMAPClient;
 
-
 sub Split {
 	my $self = shift;
 	
-	if (@_) { $self->{SPLIT} = shift }
+	if (@_) { 
+		$self->{SPLIT} = shift;
+		$self->{Maxcommandlength} = 10 * $self->{SPLIT};
+	}
 	return $self->{SPLIT};
 }
 
