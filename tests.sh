@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.52 2006/04/02 03:32:55 gilles Exp $	
+# $Id: tests.sh,v 1.53 2006/06/08 00:53:21 gilles Exp $	
 
 #### Shell pragmas
 
@@ -678,6 +678,25 @@ flags()
 		--passfile1 /var/tmp/secret.tata \
 		--folder INBOX.yop.yap \
 		--dry --debug
+		
+		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
+	else
+		:
+	fi
+}
+
+regex_flag() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--folder INBOX.yop.yap \
+		--dry --debug --regexflag 's/\\Answered//g'
 		
 		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
 	else
