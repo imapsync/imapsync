@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.31 2005/01/04 04:50:12 gilles Exp $	
+# $Id: tests.sh,v 1.32 2005/01/10 00:15:41 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.32  2005/01/10 00:15:41  gilles
+# Added --fast for big_transfert()
+#
 # Revision 1.31  2005/01/04 04:50:12  gilles
 # essnet update
 #
@@ -539,7 +542,8 @@ big_transfert()
 	--passfile1 /var/tmp/secret \
 	--host2 plume --user2 tete@est.belle \
 	--passfile2 /var/tmp/secret.tete \
-	--subscribed --foldersizes --noauthmd5 || \
+	--subscribed --foldersizes --noauthmd5 \
+        --fast --folder INBOX.Backup || \
     true
     }
     date2=`date`
@@ -555,7 +559,7 @@ big_transfert_sizes_only()
 	--host2 plume --user2 tete@est.belle \
 	--passfile2 /var/tmp/secret.tete \
 	--subscribed --foldersizes --noauthmd5 \
-	--justconnect || \
+	--justconnect --fast || \
     true
     }
     date2=`date`

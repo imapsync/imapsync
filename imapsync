@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.112 $
+$Revision: 1.115 $
 
 =head1 INSTALL
 
@@ -281,7 +281,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.112 2005/01/04 04:49:43 gilles Exp $
+$Id: imapsync,v 1.115 2005/01/10 00:14:45 gilles Exp $
 
 =cut
 
@@ -310,6 +310,7 @@ my(
         $subscribed, $subscribe,
 	$version, $VERSION, $help, 
         $justconnect, $justfolders,
+        $fast,
         $mess_size_total_trans,
         $mess_size_total_skipped,
         $mess_size_total_error,
@@ -323,7 +324,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.112 2005/01/04 04:49:43 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.115 2005/01/10 00:14:45 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -360,8 +361,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.112 $ ',
-		  '$Date: 2005/01/04 04:49:43 $ ',
+		  '$Revision: 1.115 $ ',
+		  '$Date: 2005/01/10 00:14:45 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -732,79 +733,36 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	print "++++ From Parse 1 ++++\n";
 	
 	my $f_heads = $from->parse_headers([@f_msgs],"ALL") if (@f_msgs) ;
-	print "Time : ", timenext(), " s\n";
+	print "Time headers: ", timenext(), " s\n";
 	my $f_size  = $from->fetch_hash("RFC822.SIZE") if (@f_msgs);
-	
+	print "Time sizes  : ", timenext(), " s\n";
+	#my $f_flags = $from->flags(@f_msgs) ;
+	#print "Time flags  : ", timenext(), " s\n";
 	use Data::Dumper;
 	#print Data::Dumper->Dump([$f_heads]);
-	
-	print "Time : ", timenext(), " s\n";
+	#print Data::Dumper->Dump([$f_flags]);
+
+	#exit;
 	foreach my $m (@f_msgs) {
 	  parse_header_msg1($m, $f_heads, $f_size, "F", \%f_hash);
 	}
-	print "Time : ", timenext(), " s\n";
+	print "Time headers: ", timenext(), " s\n";
+
+	
 	print "\n++++ To   Parse 1 ++++\n";
 	my $t_heads =   $to->parse_headers([@t_msgs],"ALL") if (@t_msgs);
-	print "Time : ", timenext(), " s\n";
+	print "Time headers: ", timenext(), " s\n";
 	my $t_size  =   $to->fetch_hash("RFC822.SIZE") if (@t_msgs);
-	print "Time : ", timenext(), " s\n";
+	print "Time sizes  : ", timenext(), " s\n";
+	#my $t_flags =   $to->flags(@t_msgs) ;
+	#print "Time flags  : ", timenext(), " s\n";
 	
 	foreach my $m (@t_msgs) {
 	  parse_header_msg1($m, $t_heads, $t_size, "T", \%t_hash);
 	}
-	print "Time : ", timenext(), " s\n";
+	print "Time headers: ", timenext(), " s\n";
 	#exit;
-	sub parse_header_msg1 {
-		my ($m_uid, $s_heads, $s_size, $s, $s_hash) = @_;
-		
-		my $head = $s_heads->{$m_uid};
-		my $headnum =  scalar(keys(%$head));
-		$debug and print "Head NUM:", $headnum, "\n";
-		return unless($headnum);
-		my $headstr;
-		
-		foreach my $h (sort keys(%$head)){
-		  foreach my $val (sort @{$head->{$h}}) {
-		    # no 8-bit data in headers !
-		    $val =~ s/[\x80-\xff]/X/g;
-		    # remove the first blanks (dbmail bug ?)
-		    $val =~ s/^\s+//;
-		    # show stuff in debug mode
-		    $debug and print "${s}H $h:", $val, "\n";
-		    if ($skipheader and $h =~ m/$skipheader/) {
-		      $debug and print "Skipping header $h\n";
-		      next;
-		    }
-		    $headstr .= "$h:". $val;
-		  }
-		}
-		return unless ($headstr);
-		my $size = $s_size->{$m_uid}->{"RFC822.SIZE"};
-		return unless ($size);
-		my $m_md5 = md5_base64($headstr);
-		
-		$debug and print "$s msg $m_uid:$m_md5:$size\n";
-		$size = 0 if ($skipsize);
-		$s_hash->{"$m_md5:$size"}{'5'} = "$m_md5:$size";
-		$s_hash->{"$m_md5:$size"}{'s'} = $size;
-		$s_hash->{"$m_md5:$size"}{'m'} = $m_uid;
-	}
-	
-#	print "++++ From Parse ++++\n";
-#	foreach my $m (@f_msgs) {
-#		print ".";
-#		parse_header_msg($m, $from, "F", \%f_hash);
-#	}
-#	print "Time : ", timenext(), " s\n";
-	
-	
-#	print "\n++++ To   Parse ++++\n";
-#	foreach my $m (@t_msgs) {
-#		print ".";
-#		parse_header_msg($m, $to, "T", \%t_hash);
-#	}
 
-	print "Time : ", timenext(), " s\n";
 	print "\n++++ Verifying ++++\n";
 	# messages in "from" that are not good in "to"
     
@@ -832,10 +790,13 @@ FOLDER: foreach my $f_fold (@f_folders) {
 				$debug and print "F message content begin next line\n",
 				  $string,
 				    "F message content end previous line\n";
-				my $d = $from->internaldate($f_msg);
-				$d = "\"$d\"";
-				$debug and print "internal date from 1: [$d]\n";
-				$syncinternaldates or $d = "";
+				my $d = "";
+				if ($syncinternaldates) {
+					$d = $from->internaldate($f_msg);
+					$d = "\"$d\"";
+					$debug and print "internal date from 1: [$d]\n";
+				}
+				
 				my $flags_f = join(" ", @{$from->flags($f_msg)});
 				# RFC 2060 : This flag can not be altered by the client
 				$flags_f =~ s@\\Recent@@g;
@@ -865,6 +826,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			$mess_skipped += 1;
 		}
 		
+		$fast and next MESS;
 		#$debug and print "MESSAGE $m_id\n"; 
 		my $t_size = $t_hash{$m_id}{'s'};
 		my $t_msg  = $t_hash{$m_id}{'m'};
@@ -876,20 +838,24 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		
 		$to->store($t_msg,
 			   "+FLAGS (" . join(" ", @flags_f) . ")"
-			  );
+			  ) unless ($dry) ;
 		@flags_t = @{$to->flags($t_msg)};
 		$debug and print 
 		  "flags from : @flags_f\n",
 		  "flags to   : @flags_t\n";
-		$debug and print "Looking dates\n"; 
-		my $d_f = $from->internaldate($f_msg);
-		my $d_t = $to->internaldate($t_msg);
-		$debug and print 
-		  "idate from : $d_f\n",
-		  "idate to   : $d_t\n";
-		#unless ($d_f eq $d_t) {
-		#	print "!!! Dates differ !!!\n";
-		#}
+		
+
+		$debug and do {
+			print "Looking dates\n"; 
+			my $d_f = $from->internaldate($f_msg);
+			my $d_t = $to->internaldate($t_msg);
+			print 
+			  "idate from : $d_f\n",
+			    "idate to   : $d_t\n";
+			#unless ($d_f eq $d_t) {
+			#	print "!!! Dates differ !!!\n";
+			#}
+		};
 		unless ($f_size == $t_size) {
 			# Bad size
 			print 
@@ -899,7 +865,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			$error++;
 			if ($opt_G){
 				print "Deleting msg f:#$t_msg in folder $t_fold\n";
-				$to->delete_message($t_msg);
+				$to->delete_message($t_msg) unless ($dry);
 			}
 		}else {
 	    		# Good 
@@ -907,8 +873,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			"Message $m_id SZ_GOOD f:$f_msg:$f_size t:$t_msg:$t_size\n";
 			if($delete) {
 				print "Deleting msg #$f_msg in folder $f_fold\n";
-				$from->delete_message($f_msg);
-				$from->expunge() if ($expunge);
+				$from->delete_message($f_msg) unless ($dry);
+				$from->expunge() if ($expunge and not $dry);
 			}
 		}
 	}
@@ -974,6 +940,7 @@ sub get_options
                                    "subscribe!"  => \$subscribe,
                                    "justconnect!"=> \$justconnect,
                                    "justfolders!"=> \$justfolders,
+				   "fast!"       => \$fast,
                                    "version"     => \$version,
                                    "help"        => \$help,
                                    "timeout=i"   => \$timeout,
@@ -995,6 +962,42 @@ sub get_options
 	
 }
 
+
+sub parse_header_msg1 {
+	my ($m_uid, $s_heads, $s_size, $s, $s_hash) = @_;
+	
+	my $head = $s_heads->{$m_uid};
+	my $headnum =  scalar(keys(%$head));
+	$debug and print "Head NUM:", $headnum, "\n";
+	return unless($headnum);
+	my $headstr;
+	
+	foreach my $h (sort keys(%$head)){
+		foreach my $val (sort @{$head->{$h}}) {
+			# no 8-bit data in headers !
+			$val =~ s/[\x80-\xff]/X/g;
+			# remove the first blanks (dbmail bug ?)
+			$val =~ s/^\s+//;
+			# show stuff in debug mode
+			$debug and print "${s}H $h:", $val, "\n";
+			if ($skipheader and $h =~ m/$skipheader/) {
+				$debug and print "Skipping header $h\n";
+		      next;
+			}
+			$headstr .= "$h:". $val;
+		}
+	}
+	return unless ($headstr);
+	my $size = $s_size->{$m_uid}->{"RFC822.SIZE"};
+	return unless ($size);
+	my $m_md5 = md5_base64($headstr);
+	
+	$debug and print "$s msg $m_uid:$m_md5:$size\n";
+	$size = 0 if ($skipsize);
+	$s_hash->{"$m_md5:$size"}{'5'} = "$m_md5:$size";
+	$s_hash->{"$m_md5:$size"}{'s'} = $size;
+	$s_hash->{"$m_md5:$size"}{'m'} = $m_uid;
+}
 
 sub parse_header_msg {
 
@@ -1108,6 +1111,7 @@ Several options are mandatory.
 --justconnect          : just connect to both servers and print useful 
                          information.
 --justfolders          : just do things about folders (ignore messages).
+--fast                 : be faster.
 --timeout     <int>    : imap connect timeout.
 --help                 : print this.
 
