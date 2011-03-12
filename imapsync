@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.42 $
+$Revision: 1.43 $
 
 =head1 INSTALL
 
@@ -26,6 +26,8 @@ $Revision: 1.42 $
            [--user2 <string>] [--passfile2 <string>] 
            [--folder <string> --folder <string> ...]
            [--prefix2 <string>]
+           [--sep1 <char>]
+           [--sep2 <char>]
            [--syncinternaldate]
            [--delete] [--expunge]
            [--dry]
@@ -155,7 +157,7 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.42 2003/10/20 22:56:57 gilles Exp $
+$Id: imapsync,v 1.43 2003/11/11 02:18:45 gilles Exp $
 
 =cut
 
@@ -170,7 +172,8 @@ my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-	@folder, $prefix2, 
+        @folder, $prefix2,
+        $sep1, $sep2,
 	$syncinternaldates,
 	$delete, $expunge, $dry, 
 	$version, $VERSION, $help, 
@@ -179,12 +182,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.42 2003/10/20 22:56:57 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.43 2003/11/11 02:18:45 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.42 $ ' . '$Date: 2003/10/20 22:56:57 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.43 $ ' . '$Date: 2003/11/11 02:18:45 $ ' . "\n";
 
 
 get_options();
@@ -247,9 +250,29 @@ print "To   capability : ", join(" ", $to->capability()), "\n";
 my (@f_folders, @t_folders);
 @f_folders = (scalar(@folder)) ? @folder : @{$from->folders()};
 
+my($f_sep,$t_sep); 
 # what are the private folders separators for each server ?
-my $f_sep = $from->namespace()->[0][0][1];
-my $t_sep = $to->namespace()->[0][0][1];
+
+$f_sep = get_separator($from, $sep1, "--sep1");
+$t_sep = get_separator($from, $sep2, "--sep2");
+
+sub get_separator {
+	my($imap, $sep_in, $sep_opt) = @_;
+	my($sep_out);
+	if ($imap->has_capability("namespace")) {
+		$sep_out = $imap->namespace()->[0][0][1];
+	}elsif ($sep_in) {
+		$sep_out = $sep_in;
+	}else{
+		print 
+		  "No NAMESPACE capability in imap server ", 
+		    $from->Server(),"\n",
+		      "Give the separator caracter with the $sep_opt option\n";
+		exit(1);
+	}
+	return($sep_out);
+}
+
 
 print "From separator : [$f_sep]\n";
 print "To   separator : [$t_sep]\n";
@@ -440,6 +463,8 @@ sub get_options
                                    "password2=s" => \$password2,
                                    "passfile1=s" => \$passfile1,
                                    "passfile2=s" => \$passfile2,
+                                   "sep1=s"      => \$sep1,
+                                   "sep2=s"      => \$sep2,
 				   "folder=s"    => \@folder,
 				   "prefix2=s"   => \$prefix2,
                                    "delete!"     => \$delete,
@@ -517,8 +542,10 @@ Several options are mandatory.
 --folder      <string> : sync only this folder and its children.
 --folder      <string> : and this one (and its children).
 --folder      <string> : and this one, etc.
---prefix2     <string> : Add prefix to all destination folders 
+--prefix2     <string> : add prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
+--sep1        <char>   : separator in case namespace is not supported.
+--sep2        <char>   : idem.
 --delete               : delete messages in "from" imap server after
                          a successful transfert. useful in case you
                          want to migrate from one server to another one.
