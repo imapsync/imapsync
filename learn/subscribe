@@ -1,0 +1,24 @@
+#!/usr/bin/perl -w
+
+use Mail::IMAPClient;
+
+$ARGV[1] or die "usage: $0 user password\n";
+
+$host = "localhost";
+$user = $ARGV[0];
+$password = $ARGV[1];
+
+my $imap = Mail::IMAPClient->new();
+#$imap->Debug(1);
+$imap->Server($host);
+$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->subscribe("shared.Spam") or die;
+print	"$user subscribed to\n", 
+	join("\n", $imap->subscribed()), 
+	"\n";
+$imap->close();
+
+

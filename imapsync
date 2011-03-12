@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.145 $
+$Revision: 1.147 $
 
 =head1 INSTALL
 
@@ -213,7 +213,7 @@ Success stories reported with the following imap servers
  - Groupwise IMAP (Novell). Buggy so see the FAQ.
  - iPlanet Messaging server 4.15, 5.1
  - IMail 7.15 (Ipswitch/Win2003), 8.12
- - MDaemon 7.0.1
+ - MDaemon 7.0.1, 8.1
  - MS Exchange Server 5.5
  - Netscape Mail Server 3.6 (Wintel !)
  - Netscape Messaging Server 4.15 Patch 7
@@ -308,7 +308,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.145 2005/12/04 01:58:54 gilles Exp $
+$Id: imapsync,v 1.147 2006/02/08 07:54:46 gilles Exp gilles $
 
 =cut
 
@@ -355,7 +355,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.145 2005/12/04 01:58:54 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.147 2006/02/08 07:54:46 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -392,8 +392,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.145 $ ',
-		  '$Date: 2005/12/04 01:58:54 $ ',
+		  '$Revision: 1.147 $ ',
+		  '$Date: 2006/02/08 07:54:46 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -822,18 +822,16 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 
 
-	$debug and print "LIST FROM : @f_msgs\n";
+	$debug and print "LIST FROM : [@f_msgs]\n";
 	# internal dates on "TO" are after the ones on "FROM"
 	# normally...
 	my @t_msgs = select_msgs($to);
 	
-	$debug and print "LIST TO   : @t_msgs\n";
+	$debug and print "LIST TO   : [@t_msgs]\n";
 
 	my %f_hash = ();
 	my %t_hash = ();
-	
 
-	
 	print "++++ From [$f_fold] Parse 1 ++++\n";
 	
 	my $f_heads = $from->parse_headers($from->Range([@f_msgs]),@useheader) 
