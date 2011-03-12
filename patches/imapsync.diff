@@ -1,0 +1,146 @@
+--- imapsync.orig	Wed Dec 24 04:04:34 2003
++++ imapsync	Wed Jan 21 10:32:24 2004
+@@ -34,10 +34,13 @@
+            [--host2 server2]  [--port2 <num>]
+            [--user2 <string>] [--passfile2 <string>] 
+            [--folder <string> --folder <string> ...]
++	   [--include <regex>] [--exclude <regex>]
+            [--prefix2 <string>]
+            [--sep1 <char>]
+            [--sep2 <char>]
+-           [--syncinternaldate]
++           [--syncinternaldates]
++	   [--maxsize <int>]
++	   [--maxage <int>]
+            [--delete] [--expunge]
+            [--subscribed] [--subscribe]
+            [--dry]
+@@ -239,9 +242,10 @@
+         $rcs, $debug, $debugimap, $error,
+ 	$host1, $host2, $port1, $port2,
+ 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
+-        @folder, $prefix2,
++        @folder, $include, $exclude, $prefix2,
+         $sep1, $sep2,
+ 	$syncinternaldates,
++	$maxsize, $maxage,
+ 	$delete, $expunge, $dry, 
+         $subscribed, $subscribe,
+ 	$version, $VERSION, $help, 
+@@ -369,10 +373,19 @@
+ 	@f_folders = @folder;
+ }elsif ($subscribed) {
+ 	# option --subscribed
+-	@f_folders = keys (%fs_folders);
++	@f_folders = sort keys (%fs_folders);
+ }else {
+ 	# no option, all folders
+-	@f_folders = $from->folders()
++	@f_folders = sort $from->folders();
++	# consider (optional) includes and excludes
++	if ($include) {
++		@f_folders = grep  /$include/,@f_folders;
++		print "Only including folders matching pattern '$include'\n";
++	}
++	if ($exclude) {
++		@f_folders = grep !/$exclude/,@f_folders;
++		print "Excluding folders matching pattern '$exclude'\n";
++	}
+ }
+ 
+ my($f_sep,$t_sep); 
+@@ -415,13 +428,13 @@
+ # my $tohasuidplus = $to->has_capability("UIDPLUS");
+ 
+ 
+-@t_folders = @{$to->folders()};
++@t_folders = sort @{$to->folders()};
+ print 
+   "From folders : ", map("[$_] ",@f_folders),"\n",
+   "To   folders : ", map("[$_] ",@t_folders),"\n";
+ 
+ print 
+-  "From subscribed folders : ", map("[$_] ", keys(%fs_folders)), "\n";
++  "From subscribed folders : ", map("[$_] ", sort keys(%fs_folders)), "\n";
+ 
+ sub separator_invert {
+ 	my $o_sep="\000";
+@@ -485,9 +498,9 @@
+ 		unless($dry) { $to->subscribe($t_fold) };
+ 	}
+ 	
+-	my @f_msgs = $from->search("ALL");
++	my @f_msgs = $maxage ? $from->since(time - 86400 * $maxage) : $from->search("ALL");
+ 	$debug and print "LIST FROM : @f_msgs\n";
+-	my @t_msgs = $to->search("ALL");
++	my @t_msgs = $maxage ? $to->since(time - 86400 * $maxage) : $to->search("ALL");
+ 	$debug and print "LIST TO   : @t_msgs\n";
+ 
+ 	my %f_hash = ();
+@@ -508,6 +521,10 @@
+ 	MESS: foreach my $m_id (keys(%f_hash)) {
+ 		my $f_size = $f_hash{$m_id}{'s'};
+ 		my $f_msg = $f_hash{$m_id}{'m'};
++		if (defined $maxsize and $f_size > $maxsize) {
++			print "Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit)\n";
++			next MESS;
++		}
+ 		$debug and print "key     $m_id #$f_msg\n";
+ 		unless (exists($t_hash{$m_id})) {
+ 			print "NO msg #$f_msg [$m_id] in $t_fold\n";
+@@ -526,7 +543,7 @@
+ 				my $new_id;
+ 				print "flags from : [$flags_f][$d]\n";
+ 				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
+-					warn "Couldn't append msg #$f_msg to folder $t_fold",
++					warn "Couldn't append msg #$f_msg (Subject: ".$from->subject($f_msg).") to folder $t_fold: ",
+ 					$to->LastError, "\n";
+ 					$error++;
+ 					next MESS;
+@@ -619,9 +636,13 @@
+                                    "sep1=s"      => \$sep1,
+                                    "sep2=s"      => \$sep2,
+ 				   "folder=s"    => \@folder,
++				   "include=s"   => \$include,
++				   "exclude=s"   => \$exclude,
+ 				   "prefix2=s"   => \$prefix2,
+                                    "delete!"     => \$delete,
+                                    "syncinternaldates!" => \$syncinternaldates,
++				   "maxsize=i"   => \$maxsize,
++				   "maxage=i"    => \$maxage,
+                                    "dry!"        => \$dry,
+                                    "expunge!"    => \$expunge,
+                                    "subscribed!" => \$subscribed,
+@@ -656,8 +677,8 @@
+ 	return unless(scalar(keys(%$head)));	    
+ 	foreach my $h (sort keys(%$head)){
+ 		foreach my $val ( @{$head->{$h}}) {
+-			# no accent in headers !
+-			$val =~ y/יטאש/XXXX/;
++			# no 8-bit data in headers !
++			$val =~ s/[\x80-\xff]/X/g;
+ 			$debug and print "${s}H $h:", $val, "\n";
+ 			$headstr .= "$h:". $val;
+ 		}
+@@ -704,6 +725,12 @@
+ --folder      <string> : sync only this folder.
+ --folder      <string> : and this one.
+ --folder      <string> : and this one, etc.
++--include     <regex>  : only sync folders matching this regular expression
++                         (only effective if neither --folder nor --subscribed
++			  is specified)
++--exclude     <regex>  : skip folders matching this regular expression
++                         (only effective if neither --folder nor --subscribed
++			  is specified)
+ --prefix2     <string> : add prefix to all destination folders 
+                          (usually INBOX. for cyrus imap servers)
+ --sep1        <char>   : separator in case namespace is not supported.
+@@ -718,6 +745,8 @@
+                          expunge is made at the begining so newly
+                          transfered messages won't be expunged.
+ --syncinternaldates    : set the internal dates on host2 same as host1
++--maxsize     <int>    : skip messages larger than <int> bytes
++--maxage      <int>    : skip messages older than <int> days
+ --dry                  : do nothing, just print what would be done.
+ --subscribed           : transfer only subscribed folders.
+ --subscribe            : subscribe to the folders transfered on the 

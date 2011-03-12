@@ -2,11 +2,14 @@
 
 =head1 NAME 
 
-imapsync - synchronize mailboxes between two imap servers.
+imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.65 $
+$Revision: 1.68 $
 
 =head1 INSTALL
+
+ imapsync works fine under any Unix OS.
+ imapsync works fine under Windows 2000 (at least) and ActiveState's 5.8 Perl
 
  Get imapsync at
  http://www.linux-france.org/prj/imapsync/dist/ 
@@ -150,19 +153,20 @@ Report any bugs to the author: lamiral@linux-france.org
 
 =head1 IMAP SERVERS
 
-Success stories reported : 
+Success stories reported (softwares in alphabetic order) : 
 
- - Courier IMAP 1.5.1, 2.2.0, 2.1.1
- - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.2.1, Cyrus 2.2.2-BETA
- - Netscape Mail Server 3.6 (Wintel)
- - CommunicatePro server (Redhat 8.0)
- - SunONE Messaging server 5.2
- - iPlanet Messaging server 4.15
- - dovecot ?.?? 
- - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
  - BincImap 1.2.3
+ - CommunicatePro server (Redhat 8.0)
+ - Courier IMAP 1.5.1, 2.2.0, 2.1.1
+ - Critical Path (7.0.020)
+ - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.2.1, Cyrus 2.2.2-BETA
  - DBMail 1.2.1
-
+ - dovecot ?.?? 
+ - iPlanet Messaging server 4.15
+ - Netscape Mail Server 3.6 (Wintel !)
+ - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
+ - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
+ - UW - QMail v2.1
 
 Please report to the author any success or bad story with
 imapsync and don't forget to mention the IMAP server
@@ -220,7 +224,7 @@ Welcome in shell programming !
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.65 2003/12/24 03:04:34 gilles Exp $
+$Id: imapsync,v 1.68 2004/01/28 03:49:29 gilles Exp $
 
 =cut
 
@@ -251,7 +255,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.65 2003/12/24 03:04:34 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.68 2004/01/28 03:49:29 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -282,8 +286,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.65 $ ',
-		  '$Date: 2003/12/24 03:04:34 $ ',
+		  '$Revision: 1.68 $ ',
+		  '$Date: 2004/01/28 03:49:29 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
