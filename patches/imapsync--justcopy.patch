@@ -1,0 +1,535 @@
+--- imapsync.orig	2005-02-11 14:27:53.508176000 -0600
++++ imapsync	2005-02-14 11:39:31.241157000 -0600
+@@ -1,6 +1,6 @@
+ #!/usr/bin/perl -w
+ 
+-=head1 NAME 
++=head1 NAME
+ 
+ imapsync - IMAP synchronization, copy or migration
+ tool. Synchronize mailboxes between two imap servers. Good
+@@ -35,9 +35,9 @@
+   imapsync
+ 
+   imapsync [--host1 server1]  [--port1 <num>]
+-           [--user1 <string>] [--passfile1 <string>] 
++           [--user1 <string>] [--passfile1 <string>]
+            [--host2 server2]  [--port2 <num>]
+-           [--user2 <string>] [--passfile2 <string>] 
++           [--user2 <string>] [--passfile2 <string>]
+            [--folder <string> --folder <string> ...]
+ 	   [--include <regex>] [--exclude <regex>]
+            [--prefix2 <string>]
+@@ -55,14 +55,14 @@
+            [--debug] [--debugimap]
+            [--timeout <int>]
+            [--version] [--help]
+-  
++
+ =cut
+ # comment
+ =pod
+ 
+ =head1 DESCRIPTION
+ 
+-The command imapsync is a tool allowing incremental and recursive 
++The command imapsync is a tool allowing incremental and recursive
+ imap transfer from one mailbox to another.
+ 
+ We sometimes need to transfer mailboxes from one imap server to
+@@ -133,10 +133,10 @@
+ imapsync will exit with a 0 status (return code) if everything went good.
+ Otherwise, it exits with a non-zero status.
+ 
+-So if you have a buggy internet connection, you can use this loop 
++So if you have a buggy internet connection, you can use this loop
+ in a Bourne shell:
+ 
+-        while ! imapsync ...; do 
++        while ! imapsync ...; do
+               echo imapsync not complete
+         done
+ 
+@@ -184,7 +184,7 @@
+ 
+ =head1 IMAP SERVERS
+ 
+-Success stories reported (softwares in alphabetic order) : 
++Success stories reported (softwares in alphabetic order) :
+ 
+  - BincImap 1.2.3
+  - CommunicatePro server (Redhat 8.0)
+@@ -223,7 +223,7 @@
+ =head1 HUGE MIGRATION
+ 
+ 
+-Have a special attention on options 
++Have a special attention on options
+ --subscribed
+ --subscribe
+ --delete
+@@ -244,7 +244,7 @@
+ 
+ And the shell program is just :
+ 
+-{ while IFS=';' read  u1 p1 u2 p2; do 
++{ while IFS=';' read  u1 p1 u2 p2; do
+ 	imapsync --user1 $u1 --password1 $p1 --user2 $u2 --password2 $p2 ...
+ done ; } < file.csv
+ 
+@@ -266,7 +266,7 @@
+   mailsync    : http://mailsync.sourceforge.net/
+   imapxfer    : http://www.washington.edu/imap/
+                 part of the imap-utils from UW.
+-  mailutil    : replace imapxfer in 
++  mailutil    : replace imapxfer in
+                 part of the imap-utils from UW.
+ 		http://www.gsp.com/cgi-bin/man.cgi?topic=mailutil
+   imaprepl    : http://www.bl0rg.net/software/
+@@ -308,10 +308,10 @@
+ 	$syncinternaldates, $syncacls,
+ 	$maxsize, $maxage,
+         $skipheader, $skipsize, $foldersizes,
+-	$delete, $expunge, $dry, 
++	$delete, $expunge, $dry,
+         $authmd5,
+         $subscribed, $subscribe,
+-	$version, $VERSION, $help, 
++	$version, $VERSION, $help,
+         $justconnect, $justfolders,
+         $fast,
+         $mess_size_total_trans,
+@@ -321,6 +321,7 @@
+         $timeout,   # whr (ESS/PRW)
+ 	$timestart, $timeend, $timediff,
+         $timesize, $timebefore,
++        $verbose, $justcopy
+ 
+ );
+ 
+@@ -362,7 +363,7 @@
+ 
+ $error=0;
+ 
+-my $banner = join("", 
++my $banner = join("",
+ 		  '$RCSfile: imapsync,v $ ',
+ 		  '$Revision: 1.121 $ ',
+ 		  '$Date: 2005/02/01 04:03:30 $ ',
+@@ -426,7 +427,7 @@
+ $to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout);
+ 
+ sub login_imap {
+-	my($host, $port, $user, $password, 
++	my($host, $port, $user, $password,
+ 	   $debugimap, $timeout, $authmech) = @_;
+ 	my $imap = Mail::IMAPClient->new();
+ 	$imap->Server($host);
+@@ -461,12 +462,12 @@
+ 		print "$authmech not wanted by you\n";
+ 		return;
+ 	}
+-	if ($imap->has_capability($authmech) 
++	if ($imap->has_capability($authmech)
+ 	    or $imap->has_capability("AUTH=$authmech")) {
+-		print "Server [", $imap->Server, 
++		print "Server [", $imap->Server,
+ 		  "] has capability $authmech\n";
+ 	}else{
+-		print "Server [", $imap->Server, 
++		print "Server [", $imap->Server,
+ 		  "] has NOT capability $authmech\n";
+ 		return;
+ 	}
+@@ -520,7 +521,7 @@
+ 
+ @t_folders = sort @{$to->folders()};
+ 
+-my($f_sep,$t_sep); 
++my($f_sep,$t_sep);
+ # what are the private folders separators for each server ?
+ 
+ 
+@@ -543,8 +544,8 @@
+ 		$sep_out = $imap->separator();
+ 		return($sep_out);
+ 	}else{
+-		print 
+-		  "No NAMESPACE capability in imap server ", 
++		print
++		  "No NAMESPACE capability in imap server ",
+ 		    $imap->Server(),"\n",
+ 		      "Give the separator caracter with the $sep_opt option\n";
+ 		exit(1);
+@@ -555,7 +556,7 @@
+ print "From separator : [$f_sep]\n";
+ print "To   separator : [$t_sep]\n";
+ 
+-if ($foldersizes) {
++if (!$justcopy and $foldersizes) {
+ 	my $tot = 0;
+ 	my $tmess = 0;
+ 	print "++++ Calculating sizes ++++\n";
+@@ -564,7 +565,7 @@
+ 		my $smess = 0;
+ 		printf("From Folder %-25s", "[$f_fold]");
+ 		unless ($from->select($f_fold)) {
+-			warn 
++			warn
+ 			  "From Folder $f_fold : Could not select ",
+ 			    $from->LastError,  "\n";
+ 			$error++;
+@@ -616,11 +617,11 @@
+ 
+ 
+ 
+-print 
++print
+   "From folders : ", map("[$_] ",@f_folders),"\n",
+   "To   folders : ", map("[$_] ",@t_folders),"\n";
+ 
+-print 
++print
+   "From subscribed folders : ", map("[$_] ", sort keys(%fs_folders)), "\n";
+ 
+ sub separator_invert {
+@@ -654,14 +655,14 @@
+ 	print "To   Folder [$t_fold]\n";
+ 
+ 	unless ($from->select($f_fold)) {
+-		warn 
++		warn
+ 		"From Folder $f_fold : Could not select ",
+ 		$from->LastError,  "\n";
+ 		$error++;
+ 		next FOLDER;
+ 	}
+ 
+-	unless ($to->exists($t_fold) or $to->select($t_fold)) { 
++	unless ($to->exists($t_fold) or $to->select($t_fold)) {
+ 		print "To   Folder $t_fold does not exist\n";
+ 		print "Creating folder [$t_fold]\n";
+ 		unless ($dry){
+@@ -675,9 +676,9 @@
+ 			next FOLDER;
+ 		}
+ 	}
+-    
+-	unless ($to->select($t_fold)) { 
+-		warn 
++
++	unless ($to->select($t_fold)) {
++		warn
+ 		"To   Folder $t_fold : Could not select ",
+ 		$to->LastError, "\n";
+ 		$error++;
+@@ -708,6 +709,7 @@
+ 	    }
+ 	  }
+ 	}
++        print "Time folders: ", timenext(), " s\n";
+ 	
+ 	next FOLDER if ($justfolders);
+ 
+@@ -725,6 +727,7 @@
+ 	$from->Clear(1);
+ 	$to->Clear(1);
+ 
++        print "Time query:   ", timenext(), " s\n";
+ 	
+ 	print "From Buffer I/O : ", $from->Buffer(), "\n";
+ 	print "To   Buffer I/O : ", $to->Buffer(), "\n";
+@@ -733,49 +736,55 @@
+ #	print "From Buffer I/O : ", $from->Buffer(), "\n";
+ #	print "To   Buffer I/O : ", $to->Buffer(), "\n";
+ 
+-	print "++++ From Parse 1 ++++\n";
+-	
+-	my $f_heads = $from->parse_headers([@f_msgs],"ALL") if (@f_msgs) ;
+-	print "Time headers: ", timenext(), " s\n";
+-	my $f_size  = $from->fetch_hash("RFC822.SIZE") if (@f_msgs);
+-	print "Time sizes  : ", timenext(), " s\n";
+-	#my $f_flags = $from->flags(@f_msgs) ;
+-	#print "Time flags  : ", timenext(), " s\n";
+-	use Data::Dumper;
+-	#print Data::Dumper->Dump([$f_heads]);
+-	#print Data::Dumper->Dump([$f_flags]);
+-	
+-	#exit;
+-	foreach my $m (@f_msgs) {
+-	  parse_header_msg1($m, $f_heads, $f_size, "F", \%f_hash);
+-	}
+-	print "Time headers: ", timenext(), " s\n";
+-	
+-	print "\n++++ To   Parse 1 ++++\n";
+-	my $t_heads =   $to->parse_headers([@t_msgs],"ALL") if (@t_msgs);
+-	print "Time headers: ", timenext(), " s\n";
+-	my $t_size  =   $to->fetch_hash("RFC822.SIZE") if (@t_msgs);
+-	print "Time sizes  : ", timenext(), " s\n";
+-	#my $t_flags =   $to->flags(@t_msgs) ;
+-	#print "Time flags  : ", timenext(), " s\n";
+-	
+-	foreach my $m (@t_msgs) {
+-	  parse_header_msg1($m, $t_heads, $t_size, "T", \%t_hash);
+-	}
+-	print "Time headers: ", timenext(), " s\n";
+-	#exit;
+-
+-	print "\n++++ Verifying ++++\n";
+-	# messages in "from" that are not good in "to"
+-	
+-	my @f_hash_keys_sorted_by_uid 
+-	  = sort {$f_hash{$a}{'m'} <=> $f_hash{$b}{'m'}} keys(%f_hash);
+-	
+-	#print map { $f_hash{$_}{'m'} . " "} @f_hash_keys_sorted_by_uid;
+-	
+-	MESS: foreach my $m_id (@f_hash_keys_sorted_by_uid) {
+-		my $f_size = $f_hash{$m_id}{'s'};
+-		my $f_msg = $f_hash{$m_id}{'m'};
++        # Define f_hash_keys_sorted_by_uid  outside of if statement to keep
++        # Perl happy
++        my @f_hash_keys_sorted_by_uid = ();
++        if ($justcopy) {
++          print "++++   Copying    ++++\n";
++        } else {
++          print "++++ From Parse 1 ++++\n";
++	
++          my $f_heads = $from->parse_headers([@f_msgs],"ALL") if (@f_msgs) ;
++          print "Time headers: ", timenext(), " s\n";
++          my $f_size  = $from->fetch_hash("RFC822.SIZE") if (@f_msgs);
++          print "Time sizes  : ", timenext(), " s\n";
++          #my $f_flags = $from->flags(@f_msgs) ;
++          #print "Time flags  : ", timenext(), " s\n";
++          use Data::Dumper;
++          #print Data::Dumper->Dump([$f_heads]);
++          #print Data::Dumper->Dump([$f_flags]);
++	
++          #exit;
++          foreach my $m (@f_msgs) {
++            parse_header_msg1($m, $f_heads, $f_size, "F", \%f_hash);
++          }
++          print "Time headers: ", timenext(), " s\n";
++	
++          print "\n++++ To   Parse 1 ++++\n";
++          my $t_heads =   $to->parse_headers([@t_msgs],"ALL") if (@t_msgs);
++          print "Time headers: ", timenext(), " s\n";
++          my $t_size  =   $to->fetch_hash("RFC822.SIZE") if (@t_msgs);
++          print "Time sizes  : ", timenext(), " s\n";
++          #my $t_flags =   $to->flags(@t_msgs) ;
++          #print "Time flags  : ", timenext(), " s\n";
++	
++          foreach my $m (@t_msgs) {
++            parse_header_msg1($m, $t_heads, $t_size, "T", \%t_hash);
++          }
++          print "Time headers: ", timenext(), " s\n";
++          #exit;
++
++          print "\n++++ Verifying ++++\n";
++          # messages in "from" that are not good in "to"
++          @f_hash_keys_sorted_by_uid
++            = sort {$f_hash{$a}{'m'} <=> $f_hash{$b}{'m'}} keys(%f_hash);
++
++          #print map { $f_hash{$_}{'m'} . " "} @f_hash_keys_sorted_by_uid;
++	}
++
++	MESS: foreach my $m_id ($justcopy ? @f_msgs : @f_hash_keys_sorted_by_uid) {
++		my $f_size = $justcopy ? 0 : $f_hash{$m_id}{'s'};
++		my $f_msg = $justcopy ? $m_id : $f_hash{$m_id}{'m'};
+ 		# print ".";
+ 		if (defined $maxsize and $f_size > $maxsize) {
+ 			print "+ Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit $maxsize bytes)\n";
+@@ -783,10 +792,10 @@
+ 			next MESS;
+ 		}
+ 		$debug and print "+ key     $m_id #$f_msg\n";
+-		unless (exists($t_hash{$m_id})) {
+-			print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
++		unless (!$justcopy and exists($t_hash{$m_id})) {
++			$verbose and print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
+ 			# copy
+-			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
++			$verbose and print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
+ 			my $string = $from->message_string($f_msg);
+ 			while (my $regexmess = shift(@regexmess)) {
+ 				$debug and print "eval \$string =~ $regexmess\n";
+@@ -809,7 +818,7 @@
+ 			$flags_f =~ s@\\Recent@@g;
+ 			
+ 			my $new_id;
+-			print "flags from : [$flags_f][$d]\n";
++			$verbose and print "flags from : [$flags_f][$d]\n";
+ 			unless ($dry) {
+ 				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
+ 					warn "Couldn't append msg #$f_msg (Subject:[".$from->subject($f_msg)."]) to folder $t_fold: ",
+@@ -820,9 +829,9 @@
+ 					
+ 				}else{
+ 						# good
+-					# $new_id is an id if the IMAP server has the 
++					# $new_id is an id if the IMAP server has the
+ 					# UIDPLUS capability else just a ref
+-					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
++					$verbose and print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
+ 					$mess_size_total_trans += $f_size;
+ 					$mess_trans += 1;
+ 				}
+@@ -834,12 +843,12 @@
+ 			$mess_skipped += 1;
+ 		}
+ 		
+-		$fast and next MESS;
+-		#$debug and print "MESSAGE $m_id\n"; 
++		($fast or $justcopy) and next MESS;
++		#$debug and print "MESSAGE $m_id\n";
+ 		my $t_size = $t_hash{$m_id}{'s'};
+ 		my $t_msg  = $t_hash{$m_id}{'m'};
+ 		
+-		$debug and print "Setting flags\n"; 
++		$debug and print "Setting flags\n";
+ 		my (@flags_f,@flags_t);
+ 		my $flags_f_rv = $from->flags($f_msg);
+ 		@flags_f = @{$flags_f_rv} if ref($flags_f_rv);
+@@ -852,16 +861,16 @@
+ 		
+ 		my $flags_t_rv = $to->flags($t_msg);
+ 		@flags_t = @{$flags_t_rv} if ref($flags_t_rv);
+-		$debug and print 
++		$debug and print
+ 		  "flags from : @flags_f\n",
+ 		  "flags to   : @flags_t\n";
+ 		
+ 
+ 		$debug and do {
+-			print "Looking dates\n"; 
++			print "Looking dates\n";
+ 			my $d_f = $from->internaldate($f_msg);
+ 			my $d_t = $to->internaldate($t_msg);
+-			print 
++			print
+ 			  "idate from : $d_f\n",
+ 			    "idate to   : $d_t\n";
+ 			#unless ($d_f eq $d_t) {
+@@ -870,7 +879,7 @@
+ 		};
+ 		unless ($f_size == $t_size) {
+ 			# Bad size
+-			print 
++			print
+ 			"Message $m_id SZ_BAD  f:$f_msg:$f_size t:$t_msg:$t_size\n";
+ 			# delete in to and recopy ?
+ 			# NO recopy CODE HERE. to be written if needed.
+@@ -880,17 +889,17 @@
+ 				$to->delete_message($t_msg) unless ($dry);
+ 			}
+ 		}else {
+-	    		# Good 
++	    		# Good
+ 			$debug and print
+ 			"Message $m_id SZ_GOOD f:$f_msg:$f_size t:$t_msg:$t_size\n";
+ 			if($delete) {
+-				print "Deleting msg #$f_msg in folder $f_fold\n";
++				$verbose and print "Deleting msg #$f_msg in folder $f_fold\n";
+ 				$from->delete_message($f_msg) unless ($dry);
+ 				$from->expunge() if ($expunge and not $dry);
+ 			}
+ 		}
+ 	}
+-print "Time : ", timenext(), " s\n";
++        print "Time : ", timenext(), " s\n";
+ }
+ 
+ $timeend = time();
+@@ -959,6 +968,8 @@
+                                    "timeout=i"   => \$timeout,
+ 				   "skipheader=s" => \$skipheader,
+ 				   "skipsize!"   => \$skipsize,
++                                   "verbose!"    => \$verbose,
++                                   "justcopy!"   => \$justcopy,
+                                   );
+ 
+         $debug and print "get options: [$opt_ret]\n";
+@@ -1020,7 +1031,7 @@
+ 	my $headstr;
+ 	$debug and print "Head NUM:", scalar(keys(%$head)), "\n";
+ 	# no header -> return
+-	return unless(scalar(keys(%$head)));	    
++	return unless(scalar(keys(%$head)));
+ 	foreach my $h (sort keys(%$head)){
+ 		foreach my $val (sort @{$head->{$h}}) {
+ 			# no 8-bit data in headers !
+@@ -1050,12 +1061,12 @@
+ 
+         my($file) = @_;
+         my $line  = "";
+-        
++
+         open FILE, $file or die("$! $file");
+         chomp($line = <FILE>);
+         close FILE;
+         $line = ($line) ? $line : "!EMPTY! $file";
+-        return $line;   
++        return $line;
+ }
+ 
+ sub usage {
+@@ -1063,7 +1074,7 @@
+ 
+ usage: $0 [options]
+ 
+-Several options are mandatory. 
++Several options are mandatory.
+ 
+ --host1       <string> : "from" imap server. Mandatory.
+ --port1       <int>    : port to connect. Default is 143.
+@@ -1085,7 +1096,7 @@
+ --exclude     <regex>  : skip folders matching this regular expression
+                          (only effective if neither --folder nor --subscribed
+ 			  is specified)
+---prefix2     <string> : add prefix to all destination folders 
++--prefix2     <string> : add prefix to all destination folders
+                          (usually INBOX. for cyrus imap servers)
+ --regextrans2 <regex>  : Apply the whole regex to each destination folders.
+ --regexmess   <regex>  : Apply the whole regex to each message before transfer.
+@@ -1101,7 +1112,7 @@
+ 			 are not really deleted. See expunge.
+ --expunge              : expunge messages on source account.
+                          expunge really deletes messages marked deleted.
+-                         expunge is made at the begining on the 
++                         expunge is made at the begining on the
+                          source server only. newly transfered messages
+                          are expunged if option --expunge is given.
+                          no expunge is done on destination account but
+@@ -1110,12 +1121,12 @@
+ --maxsize     <int>    : skip messages larger than <int> bytes
+ --maxage      <int>    : skip messages older than <int> days.
+                          final stats (skipped) don't count older messages
+---skipheader  <regex>  : Don't take into account header keyword 
++--skipheader  <regex>  : Don't take into account header keyword
+                          matching <string> ex: --skipheader 'X.*'
+ --skipsize             : Don't take message size into account.
+ --dry                  : do nothing, just print what would be done.
+ --subscribed           : transfer only subscribed folders.
+---subscribe            : subscribe to the folders transfered on the 
++--subscribe            : subscribe to the folders transfered on the
+                          "destination" server that are subscribed
+                          on the "source" server.
+ --(no)foldersizes      : Calculate the size of each "From" folder in bytes
+@@ -1125,12 +1136,17 @@
+ --debug                : debug mode.
+ --debugimap            : imap debug mode.
+ --version              : print sotfware version.
+---justconnect          : just connect to both servers and print useful 
++--justconnect          : just connect to both servers and print useful
+                          information.
+ --justfolders          : just do things about folders (ignore messages).
+ --fast                 : be faster.
+ --timeout     <int>    : imap connect timeout.
+ --help                 : print this.
++--verbose              : print info for each message transferred.
++--justcopy             : only copy messages. Implies nofoldersizes, fast and
++                         nomaxsize. No synchronization, might create duplicate
++                         messages. Ment to be used for fast migration of
++                         messages to new (empty) IMAP accounts.
+ 
+ Example: to synchronise imap account "foo" on "imap.truc.org"
+                      to imap account "bar" on "imap.trac.org"
