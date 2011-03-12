@@ -1,10 +1,15 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.111 2010/08/15 17:35:37 gilles Exp gilles $  
+# $Id: tests.sh,v 1.114 2010/08/20 02:05:26 gilles Exp gilles $  
 
-# Example:
+# Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
 
+# Example 2:
+# To select which Mail-IMAPClient within arguments:
+# sh -x tests.sh 2 locallocal 3 locallocal
+# run locallocal() with Mail-IMAPClient-2.2.9 then
+# again with Mail-IMAPClient-3.xx
 
 HOST1=${HOST1:-'localhost'}
 echo HOST1=$HOST1
@@ -43,6 +48,8 @@ run_test() {
 
 run_tests() {
         for t in "$@"; do
+                test X"$t" = X2 && CMD_PERL=$CMD_PERL_2xx && continue
+                test X"$t" = X3 && CMD_PERL=$CMD_PERL_3xx && continue
                 test_count=`expr 1 + $test_count`
                 run_test "$t"
                 #sleep 1
@@ -97,6 +104,7 @@ sendtestmessage() {
 can_send() {
     test X`hostname` = X"plume" && return 0;
     test X`hostname` = X"vadrouille" && return 0;
+    test X`hostname` = X"petite" && return 0;
     return 1
 }
 
@@ -219,10 +227,17 @@ ll_oneemail() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.oneemail \
-            --allow3xx
+                --folder INBOX.oneemail
 }
 
+ll_few_emails() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails
+}
 
 
 ll_folderrec() {
@@ -435,19 +450,25 @@ ll_noauthmd5()
 
 ll_maxage() 
 {
-        if can_send; then
-                #echo3 Here is plume
-		sendtestmessage
-        else
-                :
-        fi
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1 --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --maxage 1 \
-            --allow3xx
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 1
+}
+
+ll_maxage_9999() 
+{
+#        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --justfoldersizes --folder INBOX \
+        --maxage 9999 
 }
 
 
@@ -1009,7 +1030,7 @@ gmail_gmail() {
                 --ssl2 \
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
-                --useheader 'Message-Id'  --skipsize \
+                --useheader 'Message-Id' --useheader="X-Gmail-Received" \
                 --regextrans2 's¤INBOX¤inbox_copy¤' \
                 --folder INBOX \
                 --authmech1 LOGIN --authmech2 LOGIN \
@@ -1361,6 +1382,7 @@ ll_ask_password
 ll_bug_folder_name_with_blank 
 ll_timeout 
 ll_folder 
+ll_oneemail
 ll_buffersize 
 ll_justfolders 
 ll_prefix12 
@@ -1424,6 +1446,7 @@ l() {
 # mandatory tests
 
 run_tests perl_syntax
+
 
 # All tests
 

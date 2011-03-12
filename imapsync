@@ -19,7 +19,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.343 $
+$Revision: 1.344 $
 
 =head1 SYNOPSIS
 
@@ -469,7 +469,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.343 2010/08/15 18:02:11 gilles Exp gilles $
+$Id: imapsync,v 1.344 2010/08/20 02:06:13 gilles Exp gilles $
 
 =cut
 
@@ -557,7 +557,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.343 2010/08/15 18:02:11 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.344 2010/08/20 02:06:13 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -1176,34 +1176,24 @@ sub foldersizes {
 			print("does not exist yet\n");
 			next;
 		}
-		unless ($imap->select($folder)) {
+		unless ($imap->examine($folder)) {
 			warn 
-			  "$side Folder $folder: Could not select: ",
+			  "$side Folder $folder: Could not examine: ",
 			    $imap->LastError,  "\n";
 			$nb_errors++;
 			next;
 		}
-		if (defined($maxage) or defined($minage)) {
-			# The pb is fetch_hash() can only be applied on ALL messages
-			my @msgs = select_msgs($imap);
-			$smess = scalar(@msgs);
-			foreach my $m (@msgs) {
-				my $s = $imap->size($m)
-				  or warn "Could not find size of message $m: $@\n";
-				$stot += $s;
-			}
+		
+		my $hash_ref = {};
+		my @msgs = select_msgs($imap);
+		$smess = scalar(@msgs);
+		@$hash_ref{@msgs} = (undef);
+		unless ($smess == 0) {
+			$imap->fetch_hash_2("RFC822.SIZE",$hash_ref) or die_clean("$@");
+			#print map {$hash_ref->{$_}->{"RFC822.SIZE"}, " "} keys %$hash_ref;
+			map {$stot += $hash_ref->{$_}->{"RFC822.SIZE"}} keys %$hash_ref;
 		}
-		else{
-			my $hashref = {};
-			$smess = $imap->message_count();
-			unless ($smess == 0) {
-				#$imap->Ranges(1);
-				$imap->fetch_hash("RFC822.SIZE",$hashref) or die_clean("$@");
-				#$imap->Ranges(0);
-				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
-				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
-			}
-		}
+		
 		printf(" Size: %9s", $stot);
 		printf(" Messages: %5s\n", $smess);
 		$tot += $stot;
@@ -1607,23 +1597,22 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	my %h1_hash = ();
 	my %h2_hash = ();
 	
-	#print "++++ Using cache ++++\n";
-	
 	print "++++ Host1 [$h1_fold] parsing headers ++++\n";
 	last FOLDER if $imap1->IsUnconnected();
 	last FOLDER if $imap2->IsUnconnected();
 
-	my ($h1_heads, $h1_fir) = ({}, {});
-	$h1_heads = $imap1->parse_headers([@h1_msgs], @useheader) if (@h1_msgs);
+	my ($h1_heads_ref, $h1_fir_ref) = ({}, {});
+	$h1_heads_ref = $imap1->parse_headers([@h1_msgs], @useheader) if (@h1_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
 	last FOLDER if $imap1->IsUnconnected();
 
-	$h1_fir   = $imap1->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
+	@$h1_fir_ref{@h1_msgs} = (undef);
+	$h1_fir_ref = $imap1->fetch_hash_2("FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref)
 	  if (@h1_msgs);
 	$debug and print "Time fir: ", timenext(), " s\n";
-	unless ($h1_fir) {
+	unless ($h1_fir_ref) {
 		warn
-		"Host1 Folder $h1_fold: Could not fetch_hash ",
+		"Host1 Folder $h1_fold: Could not fetch_hash_2 ",
 		scalar(@h1_msgs), " msgs: ", $imap1->LastError, "\n";
 		$nb_errors++;
 		next FOLDER;
@@ -1633,9 +1622,9 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 
 	my @h1_msgs_duplicate;
 	foreach my $m (@h1_msgs) {
-		my $rc = parse_header_msg($imap1, $m, $h1_heads, $h1_fir, "F", \%h1_hash);
+		my $rc = parse_header_msg($imap1, $m, $h1_heads_ref, $h1_fir_ref, "F", \%h1_hash);
 		if (! defined($rc)) {
-			my $h1_size = $h1_fir->{$m}->{"RFC822.SIZE"} || 0;
+			my $h1_size = $h1_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
 			print "+ Skipping msg #$m:$h1_size on host1 folder $h1_fold (no header so we ignore this message)\n";
 			$total_bytes_skipped += $h1_size;
 			$nb_msg_skipped += 1;
@@ -1644,7 +1633,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			# duplicate
 			push(@h1_msgs_duplicate, $m);
 			# duplicate, same id same size?
-			my $h1_size = $h1_fir->{$m}->{"RFC822.SIZE"} || 0;
+			my $h1_size = $h1_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
 			$nb_msg_skipped += 1;
 			$h1_total_bytes_duplicate += $h1_size;
 			$h1_nb_msg_duplicate += 1;
@@ -1654,26 +1643,27 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	
 	print "++++ Host2 [$h2_fold] parsing headers ++++\n";
 
-	my ($h2_heads, $h2_fir) = ({}, {});
-	$h2_heads =   $imap2->parse_headers([@h2_msgs], @useheader) if (@h2_msgs);
+	my ($h2_heads_ref, $h2_fir_ref) = ({}, {});
+	$h2_heads_ref =   $imap2->parse_headers([@h2_msgs], @useheader) if (@h2_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
 	last FOLDER if   $imap2->IsUnconnected();
 
-	$h2_fir   =   $imap2->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
+	@$h2_fir_ref{@h2_msgs} = (undef); # fetch_hash_2 can select by uid with last arg as ref
+	$h2_fir_ref   =   $imap2->fetch_hash_2("FLAGS", "INTERNALDATE", "RFC822.SIZE", $h2_fir_ref)
 	  if (@h2_msgs);
 	$debug and print "Time fir: ", timenext(), " s\n";
 	last FOLDER if   $imap2->IsUnconnected();
 	
 	my @h2_msgs_duplicate;
 	foreach my $m (@h2_msgs) {
-		my $rc = parse_header_msg($imap2, $m, $h2_heads, $h2_fir, "T", \%h2_hash);
+		my $rc = parse_header_msg($imap2, $m, $h2_heads_ref, $h2_fir_ref, "T", \%h2_hash);
 		if (! defined($rc)) {
-			my $h2_size = $h2_fir->{$m}->{"RFC822.SIZE"} || 0;
+			my $h2_size = $h2_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
 			print "+ Skipping msg #$m:$h2_size in host2 folder $h2_fold (no header so we ignore this message)\n";
 			$h2_nb_msg_noheader += 1 ;
 		} elsif(0 == $rc) {
 			# duplicate
-			my $h2_size = $h2_fir->{$m}->{"RFC822.SIZE"} || 0;
+			my $h2_size = $h2_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
 			$h2_nb_msg_duplicate += 1;
 			$h2_total_bytes_duplicate += $h2_size;
 			push(@h2_msgs_duplicate, $m);
@@ -2096,7 +2086,7 @@ exit_clean(0);
 # subroutines
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.343 2010/08/15 18:02:11 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.344 2010/08/20 02:06:13 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -2180,8 +2170,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.343 $ ',
-		  '$Date: 2010/08/15 18:02:11 $ ',
+		  '$Revision: 1.344 $ ',
+		  '$Date: 2010/08/20 02:06:13 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2927,12 +2917,12 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
                 s/([\( ])FAST([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE$2/i  ;
                 s/([\( ])FULL([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE ENVELOPE BODY$2/i  ;
         }
-        my $msgref_all = scalar($self->messages);
-	my $split = $self->Split() || scalar(@$msgref_all);
-	while(my @msgs = splice(@$msgref_all, 0, $split)) {
+        my $msgs_ref_all = scalar($self->messages);
+	my $split = $self->Split() || scalar(@$msgs_ref_all);
+	while(my @msgs = splice(@$msgs_ref_all, 0, $split)) {
 	#print "SPLIT: @msgs\n";
-	my $msgref = \@msgs;
-	my $output = scalar($self->fetch($msgref,"(" . join(" ",@_) . ")")) 
+	my $msgs_ref = \@msgs;
+	my $output = scalar($self->fetch($msgs_ref,"(" . join(" ",@_) . ")")) 
         ; #     unless grep(/\b(?:FAST|FULL)\b/i,@words);
         my $x;
         for ($x = 0;  $x <= $#$output ; $x++) {
@@ -3920,3 +3910,87 @@ sub capability_update {
 	$self->capability;
 }
 
+sub fetch_hash_2 {
+	# taken from above *Mail::IMAPClient::fetch_hash
+	# if last arg is a ref then the fetch is done only 
+	# on the messages listed as the keys of this hash.
+	# Init an "empty" $hash_ref by value can be done this way:
+	# @$hash_ref{2, 3, 4, 55} = (undef);
+	
+        my $self = shift;
+        my $hash_ref = ref($_[-1]) ? pop @_ : {};
+        my @words = @_;
+        for (@words) { 
+                s/([\( ])FAST([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE$2/i  ;
+                s/([\( ])FULL([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE ENVELOPE BODY$2/i  ;
+        }
+	
+	my $msgs_ref_all;
+	if (scalar %$hash_ref) {
+		$msgs_ref_all = [ sort { $a <=> $b } keys (%$hash_ref) ];
+		#print "ZZZZ 1 [@$msgs_ref_all]\n";
+	}else{
+	        $msgs_ref_all = scalar($self->messages);
+		#print "ZZZZ 2 [@$msgs_ref_all]\n";
+	}
+	
+	my $split = $self->Split() || scalar(@$msgs_ref_all);
+	while(my @msgs = splice(@$msgs_ref_all, 0, $split)) {
+	#print "SPLIT: @msgs\n";
+	my $msgs_ref = \@msgs;
+	my $output = scalar($self->fetch($msgs_ref,"(" . join(" ",@_) . ")")) 
+        ; #     unless grep(/\b(?:FAST|FULL)\b/i,@words);
+        my $x;
+        for ($x = 0;  $x <= $#$output ; $x++) {
+                my $entry = {};
+                my $l = $output->[$x];
+                if ($self->Uid) {       
+                        my($uid) = $l =~ /\((?:.* )?UID (\d+).*\)/i;
+                        next unless $uid;
+                        if ( defined $hash_ref->{$uid} ) {
+                                $entry = $hash_ref->{$uid} ;
+                        }
+			else {
+                                $hash_ref->{$uid} ||= $entry;
+                        }
+                }
+		else {
+                        my($mid) = $l =~ /^\* (\d+) FETCH/i;
+                        next unless $mid;
+                        if ( defined $hash_ref->{$mid} ) {
+                                $entry = $hash_ref->{$mid} ;
+                        }
+			else {
+                                $hash_ref->{$mid} ||= $entry;
+                        }
+                }
+                        
+                foreach my $w (@words) {
+                   if ( $l =~ /\Q$w\E\s*$/i ) {
+                        $entry->{$w} = $output->[$x+1];
+                        $entry->{$w} =~ s/(?:\x0a?\x0d)+$//g;
+                        chomp $entry->{$w};
+                   }
+		   else {
+                        $l =~ /\(           # open paren followed by ... 
+                                (?:.*\s)?   # ...optional stuff and a space
+                                \Q$w\E\s    # escaped fetch field<sp>
+                                (?:"        # then: a dbl-quote
+                                  (\\.|   # then bslashed anychar(s) or ...
+                                   [^"]+)   # ... nonquote char(s)
+                                "|          # then closing quote; or ...
+                                \(          # ...an open paren
+                                  (\\.|     # then bslashed anychar or ...
+                                   [^\)]*)  # ... non-close-paren char
+                                \)|         # then closing paren; or ...
+                                (\S+))      # unquoted string
+                                (?:\s.*)?   # possibly followed by space-stuff
+                                \)          # close paren
+                        /xi;
+                        $entry->{$w}=defined($1)?$1:defined($2)?$2:$3;
+                   }
+                }
+        }
+}
+        return wantarray ? %$hash_ref : $hash_ref;
+}
