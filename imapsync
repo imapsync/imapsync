@@ -7,7 +7,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 25 different IMAP server softwares
 supported with success.
 
-$Revision: 1.195 $
+$Revision: 1.197 $
 
 =head1 INSTALL
 
@@ -347,7 +347,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.195 2006/12/08 04:48:54 gilles Exp $
+$Id: imapsync,v 1.197 2006/12/10 02:49:39 gilles Exp $
 
 =cut
 
@@ -358,8 +358,7 @@ use Getopt::Long;
 use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
 use Term::ReadKey;
-#use Digest::HMAC_MD5;
-use IO::Socket::SSL;
+#use IO::Socket::SSL;
 use MIME::Base64;
 use English;
 use POSIX qw(uname);
@@ -404,7 +403,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.195 2006/12/08 04:48:54 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.197 2006/12/10 02:49:39 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -441,8 +440,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.195 $ ',
-		  '$Date: 2006/12/08 04:48:54 $ ',
+		  '$Revision: 1.197 $ ',
+		  '$Date: 2006/12/10 02:49:39 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -586,6 +585,7 @@ sub login_imap {
 	   $ssl, $authmech, $authuser) = @_;
 	my ($imap);
 	if ($ssl) {
+		require IO::Socket::SSL;
 		my $socssl = new IO::Socket::SSL("$host:$port");
 		die "Error connecting to $host:$port: $@\n" unless $socssl;
 		$socssl->autoflush(1);
@@ -693,17 +693,23 @@ if (scalar(@folder) or $subscribed or scalar(@folderrec)) {
 }else {
 	# no folder/subscribed/folderrec options => all folders
 	@f_folders = sort $from->folders();
-	# consider (optional) includes and excludes
-	# WARNING the following two loops are bad with more than one pass.
-	foreach my $include (@include) {
-		@f_folders = grep  /$include/,@f_folders;
-		print "Only including folders matching pattern '$include'\n";
-	}
-	foreach my $exclude (@exclude) {
-		@f_folders = grep !/$exclude/,@f_folders;
-		print "Excluding folders matching pattern '$exclude'\n";
-	}
 }
+
+# consider (optional) includes and excludes
+if (scalar(@include)) {
+	my @f_folders_inc;
+	foreach my $include (@include) {
+		push(@f_folders_inc, grep  /$include/, @f_folders);
+		print "Including folders matching pattern '$include'\n";
+	}
+	@f_folders = sort @f_folders_inc;
+}
+
+foreach my $exclude (@exclude) {
+	@f_folders = grep !/$exclude/,@f_folders;
+	print "Excluding folders matching pattern '$exclude'\n";
+}
+
 
 @t_folders = sort @{$to->folders()};
 
@@ -1428,14 +1434,11 @@ Several options are mandatory.
 --folderrec   <string> : sync only this folder recursively.
 --folderrec   <string> : and this one, etc.
 --include     <regex>  : only sync folders matching this regular expression
-                         (only effective if neither --folder nor --subscribed
-			  is specified).
---include     <regex>  : and this one, etc.
+--include     <regex>  : or this one, etc.
                          in case both --include --exclude options are
                          use, include is done before.
 --exclude     <regex>  : skips folders matching this regular expression
-                         (only effective if neither --folder nor --subscribed
-			  is specified). Several folders to avoid:
+                         Several folders to avoid:
 			  --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
 --exclude     <regex>  : and this one, etc.
 --prefix1     <string> : remove prefix to all destination folders 

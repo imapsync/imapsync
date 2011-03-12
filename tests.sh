@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.56 2006/12/08 04:05:01 gilles Exp $	
+# $Id: tests.sh,v 1.57 2006/12/10 02:48:14 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -60,6 +60,8 @@ no_args() {
 #                          locallocal()
 
 # tata@est.belle #  used on locallocal()
+
+# tata titi on most ll_*() tests
 
 # tutu@est.belle # not used
 
@@ -628,6 +630,22 @@ ll_delete2() {
 		:
 	fi
 }
+
+ll_bigmail() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost  --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folder INBOX.bigmail
+	else
+		:
+	fi
+}
+
+
 
 ##########################
 # specific tests
