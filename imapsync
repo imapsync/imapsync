@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.159 $
+$Revision: 1.161 $
 
 =head1 INSTALL
 
@@ -38,6 +38,8 @@ $Revision: 1.159 $
            [--user1 <string>] [--passfile1 <string>]
            [--host2 server2]  [--port2 <num>]
            [--user2 <string>] [--passfile2 <string>]
+           [--ssl1] [--ssl2]
+           [--authmech1 <string>] [--authmech2 <string>] 
            [--noauthmd5]
            [--folder <string> --folder <string> ...]
            [--include <regex>] [--exclude <regex>]
@@ -323,7 +325,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.159 2006/03/11 13:00:52 gilles Exp $
+$Id: imapsync,v 1.161 2006/03/20 00:09:41 gilles Exp $
 
 =cut
 
@@ -335,6 +337,9 @@ use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
 use Term::ReadKey;
 #use Digest::HMAC_MD5;
+use IO::Socket::SSL;
+use MIME::Base64;
+
 
 eval { require 'usr/include/sysexits.ph' };
 
@@ -366,12 +371,15 @@ my(
         $timeout,   # whr (ESS/PRW)
 	$timestart, $timeend, $timediff,
         $timesize, $timebefore,
+        $ssl1, $ssl2,
+        $authusing1, $authusing2,
+        $authmech1, $authmech2,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.159 2006/03/11 13:00:52 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.161 2006/03/20 00:09:41 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -408,8 +416,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.159 $ ',
-		  '$Date: 2006/03/11 13:00:52 $ ',
+		  '$Revision: 1.161 $ ',
+		  '$Date: 2006/03/20 00:09:41 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -429,10 +437,12 @@ sub missing_option {
 }
 
 $host1 || missing_option("--host1") ;
-$port1 = (defined($port1)) ? $port1 : 143;
+# $port1 = (defined($port1)) ? $port1 : 143;
+$port1 ||= defined $ssl1 ? 993 : 143;
 
 $host2 || missing_option("--host2") ;
-$port2 = (defined($port2)) ? $port2 : 143;
+# $port2 = (defined($port2)) ? $port2 : 143;
+$port2 ||= defined $ssl2 ? 993 : 143;
 
 sub connect_imap {
 	my($host, $port, $debugimap) = @_;
@@ -458,12 +468,20 @@ if ($justconnect) {
 	$to->logout();
 	exit(0);
 }
-	
 
 $user1 || missing_option("--user1");
 $user2 || missing_option("--user2");
 
-$authmd5 = (defined($authmd5)) ? $authmd5 : 1;
+if(defined($authmd5) and not($authmd5)) {
+	$authmech1 ||= 'PLAIN';
+	$authmech2 ||= 'PLAIN';	
+}else{
+	$authmech1 ||= 'CRAM-MD5';
+	$authmech2 ||= 'CRAM-MD5';
+}
+
+print "will try to use $authmech1 authentication on host1\n";
+print "will try to use $authmech2 authentication on host2\n";
 
 $syncacls = (defined($syncacls)) ? $syncacls : 0;
 $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
@@ -497,9 +515,6 @@ $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
 my $from = ();
 my $to = ();
 
-my $authmech = "CRAM-MD5";
-
-
 $timestart = time();
 $timebefore = $timestart;
 
@@ -507,10 +522,12 @@ $fastio1 = 1;
 $fastio2 = 1;
 
 $debugimap and print "From connection\n";
-$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout, $fastio1);
+$from = login_imap($host1, $port1, $user1, $password1, 
+		   $debugimap, $timeout, $fastio1, $ssl1, $authmech1);
 
 $debugimap and print "To  connection\n";
-$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout, $fastio2);
+$to = login_imap($host2, $port2, $user2, $password2, 
+		 $debugimap, $timeout, $fastio2, $ssl2, $authmech2);
 
 # No history
 $from->Clear(2);
@@ -523,8 +540,20 @@ $debug and print "To   Buffer I/O : ", $to->Buffer(), "\n";
 
 sub login_imap {
 	my($host, $port, $user, $password, 
-	   $debugimap, $timeout, $fastio) = @_;
-	my $imap = Mail::IMAPClient->new();
+	   $debugimap, $timeout, $fastio, $ssl, $authmech) = @_;
+	my ($imap);
+	if ($ssl) {
+		my $socssl = new IO::Socket::SSL("$host:$port");
+		die "Error connecting to $host:$port: $@\n" unless $socssl;
+		$socssl->autoflush(1);
+		
+		$imap = Mail::IMAPClient->new(
+					      Socket => $socssl,
+					      Server => $host,
+					     );
+	} else {
+		$imap = Mail::IMAPClient->new();
+	}
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Fast_io($fastio);
@@ -532,48 +561,39 @@ sub login_imap {
 	$imap->Uid(1);
 	$imap->Peek(1);
 	$imap->Debug($debugimap);
-	$imap->connect()
+	if ($ssl) {
+		$imap->State(Mail::IMAPClient::Connected);
+	} else {
+		$imap->connect()
 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
-	if ($timeout)    # whr (ESS/PRW)
-	  {
-		  $imap->Timeout($timeout);
-		  print "Setting imap timeout to $timeout\n";
-	  }
+	}
+	$timeout and $imap->Timeout($timeout);
 
+	if ($authmech eq "LOGIN") {
+		# Default mode for Mail::IMAPClient, so don't do anything.
+	} elsif ($imap->has_capability("AUTH=$authmech")
+		or $imap->has_capability($authmech)) {
+		$imap->Authmechanism($authmech);
+		$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
+	} else {
+		printf("%s: no support for AUTHENTICATE %s, using LOGIN\n",
+		       $imap->Server, $authmech);
+	}
 	$imap->User($user);
 	$imap->Password($password);
-	md5auth($imap);
+	#md5auth($imap);
 	$imap->login() or die "Error login : [$host] with user [$user] : $@";
 	return($imap);
 }
 
+sub plainauth() {
+        my $code = shift;
+        my $imap = shift;
 
-sub md5auth() {
-	my ($imap) = @_;
-	
-	unless ($authmd5) {
-		print "$authmech not wanted by you\n";
-		return;
-	}
-	if ($imap->has_capability($authmech) 
-	    or $imap->has_capability("AUTH=$authmech")) {
-		print "Server [", $imap->Server, 
-		  "] has capability $authmech\n";
-	}else{
-		print "Server [", $imap->Server, 
-		  "] has NOT capability $authmech\n";
-		return;
-	}
-	#print "EE", $imap->Authmechanism(), "\n";
-	if ($imap->Authmechanism($authmech)) {
-		print "Using $authmech authentification\n";
-	}else{
-		$imap->Authmechanism(undef);
-		print "Can NOT use $authmech authentification, using plain\n";
-	}
-	return;
+        my $string = sprintf("%s\x00%s\x00%s", $imap->User,
+                            $imap->User, $imap->Password);
+        return encode_base64("$string");
 }
-
 
 
 
@@ -1174,6 +1194,10 @@ sub get_options
 				   "skipsize!"   => \$skipsize,
 				   "fastio1!"     => \$fastio1,
 				   "fastio2!"     => \$fastio2,
+				   "ssl1!"        => \$ssl1,
+				   "ssl2!"        => \$ssl2,
+				   "authmech1=s" => \$authmech1,
+				   "authmech2=s" => \$authmech2,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -1258,17 +1282,22 @@ usage: $0 [options]
 Several options are mandatory. 
 
 --host1       <string> : "from" imap server. Mandatory.
---port1       <int>    : port to connect. Default is 143.
---user1       <string> : user to login.   Mandatory.
+--port1       <int>    : port to connect on host1. Default is 143.
+--user1       <string> : user to login on host1. Mandatory.
 --password1   <string> : password for the user1. Dangerous, use --passfile1
 --passfile1   <string> : password file for the user1. Contains the password.
 --host2       <string> : "destination" imap server. Mandatory.
---port2       <int>    : port to connect. Default is 143.
---user2       <string> : user to login.   Mandatory.
+--port2       <int>    : port to connect on host2. Default is 143.
+--user2       <string> : user to login on host2. Mandatory.
 --password2   <string> : password for the user2. Dangerous, use --passfile2
 --passfile2   <string> : password file for the user2. Contains the password.
 --noauthmd5            : don't use MD5 authentification.
 --authmd5              : use MD5 authentification.
+--authmech1   <string> : auth mechanism to use with host1:
+                         PLAIN, LOGIN, CRAM-MD5 etc.
+--authmech2   <string> : auth mechanism to use with host2. See --authmech1
+--ssl1                 : use an SSL connection on host1.
+--ssl2                 : use an SSL connection on host2.
 --folder      <string> : sync only this folder.
 --folder      <string> : and this one.
 --folder      <string> : and this one, etc.

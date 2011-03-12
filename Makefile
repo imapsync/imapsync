@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.8 2006/02/28 03:55:01 gilles Exp gilles $	
+# $Id: Makefile,v 1.10 2006/03/20 00:35:47 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -19,11 +19,11 @@ all: ChangeLog README VERSION
 .PHONY: test testp testf
 
 .test: $(TARGET) tests.sh
-	sh tests.sh 1>/dev/null
+	nice -40 sh tests.sh 1>/dev/null
 	touch .test
 
 testv:
-	sh -x tests.sh
+	nice -40 sh -x tests.sh
 
 test: .test
 
