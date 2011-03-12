@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.76 $
+$Revision: 1.77 $
 
 =head1 INSTALL
 
@@ -241,7 +241,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.76 2004/02/18 21:34:46 gilles Exp gilles $
+$Id: imapsync,v 1.77 2004/03/11 05:33:22 gilles Exp $
 
 =cut
 
@@ -265,6 +265,7 @@ my(
 	$syncinternaldates,
 	$maxsize, $maxage,
 	$delete, $expunge, $dry, 
+        $authmd5,
         $subscribed, $subscribe,
 	$version, $VERSION, $help, 
         $justconnect,
@@ -276,7 +277,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.76 2004/02/18 21:34:46 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.77 2004/03/11 05:33:22 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -290,6 +291,7 @@ $mess_size_total_skipped = 0;
 $mess_size_total_error   = 0;
 
 sub md5_supported {
+	
 	
 	# before 2.2.6 no md5 native
 	# I know this is ugly, I should write a sort function
@@ -311,8 +313,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.76 $ ',
-		  '$Date: 2004/02/18 21:34:46 $ ',
+		  '$Revision: 1.77 $ ',
+		  '$Date: 2004/03/11 05:33:22 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -343,6 +345,8 @@ $port2 = (defined($port2)) ? $port2 : 143;
 $user2 || missing_option("--user2");
 $password2 || $passfile2 || missing_option("--passfile2 or --password2");
 $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
+
+$authmd5 = (defined($authmd5)) ? $authmd5 : 1;
 
 print "From imap server [$host1] port [$port1] user [$user1]\n";
 print "To   imap server [$host2] port [$port2] user [$user2]\n";
@@ -376,11 +380,12 @@ sub login_imap {
 	$imap->Peek(1);
 	$imap->Debug($debugimap);
 	$imap->connect()
-	  or die "can't open imap connection on [$host] with user [$user] : $@\n";
+	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
+	
 	$imap->User($user);
 	$imap->Password($password);
 	md5auth($imap);
-	$imap->login();
+	$imap->login() or die "Error login : [$host] with user [$user] : $@";
 	return($imap);
 }
 
@@ -390,7 +395,10 @@ sub md5auth() {
 	unless ($md5_supported) {
 		return;
 	}
-	
+	unless ($authmd5) {
+		print "$authmech not wanted by you\n";
+		return;
+	}
 	if ($imap->has_capability($authmech) 
 	    or $imap->has_capability("AUTH=$authmech")) {
 		print "Server [", $imap->Server, 
@@ -400,10 +408,15 @@ sub md5auth() {
 		  "] has NOT capability $authmech\n";
 		return;
 	}
+	#print "EE", $imap->Authmechanism(), "\n";
 	if ($imap->Authmechanism($authmech)) {
 		print "Using $authmech authentification\n";
+		#$imap->Authmechanism(undef);
+		#print "EE", $imap->Authmechanism(), "\n";
 	}else{
+		$imap->Authmechanism(undef);
 		print "Can NOT use $authmech authentification, using plain\n";
+		
 	}
 	return;
 }
@@ -414,6 +427,9 @@ print "To   software : ", ($to->Report())[0];
 
 print "From capability : ", join(" ", $from->capability()), "\n";
 print "To   capability : ", join(" ", $to->capability()), "\n";
+
+die unless $from->IsAuthenticated();
+die unless   $to->IsAuthenticated();
 
 my (@f_folders, @t_folders, %fs_folders);
 
@@ -700,6 +716,7 @@ sub get_options
                                    "password2=s" => \$password2,
                                    "passfile1=s" => \$passfile1,
                                    "passfile2=s" => \$passfile2,
+				   "authmd5!"    => \$authmd5,
                                    "sep1=s"      => \$sep1,
                                    "sep2=s"      => \$sep2,
 				   "folder=s"    => \@folder,
@@ -789,6 +806,7 @@ Several options are mandatory.
 --user2       <string> : user to login.   Mandatory.
 --password2   <string> : password for the user2. Dangerous, use --passfile2
 --passfile2   <string> : password file for the user2. Contains the password.
+--noauthmd5            : don't use MD5 authentification
 --folder      <string> : sync only this folder.
 --folder      <string> : and this one.
 --folder      <string> : and this one, etc.

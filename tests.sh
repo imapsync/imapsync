@@ -1,8 +1,13 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.14 2004/02/07 03:34:35 gilles Exp $	
+# $Id: tests.sh,v 1.15 2004/03/11 05:32:08 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.15  2004/03/11 05:32:08  gilles
+# Added bad_login()
+# Added bad_host()
+# Added lp_noauthmd5()
+#
 # Revision 1.14  2004/02/07 03:34:35  gilles
 # Added lp_include()
 #
@@ -252,7 +257,7 @@ lp_justconnect()
 	fi
 }
 
-lp_md5auth() 
+lp_authmd5() 
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
@@ -263,6 +268,22 @@ lp_md5auth()
 		--host1 loul  --user1 tata \
 		--passfile1 /var/tmp/secret.tata \
 		--justconnect
+	else
+		:
+	fi
+}
+
+lp_noauthmd5() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		perl -I ~gilles/build/Mail-IMAPClient-2.2.8/blib/lib/ \
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--justconnect --noauthmd5
 	else
 		:
 	fi
@@ -317,6 +338,26 @@ lp_include()
 	fi
 }
 
+bad_login()
+{
+    ! ./imapsync \
+	--host1 localhost --user1 toto@est.belle \
+	--passfile1 /var/tmp/secret1 \
+	--host2 localhost --user2 notiti@est.belle \
+	--passfile2 /var/tmp/secret2
+   
+}
+
+bad_host()
+{
+    ! ./imapsync \
+	--host1 localhost --user1 toto@est.belle \
+	--passfile1 /var/tmp/secret1 \
+	--host2 badhost --user2 titi@est.belle \
+	--passfile2 /var/tmp/secret2
+   
+}
+
 
 
 # mandatory tests
@@ -337,10 +378,13 @@ test $# -eq 0 && run_tests \
 	lp_subscribed \
 	lp_subscribe \
 	lp_justconnect \
-	lp_md5auth \
+	lp_authmd5 \
 	lp_maxage \
 	lp_maxsize \
-	lp_include
+	lp_include \
+	bad_login \
+	bad_host \
+	lp_noauthmd5
 
 # selective tests
 
