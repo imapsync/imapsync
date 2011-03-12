@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.315 $
+$Revision: 1.318 $
 
 =head1 INSTALL
 
@@ -74,7 +74,7 @@ The option list:
            [--skipsize] [--allowsizemismatch]
            [--delete] [--delete2]
            [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
-           [--subscribed] [--subscribe]
+           [--subscribed] [--subscribe] [--subscribe_all] 
            [--nofoldersizes]
            [--dry]
            [--debug] [--debugimap]
@@ -126,7 +126,7 @@ imapsync --help
 
 I wrote imapsync because an enterprise (basystemes) paid me to install
 a new imap server without losing huge old mailboxes located on a far
-away remote imap server accessible by a low bandwith link. The tool
+away remote imap server accessible by a low bandwidth link. The tool
 imapcp (written in python) could not help me because I had to verify
 every mailbox was well transferred and delete it after a good
 transfer. imapsync started life as a copy_folder.pl patch.
@@ -234,22 +234,28 @@ Gilles LAMIRAL earns his living writing, installing,
 configuring and teaching free, open and gratis
 softwares. Do not hesitate to pay him for that services.
 
-=head1 BUGS and BUG REPORT
-
-No known serious bug.  
+=head1 BUG REPORT GUIDELINES
 
 Report any bugs or feature requests to the public mailing-list 
 or to the author.
 
 Help us to help you: follow the following guidelines.
 
-Read the paper "How To Ask Questions The Smart Way"
+One time in your life, read the paper 
+"How To Ask Questions The Smart Way"
 http://www.catb.org/~esr/faqs/smart-questions.html
 
 Before reporting bugs, read the FAQ, the README and the
 TODO files. http://www.linux-france.org/prj/imapsync/
 
-Make a good title, not just "imapsync" or "problem",
+Upgrade to last imapsync release, maybe the bug
+is already fixed.
+
+Upgrade to last Mail-IMAPClient Perl module.
+http://search.cpan.org/dist/Mail-IMAPClient/
+
+Make a good title with word "imapsync" in it (my spam filter won't filter it), 
+Don't write an email title with just "imapsync" or "problem",
 a good title is made of keywords summary,  not too long (one visible line).
 
 Don't write imapsync in uppercase in the email title, we'll
@@ -427,7 +433,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.315 2010/06/11 02:51:54 gilles Exp gilles $
+$Id: imapsync,v 1.318 2010/07/07 23:44:35 gilles Exp gilles $
 
 =cut
 
@@ -475,7 +481,7 @@ my(
         $expunge, $expunge1, $expunge2, $uidexpunge2, $dry,
         $justfoldersizes,
         $authmd5,
-        $subscribed, $subscribe,
+        $subscribed, $subscribe, $subscribe_all,
 	$version, $VERSION, $help, 
         $justconnect, $justfolders, $justbanner,
         $fast,
@@ -501,7 +507,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.315 2010/06/11 02:51:54 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.318 2010/07/07 23:44:35 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -566,8 +572,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.315 $ ',
-		  '$Date: 2010/06/11 02:51:54 $ ',
+		  '$Revision: 1.318 $ ',
+		  '$Date: 2010/07/07 23:44:35 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -729,8 +735,8 @@ $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
 $fastio1 = (defined($fastio1)) ? $fastio1 : 0;
 $fastio2 = (defined($fastio2)) ? $fastio2 : 0;
 
-$reconnectretry1 = (defined($reconnectretry1)) ? $reconnectretry1 : 10;
-$reconnectretry2 = (defined($reconnectretry2)) ? $reconnectretry2 : 10;
+$reconnectretry1 = (defined($reconnectretry1)) ? $reconnectretry1 : 3;
+$reconnectretry2 = (defined($reconnectretry2)) ? $reconnectretry2 : 3;
 
 @useheader = ("ALL") unless (@useheader);
 
@@ -1592,7 +1598,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		#unless($dry) { $imap2->expunge() };
 	}
 	
-	if ($subscribe and exists $subscribed_folder{$h1_fold}) {
+	if (($subscribe and exists $subscribed_folder{$h1_fold}) or $subscribe_all) {
 		print "Subscribing to folder $h2_fold on destination server\n";
 		unless($dry) { $imap2->subscribe($h2_fold) };
 	}
@@ -2085,7 +2091,7 @@ sub stats {
 	print   "Total bytes skipped      : $mess_size_total_skipped\n";
 	print   "Total bytes error        : $mess_size_total_error\n";
 	$timediff ||= 1; # No division per 0
-	printf ("Average bandwith rate    : %.1f Ko/s\n", $mess_size_total_trans / 1024 / $timediff);
+	printf ("Average bandwidth rate    : %.1f KiB/s\n", $mess_size_total_trans / 1024 / $timediff);
 	print   "Detected $error errors\n\n";
 	print   thank_author();
 }
@@ -2096,7 +2102,7 @@ sub thank_author {
 	  "Encourage the author (Gilles LAMIRAL) by giving him a book:\n",
 	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n",
           "or just money via paypal:\n",
-	  "http://www.linux-france.org/prj/imapsync/paypal.html\n"));
+	  "http://www.linux-france.org/prj/imapsync/\n"));
 }
 
 sub get_options {
@@ -2152,6 +2158,7 @@ sub get_options {
                                    "uidexpunge2!" => \$uidexpunge2,
                                    "subscribed!" => \$subscribed,
                                    "subscribe!"  => \$subscribe,
+                                   "subscribe_all!"  => \$subscribe_all,
 				   "justbanner!" => \$justbanner,
                                    "justconnect!"=> \$justconnect,
                                    "justfolders!"=> \$justfolders,
@@ -2393,26 +2400,26 @@ Several options are mandatory.
 --regexflag   <regex>  : and this one, etc.
 --sep1        <string> : separator in case namespace is not supported.
 --sep2        <string> : idem.
---delete               : delete messages on source imap server after
+--delete               : delete messages on host1 server after
                          a successful transfer. Useful in case you
                          want to migrate from one server to another one.
-			 With imap, delete tags messages as deleted, they
+			 With imap, "delete" tags messages as deleted, they
 			 are not really deleted. See expunge.
---delete2              : delete messages on the destination imap server that
-                         are not on the source server.
---expunge              : expunge messages on source account.
+--delete2              : delete messages on host2 that are not on 
+                         host1 server.
+--expunge              : expunge messages on host1.
                          expunge really deletes messages marked deleted.
-                         expunge is made at the beginning on the 
-                         source server only. newly transferred messages
-                         are expunged if option --expunge is given.
-                         no expunge is done on destination account but
-                         it may change in future releases.
---expunge1             : expunge messages on source account.
---expunge2             : expunge messages on target account.
+                         expunge is made at the beginning, on host1 only. 
+                         Newly transferred messages are expunged if 
+			 option --expunge is given.
+                         No expunge is done on destination account 
+                         (see --expunge2) but it may change in future releases.
+--expunge1             : expunge messages on host1.
+--expunge2             : expunge messages on host2.
 --uidexpunge2          : uidexpunge messages on the destination imap server
                          that are not on the source server, requires --delete2
 --syncinternaldates    : sets the internal dates on host2 same as host1.
-                         Turned on by default. internal date is the date
+                         Turned on by default. Internal date is the date
 			 a message arrived on a host (mtime).
 --idatefromheader      : sets the internal dates on host2 same as the 
                          "Date:" headers. 
@@ -2433,15 +2440,17 @@ Several options are mandatory.
 --useheader   <string> : Use this header to compare messages on both sides.
                          Ex: Message-ID or Subject or Date.
 --useheader   <string>   and this one, etc.
---skipsize             : Don't take message size into account.
+--skipsize             : Don't take message size into account to compare 
+                         messages on both sides.
 --allowsizemismatch    : allow RFC822.SIZE != fetched msg size
-                         consider --skipsize to avoid duplicate messages
+                         consider also --skipsize to avoid duplicate messages
                          when running syncs more than one time per mailbox
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfers subscribed folders.
 --subscribe            : subscribe to the folders transferred on the 
-                         "destination" server that are subscribed
-                         on the "source" server.
+                         host2 that are subscribed on host1.
+--subscribe_all        : subscribe to the folders transferred on the 
+                         host2even if they are not subscribed on host1.
 --nofoldersizes        : Do not calculate the size of each folder in bytes
                          and message counts. Default is to calculate them.
 --justfoldersizes      : exit after printed the folder sizes.
@@ -2452,21 +2461,22 @@ Several options are mandatory.
 --version              : print software version.
 --justconnect          : just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
---justlogin            : just login to both servers with users credentials 
-                         and exit.
+--justlogin            : just login to both host1 and host2 with users 
+                         credentials, then exit.
 --justfolders          : just do things about folders (ignore messages).
---fast                 : be faster (just does not sync flags with files
+--fast                 : be faster (just does not sync flags of messages
                          already transfered).
---reconnectretry1 <int>: reconnect if connection is lost up to <int> times
---reconnectretry2 <int>: reconnect if connection is lost up to <int> times
---split1     <int>     : split the requests in several parts on source server.
+--reconnectretry1 <int>: reconnect to host1 if connection is lost up to 
+                         <int> times per imap command (default is 3)
+--reconnectretry2 <int>: same as --reconnectretry1 but for host2
+--split1     <int>     : split the requests in several parts on host1.
                          <int> is the number of messages handled per request.
-                         default is like --split1 1000
---split2     <int>     : same thing on the "destination" server.
---fastio1              : use fastio with the "from" server.
---fastio2              : use fastio with the "destination" server.
+                         default is like --split1 1000.
+--split2     <int>     : same thing on host2.
+--fastio1              : use fastio with host1.
+--fastio2              : use fastio with host2.
 --timeout     <int>    : imap connect timeout.
---help                 : print this.
+--help                 : print this help.
 
 Example: to synchronise imap account "foo" on "imap.truc.org"
                     to  imap account "bar" on "imap.trac.org"
