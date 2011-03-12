@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.114 2010/08/20 02:05:26 gilles Exp gilles $  
+# $Id: tests.sh,v 1.116 2010/09/06 01:06:52 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -459,6 +459,18 @@ ll_maxage()
         --maxage 1
 }
 
+ll_newmessage()
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 1 --folder INBOX --nofoldersizes
+}
+
+
 ll_maxage_9999() 
 {
 #        can_send && sendtestmessage
@@ -661,19 +673,6 @@ ll_bad_host_ssl()
         --ssl1 --ssl2 \
             --allow3xx
 }
-
-
-ll_justfoldersizes()
-{
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1 --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --justfoldersizes \
-		--allow3xx
-}
-
 
 
 ll_useheader() 
@@ -927,43 +926,38 @@ ll_authmech_CRAMMD5() {
 ll_delete2() {
         if can_send; then
 		sendtestmessage titi
-        else
-                :
         fi
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1 --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX \
-                --delete2 --expunge2
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX \
+        --delete2 --expunge2
 }
 
 ll_delete() {
         if can_send; then
 		sendtestmessage titi
-        else
-                :
         fi
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1 --user1 titi \
-                --passfile1 ../../var/pass/secret.titi \
-                --host2 $HOST2 --user2 tata \
-                --passfile2 ../../var/pass/secret.tata \
-                --folder INBOX \
-                --delete --expunge
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --folder INBOX \
+        --delete --expunge
 }
 
 
 ll_bigmail() {
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1  --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.bigmail \
-            --allow3xx
-                echo 'rm  /home/vmail/titi/.bigmail/cur/*'
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1  --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.bigmail
+        echo 'sudo rm -v /home/vmail/titi/.bigmail/cur/*'
 }
 
 
@@ -1190,9 +1184,28 @@ dprof_bigfolder()
     }
     date2=`date`
     echo3 "[$date1] [$date2]"
-    mv tmon.out dprof_bigfolder_tmon.out
+    mv tmon.out      dprof_bigfolder_tmon.out
     dprofpp -O 30    dprof_bigfolder_tmon.out
     dprofpp -O 30 -I dprof_bigfolder_tmon.out
+}
+
+dprof_bigmail()
+{
+    date1=`date`
+    { $CMD_PERL -d:DProf ./imapsync \
+      --host1 $HOST1  --user1 tata \
+      --passfile1 ../../var/pass/secret.tata \
+      --host2 $HOST2 --user2 titi \
+      --passfile2 ../../var/pass/secret.titi \
+      --folder INBOX.bigmail
+      echo 'sudo rm -v /home/vmail/titi/.bigmail/cur/*' || \
+    true
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+    mv tmon.out      dprof_bigmail_tmon.out
+    dprofpp -O 30    dprof_bigmail_tmon.out
+    dprofpp -O 30 -I dprof_bigmail_tmon.out
 }
 
 
@@ -1405,7 +1418,6 @@ ll_sep2
 ll_bad_login 
 ll_bad_host 
 ll_bad_host_ssl 
-ll_justfoldersizes 
 ll_useheader 
 ll_regexmess 
 ll_regexmess_scwchu 
@@ -1433,7 +1445,8 @@ gmail_gmail
 gmail_gmail2 
 archiveopteryx_1 
 allow3xx 
-noallow3xx'
+noallow3xx
+ll_newmessage'
 
 other_tests='
 msw

@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use IO::Socket;
+
+sub last_release {
+	my $sock = new IO::Socket::INET (
+		PeerAddr => 'linux-france.org',
+		PeerPort => '80',
+		Proto => 'tcp');
+	return('unknown') if not $sock;
+	print $sock
+		"GET /prj/imapsync/VERSION HTTP/1.0\n", 
+		"Host: www.linux-france.org\n\n";
+	my @line = <$sock>;
+	close($sock);
+	my $last_release = $line[-1];
+	chomp($last_release);
+	return($last_release);
+}
+
+sub not_long {
+
+	my ($func) = @_;
+	my $val;
+	eval {
+		local $SIG{ALRM} = sub { die "alarm\n" };
+		alarm 3;
+		#print $func, "\n";
+		{
+			no strict "refs";
+			$val = &$func();
+		}
+		alarm 0;
+	};
+	if ($@) {
+		# timed out
+		return('unknown') unless $@ eq "alarm\n"; # propagate unexpected errors
+	
+	}else {
+	# didn't
+		return($val);
+	}
+}
+
+print last_release(), "\n";
+print not_long('last_release'), "\n";

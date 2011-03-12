@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.36 2010/08/15 17:36:04 gilles Exp gilles $	
+# $Id: Makefile,v 1.37 2010/08/24 01:46:36 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -23,7 +23,7 @@ DEB_FILE=$(DIST_NAME).deb
 VERSION=$(shell perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version)
 
 
-all: ChangeLog README VERSION
+all: ChangeLog README VERSION VERSION_EXE
 
 .PHONY: test tests testp testf test3xx
 
@@ -69,8 +69,9 @@ ChangeLog: imapsync
 README: imapsync
 	perldoc -t imapsync > README
 
-VERSION: imapsync Makefile
+VERSION: imapsync
 	perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version > VERSION
+
 
 .PHONY: clean clean_tilde clean_test   
 
@@ -130,10 +131,11 @@ clean_dist:
 
 .PHONY: lfo upload_lfo niouze_lfo niouze_fm public dosify_bat imapsync_cidone
 
-upload_index: index.shtml
+upload_index: index.shtml 
+	rcsdiff index.shtml
 	rsync -avH index.shtml \
-	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
-	sh ~/memo/lfo-rsync
+	../../public_html/www.linux-france.org/html/prj/imapsync/
+	sh $(HOME)/memo/lfo-rsync
 
 .dosify_bat: build_exe.bat test_exe.bat test.bat
 	unix2dos build_exe.bat test.bat test_exe.bat
@@ -158,6 +160,7 @@ imapsync.exe: imapsync imapsync_cidone dosify_bat
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --version' > VERSION_EXE
 
 
 lfo: dist niouze_lfo upload_lfo 

@@ -42,8 +42,7 @@ fm_init() {
 software_version
 NEWS_FILE_FM="./freshmeat_submition"
 NEWS_FILE_FM_INP=${NEWS_FILE_FM}.inp
-NEWS_FILE_FM_OUT=${NEWS_FILE_FM}.out
-
+NEWS_FILE_FM_OUT=${NEWS_FILE_FM}.json
 }
 
 fm_read_param() {
@@ -58,14 +57,14 @@ fm_read_announce() {
   fm_read_param
 
   cat << EOF
-Project: imapsync
-Version: $VERSION
-Release-Focus: $RELEASE_FOCUS
-Hide: N
-Home-Page-URL: http://www.linux-france.org/prj/imapsync/
-Gzipped-Tar-URL: http://www.linux-france.org/prj/imapsync/dist/
-
-$TEXT_BODY
+{
+  "release": {
+    "tag_list": "stable, $RELEASE_FOCUS",
+    "version": "$VERSION",
+    "hidden_from_frontpage": false,
+    "changelog": "$TEXT_BODY"
+  }
+}
 
 EOF
 }
@@ -82,7 +81,10 @@ fm_announce() {
     fi
 
     fm_read_announce > $NEWS_FILE_FM_OUT 
-    freshmeat-submit < $NEWS_FILE_FM_OUT
+    curl -X PUT -d @../../var/pass/secret.freshmeat -d @$NEWS_FILE_FM_OUT \
+         -H "Content-Type: application/json" \
+         http://freshmeat.net/projects/imapsync.json
+
   fi
 }
 

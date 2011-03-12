@@ -6,6 +6,7 @@
 # main program
 # global variables initialisation
 # default values
+# folder loop
 # subroutines
 # IMAPClient 2.2.9 overrides
 # IMAPClient 2.2.9 3.xx ads
@@ -19,7 +20,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.344 $
+$Revision: 1.350 $
 
 =head1 SYNOPSIS
 
@@ -372,13 +373,14 @@ Success stories reported with the following 36 imap servers
  - SmarterMail, Smarter Mail 5.0 Enterprise.
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05
+ - Sun Messaging Server 6.3
  - Surgemail 3.6f5-5
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
    (RedHat uses UW like 2003.338rh), v12.264 Solaris 5.7 (OSI Approved) 
    (http://www.washington.edu/imap/)
  - UW - QMail v2.1
  - Imap part of TCP/IP suite of VMS 7.3.2
- - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 5.5.
+ - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 5.5, 6.x
 
 Please report to the author any success or bad story with
 imapsync and do not forget to mention the IMAP server
@@ -388,7 +390,7 @@ report the two lines at the begining of the output if they
 are useful to know the softwares. Example:
 
  Host1 software:* OK louloutte Cyrus IMAP4 v1.5.19 server ready
- Host2   software:* OK Courier-IMAP ready
+ Host2 software:* OK Courier-IMAP ready
 
 You can use option --justconnect to get those lines.
 Example:
@@ -469,7 +471,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.344 2010/08/20 02:06:13 gilles Exp gilles $
+$Id: imapsync,v 1.350 2010/09/06 01:05:09 gilles Exp gilles $
 
 =cut
 
@@ -551,13 +553,14 @@ my(
 	$tests, $test_builder, $tests_debug,
 	$allow3xx, $justlogin,
 	$tmpdir,
+	$releasecheck,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.344 2010/08/20 02:06:13 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.350 2010/09/06 01:05:09 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -581,6 +584,9 @@ my @argv_copy = @ARGV;
 
 get_options();
 
+$releasecheck = defined($releasecheck) ? $releasecheck : 1;
+my $warn_release = ($releasecheck) ? check_last_release() : '';
+
 # default values
 
 $tmpdir ||= File::Spec->tmpdir();
@@ -588,9 +594,6 @@ $pidfile ||= $tmpdir . '/imapsync.pid';
 
 # allow Mail::IMAPClient 3.0.xx by default
 $allow3xx = defined($allow3xx) ? $allow3xx : 1;
-
-# Does not use Date::Manip by default: buggy 5.x vs 6.x and slow
-$usedatemanip = defined($usedatemanip) ? $usedatemanip : 0;
 
 print banner_imapsync(@argv_copy);
 
@@ -633,21 +636,6 @@ sub connect_imap {
 	  or die_clean("Can not open imap connection on [$host]: $@\n");	
 }
 
-sub localhost_info {
-	
-	my($infos) = join("", 
-	    "Here is a [$OSNAME] system (", 
-	    join(" ", 
-	         uname(),
-	         ),
-                 ")\n",
-	         "With perl ", 
-	         sprintf("%vd", $PERL_VERSION),
-	         " Mail::IMAPClient  $Mail::IMAPClient::VERSION",
-            );	  
-	return($infos);
-
-}
 
 if ($justconnect) {
 	justconnect();
@@ -670,32 +658,6 @@ if ($syncinternaldates) {
 	      "will set the internal dates (arrival dates) on host2 same as host1.\n";
 }else{
 	print "Turned OFF syncinternaldates\n";
-}
-
-if ($syncinternaldates || $idatefromheader) {
-
-	# Date::Manip is an ugly module: it exits (confess) for reading an unset value
-	# I should write a bug report but I'm too lazy.
-	
-	no warnings 'redefine';
-	local *Carp::confess = sub { return undef; };
-	require Date::Manip;
-	Date::Manip->import(qw(ParseDate UnixDate Date_Init Date_TimeZone));
-	
-	if ($OSNAME eq "MSWin32") {
-		# It seems that local *Carp does not work on win32
-		my $TZ = $ENV{TZ} || 'GMT';
-		Date_Init("TZ=$TZ");
-		print "TimeZone: [", Date_TimeZone(), "]\n";
-	}else{
-		#print "Date_init: [", join(" ",Date_Init()), "]\n";
-		print "TimeZone:[", Date_TimeZone(), "]\n";
-		if (not (Date_TimeZone())) {
-			warn "TimeZone not defined, setting it to GMT";
-			Date_Init("TZ=GMT");
-			print "TimeZone: [", Date_TimeZone(), "]\n";
-		}
-	}
 }
 
 
@@ -1167,11 +1129,11 @@ sub foldersizes {
 	my $tot = 0;
 	my $tmess = 0;
 	my @folders = @{$folders_r};
-	print "++++ Calculating sizes ++++\n";
+	print "++++ Calculating sizes\n";
 	foreach my $folder (@folders)     {
 		my $stot = 0;
 		my $smess = 0;
-		printf("$side Folder %-35s", "[$folder]");
+		printf("$side folder %-35s", "[$folder]");
 		unless($imap->exists($folder)) {
 			print("does not exist yet\n");
 			next;
@@ -1219,8 +1181,6 @@ if ($foldersizes) {
 }
 
 
-
-
 sub timenext {
 	my ($timenow, $timerel);
 	# $timebefore is global, beurk !
@@ -1242,7 +1202,7 @@ foreach my $folder (@h2_folders_list) {
 }
 
 print 
-  "++++ Listing folders ++++\n",
+  "++++ Listing folders\n",
   "Host1 folders list:\n", map("[$_]\n",@h1_folders),"\n",
   "Host2 folders list:\n", map("[$_]\n",@h2_folders_list),"\n";
 
@@ -1516,23 +1476,21 @@ sub flags_filter {
 	return($flags_out);
 }
 
-print "++++ Looping on each folder ++++\n";
 
-#sleep 10;
+# folder loop
+print "++++ Looping on each folder\n";
+
 FOLDER: foreach my $h1_fold (@h1_folders) {
 
 	last FOLDER if $imap1->IsUnconnected();
 	last FOLDER if $imap2->IsUnconnected();
 
-	my $h2_fold;
-	print "Host1 Folder [$h1_fold]\n";
-	$h2_fold = imap2_folder_name($h1_fold);
-	print "Host2 Folder [$h2_fold]\n";
+	my $h2_fold = imap2_folder_name($h1_fold);
 
-
+	printf("%-35s -> %-35s\n", "[$h1_fold]", "[$h2_fold]");
 	unless ($imap1->select($h1_fold)) {
 		warn 
-		"Host1 Folder $h1_fold: Could not select: ",
+		"Host1 folder $h1_fold: Could not select: ",
 		$imap1->LastError,  "\n";
 		$nb_errors++;
 		next FOLDER;
@@ -1597,7 +1555,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	my %h1_hash = ();
 	my %h2_hash = ();
 	
-	print "++++ Host1 [$h1_fold] parsing headers ++++\n";
+	$debug and print "Host1 folder [$h1_fold] parsing headers\n";
 	last FOLDER if $imap1->IsUnconnected();
 	last FOLDER if $imap2->IsUnconnected();
 
@@ -1612,7 +1570,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	$debug and print "Time fir: ", timenext(), " s\n";
 	unless ($h1_fir_ref) {
 		warn
-		"Host1 Folder $h1_fold: Could not fetch_hash_2 ",
+		"Host1 folder $h1_fold: Could not fetch_hash_2 ",
 		scalar(@h1_msgs), " msgs: ", $imap1->LastError, "\n";
 		$nb_errors++;
 		next FOLDER;
@@ -1641,7 +1599,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	}
 	$debug and print "Time parsing headers on host1: ", timenext(), " s\n";
 	
-	print "++++ Host2 [$h2_fold] parsing headers ++++\n";
+	$debug and print "Host2 folder [$h2_fold] parsing headers\n";
 
 	my ($h2_heads_ref, $h2_fir_ref) = ({}, {});
 	$h2_heads_ref =   $imap2->parse_headers([@h2_msgs], @useheader) if (@h2_msgs);
@@ -1671,8 +1629,8 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	}
 	$debug and print "Time parsing headers on host2: ", timenext(), " s\n";
 
-	print "++++ Verifying [$h1_fold] -> [$h2_fold] ++++\n";
-	# messages in host1 that are not good in host2
+	$debug and print "++++ Verifying [$h1_fold] -> [$h2_fold]\n";
+	# messages in host1 that are not in host2
 	
 	my @h1_hash_keys_sorted_by_uid 
 	  = sort {$h1_hash{$a}{'m'} <=> $h1_hash{$b}{'m'}} keys(%h1_hash);
@@ -1691,7 +1649,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 				my $h2_msg  = $h2_hash{$m_id}{'m'};
 				my $h2_flags  = $h2_hash{$m_id}{'F'} || "";
 				my $isdel  = $h2_flags =~ /\B\\Deleted\b/ ? 1 : 0;
-				print "deleting message [$m_id] #$h2_msg in host2 folder $h2_fold\n"
+				print "msg $h2_fold/$h2_msg deleted on host2 [$m_id]\n"
 				  if ! $isdel;
 				push(@h2_expunge, $h2_msg) if $uidexpunge2;
 				unless ($dry or $isdel) {
@@ -1701,7 +1659,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			}
 		}
 		foreach my $h2_msg (@h2_msgs_duplicate) {
-			print "deleting message [duplicate] #$h2_msg in host2 folder $h2_fold\n";
+			print "msg $h2_fold/$h2_msg deleted [duplicate] on host2\n";
 			push(@h2_expunge, $h2_msg) if $uidexpunge2;
 			unless ($dry) {
 				$imap2->delete_message($h2_msg);
@@ -1720,28 +1678,26 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	}
 
 	MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
-		my $h1_size = $h1_hash{$m_id}{'s'};
-		my $h1_msg = $h1_hash{$m_id}{'m'};
+		my $h1_size  = $h1_hash{$m_id}{'s'};
+		my $h1_msg   = $h1_hash{$m_id}{'m'};
 		my $h1_idate = $h1_hash{$m_id}{'D'};
 		
 		if (defined $maxsize and $h1_size > $maxsize) {
-			print "+ Skipping msg #$h1_msg:$h1_size in host1 folder $h1_fold (exceeds maxsize limit $maxsize bytes)\n";
+			print "msg $h1_fold/$h1_msg skipping ($h1_size exceeds maxsize limit $maxsize bytes)\n";
 			$total_bytes_skipped += $h1_size;
 			$nb_msg_skipped += 1;
 			next MESS;
 		}
-		$debug and print "+ key     $m_id #$h1_msg\n";
 		unless (exists($h2_hash{$m_id})) {
-			print "+ NO msg #$h1_msg [$m_id] in $h2_fold\n";
 			# copy
-			print "+ Copying msg #$h1_msg:$h1_size to folder $h2_fold\n";
+			$debug and print "msg $h1_fold/$h1_msg copying to $h2_fold\n";
 			last FOLDER if $imap1->IsUnconnected();
-			last FOLDER if   $imap2->IsUnconnected();
+			last FOLDER if $imap2->IsUnconnected();
 			my $string;
 			$string = $imap1->message_string($h1_msg);
 			unless (defined($string)) {
 				warn
-				"Could not fetch message #$h1_msg from $h1_fold: ",
+				"- msg $h1_fold/$h1_msg could not fetch [$m_id $h1_size]: ",
 				$imap1->LastError, "\n";
 				$nb_errors++;
 				$total_bytes_error += $h1_size;
@@ -1851,28 +1807,20 @@ Bye.'
 				"F message content begin next line\n",
 				$string,
 				"F message content ended on previous line\n", "=" x 80, "\n";
-			my $d = "";
+			my $h1_date = "";
 			if ($syncinternaldates) {
-				$d = $h1_idate;
-				$debug and print "internal date from 1: [$d]\n";
-				$d = good_date($d);
-				$debug and print "internal date from 1: [$d] (fixed)\n";
+				$h1_date = $h1_idate;
+				$debug and print "internal date from host1: [$h1_date]\n";
+				$h1_date = good_date($h1_date);
+				$debug and print "internal date from host1: [$h1_date] (fixed)\n";
 			}
 			
 			if ($idatefromheader) {
 				
-				$d = $imap1->get_header($h1_msg,"Date");
-				$debug and print "header date from 1: [$d]\n";
-				$d = good_date($d);
-				$debug and print "header date from 1: [$d] (fixed)\n";
-			}
-
-			sub good_date {
-				my ($d) = @_;
-				return($d) if (! $usedatemanip);
-				$d = UnixDate(ParseDate($d), "%d-%b-%Y %H:%M:%S %z");
-				$d = "\"$d\"";
-				return($d);
+				$h1_date = $imap1->get_header($h1_msg,"Date");
+				$debug and print "header date from host1: [$h1_date]\n";
+				$h1_date = good_date($h1_date);
+				$debug and print "header date from host1: [$h1_date] (fixed)\n";
 			}
 
 			my $h1_flags = $h1_hash{$m_id}{'F'} || "";
@@ -1883,24 +1831,24 @@ Bye.'
 			$h1_flags = flags_filter($h1_flags, $permanentflags2) if ($permanentflags2);
 			
 			my $new_id;
-			print "flags & date from: [$h1_flags][$d]\n";
+			$debug and print "msg $h1_fold/$h1_msg date [$h1_date] flags [$h1_flags] size [$h1_size]\n";
 			last FOLDER if $imap1->IsUnconnected();
-			last FOLDER if   $imap2->IsUnconnected();
-			$d = undef if ($d eq "");
+			last FOLDER if $imap2->IsUnconnected();
+			$h1_date = undef if ($h1_date eq "");
 			unless ($dry) {
 				
 				if ($OSNAME eq "MSWin32") {
-					$new_id = $imap2->append_string($h2_fold,$string, $h1_flags, $d);
+					$new_id = $imap2->append_string($h2_fold, $string, $h1_flags, $h1_date);
 				}
 				else {
 					# just back to append_string since append_file 3.05 does not work. 
 					#$new_id = $imap2->append_file($h2_fold, $message_file, "", $h1_flags, $d);
 					# append_string 3.05 does not work too some times with $d unset.
-					$new_id = $imap2->append_string($h2_fold,$string, $h1_flags, $d);
+					$new_id = $imap2->append_string($h2_fold, $string, $h1_flags, $h1_date);
 				}
 				unless($new_id){
 					no warnings 'uninitialized';
-					warn "Couldn't append msg #$h1_msg (Subject:[".
+					warn "- msg $h1_fold/$h1_msg couldn't append  (Subject:[".
 					  $imap1->subject($h1_msg)."]) to folder $h2_fold: ",
 					  $imap2->LastError, "\n";
 					$nb_errors++;
@@ -1911,11 +1859,11 @@ Bye.'
 					# good
 					# $new_id is an id if the IMAP server has the 
 					# UIDPLUS capability else just a ref
-					print "Copied msg id [$h1_msg] to folder $h2_fold msg id [$new_id]\n";
+					print "msg $h1_fold/$h1_msg copied to $h2_fold/$new_id\n";
 					$total_bytes_transferred += $h1_size;
 					$nb_msg_transferred += 1;
 					if($delete) {
-						print "Deleting msg #$h1_msg on host1 folder $h1_fold\n";
+						print "msg $h1_fold/$h1_msg deleted on host1\n";
 						unless($dry) {
 							$imap1->delete_message($h1_msg);
 							$h1_nb_msg_deleted += 1;
@@ -1933,7 +1881,10 @@ Bye.'
 			next MESS;
 		}
 		else{
-			$debug and print "Message id [$m_id] found in t:$h2_fold\n";
+			#my $h2_size  = $h2_hash{$m_id}{'s'};
+			my $h2_msg   = $h2_hash{$m_id}{'m'};
+			#my $h2_idate = $h2_hash{$m_id}{'D'};
+			$debug and print "msg $h1_fold/$h1_msg equals $h2_fold/$h2_msg\n";
 			$total_bytes_skipped += $h1_size;
 			$nb_msg_skipped += 1;
 		}
@@ -1958,7 +1909,7 @@ Bye.'
 		my @h2_flags = sort split(' ', $h2_flags );
 		my $diff = compare_lists(\@h1_flags, \@h2_flags);
 
-		$diff and $debug and print "Replacing h2 flags($h2_flags) with h1 flags($h1_flags) on msg #$h2_msg in $h2_fold\n";
+		$diff and $debug and print "msg $h2_fold/$h2_msg replacing h2 flags($h2_flags) with h1 flags($h1_flags)\n";
 
 		# This sets flags so flags can be removed with this
 		# When you remove a \Seen flag on host1 you want to it
@@ -1966,8 +1917,7 @@ Bye.'
 		# we need most of the time.
 		
 		if (!$dry and $diff and !$imap2->store($h2_msg, "FLAGS.SILENT (@h1_flags)") ) {
-			warn "Could not add flags @h1_flags",
-			  " on msg #$h2_msg in $h2_fold: ",
+			warn "- msg $h2_fold/$h2_msg could not add flags @h1_flags",
 			  $imap2->LastError, "\n";
 			#$nb_errors++;
 		}
@@ -1990,21 +1940,21 @@ Bye.'
 			  "host2 internal date: $h2_idate\n";
 			
 			#unless ($h1_idate eq $h2_idate) {
-			#	print "!!! Dates differ !!!\n";
+			#	print "!!! Dates differs !!!\n";
 			#}
 		};
 		unless ($skipsize or ($h1_size == $h2_size)) {
 			# Bad size
 			print 
-			"Message $m_id SZ_BAD  f:$h1_msg:$h1_size t:$h2_msg:$h2_size\n";
+			"- msg $h1_fold/$h1_msg size diff $h1_size != $h2_size $h2_fold/$h2_msg\n";
 			$nb_errors++;
 		}
 		else {
 	    		# Good 
 			$debug and print
-			"Message $m_id SZ_GOOD f:$h1_msg:$h1_size t:$h2_msg:$h2_size\n";
+			"msg $h1_fold/$h1_msg sizes ok $h1_size <=> $h2_size $h2_fold/$h2_msg\n";
 			if($delete) {
-				print "Deleting msg #$h1_msg on host1 folder $h1_fold\n";
+				print "msg $h1_fold/$h1_msg deleted on host1\n";
 				unless($dry) {
 					$imap1->delete_message($h1_msg);
 					$h1_nb_msg_deleted += 1;
@@ -2022,10 +1972,10 @@ Bye.'
 		unless($dry) { $imap2->expunge() };
 	}
 
-print "Time: ", timenext(), " s\n";
+$debug and print "Time: ", timenext(), " s\n";
 }
 
-print "++++ End looping on each folder ++++\n";
+print "++++ End looping on each folder\n";
 
 
 # FOLDER loop is exited any time a connection is lost be sure to log it!
@@ -2085,14 +2035,6 @@ exit_clean(0);
 
 # subroutines
 
-sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.344 2010/08/20 02:06:13 gilles Exp gilles $ ';
-	$rcs =~ m/,v (\d+\.\d+)/;
-	my $VERSION = ($1) ? $1: "UNKNOWN";
-	return($VERSION);
-}
-
-
 sub check_lib_version {
 	$debug and print "IMAPClient $Mail::IMAPClient::VERSION\n";
 	if ($Mail::IMAPClient::VERSION eq '2.2.9') {
@@ -2119,8 +2061,7 @@ IO::Socket
 IO::Socket::SSL 
 Digest::MD5     
 Digest::HMAC_MD5
-Term::ReadKey   
-Date::Manip))
+Term::ReadKey))
 	{
 		my $v = "?";
 	
@@ -2170,8 +2111,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.344 $ ',
-		  '$Date: 2010/08/20 02:06:13 $ ',
+		  '$Revision: 1.350 $ ',
+		  '$Date: 2010/09/06 01:05:09 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2274,7 +2215,7 @@ sub select_msgs {
 }
 
 sub stats {
-	print   "++++ Statistics ++++\n";
+	print   "++++ Statistics\n";
 	print   "Transfer time                     : $timediff sec\n";
 	print   "Messages transferred              : $nb_msg_transferred ";
 	print   "(could be $nb_msg_skipped_dry_mode without dry mode)" if ($dry);
@@ -2297,6 +2238,8 @@ sub stats {
 	print   "Reconnections to host1            : $host1_reconnect_count\n";
 	print   "Reconnections to host2            : $host2_reconnect_count\n";
 	print   "Detected $nb_errors errors\n\n";
+
+	print   $warn_release, "\n";
 	print   thank_author();
 }
 
@@ -2350,7 +2293,6 @@ sub get_options {
                                    "delete2!"    => \$delete2,
                                    "syncinternaldates!" => \$syncinternaldates,
                                    "idatefromheader!" => \$idatefromheader,
-                                   "usedatemanip!" => \$usedatemanip,
                                    "syncacls!"   => \$syncacls,
 				   "maxsize=i"   => \$maxsize,
 				   "maxage=i"    => \$maxage,
@@ -2397,7 +2339,7 @@ sub get_options {
                                    "justlogin!"  => \$justlogin,
 				   "tmpdir=s"    => \$tmpdir,
 				   "pidfile=s"    => \$pidfile,
-				   
+				   "releasecheck!" => \$releasecheck,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -2431,7 +2373,6 @@ sub get_options {
 sub load_modules {
 
 	require IO::Socket::SSL if ($ssl1 or $ssl2 or $tls1 or $tls2);
-	require Date::Manip if ($syncinternaldates || $idatefromheader) ;
 
         require Term::ReadKey if (
 	       ((not($password1 or $passfile1)) 
@@ -2540,10 +2481,92 @@ sub string_to_file {
 }
 
 
+sub check_last_release {
+
+	my $public_release = not_long('imapsync_version_lfo');
+	return('') if ($public_release eq 'unknown');
+	
+	my $imapsync_here  = imapsync_version();
+	
+	if ($public_release > $imapsync_here) {
+		return("New imapsync release $public_release available");
+	}else{
+		return("This current imapsync is up to date");
+	}
+}
+
+sub imapsync_version {
+	my $rcs = '$Id: imapsync,v 1.350 2010/09/06 01:05:09 gilles Exp gilles $ ';
+	$rcs =~ m/,v (\d+\.\d+)/;
+	my $VERSION = ($1) ? $1: "UNKNOWN";
+	return($VERSION);
+}
+
+
+sub imapsync_version_lfo {
+	
+	my $local_version = imapsync_version();
+	my $agent_info = "$OSNAME system, perl $PERL_VERSION, Mail::IMAPClient $Mail::IMAPClient::VERSION";
+	my $sock = new IO::Socket::INET (
+		PeerAddr => 'linux-france.org',
+		PeerPort => '80',
+		Proto => 'tcp');
+	return('unknown') if not $sock;
+	print $sock
+		"GET /prj/imapsync/VERSION HTTP/1.0\n",
+		"User-Agent: imapsync/$local_version ($agent_info)\n",
+		"Host: www.linux-france.org\n\n";
+	my @line = <$sock>;
+	close($sock);
+	my $last_release = $line[-1];
+	chomp($last_release);
+	return($last_release);
+}
+
+sub not_long {
+
+	my ($func) = @_;
+	my $val;
+	eval {
+		local $SIG{ALRM} = sub { die "alarm\n" };
+		alarm 3;
+		#print $func, "\n";
+		{
+			no strict "refs";
+			$val = &$func();
+		}
+		alarm 0;
+	};
+	if ($@) {
+		# timed out
+		return('unknown') unless $@ eq "alarm\n"; # propagate unexpected errors
+	
+	}else {
+	# didn't
+		return($val);
+	}
+}
+
+sub localhost_info {
+	
+	my($infos) = join("", 
+	    "Here is a [$OSNAME] system (", 
+	    join(" ", 
+	         uname(),
+	         ),
+                 ")\n",
+	         "With perl ", 
+	         sprintf("%vd", $PERL_VERSION),
+	         " Mail::IMAPClient  $Mail::IMAPClient::VERSION",
+            );	  
+	return($infos);
+
+}
 
 sub usage {
 	my $localhost_info = localhost_info();
 	my $thank = thank_author();
+	my $warn_release = check_last_release();
         print <<EOF;
 
 usage: $0 [options]
@@ -2671,6 +2694,7 @@ Several options are mandatory.
 --debugimap2           : imap debug mode for host2.
 --debugimap            : imap debug mode for host1 and host2.
 --version              : print software version.
+--noreleasecheck       : do not check for new imapsync release (a http request).
 --justconnect          : just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
 --justlogin            : just login to both host1 and host2 with users 
@@ -2701,17 +2725,66 @@ $0 \\
 
 $localhost_info
 $rcs
+$warn_release
 
 $thank
 EOF
 }
 
 
+sub good_date {
+        # two incoming formats:
+        # header    Tue, 24 Aug 2010 16:00:00 +0200
+	# internal       24-Aug-2010 16:00:00 +0200
+	
+        # outgoing format: internal date format
+        #   24-Aug-2010 16:00:00 +0200
+	
+    my ($d) = @_;
+    return ('') if not defined($d);
+    
+    if ( $d =~ m{(\d?)(\d-...-\d{4})( \d{2}:\d{2}:\d{2})( (?:\+|-)\d{4})?}o ) {
+    	#print "internal: [$1][$2][$3][$4]\n";
+	my ($day_1, $date_rest, $hour, $zone) = ($1,$2,$3,$4);
+	$day_1 = '0' if ($day_1 eq '');
+	$zone  = ''  if not defined($zone);
+	$d = $day_1 . $date_rest . $hour . $zone;
+	
+	
+    }elsif ($d =~ m{(?:.{3}, )(\d?)(\d) (...) (\d{4})( \d{2}:\d{2}:\d{2})( (?:\+|-)\d{4})?}o  ) {
+    	#print "header: [$1][$2][$3][$4][$5][$6]\n";
+	my ($day_1, $day_rest, $month, $year, $hour, $zone) = ($1,$2,$3,$4,$5,$6);
+	$day_1 = '0' if ($day_1 eq '');
+	$zone  = ''  if not defined($zone);
+	$d = $day_1 . "$day_rest-$month-$year" . $hour . $zone;
+	
+    }else{
+    	# unknown/unmatch => return same string
+    	return($d);
+    }
+    
+    $d = qq("$d");
+    return($d);
+} 
+
+sub tests_good_date {
+
+	ok('' eq good_date(), 'good_date no arg');
+	ok('"24-Aug-2010 16:00:00 +0200"' eq good_date('24-Aug-2010 16:00:00 +0200'), 'good_date internal 2digit zone');
+	ok('"24-Aug-2010 16:00:00"'       eq good_date('24-Aug-2010 16:00:00'), 'good_date internal 2digit no zone');
+	ok('"01-Sep-2010 16:00:00 +0200"' eq good_date( '1-Sep-2010 16:00:00 +0200'), 'good_date internal SP 1digit');
+	ok('"24-Aug-2010 16:00:00 +0200"' eq good_date('Tue, 24 Aug 2010 16:00:00 +0200'), 'good_date header 2digit zone');
+	ok('"01-Sep-2010 16:00:00"'       eq good_date('Wed, 1 Sep 2010 16:00:00'), 'good_date header SP 1digit zone');
+	ok('"01-Sep-2010 16:00:00 +0200"' eq good_date('Wed, 1 Sep 2010 16:00:00 +0200'), 'good_date header SP 1digit zone');
+	ok('"01-Sep-2010 16:00:00 +0200"' eq good_date('Wed, 1 Sep 2010 16:00:00 +0200 (CEST)'), 'good_date header SP 1digit zone');
+
+}
+
 sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if (not $tests_debug);
-		tests_regexmess();
+		tests_good_date();
 	}
 }
 
@@ -2727,6 +2800,7 @@ sub tests {
 		tests_flags_filter();
 		tests_imap2_folder_name();
 		tests_command_line_nopassword();
+		tests_good_date();
 	}
 }
 
