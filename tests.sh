@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.29 2004/12/28 04:03:12 gilles Exp $	
+# $Id: tests.sh,v 1.30 2004/12/28 23:22:02 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.30  2004/12/28 23:22:02  gilles
+# Added lp_justfolders()
+#
 # Revision 1.29  2004/12/28 04:03:12  gilles
 # Added lp_sep2()
 #
@@ -202,6 +205,21 @@ lp_folder() {
 		--folder INBOX.yop --folder INBOX.Trash  \
 		--host1 loul  --user1 tata \
 		--passfile1 /var/tmp/secret.tata
+	else
+		:
+	fi
+}
+
+lp_justfolders() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--folder INBOX.yop --folder INBOX.Trash  \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--justfolders
 	else
 		:
 	fi
