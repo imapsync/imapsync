@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.55 $
+$Revision: 1.54 $
 
 =head1 INSTALL
 
@@ -39,7 +39,7 @@ $Revision: 1.55 $
            [--sep2 <char>]
            [--syncinternaldate]
            [--delete] [--expunge]
-           [--subscribed] [--subscribe]
+           [--subscribed]
            [--dry]
            [--debug] [--debugimap]
            [--version] [--help]
@@ -176,12 +176,6 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 =head1 HUGE MIGRATION
 
 
-Have a special attention on options 
---subscribed
---subscribe
---delete
---expunge
-
 If you have many mailboxes to migrate think about a little
 shell program. Write a file called file.csv (for example)
 containing users and passwords.
@@ -214,7 +208,7 @@ Welcome in shell programming !
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.55 2003/12/13 18:16:56 gilles Exp $
+$Id: imapsync,v 1.54 2003/12/12 18:13:01 gilles Exp $
 
 =cut
 
@@ -235,15 +229,14 @@ my(
         @folder, $prefix2,
         $sep1, $sep2,
 	$syncinternaldates,
-	$delete, $expunge, $dry, 
-        $subscribed, $subscribe,
+	$delete, $expunge, $dry, $subscribed, $subscribe,
 	$version, $VERSION, $help, 
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.55 2003/12/13 18:16:56 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.54 2003/12/12 18:13:01 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -251,8 +244,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.55 $ ',
-		  '$Date: 2003/12/13 18:16:56 $ ',
+		  '$Revision: 1.54 $ ',
+		  '$Date: 2003/12/12 18:13:01 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $Mail::IMAPClient::VERSION,
@@ -321,17 +314,16 @@ print "To   software : ", ($to->Report())[0];
 print "From capability : ", join(" ", $from->capability()), "\n";
 print "To   capability : ", join(" ", $to->capability()), "\n";
 
-my (@f_folders, @t_folders, %fs_folders);
+my (@f_folders, @t_folders);
 
-# Make a hash of subscribed folders in source server.
-map { $fs_folders{$_}=1 } $from->subscribed();
+#@f_folders = (scalar(@folder)) ? @folder : @{$from->folders()};
 
 if (scalar(@folder)) {
 	# folders given by option --folder
 	@f_folders = @folder;
 }elsif ($subscribed) {
 	# option --subscribed
-	@f_folders = keys (%fs_folders);
+	@f_folders = $from->subscribed();
 }else {
 	# no option, all folders
 	@f_folders = $from->folders()
@@ -373,10 +365,6 @@ print "To   separator : [$t_sep]\n";
 print 
   "From folders : ", map("[$_] ",@f_folders),"\n",
   "To   folders : ", map("[$_] ",@t_folders),"\n";
-
-print 
-  "From subscribed folders : ", map("[$_] ", keys(%fs_folders)), "\n";
-
 #exit;
 
 FOLDER: foreach my $f_fold (@f_folders) {
@@ -419,13 +407,13 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	if ($expunge){
 		print "Expunging $f_fold and $t_fold\n";
-		unless($dry) { $from->expunge() };
-		unless($dry) { $to->expunge() };
+		$from->expunge();
+		$to->expunge();
 	}
 
-	if ($subscribe and exists $fs_folders{$f_fold}) {
+	if ($subscribe) {
 		print "Subscribing to folder $t_fold on destination server\n";
-		unless($dry) { $to->subscribe($t_fold) };
+		$to->subscribe($t_fold);
 	}
 	
 	my @f_msgs = $from->search("ALL");
@@ -657,14 +645,11 @@ Several options are mandatory.
 			 are not really deleted. See expunge.
 --expunge              : expunge messages on both account.
                          expunge delete messages marked deleted.
-                         expunge is made at the begining so newly
-                         transfered messages won't be expunged.
 --syncinternaldates    : set the internal dates on host2 same as host1
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfer only subscribed folders.
 --subscribe            : subscribe to the folders transfered on the 
-                         "destination" server that are subscribed
-                         on the "source" server.
+                         "destination" server.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
 --version              : print sotfware version.
