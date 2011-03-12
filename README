@@ -1,19 +1,30 @@
 NAME
     imapsync - IMAP synchronisation, sync, copy or migration tool.
     Synchronise mailboxes between two imap servers. Good at IMAP migration.
-    More than 32 different IMAP server softwares supported with success.
+    More than 36 different IMAP server softwares supported with success.
 
-    $Revision: 1.337 $
+    $Revision: 1.340 $
+
+SYNOPSIS
+    To synchronise imap account "foo" on "imap.truc.org" to imap account
+    "bar" on "imap.trac.org" with foo password "secret1" and bar password
+    "secret2":
+
+      imapsync \
+       --host1 imap.truc.org --user1 foo --password1 secret1 \
+       --host2 imap.trac.org --user2 bar --password2 secret2
 
 INSTALL
      imapsync works fine under any Unix OS with perl.
-     imapsync works fine under Windows (2000, XP) and ActiveState's 5.8 Perl
+     imapsync works fine under Windows (2000, XP) with ActiveState's 5.8 Perl
+     or as a standalone binary software.
 
-     imapsync is already available directly on the following distributions (at least):
-     FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva and OpenBSD (yeah!).
+    imapsync is already available directly on the following distributions
+    (at least): FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva
+    and OpenBSD (yeah!).
 
      Get imapsync at
-     http://www.linux-france.org/prj/imapsync/dist/
+     http://www.linux-france.org/prj/imapsync/
 
      You'll find a compressed tarball called imapsync-x.xx.tgz
      where x.xx is the version number. Untar the tarball where
@@ -23,12 +34,12 @@ INSTALL
 
      Go into the directory imapsync-x.xx and read the INSTALL file.
      The INSTALL file is also at 
-     http://www.linux-france.org/prj/imapsync/INSTALL (for windows users)
-     
- The freshmeat record is at http://freshmeat.net/projects/imapsync/
+     http://www.linux-france.org/prj/imapsync/INSTALL
 
-SYNOPSIS
-      imapsync [options]
+     The freshmeat record is at http://freshmeat.net/projects/imapsync/
+
+USAGE
+     imapsync [options]
 
     To get a description of each option just run imapsync like this:
 
@@ -76,7 +87,7 @@ SYNOPSIS
                [--pidfile <filepath>]
                [--tmpdir  <dirpath>]
                [--version] [--help]
-
+  
 DESCRIPTION
     The command imapsync is a tool allowing incremental and recursive imap
     transfer from one mailbox to another.
@@ -88,19 +99,19 @@ DESCRIPTION
 
     imapsync is a good tool because it reduces the amount of data
     transferred by not transferring a given message if it is already on both
-    sides. Same headers, same message size and the transfer is done only
-    once. All flags are preserved, unread will stay unread, read will stay
-    read, deleted will stay deleted. You can stop the transfer at any time
-    and restart it later, imapsync works well with bad connections. imapsync
-    is CPU hungry so nice and renice commands can be a good help. imapsync
-    can be memory hungry too, especially with large messages.
+    sides. Same headers and the transfer is done only once. All flags are
+    preserved, unread will stay unread, read will stay read, deleted will
+    stay deleted. You can stop the transfer at any time and restart it
+    later, imapsync works well with bad connections. imapsync is CPU hungry
+    so nice and renice commands can be a good help. imapsync can be memory
+    hungry too, especially with large messages.
 
     You can decide to delete the messages from the source mailbox after a
     successful transfer (it is a good feature when migrating). In that case,
     use the --delete --expunge1 options.
 
     You can also just synchronize a mailbox A from another mailbox B in case
-    you just want to keep a "live" copy of B in A.
+    you just want to keep a "live" copy of B in A (--delete2 may help)
 
 OPTIONS
     To get a description of each option just invoke:
@@ -229,30 +240,32 @@ BUG REPORT GUIDELINES
     Help us to help you: in your report, please include:
 
      - imapsync version.
-     
- - output given with --debug --debugimap near the failure point.
+
+     - output given with --debug --debugimap near the failure point.
        Isolate a message or two in a folder 'BUG' and use 
-           --folder 'BUG' --debug --debugimap 
-     
- - imap server software on both side and their version number.
-     
- - imapsync with all the options you use,  the full command line
+
+         imapsync ... --folder 'BUG' --debug --debugimap 
+
+     - imap server software on both side and their version number.
+
+     - imapsync with all the options you use,  the full command line
        you use (except the passwords of course). 
-     
- - IMAPClient.pm version.
-     
- - operating system running imapsync.
-     
- - operating systems on both sides and the third side in case
+
+     - IMAPClient.pm version.
+
+     - operating system running imapsync.
+
+     - operating systems on both sides and the third side in case
        you run imapsync on a foreign host from the both.
-     
- - virtual software context (vmware, xen etc.)
+
+     - virtual software context (vmware, xen etc.)
 
     Most of those values can be found as a copy/paste at the begining of the
     output.
 
     One time in your life, read the paper "How To Ask Questions The Smart
-    Way" http://www.catb.org/~esr/faqs/smart-questions.html and forget it.
+    Way" http://www.catb.org/~esr/faqs/smart-questions.html and then forget
+    it.
 
 IMAP SERVERS
     Failure stories reported with the following 4 imap servers:
@@ -385,7 +398,7 @@ SIMILAR SOFTWARES
                       see also tools/wonko_ruby_imapsync
       pop2imap      : http://www.linux-france.org/prj/pop2imap/
 
-    Feedback (good or bad) will always be welcome.
+    Feedback (good or bad) will often be welcome.
 
-    $Id: imapsync,v 1.337 2010/07/16 23:23:40 gilles Exp gilles $
+    $Id: imapsync,v 1.340 2010/08/09 00:03:21 gilles Exp gilles $
 

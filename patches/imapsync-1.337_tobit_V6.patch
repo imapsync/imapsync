@@ -1,0 +1,45 @@
+--- imapsync-1.337      2010-08-02 13:56:06.000000000 +0200
++++ imapsync-1.337_tobit-workaround     2010-08-02 13:53:58.000000000 +0200
+@@ -3821,6 +3821,7 @@
+   $banner;
+ }
+ 
++
+ # IMAPClient 2.2.9 3.xx ads
+ 
+ package Mail::IMAPClient;
+@@ -3869,3 +3870,33 @@
+     #$self->Fast_io( $self->Fast_io );
+     $sock;
+ }
++
++sub search {
++    my ( $self, @args ) = @_;
++
++    @args = $self->_quote_search(@args);
++
++    $self->_imap_uid_command( SEARCH => @args )
++      or return undef;
++
++    my @hits;
++    foreach ( $self->History ) {
++        chomp;
++        s/$CR?$LF$//o;
++        s/^(\s*\d+)/* SEARCH $1/;
++        s/^\*\s+SEARCH\s+(?=.*?\d)// or next;
++        push @hits, grep /^\d+$/, split;
++    }
++
++    @hits
++      or $self->_debug("Search successful but found no matching messages");
++
++    # return empty list
++    return
++        wantarray     ? @hits
++      : !@hits        ? \@hits
++      : $self->Ranges ? $self->Range( \@hits )
++      :                 \@hits;
++}
++
++
+

@@ -16,21 +16,34 @@
 
 imapsync - IMAP synchronisation, sync, copy or migration
 tool. Synchronise mailboxes between two imap servers. Good
-at IMAP migration. More than 32 different IMAP server softwares
+at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.337 $
+$Revision: 1.340 $
+
+=head1 SYNOPSIS
+
+To synchronise imap account "foo" on "imap.truc.org"
+           to  imap account "bar" on "imap.trac.org"
+           with foo password "secret1"
+           and  bar password "secret2":
+
+  imapsync \
+   --host1 imap.truc.org --user1 foo --password1 secret1 \
+   --host2 imap.trac.org --user2 bar --password2 secret2
 
 =head1 INSTALL
 
  imapsync works fine under any Unix OS with perl.
- imapsync works fine under Windows (2000, XP) and ActiveState's 5.8 Perl
+ imapsync works fine under Windows (2000, XP) with ActiveState's 5.8 Perl
+ or as a standalone binary software.
 
- imapsync is already available directly on the following distributions (at least):
- FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva and OpenBSD (yeah!).
+imapsync is already available directly on the following distributions 
+(at least):
+FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva and OpenBSD (yeah!).
 
  Get imapsync at
- http://www.linux-france.org/prj/imapsync/dist/
+ http://www.linux-france.org/prj/imapsync/
 
  You'll find a compressed tarball called imapsync-x.xx.tgz
  where x.xx is the version number. Untar the tarball where
@@ -40,13 +53,13 @@ $Revision: 1.337 $
 
  Go into the directory imapsync-x.xx and read the INSTALL file.
  The INSTALL file is also at 
- http://www.linux-france.org/prj/imapsync/INSTALL (for windows users)
- 
+ http://www.linux-france.org/prj/imapsync/INSTALL
+
  The freshmeat record is at http://freshmeat.net/projects/imapsync/
 
-=head1 SYNOPSIS
+=head1 USAGE
 
-  imapsync [options]
+ imapsync [options]
 
 To get a description of each option just run imapsync like this:
 
@@ -112,7 +125,7 @@ another. This is called migration.
 
 imapsync is a good tool because it reduces the amount
 of data transferred by not transferring a given message if it
-is already on both sides. Same headers, same message size
+is already on both sides. Same headers
 and the transfer is done only once. All flags are
 preserved, unread will stay unread, read will stay read,
 deleted will stay deleted. You can stop the transfer at any
@@ -126,7 +139,8 @@ after a successful transfer (it is a good feature when migrating).
 In that case, use the --delete --expunge1 options.
 
 You can also just synchronize a mailbox A from another mailbox B
-in case you just want to keep a "live" copy of B in A.
+in case you just want to keep a "live" copy of B in A (--delete2
+may help)
 
 =head1 OPTIONS
 
@@ -272,23 +286,24 @@ know you run windows(tm) and you haven't read the README yet.
 Help us to help you: in your report, please include:
 
  - imapsync version.
- 
+
  - output given with --debug --debugimap near the failure point.
    Isolate a message or two in a folder 'BUG' and use 
-       --folder 'BUG' --debug --debugimap 
- 
+
+     imapsync ... --folder 'BUG' --debug --debugimap 
+
  - imap server software on both side and their version number.
- 
+
  - imapsync with all the options you use,  the full command line
    you use (except the passwords of course). 
- 
+
  - IMAPClient.pm version.
- 
+
  - operating system running imapsync.
- 
+
  - operating systems on both sides and the third side in case
    you run imapsync on a foreign host from the both.
- 
+
  - virtual software context (vmware, xen etc.)
 
 Most of those values can be found as a copy/paste at the begining of the output.
@@ -296,7 +311,7 @@ Most of those values can be found as a copy/paste at the begining of the output.
 One time in your life, read the paper 
 "How To Ask Questions The Smart Way"
 http://www.catb.org/~esr/faqs/smart-questions.html
-and forget it.
+and then forget it.
 
 =head1 IMAP SERVERS 
 
@@ -452,9 +467,9 @@ Entries for imapsync:
   pop2imap      : http://www.linux-france.org/prj/pop2imap/
 
 
-Feedback (good or bad) will always be welcome.
+Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.337 2010/07/16 23:23:40 gilles Exp gilles $
+$Id: imapsync,v 1.340 2010/08/09 00:03:21 gilles Exp gilles $
 
 =cut
 
@@ -542,7 +557,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.337 2010/07/16 23:23:40 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.340 2010/08/09 00:03:21 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -561,8 +576,9 @@ unless(defined(&_SYSEXITS_H)) {
 	eval 'sub EX_USAGE () {64;}' unless defined(&EX_USAGE);
 }
 
-# @ARGV will be eat by get_options
+# @ARGV will be eat by get_options()
 my @argv_copy = @ARGV;
+
 get_options();
 
 # default values
@@ -634,17 +650,7 @@ sub localhost_info {
 }
 
 if ($justconnect) {
-	my $imap1 = ();
-	my $imap2 = ();
-	
-	$imap1 = connect_imap($host1, $port1, $debugimap1, $ssl1, $tls1);
-	print "Host1 software: ", server_banner($imap1);
-	print "Host1 capability: ", join(" ", $imap1->capability()), "\n";
-	$imap2   = connect_imap($host2, $port2, $debugimap2, $ssl2, $tls2);
-	print "Host2 software: ", server_banner($imap2);
-	print "Host2 capability: ", join(" ", $imap2->capability()), "\n";
-	$imap1->logout();
-	$imap2->logout();
+	justconnect();
 	exit_clean(0);
 }
 
@@ -668,8 +674,8 @@ if ($syncinternaldates) {
 
 if ($syncinternaldates || $idatefromheader) {
 
-	# Date::Manip is an ugly module it exits (confess) for reading an unset value
-	# I should write a bug report but too lazy.
+	# Date::Manip is an ugly module: it exits (confess) for reading an unset value
+	# I should write a bug report but I'm too lazy.
 	
 	no warnings 'redefine';
 	local *Carp::confess = sub { return undef; };
@@ -1895,7 +1901,7 @@ Bye.'
 			print "flags & date from: [$h1_flags][$d]\n";
 			last FOLDER if $imap1->IsUnconnected();
 			last FOLDER if   $imap2->IsUnconnected();
-			$d = undef;
+			$d = undef if ($d eq "");
 			unless ($dry) {
 				
 				if ($OSNAME eq "MSWin32") {
@@ -2095,7 +2101,7 @@ exit_clean(0);
 # subroutines
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.337 2010/07/16 23:23:40 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.340 2010/08/09 00:03:21 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -2179,8 +2185,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.337 $ ',
-		  '$Date: 2010/07/16 23:23:40 $ ',
+		  '$Revision: 1.340 $ ',
+		  '$Date: 2010/08/09 00:03:21 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2215,6 +2221,22 @@ sub write_pidfile {
 	close PIDFILE;
 	return($PROCESS_ID);
 }
+
+sub justconnect {
+	my $imap1 = ();
+	my $imap2 = ();
+	
+	$imap1 = connect_imap($host1, $port1, $debugimap1, $ssl1, $tls1);
+	print "Host1 software: ", server_banner($imap1);
+	print "Host1 capability: ", join(" ", $imap1->capability()), "\n";
+	$imap2   = connect_imap($host2, $port2, $debugimap2, $ssl2, $tls2);
+	print "Host2 software: ", server_banner($imap2);
+	print "Host2 capability: ", join(" ", $imap2->capability()), "\n";
+	$imap1->logout();
+	$imap2->logout();
+
+}
+
 
 sub exit_clean {
 	my $status = shift;

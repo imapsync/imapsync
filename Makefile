@@ -1,14 +1,12 @@
 
-# $Id: Makefile,v 1.32 2010/07/17 00:17:18 gilles Exp gilles $	
-
-TARGET=imapsync
+# $Id: Makefile,v 1.34 2010/07/25 21:30:45 gilles Exp gilles $	
 
 .PHONY: help usage all
 
 help: usage
 
 usage:
-	@echo "      $(TARGET) $(VERSION), You can do :"
+	@echo "      imapsync $(VERSION), You can do :"
 	@echo "make install # as root"
 	@echo "make testf   # run tests"
 	@echo "make testv   # run tests verbosely"
@@ -16,24 +14,31 @@ usage:
 	@echo "make test229 # run tests with Mail-IMAPClient-2.2.9"
 	@echo "make all     "
 
+DIST_NAME=imapsync-$(VERSION)
+DIST_FILE=$(DIST_NAME).tgz
+DEB_FILE=$(DIST_NAME).deb
+VERSION=$(shell perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version)
+
+
+
 all: ChangeLog README VERSION
 
 .PHONY: test tests testp testf test3xx
 
-.test: $(TARGET) tests.sh
+.test: imapsync tests.sh
 	/usr/bin/time sh tests.sh 1>/dev/null
 	touch .test
 
-.test_3xx: $(TARGET) tests.sh
+.test_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_3xx
 
 test_quick : test_quick_229 test_quick_3xx
 
-test_quick_229: $(TARGET) tests.sh
+test_quick_229: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
-test_quick_3xx: $(TARGET) tests.sh
+test_quick_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 testv:
@@ -47,23 +52,23 @@ test3xx: .test_3xx
 
 test229: .test_229
 
-.test_229: $(TARGET) tests.sh
+.test_229: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_229
 
 testf: clean_test test
 
 testp :
-	perl -c $(TARGET)
+	perl -c imapsync
 
-ChangeLog: $(TARGET)
-	rlog $(TARGET) > ChangeLog
+ChangeLog: imapsync
+	rlog imapsync > ChangeLog
 
-README: $(TARGET)
-	perldoc -t $(TARGET) > README
+README: imapsync
+	perldoc -t imapsync > README
 
-VERSION: $(TARGET) Makefile
-	perl -I./Mail-IMAPClient-2.2.9 ./$(TARGET) --version > VERSION
+VERSION: imapsync Makefile
+	perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version > VERSION
 
 .PHONY: clean clean_tilde clean_test   
 
@@ -77,24 +82,19 @@ clean_tilde:
 
 .PHONY: install dist man
 
-man: $(TARGET).1
+man: imapsync.1
 
 clean_man:
-	rm -f $(TARGET).1
+	rm -f imapsync.1
 
-$(TARGET).1: $(TARGET)
-	pod2man $(TARGET) > $(TARGET).1
+imapsync.1: imapsync
+	pod2man imapsync > imapsync.1
 
-install: testp $(TARGET).1
-	install -D $(TARGET) $(DESTDIR)/usr/bin/$(TARGET)
-	install -D $(TARGET).1 $(DESTDIR)/usr/share/man/man1/$(TARGET).1
-	chmod 755 $(DESTDIR)/usr/bin/$(TARGET)
+install: testp imapsync.1
+	install -D imapsync $(DESTDIR)/usr/bin/imapsync
+	install -D imapsync.1 $(DESTDIR)/usr/share/man/man1/imapsync.1
+	chmod 755 $(DESTDIR)/usr/bin/imapsync
 
-
-DIST_NAME=$(TARGET)-$(VERSION)
-DIST_FILE=$(DIST_NAME).tgz
-DEB_FILE=$(DIST_NAME).deb
-VERSION=$(shell perl -I./Mail-IMAPClient-2.2.9 ./$(TARGET) --version)
 
 dist: cidone test clean clean_dist all INSTALL tarball
 
@@ -126,15 +126,21 @@ clean_dist:
 
 # Local goals
 
-.PHONY: lfo lfo_upload niouze_lfo niouze_fm public
+.PHONY: lfo upload_lfo niouze_lfo niouze_fm public
 
-lfo: dist niouze_lfo lfo_upload 
+upload_index: index.shtml
+	rsync -avH index.shtml \
+	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
+	sh ~/memo/lfo-rsync
 
-lfo_upload: 
+
+lfo: dist niouze_lfo upload_lfo 
+
+upload_lfo: 
 	rsync -avH --delete . \
-	/home/gilles/public_html/www.linux-france.org/html/prj/$(TARGET)/
+	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
 	rsync -avH --delete ../prepa_dist/imapsync-*tgz  \
-	/home/gilles/public_html/www.linux-france.org/ftp/prj/$(TARGET)/
+	/home/gilles/public_html/www.linux-france.org/ftp/prj/imapsync/
 	sh ~/memo/lfo-rsync
 
 niouze_lfo : VERSION
