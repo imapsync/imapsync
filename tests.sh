@@ -1,8 +1,20 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.25 2004/10/15 14:40:05 gilles Exp $	
+# $Id: tests.sh,v 1.29 2004/12/28 04:03:12 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.29  2004/12/28 04:03:12  gilles
+# Added lp_sep2()
+#
+# Revision 1.28  2004/12/28 03:15:28  gilles
+# essnet tests
+#
+# Revision 1.27  2004/11/18 03:56:43  gilles
+# Added essnet_justconnect()
+#
+# Revision 1.26  2004/11/04 22:41:54  gilles
+# renamed big_transfert2 -> dprof
+#
 # Revision 1.25  2004/10/15 14:40:05  gilles
 # Added big_transfert_sizes_only()
 #
@@ -423,6 +435,23 @@ lp_regextrans2()
 	fi
 }
 
+lp_sep2() 
+{
+	
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--folder INBOX.yop.yap \
+		--sep2 '\\' --dry
+	else
+		:
+	fi
+}
+
 
 
 bad_login()
@@ -514,7 +543,7 @@ big_transfert_sizes_only()
 
 
 
-big_transfert2()
+dprof()
 {
     date1=`date`
     { perl -d:DProf ./imapsync \
@@ -523,13 +552,69 @@ big_transfert2()
 	--host2 plume --user2 tete@est.belle \
 	--passfile2 /var/tmp/secret.tete \
 	--subscribed --foldersizes --noauthmd5 \
-        --folder INBOX.Backup_ASK || \
+        --folder INBOX.Trash || \
     true
     }
     date2=`date`
     echo3 "[$date1] [$date2]"
     dprofpp tmon.out
 }
+
+essnet_justconnect()
+{
+./imapsync \
+	--host1 mail2.softwareuno.com \
+	--user1 gilles@mail2.softwareuno.com  \
+	--passfile1 /var/tmp/secret.prw \
+	--host2 mail.softwareuno.com \
+	--user2 gilles@softwareuno.com \
+	--passfile2 /var/tmp/secret.prw \
+	--dry --noauthmd5 --sep1 / --foldersizes --justconnect
+}
+
+essnet_mail2_mail()
+{
+./imapsync \
+	--host1 mail2.softwareuno.com \
+	--user1 gilles@mail2.softwareuno.com  \
+	--passfile1 /var/tmp/secret.prw \
+	--host2 mail.softwareuno.com \
+	--user2 gilles@softwareuno.com \
+	--passfile2 /var/tmp/secret.prw \
+	--noauthmd5 --sep1 / --foldersizes \
+	--prefix2 "INBOX/" --regextrans2 's¤INBOX¤¤'
+}
+
+essnet_mail2_mail_t123()
+{
+
+for user1 in test1 test2 test3; do
+	./imapsync \
+	--host1 mail2.softwareuno.com \
+	--user1 ${user1}@mail2.softwareuno.com  \
+	--passfile1 /var/tmp/secret.prw \
+	--host2 mail.softwareuno.com \
+	--user2 gilles@softwareuno.com \
+	--passfile2 /var/tmp/secret.prw \
+	--noauthmd5 --sep1 / --foldersizes \
+	--prefix2 "INBOX/" --regextrans2 's¤INBOX¤¤' \
+	|| true
+done
+}
+
+
+essnet_plume2()
+{
+./imapsync \
+	--host1 mail2.softwareuno.com \
+	--user1 gilles@mail2.softwareuno.com  \
+	--passfile1 /var/tmp/secret.prw \
+	--host2 plume --user2 tata@est.belle \
+	--passfile2 /var/tmp/secret.tata \
+	--noauthmd5 --sep1 / --foldersizes --prefix2 INBOX.
+}
+
+
 
 
 # mandatory tests
@@ -563,7 +648,8 @@ test $# -eq 0 && run_tests \
         lp_skipheader \
 	lp_regextrans2 \
 	foldersizes2 \
-	foldersizes
+	foldersizes \
+	big_transfert_sizes_only
 
 # selective tests
 
