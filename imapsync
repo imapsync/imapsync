@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.161 $
+$Revision: 1.163 $
 
 =head1 INSTALL
 
@@ -136,8 +136,19 @@ dangerous because of the 'ps auxwwwwe' command. So, saving
 the password in a well protected file (600 or rw-------) is
 the best solution.
 
-imasync is not protected against sniffers on the network so
-the passwords are in plain text.
+imasync is not totally protected against sniffers on the
+network since passwords may be transfered in plain text in
+case CRAM-MD5 is not supported by your imap servers.  Use
+--ssl1 and --ssl2 to enable encryption on host1 and host2.
+
+You may authenticate as one user (typically an admin user),
+but be authorized as someone else, which means you don't
+need to know every user's personal password.  Specify
+--authuser1 "adminuser" to enable this on host1.  In this
+case, --authmech1 PLAIN will be used, but otherwise,
+--authmech1 CRAM-MD5 is the default. Same behavior with the
+--authuser2 option.
+
 
 =head1 EXIT STATUS
 
@@ -325,7 +336,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.161 2006/03/20 00:09:41 gilles Exp $
+$Id: imapsync,v 1.163 2006/03/24 04:18:58 gilles Exp $
 
 =cut
 
@@ -372,14 +383,14 @@ my(
 	$timestart, $timeend, $timediff,
         $timesize, $timebefore,
         $ssl1, $ssl2,
-        $authusing1, $authusing2,
+        $authuser1, $authuser2,
         $authmech1, $authmech2,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.161 2006/03/20 00:09:41 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.163 2006/03/24 04:18:58 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -416,8 +427,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.161 $ ',
-		  '$Date: 2006/03/20 00:09:41 $ ',
+		  '$Revision: 1.163 $ ',
+		  '$Date: 2006/03/24 04:18:58 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -459,10 +470,12 @@ if ($justconnect) {
 	my $to = ();
 	
 	$from = connect_imap($host1, $port1);
-	print "From software : ", ($from->Report())[0];
+
+
+	print "From software : ", server_banner($from);
 	print "From capability : ", join(" ", $from->capability()), "\n";
 	$to   = connect_imap($host2, $port2);
-	print "To   software : ", ($to->Report())[0];
+	print "To   software : ", server_banner($to);
 	print "To   capability : ", join(" ", $to->capability()), "\n";
 	$from->logout();
 	$to->logout();
@@ -474,11 +487,14 @@ $user2 || missing_option("--user2");
 
 if(defined($authmd5) and not($authmd5)) {
 	$authmech1 ||= 'PLAIN';
-	$authmech2 ||= 'PLAIN';	
+	$authmech2 ||= 'PLAIN';
 }else{
-	$authmech1 ||= 'CRAM-MD5';
-	$authmech2 ||= 'CRAM-MD5';
+	$authmech1 ||= $authuser1 ? 'PLAIN' : 'CRAM-MD5';
+	$authmech2 ||= $authuser2 ? 'PLAIN' : 'CRAM-MD5';
 }
+
+$authuser1 ||= $user1;
+$authuser2 ||= $user2;
 
 print "will try to use $authmech1 authentication on host1\n";
 print "will try to use $authmech2 authentication on host2\n";
@@ -495,21 +511,29 @@ $fastio2 = (defined($fastio2)) ? $fastio2 : 1;
 print "From imap server [$host1] port [$port1] user [$user1]\n";
 print "To   imap server [$host2] port [$port2] user [$user2]\n";
 
+
+sub ask_for_password {
+       my ($user, $host) = @_;
+       print "What's the password for $user\@$host? ";
+       ReadMode 2;
+       my $password = <>;
+       chomp $password;
+       printf "\n";
+       ReadMode 0;
+       return $password;
+}
+
+
 $password1 || $passfile1 || do {
-	print "What's the password for $user1\@$host1? ";
-	ReadMode 2;
-	$password1 = <>; chop $password1;
-	printf "\n"; ReadMode 0;
+	ask_for_password($authuser1 || $user1, $host1);
 };
 
 $password1 = (defined($passfile1)) ? firstline ($passfile1) : $password1;
 
 $password2 || $passfile2 || do {
-	print "What's the password for $user2\@$host2? ";
-	ReadMode 2;
-	$password2 = <>; chop $password2;
-	printf "\n"; ReadMode 0;
+	ask_for_password($authuser2 || $user2, $host2);
 };
+
 $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
 
 my $from = ();
@@ -518,29 +542,26 @@ my $to = ();
 $timestart = time();
 $timebefore = $timestart;
 
-$fastio1 = 1;
-$fastio2 = 1;
-
 $debugimap and print "From connection\n";
 $from = login_imap($host1, $port1, $user1, $password1, 
-		   $debugimap, $timeout, $fastio1, $ssl1, $authmech1);
+		   $debugimap, $timeout, $fastio1, $ssl1, 
+		   $authmech1, $authuser1);
 
 $debugimap and print "To  connection\n";
 $to = login_imap($host2, $port2, $user2, $password2, 
-		 $debugimap, $timeout, $fastio2, $ssl2, $authmech2);
+		 $debugimap, $timeout, $fastio2, $ssl2, 
+		 $authmech2, $authuser2);
 
-# No history
-$from->Clear(2);
-$to->Clear(2);
+#  history
 
 $debug and print "From Buffer I/O : ", $from->Buffer(), "\n";
 $debug and print "To   Buffer I/O : ", $to->Buffer(), "\n";
 
-	
 
 sub login_imap {
 	my($host, $port, $user, $password, 
-	   $debugimap, $timeout, $fastio, $ssl, $authmech) = @_;
+	   $debugimap, $timeout, $fastio, 
+	   $ssl, $authmech, $authuser) = @_;
 	my ($imap);
 	if ($ssl) {
 		my $socssl = new IO::Socket::SSL("$host:$port");
@@ -554,6 +575,7 @@ sub login_imap {
 	} else {
 		$imap = Mail::IMAPClient->new();
 	}
+	$imap->Clear(20);
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Fast_io($fastio);
@@ -561,27 +583,31 @@ sub login_imap {
 	$imap->Uid(1);
 	$imap->Peek(1);
 	$imap->Debug($debugimap);
+	$timeout and $imap->Timeout($timeout);
+	
 	if ($ssl) {
 		$imap->State(Mail::IMAPClient::Connected);
 	} else {
 		$imap->connect()
 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
 	}
-	$timeout and $imap->Timeout($timeout);
-
+	print "Banner : ", server_banner($imap);
+	
 	if ($authmech eq "LOGIN") {
 		# Default mode for Mail::IMAPClient, so don't do anything.
 	} elsif ($imap->has_capability("AUTH=$authmech")
-		or $imap->has_capability($authmech)) {
+		or $imap->has_capability($authmech)
+		) {
 		$imap->Authmechanism($authmech);
 		$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
 	} else {
 		printf("%s: no support for AUTHENTICATE %s, using LOGIN\n",
 		       $imap->Server, $authmech);
 	}
+	
 	$imap->User($user);
+	$imap->Authuser($authuser);
 	$imap->Password($password);
-	#md5auth($imap);
 	$imap->login() or die "Error login : [$host] with user [$user] : $@";
 	return($imap);
 }
@@ -591,27 +617,34 @@ sub plainauth() {
         my $imap = shift;
 
         my $string = sprintf("%s\x00%s\x00%s", $imap->User,
-                            $imap->User, $imap->Password);
+                            $imap->Authuser, $imap->Password);
         return encode_base64("$string");
 }
 
 
+sub server_banner {
+	my $imap = shift;
+	for my $line ($imap->Results()) {
+		#print "LR: $line";
+		return $line if $line =~ /^\* (OK|NO|BAD)/;
+        }
+	return "No banner\n";
+ }
 
-print "From software : ", ($from->Report())[0];
-print "To   software : ", ($to->Report())[0];
+
 
 print "From capability : ", join(" ", $from->capability()), "\n";
 print "To   capability : ", join(" ", $to->capability()), "\n";
 
 die unless $from->IsAuthenticated();
+print "From state Authenticated\n";
 die unless   $to->IsAuthenticated();
+print "To   state Authenticated\n";
 
 my (@f_folders, @t_folders, %fs_folders);
 
 # Make a hash of subscribed folders in source server.
 map { $fs_folders{$_}=1 } $from->subscribed();
-
-
 
 
 if (scalar(@folder)) {
@@ -911,16 +944,13 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my $f_heads = $from->parse_headers($from->Range([@f_msgs]),@useheader) 
 	  if (@f_msgs) ;
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $f_size  = $from->fetch_hash("RFC822.SIZE") if (@f_msgs);
-	$debug and print "Time sizes  : ", timenext(), " s\n";
-	#my $f_flags = $from->flags(@f_msgs) ;
-	#print "Time flags  : ", timenext(), " s\n";
-	use Data::Dumper;
-	#print Data::Dumper->Dump([$f_heads]);
-	#print Data::Dumper->Dump([$f_flags]);
+	my $f_fir  = $from->fetch_hash("FLAGS",
+				       "INTERNALDATE",
+				       "RFC822.SIZE") if (@f_msgs);
+	$debug and print "Time fir  : ", timenext(), " s\n";
 	
 	foreach my $m (@f_msgs) {
-		parse_header_msg1($from, $m, $f_heads, $f_size, "F", \%f_hash);
+		parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash);
 	}
 	$debug and print "Time headers: ", timenext(), " s\n";
 	
@@ -928,17 +958,15 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my $t_heads =   $to->parse_headers($to->Range([@t_msgs]),@useheader) 
 	  if (@t_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $t_size  =   $to->fetch_hash("RFC822.SIZE") if (@t_msgs);
-	$debug and print "Time sizes  : ", timenext(), " s\n";
-	#my $t_flags =   $to->flags(@t_msgs) ;
-	#print "Time flags  : ", timenext(), " s\n";
-	
+	my $t_fir  =   $to->fetch_hash("FLAGS",
+				       "INTERNALDATE",
+				       "RFC822.SIZE") if (@t_msgs);
+	$debug and print "Time fir  : ", timenext(), " s\n";
 	foreach my $m (@t_msgs) {
-		parse_header_msg1($to, $m, $t_heads, $t_size, "T", \%t_hash);
+		parse_header_msg1($to, $m, $t_heads, $t_fir, "T", \%t_hash);
 	}
 	$debug and print "Time headers: ", timenext(), " s\n";
-	#exit;
-
+	
 	print "++++ Verifying [$f_fold] -> [$t_fold] ++++\n";
 	# messages in "from" that are not good in "to"
 	
@@ -950,7 +978,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	MESS: foreach my $m_id (@f_hash_keys_sorted_by_uid) {
 		my $f_size = $f_hash{$m_id}{'s'};
 		my $f_msg = $f_hash{$m_id}{'m'};
-		# print ".";
+		my $f_idate = $f_hash{$m_id}{'D'};
+		
 		if (defined $maxsize and $f_size > $maxsize) {
 			print "+ Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit $maxsize bytes)\n";
 			$mess_size_total_skipped += $f_msg;
@@ -971,24 +1000,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			    "F message content ended on previous line\n";
 			my $d = "";
 			if ($syncinternaldates) {
-				$d = $from->internaldate($f_msg);
+				$d = $f_idate;
 				$d = "\"$d\"";
 				$debug and print "internal date from 1: [$d]\n";
 			}
 			
-			my $flags_f_rv = $from->flags($f_msg);
-			my @flags_f;
-			my $flags_f;
-			
-			if (ref($flags_f_rv)) {
-				@flags_f = @{$flags_f_rv};
-				$flags_f = join(" ", @flags_f);
-			}else{
-				$flags_f = "";	
-			}
-			
-			#$flags_f = join(" ", @{$from->flags($f_msg)});
-			
+			my $flags_f = $f_hash{$m_id}{'F'} || "";
 			# RFC 2060 : This flag can not be altered by the client
 			$flags_f =~ s@\\Recent@@g;
 			
@@ -1023,6 +1040,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		my $t_size = $t_hash{$m_id}{'s'};
 		my $t_msg  = $t_hash{$m_id}{'m'};
 		
+		
 		$debug and print "Setting flags\n"; 
 		my (@flags_f,@flags_t);
 		my $flags_f_rv = $from->flags($f_msg);
@@ -1043,11 +1061,14 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 		$debug and do {
 			print "Looking dates\n"; 
-			my $d_f = $from->internaldate($f_msg);
-			my $d_t = $to->internaldate($t_msg);
+			#my $d_f = $from->internaldate($f_msg);
+			#my $d_t = $to->internaldate($t_msg);
+			my $d_f = $f_hash{$m_id}{'D'};
+			my $d_t = $t_hash{$m_id}{'D'};
 			print 
 			  "idate from : $d_f\n",
 			    "idate to   : $d_t\n";
+			
 			#unless ($d_f eq $d_t) {
 			#	print "!!! Dates differ !!!\n";
 			#}
@@ -1198,6 +1219,8 @@ sub get_options
 				   "ssl2!"        => \$ssl2,
 				   "authmech1=s" => \$authmech1,
 				   "authmech2=s" => \$authmech2,
+				   "authuser1=s" => \$authuser1,
+				   "authuser2=s" => \$authuser2,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -1216,7 +1239,7 @@ sub get_options
 
 
 sub parse_header_msg1 {
-	my ($imap, $m_uid, $s_heads, $s_size, $s, $s_hash) = @_;
+	my ($imap, $m_uid, $s_heads, $s_fir, $s, $s_hash) = @_;
 	
 	my $head = $s_heads->{$m_uid};
 	my $headnum =  scalar(keys(%$head));
@@ -1244,8 +1267,9 @@ sub parse_header_msg1 {
 		# no header so taking everything
 		$headstr = $imap->message_string($m_uid);
 	}
-	my $size = $s_size->{$m_uid}->{"RFC822.SIZE"};
-	#return unless ($size);
+	my $size  = $s_fir->{$m_uid}->{"RFC822.SIZE"};
+	my $flags = $s_fir->{$m_uid}->{"FLAGS"};
+	my $idate = $s_fir->{$m_uid}->{"INTERNALDATE"};
 	$size = length($headstr) unless ($size);
 	my $m_md5 = md5_base64($headstr);	
 	$debug and print "$s msg $m_uid:$m_md5:$size\n";
@@ -1257,6 +1281,8 @@ sub parse_header_msg1 {
         }
 	$s_hash->{"$key"}{'5'} = $m_md5;
 	$s_hash->{"$key"}{'s'} = $size;
+	$s_hash->{"$key"}{'D'} = $idate;
+	$s_hash->{"$key"}{'F'} = $flags;
 	$s_hash->{"$key"}{'m'} = $m_uid;
 }
 
@@ -1284,15 +1310,16 @@ Several options are mandatory.
 --host1       <string> : "from" imap server. Mandatory.
 --port1       <int>    : port to connect on host1. Default is 143.
 --user1       <string> : user to login on host1. Mandatory.
+--authuser1   <string> : user to auth with on host1 (admin user).
 --password1   <string> : password for the user1. Dangerous, use --passfile1
 --passfile1   <string> : password file for the user1. Contains the password.
 --host2       <string> : "destination" imap server. Mandatory.
 --port2       <int>    : port to connect on host2. Default is 143.
 --user2       <string> : user to login on host2. Mandatory.
+--authuser2   <string> : user to auth with on host2 (admin user).
 --password2   <string> : password for the user2. Dangerous, use --passfile2
 --passfile2   <string> : password file for the user2. Contains the password.
 --noauthmd5            : don't use MD5 authentification.
---authmd5              : use MD5 authentification.
 --authmech1   <string> : auth mechanism to use with host1:
                          PLAIN, LOGIN, CRAM-MD5 etc.
 --authmech2   <string> : auth mechanism to use with host2. See --authmech1
@@ -1400,4 +1427,15 @@ $rcs
       imapsync copyleft is the GNU General Public License.
       See http://www.gnu.org/copyleft/gpl.html
 EOF
+}
+
+
+package Mail::IMAPClient;
+
+
+sub Authuser {
+	my $self = shift;
+	
+	if (@_) { $self->{AUTHUSER} = shift }
+	return $self->{AUTHUSER};
 }

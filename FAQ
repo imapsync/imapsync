@@ -27,32 +27,44 @@ b) Use the --syncinternaldates option and keep using Eudora :-)
 =======================================================================
 Q. Does imapsync support IMAP over TLS (IMAPS)?
 
-R. Not natively. 
-but, 2 ways, at least :
+R. Yes natively since release 1.161. 
+still, 2 ways, at least :
 
-a) There are patches in patches/ directory to do this 
-   in imapsync code.
-   I tried to include them but it broke my tests.
-   It works but not always.
+a) Use --ssl1 and/or --ssl2 options
+
+--ssl1 tells imapsync to use ssl on host1
+--ssl2 tells imapsync to use ssl on host2
+
 
 b) Use stunnel
    http://www.stunnel.org/
    Assuming there is an imaps (993) server on imap.foo.org,
    on your localhost machine (or bar machine) run :
        stunnel -c -d imap -r imap.foo.org:imaps
-   or
+   or using names instead of numbers 
        stunnel -c -d 143 -r imap.foo.org:993
    then use imapsync on localhost (or bar machine) imap (143) port.
 
 
+=======================================================================
+Q: How to have an imaps server ?
 
+R. 
+a) Install one 
+
+b) or use stunnel :
+   Assuming there is an imap (143) server on localhost
+        stunnel  -d 993 -r 143 -f
+
+c) or use stunnel on inetd
+   imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
 
 ======================================================================
 Q. I want the --folder 'MyFolder' option be recurse.
 
 R. Do not use the --folder option. 
    Instead, use --include '^MyFolder'
-   Folder "MyFolder" and all its subfolders will be handled.
+   Then the folder "MyFolder" and all its subfolders will be handled.
 
 ======================================================================
 Q. I have moved from Braunschweig to Graz, so I would like to have my whole 
@@ -106,9 +118,9 @@ messages with the shift key.
 b) With imapsync:
 -----------------
 
-you have to calculate the day of year (and
-add 365).  For example, running it today, Sat Mar 11
-13:06:01 CET 2006:
+You have to calculate the day of year (and
+add 365).  For example, running it today, 
+Sat Mar 11 13:06:01 CET 2006:
 
 imapsync ... 
 --host1 imap.truc.org --host2 imap.trac.org \
@@ -130,6 +142,36 @@ $ date +%j
 Also, you must take imapsync 1.159 at least since I tested
 what I just wrote above and found 2 bugs about --mindate
 --maxdate options behavior.
+
+
+=======================================================================
+Q. My imap server does not accept a message and warns
+   "Invalid header". What is the problem ?
+
+R. You fall in the classical mbox versus Maildir/ format
+   problem. May be you use a misconfigured procmail rule.
+
+A header beginning like the following one is in the mbox
+format, header line 1 has no colon behind "From", header
+lines 2 through N do have a colon :
+
+From foo@yoyo.org  Sat Jun 22 01:10:21 2002
+Return-Path: <foo@yoyo.org>
+Received: ...
+
+Any Maidir/ configured imap server may refuse this message
+since its header is invalid. The first "From " line is not
+valid. It lacks a colon character ":".
+To solve this problem you have several solutions a) or b):
+
+a) Remove these first "From " line manually for each message
+before using imapsync. Don't think to add a colon to this
+line since you will end with two "From:" lines (just look at
+the other lines)
+
+b) Run imapsync with the following option :
+--regexmess 's/\AFrom \w  .*\n//'
+
 
 =======================================================================
 Q. I'm migrating from WU to Cyrus, and the mail folders are

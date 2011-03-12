@@ -2,7 +2,7 @@ NAME
     imapsync - IMAP synchronization, copy or migration tool. Synchronize
     mailboxes between two imap servers. Good at IMAP migration.
 
-    $Revision: 1.161 $
+    $Revision: 1.163 $
 
 INSTALL
      imapsync works fine under any Unix OS.
@@ -116,8 +116,17 @@ SECURITY
     password in a well protected file (600 or rw-------) is the best
     solution.
 
-    imasync is not protected against sniffers on the network so the
-    passwords are in plain text.
+    imasync is not totally protected against sniffers on the network since
+    passwords may be transfered in plain text in case CRAM-MD5 is not
+    supported by your imap servers. Use --ssl1 and --ssl2 to enable
+    encryption on host1 and host2.
+
+    You may authenticate as one user (typically an admin user), but be
+    authorized as someone else, which means you don't need to know every
+    user's personal password. Specify --authuser1 "adminuser" to enable this
+    on host1. In this case, --authmech1 PLAIN will be used, but otherwise,
+    --authmech1 CRAM-MD5 is the default. Same behavior with the --authuser2
+    option.
 
 EXIT STATUS
     imapsync will exit with a 0 status (return code) if everything went
@@ -277,5 +286,5 @@ AUTHOR
     teaching free open and gratis softwares. Don't hesitate to pay him for
     that services.
 
-    $Id: imapsync,v 1.161 2006/03/20 00:09:41 gilles Exp $
+    $Id: imapsync,v 1.163 2006/03/24 04:18:58 gilles Exp $
 
