@@ -20,7 +20,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.398 $
+$Revision: 1.404 $
 
 =head1 SYNOPSIS
 
@@ -436,6 +436,8 @@ Pay special attention to options
 --maxsize
 --useheader
 --fast
+--useuid
+--usecache
 
 If you have many mailboxes to migrate think about a little
 shell program. Write a file called file.csv (for example)
@@ -489,7 +491,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.398 2011/01/18 03:03:24 gilles Exp gilles $
+$Id: imapsync,v 1.404 2011/02/21 03:35:39 gilles Exp gilles $
 
 =cut
 
@@ -514,7 +516,7 @@ use File::Spec;
 use File::Path qw(mkpath rmtree);
 use IO::Socket qw(:crlf SOL_SOCKET SO_KEEPALIVE);
 use Errno qw(EAGAIN EPIPE ECONNRESET);
-use File::Glob ':glob' ;
+use File::Glob qw( :glob ) ;
 use IO::File;
 
 use Test::More 'no_plan';
@@ -589,14 +591,15 @@ my(
 	$max_msg_size_in_bytes,
 	$modules_version,
 	$delete2folders, $delete2foldersonly, $delete2foldersbutnot,
-	$usecache,
+	$usecache, $debugcache, 
+	$takebody, %h1_msgs_copy_by_uid, $useuid, $h2_uidguess,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.398 2011/01/18 03:03:24 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.404 2011/02/21 03:35:39 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -623,8 +626,12 @@ get_options();
 
 $modules_version = defined($modules_version) ? $modules_version : 1;
 
+# $SIG{ INT } = \&catch_continue ;
+
 $releasecheck = defined($releasecheck) ? $releasecheck : 1;
 my $warn_release = ($releasecheck) ? check_last_release() : '';
+
+$SIG{ INT } = \&catch_exit ;
 
 # default values
 
@@ -633,6 +640,18 @@ $pidfile ||= $tmpdir . '/imapsync.pid';
 
 # allow Mail::IMAPClient 3.0.xx by default
 $allow3xx = defined($allow3xx) ? $allow3xx : 1;
+
+$takebody = defined($takebody) ? $takebody : 1;
+
+if ( $fast ) {
+	$useuid = 1 ;
+	$foldersizes = 0 ;
+}
+
+# Activate --usecache if --useuid is set and no --nousecache
+$usecache = 1 if ( $useuid and ( ! defined( $usecache ) ) ) ;
+
+
 
 print banner_imapsync(@argv_copy);
 
@@ -644,7 +663,7 @@ write_pidfile($pidfile) if ($pidfile);
 $modules_version and print "Modules version list:\n", modules_VERSION(), "\n";
 
 check_lib_version() or 
-  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.0.25 or superior \n";
+  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.25 or superior \n";
 
 exit_clean(0) if ($justbanner);
 
@@ -946,9 +965,6 @@ print "++++ Looping on each folder\n";
 
 FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 
-	last FOLDER if $imap1->IsUnconnected();
-	last FOLDER if $imap2->IsUnconnected();
-
 	my $h2_fold = imap2_folder_name($h1_fold);
 
 	printf("%-35s -> %-35s\n", "[$h1_fold]", "[$h2_fold]");
@@ -981,9 +997,6 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	}
 	
 	next FOLDER if ($justfolders);
-
-	last FOLDER if $imap1->IsUnconnected();
-	last FOLDER if $imap2->IsUnconnected();
 
 	my @h1_msgs = select_msgs($imap1);
 
@@ -1018,7 +1031,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	@h1_msgs_all{ @h1_msgs } = ();
 	@h2_msgs_all{ @h2_msgs } = ();
 	
-	my @h1_msgs_in_cache = keys %$cache_1_2_ref ;
+	my @h1_msgs_in_cache = sort { $a <=> $b } keys %$cache_1_2_ref ;
 	my @h2_msgs_in_cache = keys %$cache_2_1_ref ;
 	
 	my ( %h1_msgs_no_cache, %h2_msgs_no_cache ) ;
@@ -1030,14 +1043,18 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	my @h1_msgs_no_cache = keys %h1_msgs_no_cache ;
 	my @h2_msgs_no_cache = keys %h2_msgs_no_cache ;
 	
+	
+	if ( $useuid ) {
+		@h1_msgs_copy_by_uid{ @h1_msgs_no_cache } = (  ) ;
+		@h1_msgs_no_cache = (  ) ;
+		@h2_msgs_no_cache = (  ) ;
+	}
+	
 	$debug and print "Host1 folder [$h1_fold] parsing headers\n";
-	last FOLDER if $imap1->IsUnconnected();
-	last FOLDER if $imap2->IsUnconnected();
 
 	my ($h1_heads_ref, $h1_fir_ref) = ({}, {});
 	$h1_heads_ref = $imap1->parse_headers([@h1_msgs_no_cache], @useheader) if (@h1_msgs_no_cache);
 	$debug and print "Time headers: ", timenext(), " s\n";
-	last FOLDER if $imap1->IsUnconnected();
 
 	@$h1_fir_ref{@h1_msgs} = (undef);
 	$h1_fir_ref = $imap1->fetch_hash_2("FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref)
@@ -1050,8 +1067,6 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		$nb_errors++;
 		next FOLDER;
 	}
-	last FOLDER if $imap1->IsUnconnected();
-
 
 	my @h1_msgs_duplicate;
 	foreach my $m (@h1_msgs_no_cache) {
@@ -1079,13 +1094,11 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	my ($h2_heads_ref, $h2_fir_ref) = ( {}, {} );
 	$h2_heads_ref =   $imap2->parse_headers([@h2_msgs_no_cache], @useheader) if (@h2_msgs_no_cache);
 	$debug and print "Time headers: ", timenext(), " s\n";
-	last FOLDER if   $imap2->IsUnconnected();
 
 	@$h2_fir_ref{@h2_msgs} = (  ); # fetch_hash_2 can select by uid with last arg as ref
 	$h2_fir_ref   =   $imap2->fetch_hash_2("FLAGS", "INTERNALDATE", "RFC822.SIZE", $h2_fir_ref)
 	  if (@h2_msgs);
 	$debug and print "Time fir: ", timenext(), " s\n";
-	last FOLDER if   $imap2->IsUnconnected();
 	
 	my @h2_msgs_duplicate;
 	foreach my $m (@h2_msgs_no_cache) {
@@ -1151,6 +1164,8 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		}
 	}
 
+	my $h2_uidnext = $imap2->uidnext( $h2_fold ) ;
+	$h2_uidguess = $h2_uidnext ;
 	MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
 		my $h1_size  = $h1_hash{$m_id}{'s'};
 		my $h1_msg   = $h1_hash{$m_id}{'m'};
@@ -1171,128 +1186,23 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 
 		unless (exists($h2_hash{$m_id})) {
 			# copy
-			$debug and print "msg $h1_fold/$h1_msg copying to $h2_fold\n";
-			last FOLDER if $imap1->IsUnconnected();
-			last FOLDER if $imap2->IsUnconnected();
-			my $string;
-			#print "Message_string Beg\n", memory_consumption();
-			$string = $imap1->message_string($h1_msg);
-			#print "Message_string End\n", memory_consumption();
-			unless (defined($string)) {
-				warn
-				"- msg $h1_fold/$h1_msg could not fetch [$m_id $h1_size]: ",
-				$imap1->LastError, "\n";
-				$nb_errors++;
-				$total_bytes_error += $h1_size;
-				next MESS;
-			}
-			
-			#my $message_file = "tmp_imapsync_$$";
-			#$imap1->select($h1_fold);
-			#unlink($message_file);
-			#$imap1->message_to_file($message_file, $h1_msg) or do {
-			#	warn "Could not put message #$h1_msg to file $message_file",
-			#	$imap1->LastError;
-			#	$nb_errors++;
-			#	$total_bytes_error += $h1_size;
-			#	next MESS;
-			#};
-			#$string = file_to_string($message_file);
-			#print "AAA1[$string]ZZZ\n";
-			#unlink($message_file);
-			if (@regexmess) {
-				$string = regexmess($string);
-				
-				#string_to_file($string, $message_file);
-			}
-
-
-			$debug and print 
-				"=" x80, "\n", 
-				"F message content begin next line\n",
-				$string,
-				"F message content ended on previous line\n", "=" x 80, "\n";
-			my $h1_date = "";
-			if ($syncinternaldates) {
-				$h1_date = $h1_idate;
-				$debug and print "internal date from host1: [$h1_date]\n";
-				$h1_date = good_date($h1_date);
-				$debug and print "internal date from host1: [$h1_date] (fixed)\n";
-			}
-			
-			if ($idatefromheader) {
-				
-				$h1_date = $imap1->get_header($h1_msg,"Date");
-				$debug and print "header date from host1: [$h1_date]\n";
-				$h1_date = good_date($h1_date);
-				$debug and print "header date from host1: [$h1_date] (fixed)\n";
-			}
-
-			my $h1_flags = $h1_hash{$m_id}{'F'} || "";
-			# RFC 2060: This flag can not be altered by any client
-			$h1_flags =~ s@\\Recent\s?@@gi;
-			$h1_flags = flags_regex($h1_flags) if @regexflag;
-			
-			$h1_flags = flags_filter($h1_flags, $permanentflags2) if ($permanentflags2);
-			
-			my $new_id;
-			$debug and print "msg $h1_fold/$h1_msg date [$h1_date] flags [$h1_flags] size [$h1_size]\n";
-			last FOLDER if $imap1->IsUnconnected();
-			last FOLDER if $imap2->IsUnconnected();
-			$h1_date = undef if ($h1_date eq "");
-			
-			unless ($dry) {
-				$max_msg_size_in_bytes = max($h1_size, $max_msg_size_in_bytes);
-				$new_id = $imap2->append_string($h2_fold, $string, $h1_flags, $h1_date);
-				unless($new_id){
-					no warnings 'uninitialized';
-					warn "- msg $h1_fold/$h1_msg couldn't append  (Subject:[".
-					  $imap1->subject($h1_msg)."]) to folder $h2_fold: ",
-					  $imap2->LastError, "\n";
-					$nb_errors++;
-					$total_bytes_error += $h1_size;
-					next MESS;
-				}
-				else{
-					# good
-					# $new_id is an id if the IMAP server has the 
-					# UIDPLUS capability else just a ref
-					print "msg $h1_fold/$h1_msg copied to $h2_fold/$new_id\n";
-					$total_bytes_transferred += $h1_size;
-					$nb_msg_transferred += 1;
-					touch( "$cache_dir/${h1_msg}_$new_id" ) if ( $usecache and $new_id =~ m{\d+} );
-					if($delete) {
-						print "msg $h1_fold/$h1_msg deleted on host1\n";
-						unless($dry) {
-							$imap1->delete_message($h1_msg);
-							$h1_nb_msg_deleted += 1;
-							$imap1->expunge() if ($expunge);
-						}
-					}
-				}
-			}
-			else{
-				$nb_msg_skipped_dry_mode += 1;
-			}
-			#unlink($message_file);
+			copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
 			next MESS;
 		}
 		else{
-			my $h2_msg   = $h2_hash{$m_id}{'m'};
-			$debug and print "msg $h1_fold/$h1_msg equals $h2_fold/$h2_msg\n";
-			$total_bytes_skipped += $h1_size;
-			$nb_msg_skipped += 1;
-			touch( "$cache_dir/${h1_msg}_$h2_msg" ) if ( $usecache );
+		        # already on host2
+			my $h2_msg   = $h2_hash{$m_id}{'m'} ;
+			$debug and print "msg $h1_fold/$h1_msg equals $h2_fold/$h2_msg\n" ;
+			$total_bytes_skipped += $h1_size ;
+			$nb_msg_skipped += 1 ;
+			$debugcache and print "touch $cache_dir/${h1_msg}_$h2_msg\n"  if ( $usecache ) ;
+			touch( "$cache_dir/${h1_msg}_$h2_msg" ) if ( $usecache ) ;
 		}
-		
-		$fast and next MESS;
 		
 		#$debug and print "MESSAGE $m_id\n";
 		my $h2_msg  = $h2_hash{$m_id}{'m'};
 
                 sync_flags( $h1_msg, $h2_msg, $h2_fold, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
-		
-		last FOLDER if   $imap2->IsUnconnected();
 
 	    	# Good
 		my $h2_size = $h2_hash{$m_id}{'s'};
@@ -1311,11 +1221,18 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	# END MESS: loop
 	MESS_IN_CACHE: foreach my $h1_msg ( @h1_msgs_in_cache ) {
 		my $h2_msg = $cache_1_2_ref->{ $h1_msg } ;
-		#$debug and print "cache messages update $h1_msg->$h2_msg\n";
+		$debugcache and print "cache messages update $h1_msg->$h2_msg\n";
 		sync_flags( $h1_msg, $h2_msg, $h2_fold, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
 		my $h1_size = $h1_fir_ref->{ $h1_msg }->{ 'RFC822.SIZE' } ;
 		$total_bytes_skipped += $h1_size;
 		$nb_msg_skipped += 1;
+	}
+	
+	MESS_BY_UID: foreach my $h1_msg ( sort { $a <=> $b } keys %h1_msgs_copy_by_uid ) {
+		# copy_message
+		#print "Copy by uid $h1_fold/$h1_msg\n" ;
+		copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+		
 	}
 	
 	if ($expunge1){
@@ -1365,23 +1282,13 @@ sub sync_flags {
 print "++++ End looping on each folder\n";
 #print memory_consumption();
 
-my $memory_consumption = memory_consumption();
-my $memory_ratio = ($max_msg_size_in_bytes) ?  
-	sprintf('%.1f', $memory_consumption / $max_msg_size_in_bytes) : "NA";
-
 
 $imap1->logout();
 $imap2->logout();
 
-my $host1_reconnect_count = $imap1->Reconnect_counter() || 0;
-my $host2_reconnect_count = $imap2->Reconnect_counter() || 0;
-
-
-$timeend = time();
-$timediff = $timeend - $timestart;
 
 stats();
-exit_clean(1) if($nb_errors);
+exit_clean(1) if( $nb_errors );
 exit_clean(0);
 
 # END of main program
@@ -1490,6 +1397,17 @@ sub ask_for_password {
 	return $password;
 }
 
+sub catch_exit {
+	my $signame = shift ;
+	print "\nGot a SIG$signame!\n" ;
+	stats(  ) ;
+	exit_clean(  ) ;
+}
+
+sub catch_continue {
+	my $signame = shift ;
+	print "\nGot a SIG$signame!\n" ;
+}
 
 sub myconnect {
 	my $self = shift;
@@ -1714,8 +1632,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.398 $ ',
-		  '$Date: 2011/01/18 03:03:24 $ ',
+		  '$Revision: 1.404 $ ',
+		  '$Date: 2011/02/21 03:35:39 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -1751,7 +1669,7 @@ sub write_pidfile {
 
 sub exit_clean {
 	my $status = shift;
-	
+	$status = defined( $status ) ? $status : 1 ;
 	unlink($pidfile);
 	exit($status);
 }
@@ -2377,9 +2295,142 @@ sub select_msgs {
 	return(@msgs);
 }
 
+
+sub lastuid {
+	my $imap   = shift ;
+	my $folder = shift ;
+	my $lastuid_guess  = shift ;
+	my $lastuid ;
+	
+	# rfc3501: The only reliable way to identify recent messages is to
+	#          look at message flags to see which have the \Recent flag
+	#          set, or to do a SEARCH RECENT.
+	# SEARCH RECENT doesn't work this way on courrier.
+
+	my @recent_messages ;
+	# SEARCH RECENT for each transfer can be expensive with a big folder
+	# Call commented for now
+	#@recent_messages = $imap->recent(  ) ;
+	#print "Recent: @recent_messages\n";
+	
+	my $max_recent ;
+	$max_recent = max( @recent_messages ) ;
+	 
+	if ( defined( $max_recent ) and ($lastuid_guess <= $max_recent ) ) {
+		$lastuid = $max_recent ;
+	}else{
+		$lastuid = $lastuid_guess
+	}
+	return( $lastuid ) ;
+}
+
+sub copy_message {
+	# copy
+	
+	my ( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) = @_ ;
+	$debug and print "msg $h1_fold/$h1_msg copying to $h2_fold\n";
+
+	my $h1_size  = $h1_fir_ref->{$h1_msg}->{"RFC822.SIZE"};
+	my $h1_flags = $h1_fir_ref->{$h1_msg}->{"FLAGS"};
+	my $h1_idate = $h1_fir_ref->{$h1_msg}->{"INTERNALDATE"};
+	
+	my $string;
+	$string = $imap1->message_string($h1_msg);
+	unless (defined($string)) {
+		warn
+		"- msg $h1_fold/$h1_msg could not be fetched: ",
+		$imap1->LastError, "\n";
+		$nb_errors++;
+		$total_bytes_error += $h1_size;
+		return(  ) ;
+	}
+	
+	if (@regexmess) {
+		$string = regexmess($string);
+	}
+
+	$debug and print 
+		"=" x80, "\n", 
+		"F message content begin next line\n",
+		$string,
+		"F message content ended on previous line\n", "=" x 80, "\n";
+	my $h1_date = "";
+	if ($syncinternaldates) {
+		$h1_date = $h1_idate;
+		$debug and print "internal date from host1: [$h1_date]\n";
+		$h1_date = good_date($h1_date);
+		$debug and print "internal date from host1: [$h1_date] (fixed)\n";
+	}
+	
+	if ($idatefromheader) {
+		
+		$h1_date = $imap1->get_header($h1_msg,"Date");
+		$debug and print "header date from host1: [$h1_date]\n";
+		$h1_date = good_date($h1_date);
+		$debug and print "header date from host1: [$h1_date] (fixed)\n";
+	}
+
+	# RFC 2060: This flag can not be altered by any client
+	$h1_flags =~ s@\\Recent\s?@@gi;
+	$h1_flags = flags_regex($h1_flags) if @regexflag;
+	
+	$h1_flags = flags_filter($h1_flags, $permanentflags2) if ($permanentflags2);
+	
+	my $new_id;
+	$debug and print "msg $h1_fold/$h1_msg date [$h1_date] flags [$h1_flags] size [$h1_size]\n";
+	$h1_date = undef if ($h1_date eq "");
+	
+	unless ($dry) {
+		$max_msg_size_in_bytes = max($h1_size, $max_msg_size_in_bytes);
+		$new_id = $imap2->append_string($h2_fold, $string, $h1_flags, $h1_date);
+		unless($new_id){
+			no warnings 'uninitialized';
+			warn "- msg $h1_fold/$h1_msg couldn't append  (Subject:[".
+			  $imap1->subject($h1_msg)."]) to folder $h2_fold: ",
+			  $imap2->LastError, "\n";
+			$nb_errors++;
+			$total_bytes_error += $h1_size;
+			return(  ) ;
+		}
+		else{
+			# good
+			# $new_id is an id if the IMAP server has the 
+			# UIDPLUS capability else just a ref
+			
+			
+			
+			
+			
+			
+			if ( $new_id !~ m{^\d+$} ) {
+				$new_id = lastuid( $imap2, $h2_fold, $h2_uidguess ) ;
+			}
+			printf( "msg %s/%-10s copied to %s/%-10s\n", $h1_fold, $h1_msg, $h2_fold, $new_id );
+			$h2_uidguess++;
+			$total_bytes_transferred += $h1_size;
+			$nb_msg_transferred += 1;
+			$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n"  if ( $usecache ) ;
+			touch( "$cache_dir/${h1_msg}_$new_id" ) if ( $usecache and $new_id =~ m{^\d+$} );
+			if ( $delete ) {
+				print "msg $h1_fold/$h1_msg deleted on host1\n";
+				unless($dry) {
+					$imap1->delete_message($h1_msg);
+					$h1_nb_msg_deleted += 1;
+					$imap1->expunge() if ($expunge);
+				}
+			}
+		}
+	}
+	else{
+		$nb_msg_skipped_dry_mode += 1;
+	}
+	return(  );
+}
+
+
 sub cache_map {
 	my ( $cache_files_ref, $h1_msgs_ref, $h2_msgs_ref ) = @_;
-	my ( %map1_2, %map2_1 ) ;
+	my ( %map1_2, %map2_1, %done2 ) ;
 	
 	my $h1_msgs_hash_ref = {  } ;
 	my $h2_msgs_hash_ref = {  } ;
@@ -2388,12 +2439,29 @@ sub cache_map {
 	@$h2_msgs_hash_ref{ @$h2_msgs_ref } = (  ) ;
 	
 	foreach my $file ( sort @$cache_files_ref ) {
-		#print "C12: $file\n" ;
+		$debugcache and print "C12: $file\n" ;
 		( $uid1, $uid2 ) = match_a_cache_file( $file ) ;
 		
 		if (  exists( $h1_msgs_hash_ref->{ $uid1 } ) 
 		  and exists( $h2_msgs_hash_ref->{ $uid2 } ) ) {
-			$map1_2{ $uid1 } = $uid2 ;
+		  	# keep only the greatest uid2 
+			# 130_2301 and
+			# 130_231  => keep only 130 -> 2301
+			
+			# keep only the greatest uid1
+			# 1601_260 and
+			#  161_260 => keep only 1601 -> 260
+		  	my $max_uid2 = max( $uid2, $map1_2{ $uid1 } || -1 ) ;
+			if ( exists( $done2{ $max_uid2 } ) ) {
+				if ( $done2{ $max_uid2 } < $uid1 )  {
+					$map1_2{ $uid1 } = $max_uid2 ;
+					delete( $map1_2{ $done2{ $max_uid2 } } ) ;
+					$done2{ $max_uid2 } = $uid1 ;
+				}
+			}else{
+				$map1_2{ $uid1 } = $max_uid2 ;
+				$done2{ $max_uid2 } = $uid1 ;
+			}
 		};
 		
 	}
@@ -2402,7 +2470,7 @@ sub cache_map {
 }
 
 sub tests_cache_map {
-
+	#$debugcache = 1 ;
 	my @cache_files = qw (
 	100_200
 	101_201
@@ -2416,30 +2484,39 @@ sub tests_cache_map {
 	180_280
 	181_280
 	182_280
+	130_231
+	130_2301
+	161_260
+	1601_260
 	) ;
 	
-	my $msgs_1 = [120, 142, 143, 144,          177,      182 ];
-	my $msgs_2 = [     242, 243,     299, 377, 279, 255, 280 ];
+	my $msgs_1 = [120, 142, 143, 144, 161, 1601,           177,      182, 130 ];
+	my $msgs_2 = [     242, 243,       260,      299, 377, 279, 255, 280, 231, 2301 ];
 	
 	my( $c12, $c21 ) ;
 	ok( ( $c12, $c21 ) = cache_map( \@cache_files, $msgs_1, $msgs_2 ), 'cache_map: 02' );
 	my $a1 = [ sort { $a <=> $b } keys %$c12 ] ;
 	my $a2 = [ sort { $a <=> $b } keys %$c21 ] ;
-	ok( 0 == compare_lists( [ 142, 143, 177, 182 ], $a1 ), 'cache_map: 03' );
-	ok( 0 == compare_lists( [ 242, 243, 279, 280 ], $a2 ), 'cache_map: 04' );
+	ok( 0 == compare_lists( [ 130, 142, 143,      177, 182, 1601      ], $a1 ), 'cache_map: 03' );
+	ok( 0 == compare_lists( [      242, 243, 260, 279, 280,      2301 ], $a2 ), 'cache_map: 04' );
+	ok( ! $c12->{161},        'cache_map: ! 161 ->  260' );
+	ok( 260  == $c12->{1601}, 'cache_map:  1601 ->  260' );
+	ok( 2301 == $c12->{130},  'cache_map:   130 -> 2301' );
+	#print $c12->{1601}, "\n";
 
 }
 
 
 sub get_cache {
-
+	$debugcache and print "Entering get_cache\n";
 	my ($cache_dir, $h1_msgs_ref, $h2_msgs_ref) = @_;
 
 	-d $cache_dir or return( undef ); # exit if cache directory doesn't exist
-	#print "cache_dir: $cache_dir\n";
+	$debugcache and print "cache_dir: $cache_dir\n";
 	
+	$cache_dir =~ s{\\}{\\\\}g;
 	my @cache_files = bsd_glob( "$cache_dir/*" ) ;
-	#print "cache_files: [@cache_files]\n";
+	#$debugcache and print "cache_files: [@cache_files]\n";
 	
 	my( $cache_1_2_ref, $cache_2_1_ref ) 
 	  = cache_map( \@cache_files, $h1_msgs_ref, $h2_msgs_ref ) ;
@@ -2453,6 +2530,7 @@ sub get_cache {
 	#print "\n", map { "c12 $_ -> $cache_1_2_ref->{ $_ }\n" } keys %$cache_1_2_ref ;
 	#print "\n", map { "c21 $_ -> $cache_2_1_ref->{ $_ }\n" } keys %$cache_2_1_ref ;
 
+	$debugcache and print "Exiting get_cache\n";
 	return ( $cache_1_2_ref, $cache_2_1_ref ) ;
 }
 
@@ -2500,6 +2578,41 @@ sub tests_get_cache {
 	ok( -f 'tmp/cache/F1/F2/142_242', 'get_cache: file kept 143_243');
 	ok( -f 'tmp/cache/F1/F2/100_200', 'get_cache: file NOT removed 100_200');
 	ok( -f 'tmp/cache/F1/F2/101_201', 'get_cache: file NOT removed 101_201');
+	
+	
+	# strange files
+	#$debugcache = 1 ;
+	$maxage = undef ;
+	ok( ( ! -d 'tmp/cache/rr\uee' or rmtree( 'tmp/cache/rr\uee' )), 'get_cache: rmtree tmp/cache/rr\uee' ) ;
+	ok( mkpath( 'tmp/cache/rr\uee' ), 'get_cache: mkpath tmp/cache/rr\uee' ) ;
+	
+	@test_files_cache = ( qw( 
+	tmp/cache/rr\uee/100_200
+	tmp/cache/rr\uee/101_201
+	tmp/cache/rr\uee/120_220
+	tmp/cache/rr\uee/142_242
+	tmp/cache/rr\uee/143_243
+	tmp/cache/rr\uee/177_277
+	tmp/cache/rr\uee/177_377
+	tmp/cache/rr\uee/177_777
+	tmp/cache/rr\uee/155_255
+	) ) ;
+	ok( touch(@test_files_cache), 'get_cache: touch strange tmp/cache/...' ) ;
+	
+	# on cache: 100_200 101_201 142_242 143_243 177_277 177_377 177_777 155_255
+	# on live:
+	$msgs_1 = [120, 142, 143, 144,  	177	 ];
+	$msgs_2 = [	242, 243,     299, 377, 777, 255 ];
+	
+	ok( ( $c12, $c21 ) = get_cache('tmp/cache/rr\uee', $msgs_1, $msgs_2), 'get_cache: strange path 02' );
+	$a1 = [ sort { $a <=> $b } keys %$c12 ] ;
+	$a2 = [ sort { $a <=> $b } keys %$c21 ] ;
+	ok( 0 == compare_lists( [ 142, 143, 177 ], $a1 ), 'get_cache: strange path 03' );
+	ok( 0 == compare_lists( [ 242, 243, 777 ], $a2 ), 'get_cache: strange path 04' );
+	ok( -f 'tmp/cache/rr\uee/142_242', 'get_cache: strange path file kept 142_242');
+	ok( -f 'tmp/cache/rr\uee/142_242', 'get_cache: strange path file kept 143_243');
+	ok( ! -f 'tmp/cache/rr\uee/100_200', 'get_cache: strange path file removed 100_200');
+	ok( ! -f 'tmp/cache/rr\uee/101_201', 'get_cache: strange path file removed 101_201');
 	
 
 }
@@ -2553,19 +2666,23 @@ sub clean_cache {
 	my $cache_files_ref = shift ;
 	my $cache_1_2_ref   = shift ;
 	
-	#print map { "$_ -> " . $cache_1_2_ref->{ $_ } . "\n" } keys %$cache_1_2_ref ;
+	$debugcache and print "Entering clean_cache\n";
+	
+	$debugcache and print map { "$_ -> " . $cache_1_2_ref->{ $_ } . "\n" } keys %$cache_1_2_ref ;
 	foreach my $file ( @$cache_files_ref ) {
-		#print "$file\n" ;
+		$debugcache and print "$file\n" ;
 		my ( $uid1, $uid2 ) = match_a_cache_file( $file ) ;
-		#print "$uid1 $uid2 ", $cache_1_2_ref->{ $uid1 }, "\n" ;
+		$debugcache and print "u1: $uid1 u2: $uid2 c12: ", $cache_1_2_ref->{ $uid1 } || '', "\n" ;
 		if (  ( ! defined( $uid1 ) )
 		  or ( ! defined( $uid2 ) )
 		  or ( ! exists( $cache_1_2_ref->{ $uid1 } ) )
 		  or ( ! ( $uid2 == $cache_1_2_ref->{ $uid1 } ) ) ) {
-			#print "remove $file\n" ;
-			unlink( $file ) ;
+			$debugcache and print "remove $file\n" ;
+			unlink( $file ) or warn "$!" ;
 		}
 	}
+	
+	$debugcache and print "Exiting clean_cache\n";
 	return( 1 ) ;
 }
 
@@ -2610,6 +2727,16 @@ sub tests_clean_cache {
 }
 	
 
+sub tests_touch {
+
+	ok( (-d 'tmp/tests/' or  mkpath( 'tmp/tests/' )), 'tests_touch: mkpath tmp/tests/' ) ;
+	ok( 1 == touch( 'tmp/tests/lala'), 'tests_touch: tmp/tests/lala') ;
+	ok( 1 == touch( 'tmp/tests/\y'), 'tests_touch: tmp/tests/\y') ;
+	ok( 0 == touch( '/aaa'), 'tests_touch: not /aaa') ;
+	ok( 2 == touch( 'tmp/tests/lili', 'tmp/tests/lolo'), 'tests_touch: 2 files') ;
+	ok( 1 == touch( 'tmp/tests/\y', '/aaa'), 'tests_touch: 2 files, 1 fails' ) ;
+
+}
 
 sub touch {
 	my @files = @_ ;
@@ -2732,8 +2859,17 @@ sub regexmess {
 	return($string);
 }
 
-
 sub stats {
+	$timeend = time();
+	$timediff = $timeend - $timestart;
+
+	my $memory_consumption = memory_consumption();
+	my $memory_ratio = ($max_msg_size_in_bytes) ?  
+		sprintf('%.1f', $memory_consumption / $max_msg_size_in_bytes) : "NA";
+
+	my $host1_reconnect_count = $imap1->Reconnect_counter() || 0;
+	my $host2_reconnect_count = $imap2->Reconnect_counter() || 0;
+
 	print   "++++ Statistics\n";
 	print   "Transfer time                     : $timediff sec\n";
 	print   "Messages transferred              : $nb_msg_transferred ";
@@ -2882,7 +3018,9 @@ sub get_options {
 				   "pidfile=s"    => \$pidfile,
 				   "releasecheck!" => \$releasecheck,
 				   "modules_version!" => \$modules_version,
-				   "usecache!"   => \$usecache,
+				   "usecache!"    => \$usecache,
+				   "debugcache!" => \$debugcache,
+				   "useuid!"      => \$useuid,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -2958,12 +3096,22 @@ sub parse_header_msg {
 			$headstr .= "$H";
 		}
 	}
-	#return unless ($headstr);
-	unless ($headstr){
+	
+	if ( ( ! $headstr) and ( $takebody ) ){
 		print "no header so taking body first 2Ko\n";
 		$imap->fetch($m_uid, "BODY.PEEK[TEXT]<0.2048>");
 		$headstr = $imap->_transaction_literals;
+		
+		if ( 4048 <= length( $headstr ) ) {
+		# the imap server might reply the whole message
+		# this is bad for memory on huge mailboxes
+			$takebody = 0 ;
+			$headstr = '' ;
+			$h1_msgs_copy_by_uid{ $m_uid } = 1 ;
+		}
 	}
+	return() if ( ! $headstr );
+	
 	my $size  = $s_fir->{$m_uid}->{"RFC822.SIZE"};
 	my $flags = $s_fir->{$m_uid}->{"FLAGS"};
 	my $idate = $s_fir->{$m_uid}->{"INTERNALDATE"};
@@ -3035,7 +3183,7 @@ sub is_a_release_number {
 sub check_last_release {
 
 	my $public_release = not_long('imapsync_version_lfo');
-	print "check_last_release: [$public_release]\n" ;
+	#print "check_last_release: [$public_release]\n" ;
 	return('unknown') if ($public_release eq 'unknown');
 	return('timeout') if ($public_release eq 'timeout');
 	return('unknown') if (! is_a_release_number($public_release));
@@ -3050,7 +3198,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.398 2011/01/18 03:03:24 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.404 2011/02/21 03:35:39 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3294,6 +3442,8 @@ Several options are mandatory.
 --nosyncacls           : does not synchronise acls. This is the default.
 --usecache             : Use cache to speedup.
 --nousecache           : Do not use cache.
+--useuid               : Use uid instead of header as a criterium to sync.
+                         --usecache is then implied unless --nousecache
 --debug                : debug mode.
 --debugimap1           : imap debug mode for host1. imap debug is very verbose.
 --debugimap2           : imap debug mode for host2.
@@ -3305,8 +3455,7 @@ Several options are mandatory.
 --justlogin            : just login to both host1 and host2 with users 
                          credentials, then exit.
 --justfolders          : just do things about folders (ignore messages).
---fast                 : be faster (just does not sync flags of messages
-                         already transfered).
+--fast                 : be faster, equivalent to --useuid --nofoldersizes
 --reconnectretry1 <int>: reconnect to host1 if connection is lost up to 
                          <int> times per imap command (default is 3)
 --reconnectretry2 <int>: same as --reconnectretry1 but for host2
@@ -3557,11 +3706,11 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-		tests_convert_sep_to_slash(  ) ;
-		tests_cache_map(  ) ;
-		tests_get_cache(  ) ;
 		tests_clean_cache(  ) ;
 		tests_match_a_cache_file(  ) ;
+		tests_touch(  ) ;
+		tests_cache_map(  ) ;
+		tests_get_cache(  ) ;
 	}
 }
 
@@ -3589,6 +3738,7 @@ sub tests {
 		tests_get_cache(  ) ;
 		tests_clean_cache(  ) ;
 		tests_match_a_cache_file(  ) ;
+		tests_touch(  ) ;
 	}
 }
 
@@ -3621,163 +3771,46 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 	return $string;
 };
 
+# Got from 3.25
+*Mail::IMAPClient::append_string = sub {
+    my $self   = shift;
+    my $folder = $self->Massage(shift);
+    my ( $text, $flags, $date ) = @_;
+    defined $text or $text = '';
 
-*Mail::IMAPClient::append_file = sub  {
+    if ( defined $flags ) {
+        $flags =~ s/^\s+//g;
+        $flags =~ s/\s+$//g;
+        $flags = "($flags)" if $flags !~ /^\(.*\)$/;
+    }
 
-        my $self        = shift;
-        my $folder      = $self->Massage(shift);
-        my $file        = shift; 
-        my $control     = shift || undef;
-        my $count       = $self->Count($self->Count+1);
-	my $flags       = shift || undef;
-	my $date        = shift || undef;
-	
-	if (defined($flags)) {
-                $flags =~ s/^\s+//g;
-                $flags =~ s/\s+$//g;
-        }
-	
-        if (defined($date)) {
-                $date =~ s/^\s+//g;
-                $date =~ s/\s+$//g;
-        }
-	
-        $flags = "($flags)"  if $flags and $flags !~ /^\(.*\)$/ ;
-        $date  = qq/"$date"/ if $date  and $date  !~ /^"/       ;
-	
+    if ( defined $date ) {
+        $date =~ s/^\s+//g;
+        $date =~ s/\s+$//g;
+        $date = qq("$date") if $date !~ /^"/;
+    }
 
-        unless ( -f $file ) {
-                $self->LastError("File $file not found.\n");
-                return undef;
-        }
+    $text =~ s/\r?\n/$CRLF/og;
 
-        my $fh = IO::File->new($file) ;
+    my $command =
+        "APPEND $folder "
+      . ( $flags ? "$flags " : "" )
+      . ( $date  ? "$date "  : "" ) . "{"
+      . length($text)
+      . "}$CRLF";
 
-        unless ($fh) {
-                $self->LastError("Unable to open $file: $!\n");
-                $@ = "Unable to open $file: $!" ;
-                carp "unable to open $file: $!";
-                return undef;
-        }
+    $command .= $text . $CRLF;
+    $self->_imap_command( $command ) or return undef;
 
-        my $bare_nl_count = scalar grep { /^\x0a$|[^\x0d]\x0a$/} <$fh>;
+    my $data = join '', $self->Results;
+    #print "ZZZ|$data|ZZZ\n";
+    # look for something like return size or self if no size found:
+    # <tag> OK [APPENDUID <uid> <size>] APPEND completed
+    # 18 OK [APPENDUID 1286144680 1539] APPEND Ok.
+    my $ret = $data =~ m#^\d+ OK \[APPEND.*\s+(\d+)\].*\Z#m ? $1 : $self;
 
-        seek($fh,0,0);
-
-        my $clear = $self->Clear;
-
-        $self->Clear($clear)
-                if $self->Count >= $clear and $clear > 0;
-
-        my $length = ( -s $file ) + $bare_nl_count;
-
-	my $string = "$count APPEND $folder " .
-	             ( $flags ? "$flags " : ""       ) .
-	             ( $date ? "$date " : ""         ) .
-	             "{" . $length  . "}\x0d\x0a" ;
-	
-        $self->_record($count,[ $self->_next_index($count), "INPUT", "$string" ] );
-
-        my $feedback = $self->_send_line("$string");
-
-        unless ($feedback) {
-                $self->LastError("Error sending '$string' to IMAP: $!\n");
-                $fh->close;
-                return undef;
-        }
-
-        my ($code, $output) = ("","");
-
-        until ( $code ) {
-                $output = $self->_read_line or $fh->close, return undef;
-                foreach my $o (@$output) {
-                        $self->_record($count,$o);              # $o is already an array ref
-                      ($code) = $o->[DATA] =~ /(^\+|^\d+\sNO|^\d+\sBAD)/i; 
-                      if ($o->[DATA] =~ /^\*\s+BYE/) {
-                              carp $o->[DATA];
-                                $self->State(Unconnected);
-                                $fh->close;
-                                return undef ;
-                      } elsif ( $o->[DATA]=~ /^\d+\s+(NO|BAD)/i ) {
-                              carp $o->[DATA];
-                                $fh->close;
-                                return undef;
-                        }
-                }
-        }
-
-        {       # Narrow scope
-                # Slurp up headers: later we'll make this more efficient I guess
-                local $/ = "\x0d\x0a\x0d\x0a"; 
-                my $text = <$fh>;
-                $text =~ s/\x0d?\x0a/\x0d\x0a/g;
-                $self->_record($count,[ $self->_next_index($count), "INPUT", "{From file $file}" ] ) ;
-                $feedback = $self->_send_line($text);
-
-                unless ($feedback) {
-                        $self->LastError("Error sending append msg text to IMAP: $!\n");
-                        $fh->close;
-                        return undef;
-                }
-                _debug($self, "control points to $$control\n") if ref($control) and $self->Debug;
-                $/ =    ref($control) ?  "\x0a" : $control ? $control :         "\x0a";
-                while (defined($text = <$fh>)) {
-                        $text =~ s/\x0d?\x0a/\x0d\x0a/g;
-                        $self->_record( $count,
-                                        [ $self->_next_index($count), "INPUT", "{from $file}\x0d\x0a" ] 
-                        );
-                        $feedback = $self->_send_line($text,1);
-
-                        unless ($feedback) {
-                                $self->LastError("Error sending append msg text to IMAP: $!\n");
-                                $fh->close;
-                                return undef;
-                        }
-                }
-                $feedback = $self->_send_line("\x0d\x0a");
-
-                unless ($feedback) {
-                        $self->LastError("Error sending append msg text to IMAP: $!\n");
-                        $fh->close;
-                        return undef;
-                }
-        } 
-
-        # Now for the crucial test: Did the append work or not?
-        ($code, $output) = ("","");
-
-        my $uid = undef;
-        until ( $code ) {
-                $output = $self->_read_line or return undef;
-                foreach my $o (@$output) {
-                        $self->_record($count,$o);              # $o is already an array ref
-                      $self->_debug("append_file: Deciding if " . $o->[DATA] . " has the code.\n") 
-                                if $self->Debug;
-                      ($code) = $o->[DATA]  =~ /^\d+\s(NO|BAD|OK)/i; 
-                        # try to grab new msg's uid from o/p
-                      $o->[DATA]  =~ m#UID\s+\d+\s+(\d+)\]# and $uid = $1; 
-                      if ($o->[DATA] =~ /^\*\s+BYE/) {
-                              carp $o->[DATA];
-                                $self->State(Unconnected);
-                                $fh->close;
-                                return undef ;
-                      } elsif ( $o->[DATA]=~ /^\d+\s+(NO|BAD)/i ) {
-                              carp $o->[DATA];
-                                $fh->close;
-                                return undef;
-                        }
-                }
-        }
-        $fh->close;
-
-        if ($code !~ /^OK/i) {
-                return undef;
-        }
-
-
-        return defined($uid) ? $uid : $self;
+    return $ret;
 };
-
 
 
 
@@ -4242,8 +4275,11 @@ no warnings 'once';
 	    #print "call @_ done [", $rc || '', "] [$tries/$retry][" . $self->IsUnconnected . "]\n";
         }
 	
-        if ( !defined($rc) and $retry and $self->IsUnconnected
-	     and $self->LastIMAPCommand !~ /LOGOUT/) {
+        if ( !defined($rc) 
+	     and $retry and $self->IsUnconnected
+	     and ( $self->LastIMAPCommand !~ /LOGOUT/ )
+	     
+	) {
 	   print "\nWarning: disconnected. ";
            if ( $self->reconnect ) {
                 print "Reconnect successful on try #$tries\n";
@@ -4674,6 +4710,7 @@ sub Tls {
 
 sub Reconnect_counter {
 	my $self = shift;
+	$self->{Reconnect_counter} = 0 if ( not defined( $self->{Reconnect_counter} ) ) ;
 	if (@_) { $self->{Reconnect_counter} = shift }
 	return $self->{Reconnect_counter};
 

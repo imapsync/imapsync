@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 
-# $Id: paypal_build_reply,v 1.8 2010/12/29 23:51:23 gilles Exp gilles $
+# $Id: paypal_build_reply,v 1.10 2011/02/02 22:31:41 gilles Exp gilles $
 
 use warnings;
 use strict;
@@ -8,12 +8,21 @@ use strict;
 my ($msg_id_file, $msg_id);
 my ($amount, $name, $email);
 my (
-	$buyer, $object, $support, $description,
+	$paypal_line, $paypal_info,
+	$buyer, $description,
 	$url_source, $url_exe, $url, $release,
 );
 
 $msg_id_file = $ARGV[1];
 $msg_id = firstline($msg_id_file);
+
+
+while(<>) {
+	next if ( ! /^(.*Num.+ro de transaction :.*)$/ );
+	$paypal_line = $1;
+	$paypal_info  = "===== Paypal id =====\n$paypal_line\n";
+	last;
+}
 
 while(<>) {
 	next if ( ! /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/);
@@ -25,33 +34,7 @@ $url_source = firstline('/g/var/paypal_reply/url_source');
 $url_exe    = firstline('/g/var/paypal_reply/url_exe');
 $release    = firstline('/g/var/paypal_reply/url_release');
 
-# source code wanted
-if (('$35,00 USD' eq $amount) or ('$50,00 USD' eq $amount)) {
-	$object = 'imapsync source code';
-	$support = '';
-	$url = $url_source;
-}
-
-# win32 binary wanted
-if (('$25,00 USD' eq $amount) or ('$15,00 USD' eq $amount)) {
-	$object = 'imapsync.exe binary';
-	$support = '';
-	$url = $url_exe;
-}
-
-# source code + technical support wanted
-if ('$135,00 USD' eq $amount) {
-	$object = 'imapsync source code';
-	$support = "\nI'm ready to help you by email until success (I hope).\n";
-	$url = $url_source;
-}
-
-# win32 binary + technical support wanted
-if ('$125,00 USD' eq $amount) {
-	$object = 'imapsync.exe binary';
-	$support = "\nI'm ready to help you by email until success (I hope).\n";
-	$url = $url_exe;
-}
+#print "[$amount] [$name] [$email] [$paypal_line]\n";
 
 
 
@@ -80,7 +63,7 @@ while(<>) {
 
 my $address = 'gilles.lamiral@laposte.net';
 my $address2 = 'gilles@lamiral.info';
-my $rcstag  = '$Id: paypal_build_reply,v 1.8 2010/12/29 23:51:23 gilles Exp gilles $';
+my $rcstag  = '$Id: paypal_build_reply,v 1.10 2011/02/02 22:31:41 gilles Exp gilles $';
 
 my $message = <<EOM
 X-Comment: $rcstag
@@ -88,16 +71,24 @@ In-Reply-To: $msg_id
 From: Gilles LAMIRAL <$address>
 To: <$email>
 Bcc: Gilles LAMIRAL <$address>, <$address2>
-Subject: [imapsync download] $object release $release [$email]
+Subject: [imapsync download] imapsync release $release [$email]
 
 Hello $name,
 
-You will find the latest $object release $release at the following link:
-$url
+You will find the latest imapsync source code release $release at the following link:
+$url_source
+
+You will find the latest imapsync.exe binary release $release at the following link:
+$url_exe
+
+Next imapsync releases will be available for one year without extra payment.
+Just keep this message and ask for the new links.
+(I will build an automatic subscription tool later)
 
 I thank you for buying and using imapsync,
 I wish you successful transfers!
-$support
+
+$paypal_info
 $buyer
 $description
 ==== Vendeur ====
@@ -123,7 +114,7 @@ EOM
 
 
 print $message;
-#print "[$amount] [$name] [$email] [$object]\n";
+#print "[$amount] [$name] [$email] [$paypal_line]\n";
 
 
 sub firstline {

@@ -1,0 +1,81 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+my $total_usd_received ;
+my $total_usd_invoice ;
+
+my $total_eur_received ;
+my $total_eur_invoice ;
+my $nb_invoice ;
+my $line ;
+
+
+while( $line = <>  ) {
+	next if ( $line =~ /^Date, Heure, Fuseau horaire, Nom, Type, Etat, Devise, Montant, Numéro d'avis de réception, Solde,/ ) ;
+	#print( "A1 $line" ) ;
+	chomp( $line ) ;
+	#print ("A2 $line\n" );
+	
+	my $line2 = '",' . $line . '"' ;
+	my( $Nothing, $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat, $Devise, $Montant, $Numero_davis_de_reception, $Solde )
+	 = split( '","', $line2 ) ;
+	#print ( "[$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
+	
+	
+	if (
+	'Paiement sur site marchand reçu' eq $Type
+	and 'USD' eq $Devise
+	and 'Terminé' eq $Etat
+	) {
+		$Montant =~tr/,/./;
+		#print "$Montant\n" ;
+		my $Montant2_usd;
+		$Montant2_usd =  15 if (  14.11 == $Montant or  14.19 == $Montant ) ;
+		$Montant2_usd =  25 if (  23.72 == $Montant or  23.85 == $Montant ) ;
+		$Montant2_usd =  35 if (  33.33 == $Montant or  33.51 == $Montant ) ;
+		$Montant2_usd =  50 if (  47.75 == $Montant or  14.19 == $Montant ) ;
+		$Montant2_usd = 125 if ( 119.82 == $Montant or 119.82 == $Montant ) ;
+		$Montant2_usd = 135 if ( 129.43 == $Montant or 129.43 == $Montant ) ;
+		#print "$Montant $Montant2_usd\n" ;
+		$total_usd_received += $Montant ;
+		$total_usd_invoice  += $Montant2_usd ;
+		$nb_invoice++ ;
+	}
+	if (
+	'Paiement sur site marchand reçu' eq $Type
+	and 'EUR' eq $Devise
+	and 'Terminé' eq $Etat
+	) {
+		$Montant =~tr/,/./;
+		#print "$Montant\n" ;
+		my $Montant2_eur;
+		$Montant2_eur =  22 if (  20.88  == $Montant or  20.99 == $Montant ) ;
+		$Montant2_eur =  30 if (  28.58  == $Montant or  28.73 == $Montant ) ;
+		$Montant2_eur = 110 if ( 105.46  == $Montant ) ;
+		#print "$Montant $Montant2_eur\n" ;
+		$total_eur_received += $Montant ;
+		$total_eur_invoice  += $Montant2_eur ;
+		$nb_invoice++ ;
+	}
+}
+
+print "USD banque   $total_usd_received\n" ;
+print "USD invoice  $total_usd_invoice\n" ;
+my $total_eur_from_usd ;
+$total_eur_from_usd  = int( ( $total_usd_invoice / 1.2981 ) + 0.5 ) ; # au 30 nov 2010 http://fr.finance.yahoo.com/devises/convertisseur/#from=EUR;to=USD;amt=1
+print "EUR from USD $total_eur_from_usd\n" ;
+#$total_eur  = int( ( $total_eur_invoice / 1.3 ) + 0.5 ) ;
+#print "EUR $total_eur_from_usd\n" ;
+print "EUR banque   $total_eur_received\n" ;
+print "EUR invoice  $total_eur_invoice\n" ;
+
+my $total_eur = $total_eur_from_usd + $total_eur_invoice ;
+print "EUR total  $total_eur\n" ;
+print "Nb  invoice  $nb_invoice\n" ;
+
+
+
+
+
