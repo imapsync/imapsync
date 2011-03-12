@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.10 2006/03/20 00:35:47 gilles Exp gilles $	
+# $Id: Makefile,v 1.11 2006/07/03 00:04:37 gilles Exp $	
 
 TARGET=imapsync
 
@@ -69,8 +69,8 @@ dist: cidone test clean clean_dist all INSTALL
 	rsync -aCv --delete ./  ../prepa_dist/$(DIST_NAME)
 	cd ../prepa_dist && tar czfv $(DIST_FILE) $(DIST_NAME)
 	cp -f ../prepa_dist/$(DIST_FILE) dist/
-	cd dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5
-	cd dist && md5sum -c $(DIST_FILE).md5
+	cd dist && md5sum $(DIST_FILE) > md5.txt
+	cd dist && md5sum -c md5.txt
 
 
 deb: 
