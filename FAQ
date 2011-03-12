@@ -10,6 +10,7 @@ Q. We have found that the sent time and date have been changed to the
 R. This is the case with:
    - Eudora
    - Zimbra
+   - Outlook 2003
    but not with 
    - Mutt
    - Thunderbird
@@ -119,15 +120,25 @@ supported with tls encryption most of the time.
 Here is an example:
  imapsync \
 	--host1 server1 \
-	--ssl1 \
-	--host2 server2 \
+	--user1 joe \
 	--authuser1 AdminAccount \
 	--password1 AdminAccountPassword \
-	--user1 joe \
+	--ssl1 \
+	--host2 server2 \
 	--user2 joe \
 	--password2 joespassonserver2 \
 	--exclude '^user\.'
- 
+
+
+======================================================================
+Q. imapsync fails with the following error:
+flags from : [\Seen NonJunk]["10-Aug-2006 13:00:30 -0400"]
+Error trying to append string: 58 NO APPEND Invalid flag list
+
+R. Flags have to begin with a \ character.
+The flag "NonJunk" is not a valid flag so use for example:
+
+imapsync ...    --regexflag 's/NonJunk//g'
 
 ======================================================================
 Q. I have moved from Braunschweig to Graz, so I would like to have my whole 
@@ -318,3 +329,16 @@ Q. Migrating from David Tobit V8
 
 R. Use the following options :
 imapsync ... --prefix1 INBOX. --sep1 / --subscribe
+
+=======================================================================
+Q. I need to migrate 1250 mailboxes from one cyrus-IMAP server to another
+(empty) one. (Box-swap). The passwords are in a MySQL Database.
+Can you tell me if your script suits my needs?
+
+Partially, mailboxes must exist before running imapsync.
+May be, Box-swap is not listed in "Failure stories"
+nor "Success stories" in the README file.
+You have to extract user and password in a csv file.
+See the "HUGE MIGRATION" section in the README file.
+
+

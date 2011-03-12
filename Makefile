@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.12 2006/08/01 22:58:42 gilles Exp $	
+# $Id: Makefile,v 1.13 2006/10/30 03:05:12 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -91,14 +91,18 @@ clean_dist:
 
 .PHONY: lfo niouze
 
-lfo: dist niouze
+lfo: dist lfo_upload niouze
+
+lfo_upload: 
 	rsync -av --delete . \
 	/home/gilles/public_html/www.linux-france.org/html/prj/$(TARGET)/
 	rsync -av --delete ../prepa_dist/imapsync-*tgz  \
 	/home/gilles/public_html/www.linux-france.org/ftp/prj/$(TARGET)/
 	sh ~/memo/lfo-rsync
 
-
 niouze: VERSION
 	. memo && lfo_announce
 	. memo && fm_announce
+
+
+public: niouze

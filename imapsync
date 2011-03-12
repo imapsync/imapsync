@@ -7,7 +7,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 25 different IMAP server softwares
 supported with success.
 
-$Revision: 1.182 $
+$Revision: 1.188 $
 
 =head1 INSTALL
 
@@ -82,16 +82,16 @@ We sometimes need to transfer mailboxes from one imap server to
 another. This is called migration.
 
 imapsync is the adequate tool because it reduces the amount
-of data transfered by not transfering a given message if it
+of data transferred by not transferring a given message if it
 is already on both sides. Same headers, same message size
-and the transfert is done only once. All flags are
+and the transfer is done only once. All flags are
 preserved, unread will stay unread, read will stay read,
-deleted will stay deleted. You can stop the transfert at any
+deleted will stay deleted. You can stop the transfer at any
 time and restart it later, imapsync is adapted to a bad
 connection.
 
 You can decide to delete the messages from the source mailbox
-after a successful transfert (it is a good feature when migrating).
+after a successful transfer (it is a good feature when migrating).
 In that case, use the --delete --expunge1 options.
 
 You can also just synchronize a mailbox A from another mailbox B
@@ -107,8 +107,8 @@ I wrote imapsync because an enterprise (basystemes) paid me to install
 a new imap server without loosing huge old mailboxes located on a far
 away remote imap server accessible by a low bandwith link. The tool
 imapcp (written in python) could not help me because I had to verify
-every mailbox was well transfered and delete it after a good
-transfert. imapsync started its life being a copy_folder.pl patch.
+every mailbox was well transferred and delete it after a good
+transfer. imapsync started its life being a copy_folder.pl patch.
 The tool copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl
 module tarball source (in the examples/ directory of the tarball).
 
@@ -140,7 +140,7 @@ the password in a well protected file (600 or rw-------) is
 the best solution.
 
 imasync is not totally protected against sniffers on the
-network since passwords may be transfered in plain text in
+network since passwords may be transferred in plain text in
 case CRAM-MD5 is not supported by your imap servers.  Use
 --ssl1 and --ssl2 to enable encryption on host1 and host2.
 
@@ -248,6 +248,7 @@ Success stories reported with the following imap servers
  - Samsung Contact IMAP server 8.5.0
  - Scalix v10.1
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
+ - Surgemail 3.6f5-5
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
    (RedHat uses UW like 2003.338rh) (OSI Approved) 
    (http://www.washington.edu/imap/)
@@ -342,7 +343,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.182 2006/08/01 23:07:42 gilles Exp $
+$Id: imapsync,v 1.188 2006/10/30 01:18:37 gilles Exp gilles $
 
 =cut
 
@@ -399,7 +400,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.182 2006/08/01 23:07:42 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.188 2006/10/30 01:18:37 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -436,8 +437,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.182 $ ',
-		  '$Date: 2006/08/01 23:07:42 $ ',
+		  '$Revision: 1.188 $ ',
+		  '$Date: 2006/10/30 01:18:37 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -618,8 +619,13 @@ sub login_imap {
 		$imap->Authmechanism($authmech);
 		$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
 	} else {
-		printf("%s: no support for AUTHENTICATE %s, using LOGIN\n",
+		printf("%s: No CAPABILITY for AUTHENTICATE %s\n",
 		       $imap->Server, $authmech);
+		if ($authmech eq 'PLAIN') {
+			print "Frequently PLAIN is only supported with SSL, ",
+			  "try --ssl1 or --ssl2 option\n";
+		}
+		exit(1);
 	}
 	
 	$imap->User($user);
@@ -635,7 +641,7 @@ sub plainauth() {
 
         my $string = sprintf("%s\x00%s\x00%s", $imap->User,
                             $imap->Authuser, $imap->Password);
-        return encode_base64("$string");
+        return encode_base64("$string", "");
 }
 
 
@@ -1085,6 +1091,11 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
 					$mess_size_total_trans += $f_size;
 					$mess_trans += 1;
+					if($delete) {
+						print "Deleting msg #$f_msg in folder $f_fold\n";
+						$from->delete_message($f_msg) unless ($dry);
+						$from->expunge() if ($expunge and not $dry);
+					}
 				}
 			}
 			next MESS;
@@ -1218,9 +1229,9 @@ sub select_msgs {
 sub stats {
 	print "++++ Statistics ++++\n";
 	print "Time                   : $timediff sec\n";
-	print "Messages transfered    : $mess_trans\n";
+	print "Messages transferred   : $mess_trans\n";
 	print "Messages skipped       : $mess_skipped\n";
-	print "Total bytes transfered : $mess_size_total_trans\n";
+	print "Total bytes transferred: $mess_size_total_trans\n";
 	print "Total bytes skipped    : $mess_size_total_skipped\n";
 	print "Total bytes error      : $mess_size_total_error\n";
 	print "Detected $error errors\n";
@@ -1442,7 +1453,7 @@ Several options are mandatory.
 --expunge              : expunge messages on source account.
                          expunge really deletes messages marked deleted.
                          expunge is made at the beginning on the 
-                         source server only. newly transfered messages
+                         source server only. newly transferred messages
                          are expunged if option --expunge is given.
                          no expunge is done on destination account but
                          it will change in future releases.
@@ -1468,8 +1479,8 @@ Several options are mandatory.
 --useheader   <string>   and this one, etc.
 --skipsize             : Don't take message size into account.
 --dry                  : do nothing, just print what would be done.
---subscribed           : transfer only subscribed folders.
---subscribe            : subscribe to the folders transfered on the 
+--subscribed           : transfers only subscribed folders.
+--subscribe            : subscribe to the folders transferred on the 
                          "destination" server that are subscribed
                          on the "source" server.
 --(no)foldersizes      : Calculate the size of each "From" folder in bytes

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.53 2006/06/08 00:53:21 gilles Exp $	
+# $Id: tests.sh,v 1.55 2006/10/30 01:19:46 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -49,47 +49,53 @@ no_args() {
 	./imapsync
 }
 
+# list of accounts on plume :
+
+# toto@est.belle # used on first_sync()
+#                          bad_login()
+#                          bad_host()
+
+# titi@est.belle # used on first_sync()
+#                          bad_host()
+#                          locallocal()
+
+# tata@est.belle #  used on locallocal()
+
+# tutu@est.belle # not used
+
+# tete@est.belle # used on big size tests
+#                          big_transfert()
+#                          big_transfert_sizes_only()
+#                          dprof()
+
+sendtestmessage() {
+    rand=`pwgen 16 1`
+    mess='test:'$rand
+    cmd="echo $mess""| mail -s ""$mess"" tata@est.belle"
+    echo $cmd
+    eval "$cmd"
+}
+
 
 first_sync() {
 	./imapsync \
 	    --host1 localhost --user1 toto@est.belle \
 	    --passfile1 /var/tmp/secret1 \
 	    --host2 localhost --user2 titi@est.belle \
-	    --passfile2 /var/tmp/secret2 \
+	    --passfile2 /var/tmp/secret.titi \
 	    --noauthmd5
 }
 
-sendtestmessage() {
-    rand=`pwgen 16 1`
-    mess='test:'$rand
-    cmd="echo $mess""| mail -s ""$mess"" tata"
-    echo $cmd
-    ssh gilles@loul $cmd
-}
 
-loulplume() {
+locallocal() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		sendtestmessage
 		./imapsync \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata
-	else
-		:
-	fi
-}
-
-loulloul() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		sendtestmessage
-		./imapsync \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--host2 loul --user2 titi \
-		--passfile2 /var/tmp/secret.tata
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 	else
 		:
 	fi
@@ -97,41 +103,30 @@ loulloul() {
 
 
 
-plumeloul() {
+ll_folder() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host1 plume --user1 tata@est.belle \
+		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
-		--host2 loul  --user2 tata \
-		--passfile2 /var/tmp/secret.tata 
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folder INBOX.yop --folder INBOX.Trash
 	else
 		:
 	fi
 }
 
-lp_folder() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--folder INBOX.yop --folder INBOX.Trash  \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata
-	else
-		:
-	fi
-}
 
-lp_buffersize() {
+
+ll_buffersize() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--buffersize 8
 	else
 		:
@@ -140,15 +135,14 @@ lp_buffersize() {
 
 
 
-lp_justfolders() {
+ll_justfolders() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--folder INBOX.yop --folder INBOX.Trash  \
-		--host1 loul  --user1 tata \
+		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--justfolders 
 	else
 		:
@@ -156,31 +150,17 @@ lp_justfolders() {
 }
 
 
-pl_folder_qqq() {
+ll_prefix12() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host1 plume --user1 tata@est.belle \
+		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--folder INBOX.qqq  \
-		--host2 loul  --user2 tata \
-		--passfile2 /var/tmp/secret.tata
-	else
-		:
-	fi
-}
-
-pl_prefix12() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host1 plume --user1 tata@est.belle \
-		--passfile1 /var/tmp/secret.tata \
-		--folder INBOX.qqq  \
-		--host2 loul  --user2 tata \
-		--passfile2 /var/tmp/secret.tata \
 		--prefix1 INBOX.\
-		--prefix2 INBOX. \
+		--prefix2 INBOX. 
 	else
 		:
 	fi
@@ -188,16 +168,16 @@ pl_prefix12() {
 
 
 
-lp_internaldate() {
+ll_internaldate() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		sendtestmessage
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--folder INBOX  \
-		--host1 loul  --user1 tata \
+		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folder INBOX  \
 		--syncinternaldates
 	else
 		:
@@ -207,29 +187,29 @@ lp_internaldate() {
 
 
 
-pl_folder() {
+ll_folder_rev() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host1 plume --user1 tata@est.belle \
-		--passfile1 /var/tmp/secret.tata \
-		--folder INBOX.yop \
-		--host2 loul  --user2 tata \
-		--passfile2 /var/tmp/secret.tata
+		--host1 localhost  --user1 titi@est.belle \
+		--passfile1 /var/tmp/secret.titi \
+		--host2 localhost --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--folder INBOX.yop
 	else
 		:
 	fi
 }
 
-lp_subscribed() 
+ll_subscribed()
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--subscribed
 	else
 		:
@@ -237,43 +217,43 @@ lp_subscribed()
 }
 
 
-lp_subscribe() 
+ll_subscribe() 
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--subscribed --subscribe
 	else
 		:
 	fi
 }
 
-lp_justconnect() 
+ll_justconnect() 
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync    \
-		--host2 plume \
-		--host1 loul  \
+		--host2 localhost \
+		--host1 localhost \
 		--justconnect
 	else
 		:
 	fi
 }
 
-lp_justfoldersizes() 
+ll_justfoldersizes() 
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--justfoldersizes
 	else
 		:
@@ -282,30 +262,30 @@ lp_justfoldersizes()
 
 
 
-lp_authmd5() 
+ll_authmd5() 
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
-		--justfoldersizes
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--justfoldersizes --authmd5
 	else
 		:
 	fi
 }
 
-lp_noauthmd5() 
+ll_noauthmd5() 
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--justfoldersizes --noauthmd5
 	else
 		:
@@ -313,16 +293,16 @@ lp_noauthmd5()
 }
 
 
-lp_maxage() 
+ll_maxage() 
 {
 	sendtestmessage
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--maxage 1
 	else
 		:
@@ -331,48 +311,48 @@ lp_maxage()
 
 
 
-lp_maxsize() 
+ll_maxsize() 
 {
 	sendtestmessage
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--maxsize 10
 	else
 		:
 	fi
 }
 
-lp_skipsize() 
+ll_skipsize() 
 {
 	sendtestmessage
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--skipsize --folder INBOX.yop.yap
 	else
 		:
 	fi
 }
 
-lp_skipheader() 
+ll_skipheader() 
 {
 	sendtestmessage
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--skipheader 'X-.*' --folder INBOX.yop.yap
 	else
 		:
@@ -381,48 +361,47 @@ lp_skipheader()
 
 
 
-lp_include() 
+ll_include() 
 {
 	sendtestmessage
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--include '^INBOX.yop'
 	else
 		:
 	fi
 }
 
-lp_regextrans2() 
+ll_regextrans2() 
 {
 	sendtestmessage
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--regextrans2 's/yop/yopX/' --dry
 	else
 		:
 	fi
 }
 
-lp_sep2() 
+ll_sep2() 
 {
-	
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--folder INBOX.yop.yap \
 		--sep2 '\\' --dry
 	else
@@ -430,9 +409,7 @@ lp_sep2()
 	fi
 }
 
-
-
-bad_login()
+ll_bad_login()
 {
     ! ./imapsync \
 	--host1 localhost --user1 toto@est.belle \
@@ -442,7 +419,7 @@ bad_login()
    
 }
 
-bad_host()
+ll_bad_host()
 {
     ! ./imapsync \
 	--host1 badhost --user1 toto@est.belle \
@@ -453,22 +430,194 @@ bad_host()
 }
 
 
-foldersizes()
+ll_justfoldersizes()
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
+		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
 		--justfoldersizes
 	else
 		:
 	fi
-
 }
 
+
+
+ll_useheader() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folder INBOX.yop.yap \
+		--useheader 'Message-ID' \
+		--dry --debug	
+		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
+	else
+		:
+	fi
+}
+
+
+ll_regexmess() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folder INBOX.yop.yap \
+		--regexmess 's/\157/O/g' \
+		--regexmess 's/p/Z/g' \
+		--dry --debug
+		echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+	else
+		:
+	fi
+}
+
+
+ll_flags() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folder INBOX.yop.yap \
+		--dry --debug
+		echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+	else
+		:
+	fi
+}
+
+ll_regex_flag() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folder INBOX.yop.yap \
+		--dry --debug --regexflag 's/\\Answered/\\AnXweXed/g'
+		
+		echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+	else
+		:
+	fi
+}
+
+
+ll_ssl() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--ssl1 --ssl2
+	else
+		:
+	fi
+}
+
+ll_authmech_PLAIN() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--justfoldersizes --nofoldersizes \
+		--authmech1 PLAIN --authmech2 PLAIN
+	else
+		:
+	fi
+}
+
+ll_authuser() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--justfoldersizes --nofoldersizes \
+		--authuser2 titi@est.belle
+	else
+		:
+	fi
+}
+
+
+
+
+ll_authmech_LOGIN() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--justfoldersizes --nofoldersizes \
+		--authmech1 LOGIN --authmech2 LOGIN 
+	else
+		:
+	fi
+}
+
+ll_authmech_CRAMMD5() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--justfoldersizes --nofoldersizes \
+		--authmech1 CRAM-MD5 --authmech2 CRAM-MD5 
+	else
+		:
+	fi
+}
+
+ll_delete2() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+                --folder INBOX \
+		--delete2 --expunge2
+	else
+		:
+	fi
+}
+
+##########################
+# specific tests
+##########################
 
 big_transfert()
 {
@@ -620,182 +769,10 @@ perl -I bugs/lib ./imapsync \
 	
 }
 
+##########################
+##########################
 
 
-
-useheader() 
-{
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--folder INBOX.yop.yap \
-		--useheader 'Message-ID' \
-		--dry --debug
-		
-		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
-	else
-		:
-	fi
-}
-
-
-regexmess() 
-{
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--folder INBOX.yop.yap \
-		--regexmess 's/\157/O/g' \
-		--regexmess 's/p/Z/g' \
-		--dry --debug
-		
-		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
-	else
-		:
-	fi
-}
-
-
-flags() 
-{
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--folder INBOX.yop.yap \
-		--dry --debug
-		
-		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
-	else
-		:
-	fi
-}
-
-regex_flag() 
-{
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--folder INBOX.yop.yap \
-		--dry --debug --regexflag 's/\\Answered//g'
-		
-		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
-	else
-		:
-	fi
-}
-
-
-lp_ssl() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--ssl1 --ssl2
-	else
-		:
-	fi
-}
-
-lp_authmech_PLAIN() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--justfoldersizes --nofoldersizes \
-		--authmech1 PLAIN --authmech2 PLAIN
-	else
-		:
-	fi
-}
-
-lp_authuser() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--justfoldersizes --nofoldersizes \
-		--authuser2 tata@est.belle
-	else
-		:
-	fi
-}
-
-
-
-
-lp_authmech_LOGIN() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--justfoldersizes --nofoldersizes \
-		--authmech1 LOGIN --authmech2 LOGIN 
-	else
-		:
-	fi
-}
-
-lp_authmech_CRAMMD5() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-		--justfoldersizes --nofoldersizes \
-		--authmech1 CRAM-MD5 --authmech2 CRAM-MD5 
-	else
-		:
-	fi
-}
-
-lp_delete2() {
-	if test X`hostname` = X"plume"; then
-		echo3 Here is plume
-		./imapsync \
-		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata \
-		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata \
-                --folder INBOX \
-		--delete2 --expunge2
-	else
-		:
-	fi
-}
 
 
 
@@ -810,37 +787,39 @@ run_tests perl_syntax
 test $# -eq 0 && run_tests \
 	no_args \
 	first_sync \
-	loulplume \
-	plumeloul \
-	lp_folder \
-	lp_buffersize \
-	pl_folder \
-        pl_folder_qqq \
-	pl_prefix12 \
-	lp_internaldate \
-	lp_subscribed \
-	lp_subscribe \
-	lp_justconnect \
-	lp_justfoldersizes \
-	lp_authmd5 \
-	lp_maxage \
-	lp_maxsize \
-	lp_include \
-	bad_login \
-	bad_host \
-	lp_noauthmd5 \
-        lp_skipsize \
-        lp_skipheader \
-	lp_regextrans2 \
-	foldersizes \
-	regexmess \
-	useheader \
-        lp_ssl \
-	lp_authmech_LOGIN \
-	lp_authmech_CRAMMD5 \
-	lp_authmech_PLAIN \
-	lp_authuser
-
+	locallocal \
+	ll_folder \
+ 	ll_buffersize \
+	ll_justfolders \
+ 	ll_prefix12 \
+ 	ll_internaldate \
+ 	ll_folder_rev \
+ 	ll_subscribed \
+ 	ll_subscribe \
+ 	ll_justconnect \
+	ll_justfoldersizes \
+	ll_authmd5 \
+	ll_noauthmd5 \
+	ll_maxage \
+ 	ll_maxsize \
+	ll_skipsize \
+	ll_skipheader \
+	ll_include \
+	ll_regextrans2 \
+	ll_sep2 \
+	ll_bad_login \
+	ll_bad_host \
+	ll_justfoldersizes \
+	ll_useheader \
+	ll_regexmess \
+	ll_flags \
+	ll_regex_flag \
+	ll_ssl \
+	ll_authmech_PLAIN \
+	ll_authmech_LOGIN \
+	ll_authmech_CRAMMD5 \
+	ll_authuser \
+	ll_delete2
 
 
 
