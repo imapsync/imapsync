@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.16 2004/03/21 23:24:42 gilles Exp $	
+# $Id: tests.sh,v 1.17 2004/04/07 18:13:29 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.17  2004/04/07 18:13:29  gilles
+# Added lp_regextrans2()
+#
 # Revision 1.16  2004/03/21 23:24:42  gilles
 # Added
 # lp_skipsize()
@@ -379,6 +382,24 @@ lp_include()
 	fi
 }
 
+lp_regextrans2() 
+{
+	sendtestmessage
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--regextrans2 's/yop/yopX/' --dry
+	else
+		:
+	fi
+}
+
+
+
 bad_login()
 {
     ! ./imapsync \
@@ -427,7 +448,8 @@ test $# -eq 0 && run_tests \
 	bad_host \
 	lp_noauthmd5 \
         lp_skipsize \
-        lp_skipheader
+        lp_skipheader \
+	lp_regextrans2
 
 # selective tests
 

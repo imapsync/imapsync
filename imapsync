@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.89 $
+$Revision: 1.90 $
 
 =head1 INSTALL
 
@@ -269,7 +269,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.89 2004/03/31 17:37:23 gilles Exp $
+$Id: imapsync,v 1.90 2004/04/07 18:14:05 gilles Exp $
 
 =cut
 
@@ -288,7 +288,7 @@ my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-        @folder, $include, $exclude, $prefix2,
+        @folder, $include, $exclude, $prefix2, $regextrans2,
         $sep1, $sep2,
 	$syncinternaldates,
 	$maxsize, $maxage,
@@ -307,7 +307,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.89 2004/03/31 17:37:23 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.90 2004/04/07 18:14:05 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -343,8 +343,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.89 $ ',
-		  '$Date: 2004/03/31 17:37:23 $ ',
+		  '$Revision: 1.90 $ ',
+		  '$Date: 2004/04/07 18:14:05 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -544,6 +544,7 @@ print
   "From subscribed folders : ", map("[$_] ", sort keys(%fs_folders)), "\n";
 
 sub separator_invert {
+	# The separator we hope we'll never encounter
 	my $o_sep="\000";
 
 	my($f_fold, $f_sep, $t_sep) = @_;
@@ -560,6 +561,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	print "From Folder [$f_fold]\n";
 	
 	$t_fold = separator_invert($f_fold,$f_sep, $t_sep);
+	if ($regextrans2) {
+		$debug and print "eval \$t_fold =~ $regextrans2\n";
+		eval("\$t_fold =~ $regextrans2");
+	}
 	$t_fold = $prefix2 . $t_fold if ($prefix2);
 	print "To   Folder [$t_fold]\n";
 
@@ -763,6 +768,7 @@ sub get_options
 				   "include=s"   => \$include,
 				   "exclude=s"   => \$exclude,
 				   "prefix2=s"   => \$prefix2,
+				   "regextrans2=s" => \$regextrans2,
                                    "delete!"     => \$delete,
                                    "syncinternaldates!" => \$syncinternaldates,
 				   "maxsize=i"   => \$maxsize,
@@ -869,6 +875,7 @@ Several options are mandatory.
 			  is specified)
 --prefix2     <string> : add prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
+--regextrans2 <regex>  : Apply the whole regex to each destination folders.
 --sep1        <char>   : separator in case namespace is not supported.
 --sep2        <char>   : idem.
 --delete               : delete messages in "from" imap server after

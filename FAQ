@@ -1,0 +1,29 @@
+
++------------------+
+| FAQ for imapsync |
++------------------+
+
+Q. I'm migrating from WU to Cyrus, and the mail folders are
+under /home/user/mail but the tool copies everything in
+/home/user, how can i avoid that?
+
+R. Use
+   imapsync ... --include '^mail'
+or (better)
+   imapsync ... --subscribed --subscribe
+
+
+   
+Q. I'm migrating from WU to Cyrus, and the mail folders are
+under /home/user/mail directory.  When imapsync creates the
+folders in the new cyrus imap server, it makes a folder
+"mail" and below that folder puts all the mail folders the
+user have in /home/user/mail, i would like to have all those
+folders directly under INBOX.
+
+R. Use 
+   imapsync ... --regextrans2 's/^mail/INBOX/' --dry
+   look at the simulation and if all transformations seem
+   good then remove the --dry option.
+
+
