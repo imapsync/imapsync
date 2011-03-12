@@ -7,7 +7,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 25 different IMAP server softwares
 supported with success.
 
-$Revision: 1.201 $
+$Revision: 1.204 $
 
 =head1 INSTALL
 
@@ -223,7 +223,7 @@ Failure stories reported with the following 4 imap servers :
  - dkimap4 2.39
  - Imail 7.04 (maybe).
 
-Success stories reported with the following 29 imap servers 
+Success stories reported with the following 31 imap servers 
 (softwares names are in alphabetic order) : 
 
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
@@ -232,7 +232,9 @@ Success stories reported with the following 29 imap servers
    (http://www.courier-mta.org/)
  - Critical Path (7.0.020)
  - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.1.16, 2.1.18 
-   2.2.1, 2.2.2-BETA, 2.2.10, 2.2.12, 2.3-alpha (OSI Approved),
+   2.2.1, 2.2.2-BETA, 2.2.10, 2.2.12, 
+   v2.2.3-Invoca-RPM-2.2.3-8,
+   2.3-alpha (OSI Approved),
    v2.2.12-Invoca-RPM-2.2.12-3.RHEL4.1,
    v2.3.1-Invoca-RPM-2.3.1-2.7.fc5,
    (http://asg.web.cmu.edu/cyrus/)
@@ -255,7 +257,8 @@ Success stories reported with the following 29 imap servers
  - Qualcomm Worldmail (NT)
  - Rockliffe Mailsite 5.3.11
  - Samsung Contact IMAP server 8.5.0
- - Scalix v10.1, 10.0.1.3
+ - Scalix v10.1, 10.0.1.3, 11.0.0.431
+ - SmarterMail
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - Sun Java System Messaging Server 6.2-2.05
  - Surgemail 3.6f5-5
@@ -353,7 +356,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.201 2007/01/03 23:49:10 gilles Exp $
+$Id: imapsync,v 1.204 2007/01/13 07:51:21 gilles Exp $
 
 =cut
 
@@ -410,7 +413,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.201 2007/01/03 23:49:10 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.204 2007/01/13 07:51:21 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -447,8 +450,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.201 $ ',
-		  '$Date: 2007/01/03 23:49:10 $ ',
+		  '$Revision: 1.204 $ ',
+		  '$Date: 2007/01/13 07:51:21 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -642,7 +645,15 @@ sub login_imap {
 	$imap->User($user);
 	$imap->Authuser($authuser);
 	$imap->Password($password);
-	$imap->login2() or die "Error login : [$host] with user [$user] : $@";
+	unless ($imap->login2()) {
+		print "Error login : [$host] with user [$user] auth [$authmech]: $@\n";
+		die if ($authmech eq 'LOGIN');
+		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
+		$imap->Authmechanism("");
+		$imap->login2() or
+		  die "Error login : [$host] with user [$user] auth [LOGIN] : $@";
+	}
+	print "Success login on [$host] with user [$user] auth [$authmech]\n";
 	return($imap);
 }
 
