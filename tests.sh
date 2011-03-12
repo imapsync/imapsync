@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.77 2008/08/13 23:33:18 gilles Exp gilles $  
+# $Id: tests.sh,v 1.78 2008/08/16 15:54:40 gilles Exp gilles $  
 
 #### Shell pragmas
 
@@ -648,6 +648,20 @@ ll_regex_flag()
 }
 
 
+ssl_justconnect() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                $CMD_PERL ./imapsync \
+		--host1 localhost \
+                --host2 localhost \
+                --ssl1 --ssl2 \
+                --justconnect
+        else
+                :
+        fi
+	
+}
+
 ll_ssl() {
         if test X`hostname` = X"plume"; then
                 echo3 Here is plume
@@ -756,12 +770,38 @@ ll_bigmail() {
 }
 
 
+
+
 msw() {
         sendtestmessage toto@est.belle
         scp imapsync  Admin@192.168.68.77:'C:/msys/1.0/home/Admin/imapsync/imapsync'
         ssh Admin@192.168.68.77 'C:/msys/1.0/home/Admin/imapsync/test.bat'
 }
 
+
+
+
+gmail() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 /var/tmp/secret.gilles_gmail \
+                --host2 localhost \
+                --ssl2 \
+                --user2 tata@est.belle \
+                --passfile2 /var/tmp/secret.tata \
+                --useheader 'Message-Id'  --skipsize \
+                --regextrans2 's/\[Gmail\]/Gmail/' \
+		#--dry # --debug --debugimap # --authmech1 LOGIN
+                
+        else
+                :
+        fi
+
+}
 
 
 ##########################
@@ -1033,6 +1073,8 @@ test $# -eq 0 && run_tests \
         ll_delete2 \
         ll_folderrec \
         ll_bigmail \
+        gmail \
+        ssl_justconnect \
 #        msw
 
 

@@ -214,9 +214,9 @@ c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
 
 =======================================================================
-Q: I'm trying to use imapsync for gmail, but it requires ssl, or at least 
-claims to. Imapsync appears to require io-socket-ssl, which doesn't seem
-to be available on win32. Are there any other options?
+Q: I'm trying to use imapsync on win32 for gmail, but it requires ssl, 
+or at least  claims to. Imapsync appears to require io-socket-ssl, 
+which doesn't seem to be available on win32. Are there any other options?
 
 R: (Q and R come as is from Bryce Walter)
 I think I'm having success using cygwin perl instead of
@@ -512,7 +512,6 @@ imapsync --syncinternaldates \
          --user1 my_email@oldhost.com \
          --password1 password \
          --host2 imap.gmail.com --port2 993 --ssl2 \
-         --authmech2 LOGIN \
          --user2 my_email@gmail.com \
          --password2 password \
          --prefix2 '[Gmail]/' \
@@ -520,6 +519,24 @@ imapsync --syncinternaldates \
          --regextrans2 's/Sent/Sent Mail/'
 
 The same goes for the "All Mail" archive psuedo-folder.
+
+=======================================================================
+Q. Synchronysing from Gmail to XXX
+
+R. Gmail needs ssl. 
+
+./imapsync \
+           --host1 imap.gmail.com --ssl1 \
+           --user1 gilles.lamiral@gmail.com \
+           --passfile1 /var/tmp/secret.gilles_gmail \
+           --host2 localhost
+           --user2 tata@est.belle \
+           --passfile2 /var/tmp/secret.tata \
+           --useheader 'Message-Id'  --skipsize 
+
+If your destination imap server doesn't like "[Gmail]" name, just add
+option:
+           --regextrans2 's/\[Gmail\]/Gmail/'
 
 
 =======================================================================

@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.260 $
+$Revision: 1.261 $
 
 =head1 INSTALL
 
@@ -422,7 +422,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.260 2008/08/13 03:14:14 gilles Exp gilles $
+$Id: imapsync,v 1.261 2008/08/16 15:56:00 gilles Exp gilles $
 
 
 
@@ -489,7 +489,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.260 2008/08/13 03:14:14 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.261 2008/08/16 15:56:00 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -523,8 +523,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.260 $ ',
-		  '$Date: 2008/08/13 03:14:14 $ ',
+		  '$Revision: 1.261 $ ',
+		  '$Date: 2008/08/16 15:56:00 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -556,11 +556,12 @@ $host2 || missing_option("--host2") ;
 $port2 ||= defined $ssl2 ? 993 : 143;
 
 sub connect_imap {
-	my($host, $port, $debugimap) = @_;
+	my($host, $port, $debugimap, $ssl) = @_;
 	my $imap = Mail::IMAPClient->new();
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Debug($debugimap);
+	$imap->Ssl($ssl);
 	$imap->connect()
 	  or die "Can not open imap connection on [$host] : $@\n";	
 }
@@ -583,10 +584,10 @@ if ($justconnect) {
 	my $from = ();
 	my $to = ();
 	
-	$from = connect_imap($host1, $port1);
+	$from = connect_imap($host1, $port1, $debugimap, $ssl1);
 	print "From software : ", server_banner($from);
 	print "From capability : ", join(" ", $from->capability()), "\n";
-	$to   = connect_imap($host2, $port2);
+	$to   = connect_imap($host2, $port2, $debugimap, $ssl2);
 	print "To   software : ", server_banner($to);
 	print "To   capability : ", join(" ", $to->capability()), "\n";
 	$from->logout();
@@ -711,20 +712,10 @@ sub login_imap {
 	   $debugimap, $timeout, $fastio, 
 	   $ssl, $authmech, $authuser) = @_;
 	my ($imap);
-	if ($ssl) {
-		require IO::Socket::SSL;
-		my $socssl = new IO::Socket::SSL("$host:$port");
-		die "Error connecting to $host:$port: $@\n" unless $socssl;
-		$socssl->autoflush(1);
-		
-		$imap = Mail::IMAPClient->new(
-					      Socket => $socssl,
-					      Server => $host,
-					     );
-	} 
-	else {
-		$imap = Mail::IMAPClient->new();
-	}
+	
+	$imap = Mail::IMAPClient->new();
+	
+	$imap->Ssl($ssl);
 	$imap->Clear(20);
 	$imap->Server($host);
 	$imap->Port($port);
@@ -735,13 +726,9 @@ sub login_imap {
 	$imap->Debug($debugimap);
 	$timeout and $imap->Timeout($timeout);
 	
-	if ($ssl) {
-		$imap->State(Mail::IMAPClient::Connected);
-	} 
-	else {
-		$imap->connect()
+	$imap->connect()
 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
-	}
+	
 	print "Banner : ", server_banner($imap);
 	
 	if ($imap->has_capability("AUTH=$authmech")
@@ -1100,7 +1087,7 @@ sub foldersizes {
 			warn 
 			  "$side Folder $folder : Could not select ",
 			    $imap->LastError,  "\n";
-			$error++;
+			#$error++;
 			next;
 		}
 		if (defined($maxage) or defined($minage)) {
@@ -1259,7 +1246,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		warn 
 		"From Folder $f_fold : Could not select ",
 		$from->LastError,  "\n";
-		$error++;
+		#$error++;
 		next FOLDER;
 	}
 
@@ -1285,7 +1272,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		warn 
 		"To   Folder $t_fold : Could not select ",
 		$to->LastError, "\n";
-		$error++;
+		#$error++;
 		next FOLDER;
 	}
 	
@@ -2462,6 +2449,7 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 
         until ($code) {
                 $output = $self->_read_line or return undef;
+		
                 foreach my $o (@$output) {
                         $self->_record($count,$o);      # $o is a ref
                         ($code) = $o->[DATA] =~ /^\+(.*)$/ ;
@@ -2469,10 +2457,11 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
                                 $self->State(Unconnected);
                                 return undef ;
                         }
+                        if ($o->[DATA]=~ /^\d+\s+(NO|BAD)/i) {
+                                return undef ;
+			}
                 }
         }
-
-        return undef if $code =~ /^BAD|^NO/ ;
 
         if ('CRAM-MD5' eq $scheme && ! $response) {
           if ($Mail::IMAPClient::_CRAM_MD5_ERR) {
@@ -2559,6 +2548,12 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
         return $string;
 };
 
+*Mail::IMAPClient::Ssl = sub {
+	my $self = shift;
+	
+	if (@_) { $self->{SSL} = shift }
+	return $self->{SSL};
+};
 
 
 *Mail::IMAPClient::connect = sub {
@@ -2569,9 +2564,10 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 		and 	$IO::Socket::INET::VERSION eq '1.25' 
 		and 	!$self->Port;
 	%$self = (%$self, @_);
-	my $sock = IO::Socket::INET->new;
-	my $dp = 'imap(143)';
-	#print "i01\n";
+
+        my $sock = ($self->Ssl ? IO::Socket::SSL->new : IO::Socket::INET->new);
+        my $dp = ($self->Ssl ? 'imaps(993)' : 'imap(143)');
+
 	my $ret = $sock->configure({
 		PeerAddr => $self->Server		,
                 PeerPort => $self->Port||$dp	       	,
@@ -2579,7 +2575,6 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
                 Timeout  => $self->Timeout||0		,
 		Debug	=> $self->Debug 		,
 	});
-	#print "i02\n";
 	unless ( defined($ret) ) {
 		$self->LastError( "$@\n");	  
 		$@ 		= "$@";   
@@ -2587,19 +2582,15 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 				unless defined wantarray;	
 		return undef;
 	}
-	#print "i03\n";
 	$self->Socket($sock);
 	$self->State(Connected);
-	#print "i04\n";
 	$sock->autoflush(1)				;
 	
 	my ($code, $output);
         $output = "";
-	#print "i05\n";
         until ( $code ) {
 
                 $output = $self->_read_line or return undef;
-		#print "i06\n";
                 for my $o (@$output) {
 			$self->_debug("Connect: Received this from readline: " . 
 					join("/",@$o) . "\n");
