@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.35 2010/08/15 11:18:38 gilles Exp gilles $	
+# $Id: Makefile,v 1.36 2010/08/15 17:36:04 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -14,12 +14,13 @@ usage:
 	@echo "make test229 # run tests with Mail-IMAPClient-2.2.9"
 	@echo "make all     "
 	@echo "make upload_index"
+	@echo "make imapsync.exe"
+
 
 DIST_NAME=imapsync-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
 DEB_FILE=$(DIST_NAME).deb
 VERSION=$(shell perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version)
-
 
 
 all: ChangeLog README VERSION
@@ -29,10 +30,6 @@ all: ChangeLog README VERSION
 .test: imapsync tests.sh
 	/usr/bin/time sh tests.sh 1>/dev/null
 	touch .test
-
-.test_3xx: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' /usr/bin/time sh tests.sh 1>/dev/null
-	touch .test_3xx
 
 test_quick : test_quick_229 test_quick_3xx
 
@@ -56,6 +53,10 @@ test229: .test_229
 .test_229: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_229
+
+.test_3xx: imapsync tests.sh
+	CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' /usr/bin/time sh tests.sh 1>/dev/null
+	touch .test_3xx
 
 testf: clean_test test
 
@@ -127,12 +128,36 @@ clean_dist:
 
 # Local goals
 
-.PHONY: lfo upload_lfo niouze_lfo niouze_fm public
+.PHONY: lfo upload_lfo niouze_lfo niouze_fm public dosify_bat imapsync_cidone
 
 upload_index: index.shtml
 	rsync -avH index.shtml \
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
 	sh ~/memo/lfo-rsync
+
+.dosify_bat: build_exe.bat test_exe.bat test.bat
+	unix2dos build_exe.bat test.bat test_exe.bat
+	touch .dosify_bat
+
+dosify_bat: .dosify_bat
+
+.imapsync_cidone: dosify_bat
+	rcsdiff imapsync
+	touch .imapsync_cidone
+
+imapsync_cidone: .imapsync_cidone
+
+
+test_imapsync_exe: dosify_bat
+	scp test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
+
+imapsync.exe: imapsync imapsync_cidone dosify_bat
+	scp imapsync build_exe.bat test_exe.bat \
+	Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
+	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
+	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
 
 
 lfo: dist niouze_lfo upload_lfo 

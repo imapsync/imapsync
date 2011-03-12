@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.110 2010/08/15 11:10:04 gilles Exp gilles $  
+# $Id: tests.sh,v 1.111 2010/08/15 17:35:37 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -950,7 +950,7 @@ msw() {
 	if can_send; then
         	sendtestmessage toto
 	fi
-        scp imapsync test.bat test2.bat\
+        scp imapsync test.bat test_exe.bat\
             ../../var/pass/secret.toto \
             ../../var/pass/secret.titi \
             ../../var/pass/secret.tata \
@@ -964,13 +964,13 @@ msw2() {
 	if can_send; then
         	sendtestmessage toto
 	fi
-        scp imapsync test2.bat\
+        scp imapsync test_exe.bat\
             ../../var/pass/secret.toto \
             ../../var/pass/secret.titi \
             ../../var/pass/secret.tata \
             Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 
-        ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test2.bat'
+        ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 }
 
 

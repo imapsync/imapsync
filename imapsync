@@ -19,7 +19,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.342 $
+$Revision: 1.343 $
 
 =head1 SYNOPSIS
 
@@ -469,7 +469,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.342 2010/08/15 11:02:41 gilles Exp gilles $
+$Id: imapsync,v 1.343 2010/08/15 18:02:11 gilles Exp gilles $
 
 =cut
 
@@ -557,7 +557,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.342 2010/08/15 11:02:41 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.343 2010/08/15 18:02:11 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -2096,7 +2096,7 @@ exit_clean(0);
 # subroutines
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.342 2010/08/15 11:02:41 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.343 2010/08/15 18:02:11 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -2180,8 +2180,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.342 $ ',
-		  '$Date: 2010/08/15 11:02:41 $ ',
+		  '$Revision: 1.343 $ ',
+		  '$Date: 2010/08/15 18:02:11 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -3568,7 +3568,8 @@ no warnings 'once';
   	      #	in case other end has shut down!!!
               my $ret = $self->_sysread( $sh, \$iBuffer, $readlen, length($iBuffer)) ;
 	      # $self->_debug("Read so far: $iBuffer<<END>>\n");
-              if($timeout and ! defined($ret)) { # Blocking read error...
+	      redo if(! defined($ret)) ;
+              if(($timeout and ! defined($ret))) { # Blocking read error...
                   my $msg = "Error while reading data from server: $!\x0d\x0a";
 		  $self->LastError('Error while reading data from server');
 		  $self->State(Unconnected);
@@ -3593,6 +3594,7 @@ no warnings 'once';
                   $@ = "$msg";
                   return undef;
               }
+	      
               # successfully wrote to other end, keep going...
               $count += $ret;
 		LINES: while ( $iBuffer =~ s/^(.*?\x0d?\x0a)// ) {
