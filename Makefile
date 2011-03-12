@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.29 2010/06/11 02:51:20 gilles Exp gilles $	
+# $Id: Makefile,v 1.30 2010/07/12 12:14:11 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -129,7 +129,7 @@ clean_dist:
 
 .PHONY: lfo lfo_upload niouze_lfo niouze_fm public
 
-lfo: dist lfo_upload niouze_lfo
+lfo: dist niouze_lfo lfo_upload 
 
 lfo_upload: 
 	rsync -avH --delete . \

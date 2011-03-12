@@ -3,7 +3,7 @@ NAME
     Synchronise mailboxes between two imap servers. Good at IMAP migration.
     More than 32 different IMAP server softwares supported with success.
 
-    $Revision: 1.327 $
+    $Revision: 1.331 $
 
 INSTALL
      imapsync works fine under any Unix OS with perl.
@@ -122,22 +122,22 @@ EXAMPLE
     modification induced) with the --dry option. Nothing bad can be done
     this way.
 
-    To synchronize the imap account "buddy" on host "imap.src.fr" to the
-    imap account "max" on host "imap.dest.fr" (the passwords are located in
-    two files "/etc/secret1" for "buddy", "/etc/secret2" for "max"):
+    To synchronize the imap account "buddy" (with password "secret1") on
+    host "imap.src.fr" to the imap account "max" (with password "secret2")
+    on host "imap.dest.fr":
 
-     imapsync --host1 imap.src.fr  --user1 buddy --passfile1 /etc/secret1 \
-              --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
+     imapsync --host1 imap.src.fr  --user1 buddy --password1 secret1 \
+              --host2 imap.dest.fr --user2 max   --password2 secret2
 
-    Then, you will have max's mailbox updated from buddy's mailbox.
+    Then you will have max's mailbox updated from buddy's mailbox.
 
 SECURITY
-    You can use --password1 instead of --passfile1 to give the password but
-    it is dangerous because any user on your host can see the password by
-    using the 'ps auxwwww' command. Using a variable (like $PASSWORD1) is
-    also dangerous because of the 'ps auxwwwwe' command. So, saving the
-    password in a well protected file (600 or rw-------) is the best
-    solution.
+    You can use --passfile1 instead of --password1 to give the password
+    since it is safer. With --password1 option any user on your host can see
+    the password by using the 'ps auxwwww' command. Using a variable (like
+    $PASSWORD1) is also dangerous because of the 'ps auxwwwwe' command. So,
+    saving the password in a well protected file (600 or rw-------) is the
+    best solution.
 
     imasync is not totally protected against sniffers on the network since
     passwords may be transferred in plain text if CRAM-MD5 is not supported
@@ -377,5 +377,5 @@ SIMILAR SOFTWARES
 
     Feedback (good or bad) will always be welcome.
 
-    $Id: imapsync,v 1.327 2010/07/12 00:23:02 gilles Exp gilles $
+    $Id: imapsync,v 1.331 2010/07/13 23:28:59 gilles Exp gilles $
 

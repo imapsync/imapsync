@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.327 $
+$Revision: 1.331 $
 
 =head1 INSTALL
 
@@ -141,22 +141,21 @@ While working on imapsync parameters please run imapsync in
 dry mode (no modification induced) with the --dry
 option. Nothing bad can be done this way.
 
-To synchronize the imap account "buddy" on host
-"imap.src.fr" to the imap account "max" on host
-"imap.dest.fr" (the passwords are located in two files
-"/etc/secret1" for "buddy", "/etc/secret2" for "max"):
+To synchronize the imap account "buddy" (with password "secret1") 
+on host "imap.src.fr" to the imap account "max" (with password "secret2") 
+on host "imap.dest.fr":
 
- imapsync --host1 imap.src.fr  --user1 buddy --passfile1 /etc/secret1 \
-          --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
+ imapsync --host1 imap.src.fr  --user1 buddy --password1 secret1 \
+          --host2 imap.dest.fr --user2 max   --password2 secret2
 
-Then, you will have max's mailbox updated from buddy's
+Then you will have max's mailbox updated from buddy's
 mailbox.
 
 =head1 SECURITY
 
-You can use --password1 instead of --passfile1 to give the
-password but it is dangerous because any user on your host
-can see the password by using the 'ps auxwwww'
+You can use --passfile1  instead of --password1 to give the
+password since it is safer. With --password1 option any user 
+on your host can see the password by using the 'ps auxwwww'
 command. Using a variable (like $PASSWORD1) is also
 dangerous because of the 'ps auxwwwwe' command. So, saving
 the password in a well protected file (600 or rw-------) is
@@ -435,7 +434,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.327 2010/07/12 00:23:02 gilles Exp gilles $
+$Id: imapsync,v 1.331 2010/07/13 23:28:59 gilles Exp gilles $
 
 =cut
 
@@ -492,8 +491,9 @@ my(
         $mess_size_total_skipped,
         $mess_size_total_error,
         $mess_trans, $mess_skipped, $mess_skipped_dry, 
+	$h1_mess_duplicate, $h1_mess_size_total_duplicate,
 	$h1_mess_deleted, $h2_mess_deleted, 
-        $timeout,   # whr (ESS/PRW)
+        $timeout,
 	$timestart, $timeend, $timediff,
         $timesize, $timebefore,
         $ssl1, $ssl2,
@@ -507,10 +507,7 @@ my(
 	$tmpdir,
 );
 
-use vars qw ($opt_G); # missing code for this will be option.
-
-
-$rcs = '$Id: imapsync,v 1.327 2010/07/12 00:23:02 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.331 2010/07/13 23:28:59 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -521,7 +518,7 @@ $mess_size_total_skipped = 0;
 $mess_size_total_error   = 0;
 $mess_trans = $mess_skipped = $mess_skipped_dry = 0;
 $h1_mess_deleted = $h2_mess_deleted = 0;
-
+$h1_mess_duplicate = $h1_mess_size_total_duplicate = 0;
 
 
 sub check_lib_version {
@@ -575,8 +572,8 @@ while (@argv_copy) {
 
 my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.327 $ ',
-		  '$Date: 2010/07/12 00:23:02 $ ',
+		  '$Revision: 1.331 $ ',
+		  '$Date: 2010/07/13 23:28:59 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 @argv_nopassord\n",
@@ -668,6 +665,9 @@ $host2 || missing_option("--host2") ;
 $port2 ||= (defined $ssl2 && !defined $tls2) ? 993 : 143;
 
 $debugimap1 = $debugimap2 = 1 if ($debugimap);
+
+# By default, don't take size to compare 
+$skipsize = (defined $skipsize) ? $skipsize : 1;
 
 sub connect_imap {
 	my($host, $port, $debugimap, $ssl, $tls) = @_;
@@ -1684,14 +1684,22 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	}
 	last FOLDER if $imap1->IsUnconnected();
 
+
+	my @h1_msgs_duplicate;
 	foreach my $m (@h1_msgs) {
-		my $rc = parse_header_msg1($imap1, $m, $h1_heads, $h1_fir, "F", \%h1_hash);
-		if (!$rc) {
-			my $reason = !defined($rc) ? "no header" : "duplicate";
+		my $rc = parse_header_msg($imap1, $m, $h1_heads, $h1_fir, "F", \%h1_hash);
+		if (! defined($rc)) {
 			my $h1_size = $h1_fir->{$m}->{"RFC822.SIZE"} || 0;
-			print "+ Skipping msg #$m:$h1_size in folder $h1_fold ($reason so we ignore this message)\n";
+			print "+ Skipping msg #$m:$h1_size on host1 folder $h1_fold (no header so we ignore this message)\n";
 			$mess_size_total_skipped += $h1_size;
 			$mess_skipped += 1;
+		} elsif(0 == $rc) {
+			# duplicate
+			push(@h1_msgs_duplicate, $m);
+			# duplicate, same id same size?
+			my $h1_size = $h1_fir->{$m}->{"RFC822.SIZE"} || 0;
+			$h1_mess_size_total_duplicate += $h1_size;
+			$h1_mess_duplicate += 1;
 		}
 	}
 	$debug and print "Time parsing headers on host1: ", timenext(), " s\n";
@@ -1707,14 +1715,16 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 	  if (@h2_msgs);
 	$debug and print "Time fir: ", timenext(), " s\n";
 	last FOLDER if   $imap2->IsUnconnected();
+	
+	my @h2_msgs_duplicate;
 	foreach my $m (@h2_msgs) {
-		my $rc = parse_header_msg1($imap2, $m, $h2_heads, $h2_fir, "T", \%h2_hash);
-		if (!$rc) {
-			my $reason = !defined($rc) ? "no header" : "duplicate";
+		my $rc = parse_header_msg($imap2, $m, $h2_heads, $h2_fir, "T", \%h2_hash);
+		if (! defined($rc)) {
 			my $h2_size = $h2_fir->{$m}->{"RFC822.SIZE"} || 0;
-			print "+ Skipping msg #$m:$h2_size in host2 folder $h2_fold ($reason so we ignore this message)\n";
-			#$mess_size_total_skipped += $msize;
-			#$mess_skipped += 1;
+			print "+ Skipping msg #$m:$h2_size in host2 folder $h2_fold (no header so we ignore this message)\n";
+		} elsif(0 == $rc) {
+			# duplicate
+			push(@h2_msgs_duplicate, $m);
 		}
 	}
 	$debug and print "Time parsing headers on host2: ", timenext(), " s\n";
@@ -1732,7 +1742,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 
 	
 	if($delete2) {
-		my @expunge;
+		my @h2_expunge;
 		foreach my $m_id (@h2_hash_keys_sorted_by_uid) {
 			#print "$m_id ";
 			unless (exists($h1_hash{$m_id})) {
@@ -1741,22 +1751,29 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 				my $isdel  = $h2_flags =~ /\B\\Deleted\b/ ? 1 : 0;
 				print "deleting message [$m_id] #$h2_msg in host2 folder $h2_fold\n"
 				  if ! $isdel;
-				push(@expunge,$h2_msg) if $uidexpunge2;
+				push(@h2_expunge, $h2_msg) if $uidexpunge2;
 				unless ($dry or $isdel) {
 					$imap2->delete_message($h2_msg);
 					$h2_mess_deleted += 1;
-					last FOLDER if $imap2->IsUnconnected();
 				}
 			}
 		}
+		foreach my $h2_msg (@h2_msgs_duplicate) {
+			print "deleting message [duplicate] #$h2_msg in host2 folder $h2_fold\n";
+			push(@h2_expunge, $h2_msg) if $uidexpunge2;
+			unless ($dry) {
+				$imap2->delete_message($h2_msg);
+				$h2_mess_deleted += 1;
+			}
+		}
 
-		my $cnt = scalar @expunge;
-		if(@expunge and !$imap2->can("uidexpunge")) {
+		my $cnt = scalar @h2_expunge;
+		if(@h2_expunge and !$imap2->can("uidexpunge")) {
 			warn "uidexpunge not supported (< IMAPClient 3.17)\n";
 		}
-		elsif(@expunge) {
+		elsif(@h2_expunge) {
 			print "uidexpunge $cnt message(s)\n";
-			$imap2->uidexpunge(\@expunge) if !$dry;
+			$imap2->uidexpunge(\@h2_expunge) if !$dry;
 		}
 	}
 
@@ -1923,7 +1940,7 @@ Bye.'
 			$h1_flags = flags_filter($h1_flags, $permanentflags2) if ($permanentflags2);
 			
 			my $new_id;
-			print "flags from: [$h1_flags][$d]\n";
+			print "flags & date from: [$h1_flags][$d]\n";
 			last FOLDER if $imap1->IsUnconnected();
 			last FOLDER if   $imap2->IsUnconnected();
 			unless ($dry) {
@@ -2032,18 +2049,11 @@ Bye.'
 			#	print "!!! Dates differ !!!\n";
 			#}
 		};
-		unless (($h1_size == $h2_size) or $skipsize) {
+		unless ($skipsize or ($h1_size == $h2_size)) {
 			# Bad size
 			print 
 			"Message $m_id SZ_BAD  f:$h1_msg:$h1_size t:$h2_msg:$h2_size\n";
-			# delete in host2 and recopy ?
-			# NO recopy CODE HERE. to be written if needed.
 			$error++;
-			if ($opt_G){
-				print "Deleting msg f:#$h2_msg in host2 folder $h2_fold\n";
-				$imap2->delete_message($h2_msg) unless ($dry);
-				last FOLDER if   $imap2->IsUnconnected();
-			}
 		}
 		else {
 	    		# Good 
@@ -2054,9 +2064,7 @@ Bye.'
 				unless($dry) {
 					$imap1->delete_message($h1_msg);
 					$h1_mess_deleted += 1;
-					last FOLDER if $imap1->IsUnconnected();
 					$imap1->expunge() if ($expunge);
-					last FOLDER if $imap1->IsUnconnected();
 				}
 			}
 		}
@@ -2161,20 +2169,22 @@ sub select_msgs {
 
 sub stats {
 	print   "++++ Statistics ++++\n";
-	print   "Time                     : $timediff sec\n";
-	print   "Messages transferred     : $mess_trans ";
+	print   "Time                        : $timediff sec\n";
+	print   "Messages transferred        : $mess_trans ";
 	print   "(could be $mess_skipped_dry without dry mode)" if ($dry);
 	print   "\n";
-	print   "Messages skipped         : $mess_skipped\n";
-	print   "Messages deleted on host1: $h1_mess_deleted\n";
-	print   "Messages deleted on host2: $h2_mess_deleted\n";
-	print   "Total bytes transferred  : $mess_size_total_trans\n";
-	print   "Total bytes skipped      : $mess_size_total_skipped\n";
-	print   "Total bytes error        : $mess_size_total_error\n";
+	print   "Messages skipped            : $mess_skipped\n";
+	print   "Messages duplicate on host1 : $h1_mess_duplicate\n";
+	print   "Messages deleted on host1   : $h1_mess_deleted\n";
+	print   "Messages deleted on host2   : $h2_mess_deleted\n";
+	print   "Total bytes transferred     : $mess_size_total_trans\n";
+	print   "Total bytes duplicate host1 : $h1_mess_size_total_duplicate\n";
+	print   "Total bytes skipped         : $mess_size_total_skipped\n";
+	print   "Total bytes error           : $mess_size_total_error\n";
 	$timediff ||= 1; # No division per 0
-	printf ("Average bandwidth rate   : %.1f KiB/s\n", $mess_size_total_trans / 1024 / $timediff);
-	print   "Reconnections to host1   : $host1_reconnect_count\n";
-	print   "Reconnections to host2   : $host2_reconnect_count\n";
+	printf ("Average bandwidth rate      : %.1f KiB/s\n", $mess_size_total_trans / 1024 / $timediff);
+	print   "Reconnections to host1      : $host1_reconnect_count\n";
+	print   "Reconnections to host2      : $host2_reconnect_count\n";
 	print   "Detected $error errors\n\n";
 	print   thank_author();
 }
@@ -2322,7 +2332,7 @@ sub load_modules {
 
 
 
-sub parse_header_msg1 {
+sub parse_header_msg {
 	my ($imap, $m_uid, $s_heads, $s_fir, $s, $s_hash) = @_;
 	
 	my $head = $s_heads->{$m_uid};
@@ -2529,7 +2539,8 @@ Several options are mandatory.
                          Ex: Message-ID or Subject or Date.
 --useheader   <string>   and this one, etc.
 --skipsize             : Don't take message size into account to compare 
-                         messages on both sides.
+                         messages on both sides. On by default.
+			 Use --no-skipsize for using size comparaison.
 --allowsizemismatch    : allow RFC822.SIZE != fetched msg size
                          consider also --skipsize to avoid duplicate messages
                          when running syncs more than one time per mailbox
@@ -2570,12 +2581,12 @@ Several options are mandatory.
 
 Example: to synchronise imap account "foo" on "imap.truc.org"
                     to  imap account "bar" on "imap.trac.org"
-                    with foo password stored in /etc/secret1
-                    and  bar password stored in /etc/secret2
+                    with foo password "secret1"
+                    and  bar password "secret2"
 
 $0 \\
-   --host1 imap.truc.org --user1 foo --passfile1 /etc/secret1 \\
-   --host2 imap.trac.org --user2 bar --passfile2 /etc/secret2
+   --host1 imap.truc.org --user1 foo --password1 secret1 \\
+   --host2 imap.trac.org --user2 bar --password2 secret2
 
 $localhost_info
 $rcs
