@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.19 2004/06/15 03:42:16 gilles Exp gilles $	
+# $Id: tests.sh,v 1.20 2004/07/08 23:32:36 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.20  2004/07/08 23:32:36  gilles
+# Added foldersizes() test
+#
 # Revision 1.19  2004/06/15 03:42:16  gilles
 # success on bigtransfer()
 #
@@ -426,6 +429,23 @@ bad_host()
    
 }
 
+foldersizes()
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--justconnect --foldersizes
+	else
+		:
+	fi
+
+}
+
+
 big_transfert()
 {
     date1=`date`
@@ -468,7 +488,8 @@ test $# -eq 0 && run_tests \
 	lp_noauthmd5 \
         lp_skipsize \
         lp_skipheader \
-	lp_regextrans2
+	lp_regextrans2 \
+	foldersizes
 
 # selective tests
 

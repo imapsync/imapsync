@@ -1,0 +1,77 @@
+--- imapsync	Mon Jun 14 20:43:03 2004
++++ imapsync-mod	Sun Jun 27 22:57:55 2004
+@@ -49,6 +49,7 @@
+            [--skipsize]
+            [--delete] [--expunge]
+            [--subscribed] [--subscribe]
++           [--foldersizes]
+            [--dry]
+            [--debug] [--debugimap]
+            [--timeout <int>]
+@@ -294,7 +295,7 @@
+         $sep1, $sep2,
+ 	$syncinternaldates,
+ 	$maxsize, $maxage,
+-        $skipheader, $skipsize,
++        $skipheader, $skipsize, $foldersizes,
+ 	$delete, $expunge, $dry, 
+         $authmd5,
+         $subscribed, $subscribe,
+@@ -535,6 +536,39 @@
+ print "From separator : [$f_sep]\n";
+ print "To   separator : [$t_sep]\n";
+ 
++if ($foldersizes)
++{
++    my $tot = 0;
++    my $tmess = 0;
++    print "Calculating sizes...\n";
++    foreach my $f_fold (@f_folders)
++    {
++        print "From Folder [$f_fold]\n";
++        my $stot = 0;
++        my $smess = 0;
++	unless ($from->select($f_fold)) {
++		warn 
++		"From Folder $f_fold : Could not select ",
++		$from->LastError,  "\n";
++		$error++;
++		next;
++	}
++        my $szs = $from->fetch_hash("RFC822.SIZE") || (warn("Can't get sizes for $f_fold: ",$from->LastError),$error++,next);
++        my ($k,$v);
++        while (($k,$v) = each(%$szs))
++        {
++            $stot += $v->{'RFC822.SIZE'};
++            $smess++;
++        }
++        print "Size of $f_fold: $stot\n";
++        print "Messages in $f_fold: $smess\n";
++        $tot += $stot;
++        $tmess += $smess;
++    }
++    print "Total size: $tot\n";
++    print "Total messages: $tmess\n";
++}
++
+ exit if ($justconnect);
+ 
+ # needed for setting flags
+@@ -789,6 +823,7 @@
+                                    "syncinternaldates!" => \$syncinternaldates,
+ 				   "maxsize=i"   => \$maxsize,
+ 				   "maxage=i"    => \$maxage,
++				   "foldersizes"   => \$foldersizes,
+                                    "dry!"        => \$dry,
+                                    "expunge!"    => \$expunge,
+                                    "subscribed!" => \$subscribed,
+@@ -918,6 +953,9 @@
+ --subscribe            : subscribe to the folders transfered on the 
+                          "destination" server that are subscribed
+                          on the "source" server.
++--foldersizes          : Discover the size of each "From" folder in bytes
++                         and message counts. Meant to be used with
++                         --justconnect.
+ --debug                : debug mode.
+ --debugimap            : imap debug mode.
+ --version              : print sotfware version.
