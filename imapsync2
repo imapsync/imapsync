@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.239 $
+$Revision: 1.235 $
 
 =head1 INSTALL
 
@@ -211,12 +211,6 @@ No known serious bug.  Report any bug to the author.
 Before reporting bugs, read the FAQ, this README and the
 TODO files.
 
-Don't write imapsync in uppercase in the email title, I'll
-know you run windows.
-
-Make a good title, not just "imapsync" or "problem",
-a good title is made of keywords summary,  not too long (one visible line).
-
 In your report, please include:
 
  - imapsync version.
@@ -248,13 +242,12 @@ Failure stories reported with the following 4 imap servers :
  - dkimap4 2.39
  - Imail 7.04 (maybe).
 
-Success stories reported with the following 35 imap servers 
+Success stories reported with the following 34 imap servers 
 (softwares names are in alphabetic order) : 
 
- - Archiveopteryx 2.03, 2.04 (OSL 3.0) http://www.archiveopteryx.org/
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
  - CommuniGatePro server (Redhat 8.0)
- - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
+ - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8 (GPL) 
    (http://www.courier-mta.org/)
  - Critical Path (7.0.020)
  - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.1.16, 2.1.18 
@@ -285,7 +278,7 @@ Success stories reported with the following 35 imap servers
  - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
  - OpenWave
  - Qualcomm Worldmail (NT)
- - Rockliffe Mailsite 5.3.11, 4.5.6
+ - Rockliffe Mailsite 5.3.11
  - Samsung Contact IMAP server 8.5.0
  - Scalix v10.1, 10.0.1.3, 11.0.0.431
  - SmarterMail
@@ -297,7 +290,7 @@ Success stories reported with the following 35 imap servers
    (http://www.washington.edu/imap/)
  - UW - QMail v2.1
  - Imap part of TCP/IP suite of VMS 7.3.2
- - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 5.5.
+ - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 5.5.
 
 Please report to the author any success or bad story with
 imapsync and don't forget to mention the IMAP server
@@ -386,7 +379,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.239 2007/12/29 02:44:10 gilles Exp $
+$Id: imapsync,v 1.235 2007/11/10 02:52:29 gilles Exp gilles $
 
 
 
@@ -443,20 +436,20 @@ my(
         $authuser1, $authuser2,
         $authmech1, $authmech2,
         $split1, $split2,
-	$tests, $test_builder,
+	$tests,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.239 2007/12/29 02:44:10 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.235 2007/11/10 02:52:29 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
 my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
 
-check_lib_version() or 
-  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9 exactly, future imapsync release may suppoort 3.0.x, but sorry not now\n";
+#check_lib_version() or 
+#  die "Upgrade perl lib Mail::IMAPClient to release 2.2.9 at least\n";
 
 
 $mess_size_total_trans   = 0;
@@ -466,12 +459,17 @@ $mess_trans = $mess_skipped = $mess_skipped_dry = 0;
 
 
 sub check_lib_version {
+	# I know this is ugly, I should write a sort function
 	if ($VERSION_IMAPClient =~ m/(\d+)\.(\d+)\.(\d+)/) {
 		$debug and print "VERSION_IMAPClient $1 $2 $3\n";
-		#my($major,$minor,$sub) = ($1, $2, $3);
+		my($major,$minor,$sub) = ($1, $2, $3);
 		
-		return(1) if($VERSION_IMAPClient eq '2.2.9');
-		
+		return(1) if($major >=3);
+		return(0) if($major <=1);
+		return(1) if($minor >=3);
+		return(0) if($minor <=1);
+		return(1) if($sub >=8);
+		return(0) if($sub <=7);
 	}
 	else{
 		return 0; # don't match regex => bad
@@ -482,8 +480,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.239 $ ',
-		  '$Date: 2007/12/29 02:44:10 $ ',
+		  '$Revision: 1.235 $ ',
+		  '$Date: 2007/11/10 02:52:29 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -522,7 +520,7 @@ sub connect_imap {
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Debug($debugimap);
-	$imap->connect2()
+	$imap->connect()
 	  or die "Can not open imap connection on [$host] : $@\n";	
 }
 
@@ -669,7 +667,7 @@ sub login_imap {
 		$imap->State(Mail::IMAPClient::Connected);
 	} 
 	else {
-		$imap->connect2()
+		$imap->connect()
 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
 	}
 	print "Banner : ", server_banner($imap);
@@ -695,13 +693,13 @@ sub login_imap {
 	$imap->User($user);
 	$imap->Authuser($authuser);
 	$imap->Password($password);
-	unless ($imap->login2()) {
+	unless ($imap->login()) {
 		print "Error login : [$host] with user [$user] auth [$authmech]: $@\n";
 		die if ($authmech eq 'LOGIN');
 		die if $imap->IsUnconnected();
 		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
 		$imap->Authmechanism("");
-		$imap->login2() or
+		$imap->login() or
 		  die "Error login : [$host] with user [$user] auth [LOGIN] : $@";
 	}
 	print "Success login on [$host] with user [$user] auth [$authmech]\n";
@@ -810,64 +808,60 @@ my @all_source_folders = sort $from->folders();
 if (scalar(@folder) or $subscribed or scalar(@folderrec)) {
 	# folders given by option --folder
 	if (scalar(@folder)) {
+		push(@f_folders, @folder);
 		add_to_requested_folders(@folder);
 	}
 	
 	# option --subscribed
 	if ($subscribed) {
+		push(@f_folders,    sort keys (%subscribed_folder));
 		add_to_requested_folders(keys (%subscribed_folder));
 	}
 	
 	# option --folderrec
 	if (scalar(@folderrec)) {
 		foreach my $folderrec (@folderrec) {
+			push(@f_folders, $from->folders($folderrec));
 			add_to_requested_folders($from->folders($folderrec));
 		}
 	}
+	@f_folders = sort @f_folders;
 }
 else {
-	
-	# no include, no folder/subscribed/folderrec options => all folders
-	if (not scalar(@include)) {
-		add_to_requested_folders(@all_source_folders);
-	}
+	# no folder/subscribed/folderrec options => all folders
+	@f_folders = @all_source_folders;
 }
-
 
 # consider (optional) includes and excludes
 if (scalar(@include)) {
+	my @f_folders_inc;
+	
 	foreach my $include (@include) {
 		my @included_folders = grep /$include/, @all_source_folders;
+		push(@f_folders_inc, @included_folders);
 		add_to_requested_folders(@included_folders);
 		print "Including folders matching pattern '$include': @included_folders\n";
 	}
+	# the following is a bug when no folder/subscribed/folderrec options
+	push(@f_folders, sort @f_folders_inc);
 }
 
-if (scalar(@exclude)) {
-	foreach my $exclude (@exclude) {
-		my @requested_folder = sort(keys(%requested_folder));
-		my @excluded_folders = grep /$exclude/, @requested_folder;
-		remove_to_requested_folders(@excluded_folders);
-		print "Excluding folders matching pattern '$exclude': @excluded_folders\n";
-	}
+foreach my $exclude (@exclude) {
+	my @excluded_folders = grep /$exclude/, @f_folders;
+	remove_to_requested_folders(@excluded_folders);
+	my @not_excluded_folders = grep !/$exclude/,@f_folders;
+	@f_folders = @not_excluded_folders;
+	print "Excluding folders matching pattern '$exclude': @excluded_folders\n";
 }
 
-
-my @requested_folder = sort(keys(%requested_folder));
-
-@f_folders = @requested_folder;
 
 sub compare_lists {
 	my ($list_1_ref, $list_2_ref) = @_;
 	
-	return(-1) if ((not defined($list_1_ref)) and defined($list_2_ref));
-	return(0)  if (! $list_1_ref); # end if no list
-	return(1)  if (! $list_2_ref); # end if only one list
 	
-	if (not ref($list_1_ref)) {$list_1_ref = [$list_1_ref]};
-	if (not ref($list_2_ref)) {$list_2_ref = [$list_2_ref]};
-
-
+	return(0) if (! $list_1_ref); # end if no list
+	return(1) if (! $list_2_ref); # end if only one list
+	
 	my $last_used_indice = 0;
 	ELEMENT:
 	foreach my $indice ( 0 .. $#$list_1_ref ) {
@@ -894,37 +888,22 @@ sub tests_compare_lists {
 	
 	my $empty_list_ref = [];
 	
-	ok( 0 == compare_lists()               , 'compare_lists, no args');
-	ok( 0 == compare_lists(undef)          , 'compare_lists, undef = nothing');
-	ok( 0 == compare_lists(undef, undef)   , 'compare_lists, undef = undef');
-	ok(-1 == compare_lists(undef , [])     , 'compare_lists, undef < []');
-      	ok(+1 == compare_lists([])             , 'compare_lists, [] > nothing');
-        ok(+1 == compare_lists([], undef)      , 'compare_lists, [] > undef');
-	ok( 0 == compare_lists([] , [])        , 'compare_lists, [] = []');
-	
-	ok( 0 == compare_lists([1],  1 )          , "compare_lists, [1] =  1 ") ;
-	ok( 0 == compare_lists( 1 , [1])          , "compare_lists,  1  = [1]") ;
-	ok( 0 == compare_lists( 1 ,  1 )          , "compare_lists,  1  =  1 ") ;
-	ok(-1 == compare_lists( 1 ,  2 )          , "compare_lists,  1  =  1 ") ;
-	ok(+1 == compare_lists( 2 ,  1 )          , "compare_lists,  1  =  1 ") ;
-
-
-	ok( 0 == compare_lists([1,2], [1,2])   , "compare_lists, [1,2] = [1,2]") ;
+	ok( 0 == compare_lists()               ,'compare_lists, no args');
+	ok(-1 == compare_lists(undef , $empty_list_ref), 'compare_lists, no first arg, second empty list');
+	ok(+1 == compare_lists($empty_list_ref), 'compare_lists, first arg empty list');
+	ok( 0 == compare_lists($empty_list_ref , $empty_list_ref), 'compare_lists, two empty lists');
+	ok( 0 == compare_lists([1,2], [1,2])   , "compare_lists, two 1 2 lists") ;
 	ok(-1 == compare_lists([1], [1,2])     , "compare_lists, [1] < [1,2]") ;
-	ok(-1 == compare_lists([1], [1,1])     , "compare_lists, [1] < [1,1]") ;
 	ok(+1 == compare_lists([1, 1], [1])    , "compare_lists, [1, 1] > [1]") ;
-	ok( 0 == compare_lists([1 .. 20_000] , [1 .. 20_000])
-                                               , "compare_lists, [1..20_000] = [1..20_000]") ;
+	ok( 0 == compare_lists([1 .. 20_000]   , [1 .. 20_000]), "compare_lists, two 1 .. 20_000 lists") ;
 	ok(-1 == compare_lists([1], [3])       , 'compare_lists, [1] < [3]') ;
 	ok( 0 == compare_lists([2], [2])       , 'compare_lists, [0] = [2]') ;
 	ok(+1 == compare_lists([3], [1])       , 'compare_lists, [3] > [1]') ;
-	
 	ok(-1 == compare_lists(["a"], ["b"])   , 'compare_lists, ["a"] < ["b"]') ;
 	ok( 0 == compare_lists(["a"], ["a"])   , 'compare_lists, ["a"] = ["a"]') ;
-	ok( 0 == compare_lists(["ab"], ["ab"]) , 'compare_lists, ["ab"] = ["ab"]') ;
 	ok(+1 == compare_lists(["b"], ["a"])   , 'compare_lists, ["b"] > ["a"]') ;
-	ok(-1 == compare_lists(["a"], ["aa"])  , 'compare_lists, ["a"] < ["aa"]') ;
-	ok(-1 == compare_lists(["a"], ["a", "a"]), 'compare_lists, ["a"] < ["a", "a"]') ;
+	ok(-1 == compare_lists(["a"], ["aa"])   , 'compare_lists, ["a"] < ["aa"]') ;
+	ok(-1 == compare_lists(["a"], ["a", "a"])   , 'compare_lists, ["a"] < ["a", "a"]') ;
 }
 
 
@@ -1039,7 +1018,7 @@ sub foldersizes {
 			$smess = $imap->message_count();
 			unless ($smess == 0) {
 				#$imap->Ranges(1);
-				$imap->fetch_hash2("RFC822.SIZE",$hashref) or die "$@";
+				$imap->fetch_hash("RFC822.SIZE",$hashref) or die "$@";
 				#$imap->Ranges(0);
 				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
 				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
@@ -1244,10 +1223,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	last FOLDER if $from->IsUnconnected();
 	last FOLDER if   $to->IsUnconnected();
 
-	my $f_heads = $from->parse_headers2([@f_msgs],
+	my $f_heads = $from->parse_headers([@f_msgs],
 					    @useheader)if (@f_msgs) ;
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $f_fir  = $from->fetch_hash2("FLAGS",
+	my $f_fir  = $from->fetch_hash("FLAGS",
 				       "INTERNALDATE",
 				       "RFC822.SIZE") if (@f_msgs);
 	$debug and print "Time fir  : ", timenext(), " s\n";
@@ -1261,10 +1240,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	last FOLDER if $from->IsUnconnected();
 	last FOLDER if   $to->IsUnconnected();
 
-	my $t_heads =   $to->parse_headers2([@t_msgs],
+	my $t_heads =   $to->parse_headers([@t_msgs],
 					    @useheader) if (@t_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $t_fir  =   $to->fetch_hash2("FLAGS",
+	my $t_fir  =   $to->fetch_hash("FLAGS",
 				       "INTERNALDATE",
 				       "RFC822.SIZE") if (@t_msgs);
 	$debug and print "Time fir  : ", timenext(), " s\n";
@@ -1354,7 +1333,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
 				}
 				else {
-					$new_id = $to->append_file2($t_fold, $message_file, "", $flags_f, $d);
+					$new_id = $to->append_file($t_fold, $message_file, "", $flags_f, $d);
 				}
 				unless($new_id){
 					warn "Couldn't append msg #$f_msg (Subject:[".
@@ -1603,18 +1582,10 @@ sub get_options
 	
         $debug and print "get options: [$opt_ret]\n";
 
-	$test_builder = Test::More->builder;
-	$test_builder->no_ending(1);
-		
 	# just the version
         print "$VERSION\n" and exit if ($version) ;
-	
-	if ($tests) {
-		$test_builder->no_ending(0);
-		tests();
-		exit;
-	}
 
+	tests() and exit if ($tests);
 
 	# exit with --help option or no option at all
         usage() and exit if ($help or ! $numopt) ;
@@ -1854,12 +1825,10 @@ EOF
 
 
 sub tests {
-	
-      SKIP: {
-		skip "No test in normal run" if (not $tests);
-		tests_folder_routines();
-		tests_compare_lists();
-	}
+	ok( 1 == 1 ); # 
+	tests_folder_routines();
+	tests_compare_lists();
+
 }
 
 
@@ -2116,7 +2085,7 @@ sub fetch_hash2 {
 
 sub login2 {
         my $self = shift;
-        return $self->authenticate2($self->Authmechanism,$self->Authcallback) 
+        return $self->authenticate($self->Authmechanism,$self->Authcallback) 
                 if $self->{Authmechanism};
 
         my $id   = $self->User;

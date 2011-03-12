@@ -71,10 +71,17 @@ Q. imapsync fails with the following error:
 flags from : [\Seen NonJunk]["10-Aug-2006 13:00:30 -0400"]
 Error trying to append string: 58 NO APPEND Invalid flag list
 
-R. Flags have to begin with a \ character.
-The flag "NonJunk" is not a valid flag so use for example:
+R. For some servers, flags have to begin with a \ character.
+The flag "NonJunk" may be a invalid flag for your server 
+so use for example:
 
 imapsync ...    --regexflag 's/NonJunk//g'
+
+Remark (thanks to Arnt Gulbrandsen): 
+IMAP system flags have to begin with \ character.
+Any other flag must begin with another character.
+System flags are just flags defined by an RFC instead of by users.
+Conclusion, some imap server coders don't read the RFCs (so do I).
 
 =======================================================================
 Q. Flags are not well synchonized. Is it a bug ?
@@ -159,6 +166,25 @@ c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
 
 =======================================================================
+Q: I'm trying to use imapsync for gmail, but it requires ssl, or at least 
+claims to. Imapsync appears to require io-socket-ssl, which doesn't seem
+to be available on win32. Are there any other options?
+
+R: (Q and R come as is from Bryce Walter)
+I think I'm having success using cygwin perl instead of
+ActiveState Perl. I wasn't able to get CPAN working and
+building IO::Socket::SSL in ActiveState, but cygwin did
+all right. I had to force the install of the Net::SSLeay
+dependency, because it partially failed one test, but I think
+it worked anyway. In order to get working in cygwin, I
+installed the entire "perl" category, lynx, ncftp, and lftp
+(specified as ftp program in cpan setup). I'm not sure if I
+needed all those, or if cpan just kept asking because I didn't
+have any installed at the time. Anyway, cpan worked, and
+I installed all dependencies that imapsync complained
+about until it started working. 
+
+=======================================================================
 Q: Multiple copies when I run imapsync twice ore more.
 
 R. Multiple copies of the emails on the destination
@@ -227,10 +253,17 @@ R. Use
 Q. How to migrate from cyrus with an admin account ?
 
 R. Use 
---ssl1 --authuser1 AdminAccount  ----password1 AdminAccountPassword
+--authuser1 admin_user  ----password1 admin_user_password \
+ --user1 foo_user --ssl1
+
+In this case, --authmech1 PLAIN will be used by default since it
+is the only way to go for now. So don't use --authmech1 SOMETHING
+with --authuser1 admin_user, it will not work.
+Same behavior with the --authuser2 option.
 
 Do not forget the option --ssl1 since PLAIN auth is only
-supported with tls encryption most of the time.
+supported with ssl encryption most of the time. But it can
+work without --ssl1 if PLAIN is permitted in normal use.
 
 Here is an example:
  imapsync \
@@ -365,6 +398,27 @@ the other lines)
 
 b) Run imapsync with the following option :
 --regexmess 's/\AFrom \w  .*\n//'
+
+=======================================================================
+Q. Synchronysing from XXX to Gmail
+
+R. There are some details to get the special [Gmail]
+sub-folders right. Here's an example of migrating an old "Sent"
+folder to Gmail's structure:
+
+imapsync --syncinternaldates \
+         --host1 mail.oldhost.com \
+         --user1 my_email@oldhost.com \
+         --password1 password \
+         --host2 imap.gmail.com --port2 993 --ssl2 \
+         --authmech2 LOGIN \
+         --user2 my_email@gmail.com \
+         --password2 password \
+         --prefix2 '[Gmail]/' \
+         --folder 'INBOX.Sent' \
+         --regextrans2 's/Sent/Sent Mail/'
+
+The same goes for the "All Mail" archive psuedo-folder.
 
 
 =======================================================================
@@ -531,6 +585,14 @@ R: --sep1 "." --prefix1 ""
 Q. From GMX IMAP4 StreamProxy
 R. Use:
    --prefix1 INBOX and --sep1 .
+
+======================================================================
+Q. From Courier to Archiveopteryx
+R. http://www.archiveopteryx.org/migration/imapsync
+Use:
+   --useheader Message-Id --skipsize
+
+
 
 ======================================================================
 Q: How can I write an .rpm with imapsync

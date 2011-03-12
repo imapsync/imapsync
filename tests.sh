@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.64 2007/10/30 03:20:32 gilles Exp gilles $	
+# $Id: tests.sh,v 1.68 2007/12/29 02:40:06 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -80,8 +80,34 @@ sendtestmessage() {
 }
 
 
+zzzz() {
+	$CMD_PERL -V
+
+}
+
+option_version() {
+	$CMD_PERL ./imapsync --version
+}
+
+
+option_tests() {
+	$CMD_PERL ./imapsync --tests
+}
+
+
+first_sync_dry() {
+	$CMD_PERL ./imapsync \
+	    --host1 localhost --user1 toto@est.belle \
+	    --passfile1 /var/tmp/secret1 \
+	    --host2 localhost --user2 titi@est.belle \
+	    --passfile2 /var/tmp/secret.titi \
+	    --noauthmd5 --dry
+}
+
+
+
 first_sync() {
-	./imapsync \
+	$CMD_PERL ./imapsync \
 	    --host1 localhost --user1 toto@est.belle \
 	    --passfile1 /var/tmp/secret1 \
 	    --host2 localhost --user2 titi@est.belle \
@@ -94,7 +120,7 @@ locallocal() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
 		sendtestmessage
-		./imapsync \
+		$CMD_PERL  ./imapsync \
 		--host1 localhost --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 localhost --user2 titi@est.belle \
@@ -109,7 +135,7 @@ locallocal() {
 ll_folder() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
-		./imapsync \
+		$CMD_PERL ./imapsync \
 		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 localhost --user2 titi@est.belle \
@@ -123,7 +149,7 @@ ll_folder() {
 ll_folderrec() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
-		./imapsync \
+		$CMD_PERL ./imapsync \
 		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 localhost --user2 titi@est.belle \
@@ -139,7 +165,7 @@ ll_folderrec() {
 ll_buffersize() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
-		./imapsync \
+		$CMD_PERL ./imapsync \
 		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 localhost --user2 titi@est.belle \
@@ -155,7 +181,7 @@ ll_buffersize() {
 ll_justfolders() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
-		./imapsync \
+		$CMD_PERL ./imapsync \
 		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 localhost --user2 titi@est.belle \
@@ -170,7 +196,7 @@ ll_justfolders() {
 ll_prefix12() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
-		./imapsync \
+		$CMD_PERL ./imapsync \
 		--host1 localhost  --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 localhost --user2 titi@est.belle \
@@ -658,6 +684,13 @@ ll_bigmail() {
 }
 
 
+msw() {
+	sendtestmessage toto@est.belle
+	scp imapsync  Admin@192.168.68.77:'C:/msys/1.0/home/Admin/imapsync/imapsync'
+	ssh Admin@192.168.68.77 'C:/msys/1.0/home/Admin/imapsync/test.bat'
+}
+
+
 ##########################
 # specific tests
 ##########################
@@ -885,6 +918,8 @@ run_tests perl_syntax
 
 test $# -eq 0 && run_tests \
 	no_args \
+        option_version \
+	option_tests \
 	first_sync \
 	locallocal \
 	ll_folder \
@@ -921,7 +956,8 @@ test $# -eq 0 && run_tests \
 	ll_authuser \
 	ll_delete2 \
 	ll_folderrec \
-	ll_bigmail
+	ll_bigmail \
+	msw
 
 
 
