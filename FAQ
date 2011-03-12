@@ -38,6 +38,15 @@ b) Use the --syncinternaldates option and keep using Eudora :-)
 
 
 =======================================================================
+Q. Flags are not well synchonized. Is it a bug ?
+
+R. It happens with some servers on the first sync. 
+Also, it was a bug from revision 1.200 to revision 1.207
+
+Solution: run imapsync a second time. imapsync synchronizes flags
+on each run unless option --fast is used.
+
+=======================================================================
 Q. imapsync failed with a "word too long" error from the imap server,
    What can I do ?
 
@@ -89,20 +98,34 @@ headers for each message transfered. The message is
 transfered again and again each time you run imapsync. This
 is bad of course. The explanation is that imapsync considers
 the message is not the same since headers have changed (one
-line added) and size too (the header part). You can look at
-the headers found by imapsync by using the --debug option
-(and search for the message on both part). The way to avoid
-this problem is by using options --skipheader and
+line added) and size too (the header part). 
+
+You can look at the headers found by imapsync by using the 
+--debug option (and search for the message on both part),
+Header lines from the source server begin with a "FH:" prefix,
+Header lines from the destination server begin with a "TH:" prefix.
+Since --debug is very verbose I suggest to isolate a 
+email in a specific folder in case you want to forward
+me the output.
+
+The way to avoid this problem is by using options --skipheader and
 --skipsize, like this (avoid headers beginning whith the
 string "X-"):
 
  imapsync ... --skipheader '^X-' --skipsize
 
-You can use --skipheader only one time; if you need to skip
-several different headers use the "or" perl regex caracter
-which is "|". Example:
+To skip several headers you can use --skipheader one time
 
  imapsync ... --skipheader '^X-|^Status|^Bcc'
+
+or several times (same result)
+
+ imapsync ... --skipheader '^X-' --skipheader  '^Status' --skipheader  '^Bcc'
+
+If you think you have too many header to avoid just use
+
+ imapsync ... --useheader 'Message-ID' --skipsize
+
 
 ======================================================================
 Q. I want to exclude a folder hierarchy like "public"

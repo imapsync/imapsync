@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 
+=pod
 =head1 NAME 
 
 imapsync - IMAP synchronisation, sync, copy or migration
@@ -7,7 +8,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.217 $
+$Revision: 1.219 $
 
 =head1 INSTALL
 
@@ -285,7 +286,7 @@ Success stories reported with the following 32 imap servers
    (http://www.washington.edu/imap/)
  - UW - QMail v2.1
  - Imap part of TCP/IP suite of VMS 7.3.2
- - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 5.5.
+ - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 5.5.
 
 Please report to the author any success or bad story with
 imapsync and don't forget to mention the IMAP server
@@ -371,7 +372,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.217 2007/03/06 13:12:23 gilles Exp $
+$Id: imapsync,v 1.219 2007/04/04 09:32:20 gilles Exp $
 
 
 
@@ -430,7 +431,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.217 2007/03/06 13:12:23 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.219 2007/04/04 09:32:20 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -467,9 +468,9 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.217 $ ',
-		  '$Date: 2007/03/06 13:12:23 $ ',
-		  "\n",
+		  '$Revision: 1.219 $ ',
+		  '$Date: 2007/04/04 09:32:20 $ ',
+		  "\n",localhost_info(),
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
 		  "Command line used :\n",
@@ -511,15 +512,20 @@ sub connect_imap {
 	  or die "Can not open imap connection on [$host] : $@\n";	
 }
 
+sub localhost_info {
+	
+	my($infos) = join("", "Here is a $OSNAME system",
+	  " ", join(" ", uname()),
+	  ")\nwith perl ", 
+	  sprintf("%vd", $PERL_VERSION), "\n");
+			  
+	return($infos);
+
+}
+
 if ($justconnect) {
 	my $from = ();
 	my $to = ();
-	
-
-	print "Here is a $OSNAME system (",
-	  join(" ", uname()), 
-	  ")\nwith perl ", 
-	  sprintf("%vd", $PERL_VERSION), "\n";
 	
 	$from = connect_imap($host1, $port1);
 	print "From software : ", server_banner($from);
@@ -1541,8 +1547,8 @@ Several options are mandatory.
 --exclude     <regex>  : or this one, etc.
 --prefix1     <string> : remove prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
-                         use --prefix1 if your source imap server does not
-                         have NAMESPACE capability.
+                         you can use --prefix1 if your source imap server 
+                         does not have NAMESPACE capability.
 --prefix2     <string> : add prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
                          use --prefix2 if your target imap server does not
