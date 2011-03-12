@@ -1,0 +1,53 @@
+#!/usr/bin/perl -w
+
+use Carp;
+use Mail::IMAPClient;
+use strict;
+
+my $imap1 = Mail::IMAPClient->new();
+$imap1->Debug(0);
+$imap1->Server('louloutte.dyndns.org');
+$imap1->connect() or croak "Error connecting $@ !";
+$imap1->User('MarkOv@est.belle');
+$imap1->Password('emhj91ly');
+$imap1->login() or croak "Error login $@ !";
+$imap1->Uid(1) or croak "Error Uid $@ !";
+
+my $imap2 = Mail::IMAPClient->new();
+$imap2->Debug(0);
+$imap2->Server('louloutte.dyndns.org');
+$imap2->connect() or croak "Error connecting $@ !";
+$imap2->User('MarkOv@est.belle');
+$imap2->User('titi@est.belle');
+$imap2->Password('HUwtEd');
+$imap2->login() or croak "Error login $@ !";
+$imap2->Uid(1) or croak "Error Uid $@ !";
+
+
+
+print "[", $imap1->folders, "]\n";
+
+$imap1->select('Inbox') or croak "Could not select: $@ !";
+$imap2->select('Inbox') or croak "Could not select: $@ !";
+
+my @msg_id_2 = $imap2->messages;
+my $msg_id_2 = $msg_id_2[1];
+my $msg_id_1 = ($imap1->messages)[0];
+print "msg_id_1: $msg_id_1\n";
+
+my $string_2 = $imap2->message_string($msg_id_2);
+print $string_2;
+
+my $message_file_1 = "tmp_message_to_file_${$}_1";
+my $message_file_2 = "tmp_message_to_file_${$}_2";
+unlink($message_file_1);
+unlink($message_file_2);
+
+$imap2->message_to_file($message_file_2, $msg_id_2) or croak "Could not message_to_file";
+$imap1->message_to_file($message_file_1, $msg_id_1) or croak "Could not message_to_file";
+
+
+$imap1->logout();
+$imap2->logout();
+
+

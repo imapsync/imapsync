@@ -2,6 +2,8 @@ use ExtUtils::MakeMaker;
 use warnings;
 use strict;
 
+sub set_test_data();
+
 WriteMakefile
  ( NAME         => 'Mail::IMAPClient',
  , ABSTRACT     => 'IMAP4 client library'
@@ -28,8 +30,14 @@ WriteMakefile
 
 set_test_data();
 
-sub set_test_data {
-    unless(-f "lib/Mail/IMAPClient.pm")
+exit 0;
+
+###
+### HELPERS
+###
+
+sub set_test_data()
+{   unless(-f "lib/Mail/IMAPClient.pm")
     {   warn "ERROR: not in installation directory\n";
         return;
     }
@@ -46,7 +54,7 @@ __INTRO
     my $yes = prompt "Do you want to run the extended tests? (n/y)";
     return if $yes !~ /^[Yy](?:[Ee]:[Ss]?)?$/ ;
 
-    unless(open TST,">./test.txt")
+    unless(open TST, '>', "./test.txt")
     {   warn "ERROR: couldn't open ./test.txt: $!\n";
         return;
     }

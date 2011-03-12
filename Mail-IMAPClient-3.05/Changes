@@ -3,6 +3,107 @@
 All changes from 2.99_01 upward are made by Mark Overmeer.  The changes
 before that are applied by David Kernen
 
+version 3.05: Wed Feb 20 08:59:37 CET 2008
+
+	Fixes:
+
+	- match ENVELOPE and BODYSTRUCTURE more strict in the
+	  grammar, to avoid confusion. [Zach Levow]
+
+	- get_envelope and get_bodystructure failed for servers which
+          did not return the whole answer in one piece. [Zach Levow]
+
+	- do not produce parser errors when get_envelope does not
+	  return an envelope. [Zach Levow]
+
+	- PLAIN login response possibly solely a '+' [Zach] and [Nick]
+
+version 3.04: Fri Jan 25 09:25:51 CET 2008
+
+	Fixes:
+
+	- read_header fix for UID on Windows Server 2003.
+          rt.cpan.org#32398 [Michiel Stelman]
+
+	Improvements:
+
+	- doc update on authentication, by [Thomas Jarosch]
+
+version 3.03: Wed Jan  9 22:11:36 CET 2008
+
+	Fixes:
+
+	- LIST (f.i. used by folders()) did not return anything when the
+	  passed argument had a trailing separator. [Gunther Heintze]
+
+	- Rfc2060_datetime() must include a zone.
+          rt.cpan.org#31971 [David Golden]
+
+	- folders() uses LIST, and then calls a STATUS on each of the
+	  names found.	This is superfluous, and will cause problems when
+	  the STATUS fails... for instance because of ACL limitations
+	  on the sub-folder.
+	  rt.cpan.org#31962 [Thomas Jarosch]
+
+	- fixed a zillion of problems in the BodyStructure parser.  The
+	  original author did not understand parsing, nor Perl.
+
+	- part numbering wrong when nested messages contained multiparts
+
+	Improvements:
+
+	- implementation of DIGEST-MD5 authentication [Thomas Jarosch]
+
+	- removed call for status() in Massage(), which hopefully speeds-up
+	  things without destroying anything.  It removed a possible deep
+	  recursion, which no-one reported (so should be ok to remove it)
+
+	- simplified folders() algorithm.
+
+	- merged folder commands, like subscribe into one.
+
+	- added unsubscribe()
+	  rt.cpan.org#31268 [G Miller]
+
+	- lazy-load Digest::HMAC_MD5
+
+version 3.02: Wed Dec  5 21:33:17 CET 2007
+
+	Fixes:
+
+	- Another attempt to get get FETCH UID right.  Patch by [David Golden]
+
+version 3.01: Wed Dec  5 09:55:43 CET 2007
+
+	Changes:
+
+	- removed version number from ::BodyStructure
+
+	Fixes:
+
+	- quote password at login.
+	  rt.cpan.org#31035 [Andy Harriston]
+
+	- empty return of flags command should be empty list, not undef.
+	  rt.cpan.org#31195 [David Golden]
+
+	- UID command does not work with folder management commands
+	  rt.cpan.org#31182 [Robbert Norris]
+
+	- _read_line simplifications avoids timeouts.
+	  rt.cpan.org#31221 [Robbert Norris]
+
+	- FETCH did not detect the UID of a message anymore.
+	  [David Golden]
+
+	Improvements:
+
+	- proxyauth for SUN/iPlanet/NetScape IMAP servers.
+	  patch by rt.cpan.org#31152 [Robbert Norris]
+
+	- use grep in stead of map in one occasion in MessageSet.pm
+	  [Yves Orton]
+
 version 3.00: Wed Nov 28 09:56:54 CET 2007
 
 	Fixes:

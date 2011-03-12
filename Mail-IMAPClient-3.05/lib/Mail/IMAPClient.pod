@@ -41,7 +41,7 @@ object's status, see the section labeled L<"Status Methods">, below.
 RFC2060 defines two commands for authenticating to an IMAP server:
 LOGIN for plain text authentication and AUTHENTICATE for more secure
 authentication mechanisms. Currently Mail::IMAPClient supports
-CRAM-MD5, LOGIN, PLAIN (SASL), and NTLM authentication.
+DIGEST-MD5, CRAM-MD5, LOGIN, PLAIN (SASL), and NTLM authentication.
 
 There are also a number of methods and parameters that you can use to
 build your own authentication mechanism. Since this topic is a source of
@@ -161,16 +161,24 @@ call L<connect>, who will call L<login>. If B<login> sees that you've
 set an I<Authmechanism> then it will call B<authenticate>, using your
 I<Authmechanism> and I<Authcallback> parameters as arguments.
 
+=item Authuser
+
+Normally you authenticate and log in with the username specified in
+the User parameter. When you are using DIGEST-MD5 as I<Authmechanism>,
+you can optionally specify a different username for the final log in.
+This can be useful to mark messages as seen for the I<Authuser>
+if you don't know the password of the user as the seen state
+is often a per-user state.
+
 =item Authcallback 
 
 The I<Authcallback> parameter, if set, should contain a pointer
 to a subroutine. The L<login> method will use this as the callback
 argument to the B<authenticate> method if the I<Authmechanism> and
 I<Authcallback> parameters are both set. If you set I<Authmechanism>
-but not I<Authcallback> then the default callback for your mechanism
-will be used. CRAM-MD5, PLAIN (SASL), and NTLM authentication mechanisms
-have a default callback; in every other case not supplying the callback
-results in an error.
+but not I<Authcallback> then the default callback for your mechanism will
+be used.  All supported authentication mechanisms have a default callback;
+in every other case not supplying the callback results in an error.
 
 Most advanced authentication mechanisms require a challenge-response
 exchange. After the L<authenticate> method sends "<tag> AUTHENTICATE
@@ -518,6 +526,21 @@ seconds since the epoch date. It returns an RFC2060 compliant date
 string for that date (as required in date-related arguments to SEARCH,
 such as "since", "before", etc.). 
 
+=head2 Rfc2060_datetime
+
+Example:
+
+	$date = $imap->Rfc2060_datetime($seconds);
+	# or:
+	$date = Mail::IMAPClient->Rfc2060_datetime($seconds);
+
+The B<Rfc2060_datetime> method accepts one or two arguments: a obligatory
+timestamp and an optional zone.  The zone shall be formatted as
+C<< [+-]\d{4} >>, and defaults to C<< +0000 >>.  The timestamp follows the
+definition of the output of the platforms specific C<time>, usually in
+seconds since Jan 1st 1970.  However, you have to correct the number
+yourself for the zone.
+
 =head2 Rfc822_date
 
 Example:
@@ -778,9 +801,8 @@ override parameter settings.
 
 If you do not specify a second argument and you have not set the 
 I<Authcallback> parameter, then the first argument must be
-one of the authentication mechanisms for which B<Mail::IMAPClient> has
-built in support. Currently there is only built in support for CRAM-MD5, 
-but I hope to add more in future releases. 
+one of the authentication mechanisms for which B<Mail::IMAPClient>
+has built in support.
 
 If you are interested in doing NTLM authentication then please see Mark
 Bush's L<Authen::NTLM>, which can work with B<Mail::IMAPClient> to
@@ -1399,7 +1421,7 @@ B<has_capability>.
 Example:
 	
 	my $idle = $imap->idle or warn "Couldn't idle: $@\n";
-	&goDoOtherThings;
+	goDoOtherThings();
 	$imap->done($idle) or warn "Error from done: $@\n";
 
 The B<idle> method places the IMAP connection in an IDLE state. Your
@@ -1594,7 +1616,13 @@ B<login> is sometimes called automatically by L<connect>, which in turn
 is sometimes called automatically by L<new>. You can predict this 
 behavior once you've read the section on the L<new> method.
 
-=cut
+Then Sun/iPlanet/Netscape IMAP servers to allow an administrative user to
+masquerade as another user.  The B<proxyauth> method uses the IMAP
+PROXYAUTH client command provided like this:
+
+      $imap->login("admin", "password");
+      $imap->proxyauth("someuser");
+
 
 =head2 logout
 
@@ -3344,7 +3372,7 @@ Example:
 
 =head2 Socket
 
-B<PLEASE NOT>
+B<PLEASE NOTE>
 The semantics of this method has changed as of version 2.99_04 of this module.
 If you need the old semantics, you now have to use L<RawSocket>.
 

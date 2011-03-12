@@ -2,7 +2,7 @@ use warnings;
 use strict;
 
 package Mail::IMAPClient;
-our $VERSION = '3.00';
+our $VERSION = '3.05';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -18,7 +18,6 @@ use Carp qw(carp);
 use Fcntl       qw(F_GETFL F_SETFL O_NONBLOCK);
 use Errno       qw/EAGAIN/;
 use List::Util  qw/first min max sum/;
-use Digest::HMAC_MD5 qw/hmac_md5_hex/; 
 use MIME::Base64;
 
 use constant Unconnected   => 0;
@@ -57,7 +56,7 @@ BEGIN {
    # set-up accessors
    foreach my $datum (
      qw(State Port Server Folder Peek User Password Timeout Buffer
-        Debug Count Uid Debug_fh Maxtemperrors Authmechanism Authcallback
+        Debug Count Uid Debug_fh Maxtemperrors Authuser Authmechanism Authcallback
         Ranges Readmethod Showcredentials Prewritemethod Ignoresizeerrors
         Supportedflags Proxy))
    { no strict 'refs';
@@ -136,12 +135,13 @@ sub Rfc2060_date
     sprintf "%02d-%s-%04d", $date[3], $mnt[$date[4]], $date[5]+1900;
 }
 
-sub Rfc2060_datetime
-{   my ($class, $stamp) = @_; # 11-Jan-2000 04:04:04
+sub Rfc2060_datetime($;$)
+{   my ($class, $stamp, $zone) = @_; # 11-Jan-2000 04:04:04 +0000
+    $zone   ||= '+0000';
     my @date  = gmtime $stamp;
 
-    sprintf "%02d-%s-%04d %02d:%02d:%02d", $date[3], $mnt[$date[4]]
-      , $date[5]+1900, $date[2], $date[1], $date[0];
+    sprintf "%02d-%s-%04d %02d:%02d:%02d %s", $date[3], $mnt[$date[4]]
+      , $date[5]+1900, $date[2], $date[1], $date[0], $zone;
 }
 
 # Change CRLF into \n
@@ -177,8 +177,11 @@ sub Clear
     $oldclear;
 }
 
-# read-only access to the transaction number:
+# read-only access to the transaction number
 sub Transaction { shift->Count };
+
+# remove doubles from list
+sub _remove_doubles(@) { my %seen; grep { ! $seen{$_}++ } @_ }
 
 # the constructor:
 sub new
@@ -311,6 +314,11 @@ sub login
         if $auth ne 'LOGIN';
 
     my $passwd = $self->Password;
+    if($passwd =~ m/\W/)  # need to quote
+    {   $passwd =~ s/(["\\])/\\$1/g;
+        $passwd = qq{"$passwd"};
+    }
+
     my $id     = $self->User;
     $id        = qq{"$id"} if $id !~ /^".*"$/;
 
@@ -319,6 +327,11 @@ sub login
 
     $self->State(Authenticated);
     $self;
+}
+
+sub proxyauth
+{   my ($self, $user) = @_;
+    $self->_imap_command("PROXYAUTH $user") ? $self->Results : undef;
 }
 
 sub separator
@@ -362,8 +375,8 @@ sub sort
 sub list
 {   my ($self, $reference, $target) = @_;
     defined $reference or $reference = "";
-    defined $target    or $target = '*';
-    length $target     or $target = '""';
+    defined $target    or $target    = '*';
+    length $target     or $target    = '""';
 
     $target eq '*' || $target eq '""'
          or $target = $self->Massage($target);
@@ -414,10 +427,7 @@ sub subscribed
                  /ix;
     }
 
-    # for my $f (@folders) { $f =~ s/^\\FOLDER LITERAL:://;}
-    # remove doubles
-    my @clean; my %memory;
-    foreach (@folders) { push @clean, $_ unless $memory{$_}++ }
+    my @clean = _remove_doubles @folders;
     wantarray ? @clean : \@clean;
 }
 
@@ -597,8 +607,9 @@ sub message_to_file
     my $string = "$trans ${uid}FETCH $msgs $cmd";
 
     $self->_record($trans, [0, "INPUT", $string] );
-
+    print "string [$string]\n";
     my $feedback = $self->_send_line($string);
+    print "feedback [$feedback]\n";
     unless($feedback)
     {    $self->LastError("Error sending '$string' to IMAP: $!");
          return undef;
@@ -610,9 +621,11 @@ sub message_to_file
     until($code)
     {   my $output = $self->_read_line($handle)
             or return undef;
-
         foreach my $o (@$output)
-        {   $self->_record($trans,$o);
+        {   
+	    print "oD[", $o->[DATA], "]\n";
+	    print "oT[", $o->[TYPE], "]\n";
+	    $self->_record($trans,$o);
             next unless $self->_is_output($o);
 
             $code = $o->[DATA] =~ /^$trans\s+(OK|BAD|NO)/mi ? $1 : undef;
@@ -1099,8 +1112,7 @@ sub _imap_command
 }
 
 sub _imap_uid_command
-{   my $self = shift;
-    my $cmd  = shift;
+{   my ($self, $cmd) = (shift, shift);
     my $args = @_ ? join(" ", '', @_) : '';
     my $uid  = $self->Uid ? 'UID ' : '';
     $self->_imap_command("$uid$cmd$args");
@@ -1256,7 +1268,7 @@ sub _send_line
 
 # It is also re-implemented in: message_to_file
 #
-# syntax: $output = $self->_readline($literal_callback, $output_callback)
+# $output = $self->_read_line($literal_callback, $output_callback)
 #    Both input argument are optional, but if supplied must either
 #    be a filehandle, coderef, or undef.
 #
@@ -1284,8 +1296,8 @@ sub _read_line
     my $fast_io  = $self->Fast_io;
 
     until(@$oBuffer # there's stuff in output buffer:
-      && $oBuffer->[-1][DATA] =~ /\r\n$/ # the last thing there has cr-lf:
-      && $oBuffer->[-1][TYPE] eq "OUTPUT" # that thing is an output line:
+      && $oBuffer->[-1][TYPE] eq 'OUTPUT' # that thing is an output line:
+      && $oBuffer->[-1][DATA] =~ /\r?\n$/ # the last thing there has cr-lf:
       && !length $iBuffer                 # and the input buffer has been MT'ed:
     )
     {   my $transno = $self->Transaction;
@@ -1328,19 +1340,17 @@ sub _read_line
 
         while($iBuffer =~ s/^(.*?\r?\n)//)  # consume line
         {   my $current_line = $1;
-
-            # This part handles IMAP "Literals",
-            # which according to rfc2060 look something like this:
-            # [tag]|* BLAH BLAH {nnn}\r\n
-            # [nnn bytes of literally transmitted stuff]
-            # [part of line that follows literal data]\r\n
-
-            if($current_line !~ s/\s*\{(\d+)\}\r\n$//)
-            {   push @$oBuffer, [$index++, "OUTPUT" , $current_line];
+            if($current_line !~ s/\s*\{(\d+)\}\r?\n$//)
+            {   push @$oBuffer, [$index++, 'OUTPUT' , $current_line];
                 next;
             }
 
+            push @$oBuffer, [$index++, 'OUTPUT',  $current_line];
+
             ## handle LITERAL
+            # BLAH BLAH {nnn}\r\n
+            # [nnn bytes of literally transmitted stuff]
+            # [part of line that follows literal data]\r\n
 
             my $expected_size = $1;
 
@@ -1349,53 +1359,56 @@ sub _read_line
                "retrieve from the " . length($iBuffer) .
                " bytes in: $iBuffer<END_OF_iBuffer>");
 
-            my $litstring = $iBuffer;
+            my $litstring;
+            if(length $iBuffer >= $expected_size)
+            {   # already received all data
+                $litstring = substr $iBuffer, 0, $expected_size, '';
+            }
+            else
+            {   # literal data still to arrive
+                $litstring = $iBuffer;
+                $iBuffer   = '';
 
-            while($expected_size > length $litstring)
-            {   if($timeout)
-                {    # wait for data from the the IMAP socket.
-                     my $rvec = 0;
-                     vec($rvec, fileno($self->Socket), 1) = 1;
-                     unless(CORE::select($rvec, undef, $rvec, $timeout))
-                     {    $self->LastError("Tag $transno: Timeout waiting for "
-                             . "literal data from server");
-                         return undef;
-                     }
-                }
-                else # 1 ms before retry
-                {   CORE::select(undef, undef, undef, 0.001);
-                }
-
-                fcntl($socket, F_SETFL, $self->{_fcntl})
-                    if $fast_io && defined $self->{_fcntl};
-
-                my $ret = $self->_sysread($socket, \$litstring
-                  , $expected_size - length $litstring, length $litstring);
-
-                $self->_debug("Received ret=$ret and buffer = " .
-                   "\n$litstring<END>\nwhile processing LITERAL");
-
-                if($timeout && !defined $ret)
-                {   $self->_record($transno,
-                        [ $self->_next_index($transno), "ERROR",
-                   "$transno * NO Error reading data from server: $!"]);
-                    return undef;
-                }
-
-                if($ret == 0 && $socket->eof)
-                {   $self->_record($transno,
-                       [ $self->_next_index($transno), "ERROR",
-            "$transno * BYE Server unexpectedly closed connection: $!"]);
-                    $self->State(Unconnected);
-                    return undef;
+                while($expected_size > length $litstring)
+                {   if($timeout)
+                    {    # wait for data from the the IMAP socket.
+                         my $rvec = 0;
+                         vec($rvec, fileno($self->Socket), 1) = 1;
+                         unless(CORE::select($rvec, undef, $rvec, $timeout))
+                         {    $self->LastError("Tag $transno: Timeout waiting for "
+                                 . "literal data from server");
+                             return undef;
+                         }
+                    }
+                    else # 1 ms before retry
+                    {   CORE::select(undef, undef, undef, 0.001);
+                    }
+    
+                    fcntl($socket, F_SETFL, $self->{_fcntl})  #???why
+                        if $fast_io && defined $self->{_fcntl};
+    
+                    my $ret = $self->_sysread($socket, \$litstring
+                      , $expected_size - length $litstring, length $litstring);
+    
+                    $self->_debug("Received ret=$ret and buffer = " .
+                       "\n$litstring<END>\nwhile processing LITERAL");
+    
+                    if($timeout && !defined $ret)
+                    {   $self->_record($transno,
+                            [ $self->_next_index($transno), "ERROR",
+                       "$transno * NO Error reading data from server: $!"]);
+                        return undef;
+                    }
+    
+                    if($ret==0 && $socket->eof)
+                    {   $self->_record($transno,
+                           [ $self->_next_index($transno), "ERROR",
+                "$transno * BYE Server unexpectedly closed connection: $!"]);
+                        $self->State(Unconnected);
+                        return undef;
+                    }
                 }
             }
-
-            if(length $litstring > $expected_size)
-            {    # copy the extra struff into the iBuffer:
-                 $iBuffer = substr $litstring, $expected_size, length($litstring)-$expected_size,'';
-            }
-            else { $iBuffer = '' };
 
             if(!$literal_callback) { ; }
             elsif(UNIVERSAL::isa($literal_callback, 'GLOB'))
@@ -1411,31 +1424,8 @@ sub _read_line
                   . "invalid callback; must be a filehandle or CODE");
             }
 
-            $self->Fast_io($fast_io) if $fast_io;
-
-            # Now let's make sure there are no IMAP server output lines
-            # (i.e. [tag|*] BAD|NO|OK Text) embedded in the literal string
-            my $trailer;
-            if($iBuffer =~ s/\r?\n((?:\*|\d+)\s(?:BAD|NO|OK)[^\n]*\r?\n\z)//i)
-            {   $trailer = $1;
-                $self->_debug("Got output in literal: $trailer");
-            }
-
-            $self->_debug("literal includes ')' of FETCH")
-                if length $iBuffer
-                && $current_line =~ m/\bFETCH\b/i
-                && $iBuffer =~ s/\)$//;
-
-            if(length $iBuffer)
-            {   $self->_debug("literal: too much >>$iBuffer<<");
-                $litstring .= $iBuffer;
-                $iBuffer    = '';
-            }
-
-            push @$oBuffer, [$index++, "OUTPUT",  $current_line];
-            push @$oBuffer, [$index++, "LITERAL", $litstring];
-            push @$oBuffer, [$index++, "OUTPUT",  $trailer]
-                if $trailer;
+            $self->Fast_io($fast_io) if $fast_io;  # ???
+            push @$oBuffer, [$index++, 'LITERAL', $litstring];
         }
     }
 
@@ -1518,46 +1508,45 @@ sub logout
     $self;
 }
 
-sub folders
+sub folders($)
 {   my ($self, $what) = @_;
 
     return wantarray ? @{$self->{Folders}} : $self->{Folders}
-        if ref $self->{Folders} && !$what;
+        if !$what && $self->{Folders};
+
+    my @list;
+    if($what)
+    {   my $sep = $self->separator($what);
+        my $whatsub = $what =~ m/\Q${sep}\E$/ ? "$what*" : "$what$sep*";
+        push @list, $self->list(undef, $whatsub);
+        push @list, $self->list(undef, $what) if $self->exists($what);
+    }
+    else
+    {   push @list, $self->list(undef, undef);
+    }
 
     my @folders;
-    my @list = $self->list(undef,($what ? $what.$self->separator($what)."*" : undef ) );
-    push @list, $self->list(undef, $what)
-        if $what && $self->exists($what);
-
-    for(my $m = 0; $m < scalar(@list); $m++ )
+    for(my $m = 0; $m < @list; $m++ )
     {   if($list[$m] && $list[$m] !~ /\r\n$/ )
         {   $self->_debug("folders: concatenating $list[$m] and $list[$m+1]");
             $list[$m] .= $list[$m+1];
-            $list[$m+1] = "";
-            $list[$m] .= "\r\n" unless $list[$m] =~ /\r\n$/;
+            splice @list, $m+1, 1;
         }
 
-        $list[$m] =~ / ^\*\s+LIST               # * LIST
-                        \s+\([^\)]*\)\s+         # (Flags)
-                        (?:"[^"]*"|NIL)\s+     # "delimiter" or NIL
-                        (?:"([^"]*)"|(.*))\r\n$  # Name or "Folder name"
+        $list[$m] =~ / ^\* \s+ LIST \s+ \([^\)]*\) \s+  # * LIST (Flags)
+                        (?:\" [^"]* \" | NIL  )    \s+  # "delimiter" or NIL
+                        (?:\"([^"]*)\" | (\S+))    \s*$ # "name" or name
                      /ix
             or next;
 
-        my $folder = $1 || $2;
-        $folder = qq("$folder")
-            if $1 && !$self->exists($folder);
-
-        push @folders, $folder
+        push @folders, $1 || $2;
    }
 
-    my (@clean, %memory);
-    foreach my $f (@folders) { push @clean, $f unless $memory{$f}++ }
+    my @clean = _remove_doubles @folders;
     $self->{Folders} = \@clean unless $what;
 
     wantarray ? @clean : \@clean;
 }
-
 
 sub exists
 {   my ($self, $folder) = @_;
@@ -1580,11 +1569,12 @@ sub get_bodystructure
     }
     else
     {   $self->_debug("get_bodystructure: reassembling original response");
-        my $start = 0;
-        foreach my $o ($self->Results)
+        my $started = 0;
+        my $output  = '';
+        foreach my $o ($self->_transaction)
         {   next unless $self->_is_output_or_literal($o);
-            next unless $start or
-                $o->[DATA] =~ /BODYSTRUCTURE \(/i and ++$start; # Hi, vi! ;-)
+            $started++ if $o->[DATA] =~ /BODYSTRUCTURE \(/i; ; # Hi, vi! ;-)
+            $started or next;
 
             if(length $output && $self->_is_literal($o) )
             {   my $data = $o->[DATA];
@@ -1612,24 +1602,30 @@ sub get_envelope
         return undef;
     }
 
-    my @out = $self->fetch($msg,"ENVELOPE");
+    my @out = $self->fetch($msg, 'ENVELOPE');
     my $bs = "";
-    my $output = first { /ENVELOPE \(/i } @out;    # Wee! ;-)
+    my $output = first { /ENVELOPE \(/i } @out;    # vi ;-)
+
+    unless($output)
+    {   $self->LastError("Unable to use get_envelope: $@");
+        return undef;
+    }
+
     if($output =~ /\r\n$/ )
     {   eval { $bs = Mail::IMAPClient::BodyStructure::Envelope->new($output) };
     }
     else
     {   $self->_debug("get_envelope: reassembling original response");
-        my $start = 0;
-        foreach my $o ($self->Results)
+        my $started = 0;
+        $output = '';
+        foreach my $o ($self->_transaction)
         {   next unless $self->_is_output_or_literal($o);
             $self->_debug("o->[DATA] is $o->[DATA]");
 
-            next unless $start or
-                $o->[DATA] =~ /ENVELOPE \(/i and ++$start;
-                # Hi, vi! ;-)
+            $started++ if $o->[DATA] =~ /ENVELOPE \(/i; # Hi, vi! ;-)
+            $started or next;
 
-            if ( length($output) and $self->_is_literal($o) ) {
+            if(length($output) && $self->_is_literal($o) ) {
                 my $data = $o->[DATA];
                 $data =~ s/"/\\"/g;
                 $data =~ s/\(/\\\(/g;
@@ -1658,7 +1654,7 @@ sub fetch
       : $what;
 
     $self->_imap_uid_command(FETCH => $take, @_)
-        or return ();
+        or return;
 
     wantarray ? $self->History : $self->Results;
 }
@@ -1735,46 +1731,29 @@ sub store
     wantarray ? $self->History : $self->Results;
 }
 
-sub subscribe
-{   my ($self, @a) = @_;
+sub _imap_folder_command($$)
+{   my ($self, $command) = (shift, shift);
     delete $self->{Folders};
-    $a[-1] = $self->Massage($a[-1]) if @a;
-    $self->_imap_uid_command(SUBSCRIBE => @a)
-        or return undef;
-    wantarray ? $self->History : $self->Results;
-}
+    my $folder = $self->Massage(shift);
 
-sub delete
-{   my ($self, @a) = @_;
-    delete $self->{Folders};
-    $a[-1] = $self->Massage($a[-1]) if @a;
-    $self->_imap_uid_command(DELETE => @a)
-        or return undef;
-    wantarray ? $self->History : $self->Results;
-}
+    $self->_imap_command("$command $folder")
+        or return;
 
-sub myrights
-{   my ($self, @a) = @_;
-    delete $self->{Folders};
-    $a[-1] = $self->Massage($a[-1]) if @a;
-    $self->_imap_uid_command(MYRIGHTS => @a)
-        or return undef;
     wantarray ? $self->History : $self->Results;
 }
+    
+sub subscribe($)   { $_[0]->_imap_folder_command(SUBSCRIBE   => $_[1]) }
+sub unsubscribe($) { $_[0]->_imap_folder_command(UNSUBSCRIBE => $_[1]) }
+sub delete($)      { $_[0]->_imap_folder_command(DELETE      => $_[1]) }
+sub create($)      { $_[0]->_imap_folder_command(CREATE      => $_[1]) }
 
-sub create
-{   my ($self, @a) = @_;
-    delete $self->{Folders};
-    $a[0] = $self->Massage($a[0]) if @a;
-    $self->_imap_uid_command(CREATE => @a)
-        or return undef;
-    wantarray ? $self->History : $self->Results;
-}
+# rfc2086
+sub myrights($)    { $_[0]->_imap_folder_command(MYRIGHTS    => $_[1]) }
 
 sub close
 {   my $self = shift;
     delete $self->{Folders};
-    $self->_imap_uid_command('CLOSE')
+    $self->_imap_command('CLOSE')
         or return undef;
     wantarray ? $self->History : $self->Results;
 }
@@ -1817,9 +1796,9 @@ sub rename
 
 sub status
 {   my ($self, $folder) = (shift, shift);
-    my $which = @_ ? join(" ", @_) : 'MESSAGES';
-
     defined $folder or return;
+
+    my $which = @_ ? join(" ", @_) : 'MESSAGES';
 
     my $box = $self->Massage($folder);
     $self->_imap_command("STATUS $box ($which)")
@@ -1839,21 +1818,21 @@ sub flags
 
     # Send command
     $self->fetch($msg, "FLAGS")
-        or return undef;
+        or return;
 
-    my $u_f = $self->Uid;
+    my $u_f     = $self->Uid;
     my $flagset = {};
 
     # Parse results, setting entry in result hash for each line
-    foreach my $resultline ($self->Results)
-    {   $self->_debug("flags: line = '$resultline'");
-        if (    $resultline =~
-            /\*\s+(\d+)\s+FETCH\s+    # * nnn FETCH
-             \(            # open-paren
-             (?:\s?UID\s(\d+)\s?)?    # optional: UID nnn <space>
-             FLAGS\s?\((.*)\)\s?      # FLAGS (\Flag1 \Flag2) <space>
-             (?:\s?UID\s(\d+))?       # optional: UID nnn
-             \)                       # close-paren
+    foreach my $line ($self->Results)
+    {   $self->_debug("flags: line = '$line'");
+        if (    $line =~
+            /\* \s+ (\d+) \s+ FETCH \s+    # * nnn FETCH
+             \(
+               (?:\s* UID \s+ (\d+) \s* )? # optional: UID nnn <space>
+               FLAGS \s* \( (.*?) \) \s*   # FLAGS (\Flag1 \Flag2) <space>
+               (?:\s* UID \s+ (\d+) \s* )? # optional: UID nnn
+             \)
             /x
         )
         {   my $mailid = $u_f ? ($2||$4) : $1;
@@ -1883,16 +1862,6 @@ sub supported_flags(@)
     grep { $sup->{ /^\\(\S+)/ ? lc $1 : ()} } @_;
 }
 
-# parse_headers modified to allow second param to also be a
-# reference to a list of numbers. If this is a case, the headers
-# are read from all the specified messages, and a reference to
-# an hash of mail numbers to references to hashes, are returned.
-# I found, with a mailbox of 300 messages, this was
-# *significantly* faster against our mailserver (< 1 second
-# vs. 20 seconds)
-#
-# 2000-03-22 Adrian Smith (adrian.smith@ucpag.com)
-
 sub parse_headers
 {   my ($self, $msgspec, @fields) = @_;
     my $fields = join ' ', @fields;
@@ -1905,23 +1874,34 @@ sub parse_headers
     my @raw = $self->fetch($string)
         or return undef;
 
-    my %headers; # HASH from message ids to headers
-    my $h;       # HASH of fields for current msgid
-    my $field;   # previous field name
+    my %headers; # message ids to headers
+    my $h;       # fields for current msgid
+    my $field;   # previous field name, for unfolding
     my %fieldmap = map { ( lc($_) => $_ ) } @fields;
+    my $msgid;
 
     foreach my $header (map {split /\r?\n/} @raw)
-    {
-        if($header =~ s/^(?:\*|UID) \s+ (\d+) \s+ FETCH \s+
-                        \( .*? BODY\[HEADER (?:\.FIELDS)? .*? \]\s*//ix)
+    {   # little problem: Windows2003 has UID as body, not in header
+        if($header =~ s/^\* \s+ (\d+) \s+ FETCH \s+
+                        \( (.*?) BODY\[HEADER (?:\.FIELDS)? .*? \]\s*//ix)
         {   # start new message header
-            $h = $headers{$1} = {};
+            ($msgid, my $msgattrs) = ($1, $2);
+            $h = {};
+            if($self->Uid)  # undef when win2003
+            {   $msgid = $msgattrs =~ m/\b UID \s+ (\d+)/x ? $1 : undef }
+
+            $headers{$msgid} = $h if $msgid;
         }
-        $header =~ /\S/ or next;
+        $header =~ /\S/ or next; # skip empty lines.
 
         # ( for vi
         if($header =~ /^\)/)  # end of this message
         {   undef $h;  # inbetween headers
+            next;
+        }
+        elsif(!$msgid && $header =~ /^\s*UID\s+(\d+)\s*\)/)
+        {   $headers{$1} = $h;   # finally found msgid, win2003
+            undef $h;
             next;
         }
 
@@ -2067,7 +2047,7 @@ sub search
     foreach ($self->History)
     {   chomp;
         s/\r\n?/ /g;
-        s/^\*\s+SEARCH\s+(?=.*\d.*)// or next;
+        s/^\*\s+SEARCH\s+(?=.*?\d)// or next;
         push @hits, grep /^\d+$/, split;
     }
 
@@ -2209,7 +2189,7 @@ sub namespace {
         return undef;
     }
 
-    my $got = $self->_imap_command("NAMESPACE") or return ();
+    my $got = $self->_imap_command("NAMESPACE") or return;
     my @namespaces = map { /^\* NAMESPACE (.*)/ ? $1 : () }
        $got->Results;
 
@@ -2254,43 +2234,47 @@ sub is_parent
 
     for(my $m = 0; $m < @$list; $m++)
     {   return undef
-           if $list->[$m] =~ /NoInferior/i;
+           if $list->[$m] =~ /\bNoInferior\b/i;
 
         if($list->[$m]  =~ s/(\{\d+\})\r\n$// )
         {   $list->[$m] .= $list->[$m+1];
-            $list->[$m+1] = "";
+            splice @$list, $m+1, 1;
         }
 
         $line = $list->[$m]
             if $list->[$m] =~
-                    /       ^\*\s+LIST              # * LIST
-                            \s+\([^\)]*\)\s+            # (Flags)
-                            "[^"]*"\s+              # "delimiter"
-                            (?:"([^"]*)"|(.*))\r\n$  # Name or "Folder name"
-                    /x;
+                /^ \* \s+ LIST       \s+   # * LIST
+                   \([^\)]*\)        \s+   # (Flags)
+                   \"[^"]*\"         \s+   # "delimiter"
+                   (?:\"[^"]*\"|\S+) \s*$  # Name or "Folder name"
+                /x;
     }
 
     unless(length $line)
-    {  $self->_debug("Warning: separator method found no correct o/p in:\n\t".
+    {   $self->_debug("Warning: separator method found no correct o/p in:\n\t".
             join "\n\t", @$list);
-    }
-    my $f  = defined $line && $line =~ /^\*\s+LIST\s+\(([^\)]*)\s*\)/ ? $1 : undef;
-    return 1 if $f =~ /HasChildren/i;
-    return 0 if $f =~ /HasNoChildren/i;
-
-    unless($f =~ /\\/)        # no flags at all unless there's a backslash
-    {   my $sep  = $self->separator($folder) || $self->separator(undef);
-        my $lead = $folder . $sep;
-        my $len  = length $lead;
-        return scalar grep {$lead eq substr($_, 0, $len)} $self->folders;
+        return 0;
     }
 
-    0;  # ???
+    $line =~ /^\*\s+LIST\s+ \( ([^\)]*) \s*\)/x
+        or return 0;
+
+    my $flags = $1;
+
+    return 1 if $flags =~ /HasChildren/i;
+    return 0 if $flags =~ /HasNoChildren/i;
+    return 0 if $flags =~ /\\/;  # other flags found
+
+    # flag not supported, try via folders()
+    my $sep  = $self->separator($folder) || $self->separator(undef);
+    my $lead = $folder . $sep;
+    my $len  = length $lead;
+    scalar grep {$lead eq substr($_, 0, $len)} $self->folders;
 }
 
 sub selectable
 {   my ($self, $f) = @_;
-    not grep /NoSelect/i, $self->list("", $f);
+    not( grep /NoSelect/i, $self->list("", $f) );
 }
 
 sub append
@@ -2520,10 +2504,12 @@ sub authenticate
     until($code)
     {   my $output = $self->_read_line or return undef;
         foreach my $o (@$output)
-        {   $self->_record($count,$o);
-            $code = $o->[DATA] =~ /^\+\s+(.*)$/ ? $1 : undef;
+        {   $self->_record($count, $o);
+            $code = $o->[DATA] =~ /^\+\s+(\S+)\s*$/ ? $1
+                  : $o->[DATA] =~ /^\+\s*$/        ? 'OK'
+                  : undef;
 
-            if ($o->[DATA] =~ /^\*\s+BYE/)
+            if($o->[DATA] =~ /^\*\s+BYE/)
             {   $self->State(Unconnected);
                 return undef;
             }
@@ -2536,9 +2522,36 @@ sub authenticate
     if($scheme eq 'CRAM-MD5')
     {   $response ||= sub
           { my ($code, $client) = @_;
-            my $hmac = hmac_md5_hex(decode_base64($code), $client->Password);
+            use Digest::HMAC_MD5;
+            my $hmac = Digest::HMAC_MD5::hmac_md5_hex(decode_base64($code), $client->Password);
             encode_base64($client->User." ".$hmac);
-          }
+          };
+    }
+    elsif($scheme eq 'DIGEST-MD5')
+    {   $response ||= sub
+          { my ($code, $client) = @_;
+            require Authen::SASL;
+            require Digest::MD5;
+
+            my $authname = $client->Authuser;
+            defined $authname or $authname = $client->User;
+
+            my $sasl = Authen::SASL->new
+              ( mechanism => 'DIGEST-MD5'
+              , callback =>
+                 { user => $client->User
+                 , pass => $client->Password
+                 , authname => $authname
+                 }
+              );
+
+             # client_new is an empty function for DIGEST-MD5
+             my $conn   = $sasl->client_new('imap', 'localhost', '');
+             my $answer = $conn->client_step(decode_base64 $code);
+
+             encode_base64($response, '')
+                 if defined $answer;
+          };
     }
     elsif($scheme eq 'PLAIN')  # PLAIN SASL
     {   $response ||= sub
@@ -2562,12 +2575,12 @@ sub authenticate
         return undef;
     }
 
-    undef $code = $scheme eq 'PLAIN' ? 'OK' : undef;
+    undef $code;
     until($code)
     {   my $output = $self->_read_line or return undef;
         foreach my $o (@$output)
         {   $self->_record($count, $o);
-            $code = $o->[DATA] =~ /^\+\s+(.*)$/ ? $1 : undef;
+            $code = $o->[DATA] =~ /^\+\s+(.*?)\s*$/ ? $1 : undef;
 
             if($code)
             {   unless($self->_send_line($response->($code, $self)))
@@ -2719,23 +2732,15 @@ sub quota_usage
     ( map { /.*STORAGE\s+(\d+)\s+\d+.*\n$/ ? $1 : () } $self->Results)[0];
 }
 
-sub Quote {
-    my ($class, $arg) = @_;
-    return $class->Massage($arg, NonFolderArg);
-}
+sub Quote($) { $_[0]->Massage($_[1], NonFolderArg) }
 
-sub Massage
-{   my ($self, $arg, $notFolder) = @_;
-    $arg or return;
-    my $escaped_arg = $arg;
-    $escaped_arg =~ s/"/\\"/g;
-    $arg = substr($arg, 1, length($arg)-2) if $arg =~ /^".*"$/
-       && ! ( $notFolder || $self->status(qq("$escaped_arg"), "MESSAGES"));
+sub Massage($;$)
+{   my ($self, $name, $notFolder) = @_;
+    $name =~ s/^\"(.*)\"$/$1/ unless $notFolder;
 
-       if($arg =~ /["\\]/)    { $arg = "{".length($arg)."}\r\n$arg" }
-    elsif($arg =~ /[\s{}()]/) { $arg = qq("$arg") }
-
-    $arg;
+      $name =~ /["\\]/    ? "{".length($name)."}\r\n$name"
+    : $name =~ /[\s{}()]/ ? qq["$name"]
+    :                       $name;
 }
 
 sub unseen_count

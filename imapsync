@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 =pod
 
@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.241 $
+$Revision: 1.249 $
 
 =head1 INSTALL
 
@@ -387,15 +387,17 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.241 2007/12/31 13:39:02 gilles Exp gilles $
+$Id: imapsync,v 1.249 2008/03/19 02:14:24 gilles Exp $
 
 
 
 =cut
 
 
+use warnings;
 ++$|;
 use strict;
+use Carp;
 use Getopt::Long;
 use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
@@ -450,14 +452,14 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.241 2007/12/31 13:39:02 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.249 2008/03/19 02:14:24 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
 my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
 
 check_lib_version() or 
-  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9 exactly, future imapsync release may suppoort 3.0.x, but sorry not now\n";
+  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9 exactly, future imapsync release may suppoort 3.0.x, but sorry not now. See file BUG_IMAPClient_3.xx\n";
 
 
 $mess_size_total_trans   = 0;
@@ -467,15 +469,16 @@ $mess_trans = $mess_skipped = $mess_skipped_dry = 0;
 
 
 sub check_lib_version {
-	if ($VERSION_IMAPClient =~ m/(\d+)\.(\d+)\.(\d+)/) {
-		$debug and print "VERSION_IMAPClient $1 $2 $3\n";
-		#my($major,$minor,$sub) = ($1, $2, $3);
-		
-		return(1) if($VERSION_IMAPClient eq '2.2.9');
-		
+	$debug and print "VERSION_IMAPClient $1 $2 $3\n";
+	if ($VERSION_IMAPClient eq '2.2.9') {
+		override_imapclient();
+		return(1);
 	}
 	else{
-		return 0; # don't match regex => bad
+		# 3.x.x is still buggy with imapsync.
+		# uncomment "return 1" if you want to check it.
+		#return 1;
+		return 0;
 	}
 }
 
@@ -483,8 +486,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.241 $ ',
-		  '$Date: 2007/12/31 13:39:02 $ ',
+		  '$Revision: 1.249 $ ',
+		  '$Date: 2008/03/19 02:14:24 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -510,11 +513,9 @@ $split1 ||= 1000;
 $split2 ||= 1000;
 
 $host1 || missing_option("--host1") ;
-# $port1 = (defined($port1)) ? $port1 : 143;
 $port1 ||= defined $ssl1 ? 993 : 143;
 
 $host2 || missing_option("--host2") ;
-# $port2 = (defined($port2)) ? $port2 : 143;
 $port2 ||= defined $ssl2 ? 993 : 143;
 
 sub connect_imap {
@@ -523,7 +524,7 @@ sub connect_imap {
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Debug($debugimap);
-	$imap->connect2()
+	$imap->connect()
 	  or die "Can not open imap connection on [$host] : $@\n";	
 }
 
@@ -559,6 +560,28 @@ if ($justconnect) {
 $user1 || missing_option("--user1");
 $user2 || missing_option("--user2");
 
+$syncinternaldates = defined($syncinternaldates) ? defined($syncinternaldates) : 1;
+if ($syncinternaldates) {
+	print "Turned ON syncinternaldates, will set the internal dates on host2 same as host1.\n";
+}else{
+	print "Turned OFF syncinternaldates\n";
+}
+
+if ($syncinternaldates) {
+	no warnings 'redefine';
+	local *Carp::confess = sub { return undef; };
+	require Date::Manip;
+	Date::Manip->import(qw(ParseDate Date_Cmp UnixDate Date_Init Date_TimeZone));
+	#print "Date_init : [", join(" ",Date_Init()), "]\n";
+	print "TimeZone :[", Date_TimeZone(), "]\n";
+	if (not (Date_TimeZone())) {
+		warn "TimeZone not defined, setting it to GMT";
+		Date_Init("TZ=GMT");
+		print "TimeZone : [", Date_TimeZone(), "]\n";
+	}
+}
+
+
 if(defined($authmd5) and not($authmd5)) {
 	$authmech1 ||= 'LOGIN';
 	$authmech2 ||= 'LOGIN';
@@ -574,14 +597,15 @@ $authmech2 = uc($authmech2);
 $authuser1 ||= $user1;
 $authuser2 ||= $user2;
 
-print "will try to use $authmech1 authentication on host1\n";
-print "will try to use $authmech2 authentication on host2\n";
+print "Will try to use $authmech1 authentication on host1\n";
+print "Will try to use $authmech2 authentication on host2\n";
 
 $syncacls = (defined($syncacls)) ? $syncacls : 0;
 $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
 
 $fastio1 = (defined($fastio1)) ? $fastio1 : 0;
 $fastio2 = (defined($fastio2)) ? $fastio2 : 0;
+
 
 
 @useheader = ("ALL") unless (@useheader);
@@ -670,7 +694,7 @@ sub login_imap {
 		$imap->State(Mail::IMAPClient::Connected);
 	} 
 	else {
-		$imap->connect2()
+		$imap->connect()
 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
 	}
 	print "Banner : ", server_banner($imap);
@@ -696,13 +720,13 @@ sub login_imap {
 	$imap->User($user);
 	$imap->Authuser($authuser);
 	$imap->Password($password);
-	unless ($imap->login2()) {
+	unless ($imap->login()) {
 		print "Error login : [$host] with user [$user] auth [$authmech]: $@\n";
 		die if ($authmech eq 'LOGIN');
 		die if $imap->IsUnconnected();
 		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
 		$imap->Authmechanism("");
-		$imap->login2() or
+		$imap->login() or
 		  die "Error login : [$host] with user [$user] auth [LOGIN] : $@";
 	}
 	print "Success login on [$host] with user [$user] auth [$authmech]\n";
@@ -1040,7 +1064,7 @@ sub foldersizes {
 			$smess = $imap->message_count();
 			unless ($smess == 0) {
 				#$imap->Ranges(1);
-				$imap->fetch_hash2("RFC822.SIZE",$hashref) or die "$@";
+				$imap->fetch_hash("RFC822.SIZE",$hashref) or die "$@";
 				#$imap->Ranges(0);
 				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
 				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
@@ -1245,10 +1269,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	last FOLDER if $from->IsUnconnected();
 	last FOLDER if   $to->IsUnconnected();
 
-	my $f_heads = $from->parse_headers2([@f_msgs],
+	my $f_heads = $from->parse_headers([@f_msgs],
 					    @useheader)if (@f_msgs) ;
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $f_fir  = $from->fetch_hash2("FLAGS",
+	my $f_fir  = $from->fetch_hash("FLAGS",
 				       "INTERNALDATE",
 				       "RFC822.SIZE") if (@f_msgs);
 	$debug and print "Time fir  : ", timenext(), " s\n";
@@ -1262,10 +1286,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	last FOLDER if $from->IsUnconnected();
 	last FOLDER if   $to->IsUnconnected();
 
-	my $t_heads =   $to->parse_headers2([@t_msgs],
+	my $t_heads =   $to->parse_headers([@t_msgs],
 					    @useheader) if (@t_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $t_fir  =   $to->fetch_hash2("FLAGS",
+	my $t_fir  =   $to->fetch_hash("FLAGS",
 				       "INTERNALDATE",
 				       "RFC822.SIZE") if (@t_msgs);
 	$debug and print "Time fir  : ", timenext(), " s\n";
@@ -1314,28 +1338,38 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			# copy
 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			last FOLDER if $from->IsUnconnected();
-			#my $string = $from->message_string($f_msg);			
-			my $message_file = "tmp_imapsync_$$";
-			unlink($message_file);
-			$from->message_to_file($message_file, $f_msg);
-			my $string = file_to_string($message_file);
+			my $string;
+			$string = $from->message_string($f_msg);
+			#print "AAAmessage_string[$string]ZZZ\n";
+			#my $message_file = "tmp_imapsync_$$";
+			#$from->select($f_fold);
+			#unlink($message_file);
+			#$from->message_to_file($message_file, $f_msg) or do {
+			#	warn "Could not put message #$f_msg to file $message_file",
+			#	$from->LastError;
+			#	$error++;
+			#	$mess_size_total_error += $f_size;
+			#	next MESS;
+			#};
+			#$string = file_to_string($message_file);
+			#print "AAA1[$string]ZZZ\n";
 			#unlink($message_file);
 			if (@regexmess) {
 				foreach my $regexmess (@regexmess) {
 					$debug and print "eval \$string =~ $regexmess\n";
 					eval("\$string =~ $regexmess");
 				}
-				string_to_file($string, $message_file);
+				#string_to_file($string, $message_file);
 			}
-			$debug and print "F message content begin next line\n",
-			  $string,
-			    "F message content ended on previous line\n";
+			$debug and print 
+				"=" x80, "\n", 
+				"F message content begin next line\n",
+				$string,
+				"F message content ended on previous line\n", "=" x 80, "\n";
 			my $d = "";
 			if ($syncinternaldates) {
 				$d = $f_idate;
-				$debug and print "internal date from 1: [$d]\n";
-				require Date::Manip;
-				Date::Manip->import(qw(ParseDate Date_Cmp UnixDate));
+				$debug and print "internal date from 1: [$d]\n";				
 				$d = UnixDate(ParseDate($d), "%d-%b-%Y %H:%M:%S %z");
 				$d = "\"$d\"";
 				$debug and print "internal date from 1: [$d] (fixed)\n";
@@ -1355,7 +1389,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
 				}
 				else {
-					$new_id = $to->append_file2($t_fold, $message_file, "", $flags_f, $d);
+					# just back to append_string since append_file 3.05 does not work. 
+					#$new_id = $to->append_file($t_fold, $message_file, "", $flags_f, $d);
+					# append_string 3.05 does not work too.
+					$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
 				}
 				unless($new_id){
 					warn "Couldn't append msg #$f_msg (Subject:[".
@@ -1382,7 +1419,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			else{
 				$mess_skipped_dry += 1;
 			}
-			unlink($message_file);
+			#unlink($message_file);
 			next MESS;
 		}
 		else{
@@ -1471,6 +1508,9 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 print "Time : ", timenext(), " s\n";
 }
+
+
+
 $from->logout();
 $to->logout();
 
@@ -1479,6 +1519,7 @@ $timeend = time();
 $timediff = $timeend - $timestart;
 
 stats();
+
 
 
 
@@ -1633,7 +1674,7 @@ sub parse_header_msg1 {
 	my $head = $s_heads->{$m_uid};
 	my $headnum =  scalar(keys(%$head));
 	$debug and print "Head NUM:", $headnum, "\n";
-	unless($headnum) { print "Warning : no header used or found \n"; }
+	unless($headnum) { print "Warning : no header used or found for message $m_uid\n"; }
 	my $headstr;
 	
 	foreach my $h (sort keys(%$head)){
@@ -1645,20 +1686,29 @@ sub parse_header_msg1 {
 			# and uppercase  header keywords 
 			# (dbmail and dovecot)
 			$val =~ s/^\s*(.+)$/$1/;
-			my $H = uc($h);
+			
+			#my $H = uc($h);
+			my $H = "$h: $val";
 			# show stuff in debug mode
 			$debug and print "${s}H $H:", $val, "\n";
+			
 			if ($skipheader and $H =~ m/$skipheader/i) {
-				$debug and print "Skipping header $h\n";
+				$debug and print "Skipping header $H\n";
 				next;
 			}
-			$headstr .= "$H:". $val;
+			#$headstr .= "$H:". $val;
+			$headstr .= "$H";
 		}
 	}
 	#return unless ($headstr);
 	unless ($headstr){
-		print "no header so taking everything\n";
-		$headstr = $imap->message_string($m_uid);
+		# taking everything is too heavy,
+		# should take only 1 Ko
+		#print "no header so taking everything\n";
+		#$headstr = $imap->message_string($m_uid);
+		
+		print "no header so we ignore this message\n";
+		return;
 	}
 	my $size  = $s_fir->{$m_uid}->{"RFC822.SIZE"};
 	my $flags = $s_fir->{$m_uid}->{"FLAGS"};
@@ -1791,7 +1841,8 @@ Several options are mandatory.
                          it will change in future releases.
 --expunge1             : expunge messages on source account.
 --expunge2             : expunge messages on target account.
---syncinternaldates    : sets the internal dates on host2 same as host1
+--syncinternaldates    : sets the internal dates on host2 same as host1.
+                         Turned on by default.
 --buffersize  <int>    : sets the size of a block of I/O.
 --maxsize     <int>    : skip messages larger than <int> bytes
 --maxage      <int>    : skip messages older than <int> days.
@@ -1863,27 +1914,24 @@ sub tests {
 	}
 }
 
+sub override_imapclient {
+no warnings 'redefine';
+no strict 'subs';
 
-package Mail::IMAPClient;
+use constant Unconnected => 0;
+use constant Connected         => 1;            # connected; not logged in
+use constant Authenticated => 2;                # logged in; no mailbox selected
+use constant Selected => 3;                     # mailbox selected
+use constant INDEX => 0;                        # Array index for output line number
+use constant TYPE => 1;                         # Array index for line type 
+                                                #    (either OUTPUT, INPUT, or LITERAL)
+use constant DATA => 2;                         # Array index for output line data
+use constant NonFolderArg => 1;                 # Value to pass to Massage to 
+                                                # indicate non-folder argument
 
 
-sub Authuser {
-	my $self = shift;
-	
-	if (@_) { $self->{AUTHUSER} = shift }
-	return $self->{AUTHUSER};
-}
 
-
-sub Split {
-	my $self = shift;
-	
-	if (@_) { $self->{SPLIT} = shift }
-	return $self->{SPLIT};
-}
-
-# From IMAPClient.pm
-sub append_file2 {
+*Mail::IMAPClient::append_file = sub  {
 
         my $self        = shift;
         my $folder      = $self->Massage(shift);
@@ -1917,7 +1965,7 @@ sub append_file2 {
         unless ($fh) {
                 $self->LastError("Unable to open $file: $!\n");
                 $@ = "Unable to open $file: $!" ;
-                carp "unable to open $file: $!" if $^W;
+                carp "unable to open $file: $!";
                 return undef;
         }
 
@@ -1955,12 +2003,12 @@ sub append_file2 {
                         $self->_record($count,$o);              # $o is already an array ref
                       ($code) = $o->[DATA] =~ /(^\+|^\d+\sNO|^\d+\sBAD)/i; 
                       if ($o->[DATA] =~ /^\*\s+BYE/) {
-                              carp $o->[DATA] if $^W;
+                              carp $o->[DATA];
                                 $self->State(Unconnected);
                                 $fh->close;
                                 return undef ;
                       } elsif ( $o->[DATA]=~ /^\d+\s+(NO|BAD)/i ) {
-                              carp $o->[DATA] if $^W;
+                              carp $o->[DATA];
                                 $fh->close;
                                 return undef;
                         }
@@ -1980,7 +2028,7 @@ sub append_file2 {
                         $fh->close;
                         return undef;
                 }
-                _debug $self, "control points to $$control\n" if ref($control) and $self->Debug;
+                _debug($self, "control points to $$control\n") if ref($control) and $self->Debug;
                 $/ =    ref($control) ?  "\x0a" : $control ? $control :         "\x0a";
                 while (defined($text = <$fh>)) {
                         $text =~ s/\x0d?\x0a/\x0d\x0a/g;
@@ -2018,12 +2066,12 @@ sub append_file2 {
                         # try to grab new msg's uid from o/p
                       $o->[DATA]  =~ m#UID\s+\d+\s+(\d+)\]# and $uid = $1; 
                       if ($o->[DATA] =~ /^\*\s+BYE/) {
-                              carp $o->[DATA] if $^W;
+                              carp $o->[DATA];
                                 $self->State(Unconnected);
                                 $fh->close;
                                 return undef ;
                       } elsif ( $o->[DATA]=~ /^\d+\s+(NO|BAD)/i ) {
-                              carp $o->[DATA] if $^W;
+                              carp $o->[DATA];
                                 $fh->close;
                                 return undef;
                         }
@@ -2037,10 +2085,12 @@ sub append_file2 {
 
 
         return defined($uid) ? $uid : $self;
-}
+};
 
-# From IMAPClient.pm
-sub fetch_hash2 {
+
+
+
+*Mail::IMAPClient::fetch_hash = sub {
 	# taken from original lib, 
 	# just added split code.
         my $self = shift;
@@ -2110,14 +2160,13 @@ sub fetch_hash2 {
         }
 }
         return wantarray ? %$hash : $hash;
-}
+};
 
 
-# From IMAPClient.pm
 
-sub login2 {
+*Mail::IMAPClient::login = sub {
         my $self = shift;
-        return $self->authenticate2($self->Authmechanism,$self->Authcallback) 
+        return $self->authenticate($self->Authmechanism,$self->Authcallback) 
                 if $self->{Authmechanism};
 
         my $id   = $self->User;
@@ -2134,17 +2183,18 @@ sub login2 {
                 return undef;
         };
         return $self;
-}
+};
 
-# From IMAPClient.pm
 
-sub parse_headers2 {
+
+
+*Mail::IMAPClient::parse_headers = sub {
         my($self,$msgspec_all,@fields) = @_;
         my(%fieldmap) = map { ( lc($_),$_ )  } @fields;
         my $msg; my $string; my $field;
 	
 	unless(ref($msgspec_all) eq 'ARRAY') {
-		print "parse_headers2 want an ARRAY ref\n";
+		print "parse_headers want an ARRAY ref\n";
 		exit 1;
 	}
 	
@@ -2185,7 +2235,8 @@ sub parse_headers2 {
         my $h = 0;              # reference to hash of current msgid, or 0 between msgs
         
         for my $header (map { split(/(?:\x0d\x0a)/,$_) } @raw) {
-                local($^W) = undef;
+                
+		no warnings;
                 if ( $header =~ /^\*\s+\d+\s+FETCH\s+\(.*BODY\[HEADER(?:\]|\.FIELDS)/i) {
                         if ($self->Uid) {
                                 if ( my($msgid) = $header =~ /UID\s+(\d+)/ ) {
@@ -2222,9 +2273,12 @@ sub parse_headers2 {
                 if ($h != 0) {                    # do we expect this to be a header?
                         my $hdr = $header;
                         chomp $hdr;
-                        $hdr =~ s/\r$//;   
-                        if ($hdr =~ s/^(\S+):\s*//) { 
-                                $field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
+                        $hdr =~ s/\r$//;
+			#print "W[$hdr]\n";
+			
+                        if (defined($hdr) and $hdr =~ s/^(\S+):\s*//) {
+			        #print "X";
+				$field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
                                 push @{$h->{$field}} , $hdr ;
                         } elsif ($hdr =~ s/^.*FETCH\s\(.*BODY\[HEADER\.FIELDS.*\)\]\s(\S+):\s*//) { 
                                 $field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
@@ -2252,12 +2306,10 @@ sub parse_headers2 {
         
 	return $headers;
         
-}
+};
 
 
-# From IMAPClient.pm
-
-sub authenticate2 {
+*Mail::IMAPClient::authenticate = sub {
 
         my $self        = shift;
         my $scheme      = shift;
@@ -2304,10 +2356,10 @@ sub authenticate2 {
         if ('CRAM-MD5' eq $scheme && ! $response) {
           if ($Mail::IMAPClient::_CRAM_MD5_ERR) {
             $self->LastError($Mail::IMAPClient::_CRAM_MD5_ERR);
-            carp $Mail::IMAPClient::_CRAM_MD5_ERR if $^W;
+            carp $Mail::IMAPClient::_CRAM_MD5_ERR;
           } 
 	  else {
-            $response = \&_cram_md5_2;
+            $response = \&Mail::IMAPClient::_cram_md5;
           }
         }
 
@@ -2343,17 +2395,21 @@ sub authenticate2 {
         $code =~ /^OK/ and $self->State(Authenticated) ;
         return $code =~ /^OK/ ? $self : undef ;
 
-}
+};
 
-sub _cram_md5_2 {
+
+
+*Mail::IMAPClient::_cram_md5 = sub  {
   my ($code, $client) = @_;
   my $hmac = Digest::HMAC_MD5::hmac_md5_hex(MIME::Base64::decode($code),
                                             $client->Password());
   return MIME::Base64::encode($client->User() . " $hmac", "");
-}
+};
 
 
-sub connect2 {
+
+
+*Mail::IMAPClient::connect = sub {
 	my $self = shift;
 	
 	$self->Port(143) 
@@ -2382,15 +2438,16 @@ sub connect2 {
 	#print "i03\n";
 	$self->Socket($sock);
 	$self->State(Connected);
-
+	#print "i04\n";
 	$sock->autoflush(1)				;
 	
 	my ($code, $output);
         $output = "";
-
+	#print "i05\n";
         until ( $code ) {
 
                 $output = $self->_read_line or return undef;
+		#print "i06\n";
                 for my $o (@$output) {
 			$self->_debug("Connect: Received this from readline: " . 
 					join("/",@$o) . "\n");
@@ -2414,3 +2471,24 @@ sub connect2 {
 	}
 }
 	
+
+
+}
+
+package Mail::IMAPClient;
+
+
+sub Authuser {
+	my $self = shift;
+	
+	if (@_) { $self->{AUTHUSER} = shift }
+	return $self->{AUTHUSER};
+}
+
+
+sub Split {
+	my $self = shift;
+	
+	if (@_) { $self->{SPLIT} = shift }
+	return $self->{SPLIT};
+}

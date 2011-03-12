@@ -2,8 +2,6 @@ use warnings;
 use strict;
 
 package Mail::IMAPClient::BodyStructure;
-our $VERSION   = '0.0.4';
-
 use Mail::IMAPClient::BodyStructure::Parse;
 
 # my has file scope, not limited to package!
@@ -177,7 +175,7 @@ BEGIN
 
 
 package Mail::IMAPClient::BodyStructure::Address;
-@ISA = qw/Mail::IMAPClient::BodyStructure/;
+our @ISA = qw/Mail::IMAPClient::BodyStructure/;
 
 for my $datum ( qw(personalname mailboxname hostname sourcename) )
 {   no strict 'refs';

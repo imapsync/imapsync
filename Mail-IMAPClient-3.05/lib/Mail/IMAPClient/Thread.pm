@@ -820,7 +820,7 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                                                                'hashname' => '__STRING1__',
                                                                                                'description' => '\'(\'',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => 274
+                                                                                               'line' => 177
                                                                                              }, 'Parse::RecDescent::InterpLit' ),
                                                                                       bless( {
                                                                                                'subrule' => 'threadmember',
@@ -831,19 +831,19 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                                                                'matchrule' => 0,
                                                                                                'repspec' => 's',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => 274
+                                                                                               'line' => 177
                                                                                              }, 'Parse::RecDescent::Repetition' ),
                                                                                       bless( {
                                                                                                'pattern' => ')',
                                                                                                'hashname' => '__STRING2__',
                                                                                                'description' => '\')\'',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => 274
+                                                                                               'line' => 177
                                                                                              }, 'Parse::RecDescent::InterpLit' ),
                                                                                       bless( {
                                                                                                'hashname' => '__ACTION1__',
                                                                                                'lookahead' => 0,
-                                                                                               'line' => 275,
+                                                                                               'line' => 178,
                                                                                                'code' => '{
 		$return = $item{\'threadmember(s)\'}||undef;	
 	}'
@@ -854,7 +854,7 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                               ],
                                                    'name' => 'thread',
                                                    'vars' => '',
-                                                   'line' => 274
+                                                   'line' => 177
                                                  }, 'Parse::RecDescent::Rule' ),
                               'NUMBER' => bless( {
                                                    'impcount' => 0,
@@ -877,7 +877,7 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                                                                'description' => '/\\\\d+/',
                                                                                                'lookahead' => 0,
                                                                                                'rdelim' => '/',
-                                                                                               'line' => 267,
+                                                                                               'line' => 170,
                                                                                                'mod' => '',
                                                                                                'ldelim' => '/'
                                                                                              }, 'Parse::RecDescent::Token' )
@@ -887,7 +887,7 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                               ],
                                                    'name' => 'NUMBER',
                                                    'vars' => '',
-                                                   'line' => 265
+                                                   'line' => 168
                                                  }, 'Parse::RecDescent::Rule' ),
                               'start' => bless( {
                                                   'impcount' => 0,
@@ -912,7 +912,7 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                                                               'description' => '/^\\\\* THREAD /i',
                                                                                               'lookahead' => 0,
                                                                                               'rdelim' => '/',
-                                                                                              'line' => 280,
+                                                                                              'line' => 183,
                                                                                               'mod' => 'i',
                                                                                               'ldelim' => '/'
                                                                                             }, 'Parse::RecDescent::Token' ),
@@ -925,12 +925,12 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                                                               'matchrule' => 0,
                                                                                               'repspec' => 's?',
                                                                                               'lookahead' => 0,
-                                                                                              'line' => 280
+                                                                                              'line' => 183
                                                                                             }, 'Parse::RecDescent::Repetition' ),
                                                                                      bless( {
                                                                                               'hashname' => '__ACTION1__',
                                                                                               'lookahead' => 0,
-                                                                                              'line' => 280,
+                                                                                              'line' => 183,
                                                                                               'code' => '{
 	$return=$item{\'thread(s?)\'}||undef;
 }'
@@ -941,7 +941,7 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                              ],
                                                   'name' => 'start',
                                                   'vars' => '',
-                                                  'line' => 279
+                                                  'line' => 182
                                                 }, 'Parse::RecDescent::Rule' ),
                               'threadmember' => bless( {
                                                          'impcount' => 0,
@@ -967,12 +967,12 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                                                                      'implicit' => undef,
                                                                                                      'argcode' => undef,
                                                                                                      'lookahead' => 0,
-                                                                                                     'line' => 271
+                                                                                                     'line' => 174
                                                                                                    }, 'Parse::RecDescent::Subrule' ),
                                                                                             bless( {
                                                                                                      'hashname' => '__ACTION1__',
                                                                                                      'lookahead' => 0,
-                                                                                                     'line' => 271,
+                                                                                                     'line' => 174,
                                                                                                      'code' => '{ $return = $item{NUMBER} ; }'
                                                                                                    }, 'Parse::RecDescent::Action' )
                                                                                           ],
@@ -993,21 +993,21 @@ package Mail::IMAPClient::Thread; sub new { my $self = bless( {
                                                                                                      'implicit' => undef,
                                                                                                      'argcode' => undef,
                                                                                                      'lookahead' => 0,
-                                                                                                     'line' => 272
+                                                                                                     'line' => 175
                                                                                                    }, 'Parse::RecDescent::Subrule' ),
                                                                                             bless( {
                                                                                                      'hashname' => '__ACTION1__',
                                                                                                      'lookahead' => 0,
-                                                                                                     'line' => 272,
+                                                                                                     'line' => 175,
                                                                                                      'code' => '{ $return = $item{thread} ; }'
                                                                                                    }, 'Parse::RecDescent::Action' )
                                                                                           ],
-                                                                               'line' => 271
+                                                                               'line' => 174
                                                                              }, 'Parse::RecDescent::Production' )
                                                                     ],
                                                          'name' => 'threadmember',
                                                          'vars' => '',
-                                                         'line' => 269
+                                                         'line' => 172
                                                        }, 'Parse::RecDescent::Rule' )
                             }
                }, 'Parse::RecDescent' );

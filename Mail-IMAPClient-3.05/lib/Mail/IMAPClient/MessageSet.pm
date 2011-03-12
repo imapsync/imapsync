@@ -5,7 +5,7 @@ package Mail::IMAPClient::MessageSet;
 
 =head1 NAME
 
-Mail::IMAPClient::MessageSet -- ranges of message sequence nummers
+Mail::IMAPClient::MessageSet - ranges of message sequence nummers
 
 =cut
 
@@ -26,6 +26,7 @@ sub new
 sub str { overload::StrVal( ${$_[0]} ) }
 
 sub _unfold_range($)
+# {   my $x = shift; return if $x =~ m/[^0-9,:]$/; $x =~ s/\:/../g; eval $x; }
 {   map { /(\d+)\s*\:\s*(\d+)/ ? ($1..$2) : $_ }
         split /\,/, shift;
 }
@@ -33,7 +34,7 @@ sub _unfold_range($)
 sub rem
 {   my $self   = shift;
     my %delete = map { ($_ => 1) } map { _unfold_range $_ } @_;
-    $$self     = $self->range(map {$delete{$_} ? () : $_ } $self->unfold);
+    $$self     = $self->range(grep {not $delete{$_}} $self->unfold);
     $self;
 }
 

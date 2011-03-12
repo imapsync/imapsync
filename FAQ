@@ -4,6 +4,21 @@
 +------------------+
 
 =======================================================================
+Q. How to install impasync ?
+
+R. http://www.linux-france.org/prj/imapsync/INSTALL
+
+=======================================================================
+Q. How to configure impasync ?
+
+R. http://www.linux-france.org/prj/imapsync/README
+
+=======================================================================
+Q. Can you give some configuration examples ?
+
+R. http://www.linux-france.org/prj/imapsync/FAQ
+
+=======================================================================
 Q. Where I can read IMAP RFCs ?
 
 R. 
@@ -25,6 +40,20 @@ http://www.faqs.org/rfcs/rfc4549.html
 Q. Where I can find old imapsync releases ?
 
 R. ftp://www.linux-france.org/pub/prj/imapsync/
+
+=======================================================================
+Q. imapsync does not work with Mail::IMAPClient 3.0.x
+   How can I downgrade to 2.2.9 release?
+
+R. - Download Mail::IMAPClient 2.2.9 at 
+   http://search.cpan.org/~djkernen/Mail-IMAPClient-2.2.9/
+   http://search.cpan.org/CPAN/authors/id/D/DJ/DJKERNEN/Mail-IMAPClient-2.2.9.tar.gz
+   - untar it anywhere:
+        tar xzvf Mail-IMAPClient-2.2.9.tar.gz
+   - run imapsync with perl and -I option tailing to use Mail-IMAPClient-2.2.9:
+        perl -I./Mail-IMAPClient-2.2.9 imapsync [...]
+     or if imapsync is in directory /path/
+        perl -I./Mail-IMAPClient-2.2.9 /path/imapsync [...]
 
 =======================================================================
 Q. We have found that the sent time and date have been changed to the 
@@ -121,6 +150,17 @@ The default hard datasize limit on FreeBSD is 512MB. To raise it, put this
 (or more) in /boot/loader.conf and reboot:
 
 kern.maxdsiz="1024M"
+
+=======================================================================
+Q. With huge account (many messages) when it comes to reading the
+destination server it comes out this error:
+"To   Folder [INBOX.foobar] Not connected" 
+What can I do ?
+
+R. May be spending too much time on the source server, the connection 
+timed out on the destination server.
+Try options :
+  --nofoldersizes --useheader Message-ID --fast
 
 =======================================================================
 Q. imapsync failed with a "word too long" error from the imap server,
