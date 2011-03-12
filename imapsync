@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.6 $
+$Revision: 1.7 $
 
 =head1 INSTALL
 
@@ -15,7 +15,10 @@ $Revision: 1.6 $
 
 =head1 SYNOPSIS
 
-  imapsync [options] SOURCE DEST
+  imapsync [options]
+
+  imapsync --help
+  imapsync
 
   imapsync [--host1 server1]  [--port1 <num>]
            [--user1 <string>] [--passfile1 <string>] 
@@ -26,9 +29,6 @@ $Revision: 1.6 $
            [--dry]
            [--debug] [--debugimap]
            [--version] [--help]
-
-  imapsync --help
-  imapsync
   
 =cut
 # comment
@@ -45,7 +45,17 @@ another. This is called migration.
 imapsync is the adequate tool because it reduces the amount of data
 transfered by not transfering a given message if it is already on
 both sides. All flags are preserved, unread will stay unread, read
-will stay read, deleted will stay deleted.
+will stay read, deleted will stay deleted. You can stop the
+transfert at any time and restart it later, imapsync is adapted
+to a bad connection.
+
+You can decide to delete the messages from the source mailbox
+after a successful transfert (it is a good feature when migrating).
+In that case, use the --delete option, and run imapsync again
+with the --expunge option.
+
+You can also just synchronize a mailbox A from another mailbox B
+in case you just want to keep a "live" copy of B in A.
 
 =head1 OPTIONS
 
@@ -61,7 +71,7 @@ every mailbox was well
 transfered and delete it after a good transfert. imapsync started its life
 being a copy_folder.pl patch.
 The tool copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl 
-module tarball source (in the examples/ directory).
+module tarball source (in the examples/ directory of the tarball).
 
 =head1 EXAMPLES
 
@@ -110,7 +120,7 @@ Report any bugs to the author: lamiral@linux-france.org
 None known.
 Feedback will be welcome.
 
-$Id: imapsync,v 1.6 2003/03/14 02:17:24 gilles Exp gilles $
+$Id: imapsync,v 1.7 2003/03/15 03:40:54 gilles Exp gilles $
 
 =cut
 
@@ -135,7 +145,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.6 2003/03/14 02:17:24 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.7 2003/03/15 03:40:54 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
