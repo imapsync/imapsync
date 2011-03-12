@@ -1,8 +1,13 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.15 2004/03/11 05:32:08 gilles Exp $	
+# $Id: tests.sh,v 1.16 2004/03/21 23:24:42 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.16  2004/03/21 23:24:42  gilles
+# Added
+# lp_skipsize()
+# lp_skipheader()
+#
 # Revision 1.15  2004/03/11 05:32:08  gilles
 # Added bad_login()
 # Added bad_host()
@@ -306,6 +311,8 @@ lp_maxage()
 	fi
 }
 
+
+
 lp_maxsize() 
 {
 	sendtestmessage
@@ -321,6 +328,40 @@ lp_maxsize()
 		:
 	fi
 }
+
+lp_skipsize() 
+{
+	sendtestmessage
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--skipsize --folder INBOX.yop.yap
+	else
+		:
+	fi
+}
+
+lp_skipheader() 
+{
+	sendtestmessage
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--skipheader 'X-.*' --folder INBOX.yop.yap
+	else
+		:
+	fi
+}
+
+
 
 lp_include() 
 {
@@ -384,7 +425,9 @@ test $# -eq 0 && run_tests \
 	lp_include \
 	bad_login \
 	bad_host \
-	lp_noauthmd5
+	lp_noauthmd5 \
+        lp_skipsize \
+        lp_skipheader
 
 # selective tests
 

@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.86 $
+$Revision: 1.77 $
 
 =head1 INSTALL
 
@@ -44,8 +44,6 @@ $Revision: 1.86 $
            [--syncinternaldates]
 	   [--maxsize <int>]
 	   [--maxage <int>]
-           [--skipheader <regex>]
-           [--skipsize]
            [--delete] [--expunge]
            [--subscribed] [--subscribe]
            [--dry]
@@ -168,9 +166,7 @@ Success stories reported (softwares in alphabetic order) :
  - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.1.16, 2.2.1, Cyrus 2.2.2-BETA
  - DBMail 1.2.1
  - Dovecot 0.99.10.4
- - Domino (Notes) 6.5
- - iPlanet Messaging server 4.15, 5.1
- - IMail 7.15 (Ipswitch/Win2003)
+ - iPlanet Messaging server 4.15
  - Netscape Mail Server 3.6 (Wintel !)
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
@@ -246,13 +242,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-=head1 AUTHOR
-
-Gilles LAMIRAL earn his living writing, installing,
-configuring and teaching free open and gratis
-softwares. Don't hesitate to pay him for that services.
-
-$Id: imapsync,v 1.86 2004/03/21 23:25:47 gilles Exp $
+$Id: imapsync,v 1.77 2004/03/11 05:33:22 gilles Exp $
 
 =cut
 
@@ -275,7 +265,6 @@ my(
         $sep1, $sep2,
 	$syncinternaldates,
 	$maxsize, $maxage,
-        $skipheader, $skipsize,
 	$delete, $expunge, $dry, 
         $authmd5,
         $subscribed, $subscribe,
@@ -290,7 +279,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.86 2004/03/21 23:25:47 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.77 2004/03/11 05:33:22 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -326,8 +315,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.86 $ ',
-		  '$Date: 2004/03/21 23:25:47 $ ',
+		  '$Revision: 1.77 $ ',
+		  '$Date: 2004/03/11 05:33:22 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -384,8 +373,7 @@ $debugimap and print "To  connection\n";
 $to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout);
 
 sub login_imap {
-	my($host, $port, $user, $password, 
-	   $debugimap, $timeout, $authmech) = @_;
+	my($host, $port, $user, $password, $debugimap, $timeout, $authmech) = @_;
 	my $imap = Mail::IMAPClient->new();
 	$imap->Server($host);
 	$imap->Port($port);
@@ -400,7 +388,7 @@ sub login_imap {
         $imap->Timeout($timeout);
         print "Setting imap timeout to $timeout\n";
     }
-
+	
 	$imap->User($user);
 	$imap->Password($password);
 	md5auth($imap);
@@ -519,6 +507,14 @@ exit if ($justconnect);
 
 
 @t_folders = sort @{$to->folders()};
+for (my $i=0; $i<scalar(@t_folders); $i++)     # whr (ESS/PRW)
+{
+    if ( $t_folders[$i] =~ /^INBOX\/INBOX$/ )
+    {
+        $t_folders[$i] = "INBOX";
+    }
+}
+
 print 
   "From folders : ", map("[$_] ",@f_folders),"\n",
   "To   folders : ", map("[$_] ",@t_folders),"\n";
@@ -544,6 +540,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	
 	$t_fold = separator_invert($f_fold,$f_sep, $t_sep);
 	$t_fold = $prefix2 . $t_fold if ($prefix2);
+    $t_fold='INBOX' if ($t_fold eq 'INBOX/INBOX');  # whr (ESS/PRW)
 	print "To   Folder [$t_fold]\n";
 
 	unless ($from->select($f_fold)) {
@@ -564,6 +561,9 @@ FOLDER: foreach my $f_fold (@f_folders) {
 				$error++;
 				next FOLDER;
 			}
+            $to->subscribe($t_fold);                # whr (ESS/PRW)
+            $to->setacl($t_fold,'root','c');        # whr (ESS/PRW)
+
 		}else{
 			next FOLDER;
 		}
@@ -753,11 +753,9 @@ sub get_options
                                    "justconnect!"=> \$justconnect,
                                    "version"     => \$version,
                                    "help"        => \$help,
-                                   "timeout=i"   => \$timeout,
-				   "skipheader=s" => \$skipheader,
-				   "skipsize!"   => \$skipsize,
+                                   "timeout=i"        => \$timeout, # whr (ESS/PRW)
                                   );
-
+          
         $debug and print "get options: [$opt_ret]\n";
 
 	# just the version
@@ -780,27 +778,19 @@ sub parse_header_msg {
 	my $head = $imap->parse_headers($m,"ALL");
 	my $headstr;
 	$debug and print "Head NUM:", scalar(keys(%$head)), "\n";
-	# no header -> return
 	return unless(scalar(keys(%$head)));	    
 	foreach my $h (sort keys(%$head)){
-		foreach my $val (sort @{$head->{$h}}) {
+		foreach my $val ( @{$head->{$h}}) {
 			# no 8-bit data in headers !
 			$val =~ s/[\x80-\xff]/X/g;
-			# remove the first blanks (dbmail bug ?)
-			$val =~ s/^\s+//;
-			# show stuff in debug mode
 			$debug and print "${s}H $h:", $val, "\n";
-			if ($skipheader and $h =~ m/$skipheader/) {
-				$debug and print "Skipping header $h\n";
-				next;
-			}
 			$headstr .= "$h:". $val;
 		}
 	}
 	my $m_md5 = md5_base64($headstr);
 	my $size = $imap->size($m);
 	$debug and print "$s msg $m:$m_md5:$size\n";
-	$size = 0 if ($skipsize);
+	
 	$s_hash->{"$m_md5:$size"}{'5'} = "$m_md5:$size";
 	$s_hash->{"$m_md5:$size"}{'s'} = $size;
 	$s_hash->{"$m_md5:$size"}{'m'} = $m;
@@ -863,9 +853,6 @@ Several options are mandatory.
 --maxsize     <int>    : skip messages larger than <int> bytes
 --maxage      <int>    : skip messages older than <int> days.
                          final stats (skipped) don't count older messages
---skipheader  <regex>  : Don't take into account header keyword 
-                         matching <string> ex: --skipheader 'X.*'
---skipsize             : Don't take message size into account.
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfer only subscribed folders.
 --subscribe            : subscribe to the folders transfered on the 
