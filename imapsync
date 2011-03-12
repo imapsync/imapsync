@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.107 $
+$Revision: 1.108 $
 
 =head1 INSTALL
 
@@ -281,7 +281,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.107 2004/12/28 23:24:05 gilles Exp $
+$Id: imapsync,v 1.108 2004/12/29 03:19:48 gilles Exp $
 
 =cut
 
@@ -323,7 +323,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.107 2004/12/28 23:24:05 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.108 2004/12/29 03:19:48 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -360,8 +360,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.107 $ ',
-		  '$Date: 2004/12/28 23:24:05 $ ',
+		  '$Revision: 1.108 $ ',
+		  '$Date: 2004/12/29 03:19:48 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -641,14 +641,15 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	
 	$t_fold = separator_invert($f_fold,$f_sep, $t_sep);
 
+	# Adding the prefix supplied by the --prefix2 option
+	$t_fold = $prefix2 . $t_fold if ($prefix2);
+
 	# Transforming the folder name by the --regextrans2 option
 	if ($regextrans2) {
 		$debug and print "eval \$t_fold =~ $regextrans2\n";
 		eval("\$t_fold =~ $regextrans2");
 	}
 
-	# Adding the prefix supplied by the --prefix2 option
-	$t_fold = $prefix2 . $t_fold if ($prefix2);
 	print "To   Folder [$t_fold]\n";
 
 	unless ($from->select($f_fold)) {
