@@ -7,15 +7,18 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.213 $
+$Revision: 1.217 $
 
 =head1 INSTALL
 
  imapsync works fine under any Unix OS with perl.
  imapsync works fine under Windows 2000 (at least) and ActiveState's 5.8 Perl
 
- imapsync is already available on the following distributions (at least):
- FreeBSD, Debian, Gentoo, NetBSD.
+ imapsync is already available directly on the following distributions (at least):
+ FreeBSD, Debian, Gentoo, NetBSD, Darwin, Mandriva.
+
+ imapsync is already available directly on the following distributions:
+ OpenBSD
 
  Get imapsync at
  http://www.linux-france.org/prj/imapsync/dist/
@@ -35,8 +38,12 @@ $Revision: 1.213 $
 
   imapsync [options]
 
+To get a description of each option just run imapsync like this :
+
   imapsync --help
   imapsync
+
+The option list :
 
   imapsync [--host1 server1]  [--port1 <num>]
            [--user1 <string>] [--passfile1 <string>]
@@ -79,8 +86,10 @@ $Revision: 1.213 $
 
 =head1 DESCRIPTION
 
-The command imapsync is a tool allowing incremental and recursive
-imap transfer from one mailbox to another.
+The command imapsync is a tool allowing incremental and
+recursive imap transfer from one mailbox to another. 
+
+By default all folders are transfered, recursively.
 
 We sometimes need to transfer mailboxes from one imap server to
 another. This is called migration.
@@ -105,7 +114,9 @@ in case you just want to keep a "live" copy of B in A.
 
 =head1 OPTIONS
 
-Invoke: imapsync --help
+To get a description of each option just invoke: 
+
+imapsync --help
 
 =head1 HISTORY
 
@@ -132,7 +143,7 @@ To synchronize the imap account "buddy" on host
  imapsync --host1 imap.src.fr  --user1 buddy --passfile1 /etc/secret1 \
           --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
 
-Then, you will have buddy's mailbox updated from max's
+Then, you will have max's mailbox updated from buddy's
 mailbox.
 
 =head1 SECURITY
@@ -360,7 +371,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.213 2007/02/16 04:07:19 gilles Exp $
+$Id: imapsync,v 1.217 2007/03/06 13:12:23 gilles Exp $
 
 
 
@@ -419,7 +430,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.213 2007/02/16 04:07:19 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.217 2007/03/06 13:12:23 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -456,8 +467,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.213 $ ',
-		  '$Date: 2007/02/16 04:07:19 $ ',
+		  '$Revision: 1.217 $ ',
+		  '$Date: 2007/03/06 13:12:23 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -1877,7 +1888,7 @@ sub fetch_hash2 {
 
 sub login2 {
         my $self = shift;
-        return $self->authenticate($self->Authmechanism,$self->Authcallback) 
+        return $self->authenticate2($self->Authmechanism,$self->Authcallback) 
                 if $self->{Authmechanism};
 
         my $id   = $self->User;
@@ -2010,4 +2021,101 @@ sub parse_headers2 {
         
 	return $headers;
         
+}
+
+
+# From IMAPClient.pm
+
+sub authenticate2 {
+
+        my $self        = shift;
+        my $scheme      = shift;
+        my $response    = shift;
+
+        $scheme   ||= $self->Authmechanism;
+        $response ||= $self->Authcallback;
+        my $clear = $self->Clear;
+
+        $self->Clear($clear)
+                if $self->Count >= $clear and $clear > 0;
+
+        my $count       = $self->Count($self->Count+1);
+
+
+        my $string = "$count AUTHENTICATE $scheme";
+
+        $self->_record($count,[ $self->_next_index($self->Transaction), 
+                                "INPUT", "$string\x0d\x0a"] );
+
+        my $feedback = $self->_send_line("$string");
+
+        unless ($feedback) {
+                $self->LastError("Error sending '$string' to IMAP: $!\n");
+                return undef;
+        }
+
+        my ($code, $output);
+
+        until ($code) {
+                $output = $self->_read_line or return undef;
+                foreach my $o (@$output) {
+                        $self->_record($count,$o);      # $o is a ref
+                        ($code) = $o->[DATA] =~ /^\+(.*)$/ ;
+                        if ($o->[DATA] =~ /^\*\s+BYE/) {
+                                $self->State(Unconnected);
+                                return undef ;
+                        }
+                }
+        }
+
+        return undef if $code =~ /^BAD|^NO/ ;
+
+        if ('CRAM-MD5' eq $scheme && ! $response) {
+          if ($Mail::IMAPClient::_CRAM_MD5_ERR) {
+            $self->LastError($Mail::IMAPClient::_CRAM_MD5_ERR);
+            carp $Mail::IMAPClient::_CRAM_MD5_ERR if $^W;
+          } else {
+            $response = \&_cram_md5_2;
+          }
+        }
+
+        $feedback = $self->_send_line($response->($code, $self));
+
+        unless ($feedback) {
+                $self->LastError("Error sending append msg text to IMAP: $!\n");
+                return undef;
+        }
+
+        $code = "";     # clear code
+        until ($code) {
+                $output = $self->_read_line or return undef;
+                foreach my $o (@$output) {
+                        $self->_record($count,$o);      # $o is a ref
+                        if ( ($code) = $o->[DATA] =~ /^\+ (.*)$/ ) {
+                                $feedback = $self->_send_line($response->($code,$self));
+                                unless ($feedback) {
+                                        $self->LastError("Error sending append msg text to IMAP: $!\n");
+                                        return undef;
+                                }
+                                $code = "" ;            # Clear code; we're still not finished
+                        } else {
+                                $o->[DATA] =~ /^$count (OK|NO|BAD)/ and $code = $1;
+                                if ($o->[DATA] =~ /^\*\s+BYE/) {
+                                        $self->State(Unconnected);
+                                        return undef ;
+                                }
+                        }
+                }
+        }
+
+        $code =~ /^OK/ and $self->State(Authenticated) ;
+        return $code =~ /^OK/ ? $self : undef ;
+
+}
+
+sub _cram_md5_2 {
+  my ($code, $client) = @_;
+  my $hmac = Digest::HMAC_MD5::hmac_md5_hex(MIME::Base64::decode($code),
+                                            $client->Password());
+  return MIME::Base64::encode($client->User() . " $hmac", "");
 }
