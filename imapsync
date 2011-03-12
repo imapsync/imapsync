@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.31 $
+$Revision: 1.37 $
 
 =head1 INSTALL
 
@@ -146,7 +146,7 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.31 2003/08/28 16:07:28 gilles Exp $
+$Id: imapsync,v 1.37 2003/10/16 01:37:52 gilles Exp $
 
 =cut
 
@@ -169,12 +169,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.31 2003/08/28 16:07:28 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.37 2003/10/16 01:37:52 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.31 $ ' . '$Date: 2003/08/28 16:07:28 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.37 $ ' . '$Date: 2003/10/16 01:37:52 $ ' . "\n";
 
 
 get_options();
@@ -318,44 +318,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	$debug and print "From Parse\n";
 	foreach my $m (@f_msgs) {
-		$debug and print "-" x 50, "\nMSG $m\n";
-		my $head = $from->parse_headers($m,"ALL");
-		my $headstr;
-		$debug and print "Head NUM:", scalar(keys(%$head)), "\n";
-        	next unless(scalar(keys(%$head)));	    
-		foreach my $h (sort keys(%$head)){
-			my $val = $head->{$h}[0];
-			# no accent in headers !
-			$val =~ y/יטאש/XXXX/;
-			$debug and print "H $h:", $val, "\n";
-			$headstr .= "$h:". $val;
-		}
-		my $m_md5 = md5_base64($headstr);
-		my $size = $from->size($m);
-		$debug and print "From $m:$m_md5:$size\n";
-
-		$f_hash{"$m_md5:$size"}{'5'} = "$m_md5:$size";
-		$f_hash{"$m_md5:$size"}{'s'} = $size;
-		$f_hash{"$m_md5:$size"}{'m'} = $m;
+		parse_header_msg($m, $from, "F", \%f_hash);
 	}
     
 	$debug and print "To   Parse\n";
 	foreach my $m (@t_msgs) {
-		$debug and print "-" x 50, "\nMSG $m\n";
-		my $head = $to->parse_headers($m,"ALL");
-        	my $headstr;
-		$debug and print "Head NUM:", scalar(keys(%$head)), "\n";
-		next unless(scalar(keys(%$head)));
-		foreach my $h (sort keys(%$head)){
-            		$debug and print "$h:", $head->{$h}[0], "\n";
-            		$headstr .= "$h:".$head->{$h}[0];
-        	}
-        	my $m_md5 = md5_base64($headstr);
-		my $size = $to->size($m);
-		$debug and print "To   $m:$m_md5:$size\n";
-		$t_hash{"$m_md5:$size"}{'5'} = "$m_md5:$size";
-        	$t_hash{"$m_md5:$size"}{'s'} = $size;
-        	$t_hash{"$m_md5:$size"}{'m'} = $m;
+		parse_header_msg($m, $to, "T", \%t_hash);
 	}
 	$debug and print "Verifying\n";
 	# messages in "from" that are not good in "to"
@@ -370,6 +338,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			print "Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			unless ($dry) {
 				my $string = $from->message_string($f_msg);
+				#my $d = $from->internaldate($f_msg);
+				#my $date_f = `date -d"$d" "+%d-%b-%Y %T %z"`;
+				#print "date from 1: [$d]\n";
+				#print "date from 2: [$date_f]\n";
 				my $flags_f = join(" ", @{$from->flags($f_msg)});
 				my $new_id;
 				print "flags from : [$flags_f]\n";
@@ -404,7 +376,15 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		$debug and print 
 		  "flags from : @flags_f\n",
 		  "flags to   : @flags_t\n";
-		
+		$debug and print "Looking dates\n"; 
+		my $d_f = $from->internaldate($f_msg);
+		my $d_t = $to->internaldate($t_msg);
+		$debug and print 
+		  "idate from : $d_f\n",
+		  "idate to   : $d_t\n";
+		#unless ($d_f eq $d_t) {
+		#	print "!!! Dates differ !!!\n";
+		#}
 		unless ($f_size == $t_size) {
 			# Bad size
 			print 
@@ -470,6 +450,31 @@ sub get_options
 	
 }
 
+
+sub parse_header_msg {
+
+	my ($m, $imap, $s, $s_hash) = @_;
+	$debug and print "-" x 50, "\nMSG $m\n";
+	my $head = $imap->parse_headers($m,"ALL");
+	my $headstr;
+	$debug and print "Head NUM:", scalar(keys(%$head)), "\n";
+	return unless(scalar(keys(%$head)));	    
+	foreach my $h (sort keys(%$head)){
+		foreach my $val ( @{$head->{$h}}) {
+			# no accent in headers !
+			$val =~ y/יטאש/XXXX/;
+			$debug and print "${s}H $h:", $val, "\n";
+			$headstr .= "$h:". $val;
+		}
+	}
+	my $m_md5 = md5_base64($headstr);
+	my $size = $imap->size($m);
+	$debug and print "$s msg $m:$m_md5:$size\n";
+	
+	$s_hash->{"$m_md5:$size"}{'5'} = "$m_md5:$size";
+	$s_hash->{"$m_md5:$size"}{'s'} = $size;
+	$s_hash->{"$m_md5:$size"}{'m'} = $m;
+}
 
 sub  firstline {
         # extract the first line of a file (without \n)
