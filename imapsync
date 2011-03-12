@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.139 $
+$Revision: 1.140 $
 
 =head1 INSTALL
 
@@ -54,7 +54,7 @@ $Revision: 1.139 $
            [--skipheader <regex>]
            [--useheader <string>] [--useheader <string>]
            [--skipsize]
-           [--delete] [--expunge]
+           [--delete] [--expunge] [--expunge1] [--expunge2] 
            [--subscribed] [--subscribe]
            [--nofoldersizes]
            [--dry]
@@ -86,7 +86,7 @@ connection.
 You can decide to delete the messages from the source mailbox
 after a successful transfert (it is a good feature when migrating).
 In that case, use the --delete option, and run imapsync again
-with the --expunge option.
+with the --expunge1 option.
 
 You can also just synchronize a mailbox A from another mailbox B
 in case you just want to keep a "live" copy of B in A.
@@ -246,6 +246,8 @@ Have a special attention on options
 --subscribe
 --delete
 --expunge
+--expunge1
+--expunge2
 --maxage
 --maxsize
 --useheader
@@ -303,7 +305,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.139 2005/07/16 12:46:22 gilles Exp gilles $
+$Id: imapsync,v 1.140 2005/10/30 10:16:52 gilles Exp $
 
 =cut
 
@@ -330,7 +332,7 @@ my(
 	$maxsize, $maxage,
         $skipheader, @useheader,
         $skipsize, $foldersizes, $buffersize,
-	$delete, $expunge, $dry, 
+	$delete, $expunge, $expunge1, $expunge2, $dry, 
         $authmd5,
         $subscribed, $subscribe,
 	$version, $VERSION, $help, 
@@ -348,7 +350,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.139 2005/07/16 12:46:22 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.140 2005/10/30 10:16:52 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -385,8 +387,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.139 $ ',
-		  '$Date: 2005/07/16 12:46:22 $ ',
+		  '$Revision: 1.140 $ ',
+		  '$Date: 2005/10/30 10:16:52 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -958,6 +960,15 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			}
 		}
 	}
+	if ($expunge1){
+		print "Expunging source folder $f_fold\n";
+		unless($dry) { $from->expunge() };
+	}
+	if ($expunge2){
+		print "Expunging target folder $t_fold\n";
+		unless($dry) { $to->expunge() };
+	}
+
 print "Time : ", timenext(), " s\n";
 }
 
@@ -1156,6 +1167,8 @@ Several options are mandatory.
                          are expunged if option --expunge is given.
                          no expunge is done on destination account but
                          it will change in future releases.
+--expunge1             : expunge messages on source account.
+--expunge2             : expunge messages on target account.
 --syncinternaldates    : sets the internal dates on host2 same as host1
 --buffersize  <int>    : sets the size of a block of I/O.
 --maxsize     <int>    : skip messages larger than <int> bytes
