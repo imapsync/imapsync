@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.68 $
+$Revision: 1.71 $
 
 =head1 INSTALL
 
@@ -37,10 +37,13 @@ $Revision: 1.68 $
            [--host2 server2]  [--port2 <num>]
            [--user2 <string>] [--passfile2 <string>] 
            [--folder <string> --folder <string> ...]
+	   [--include <regex>] [--exclude <regex>]
            [--prefix2 <string>]
            [--sep1 <char>]
            [--sep2 <char>]
-           [--syncinternaldate]
+           [--syncinternaldates]
+	   [--maxsize <int>]
+	   [--maxage <int>]
            [--delete] [--expunge]
            [--subscribed] [--subscribe]
            [--dry]
@@ -190,6 +193,8 @@ Have a special attention on options
 --subscribe
 --delete
 --expunge
+--maxage
+--maxsize
 
 If you have many mailboxes to migrate think about a little
 shell program. Write a file called file.csv (for example)
@@ -224,7 +229,7 @@ Welcome in shell programming !
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.68 2004/01/28 03:49:29 gilles Exp $
+$Id: imapsync,v 1.71 2004/01/29 04:28:36 gilles Exp $
 
 =cut
 
@@ -243,19 +248,23 @@ my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-        @folder, $prefix2,
+        @folder, $include, $exclude, $prefix2,
         $sep1, $sep2,
 	$syncinternaldates,
+	$maxsize, $maxage,
 	$delete, $expunge, $dry, 
         $subscribed, $subscribe,
 	$version, $VERSION, $help, 
         $justconnect,
+        $mess_size_total_trans,
+        $mess_size_total_skipped,
+        $mess_size_total_error,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.68 2004/01/28 03:49:29 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.71 2004/01/29 04:28:36 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -263,6 +272,10 @@ my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
 
 my $md5_supported = 0;
 $md5_supported = md5_supported();
+
+$mess_size_total_trans   = 0;
+$mess_size_total_skipped = 0;
+$mess_size_total_error   = 0;
 
 sub md5_supported {
 	
@@ -286,8 +299,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.68 $ ',
-		  '$Date: 2004/01/28 03:49:29 $ ',
+		  '$Revision: 1.71 $ ',
+		  '$Date: 2004/01/29 04:28:36 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -373,10 +386,19 @@ if (scalar(@folder)) {
 	@f_folders = @folder;
 }elsif ($subscribed) {
 	# option --subscribed
-	@f_folders = keys (%fs_folders);
+	@f_folders = sort keys (%fs_folders);
 }else {
 	# no option, all folders
-	@f_folders = $from->folders()
+	@f_folders = sort $from->folders();
+	# consider (optional) includes and excludes
+	if ($include) {
+		@f_folders = grep  /$include/,@f_folders;
+		print "Only including folders matching pattern '$include'\n";
+	}
+	if ($exclude) {
+		@f_folders = grep !/$exclude/,@f_folders;
+		print "Excluding folders matching pattern '$exclude'\n";
+	}
 }
 
 my($f_sep,$t_sep); 
@@ -419,13 +441,13 @@ exit if ($justconnect);
 # my $tohasuidplus = $to->has_capability("UIDPLUS");
 
 
-@t_folders = @{$to->folders()};
+@t_folders = sort @{$to->folders()};
 print 
   "From folders : ", map("[$_] ",@f_folders),"\n",
   "To   folders : ", map("[$_] ",@t_folders),"\n";
 
 print 
-  "From subscribed folders : ", map("[$_] ", keys(%fs_folders)), "\n";
+  "From subscribed folders : ", map("[$_] ", sort keys(%fs_folders)), "\n";
 
 sub separator_invert {
 	my $o_sep="\000";
@@ -489,9 +511,11 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		unless($dry) { $to->subscribe($t_fold) };
 	}
 	
-	my @f_msgs = $from->search("ALL");
+	my @f_msgs = $maxage ? $from->since(time - 86400 * $maxage) : $from->search("ALL");
 	$debug and print "LIST FROM : @f_msgs\n";
-	my @t_msgs = $to->search("ALL");
+	# internal dates on "TO" are after the ones on "FROM"
+	# normally...
+	my @t_msgs = $maxage ? $to->since(time - 86400 * $maxage) : $to->search("ALL");
 	$debug and print "LIST TO   : @t_msgs\n";
 
 	my %f_hash = ();
@@ -512,6 +536,11 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	MESS: foreach my $m_id (keys(%f_hash)) {
 		my $f_size = $f_hash{$m_id}{'s'};
 		my $f_msg = $f_hash{$m_id}{'m'};
+		if (defined $maxsize and $f_size > $maxsize) {
+			print "Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit $maxsize bytes)\n";
+			$mess_size_total_skipped += $f_msg;
+			next MESS;
+		}
 		$debug and print "key     $m_id #$f_msg\n";
 		unless (exists($t_hash{$m_id})) {
 			print "NO msg #$f_msg [$m_id] in $t_fold\n";
@@ -530,20 +559,24 @@ FOLDER: foreach my $f_fold (@f_folders) {
 				my $new_id;
 				print "flags from : [$flags_f][$d]\n";
 				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
-					warn "Couldn't append msg #$f_msg to folder $t_fold",
+					warn "Couldn't append msg #$f_msg (Subject: ".$from->subject($f_msg).") to folder $t_fold: ",
 					$to->LastError, "\n";
 					$error++;
+					$mess_size_total_error += $f_size;
 					next MESS;
+					
 				}else{
 					# good
 					# $new_id is an id if the IMAP server has the 
 					# UIDPLUS capability else just a ref
 					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
+					$mess_size_total_trans += $f_size;
 				}
 			}
 	    		next MESS;
 		}else{
 			$debug and print "Message id [$m_id] found in t:$t_fold\n";
+			$mess_size_total_skipped += $f_size;
 		}
 		
 		#$debug and print "MESSAGE $m_id\n"; 
@@ -599,6 +632,9 @@ stats();
 exit(1) if($error);
 
 sub stats {
+	print "Total bytes transfered : $mess_size_total_trans\n";
+	print "Total bytes skipped    : $mess_size_total_skipped\n";
+	print "Total bytes error      : $mess_size_total_error\n";
 	print "Detected $error errors\n";
 
 }
@@ -623,9 +659,13 @@ sub get_options
                                    "sep1=s"      => \$sep1,
                                    "sep2=s"      => \$sep2,
 				   "folder=s"    => \@folder,
+				   "include=s"   => \$include,
+				   "exclude=s"   => \$exclude,
 				   "prefix2=s"   => \$prefix2,
                                    "delete!"     => \$delete,
                                    "syncinternaldates!" => \$syncinternaldates,
+				   "maxsize=i"   => \$maxsize,
+				   "maxage=i"    => \$maxage,
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
                                    "subscribed!" => \$subscribed,
@@ -660,8 +700,8 @@ sub parse_header_msg {
 	return unless(scalar(keys(%$head)));	    
 	foreach my $h (sort keys(%$head)){
 		foreach my $val ( @{$head->{$h}}) {
-			# no accent in headers !
-			$val =~ y/יטאש/XXXX/;
+			# no 8-bit data in headers !
+			$val =~ s/[\x80-\xff]/X/g;
 			$debug and print "${s}H $h:", $val, "\n";
 			$headstr .= "$h:". $val;
 		}
@@ -708,6 +748,12 @@ Several options are mandatory.
 --folder      <string> : sync only this folder.
 --folder      <string> : and this one.
 --folder      <string> : and this one, etc.
+--include     <regex>  : only sync folders matching this regular expression
+                         (only effective if neither --folder nor --subscribed
+			  is specified)
+--exclude     <regex>  : skip folders matching this regular expression
+                         (only effective if neither --folder nor --subscribed
+			  is specified)
 --prefix2     <string> : add prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
 --sep1        <char>   : separator in case namespace is not supported.
@@ -722,6 +768,9 @@ Several options are mandatory.
                          expunge is made at the begining so newly
                          transfered messages won't be expunged.
 --syncinternaldates    : set the internal dates on host2 same as host1
+--maxsize     <int>    : skip messages larger than <int> bytes
+--maxage      <int>    : skip messages older than <int> days.
+                         final stats (skipped) don't count older messages
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfer only subscribed folders.
 --subscribe            : subscribe to the folders transfered on the 

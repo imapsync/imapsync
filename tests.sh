@@ -1,8 +1,12 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.12 2003/12/23 18:16:09 gilles Exp $	
+# $Id: tests.sh,v 1.13 2004/01/29 04:21:54 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.13  2004/01/29 04:21:54  gilles
+# Added lp_maxage
+# Added lp_maxsize
+#
 # Revision 1.12  2003/12/23 18:16:09  gilles
 # Added lp_justconnect()
 # Added lp_md5auth()
@@ -262,6 +266,37 @@ lp_md5auth()
 }
 
 
+lp_maxage() 
+{
+	sendtestmessage
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--maxage 1
+	else
+		:
+	fi
+}
+
+lp_maxsize() 
+{
+	sendtestmessage
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--maxsize 10
+	else
+		:
+	fi
+}
 
 # mandatory tests
 
@@ -281,7 +316,9 @@ test $# -eq 0 && run_tests \
 	lp_subscribed \
 	lp_subscribe \
 	lp_justconnect \
-	lp_md5auth
+	lp_md5auth \
+	lp_maxage \
+	lp_maxsize
 
 # selective tests
 
