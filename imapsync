@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.77 $
+$Revision: 1.80 $
 
 =head1 INSTALL
 
@@ -48,6 +48,7 @@ $Revision: 1.77 $
            [--subscribed] [--subscribe]
            [--dry]
            [--debug] [--debugimap]
+           [--timeout <int>]
            [--version] [--help]
   
 =cut
@@ -166,6 +167,7 @@ Success stories reported (softwares in alphabetic order) :
  - DBMail 1.2.1
  - Dovecot 0.99.10.4
  - iPlanet Messaging server 4.15
+ - IMail 7.15 (Ipswitch/Win2003)
  - Netscape Mail Server 3.6 (Wintel !)
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
@@ -241,7 +243,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.77 2004/03/11 05:33:22 gilles Exp $
+$Id: imapsync,v 1.80 2004/03/12 01:11:22 gilles Exp $
 
 =cut
 
@@ -272,12 +274,13 @@ my(
         $mess_size_total_trans,
         $mess_size_total_skipped,
         $mess_size_total_error,
+        $timeout,   # whr (ESS/PRW)
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.77 2004/03/11 05:33:22 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.80 2004/03/12 01:11:22 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -313,8 +316,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.77 $ ',
-		  '$Date: 2004/03/11 05:33:22 $ ',
+		  '$Revision: 1.80 $ ',
+		  '$Date: 2004/03/12 01:11:22 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -365,13 +368,14 @@ unless ($md5_supported) {
 
 
 $debugimap and print "From connection\n";
-$from = login_imap($host1, $port1, $user1, $password1, $debugimap);
+$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout);
 
 $debugimap and print "To  connection\n";
-$to = login_imap($host2, $port2, $user2, $password2, $debugimap);
+$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout);
 
 sub login_imap {
-	my($host, $port, $user, $password, $debugimap, $authmech) = @_;
+	my($host, $port, $user, $password, 
+	   $debugimap, $timeout, $authmech) = @_;
 	my $imap = Mail::IMAPClient->new();
 	$imap->Server($host);
 	$imap->Port($port);
@@ -381,7 +385,12 @@ sub login_imap {
 	$imap->Debug($debugimap);
 	$imap->connect()
 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
-	
+    if ($timeout)    # whr (ESS/PRW)
+    {
+        $imap->Timeout($timeout);
+        print "Setting imap timeout to $timeout\n";
+    }
+
 	$imap->User($user);
 	$imap->Password($password);
 	md5auth($imap);
@@ -734,6 +743,7 @@ sub get_options
                                    "justconnect!"=> \$justconnect,
                                    "version"     => \$version,
                                    "help"        => \$help,
+                                   "timeout=i"   => \$timeout,
                                   );
           
         $debug and print "get options: [$opt_ret]\n";
@@ -843,6 +853,7 @@ Several options are mandatory.
 --version              : print sotfware version.
 --justconnect          : just connect to both servers and print useful 
                          information.
+--timeout     <int>    : imap connect timeout.
 --help                 : print this.
 
 Example: to synchronise imap account "foo" on "imap.truc.org"
