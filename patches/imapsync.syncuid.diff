@@ -1,0 +1,97 @@
+--- imapsync.orig	Tue Jun 14 23:28:32 2005
++++ imapsync	Wed Jun 15 14:04:14 2005
+@@ -318,7 +318,7 @@
+ 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
+         @folder, $include, $exclude, $prefix2, $regextrans2, @regexmess,
+         $sep1, $sep2,
+-	$syncinternaldates, $syncacls,
++	$syncinternaldates, $syncacls, $syncuids,
+ 	$maxsize, $maxage,
+         $skipheader, @useheader,
+         $skipsize, $foldersizes, $buffersize,
+@@ -410,6 +410,7 @@
+ $authmd5 = (defined($authmd5)) ? $authmd5 : 1;
+ 
+ $syncacls = (defined($syncacls)) ? $syncacls : 0;
++$syncuids = (defined($syncuids)) ? $syncuids : 0;
+ $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
+ 
+ @useheader = ("ALL") unless (@useheader);
+@@ -661,7 +662,8 @@
+ # needed for setting flags
+ my $tohasuidplus = $to->has_capability("UIDPLUS");
+ 
+-
++die("Need UIDPLUS on destination server to synchronize UIDs\n")
++	if ($syncuids && !$tohasuidplus);
+ 
+ print 
+   "From folders : ", map("[$_] ",@f_folders),"\n",
+@@ -788,7 +790,7 @@
+ 	print "Time sizes  : ", timenext(), " s\n";
+ 	#my $f_flags = $from->flags(@f_msgs) ;
+ 	#print "Time flags  : ", timenext(), " s\n";
+-	use Data::Dumper;
++	#use Data::Dumper;
+ 	#print Data::Dumper->Dump([$f_heads]);
+ 	#print Data::Dumper->Dump([$f_flags]);
+ 	
+@@ -821,6 +823,7 @@
+ 	
+ 	#print map { $f_hash{$_}{'m'} . " "} @f_hash_keys_sorted_by_uid;
+ 	
++	my $last_uid = 0;
+ 	MESS: foreach my $m_id (@f_hash_keys_sorted_by_uid) {
+ 		my $f_size = $f_hash{$m_id}{'s'};
+ 		my $f_msg = $f_hash{$m_id}{'m'};
+@@ -835,6 +838,21 @@
+ 			print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
+ 			# copy
+ 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
++			while ($syncuids && !$dry && $last_uid < $f_msg - 1) {
++				my $new_id = $to->append_string($t_fold,
++				    "From: imapsync\r\n".
++				    "Subject: deleted message\r\n".
++				    "\r\n".
++				    "This message has been deleted.\r\n");
++				if ($new_id) {
++					warn "Inserted padding message #$new_id\n";
++					$to->delete_message($new_id);
++					$last_uid = $new_id;
++				} else {
++					warn "Failed to insert padding message\n";
++					last;
++				}
++			}
+ 			my $string = $from->message_string($f_msg);
+ 			foreach my $regexmess (@regexmess) {
+ 				$debug and print "eval \$string =~ $regexmess\n";
+@@ -883,6 +901,11 @@
+ 					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
+ 					$mess_size_total_trans += $f_size;
+ 					$mess_trans += 1;
++					$last_uid = $new_id;
++					if ($syncuids && $last_uid != $f_msg) {
++						# not much we can do about this...
++						warn "Couldn't preserve message UID\n";
++					}
+ 				}
+ 			}
+ 			next MESS;
+@@ -1002,6 +1025,7 @@
+                                    "delete!"     => \$delete,
+                                    "syncinternaldates!" => \$syncinternaldates,
+                                    "syncacls!"   => \$syncacls,
++                                   "syncuids!"   => \$syncuids,
+ 				   "maxsize=i"   => \$maxsize,
+ 				   "maxage=i"    => \$maxage,
+ 				   "buffersize=i" => \$buffersize,
+@@ -1156,6 +1180,8 @@
+                          --justconnect. Turned on by default.
+ --syncacls             : Synchronizes acls.
+ --nosyncacls           : Does not synchronize acls. This is the default.
++--syncuids             : Synchronizes UIDs.
++--nosyncuids           : Does not synchronize UIDs. This is the default.
+ --debug                : debug mode.
+ --debugimap            : imap debug mode.
+ --version              : print sotfware version.

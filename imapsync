@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.136 $
+$Revision: 1.137 $
 
 =head1 INSTALL
 
@@ -296,7 +296,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.136 2005/06/23 02:24:19 gilles Exp gilles $
+$Id: imapsync,v 1.137 2005/06/26 03:08:35 gilles Exp $
 
 =cut
 
@@ -319,6 +319,7 @@ my(
         @folder, $include, $exclude, $prefix2, $regextrans2, @regexmess,
         $sep1, $sep2,
 	$syncinternaldates, $syncacls,
+        $fastio1, $fastio2, 
 	$maxsize, $maxage,
         $skipheader, @useheader,
         $skipsize, $foldersizes, $buffersize,
@@ -335,13 +336,12 @@ my(
         $timeout,   # whr (ESS/PRW)
 	$timestart, $timeend, $timediff,
         $timesize, $timebefore,
-
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.136 2005/06/23 02:24:19 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.137 2005/06/26 03:08:35 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -378,8 +378,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.136 $ ',
-		  '$Date: 2005/06/23 02:24:19 $ ',
+		  '$Revision: 1.137 $ ',
+		  '$Date: 2005/06/26 03:08:35 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -410,6 +410,10 @@ $authmd5 = (defined($authmd5)) ? $authmd5 : 1;
 
 $syncacls = (defined($syncacls)) ? $syncacls : 0;
 $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
+
+$fastio1 = (defined($fastio1)) ? $fastio1 : 1;
+$fastio2 = (defined($fastio2)) ? $fastio2 : 1;
+
 
 @useheader = ("ALL") unless (@useheader);
 
@@ -442,8 +446,8 @@ my $authmech = "CRAM-MD5";
 $timestart = time();
 $timebefore = $timestart;
 
-my $fastio1 = 1;
-my $fastio2 = 1;
+$fastio1 = 1;
+$fastio2 = 1;
 
 $debugimap and print "From connection\n";
 $from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout, $fastio1);
@@ -616,7 +620,8 @@ sub foldersizes {
 			# The pb is fetch_hash() can only be applied on ALL messages
 		
 			my @msgs = $imap->since(time - 86400 * $maxage);
-			my $smess = scalar(@msgs);
+			$smess = scalar(@msgs);
+			#print "maxage smess $smess " ;
 			foreach my $m (@msgs) {
 				my $s = $imap->size($m)
 				  or warn "Could not find size of message $m: $@\n";
@@ -626,7 +631,9 @@ sub foldersizes {
 			my $hashref = {};
 			$smess = $imap->message_count();
 			unless ($smess == 0) {
-				$imap->fetch_hash("RFC822.SIZE",$hashref);
+				#$imap->Ranges(1);
+				$imap->fetch_hash("RFC822.SIZE",$hashref) or die "$@";
+				#$imap->Ranges(0);
 				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
 				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
 			}
@@ -1015,8 +1022,10 @@ sub get_options
 				   "skipheader=s" => \$skipheader,
 				   "useheader=s" => \@useheader,
 				   "skipsize!"   => \$skipsize,
+				   "fastio1!"     => \$fastio1,
+				   "fastio2!"     => \$fastio2,
                                   );
-
+	
         $debug and print "get options: [$opt_ret]\n";
 
 	# just the version
@@ -1168,6 +1177,8 @@ Several options are mandatory.
                          information.
 --justfolders          : just do things about folders (ignore messages).
 --fast                 : be faster (does not sync flags).
+--nofastio1            : don't use fastio with the "from" server.
+--nofastio2            : don't use fastio with the "destination" server.
 --timeout     <int>    : imap connect timeout.
 --help                 : print this.
 
