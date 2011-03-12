@@ -1,116 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.33 2005/01/16 01:49:49 gilles Exp $	
-
-# $Log: tests.sh,v $
-# Revision 1.33  2005/01/16 01:49:49  gilles
-# Added  regexmess() test
-#
-# Revision 1.32  2005/01/10 00:15:41  gilles
-# Added --fast for big_transfert()
-#
-# Revision 1.31  2005/01/04 04:50:12  gilles
-# essnet update
-#
-# Revision 1.30  2004/12/28 23:22:02  gilles
-# Added lp_justfolders()
-#
-# Revision 1.29  2004/12/28 04:03:12  gilles
-# Added lp_sep2()
-#
-# Revision 1.28  2004/12/28 03:15:28  gilles
-# essnet tests
-#
-# Revision 1.27  2004/11/18 03:56:43  gilles
-# Added essnet_justconnect()
-#
-# Revision 1.26  2004/11/04 22:41:54  gilles
-# renamed big_transfert2 -> dprof
-#
-# Revision 1.25  2004/10/15 14:40:05  gilles
-# Added big_transfert_sizes_only()
-#
-# Revision 1.24  2004/10/12 21:18:10  gilles
-# Added big_transfert2()
-#
-# Revision 1.23  2004/09/07 00:38:36  gilles
-# Added noauthmd5 to first_sync test
-#
-# Revision 1.22  2004/07/09 09:11:28  gilles
-# comment about pl and lp
-#
-# Revision 1.21  2004/07/09 09:00:13  gilles
-# Added foldersizes2() to check old Mail-IMAPClient lib
-#
-# Revision 1.20  2004/07/08 23:32:36  gilles
-# Added foldersizes() test
-#
-# Revision 1.19  2004/06/15 03:42:16  gilles
-# success on bigtransfer()
-#
-# Revision 1.18  2004/06/14 23:03:41  gilles
-# Added big_transfert()
-#
-# Revision 1.17  2004/04/07 18:13:29  gilles
-# Added lp_regextrans2()
-#
-# Revision 1.16  2004/03/21 23:24:42  gilles
-# Added
-# lp_skipsize()
-# lp_skipheader()
-#
-# Revision 1.15  2004/03/11 05:32:08  gilles
-# Added bad_login()
-# Added bad_host()
-# Added lp_noauthmd5()
-#
-# Revision 1.14  2004/02/07 03:34:35  gilles
-# Added lp_include()
-#
-# Revision 1.13  2004/01/29 04:21:54  gilles
-# Added lp_maxage
-# Added lp_maxsize
-#
-# Revision 1.12  2003/12/23 18:16:09  gilles
-# Added lp_justconnect()
-# Added lp_md5auth()
-#
-# Revision 1.11  2003/12/12 17:48:02  gilles
-# Added lp_subscribe() test
-#
-# Revision 1.10  2003/11/21 03:20:14  gilles
-# Renamed lp_folder_qqq() pl_folder_qqq()
-# Removed --prefix2 INBOX. in pl_folder_qqq()
-# Added lp_subscribed() test.
-#
-# Revision 1.9  2003/10/20 22:53:29  gilles
-# Added lp_internaldate()
-#
-# Revision 1.8  2003/10/20 21:49:47  gilles
-# wrote sendtestmessage()
-#
-# Revision 1.7  2003/10/17 01:34:16  gilles
-# Added lp_folder_qqq() test
-#
-# Revision 1.6  2003/08/24 01:56:49  gilles
-# Indented long lines
-#
-# Revision 1.5  2003/08/24 01:05:35  gilles
-# Removed some variables
-#
-# Revision 1.4  2003/08/21 15:40:32  gilles
-# Added a email in loulplume test
-#
-# Revision 1.3  2003/05/05 22:32:01  gilles
-# Added pl_folder() test
-#
-# Revision 1.2  2003/05/05 21:05:49  gilles
-# Added lp_folder to test --folder option
-#
-# Revision 1.1  2003/03/12 23:14:45  gilles
-# Initial revision
-#
-
+# $Id: tests.sh,v 1.35 2005/01/17 14:47:49 gilles Exp $	
 
 #### Shell pragmas
 
@@ -186,11 +76,30 @@ loulplume() {
 		--host1 loul  --user1 tata \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 plume --user2 tata@est.belle \
-		--passfile2 /var/tmp/secret.tata
+		--passfile2 /var/tmp/secret.tata \
+		--nosyncacls
 	else
 		:
 	fi
 }
+
+loulloul() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		sendtestmessage
+		#sleep 10
+		./imapsync \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 loul --user2 titi \
+		--passfile2 /var/tmp/secret.tata \
+		--sep2 .
+	else
+		:
+	fi
+}
+
+
 
 plumeloul() {
 	if test X`hostname` = X"plume"; then
@@ -658,7 +567,11 @@ regexmess()
 		--host1 loul  --user1 tata \
 		--passfile1 /var/tmp/secret.tata \
 		--folder INBOX.yop.yap \
-		--regexmess 's/\157/O/g' --dry --debug
+		--regexmess 's/\157/O/g' \
+		--regexmess 's/p/Z/g' \
+		--dry --debug
+		
+		echo 'rm /home/vmail/tata/.yop.yap/cur/*'
 	else
 		:
 	fi

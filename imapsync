@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.116 $
+$Revision: 1.118 $
 
 =head1 INSTALL
 
@@ -281,7 +281,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.116 2005/01/16 01:50:23 gilles Exp $
+$Id: imapsync,v 1.118 2005/01/17 14:45:25 gilles Exp $
 
 =cut
 
@@ -300,7 +300,7 @@ my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-        @folder, $include, $exclude, $prefix2, $regextrans2, $regexmess,
+        @folder, $include, $exclude, $prefix2, $regextrans2, @regexmess,
         $sep1, $sep2,
 	$syncinternaldates, $syncacls,
 	$maxsize, $maxage,
@@ -324,7 +324,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.116 2005/01/16 01:50:23 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.118 2005/01/17 14:45:25 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -361,8 +361,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.116 $ ',
-		  '$Date: 2005/01/16 01:50:23 $ ',
+		  '$Revision: 1.118 $ ',
+		  '$Date: 2005/01/17 14:45:25 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -515,6 +515,8 @@ if (scalar(@folder)) {
 	}
 }
 
+@t_folders = sort @{$to->folders()};
+
 my($f_sep,$t_sep); 
 # what are the private folders separators for each server ?
 
@@ -526,12 +528,17 @@ $t_sep = get_separator($to, $sep2, "--sep2");
 sub get_separator {
 	my($imap, $sep_in, $sep_opt) = @_;
 	my($sep_out);
-	$debug and print "Calling namespace capability\n";
+	
 	
 	if ($sep_in) {
+		print "Using [$sep_in] given by $sep_opt\n";
 		$sep_out = $sep_in;
-	}elsif ($imap->has_capability("namespace")) {
+		return($sep_out);
+	}
+	$debug and print "Calling namespace capability\n";
+	if ($imap->has_capability("namespace")) {
 		$sep_out = $imap->separator();
+		return($sep_out);
 	}else{
 		print 
 		  "No NAMESPACE capability in imap server ", 
@@ -539,7 +546,6 @@ sub get_separator {
 		      "Give the separator caracter with the $sep_opt option\n";
 		exit(1);
 	}
-	return($sep_out);
 }
 
 
@@ -606,7 +612,7 @@ exit if ($justconnect);
 my $tohasuidplus = $to->has_capability("UIDPLUS");
 
 
-@t_folders = sort @{$to->folders()};
+
 print 
   "From folders : ", map("[$_] ",@f_folders),"\n",
   "To   folders : ", map("[$_] ",@t_folders),"\n";
@@ -735,7 +741,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	use Data::Dumper;
 	#print Data::Dumper->Dump([$f_heads]);
 	#print Data::Dumper->Dump([$f_flags]);
-
+	
 	#exit;
 	foreach my $m (@f_msgs) {
 	  parse_header_msg1($m, $f_heads, $f_size, "F", \%f_hash);
@@ -779,7 +785,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			# copy
 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			my $string = $from->message_string($f_msg);
-			if ($regexmess) {
+			while (my $regexmess = shift(@regexmess)) {
 				$debug and print "eval \$string =~ $regexmess\n";
 				eval("\$string =~ $regexmess");
 				
@@ -926,13 +932,13 @@ sub get_options
 				   "exclude=s"   => \$exclude,
 				   "prefix2=s"   => \$prefix2,
 				   "regextrans2=s" => \$regextrans2,
-				   "regexmess=s" => \$regexmess,
+				   "regexmess=s" => \@regexmess,
                                    "delete!"     => \$delete,
                                    "syncinternaldates!" => \$syncinternaldates,
                                    "syncacls!"   => \$syncacls,
 				   "maxsize=i"   => \$maxsize,
 				   "maxage=i"    => \$maxage,
-				   "foldersizes"   => \$foldersizes,
+				   "foldersizes!"   => \$foldersizes,
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
                                    "subscribed!" => \$subscribed,
@@ -1076,6 +1082,8 @@ Several options are mandatory.
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
                          Exemple : 's/\\000/ /g' # to replace null by space.
+--regexmess   <regex>  : and this one.
+--regexmess   <regex>  : and this one, etc.
 --sep1        <string> : separator in case namespace is not supported.
 --sep2        <string> : idem.
 --delete               : delete messages in source imap server after
