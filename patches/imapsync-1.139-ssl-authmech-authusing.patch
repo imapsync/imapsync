@@ -1,0 +1,224 @@
+--- imapsync	2005-07-16 08:46:35.000000000 -0400
++++ ../imapsync.ssl	2005-10-05 14:46:23.000000000 -0400
+@@ -38,7 +38,8 @@
+            [--user1 <string>] [--passfile1 <string>]
+            [--host2 server2]  [--port2 <num>]
+            [--user2 <string>] [--passfile2 <string>]
+-           [--noauthmd5]
++           [--noauthmd5] [--authusing <string> --prefix1 <string>]
++           [--authmech <string]
+            [--folder <string> --folder <string> ...]
+            [--include <regex>] [--exclude <regex>]
+            [--prefix2 <string>] [--regextrans2 <regex>]
+@@ -61,6 +62,7 @@
+            [--debug] [--debugimap]
+            [--timeout <int>] [--fast]
+            [--version] [--help]
++           [--ssl]
+   
+ =cut
+ # comment
+@@ -315,25 +317,28 @@
+ use Digest::MD5  qw(md5_base64);
+ use Term::ReadKey;
+ #use Digest::HMAC_MD5;
++use IO::Socket::SSL;
++use MIME::Base64;
+ 
+ eval { require 'usr/include/sysexits.ph' };
+ 
+ 
+ my(
+         $rcs, $debug, $debugimap, $error,
+-	$host1, $host2, $port1, $port2,
+-	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
++        $host1, $host2, $port1, $port2, 
++        $user1, $user2, $password1, $password2, $passfile1, $passfile2,
+         @folder, $include, $exclude, $prefix2, $regextrans2, @regexmess,
++        $authusing, $prefix1, $authmech,
+         $sep1, $sep2,
+-	$syncinternaldates, $syncacls,
++        $syncinternaldates, $syncacls,
+         $fastio1, $fastio2, 
+-	$maxsize, $maxage,
++        $maxsize, $maxage,
+         $skipheader, @useheader,
+         $skipsize, $foldersizes, $buffersize,
+-	$delete, $expunge, $dry, 
++        $delete, $expunge, $dry, 
+         $authmd5,
+         $subscribed, $subscribe,
+-	$version, $VERSION, $help, 
++        $version, $VERSION, $help, 
+         $justconnect, $justfolders,
+         $fast,
+         $mess_size_total_trans,
+@@ -341,8 +346,9 @@
+         $mess_size_total_error,
+         $mess_trans, $mess_skipped,
+         $timeout,   # whr (ESS/PRW)
+-	$timestart, $timeend, $timediff,
++        $timestart, $timeend, $timediff,
+         $timesize, $timebefore,
++        $usessl
+ );
+ 
+ use vars qw ($opt_G); # missing code for this will be option.
+@@ -406,11 +412,11 @@
+ }
+ 
+ $host1 || missing_option("--host1") ;
+-$port1 = (defined($port1)) ? $port1 : 143;
++$port1 = (defined($port1)) ? $port1 : ((defined($usessl)) ? 993 : 143);
+ $user1 || missing_option("--user1");
+ 
+ $host2 || missing_option("--host2") ;
+-$port2 = (defined($port2)) ? $port2 : 143;
++$port2 = (defined($port2)) ? $port2 : ((defined($usessl)) ? 993 : 143);
+ $user2 || missing_option("--user2");
+ 
+ $authmd5 = (defined($authmd5)) ? $authmd5 : 1;
+@@ -424,8 +430,8 @@
+ 
+ @useheader = ("ALL") unless (@useheader);
+ 
+-print "From imap server [$host1] port [$port1] user [$user1]\n";
+-print "To   imap server [$host2] port [$port2] user [$user2]\n";
++(defined($authusing)) ? print "From imap server [$host1] port [$port1] user [$user1] authusing [$authusing]\n" :  print "From imap server [$host1] port [$port1] user [$user1]\n";
++(defined($authusing)) ? print "To   imap server [$host2] port [$port2] user [$user2] authusing [$authusing]\n" : print "To   imap server [$host2] port [$port2] user [$user2]\n";
+ 
+ $password1 || $passfile1 || do {
+ 	print "What's the password for $user1\@$host1? ";
+@@ -447,8 +453,9 @@
+ my $from = ();
+ my $to = ();
+ 
+-my $authmech = "CRAM-MD5";
+-
++if (!defined($authmech)) {
++	$authmech = "CRAM-MD5";
++}
+ 
+ $timestart = time();
+ $timebefore = $timestart;
+@@ -474,7 +481,19 @@
+ sub login_imap {
+ 	my($host, $port, $user, $password, 
+ 	   $debugimap, $timeout, $fastio) = @_;
+-	my $imap = Mail::IMAPClient->new();
++	my ($imap);
++	if ($usessl) {
++		my $ssl = new IO::Socket::SSL("$host:$port");
++		die ("Error connecting - $@") unless defined $ssl;
++		$ssl->autoflush(1);
++
++		$imap = Mail::IMAPClient->new(
++			Socket => $ssl,
++			Server => $host,
++		);
++	} else {
++		$imap = Mail::IMAPClient->new();
++	}
+ 	$imap->Server($host);
+ 	$imap->Port($port);
+ 	$imap->Fast_io($fastio);
+@@ -482,13 +501,17 @@
+ 	$imap->Uid(1);
+ 	$imap->Peek(1);
+ 	$imap->Debug($debugimap);
+-	$imap->connect()
+-	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
+-	if ($timeout)    # whr (ESS/PRW)
+-	  {
+-		  $imap->Timeout($timeout);
+-		  print "Setting imap timeout to $timeout\n";
+-	  }
++	$imap->Authcallback(\&plainauth);
++	if ($usessl) {
++		$imap->State(Mail::IMAPClient::Connected);
++	} else {
++		$imap->connect()
++		or die "Can not open imap connection on [$host] with user [$user] : $@\n";
++	}
++	if ($timeout) {    # whr (ESS/PRW) 
++		$imap->Timeout($timeout);
++		print "Setting imap timeout to $timeout\n";
++	}
+ 
+ 	$imap->User($user);
+ 	$imap->Password($password);
+@@ -497,6 +520,13 @@
+ 	return($imap);
+ }
+ 
++sub plainauth() {
++        my $code = shift;
++        my $imap = shift;
++
++        my $string = sprintf("%s\x00%s\x00%s", $imap->User, defined($authusing) ? $authusing : $imap->User, $imap->Password);
++        return encode_base64("$string");
++}
+ 
+ sub md5auth() {
+ 	my ($imap) = @_;
+@@ -537,7 +567,7 @@
+ my (@f_folders, @t_folders, %fs_folders);
+ 
+ # Make a hash of subscribed folders in source server.
+-# map { $fs_folders{$_}=1 } $from->subscribed();
++map { $fs_folders{$_}=1 } $from->subscribed($prefix1);
+ 
+ 
+ 
+@@ -550,7 +580,7 @@
+ 	@f_folders = sort keys (%fs_folders);
+ }else {
+ 	# no option, all folders
+-	@f_folders = sort $from->folders();
++	@f_folders = sort $from->folders($prefix1);
+ 	# consider (optional) includes and excludes
+ 	if ($include) {
+ 		@f_folders = grep  /$include/,@f_folders;
+@@ -996,6 +1026,8 @@
+                                    "port2=i"     => \$port2,
+                                    "user1=s"     => \$user1,
+                                    "user2=s"     => \$user2,
++                                   "authusing=s" => \$authusing,
++                                   "authmech=s"  => \$authmech,
+                                    "password1=s" => \$password1,
+                                    "password2=s" => \$password2,
+                                    "passfile1=s" => \$passfile1,
+@@ -1006,6 +1038,7 @@
+ 				   "folder=s"    => \@folder,
+ 				   "include=s"   => \$include,
+ 				   "exclude=s"   => \$exclude,
++				   "prefix1=s"   => \$prefix1,
+ 				   "prefix2=s"   => \$prefix2,
+ 				   "regextrans2=s" => \$regextrans2,
+ 				   "regexmess=s" => \@regexmess,
+@@ -1031,6 +1064,7 @@
+ 				   "skipsize!"   => \$skipsize,
+ 				   "fastio1!"     => \$fastio1,
+ 				   "fastio2!"     => \$fastio2,
++				   "ssl!"	  => \$usessl
+                                   );
+ 	
+         $debug and print "get options: [$opt_ret]\n";
+@@ -1122,6 +1156,9 @@
+ --host2       <string> : "destination" imap server. Mandatory.
+ --port2       <int>    : port to connect. Default is 143.
+ --user2       <string> : user to login.   Mandatory.
++--authusing   <string> : user to auth with (when running on behalf of another)
++--authmech    <string> : auth mechanism to use (e.g. PLAIN, LOGIN, CRAM-MD5...) 
++			 default CRAM-MD5 
+ --password2   <string> : password for the user2. Dangerous, use --passfile2
+ --passfile2   <string> : password file for the user2. Contains the password.
+ --noauthmd5            : don't use MD5 authentification.
+@@ -1187,6 +1224,7 @@
+ --nofastio1            : don't use fastio with the "from" server.
+ --nofastio2            : don't use fastio with the "destination" server.
+ --timeout     <int>    : imap connect timeout.
++--ssl                  : use SSL connections.
+ --help                 : print this.
+ 
+ Example: to synchronise imap account "foo" on "imap.truc.org"
