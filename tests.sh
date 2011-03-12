@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.105 2010/07/12 00:14:00 gilles Exp gilles $  
+# $Id: tests.sh,v 1.106 2010/07/14 23:25:14 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -40,7 +40,7 @@ run_tests() {
         for t in "$@"; do
                 test_count=`expr 1 + $test_count`
                 run_test "$t"
-                sleep 1
+                #sleep 1
         done
 }
 
@@ -1286,9 +1286,80 @@ genomics() {
 ##########################
 ##########################
 
+# Tests list
 
+mandatory_tests='
+no_args 
+option_version 
+option_tests 
+option_bad_delete2 
+first_sync_dry 
+first_sync 
+locallocal 
+ll_pidfile 
+ll_ask_password 
+ll_bug_folder_name_with_blank 
+ll_timeout 
+ll_folder 
+ll_buffersize 
+ll_justfolders 
+ll_prefix12 
+ll_internaldate 
+ll_idatefromheader 
+ll_folder_rev 
+ll_subscribed 
+ll_subscribe 
+ll_justfoldersizes 
+ll_authmd5 
+ll_noauthmd5 
+ll_maxage 
+ll_maxsize 
+ll_skipsize 
+ll_skipheader 
+ll_include 
+ll_exclude 
+ll_regextrans2 
+ll_sep2 
+ll_bad_login 
+ll_bad_host 
+ll_bad_host_ssl 
+ll_justfoldersizes 
+ll_useheader 
+ll_regexmess 
+ll_regexmess_scwchu 
+ll_flags 
+ll_regex_flag 
+ll_regex_flag_keep_only 
+ll_justconnect 
+ll_justlogin 
+ll_ssl 
+ll_ssl_justconnect 
+ll_ssl_justlogin 
+ll_tls_justconnect 
+ll_tls_justlogin 
+ll_tls 
+ll_authmech_PLAIN 
+ll_authmech_LOGIN 
+ll_authmech_CRAMMD5 
+ll_authuser 
+ll_delete2 
+ll_delete 
+ll_folderrec 
+ll_bigmail 
+gmail 
+gmail_gmail 
+gmail_gmail2 
+archiveopteryx_1 
+allow3xx 
+noallow3xx'
 
+other_tests='
+msw
+ll_justlogin_backslash_char'
 
+l() {
+	echo "$mandatory_tests" "$other_tests"
+}
 
 # mandatory tests
 
@@ -1296,73 +1367,7 @@ run_tests perl_syntax
 
 # All tests
 
-test $# -eq 0 && run_tests \
-        no_args \
-        option_version \
-        option_tests \
-	option_bad_delete2 \
-	first_sync_dry \
-        first_sync \
-        locallocal \
-        ll_pidfile \
-        ll_ask_password \
-        ll_bug_folder_name_with_blank \
-        ll_timeout \
-        ll_folder \
-        ll_buffersize \
-        ll_justfolders \
-        ll_prefix12 \
-        ll_internaldate \
-        ll_idatefromheader \
-        ll_folder_rev \
-        ll_subscribed \
-        ll_subscribe \
-        ll_justfoldersizes \
-        ll_authmd5 \
-        ll_noauthmd5 \
-        ll_maxage \
-        ll_maxsize \
-        ll_skipsize \
-        ll_skipheader \
-        ll_include \
-        ll_exclude \
-        ll_regextrans2 \
-        ll_sep2 \
-        ll_bad_login \
-        ll_bad_host \
-        ll_bad_host_ssl \
-        ll_justfoldersizes \
-        ll_useheader \
-        ll_regexmess \
-        ll_regexmess_scwchu \
-        ll_flags \
-        ll_regex_flag \
-        ll_regex_flag_keep_only \
-        ll_justconnect \
-        ll_justlogin \
-        ll_ssl \
-        ll_ssl_justconnect \
-        ll_ssl_justlogin \
-        ll_tls_justconnect \
-        ll_tls_justlogin \
-        ll_tls \
-        ll_authmech_PLAIN \
-        ll_authmech_LOGIN \
-        ll_authmech_CRAMMD5 \
-        ll_authuser \
-        ll_delete2 \
-        ll_delete \
-        ll_folderrec \
-        ll_bigmail \
-        gmail \
-	gmail_gmail \
-	gmail_gmail2 \
-	archiveopteryx_1 \
-	allow3xx \
-	noallow3xx \
-	
-#       msw
-#	ll_justlogin_backslash_char
+test $# -eq 0 && run_tests $mandatory_tests
 
 
 # selective tests

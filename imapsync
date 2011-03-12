@@ -1,5 +1,15 @@
 #!/usr/bin/perl
 
+# structure
+# pod documentation
+# pragmas
+# main program
+# global variables initialisation
+# default values
+# subroutines
+# IMAPClient 2.2.9 overrides
+# IMAPClient 2.2.9 3.xx ads
+
 =pod
 
 =head1 NAME 
@@ -9,7 +19,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.331 $
+$Revision: 1.333 $
 
 =head1 INSTALL
 
@@ -434,9 +444,12 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.331 2010/07/13 23:28:59 gilles Exp gilles $
+$Id: imapsync,v 1.333 2010/07/14 23:55:13 gilles Exp gilles $
 
 =cut
+
+
+# pragmas
 
 use warnings;
 ++$|;
@@ -456,16 +469,15 @@ use File::Path qw(mkpath rmtree);
 use IO::Socket qw(:crlf SOL_SOCKET SO_KEEPALIVE);
 use Errno qw(EAGAIN EPIPE ECONNRESET);
 
-
-#use Test::Simple tests => 1;
 use Test::More 'no_plan';
 
 eval { require 'usr/include/sysexits.ph' };
 
+# global variables
 
 my(
         $rcs, $pidfile,
-	$debug, $debugimap, $debugimap1, $debugimap2, $error,
+	$debug, $debugimap, $debugimap1, $debugimap2, $nb_errors,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
         @folder, @include, @exclude, @folderrec,
@@ -484,15 +496,21 @@ my(
         $justfoldersizes,
         $authmd5,
         $subscribed, $subscribe, $subscribe_all,
-	$version, $VERSION, $help, 
+	$version, $help, 
         $justconnect, $justfolders, $justbanner,
         $fast,
-        $mess_size_total_trans,
-        $mess_size_total_skipped,
-        $mess_size_total_error,
-        $mess_trans, $mess_skipped, $mess_skipped_dry, 
-	$h1_mess_duplicate, $h1_mess_size_total_duplicate,
-	$h1_mess_deleted, $h2_mess_deleted, 
+        $total_bytes_transferred,
+        $total_bytes_skipped,
+        $total_bytes_error,
+        $nb_msg_transferred, 
+	$nb_msg_skipped, 
+	$nb_msg_skipped_dry_mode,
+	$h1_nb_msg_duplicate,
+	$h2_nb_msg_duplicate,
+	$h1_total_bytes_duplicate,
+	$h2_total_bytes_duplicate,
+	$h1_nb_msg_deleted,
+	$h2_nb_msg_deleted,
         $timeout,
 	$timestart, $timeend, $timediff,
         $timesize, $timebefore,
@@ -507,152 +525,53 @@ my(
 	$tmpdir,
 );
 
-$rcs = '$Id: imapsync,v 1.331 2010/07/13 23:28:59 gilles Exp gilles $ ';
-$rcs =~ m/,v (\d+\.\d+)/;
-$VERSION = ($1) ? $1: "UNKNOWN";
+# main program
 
-my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
+# global variables initialisation
 
-$mess_size_total_trans   = 0;
-$mess_size_total_skipped = 0;
-$mess_size_total_error   = 0;
-$mess_trans = $mess_skipped = $mess_skipped_dry = 0;
-$h1_mess_deleted = $h2_mess_deleted = 0;
-$h1_mess_duplicate = $h1_mess_size_total_duplicate = 0;
+$rcs = '$Id: imapsync,v 1.333 2010/07/14 23:55:13 gilles Exp gilles $ ';
 
+$total_bytes_transferred   = 0;
+$total_bytes_skipped = 0;
+$total_bytes_error   = 0;
+$nb_msg_transferred = 0;
+$nb_msg_skipped = $nb_msg_skipped_dry_mode = 0;
+$h1_nb_msg_deleted = $h2_nb_msg_deleted = 0;
+$h1_nb_msg_duplicate = $h2_nb_msg_duplicate =0;
+$h1_total_bytes_duplicate = $h2_total_bytes_duplicate = 0;
 
-sub check_lib_version {
-	$debug and print "VERSION_IMAPClient $VERSION_IMAPClient\n";
-	if ($VERSION_IMAPClient eq '2.2.9') {
-		override_imapclient();
-		return(1);
-	}
-	else{
-		# 3.x.x is no longer buggy with imapsync.
-		if ($allow3xx) {
-			return(1);
-
-		}else{
-			return(0);
-		}
-	}
-}
-
-$error=0;
-
-sub modules_VERSION() {
-
-no warnings 'uninitialized';
-my $modules_releases = "
-Mail::IMAPClient  $Mail::IMAPClient::VERSION
-IO::Socket        $IO::Socket::VERSION
-IO::Socket::SSL   $IO::Socket::SSL::VERSION
-Digest::MD5       $Digest::MD5::VERSION
-Digest::HMAC_MD5  $Digest::HMAC_MD5::VERSION
-Term::ReadKey     $Term::ReadKey::VERSION
-Date::Manip       $Date::Manip::VERSION
-";	
-    return($modules_releases);
-
-}
-
-
-# Construct a command line copy with passwords replaced by MASKED.
-my @argv_nopassord;
-my @argv_copy = @ARGV;
-while (@argv_copy) {
-	my $arg = shift(@argv_copy);
-	if ($arg =~ m/-password[12]/) {
-		shift(@argv_copy);
-		push(@argv_nopassord, $arg, "MASKED");
-	}else{
-		push(@argv_nopassord, $arg);
-	}
-}
-
-my $banner_imapsync = join("", 
-		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.331 $ ',
-		  '$Date: 2010/07/13 23:28:59 $ ',
-		  "\n",localhost_info(), "\n",
-		  "Command line used:\n",
-		  "$0 @argv_nopassord\n",
-		 );
+$nb_errors = 0;
 
 unless(defined(&_SYSEXITS_H)) {
 	# 64 on my linux box.
 	eval 'sub EX_USAGE () {64;}' unless defined(&EX_USAGE);
 }
 
+# @ARGV will be eat by get_options
+my @argv_copy = @ARGV;
 get_options();
 
-
-sub write_pidfile {
-	my $pidfile = shift;
-	
-	print "PID file is $pidfile\n";
-	if (-e $pidfile) {
-		warn "$pidfile already exists, overwriting it\n";
-	}
-	open(PIDFILE, ">$pidfile") or do {
-		warn "Could not open $pidfile for writing";
-		return undef;
-	};
-	
-	print PIDFILE $PROCESS_ID;
-	close PIDFILE;
-	return($PROCESS_ID);
-}
+# default values
 
 $tmpdir ||= File::Spec->tmpdir();
-
 $pidfile ||= $tmpdir . '/imapsync.pid';
 
-sub check_dir {
-	my $dir = shift;
-	return(1) if (-d $dir and -r _ and -w _);
-	# Trying to create it
-	mkpath($dir) or die "Error creating tmpdir $tmpdir : $!";
-	die "Error with tmpdir $tmpdir : $!" if not (-d $dir and -r _ and -w _);
-	return(1);
-}
-
-
-
 # allow Mail::IMAPClient 3.0.xx by default
-
 $allow3xx = defined($allow3xx) ? $allow3xx : 1;
 
 check_lib_version() or 
   die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.0.25 or superior \n";
 
+print banner_imapsync(@argv_copy);
 
-print $banner_imapsync;
 print "Temp directory is $tmpdir\n";
 
-check_dir($tmpdir);
+is_valid_directory($tmpdir);
 write_pidfile($pidfile) if ($pidfile);
 
+print "Modules version list:\n", modules_VERSION(), "\n";
 
 exit_clean(0) if ($justbanner);
-
-sub exit_clean {
-	my $status = shift;
-	
-	unlink($pidfile);
-	exit($status);
-}
-
-sub die_clean {
-
-	unlink($pidfile);
-	die @_;
-}
-
-sub missing_option {
-	my ($option) = @_;
-	die_clean "$option option must be used, run $0 --help for help\n";
-}
 
 # By default, 1000 at a time, not more.
 $split1 ||= 1000;
@@ -1232,7 +1151,7 @@ sub foldersizes {
 			warn 
 			  "$side Folder $folder: Could not select: ",
 			    $imap->LastError,  "\n";
-			$error++;
+			$nb_errors++;
 			next;
 		}
 		if (defined($maxage) or defined($minage)) {
@@ -1596,7 +1515,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		warn 
 		"Host1 Folder $h1_fold: Could not select: ",
 		$imap1->LastError,  "\n";
-		$error++;
+		$nb_errors++;
 		next FOLDER;
 	}
 	
@@ -1607,7 +1526,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			unless ($imap2->create($h2_fold)){
 				warn "Couldn't create [$h2_fold]: ",
 				$imap2->LastError,"\n";
-				$error++;
+				$nb_errors++;
 				next FOLDER;
 			}
 		}
@@ -1622,7 +1541,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		warn 
 		"Host2 folder $h2_fold: Could not select: ",
 		$imap2->LastError, "\n";
-		$error++;
+		$nb_errors++;
 		next FOLDER;
 	}
 	my @select_results = $imap2->Results();
@@ -1649,10 +1568,8 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 
 	my @h1_msgs = select_msgs($imap1);
 
-
-
 	$debug and print "LIST Host1: ", scalar(@h1_msgs), " messages [@h1_msgs]\n";
-	# internal dates on "TO" are after the ones on "FROM"
+	# internal dates on host2 are after the ones on host1
 	# normally...
 	my @h2_msgs = select_msgs($imap2);
 	
@@ -1679,7 +1596,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		warn
 		"Host1 Folder $h1_fold: Could not fetch_hash ",
 		scalar(@h1_msgs), " msgs: ", $imap1->LastError, "\n";
-		$error++;
+		$nb_errors++;
 		next FOLDER;
 	}
 	last FOLDER if $imap1->IsUnconnected();
@@ -1691,15 +1608,15 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		if (! defined($rc)) {
 			my $h1_size = $h1_fir->{$m}->{"RFC822.SIZE"} || 0;
 			print "+ Skipping msg #$m:$h1_size on host1 folder $h1_fold (no header so we ignore this message)\n";
-			$mess_size_total_skipped += $h1_size;
-			$mess_skipped += 1;
+			$total_bytes_skipped += $h1_size;
+			$nb_msg_skipped += 1;
 		} elsif(0 == $rc) {
 			# duplicate
 			push(@h1_msgs_duplicate, $m);
 			# duplicate, same id same size?
 			my $h1_size = $h1_fir->{$m}->{"RFC822.SIZE"} || 0;
-			$h1_mess_size_total_duplicate += $h1_size;
-			$h1_mess_duplicate += 1;
+			$h1_total_bytes_duplicate += $h1_size;
+			$h1_nb_msg_duplicate += 1;
 		}
 	}
 	$debug and print "Time parsing headers on host1: ", timenext(), " s\n";
@@ -1724,6 +1641,9 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			print "+ Skipping msg #$m:$h2_size in host2 folder $h2_fold (no header so we ignore this message)\n";
 		} elsif(0 == $rc) {
 			# duplicate
+			my $h2_size = $h2_fir->{$m}->{"RFC822.SIZE"} || 0;
+			$h2_nb_msg_duplicate += 1;
+			$h2_total_bytes_duplicate += $h2_size;
 			push(@h2_msgs_duplicate, $m);
 		}
 	}
@@ -1754,7 +1674,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 				push(@h2_expunge, $h2_msg) if $uidexpunge2;
 				unless ($dry or $isdel) {
 					$imap2->delete_message($h2_msg);
-					$h2_mess_deleted += 1;
+					$h2_nb_msg_deleted += 1;
 				}
 			}
 		}
@@ -1763,7 +1683,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			push(@h2_expunge, $h2_msg) if $uidexpunge2;
 			unless ($dry) {
 				$imap2->delete_message($h2_msg);
-				$h2_mess_deleted += 1;
+				$h2_nb_msg_deleted += 1;
 			}
 		}
 
@@ -1784,8 +1704,8 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 		
 		if (defined $maxsize and $h1_size > $maxsize) {
 			print "+ Skipping msg #$h1_msg:$h1_size in host1 folder $h1_fold (exceeds maxsize limit $maxsize bytes)\n";
-			$mess_size_total_skipped += $h1_size;
-			$mess_skipped += 1;
+			$total_bytes_skipped += $h1_size;
+			$nb_msg_skipped += 1;
 			next MESS;
 		}
 		$debug and print "+ key     $m_id #$h1_msg\n";
@@ -1801,8 +1721,8 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 				warn
 				"Could not fetch message #$h1_msg from $h1_fold: ",
 				$imap1->LastError, "\n";
-				$error++;
-				$mess_size_total_error += $h1_size;
+				$nb_errors++;
+				$total_bytes_error += $h1_size;
 				next MESS;
 			}
 			
@@ -1812,8 +1732,8 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 			#$imap1->message_to_file($message_file, $h1_msg) or do {
 			#	warn "Could not put message #$h1_msg to file $message_file",
 			#	$imap1->LastError;
-			#	$error++;
-			#	$mess_size_total_error += $h1_size;
+			#	$nb_errors++;
+			#	$total_bytes_error += $h1_size;
 			#	next MESS;
 			#};
 			#$string = file_to_string($message_file);
@@ -1959,8 +1879,8 @@ Bye.'
 					warn "Couldn't append msg #$h1_msg (Subject:[".
 					  $imap1->subject($h1_msg)."]) to folder $h2_fold: ",
 					  $imap2->LastError, "\n";
-					$error++;
-					$mess_size_total_error += $h1_size;
+					$nb_errors++;
+					$total_bytes_error += $h1_size;
 					next MESS;
 				}
 				else{
@@ -1968,13 +1888,13 @@ Bye.'
 					# $new_id is an id if the IMAP server has the 
 					# UIDPLUS capability else just a ref
 					print "Copied msg id [$h1_msg] to folder $h2_fold msg id [$new_id]\n";
-					$mess_size_total_trans += $h1_size;
-					$mess_trans += 1;
+					$total_bytes_transferred += $h1_size;
+					$nb_msg_transferred += 1;
 					if($delete) {
-						print "Deleting msg #$h1_msg in host1 folder $h1_fold\n";
+						print "Deleting msg #$h1_msg on host1 folder $h1_fold\n";
 						unless($dry) {
 							$imap1->delete_message($h1_msg);
-							$h1_mess_deleted += 1;
+							$h1_nb_msg_deleted += 1;
 							last FOLDER if $imap1->IsUnconnected();
 							$imap1->expunge() if ($expunge);
 							last FOLDER if $imap1->IsUnconnected();
@@ -1983,15 +1903,15 @@ Bye.'
 				}
 			}
 			else{
-				$mess_skipped_dry += 1;
+				$nb_msg_skipped_dry_mode += 1;
 			}
 			#unlink($message_file);
 			next MESS;
 		}
 		else{
 			$debug and print "Message id [$m_id] found in t:$h2_fold\n";
-			$mess_size_total_skipped += $h1_size;
-			$mess_skipped += 1;
+			$total_bytes_skipped += $h1_size;
+			$nb_msg_skipped += 1;
 		}
 		
 		$fast and next MESS;
@@ -2025,7 +1945,7 @@ Bye.'
 			warn "Could not add flags @h1_flags",
 			  " on msg #$h2_msg in $h2_fold: ",
 			  $imap2->LastError, "\n";
-			#$error++;
+			#$nb_errors++;
 		}
 		last FOLDER if   $imap2->IsUnconnected();
 
@@ -2053,17 +1973,17 @@ Bye.'
 			# Bad size
 			print 
 			"Message $m_id SZ_BAD  f:$h1_msg:$h1_size t:$h2_msg:$h2_size\n";
-			$error++;
+			$nb_errors++;
 		}
 		else {
 	    		# Good 
 			$debug and print
 			"Message $m_id SZ_GOOD f:$h1_msg:$h1_size t:$h2_msg:$h2_size\n";
 			if($delete) {
-				print "Deleting msg #$h1_msg in host1 folder $h1_fold\n";
+				print "Deleting msg #$h1_msg on host1 folder $h1_fold\n";
 				unless($dry) {
 					$imap1->delete_message($h1_msg);
-					$h1_mess_deleted += 1;
+					$h1_nb_msg_deleted += 1;
 					$imap1->expunge() if ($expunge);
 				}
 			}
@@ -2106,7 +2026,7 @@ sub _filter {
 sub lost_connection {
 	my($imap, $error_message) = @_;
 	if ( $imap->IsUnconnected() ) {
-		$error++;
+		$nb_errors++;
 		my $lcomm = $imap->LastIMAPCommand || "";
 		my $einfo = $imap->LastError || @{$imap->History}[-1] || "";
 
@@ -2133,9 +2053,155 @@ $timediff = $timeend - $timestart;
 
 stats();
 
-exit_clean(1) if($error);
+exit_clean(1) if($nb_errors);
 
 exit_clean(0);
+
+# END of main program
+
+# subroutines
+
+sub imapsync_version {
+	my $rcs = '$Id: imapsync,v 1.333 2010/07/14 23:55:13 gilles Exp gilles $ ';
+	$rcs =~ m/,v (\d+\.\d+)/;
+	my $VERSION = ($1) ? $1: "UNKNOWN";
+	return($VERSION);
+}
+
+
+sub check_lib_version {
+	$debug and print "IMAPClient $Mail::IMAPClient::VERSION\n";
+	if ($Mail::IMAPClient::VERSION eq '2.2.9') {
+		override_imapclient();
+		return(1);
+	}
+	else{
+		# 3.x.x is no longer buggy with imapsync.
+		if ($allow3xx) {
+			return(1);
+		}else{
+			return(0);
+		}
+	}
+}
+
+sub modules_VERSION {
+
+	my @list_version;
+
+	foreach my $module (qw(
+Mail::IMAPClient
+IO::Socket      
+IO::Socket::SSL 
+Digest::MD5     
+Digest::HMAC_MD5
+Term::ReadKey   
+Date::Manip))
+	{
+		my $v = "?";
+	
+		if (eval "require $module") {
+			# module is here
+			$v = eval "\$${module}::VERSION";
+		}else{
+			# no module
+			$v = "?";
+		}
+		#print ("$module ", $v, "\n");
+		push (@list_version, sprintf("%-20s %s\n", $module, $v));
+	}
+	return(@list_version);
+}
+
+# Construct a command line copy with passwords replaced by MASKED.
+sub command_line_nopassword {
+	my @argv_copy = @_;
+	my @argv_nopassword;
+	while (@argv_copy) {
+		my $arg = shift(@argv_copy); # option name or value
+		if ($arg =~ m/-password[12]/) {
+			shift(@argv_copy); # password value 
+			push(@argv_nopassword, $arg, "MASKED"); # option name and fake value
+		}else{
+			push(@argv_nopassword, $arg); # same option or value
+		}
+	}
+	return("@argv_nopassword");
+}
+
+sub tests_command_line_nopassword {
+
+	ok('' eq command_line_nopassword(), 'command_line_nopassword void');
+	ok('--blabla' eq command_line_nopassword('--blabla'), 'command_line_nopassword --blabla');
+	#print command_line_nopassword((qw{ --password1 secret1 })), "\n";
+	ok('--password1 MASKED' eq command_line_nopassword(qw{ --password1 secret1}), 'command_line_nopassword --password1');
+	ok('--blabla --password1 MASKED --blibli' 
+	eq command_line_nopassword(qw{ --blabla --password1 secret1 --blibli }), 'command_line_nopassword --password1 --blibli');
+
+
+}
+
+sub banner_imapsync {
+
+	my @argv_copy = @_;
+	my $banner_imapsync = join("", 
+		  '$RCSfile: imapsync,v $ ',
+		  '$Revision: 1.333 $ ',
+		  '$Date: 2010/07/14 23:55:13 $ ',
+		  "\n",localhost_info(), "\n",
+		  "Command line used:\n",
+		  "$0 ", command_line_nopassword(@argv_copy), "\n",
+	);
+}
+
+sub is_valid_directory {
+	my $dir = shift;
+	return(1) if (-d $dir and -r _ and -w _);
+	# Trying to create it
+	mkpath($dir) or die "Error creating tmpdir $tmpdir : $!";
+	die "Error with tmpdir $tmpdir : $!" if not (-d $dir and -r _ and -w _);
+	return(1);
+}
+
+
+
+
+sub write_pidfile {
+	my $pidfile = shift;
+	
+	print "PID file is $pidfile\n";
+	if (-e $pidfile) {
+		warn "$pidfile already exists, overwriting it\n";
+	}
+	open(PIDFILE, ">$pidfile") or do {
+		warn "Could not open $pidfile for writing";
+		return undef;
+	};
+	
+	print PIDFILE $PROCESS_ID;
+	close PIDFILE;
+	return($PROCESS_ID);
+}
+
+sub exit_clean {
+	my $status = shift;
+	
+	unlink($pidfile);
+	exit($status);
+}
+
+sub die_clean {
+
+	unlink($pidfile);
+	die @_;
+}
+
+sub missing_option {
+	my ($option) = @_;
+	die_clean("$option option must be used, run $0 --help for help\n");
+}
+
+
 
 sub select_msgs {
 	my ($imap) = @_;
@@ -2169,31 +2235,33 @@ sub select_msgs {
 
 sub stats {
 	print   "++++ Statistics ++++\n";
-	print   "Time                        : $timediff sec\n";
-	print   "Messages transferred        : $mess_trans ";
-	print   "(could be $mess_skipped_dry without dry mode)" if ($dry);
+	print   "Transfer time               : $timediff sec\n";
+	print   "Messages transferred        : $nb_msg_transferred ";
+	print   "(could be $nb_msg_skipped_dry_mode without dry mode)" if ($dry);
 	print   "\n";
-	print   "Messages skipped            : $mess_skipped\n";
-	print   "Messages duplicate on host1 : $h1_mess_duplicate\n";
-	print   "Messages deleted on host1   : $h1_mess_deleted\n";
-	print   "Messages deleted on host2   : $h2_mess_deleted\n";
-	print   "Total bytes transferred     : $mess_size_total_trans\n";
-	print   "Total bytes duplicate host1 : $h1_mess_size_total_duplicate\n";
-	print   "Total bytes skipped         : $mess_size_total_skipped\n";
-	print   "Total bytes error           : $mess_size_total_error\n";
+	print   "Messages skipped            : $nb_msg_skipped\n";
+	print   "Messages duplicate on host1 : $h1_nb_msg_duplicate\n";
+	print   "Messages duplicate on host2 : $h2_nb_msg_duplicate\n";
+	print   "Messages deleted on host1   : $h1_nb_msg_deleted\n";
+	print   "Messages deleted on host2   : $h2_nb_msg_deleted\n";
+	print   "Total bytes transferred     : $total_bytes_transferred\n";
+	print   "Total bytes duplicate host1 : $h1_total_bytes_duplicate\n";
+	print   "Total bytes duplicate host2 : $h2_total_bytes_duplicate\n";
+	print   "Total bytes skipped         : $total_bytes_skipped\n";
+	print   "Total bytes error           : $total_bytes_error\n";
 	$timediff ||= 1; # No division per 0
-	printf ("Average bandwidth rate      : %.1f KiB/s\n", $mess_size_total_trans / 1024 / $timediff);
+	printf ("Message rate                : %.1f messages/s\n", $nb_msg_transferred / $timediff);
+	printf ("Average bandwidth rate      : %.1f KiB/s\n", $total_bytes_transferred / 1024 / $timediff);
 	print   "Reconnections to host1      : $host1_reconnect_count\n";
 	print   "Reconnections to host2      : $host2_reconnect_count\n";
-	print   "Detected $error errors\n\n";
+	print   "Detected $nb_errors errors\n\n";
 	print   thank_author();
 }
 
 sub thank_author {
 
 	return(join("", "Happy with this free, open and gratis DWTFPL software?\n",
-	  "Encourage the author (Gilles LAMIRAL) by giving him a book:\n",
-	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n",
+	  "Encourage the author (Gilles LAMIRAL) by giving him a book\n",
           "or just money via paypal:\n",
 	  "http://www.linux-france.org/prj/imapsync/\n"));
 }
@@ -2292,7 +2360,7 @@ sub get_options {
         $debug and print "get options: [$opt_ret]\n";
 
 	# just the version
-        print "$VERSION\n" and exit if ($version) ;
+        print imapsync_version(), "\n" and exit if ($version) ;
 	
 	if ($tests) {
 		$test_builder->no_ending(0);
@@ -2615,8 +2683,11 @@ sub tests {
 		tests_permanentflags();
 		tests_flags_filter();
 		tests_imap2_folder_name();
+		tests_command_line_nopassword();
 	}
 }
+
+# IMAPClient 2.2.9 overrides
 
 sub override_imapclient {
 no warnings 'redefine';
@@ -3714,7 +3785,7 @@ sub starttls {
   $banner;
 }
 
-
+# IMAPClient 2.2.9 3.xx ads
 
 package Mail::IMAPClient;
 
