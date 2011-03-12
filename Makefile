@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.7 2005/04/13 11:44:17 gilles Exp gilles $	
+# $Id: Makefile,v 1.8 2006/02/28 03:55:01 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -99,3 +99,4 @@ lfo: dist niouze
 
 niouze: VERSION
 	. memo && lfo_announce
+	. memo && fm_announce

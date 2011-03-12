@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.46 2006/02/22 02:21:57 gilles Exp gilles $	
+# $Id: tests.sh,v 1.47 2006/02/28 03:53:34 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -402,7 +402,7 @@ lp_include()
 		--passfile2 /var/tmp/secret.tata \
 		--host1 loul  --user1 tata \
 		--passfile1 /var/tmp/secret.tata \
-		--include 'INBOX.yop'
+		--include '^INBOX.yop'
 	else
 		:
 	fi
