@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.171 $
+$Revision: 1.172 $
 
 =head1 INSTALL
 
@@ -334,7 +334,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.171 2006/04/27 08:25:04 gilles Exp $
+$Id: imapsync,v 1.172 2006/05/09 23:06:29 gilles Exp $
 
 =cut
 
@@ -391,7 +391,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.171 2006/04/27 08:25:04 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.172 2006/05/09 23:06:29 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -428,8 +428,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.171 $ ',
-		  '$Date: 2006/04/27 08:25:04 $ ',
+		  '$Revision: 1.172 $ ',
+		  '$Date: 2006/05/09 23:06:29 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -447,6 +447,10 @@ sub missing_option {
 	my ($option) = @_;
 	die "$option option must be used, run $0 --help for help\n";
 }
+
+# By default, 1000 at a time, not more.
+$split1 ||= 1000;
+$split2 ||= 1000;
 
 $host1 || missing_option("--host1") ;
 # $port1 = (defined($port1)) ? $port1 : 143;
@@ -1440,6 +1444,7 @@ Several options are mandatory.
 --fast                 : be faster (just does not sync flags).
 --split1     <int>     : split the requests in several parts on source server.
                          <int > is the number of messages handled per request.
+                         default is like --split1 1000
 --split2     <int>     : same thing on the "destination" server.
 --nofastio1            : don't use fastio with the "from" server.
 --nofastio2            : don't use fastio with the "destination" server.
