@@ -1,0 +1,57 @@
+Hi Gilles,
+
+I have used your imapsync program many times over the past few months
+and it has been a great help in our mail server migration, so first of
+all: Thank you! :-)
+
+However, with the latest task, I ran into a problem: I'm migrating mail
+from a Kolab 2.0.4 server to a Kolab 2.1beta2 server (both use Cyrus as
+imapd). The problem is: We're also changing domains at the same time,
+i.e. any user "NAME@OLD.DOMAIN" on the old server becomes
+"NAME@NEW.DOMAIN" on the new server. When transferring mail, this
+doesn't have any bad influence, but it does lead to problems when trying
+to sync ACLs as well. Right now, imapsync will take the ACLs, compare
+the folder on the old and the new server and will then happily set the
+ACL for "NAME@NEW.DOMAIN" on the new server to "none" (because it
+doesn't exist on the old server) and then try to set the ACLs for
+"NAME@OLD.DOMAIN" on the new server - which a) fails (it just removed
+the access for NAME@NEW.DOMAIN - hence, the user cannot access his own
+mailbox anymore) and b) is not desirable anyway (only "NAME@NEW.DOMAIN"
+should have permissions).
+
+So, basically, what I need is an option to tell imapsync that the domain
+is changing and have it replace the domain in all user names that are
+related to ACLs. Right now, I've solved this by crudely patching the
+"acls_sync" subroutine:
+
+sub acls_sync {
+        my($f_fold, $t_fold) = @_;
+[...]
+               foreach my $user (sort(keys(%users))) {
+                        my $acl = $f_hash->{$user} || "none";
+                        if ($user eq $user2)
+                          {
+                            # the user we use to log in as on the target
+                            # server gets "all" permissions always
+                            $acl = "lrswipcda";
+                          }
+                        my $new_user = $user;
+                        $new_user =~ s/OLD.DOMAIN/NEW.DOMAIN/g;
+
+                        print "acl $user -> $new_user : [$acl]\n";
+                        next if ($f_hash->{$user} && $t_hash->{$new_user} &&
+                                 $f_hash->{$user} eq $t_hash->{$new_user});
+                        unless ($dry) {
+                                print "setting acl $t_fold $new_user $acl\n";
+                                $to->setacl($t_fold, $new_user, $acl)
+                                  or warn "Could not set acl: $@\n";
+                        }
+                }
+[...]
+
+but this is really just a hack to suit my current needs. Maybe you could
+consider adding something more refined than this hack in a future release? :-)
+
+Best regards,
+
+Thomas
