@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.152 $
+$Revision: 1.153 $
 
 =head1 INSTALL
 
@@ -313,7 +313,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.152 2006/02/17 02:57:21 gilles Exp $
+$Id: imapsync,v 1.153 2006/02/22 02:41:52 gilles Exp gilles $
 
 =cut
 
@@ -361,7 +361,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.152 2006/02/17 02:57:21 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.153 2006/02/22 02:41:52 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -398,8 +398,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.152 $ ',
-		  '$Date: 2006/02/17 02:57:21 $ ',
+		  '$Revision: 1.153 $ ',
+		  '$Date: 2006/02/22 02:41:52 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -1296,13 +1296,14 @@ Several options are mandatory.
 --maxsize     <int>    : skip messages larger than <int> bytes
 --maxage      <int>    : skip messages older than <int> days.
                          final stats (skipped) don't count older messages
+			 see also --minage
 --minage      <int>    : skip messages newer than <int> days.
                          final stats (skipped) don't count newer messages
                          You can do (+ are the messages selected):
-                         ------maxage+++++++++++++++++++|now
-                         +++++++++++++++++++minage------|now
-                         ------maxage+++++++minage------|now intersection
-                         ++++++minage-------maxage++++++|now union
+                         past|----maxage+++++++++++++++>now
+                         past|+++++++++++++++minage---->now
+                         past|----maxage+++++minage---->now (intersection)
+                         past|++++minage-----maxage++++>now (union)
 --skipheader  <regex>  : Don't take into account header keyword 
                          matching <string> ex: --skipheader 'X.*'
 --useheader   <string> : Use this header to compare messages on both sides.

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.45 2006/02/17 02:51:12 gilles Exp gilles $	
+# $Id: tests.sh,v 1.46 2006/02/22 02:21:57 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -92,8 +92,7 @@ loulloul() {
 		--host1 loul  --user1 tata \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 loul --user2 titi \
-		--passfile2 /var/tmp/secret.tata \
-		--sep2 .
+		--passfile2 /var/tmp/secret.tata
 	else
 		:
 	fi
