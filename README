@@ -3,7 +3,7 @@ NAME
     Synchronise mailboxes between two imap servers. Good at IMAP migration.
     More than 36 different IMAP server softwares supported with success.
 
-    $Revision: 1.366 $
+    $Revision: 1.398 $
 
 SYNOPSIS
     To synchronise imap account "foo" on "imap.truc.org" to imap account
@@ -22,12 +22,12 @@ INSTALL
 
     imapsync is already available directly on the following distributions
     (at least): FreeBSD, Debian, Ubuntu, Gentoo, Fedora, NetBSD, Darwin,
-    Mandriva and OpenBSD (yeah!).
+    Mandriva and OpenBSD.
 
      Get imapsync at
      http://www.linux-france.org/prj/imapsync/
 
-     You'll find a compressed tarball called imapsync-x.xx.tgz
+     You'll receive a link to a compressed tarball called imapsync-x.xx.tgz
      where x.xx is the version number. Untar the tarball where
      you want (on Unix):
 
@@ -55,8 +55,10 @@ USAGE
                [--user2 <string>] [--passfile2 <string>]
                [--ssl1] [--ssl2]
                [--tls1] [--tls2]
-               [--authmech1 <string>] [--authmech2 <string>] 
-               [--noauthmd5]
+               [--authmech1 <string>] [--authmech2 <string>]
+               [--proxyauth1] [--proxyauth2]
+               [--domain1] [--domain2] 
+               [--authmd51] [--authmd52]
                [--folder <string> --folder <string> ...]
                [--folderrec <string> --folderrec <string> ...]
                [--include <regex>] [--exclude <regex>]
@@ -67,7 +69,6 @@ USAGE
                [--justfolders] [--justfoldersizes] [--justconnect] [--justbanner]
                [--syncinternaldates]
                [--idatefromheader]
-               [--buffersize  <int>]
                [--syncacls]
                [--regexmess <regex>] [--regexmess <regex>]
                [--maxsize <int>]
@@ -76,9 +77,12 @@ USAGE
                [--minage <int>]
                [--skipheader <regex>]
                [--useheader <string>] [--useheader <string>]
+               [--nouid1] [--nouid1] 
+               [--usecache]
                [--skipsize] [--allowsizemismatch]
                [--delete] [--delete2]
                [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
+               [--delete2folders] [--delete2foldersonly] [--delete2foldersbutnot]
                [--subscribed] [--subscribe] [--subscribe_all] 
                [--nofoldersizes]
                [--dry]
@@ -86,9 +90,11 @@ USAGE
                [--timeout <int>] [--fast]
                [--split1] [--split2] 
                [--reconnectretry1 <int>] [--reconnectretry2 <int>]
+               [--noreleasecheck]
                [--pidfile <filepath>]
                [--tmpdir  <dirpath>]
                [--version] [--help]
+               [--tests] [--tests_debug]
 
 DESCRIPTION
     The command imapsync is a tool allowing incremental and recursive imap
@@ -110,7 +116,10 @@ DESCRIPTION
 
     You can decide to delete the messages from the source mailbox after a
     successful transfer (it is a good feature when migrating). In that case,
-    use the --delete --expunge1 options.
+    use the --delete option. Option --delete implies also option --expunge
+    so all messages marked deleted on host1 will be really deleted. (you can
+    use --noexpunge to avoid this but I don't see any real world scenario
+    for the combinaison --delete --noexpunge).
 
     You can also just synchronize a mailbox A from another mailbox B in case
     you just want to keep a "live" copy of B in A (--delete2 may help)
@@ -165,6 +174,10 @@ SECURITY
     with --authuser1 "adminuser", it will not work. Same behavior with the
     --authuser2 option.
 
+    When working on Sun/iPlanet/Netscape IMAP servers you must use
+    --proxyauth1 to enable administrative user to masquerade as another
+    user. Can also be used on destination server with --proxyauth2
+
 EXIT STATUS
     imapsync will exit with a 0 status (return code) if everything went
     good. Otherwise, it exits with a non-zero status.
@@ -177,9 +190,10 @@ EXIT STATUS
             done
 
 LICENSE
-    imapsync is free, gratis and open source software cover by the Do What
-    The Fuck You Want To Public License (WTFPL). See COPYING file included
-    in the distribution or the web site http://sam.zoy.org/wtfpl/COPYING
+    imapsync is free, open source but not always gratis software cover by
+    the Do What The Fuck You Want To Public License (WTFPL). See COPYING
+    file included in the distribution or the web site
+    http://sam.zoy.org/wtfpl/COPYING
 
 MAILING-LIST
     The public mailing-list may be the best way to get support.
@@ -214,8 +228,8 @@ AUTHOR
     imapsync mailing-list (see below).
 
     Gilles LAMIRAL earns his living writing, installing, configuring and
-    teaching free, open and gratis softwares. Do not hesitate to pay him for
-    that services.
+    teaching free, open and often gratis softwares. Do not hesitate to pay
+    him for that services.
 
 BUG REPORT GUIDELINES
     Help us to help you: follow the following guidelines.
@@ -238,7 +252,7 @@ BUG REPORT GUIDELINES
     visible line).
 
     Don't write imapsync in uppercase in the email title, we'll know you run
-    windows(tm) and you haven't read the README yet.
+    Windows and you haven't read this README yet.
 
     Help us to help you: in your report, please include:
 
@@ -271,18 +285,18 @@ BUG REPORT GUIDELINES
     it.
 
 IMAP SERVERS
-    Failure stories reported with the following 4 imap servers:
+    Failure stories reported with the following 3 imap servers:
 
      - MailEnable 1.54 (Proprietary) http://www.mailenable.com/
      - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 works.
        Patient and confident testers are welcome.
-     - dkimap4 2.39
      - Imail 7.04 (maybe).
 
-    Success stories reported with the following 36 imap servers (software
+    Success stories reported with the following 40 imap servers (software
     names are in alphabetic order):
 
      - 1und1 H mimap1 84498 [host1]
+     - a1.net imap.a1.net IMAP4 Ready WARSBL614 00029c23 [host1]
      - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
        (OSL 3.0) http://www.archiveopteryx.org/
      - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
@@ -303,12 +317,15 @@ IMAP SERVERS
      - DBMail 1.2.1, 2.0.4, 2.0.9, 2.2rc1 (GPL) (http://www.dbmail.org/).
        2.0.7 seems buggy.
      - Deerfield VisNetic MailServer 5.8.6 [host1]
-     - Domino (Notes) 4.61[host1], 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1[host1], 8.0.1[host1]
+     - dkimap4 [host1]
+     - Domino (Notes) 4.61[host1], 6.5[host1], 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 
+       7.0.1[host1], 8.0.1[host1], 8.5.2[host2]
      - Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
        1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)
      - Eudora WorldMail v2
      - GMX IMAP4 StreamProxy.
      - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
+     - hMailServer 5.3.3 [host2], 4.4.1 [host1] (see FAQ)
      - iPlanet Messaging server 4.15, 5.1, 5.2
      - IMail 7.15 (Ipswitch/Win2003), 8.12
      - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform)
@@ -317,18 +334,19 @@ IMAP SERVERS
        6.5.7638.1 [host2], Exchange 2007 SP1 (with Update Rollup 2), 
        Exchange2007-EP-SP2, 
        Exchange 2010 RTM (Release to Manufacturing) [host2]
+     - Mirapoint
      - Netscape Mail Server 3.6 (Wintel !)
      - Netscape Messaging Server 4.15 Patch 7
      - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
      - OpenWave
+     - Oracle Beehive [host1]
      - Qualcomm Worldmail (NT)
      - Rockliffe Mailsite 5.3.11, 4.5.6
      - Samsung Contact IMAP server 8.5.0
      - Scalix v10.1, 10.0.1.3, 11.0.0.431
-     - SmarterMail, Smarter Mail 5.0 Enterprise.
+     - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1].
      - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
-     - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05
-     - Sun Messaging Server 6.3
+     - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05, 6.3
      - Surgemail 3.6f5-5
      - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
        (RedHat uses UW like 2003.338rh), v12.264 Solaris 5.7 (OSI Approved) 
@@ -350,15 +368,10 @@ IMAP SERVERS
 
       imapsync --host1 imap.troc.org --host2 imap.trac.org --justconnect
 
-    Please rate imapsync at http://freshmeat.net/projects/imapsync/ or
-    better give the author a book, he likes books:
-    http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/ (or its paypal
-    account gilles.lamiral@laposte.net)
-
 HUGE MIGRATION
     Pay special attention to options --subscribed --subscribe --delete
-    --delete2 --expunge --expunge1 --expunge2 --uidexpunge2 --maxage
-    --minage --maxsize --useheader --fast
+    --delete2 --delete2folders --expunge --expunge1 --expunge2 --uidexpunge2
+    --maxage --minage --maxsize --useheader --fast
 
     If you have many mailboxes to migrate think about a little shell
     program. Write a file called file.csv (for example) containing users and
@@ -404,5 +417,5 @@ SIMILAR SOFTWARES
 
     Feedback (good or bad) will often be welcome.
 
-    $Id: imapsync,v 1.366 2010/10/25 17:15:52 gilles Exp gilles $
+    $Id: imapsync,v 1.398 2011/01/18 03:03:24 gilles Exp gilles $
 

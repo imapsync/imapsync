@@ -3,10 +3,15 @@
 use warnings;
 use strict;
 use IO::Socket;
+use English ;
+use POSIX qw(uname SIGALRM);
+use lib ( '../Mail-IMAPClient-3.25/lib' ) ;
+use Mail::IMAPClient;
 
 sub last_release {
+	my $host = shift || 'linux-france.org' ;
 	my $sock = new IO::Socket::INET (
-		PeerAddr => 'linux-france.org',
+		PeerAddr => $host,
 		PeerPort => '80',
 		Proto => 'tcp');
 	return('unknown') if not $sock;
@@ -44,5 +49,67 @@ sub not_long {
 	}
 }
 
-print last_release(), "\n";
-print not_long('last_release'), "\n";
+sub not_long2 {
+	#print "Entering not_long\n";
+	my ( $func ) = shift ;
+	my ( @argv ) = @_ ;
+	my $val ;
+	
+	# Doesn't work with gethostbyname (see perlipc)
+	#local $SIG{ALRM} = sub { die "alarm\n" };
+	
+	if ('MSWin32' eq $OSNAME) {
+		local $SIG{ALRM} = sub { die "alarm\n" };
+	}else{
+	
+        	POSIX::sigaction(SIGALRM,
+                         POSIX::SigAction->new(sub { die "alarm" }))
+        		or warn "Error setting SIGALRM handler: $!\n";
+	}
+	
+	eval {
+		
+		alarm(3);
+		print "$func @argv", "\n";
+		{
+			no strict "refs";
+			#print "Calling $func\n";
+			$val = &$func( @argv ) ;
+			#print "End of  $func\n";
+		}
+		alarm(0);
+	};
+	if ( $@ ) {
+		#print "$@";
+		if ($@ =~ /alarm/) {
+		# timed out
+			return('timeout');
+		}else{
+			alarm(0);
+			return('unknown'); # propagate unexpected errors
+		}
+	}else {
+	# didn't
+		return($val);
+	}
+}
+
+sub connect_test {
+	my $host = 'localhost' ;
+
+	my $imap = Mail::IMAPClient->new(  ) ;
+	$imap->Debug( 1 ) ;
+	$imap->Server( $host ) ;
+	$imap->connect(  ) or die ;
+	$imap->IsUnconnected(  ) ;
+	$imap->logout(  ) ;
+}
+
+
+#print last_release(), "\n" ;
+#print not_long('last_release'), "\n" ;
+connect_test(  ) ;
+print not_long2( 'last_release', ), "\n" ;
+#print not_long2( 'last_release' ), "\n" ;
+
+connect_test(  ) ;

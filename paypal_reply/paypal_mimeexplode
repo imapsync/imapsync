@@ -1,0 +1,187 @@
+#!/usr/bin/perl -w
+
+# $Id: paypal_mimeexplode,v 1.1 2010/11/23 01:26:24 gilles Exp gilles $
+
+=head1 NAME
+
+mimeexplode - explode one or more MIME messages
+
+=head1 SYNOPSIS
+
+    mimeexplode <mime-msg-file> <mime-msg-file> ...
+    
+    someprocess | mimeexplode -
+
+=head1 DESCRIPTION
+
+Takes one or more files from the command line that contain MIME
+messages, and explodes their contents out into subdirectories
+of the current working directory.  The subdirectories are 
+just called C<msg0>, C<msg1>, C<msg2>, etc.  Existing directories are
+skipped over.
+
+The message information is output to the stdout, like this:
+
+    Message: msg3 (inputfile1.msg)
+        Part: msg3/filename-1.dat (text/plain)
+        Part: msg3/filename-2.dat (text/plain)
+    Message: msg5 (input-file2.msg)
+        Part: msg5/dir.gif (image/gif)
+        Part: msg5/face.jpg (image/jpeg)
+    Message: msg6 (infile3)
+        Part: msg6/filename-1.dat (text/plain)
+
+This was written as an example of the MIME:: modules in the
+MIME-parser package I wrote.  It may prove useful as a quick-and-dirty
+way of splitting a MIME message if you need to decode something, and
+you don't have a MIME mail reader on hand.
+
+=head1 COMMAND LINE OPTIONS
+
+None yet.  
+
+=head1 AUTHOR
+
+Eryq C<eryq@zeegee.com>, in a big hurry...
+
+=cut
+
+BEGIN { unshift @INC, ".." }    # to test MIME:: stuff before installing it!
+
+require 5.001;
+use strict;
+use Getopt::Long;
+use vars qw($Msgno);
+
+use MIME::Parser;
+use Getopt::Std;
+use File::Basename;
+
+
+my $numopt = scalar(@ARGV);
+my $help;
+my $debug;
+
+my $opt_ret = GetOptions(
+        "help"          => \$help,
+        "debug!"        => \$debug,
+);
+usage() and exit if ($help or ! $numopt) ;
+
+
+sub usage {
+        print <<EOF;
+
+Usage: $0 [options] email_1 email_2 ...
+
+Options:
+
+--help        : print this message
+--debug       : verbose output
+
+Example: 
+$0 email_1 email_2
+   
+EOF
+}
+
+
+#------------------------------------------------------------
+# make_msg - make and return the name of a msgXXX directory
+#------------------------------------------------------------
+$Msgno = 1;
+
+sub make_msg {
+    while (-d "msg$Msgno") { 
+	++$Msgno;
+	die "self-imposed limit reached" if $Msgno == 256;
+    }
+    mkdir "msg$Msgno",0755 or die "couldn't make msg$Msgno: $!";
+    "msg$Msgno";
+}
+
+#------------------------------------------------------------
+# make_msg_dir - make and return the name of a output directory
+#------------------------------------------------------------
+
+sub make_msg_dir {
+    my ($file) = @_;
+    
+    if ("-" ne "$file") {
+        my $basefile = basename($file) . "_d";
+	-d $basefile and return($basefile);
+        mkdir $basefile or do {
+	    warn "can not create directory $basefile: $!";
+	    return undef;
+	};
+        return($basefile);
+    }else{
+        return(make_msg());
+    }
+}
+
+
+#------------------------------------------------------------
+# dump_entity - dump an entity's file info
+#------------------------------------------------------------
+sub dump_entity {
+    my $ent = shift;
+    my @parts = $ent->parts;
+
+    if (@parts) {        # multipart...
+	map { dump_entity($_) } @parts;
+    }
+    else {               # single part...
+	$debug and print "    Part: ", $ent->bodyhandle->path, 
+	      " (", scalar($ent->head->mime_type), ")\n";
+    }
+}
+
+#------------------------------------------------------------
+# main
+#------------------------------------------------------------
+sub main {
+    my $file;
+    my $entity;
+
+    # Sanity:
+    (-w ".") or die "cwd not writable, you naughty boy...";
+    
+    # Go through messages:
+    @ARGV or unshift @ARGV, "-";
+    while (defined($file = shift @ARGV)) {
+
+	my $msgdir = make_msg_dir($file);
+	next if not $msgdir;
+	$debug and print "Message: $msgdir ($file)\n";
+
+	# Create a new parser object:
+	my $parser = new MIME::Parser;
+	### $parser->parse_nested_messages('REPLACE');
+    
+	# Optional: set up parameters that will affect how it extracts 
+	#   documents from the input stream:
+	$parser->output_dir($msgdir);
+    
+	# Parse an input stream:
+	open FILE, $file or die "couldn't open $file";
+	$entity = $parser->read(\*FILE) or 
+	    print STDERR "Couldn't parse MIME in $file; continuing...\n";
+	close FILE;
+
+	# Congratulations: you now have a (possibly multipart) MIME entity!
+	dump_entity($entity) if $entity;
+	### $entity->dump_skeleton if $entity;
+    }
+    1;
+}
+
+exit (&main ? 0 : -1);
+#------------------------------------------------------------
+1;
+
+
+
+
+
+

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.23 2010/10/24 23:49:28 gilles Exp gilles $
+# $Id: memo,v 1.29 2010/12/14 15:14:46 gilles Exp gilles $
 
 software_version() {
 
@@ -9,15 +9,15 @@ software_version() {
 }
 
 statistics_lfo() {
+# 62.147.165.21 - - [31/Oct/2010:23:45:28 +0100] "GET /prj/imapsync/VERSION HTTP/1.0" 200 6 "-" "imapsync/1.368 (linux system, perl 5.8.8, Mail::IMAPClient 2.2.9 imapsync)"
 #grep    prj/imapsync/VERSION /usr/local/apache/logs/access_log  | sort -n | cut -d ' ' -f 1,12,13|uniq -c | sort -n # list ip
 
 cat <<EOFF
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|sort -n|cut -d ' ' -f 1,12,13|uniq -c|sort -n # list ip
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|grep    MSWin32|cut -d ' ' -f 1,12,13|sort -n|uniq -c| sort -n # Win32
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|grep -v MSWin32|cut -d ' ' -f 1,12,13|sort -n|uniq -c| sort -n # No Win32
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n # list ip
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32 # Win32
 
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 13|sort -n|uniq -c| sort -n # OS usage
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 12|sort -n|uniq -c| sort -n # imapsync release
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n # OS usage+basename
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n # imapsync release
 
 
 tail -f /usr/local/apache/logs/access_log|cat -n|grep prj/imapsync/VERSION|cat -n |grep VERSION # lfo frequency'
@@ -27,19 +27,19 @@ EOFF
 
 
 niouzes_compil() {
-	DIR_SAVE=`pwd`
-	cd /home/gilles/public_html/www.linux-france.org/html/
+	(
+	cd /g/public_html/www.linux-france.org/html/
 	m4 niouzes.m4 > niouzes.xml
 	python ./niouzes/getmynews.py --neuf niouzes.xml > niouzes-neuf.html
 	python ./niouzes/getmynews.py --html niouzes.xml > niouzes-html.html
-	cd $DIR_SAVE
+	)
 }
 
 
 
 lfo_announce() {
 software_version
-NEWS_FILE="/home/gilles/public_html/www.linux-france.org/html/niouzes/niouzes_imapsync.xml"
+NEWS_FILE="/g/public_html/www.linux-france.org/html/niouzes/niouzes_imapsync.xml"
 if ! newer VERSION $NEWS_FILE; then 
 	echo "$VERSION already announced"
 else
