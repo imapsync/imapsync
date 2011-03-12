@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.40 2005/07/16 12:45:59 gilles Exp gilles $	
+# $Id: tests.sh,v 1.44 2005/11/28 01:27:44 gilles Exp $	
 
 #### Shell pragmas
 
@@ -170,7 +170,6 @@ pl_folder_qqq() {
 		--host1 plume --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--folder INBOX.qqq  \
-		--prefix2 "" \
 		--host2 loul  --user2 tata \
 		--passfile2 /var/tmp/secret.tata \
 		--nosyncacls
@@ -178,6 +177,25 @@ pl_folder_qqq() {
 		:
 	fi
 }
+
+pl_prefix12() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 plume --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--folder INBOX.qqq  \
+		--host2 loul  --user2 tata \
+		--passfile2 /var/tmp/secret.tata \
+		--nosyncacls \
+		--prefix1 INBOX.\
+		--prefix2 INBOX. \
+	else
+		:
+	fi
+}
+
+
 
 lp_internaldate() {
 	if test X`hostname` = X"plume"; then
@@ -682,6 +700,7 @@ test $# -eq 0 && run_tests \
 	lp_buffersize \
 	pl_folder \
         pl_folder_qqq \
+	pl_prefix12 \
 	lp_internaldate \
 	lp_subscribed \
 	lp_subscribe \
