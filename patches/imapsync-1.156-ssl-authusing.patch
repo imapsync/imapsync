@@ -1,0 +1,593 @@
+--- imapsync.orig	2006-03-13 16:34:48.430310000 +0100
++++ imapsync	2006-03-16 07:25:53.113435000 +0100
+@@ -38,7 +38,7 @@
+            [--user1 <string>] [--passfile1 <string>]
+            [--host2 server2]  [--port2 <num>]
+            [--user2 <string>] [--passfile2 <string>]
+-           [--noauthmd5]
++           [--authusing <string>] [--authmech <string>]
+            [--folder <string> --folder <string> ...]
+            [--include <regex>] [--exclude <regex>]
+            [--prefix2 <string>] [--prefix1 <string>] 
+@@ -46,7 +46,6 @@
+            [--sep1 <char>]
+            [--sep2 <char>]
+            [--justfolders] [--justfoldersizes] [--justconnect]
+-           [--syncinternaldates]
+            [--buffersize  <int>]
+            [--syncacls]
+            [--regexmess <regex>] [--regexmess <regex>]
+@@ -60,9 +59,10 @@
+            [--subscribed] [--subscribe]
+            [--nofoldersizes]
+            [--dry]
+-           [--debug] [--debugimap]
++           [--debug] [--debugimap] [--verbose]
+            [--timeout <int>] [--fast]
+            [--version] [--help]
++           [--ssl]
+   
+ =cut
+ # comment
+@@ -134,8 +134,14 @@
+ the password in a well protected file (600 or rw-------) is
+ the best solution.
+ 
+-imasync is not protected against sniffers on the network so
+-the passwords are in plain text.
++You may authenticate as one user (typically an admin user), but be
++authorized as someone else, which means you don't need to know every
++user's personal password.  Specify --authusing ADMIN to enable this.
++In this case, --authmech PLAIN will be used, but otherwise,
++--authmech CRAM-MD5 is the default.
++
++To protect yourself from network sniffers, use --ssl to enable
++encryption.
+ 
+ =head1 EXIT STATUS
+ 
+@@ -334,26 +340,27 @@
+ use Digest::MD5  qw(md5_base64);
+ use Term::ReadKey;
+ #use Digest::HMAC_MD5;
++use IO::Socket::SSL;
++use MIME::Base64;
+ 
+ eval { require 'usr/include/sysexits.ph' };
+ 
+ 
+ my(
+-        $rcs, $debug, $debugimap, $error,
++        $rcs, $debug, $debugimap, $verbose, $error,
+ 	$host1, $host2, $port1, $port2,
+ 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
+         @folder, $include, $exclude, 
++        $authusing, $authmech,
+         $prefix1, $prefix2, 
+         @regextrans2, @regexmess,
+         $sep1, $sep2,
+-	$syncinternaldates, $syncacls,
+-        $fastio1, $fastio2, 
++	$syncacls,
+ 	$maxsize, $maxage, $minage, 
+         $skipheader, @useheader,
+         $skipsize, $foldersizes, $buffersize,
+ 	$delete, $expunge, $expunge1, $expunge2, $dry,
+         $justfoldersizes,
+-        $authmd5,
+         $subscribed, $subscribe,
+ 	$version, $VERSION, $help, 
+         $justconnect, $justfolders,
+@@ -365,6 +372,7 @@
+         $timeout,   # whr (ESS/PRW)
+ 	$timestart, $timeend, $timediff,
+         $timesize, $timebefore,
++        $usessl
+ );
+ 
+ use vars qw ($opt_G); # missing code for this will be option.
+@@ -387,17 +395,10 @@
+ 
+ 
+ sub check_lib_version {
+-	# I know this is ugly, I should write a sort function
+ 	if ($VERSION_IMAPClient =~ m/(\d+)\.(\d+)\.(\d+)/) {
+ 		$debug and print "VERSION_IMAPClient $1 $2 $3\n";
+-		my($major,$minor,$sub) = ($1, $2, $3);
+-		
+-		return(1) if($major >=3);
+-		return(0) if($major <=1);
+-		return(1) if($minor >=3);
+-		return(0) if($minor <=1);
+-		return(1) if($sub >=8);
+-		return(0) if($sub <=7);
++		my $ver = sprintf("%c%c%c", $1, $2, $3);
++		return $ver ge v2.2.9;
+ 	}else{
+ 		return 0; # don't match regex => bad
+ 	}
+@@ -420,7 +421,7 @@
+ }
+ 
+ get_options();
+-print $banner;
++print $banner if $verbose;
+ 
+ sub missing_option {
+ 	my ($option) = @_;
+@@ -428,88 +429,72 @@
+ }
+ 
+ $host1 || missing_option("--host1") ;
+-$port1 = (defined($port1)) ? $port1 : 143;
++$port1 ||= defined $usessl ? 993 : 143;
+ 
+ $host2 || missing_option("--host2") ;
+-$port2 = (defined($port2)) ? $port2 : 143;
++$port2 ||= defined $usessl ? 993 : 143;
+ 
+-sub connect_imap {
+-	my($host, $port, $debugimap) = @_;
+-	my $imap = Mail::IMAPClient->new();
+-	$imap->Server($host);
+-	$imap->Port($port);
+-	$imap->Debug($debugimap);
+-	$imap->connect()
+-	  or die "Can not open imap connection on [$host] : $@\n";	
+-}
++$authmech ||= $authusing ? 'PLAIN' : 'CRAM-MD5';
++
++my $from = connect_imap($host1, $port1, $timeout);
++print "From software : ", server_banner($from);
++print "From capability : ", join(" ", $from->capability()), "\n";
++
++my $to   = connect_imap($host2, $port2, $timeout);
++print "To   software : ", server_banner($to);
++print "To   capability : ", join(" ", $to->capability()), "\n";
+ 
+ if ($justconnect) {
+-	my $from = ();
+-	my $to = ();
+-	
+-	$from = connect_imap($host1, $port1);
+-	print "From software : ", ($from->Report())[0];
+-	print "From capability : ", join(" ", $from->capability()), "\n";
+-	$to   = connect_imap($host2, $port2);
+-	print "To   software : ", ($to->Report())[0];
+-	print "To   capability : ", join(" ", $to->capability()), "\n";
+ 	$from->logout();
+ 	$to->logout();
+ 	exit(0);
+ }
+-	
+ 
+ $user1 || missing_option("--user1");
+ $user2 || missing_option("--user2");
+ 
+-$authmd5 = (defined($authmd5)) ? $authmd5 : 1;
+-
+ $syncacls = (defined($syncacls)) ? $syncacls : 0;
+ $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
+ 
+-$fastio1 = (defined($fastio1)) ? $fastio1 : 1;
+-$fastio2 = (defined($fastio2)) ? $fastio2 : 1;
+-
+-
+ @useheader = ("ALL") unless (@useheader);
+ 
+-print "From imap server [$host1] port [$port1] user [$user1]\n";
+-print "To   imap server [$host2] port [$port2] user [$user2]\n";
++if (defined $authusing) {
++	print "From [$user1\@$host1:$port1] authenticate as [$authusing]\n";
++	print "To   [$user2\@$host2:$port2] authenticate as [$authusing]\n";
++} else {
++	print "From [$user1\@$host1:$port1]\n";
++	print "To   [$user2\@$host2:$port2]\n";
++}
++
++sub ask_for_password {
++	my ($user, $host) = @_;
+ 
+-$password1 || $passfile1 || do {
+-	print "What's the password for $user1\@$host1? ";
++	print "What's the password for $user\@$host? ";
+ 	ReadMode 2;
+-	$password1 = <>; chop $password1;
+-	printf "\n"; ReadMode 0;
+-};
++	my $password = <>;
++	chomp $password;
++	printf "\n";
++	ReadMode 0;
++	return $password;
++}
+ 
++unless ($password1 || $passfile1) {
++	$password1 = ask_for_password($authusing || $user1, $host1);
++}
+ $password1 = (defined($passfile1)) ? firstline ($passfile1) : $password1;
+ 
+-$password2 || $passfile2 || do {
+-	print "What's the password for $user2\@$host2? ";
+-	ReadMode 2;
+-	$password2 = <>; chop $password2;
+-	printf "\n"; ReadMode 0;
+-};
++unless ($password2 || $passfile2) {
++	$password2 = $authusing ? $password1 : ask_for_password($user2, $host2);
++}
+ $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
+ 
+-my $from = ();
+-my $to = ();
+-
+-my $authmech = "CRAM-MD5";
+-
+-
+ $timestart = time();
+ $timebefore = $timestart;
+ 
+-$fastio1 = 1;
+-$fastio2 = 1;
+-
+ $debugimap and print "From connection\n";
+-$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout, $fastio1);
+-
++$from = login_imap($from, $user1, $password1);
+ $debugimap and print "To  connection\n";
+-$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout, $fastio2);
++$to = login_imap($to, $user2, $password2);
+ 
+ # No history
+ $from->Clear(2);
+@@ -518,69 +503,79 @@
+ $debug and print "From Buffer I/O : ", $from->Buffer(), "\n";
+ $debug and print "To   Buffer I/O : ", $to->Buffer(), "\n";
+ 
+-	
+ 
+-sub login_imap {
+-	my($host, $port, $user, $password, 
+-	   $debugimap, $timeout, $fastio) = @_;
+-	my $imap = Mail::IMAPClient->new();
++sub connect_imap {
++	my ($host, $port, $timeout) = @_;
++	my ($imap);
++	if ($usessl) {
++		my $ssl = new IO::Socket::SSL("$host:$port");
++		die "Error connecting to $host:$port: $@\n" unless $ssl;
++		$ssl->autoflush(1);
++
++		$imap = Mail::IMAPClient->new(
++			Socket => $ssl,
++			Server => $host,
++		);
++	} else {
++		$imap = Mail::IMAPClient->new();
++	}
+ 	$imap->Server($host);
+ 	$imap->Port($port);
+-	$imap->Fast_io($fastio);
+ 	$imap->Buffer($buffersize || 4096);
+ 	$imap->Uid(1);
+ 	$imap->Peek(1);
+ 	$imap->Debug($debugimap);
+-	$imap->connect()
+-	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
++	if ($usessl) {
++		$imap->State(Mail::IMAPClient::Connected);
++	} else {
++		$imap->connect()
++		or die "Can not open imap connection on [$host]: $@\n";
++	}
++	if ($authusing && $authmech ne "PLAIN") {
++		print "ERROR: --authusing is only implemented with --authmech PLAIN\n";
++	} elsif ($authmech eq "LOGIN") {
++		# Default mode for Mail::IMAPClient, so don't do anything.
++	} elsif ($imap->has_capability("AUTH=$authmech")) {
++		$imap->Authmechanism($authmech);
++		$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
++	} else {
++		printf("%s: no support for AUTHENTICATE %s, using LOGIN\n",
++		       $imap->Server, $authmech);
++	}
+ 	if ($timeout)    # whr (ESS/PRW)
+ 	  {
+ 		  $imap->Timeout($timeout);
+ 		  print "Setting imap timeout to $timeout\n";
+ 	  }
+-
+-	$imap->User($user);
+-	$imap->Password($password);
+-	md5auth($imap);
+-	$imap->login() or die "Error login : [$host] with user [$user] : $@";
+ 	return($imap);
+ }
+ 
+-
+-sub md5auth() {
+-	my ($imap) = @_;
+-	
+-	unless ($authmd5) {
+-		print "$authmech not wanted by you\n";
+-		return;
+-	}
+-	if ($imap->has_capability($authmech) 
+-	    or $imap->has_capability("AUTH=$authmech")) {
+-		print "Server [", $imap->Server, 
+-		  "] has capability $authmech\n";
+-	}else{
+-		print "Server [", $imap->Server, 
+-		  "] has NOT capability $authmech\n";
+-		return;
+-	}
+-	#print "EE", $imap->Authmechanism(), "\n";
+-	if ($imap->Authmechanism($authmech)) {
+-		print "Using $authmech authentification\n";
+-	}else{
+-		$imap->Authmechanism(undef);
+-		print "Can NOT use $authmech authentification, using plain\n";
++sub server_banner {
++	my $imap = shift;
++	for my $line ($imap->Results()) {
++	    return $line if $line =~ /^\* (OK|NO|BAD)/;
+ 	}
+-	return;
++	return "No banner\n";
+ }
+ 
++sub login_imap {
++	my ($imap, $user, $password) = @_;
+ 
++	$imap->User($user);
++	$imap->Password($password);
++	$imap->login()
++		or die "Error login: [$imap->{Server}] with user [$user]: $@\n";
++	return($imap);
++}
+ 
+-
+-print "From software : ", ($from->Report())[0];
+-print "To   software : ", ($to->Report())[0];
+-
+-print "From capability : ", join(" ", $from->capability()), "\n";
+-print "To   capability : ", join(" ", $to->capability()), "\n";
++sub plainauth() {
++        my $code = shift;
++        my $imap = shift;
++
++        my $string = sprintf("%s\x00%s\x00%s", $imap->User,
++			     $authusing || $imap->User, $imap->Password);
++        return encode_base64("$string");
++}
+ 
+ die unless $from->IsAuthenticated();
+ die unless   $to->IsAuthenticated();
+@@ -601,7 +596,7 @@
+ 	@f_folders = sort keys (%fs_folders);
+ }else {
+ 	# no option, all folders
+-	@f_folders = sort $from->folders();
++	@f_folders = sort $from->folders($prefix1);
+ 	# consider (optional) includes and excludes
+ 	if ($include) {
+ 		@f_folders = grep  /$include/,@f_folders;
+@@ -615,22 +610,33 @@
+ 
+ @t_folders = sort @{$to->folders()};
+ 
+-my($f_sep,$t_sep); 
+ # what are the private folders separators for each server ?
++my $f_sep = get_separator($from, $sep1, "--sep1");
++my $f_prefix = get_prefix($from, $prefix1, "--prefix1");
+ 
++if (@t_folders == 0) {
++	if ($authusing) {
++		# We assume we're allowed to create new users.
++		# We may need to make the "user." prefix configurable
++		unless ($dry || $to->create("user.$user2")) {
++			print STDERR "Couldn't create user.$user2 on $host2",
++				$to->LastError, "\n";
++			exit(1);
++		}
++	} else {
++		print "$user2 does not exist on $host2\n";
++		exit(1);
++	}
++}
+ 
+-$debug and print "Getting separators\n";
+-$f_sep = get_separator($from, $sep1, "--sep1");
+-$t_sep = get_separator($to, $sep2, "--sep2");
++my $t_sep = get_separator($to, $sep2, "--sep2");
++my $t_prefix = get_prefix($to, $prefix2, "--prefix2");
+ 
+ #my $f_namespace = $from->namespace();
+ #my $t_namespace = $to->namespace();
+ #$debug and print "From namespace:\n", Data::Dumper->Dump([$f_namespace]);
+ #$debug and print "To   namespace:\n", Data::Dumper->Dump([$t_namespace]);
+ 
+-my($f_prefix,$t_prefix); 
+-$f_prefix = get_prefix($from, $prefix1, "--prefix1");
+-$t_prefix = get_prefix($to, $prefix2, "--prefix2");
+ 
+ sub get_prefix {
+ 	my($imap, $prefix_in, $prefix_opt) = @_;
+@@ -691,7 +697,7 @@
+ 	my $tot = 0;
+ 	my $tmess = 0;
+ 	my @folders = @{$folders_r};
+-	print "++++ Calculating sizes ++++\n";
++	print "++++ Calculating sizes ++++\n" if $verbose;
+ 	foreach my $folder (@folders)     {
+ 		my $stot = 0;
+ 		my $smess = 0;
+@@ -881,7 +887,8 @@
+ 	my $f_heads = $from->parse_headers($from->Range([@f_msgs]),@useheader) 
+ 	  if (@f_msgs) ;
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+-	my $f_size  = $from->fetch_hash("RFC822.SIZE") if (@f_msgs);
++	my $f_size  = $from->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
++		if (@f_msgs);
+ 	$debug and print "Time sizes  : ", timenext(), " s\n";
+ 	#my $f_flags = $from->flags(@f_msgs) ;
+ 	#print "Time flags  : ", timenext(), " s\n";
+@@ -909,7 +916,7 @@
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+ 	#exit;
+ 
+-	print "++++ Verifying [$f_fold] -> [$t_fold] ++++\n";
++	print "++++ Synchronizing [$f_fold] -> [$t_fold] ++++\n";
+ 	# messages in "from" that are not good in "to"
+ 	
+ 	my @f_hash_keys_sorted_by_uid 
+@@ -928,9 +935,11 @@
+ 		}
+ 		$debug and print "+ key     $m_id #$f_msg\n";
+ 		unless (exists($t_hash{$m_id})) {
+-			print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
++			print "+ NO msg #$f_msg [$m_id] in $t_fold\n"
++				if $verbose;
+ 			# copy
+-			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
++			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n"
++				if $verbose;
+ 			my $string = $from->message_string($f_msg);
+ 			foreach my $regexmess (@regexmess) {
+ 				$debug and print "eval \$string =~ $regexmess\n";
+@@ -939,33 +948,18 @@
+ 			$debug and print "F message content begin next line\n",
+ 			  $string,
+ 			    "F message content ended on previous line\n";
+-			my $d = "";
+-			if ($syncinternaldates) {
+-				$d = $from->internaldate($f_msg);
+-				$d = "\"$d\"";
+-				$debug and print "internal date from 1: [$d]\n";
+-			}
+-			
+-			my $flags_f_rv = $from->flags($f_msg);
+-			my @flags_f;
+-			my $flags_f;
+-			
+-			if (ref($flags_f_rv)) {
+-				@flags_f = @{$flags_f_rv};
+-				$flags_f = join(" ", @flags_f);
+-			}else{
+-				$flags_f = "";	
+-			}
+-			
+-			#$flags_f = join(" ", @{$from->flags($f_msg)});
+ 			
++			my $flags_f = $f_hash{$m_id}{'F'} || "";
+ 			# RFC 2060 : This flag can not be altered by the client
+ 			$flags_f =~ s@\\Recent@@g;
+ 			
+ 			my $new_id;
+-			print "flags from : [$flags_f][$d]\n";
++			my $indate = $f_hash{$m_id}{'D'};
++			print "flags from : [$flags_f][$indate]\n" if $verbose;
+ 			unless ($dry) {
+-				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
++				$new_id = $to->append_string($t_fold, $string,
++							     $flags_f, $indate);
++				unless($new_id){
+ 					warn "Couldn't append msg #$f_msg (Subject:[".$from->subject($f_msg)."]) to folder $t_fold: ",
+ 					  $to->LastError, "\n";
+ 					$error++;
+@@ -976,7 +970,7 @@
+ 						# good
+ 					# $new_id is an id if the IMAP server has the 
+ 					# UIDPLUS capability else just a ref
+-					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
++					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n" if $verbose;
+ 					$mess_size_total_trans += $f_size;
+ 					$mess_trans += 1;
+ 				}
+@@ -1116,17 +1110,19 @@
+         my $opt_ret = GetOptions(
+                                    "debug!"       => \$debug,
+                                    "debugimap!"   => \$debugimap,
++				   "verbose!"    => \$verbose,
+                                    "host1=s"     => \$host1,
+                                    "host2=s"     => \$host2,
+                                    "port1=i"     => \$port1,
+                                    "port2=i"     => \$port2,
+                                    "user1=s"     => \$user1,
+                                    "user2=s"     => \$user2,
++                                   "authusing=s" => \$authusing,
++                                   "authmech=s"  => \$authmech,
+                                    "password1=s" => \$password1,
+                                    "password2=s" => \$password2,
+                                    "passfile1=s" => \$passfile1,
+                                    "passfile2=s" => \$passfile2,
+-				   "authmd5!"    => \$authmd5,
+                                    "sep1=s"      => \$sep1,
+                                    "sep2=s"      => \$sep2,
+ 				   "folder=s"    => \@folder,
+@@ -1137,7 +1133,6 @@
+ 				   "regextrans2=s" => \@regextrans2,
+ 				   "regexmess=s" => \@regexmess,
+                                    "delete!"     => \$delete,
+-                                   "syncinternaldates!" => \$syncinternaldates,
+                                    "syncacls!"   => \$syncacls,
+ 				   "maxsize=i"   => \$maxsize,
+ 				   "maxage=i"    => \$maxage,
+@@ -1160,8 +1155,7 @@
+ 				   "skipheader=s" => \$skipheader,
+ 				   "useheader=s" => \@useheader,
+ 				   "skipsize!"   => \$skipsize,
+-				   "fastio1!"     => \$fastio1,
+-				   "fastio2!"     => \$fastio2,
++				   "ssl!"	  => \$usessl
+                                   );
+ 	
+         $debug and print "get options: [$opt_ret]\n";
+@@ -1221,6 +1215,8 @@
+         }
+ 	$s_hash->{"$key"}{'5'} = $m_md5;
+ 	$s_hash->{"$key"}{'s'} = $size;
++	$s_hash->{"$key"}{'D'} = $s_size->{$m_uid}->{"INTERNALDATE"};
++	$s_hash->{"$key"}{'F'} = $s_size->{$m_uid}->{"FLAGS"};
+ 	$s_hash->{"$key"}{'m'} = $m_uid;
+ }
+ 
+@@ -1253,10 +1249,10 @@
+ --host2       <string> : "destination" imap server. Mandatory.
+ --port2       <int>    : port to connect. Default is 143.
+ --user2       <string> : user to login.   Mandatory.
++--authusing   <string> : user to auth with (when running on behalf of another)
++--authmech    <string> : auth mechanism to use (e.g. PLAIN, LOGIN, CRAM-MD5...)
+ --password2   <string> : password for the user2. Dangerous, use --passfile2
+ --passfile2   <string> : password file for the user2. Contains the password.
+---noauthmd5            : don't use MD5 authentification.
+---authmd5              : use MD5 authentification.
+ --folder      <string> : sync only this folder.
+ --folder      <string> : and this one.
+ --folder      <string> : and this one, etc.
+@@ -1300,7 +1296,6 @@
+                          it will change in future releases.
+ --expunge1             : expunge messages on source account.
+ --expunge2             : expunge messages on target account.
+---syncinternaldates    : sets the internal dates on host2 same as host1
+ --buffersize  <int>    : sets the size of a block of I/O.
+ --maxsize     <int>    : skip messages larger than <int> bytes
+ --maxage      <int>    : skip messages older than <int> days.
+@@ -1332,14 +1327,14 @@
+ --nosyncacls           : Does not synchronize acls. This is the default.
+ --debug                : debug mode.
+ --debugimap            : imap debug mode.
+---version              : print sotfware version.
++--verbose              : print information about each message transferred
++--version              : print software version.
+ --justconnect          : just connect to both servers and print useful
+                          information. Need only --host1 and --host2 options.
+ --justfolders          : just do things about folders (ignore messages).
+ --fast                 : be faster (does not sync flags).
+---nofastio1            : don't use fastio with the "from" server.
+---nofastio2            : don't use fastio with the "destination" server.
+ --timeout     <int>    : imap connect timeout.
++--ssl                  : use SSL connections.
+ --help                 : print this.
+ 
+ Example: to synchronise imap account "foo" on "imap.truc.org"
