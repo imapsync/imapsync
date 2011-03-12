@@ -1,8 +1,14 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.23 2004/09/07 00:38:36 gilles Exp $	
+# $Id: tests.sh,v 1.25 2004/10/15 14:40:05 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.25  2004/10/15 14:40:05  gilles
+# Added big_transfert_sizes_only()
+#
+# Revision 1.24  2004/10/12 21:18:10  gilles
+# Added big_transfert2()
+#
 # Revision 1.23  2004/09/07 00:38:36  gilles
 # Added noauthmd5 to first_sync test
 #
@@ -483,12 +489,48 @@ big_transfert()
 	--passfile1 /var/tmp/secret \
 	--host2 plume --user2 tete@est.belle \
 	--passfile2 /var/tmp/secret.tete \
-	--subscribed || \
+	--subscribed --foldersizes --noauthmd5 || \
     true
     }
     date2=`date`
-    echo3 $date1 $date2
+    echo3 "[$date1] [$date2]"
 }
+
+big_transfert_sizes_only()
+{
+    date1=`date`
+    { ./imapsync \
+	--host1 louloutte --user1 gilles \
+	--passfile1 /var/tmp/secret \
+	--host2 plume --user2 tete@est.belle \
+	--passfile2 /var/tmp/secret.tete \
+	--subscribed --foldersizes --noauthmd5 \
+	--justconnect || \
+    true
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+}
+
+
+
+big_transfert2()
+{
+    date1=`date`
+    { perl -d:DProf ./imapsync \
+	--host1 louloutte --user1 gilles \
+	--passfile1 /var/tmp/secret \
+	--host2 plume --user2 tete@est.belle \
+	--passfile2 /var/tmp/secret.tete \
+	--subscribed --foldersizes --noauthmd5 \
+        --folder INBOX.Backup_ASK || \
+    true
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+    dprofpp tmon.out
+}
+
 
 # mandatory tests
 

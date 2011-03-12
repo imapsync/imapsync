@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.99 $
+$Revision: 1.102 $
 
 =head1 INSTALL
 
@@ -128,7 +128,6 @@ the best solution.
 imasync is not protected against sniffers on the network so
 the passwords are in plain text.
 
-
 =head1 EXIT STATUS
 
 imapsync will exit with a 0 status (return code) if everything went good.
@@ -196,9 +195,10 @@ Success stories reported (softwares in alphabetic order) :
  - Dovecot 0.99.10.4
  - Domino (Notes) 6.5, 5.0.6
  - iPlanet Messaging server 4.15, 5.1
- - IMail 7.15 (Ipswitch/Win2003)
+ - IMail 7.15 (Ipswitch/Win2003), 8.12
  - MS Exchange Server 5.5
  - Netscape Mail Server 3.6 (Wintel !)
+ - OpenWave
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
    (RedHat uses UW like 2003.338rh)
@@ -280,7 +280,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.99 2004/10/04 18:42:40 gilles Exp $
+$Id: imapsync,v 1.102 2004/10/15 14:41:25 gilles Exp $
 
 =cut
 
@@ -315,13 +315,14 @@ my(
         $mess_trans, $mess_skipped,
         $timeout,   # whr (ESS/PRW)
 	$timestart, $timeend, $timediff,
+        $timesize, $timebefore,
 
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.99 2004/10/04 18:42:40 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.102 2004/10/15 14:41:25 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -358,8 +359,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.99 $ ',
-		  '$Date: 2004/10/04 18:42:40 $ ',
+		  '$Revision: 1.102 $ ',
+		  '$Date: 2004/10/15 14:41:25 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -408,6 +409,7 @@ unless ($md5_supported) {
 	}
 
 $timestart = time();
+$timebefore = $timestart;
 
 $debugimap and print "From connection\n";
 $from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout);
@@ -422,6 +424,7 @@ sub login_imap {
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Fast_io(1);
+	$imap->Buffer(65536);
 	$imap->Uid(1);
 	$imap->Peek(1);
 	$imap->Debug($debugimap);
@@ -559,23 +562,52 @@ if ($foldersizes) {
 			$error++;
 			next;
 		}
-		my @f_msgs = $maxage 
-		  ? $from->since(time - 86400 * $maxage) 
-		  : $from->search("ALL");
-		foreach my $m (@f_msgs) {
-			my $s = $from->size($m) 
-			  or warn "Could not find size of message $m: $@\n";
-			$stot += $s;
-			$smess++;
-		}
 		
-		print "Size of $f_fold: $stot\n";
-		print "Messages in $f_fold: $smess\n";
-		$tot += $stot;
-		$tmess += $smess;
+		if ($maxage) {
+			my @f_msgs = $maxage
+			  ? $from->since(time - 86400 * $maxage) 
+			    : $from->search("ALL");
+			my $smess2 = scalar(@f_msgs);
+			print "Messages in $f_fold: $smess2\n";
+			foreach my $m (@f_msgs) {
+				my $s = $from->size($m) 
+				  or warn "Could not find size of message $m: $@\n";
+				$stot += $s;
+				$smess++;
+				print ".";
+			}
+			print "\n";
+			print "Size of $f_fold: $stot\n";
+			print "Messages in $f_fold: $smess\n";
+			$tot += $stot;
+			$tmess += $smess;
+		}else{
+			my $hashref = {};
+			my $stot2 = 0;
+			my $smess2 = $from->message_count();
+			unless ($smess2 == 0) {
+				$from->fetch_hash("RFC822.SIZE",$hashref);
+				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
+				map {$stot2 += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
+			}
+			print "Size of $f_fold: $stot2\n";
+			$tot += $stot2;
+			$tmess += $smess2;
+		}
 	}
 	print "Total size: $tot\n";
 	print "Total messages: $tmess\n";
+	print "Time : ", timenext(), " s\n";
+	
+}
+
+sub timenext {
+	my ($timenow, $timerel);
+	# $timebefore is global, beurk !
+	$timenow    = time;
+	$timerel    = $timenow - $timebefore;
+	$timebefore = $timenow;
+	return($timerel);
 }
 
 exit if ($justconnect);
@@ -673,16 +705,19 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my %f_hash = ();
 	my %t_hash = ();
 	
-	$debug and print "++++ From Parse ++++\n";
+	print "++++ From Parse ++++\n";
 	foreach my $m (@f_msgs) {
+		print ".";
 		parse_header_msg($m, $from, "F", \%f_hash);
 	}
-    
-	$debug and print "++++ To   Parse ++++\n";
+	print "Time : ", timenext(), " s\n";
+	print "\n++++ To   Parse ++++\n";
 	foreach my $m (@t_msgs) {
+		print ".";
 		parse_header_msg($m, $to, "T", \%t_hash);
 	}
-	$debug and print "++++ Verifying ++++\n";
+	print "Time : ", timenext(), " s\n";
+	print "\n++++ Verifying ++++\n";
 	# messages in "from" that are not good in "to"
     
 	my @f_hash_keys_sorted_by_uid 
@@ -693,6 +728,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	MESS: foreach my $m_id (@f_hash_keys_sorted_by_uid) {
 		my $f_size = $f_hash{$m_id}{'s'};
 		my $f_msg = $f_hash{$m_id}{'m'};
+		print ".";
 		if (defined $maxsize and $f_size > $maxsize) {
 			print "+ Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit $maxsize bytes)\n";
 			$mess_size_total_skipped += $f_msg;
@@ -788,6 +824,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			}
 		}
 	}
+print "Time : ", timenext(), " s\n";
 }
 
 $timeend = time();
