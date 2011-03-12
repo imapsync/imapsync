@@ -1,0 +1,18 @@
+# Atoms:
+
+NUMBER: /\d+/
+
+# Rules:
+
+threadmember:	NUMBER    { $return = $item{NUMBER} ; }	|
+		thread 	  { $return = $item{thread} ; } 
+
+thread:	"(" threadmember(s) ")"
+	{
+		$return = $item{'threadmember(s)'}||undef;	
+	}
+
+# Start:
+start: /^\* THREAD /i thread(s?) {
+	$return=$item{'thread(s?)'}||undef;
+}

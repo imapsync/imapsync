@@ -22,6 +22,11 @@ http://www.faqs.org/rfcs/rfc4549.html
 
 
 =======================================================================
+Q. Where I can find old imapsync releases ?
+
+R. ftp://www.linux-france.org/pub/prj/imapsync/
+
+=======================================================================
 Q. We have found that the sent time and date have been changed to the 
    time at which the file was synchronised. 
 
@@ -29,6 +34,7 @@ R. This is the case with:
    - Eudora
    - Zimbra
    - Outlook 2003
+   - Gmail
    but not with 
    - Mutt
    - Thunderbird
@@ -52,6 +58,25 @@ c) Use the script learn/adjust_time.pl to change the internal dates
    from the "Date:" header.
 
 =======================================================================
+Q. Does imapsync retain the \Answered and $Forwarded flags?
+
+R. imapsync retains all flags except \Recent 
+(RFC 3501 says "This flag can not be altered by the client.")
+
+Some imap servers have problems with flags not beginning with
+the backslash character \ 
+
+======================================================================
+Q. imapsync fails with the following error:
+flags from : [\Seen NonJunk]["10-Aug-2006 13:00:30 -0400"]
+Error trying to append string: 58 NO APPEND Invalid flag list
+
+R. Flags have to begin with a \ character.
+The flag "NonJunk" is not a valid flag so use for example:
+
+imapsync ...    --regexflag 's/NonJunk//g'
+
+=======================================================================
 Q. Flags are not well synchonized. Is it a bug ?
 
 R. It happens with some servers on the first sync. 
@@ -64,6 +89,31 @@ Q. imapsync hangs taking up 99.8% cpu right after start,
    after printing imapd doesn't support MD5 auth.
 
 R. Try option --noauthmd5
+
+=======================================================================
+Q. Some passwords contain * and " characters. Login fails.
+R. Use
+
+    imapsync --password1 \"password\" 
+
+Ii works for the star * character,
+I don't know if it works for the " character.
+
+=======================================================================
+Q. Out of memory on FreeBSD
+
+R. http://groups.google.com/group/lucky.freebsd.questions/browse_thread/thread/f4218e4252863328
+
+See the user limit with the command
+    ulimit -a
+To change it, try 
+    ulimit -d 1000000000  
+Also
+http://www.unixadmintalk.com/f41/perl-out-memory-sbrk-9112/
+The default hard datasize limit on FreeBSD is 512MB. To raise it, put this 
+(or more) in /boot/loader.conf and reboot:
+
+kern.maxdsiz="1024M"
 
 =======================================================================
 Q. imapsync failed with a "word too long" error from the imap server,
@@ -195,14 +245,14 @@ Here is an example:
 	--exclude '^user\.'
 
 ======================================================================
-Q. imapsync fails with the following error:
-flags from : [\Seen NonJunk]["10-Aug-2006 13:00:30 -0400"]
-Error trying to append string: 58 NO APPEND Invalid flag list
+Q. Is anyway imapsync to purge destionation folder when the source
+   folder is deleted?
 
-R. Flags have to begin with a \ character.
-The flag "NonJunk" is not a valid flag so use for example:
+R. No, that's too much dangerous.
+But if the source folder is empty (not deleted) and 
+options --delete2 --expunge2 are used then 
+the destination folder will be empty.
 
-imapsync ...    --regexflag 's/NonJunk//g'
 
 ======================================================================
 Q. I have moved from Braunschweig to Graz, so I would like to have my whole 
@@ -230,11 +280,17 @@ Q. Give examples about --regextrans2
 
 R. Examples: 
 
+0) First try with --dry option since imapsync shows the transformation
+it will do. Then when happy with the output remove the --dry option
+
 1) To remove INBOX. in the name of destination folders:
     --regextrans2 's/^INBOX\.(.+)/$1/'
 
 2) To sync a complete account in a subfolder called FOO:
     --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
+
+3) to substitute all characters dot "." by underscores "_"
+    --regextrans2 's/\./_/g'
 
 =======================================================================
 Q. I would like to move emails from InBox to a sub-folder
@@ -470,6 +526,11 @@ R: --sep1 "/" --prefix1 ""
 
 Q: From MailEnable 2.2
 R: --sep1 "." --prefix1 ""
+
+======================================================================
+Q. From GMX IMAP4 StreamProxy
+R. Use:
+   --prefix1 INBOX and --sep1 .
 
 ======================================================================
 Q: How can I write an .rpm with imapsync

@@ -1,32 +1,31 @@
+NAME
     imapsync - IMAP synchronisation, sync, copy or migration tool.
     Synchronise mailboxes between two imap servers. Good at IMAP migration.
     More than 32 different IMAP server softwares supported with success.
 
-    $Revision: 1.223 $
+    $Revision: 1.233 $
 
 INSTALL
      imapsync works fine under any Unix OS with perl.
      imapsync works fine under Windows 2000 (at least) and ActiveState's 5.8 Perl
 
      imapsync is already available directly on the following distributions (at least):
-     FreeBSD, Debian, Gentoo, NetBSD, Darwin, Mandriva.
-
-     imapsync is already available directly on the following distributions:
-     OpenBSD
+     FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva.
 
      Get imapsync at
      http://www.linux-france.org/prj/imapsync/dist/
 
      You'll find a compressed tarball called imapsync-x.xx.tgz
      where x.xx is the version number. Untar the tarball where
-     you want :
+     you want (on Unix):
 
      tar xzvf  imapsync-x.xx.tgz
 
-     Go into the directory imapsync-x.xx and read the INSTALL
-     file.
-
-     The freshmeat record is http://freshmeat.net/projects/imapsync/
+     Go into the directory imapsync-x.xx and read the INSTALL file.
+     The INSTALL file is also at 
+     http://www.linux-france.org/prj/imapsync/INSTALL (for windows users)
+ 
+     The freshmeat record is at http://freshmeat.net/projects/imapsync/
 
 SYNOPSIS
       imapsync [options]
@@ -143,9 +142,10 @@ SECURITY
     You may authenticate as one user (typically an admin user), but be
     authorized as someone else, which means you don't need to know every
     user's personal password. Specify --authuser1 "adminuser" to enable this
-    on host1. In this case, --authmech1 PLAIN will be used, but otherwise,
-    --authmech1 CRAM-MD5 is the default. Same behavior with the --authuser2
-    option.
+    on host1. In this case, --authmech1 PLAIN will be used by default since
+    it is the only way to go for now. So don't use --authmech1 SOMETHING
+    with --authuser1 "adminuser", it will not work. Same behavior with the
+    --authuser2 option.
 
 EXIT STATUS
     imapsync will exit with a 0 status (return code) if everything went
@@ -204,17 +204,17 @@ IMAP SERVERS
     Failure stories reported with the following 4 imap servers :
 
      - MailEnable 1.54 (Proprietary) http://www.mailenable.com/
-     - DBMail 2.0.7 (GPL). But DBMail 1.2.1 works.
+     - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 works.
        Patient and confident testers are welcome.
      - dkimap4 2.39
      - Imail 7.04 (maybe).
 
-    Success stories reported with the following 33 imap servers (softwares
+    Success stories reported with the following 34 imap servers (softwares
     names are in alphabetic order) :
 
      - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
      - CommuniGatePro server (Redhat 8.0)
-     - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1 (GPL) 
+     - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8 (GPL) 
        (http://www.courier-mta.org/)
      - Critical Path (7.0.020)
      - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.1.16, 2.1.18 
@@ -222,6 +222,7 @@ IMAP SERVERS
        v2.2.3-Invoca-RPM-2.2.3-8,
        2.3-alpha (OSI Approved),
        v2.2.12-Invoca-RPM-2.2.12-3.RHEL4.1,
+       2.2.13,
        v2.3.1-Invoca-RPM-2.3.1-2.7.fc5,
        (http://asg.web.cmu.edu/cyrus/)
      - David Tobit V8 (proprietary Message system).
@@ -232,6 +233,7 @@ IMAP SERVERS
        1.0.0 [dest] (LGPL) (http://www.dovecot.org/)
      - Domino (Notes) 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1 [from]
      - Eudora WorldMail v2
+     - GMX IMAP4 StreamProxy.
      - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
      - iPlanet Messaging server 4.15, 5.1, 5.2
      - IMail 7.15 (Ipswitch/Win2003), 8.12
@@ -304,22 +306,23 @@ Links
     Entries for imapsync: http://www.imap.org/products/showall.php
 
 SIMILAR SOFTWARES
-      imap_tools  : http://www.athensfbc.com/imap_tools
-      offlineimap : http://gopher.quux.org:70/devel/offlineimap/
-      mailsync    : http://mailsync.sourceforge.net/
-      imapxfer    : http://www.washington.edu/imap/
-                    part of the imap-utils from UW.
-      mailutil    : replace imapxfer in 
-                    part of the imap-utils from UW.
-                    http://www.gsp.com/cgi-bin/man.cgi?topic=mailutil
-      imaprepl    : http://www.bl0rg.net/software/
-                    http://freshmeat.net/projects/imap-repl/
-      imap_migrate: http://freshmeat.net/projects/imapmigration/
-      imapcopy    : http://home.arcor.de/armin.diehl/imapcopy/imapcopy.html
-      migrationtool http://sourceforge.net/projects/migrationtool/
-      pop2imap    : http://www.linux-france.org/prj/pop2imap/
+      imap_tools    : http://www.athensfbc.com/imap_tools
+      offlineimap   : http://software.complete.org/offlineimap
+      mailsync      : http://mailsync.sourceforge.net/
+      imapxfer      : http://www.washington.edu/imap/
+                       part of the imap-utils from UW.
+      mailutil      : replace imapxfer in 
+                       part of the imap-utils from UW.
+                      http://www.gsp.com/cgi-bin/man.cgi?topic=mailutil
+      imaprepl      : http://www.bl0rg.net/software/
+                      http://freshmeat.net/projects/imap-repl/
+      imap_migrate  : http://freshmeat.net/projects/imapmigration/
+      imapcopy      : http://home.arcor.de/armin.diehl/imapcopy/imapcopy.html
+      migrationtool : http://sourceforge.net/projects/migrationtool/
+      imapmigrate   : http://sourceforge.net/projects/cyrus-utils/
+      pop2imap      : http://www.linux-france.org/prj/pop2imap/
 
     Feedback (good or bad) will be always welcome.
 
-    $Id: imapsync,v 1.223 2007/06/15 04:08:44 gilles Exp gilles $
+    $Id: imapsync,v 1.233 2007/10/30 03:20:53 gilles Exp gilles $
 

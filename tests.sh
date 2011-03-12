@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.61 2007/06/15 04:06:58 gilles Exp gilles $	
+# $Id: tests.sh,v 1.64 2007/10/30 03:20:32 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -26,9 +26,9 @@ run_test() {
 }
 
 run_tests() {
-	for t in $*; do
+	for t in "$@"; do
 		test_count=`expr 1 + $test_count`
-		run_test $t
+		run_test "$t"
 		sleep 1
 	done
 }
@@ -71,9 +71,10 @@ no_args() {
 #                          dprof()
 
 sendtestmessage() {
+    email=${1:-"tata@est.belle"}
     rand=`pwgen 16 1`
     mess='test:'$rand
-    cmd="echo $mess""| mail -s ""$mess"" tata@est.belle"
+    cmd="echo $mess""| mail -s ""$mess"" $email"
     echo $cmd
     eval "$cmd"
 }
@@ -443,6 +444,16 @@ ll_bad_host()
 	--host2 badhost --user2 titi@est.belle \
 	--passfile2 /var/tmp/secret2
    
+}
+
+ll_bad_host_ssl()
+{
+    ! ./imapsync \
+	--host1 badhost --user1 toto@est.belle \
+	--passfile1 /var/tmp/secret1 \
+	--host2 badhost --user2 titi@est.belle \
+	--passfile2 /var/tmp/secret2 \
+        --ssl1 --ssl2
 }
 
 
@@ -843,6 +854,20 @@ ariasolutions() {
 
 }
 
+
+ariasolutions2() {
+	./imapsync \
+	--host1 209.17.174.12 \
+	--user1 chrisw@basebuilding.net \
+	--passfile1 /var/tmp/secret.ariasolutions2 \
+	--host2 209.17.174.20 \
+	--user2 chrisw@basebuilding.net\
+	--passfile2 /var/tmp/secret.ariasolutions2 \
+	--noauthmd5 --syncinternaldates
+	# --dry --debug --debugimap
+
+
+}
 ##########################
 ##########################
 
@@ -883,6 +908,7 @@ test $# -eq 0 && run_tests \
 	ll_sep2 \
 	ll_bad_login \
 	ll_bad_host \
+	ll_bad_host_ssl \
 	ll_justfoldersizes \
 	ll_useheader \
 	ll_regexmess \
@@ -901,7 +927,7 @@ test $# -eq 0 && run_tests \
 
 # selective tests
 
-test $# -gt 0 && run_tests $*
+test $# -gt 0 && run_tests "$@"
 
 # If there, all is good
 
