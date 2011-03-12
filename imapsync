@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.87 $
+$Revision: 1.88 $
 
 =head1 INSTALL
 
@@ -65,12 +65,14 @@ imap transfer from one mailbox to another.
 We sometimes need to transfer mailboxes from one imap server to
 another. This is called migration.
 
-imapsync is the adequate tool because it reduces the amount of data
-transfered by not transfering a given message if it is already on
-both sides. All flags are preserved, unread will stay unread, read
-will stay read, deleted will stay deleted. You can stop the
-transfert at any time and restart it later, imapsync is adapted
-to a bad connection.
+imapsync is the adequate tool because it reduces the amount
+of data transfered by not transfering a given message if it
+is already on both sides. Same headers, same message size
+and the transfert is done only once. All flags are
+preserved, unread will stay unread, read will stay read,
+deleted will stay deleted. You can stop the transfert at any
+time and restart it later, imapsync is adapted to a bad
+connection.
 
 You can decide to delete the messages from the source mailbox
 after a successful transfert (it is a good feature when migrating).
@@ -149,6 +151,20 @@ http://www.gnu.org/licenses/licenses.html
 =head1 BUGS
 
 No known serious bug.
+
+Multiple copies: Multiple copies of the emails on the
+destination server. Some IMAP servers (Domino for example)
+add some headers for each message transfered. The message is
+transfered again and again each time you run imapsync. This
+is bad of course. The explanation is that imapsync considers
+the message is not the same since headers have changed (one
+line added) and size too (the header part). You can look at
+the headers found by imapsync by using the --debug option
+(and search for the message on both part). The way to avoid
+this problem is by using options --skipheader and
+--skipsize, like this (avoid headers beginning whith X-):
+
+ imapsync ... --skipheader '^X-.*' --skipsize
 
 Flags : with some IMAP servers the flags are not very well copied the
 first time.  Run imapsync twice if you want the flags set correctly.
@@ -253,7 +269,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.87 2004/03/24 00:08:35 gilles Exp gilles $
+$Id: imapsync,v 1.88 2004/03/29 23:33:00 gilles Exp $
 
 =cut
 
@@ -291,7 +307,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.87 2004/03/24 00:08:35 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.88 2004/03/29 23:33:00 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -327,8 +343,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.87 $ ',
-		  '$Date: 2004/03/24 00:08:35 $ ',
+		  '$Revision: 1.88 $ ',
+		  '$Date: 2004/03/29 23:33:00 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
