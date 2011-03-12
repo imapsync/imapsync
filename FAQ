@@ -3,6 +3,27 @@
 | FAQ for imapsync |
 +------------------+
 
+=======================================================================
+Q. We have found that the sent time and date have been changed to the time at which the file was synchronised. 
+
+R. I guess this is the case with Eudora but not with Mutt, no ?
+Eurora shows by default the time the imap server received the email.
+I think it is quite a strong behavior since the messages can
+have travelled some time before the reception.
+
+The sent time and date are given by the "Date:" header
+and it is set most of the time by the MUA (Mail User Agent, 
+Mutt, Eudora, Thunderbird etc.).
+
+imapsync does not touch any header since the
+header is used to identify the messages in
+both parts.
+
+Solutions: a) Don't use buggy Eudora
+b) Use the --syncinternaldates option and keep using Eudora :-)
+
+
+=======================================================================
 Q. I'm migrating from WU to Cyrus, and the mail folders are
 under /home/user/mail but the tool copies everything in
 /home/user, how can i avoid that?
@@ -13,7 +34,7 @@ or (better)
    imapsync ... --subscribed --subscribe
 
 
-   
+=======================================================================
 Q. I'm migrating from WU to Cyrus, and the mail folders are
 under /home/user/mail directory.  When imapsync creates the
 folders in the new cyrus imap server, it makes a folder
@@ -27,6 +48,7 @@ R. Use
    good then remove the --dry option.
 
 
+=======================================================================
 Q. Migrating from Groupwise to Cyrus
 
 R. By Jamie Neil:
@@ -67,4 +89,7 @@ fly for messages that have MIME separators and so it's different every time.
 3) Version 6.0.1 of the Groupwise Internet Connector sucks. I was 
 getting server abends when I pushed it a bit hard! I eventually had to 
 upgrade to 6.0.4 which seems to be a lot more stable.
+
+
+=======================================================================
 

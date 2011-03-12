@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.38 2005/05/20 02:51:33 gilles Exp $	
+# $Id: tests.sh,v 1.39 2005/06/21 01:29:07 gilles Exp $	
 
 #### Shell pragmas
 
@@ -653,7 +653,6 @@ test $# -eq 0 && run_tests \
 	lp_regextrans2 \
 	foldersizes2 \
 	foldersizes \
-	big_transfert_sizes_only \
 	regexmess \
 	useheader \
 
