@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.13 2006/10/30 03:05:12 gilles Exp gilles $	
+# $Id: Makefile,v 1.14 2006/10/30 04:28:03 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -43,7 +43,7 @@ VERSION: $(TARGET) Makefile
 
 .PHONY: clean clean_tilde clean_test   
 
-clean: clean_tilde clean_test
+clean: clean_tilde clean_test clean_man
 
 clean_test:
 	rm -f .test
@@ -51,11 +51,21 @@ clean_test:
 clean_tilde:
 	rm -f *~
 
-.PHONY: install dist
+.PHONY: install dist man
 
-install: testp
-	cp $(TARGET) $(DESTDIR)/usr/bin/$(TARGET)
+man: $(TARGET).1
+
+clean_man:
+	rm -f $(TARGET).1
+
+$(TARGET).1: $(TARGET)
+	pod2man $(TARGET) > $(TARGET).1
+
+install: testp $(TARGET).1
+	install -D $(TARGET) $(DESTDIR)/usr/bin/$(TARGET)
+	install -D $(TARGET).1 $(DESTDIR)/usr/share/man/man1/$(TARGET).1
 	chmod 755 $(DESTDIR)/usr/bin/$(TARGET)
+
 
 DIST_NAME=$(TARGET)-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
