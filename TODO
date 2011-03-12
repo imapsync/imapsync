@@ -1,19 +1,16 @@
 TODO file for imapsync
 ----------------------
 
+Fix bad english language.
+
 Write to zimbra coders about the date presentation:
 Sorting by default by internal date is bad  with migrations
 and delays arrivals. An option would be good.
-
-Fix --ssl --justconnect bug 
-
-Fix --ssl need --authmech login with gmail. Why? 
 
 Add an option to implement the faq entry about copying a contact folder.
 
 imapsync doesn't report well. It should says "I had
 to sync 123 messages but I could transfer only 99 messages"
-
 
 Fix bug "not possible to use space in the imap password"
 
@@ -23,20 +20,18 @@ Add NOOP commands to avoid timeouts.
 
 Make "--delete 2" be a fatal error.
 
-Start an imap internet scan project.
-
 Explain howto change only the header with --regexmess
 
 Start a wiki for imapsync.
 
 Add a --pidfile option.
 Add a --tmpfile  option.
+Add a --tmpdir option.
 Write a clean_exit() replacing each die() or exit() call.
 Add a --skipheaderinfolder option 
 See the code patches/imapsync_Cvitkovich_pidfile_tmpfile
+
 Make --skipheader be multiple
-
-
 
 Fix this:
 > - Erreur avec la traditionnelle différence entre Windows
@@ -48,30 +43,13 @@ Fix this:
 >         # No NL Count on Windows my $length = ( -s $file ) + $bare_nl_count;
 >         my $length = ( -s $file );
 
-
-Normally, "no header used or found" means imapsync found a message
-with no header. It may be a bad message with really no header
-or it may be a imap server problem, the server gives no header
-for this message. In that case imapsync gets the whole message
-to see if there is the same on the other side. It slows the transfer
-of course. I think I'll change imapsync behavior and let it 
-give up those bad messages missing an header.
-
-
 Add a --delete2folders option
 "When syncing mailboxes with imapsync, is there a way to delete folders in the
 target account? The --delete2 option only seems to delete individual
 messages, not folders."
 
-
-Fix the buggy --include behavior with no --folder --folderrec or --subscribed.
-
-make --syncinternaldates turn on by default
-
-Add different level of output to see clearly the
+Add different levels of output to see clearly the
 problem by default.
-
-Check imapsync with gmail (dates problem?). 
 
 Add --justlogin --justlogin1 --justlogin2 options
 to check username and passwort.
@@ -88,8 +66,6 @@ Add stdin/stdout filter before transfer:
 that - in example, to write each mail to stdout, pipe that to the
 convertion program, and read the result from stdin - and this all before
 the mail will transfer to the target imap-server"
-
-Add a --tmpdir option.
 
 Fix bug with folder names starting with an asterisk: *Archiv
 Sending: 220 SELECT *Archiv/Support/foobar
@@ -113,16 +89,12 @@ Add an entry to
 http://lsm.execpc.com/lsm/
 See template lsm.imapsync
 
-Update the distribution list including imapsync in the
-INSTALL chapter.
-
 Add an option to tell imapsync that the domain
 is changing and have it replace the domain in all user names that are
 related to ACLs.
 See patches/imapsync-acls-users
 
-Add a best practice migration tips document,
-good options with such imap server.
+Add a best practice migration tips document.
 
 Add "output to reflect everything that imapsync was doing".
 Not everything but flag synchronization will be nice"
@@ -134,9 +106,6 @@ Add a method doing the switch automagicaly.
 
 Add --verbose from Kjetil jumbo patch.
 
-Talk about mbox and maildir format when "Invalid header"
-problem is encountered.
-
 Post on newsgroup comp.mail.imap when a new release comes.
 http://groups.google.fr/group/comp.mail.imap
 
@@ -147,17 +116,49 @@ Write to the debian maintener about that.
 
 Interface with external software like procmail 
 
-Look at http://barnson.org/node/81
-
 Read:
 http://www.washington.edu/imap/documentation/commndmt.txt.html
-
 
 Add cyrus link about INBOX. namespace
 http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
-
 Explain expunge behavior.
+
+
+
+
+
+
+DONE. Fix the buggy --include behavior with no --folder --folderrec or --subscribed.
+
+DONE. Update the distribution list including imapsync in the
+INSTALL chapter. Also in README.
+
+DONE. Start FAQ entries about good options with such imap server.
+
+DONE. Talk about mbox and maildir format when "Invalid header"
+problem is encountered. (See FAQ "Invalid header")
+
+DONE. Look at http://barnson.org/node/81
+An old blog about imap migration.
+
+DONE. Normally, "no header used or found" means imapsync found a message
+with no header. It may be a bad message with really no header
+or it may be a imap server problem, the server gives no header
+for this message. In that case imapsync gets the whole message
+to see if there is the same on the other side. It slows the transfer
+of course. I think I'll change imapsync behavior and let it 
+give up those bad messages missing an header.
+
+DONE. Make --syncinternaldates turn on by default
+
+DONE. Check imapsync with gmail (dates problem?). 
+
+DONE. Start an imap internet scan project.
+
+DONE. Fix --ssl --justconnect bug 
+
+DONE. Fix --ssl needs --authmech login with gmail. Why? 
 
 DONE. Try a 50Mo message transfer (slow ?)
 fast !
@@ -240,7 +241,6 @@ see authenticate in IMAPClient.pm
 Test the new Mail::IMAPClient (2.1.4 -> 2.2.6 or sup)
 userdbpw -hmac-md5 | userdb userdb set hmac-md5pw
 http://www.inter7.com/courierimap/INSTALL.html
-
 
 DONE. Add a --subscribe option to subscribe folders on the
       destination server.

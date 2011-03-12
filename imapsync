@@ -9,12 +9,12 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.261 $
+$Revision: 1.264 $
 
 =head1 INSTALL
 
  imapsync works fine under any Unix OS with perl.
- imapsync works fine under Windows 2000 (at least) and ActiveState's 5.8 Perl
+ imapsync works fine under Windows (2000, XP) and ActiveState's 5.8 Perl
 
  imapsync is already available directly on the following distributions (at least):
  FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin, Mandriva and OpenBSD (yeah!).
@@ -284,7 +284,7 @@ Failure stories reported with the following 4 imap servers :
 Success stories reported with the following 35 imap servers 
 (softwares names are in alphabetic order) : 
 
- - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [dest]
+ - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [dest], 3.0.0 [dest]
    (OSL 3.0) http://www.archiveopteryx.org/
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
  - CommuniGatePro server (Redhat 8.0)
@@ -305,7 +305,7 @@ Success stories reported with the following 35 imap servers
    2.0.7 seems buggy.
  - Deerfield VisNetic MailServer 5.8.6 [from]
  - Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
-   1.0.0 [dest] (LGPL) (http://www.dovecot.org/)
+   1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)
  - Domino (Notes) 4.61[from], 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1 [from]
  - Eudora WorldMail v2
  - GMX IMAP4 StreamProxy.
@@ -422,7 +422,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.261 2008/08/16 15:56:00 gilles Exp gilles $
+$Id: imapsync,v 1.264 2008/08/27 15:19:05 gilles Exp gilles $
 
 
 
@@ -489,7 +489,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.261 2008/08/16 15:56:00 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.264 2008/08/27 15:19:05 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -521,10 +521,27 @@ sub check_lib_version {
 
 $error=0;
 
+sub modules_VERSION() {
+
+no warnings 'uninitialized';
+my $modules_releases = "
+Mail::IMAPClient  $Mail::IMAPClient::VERSION
+IO::Socket        $IO::Socket::VERSION
+IO::Socket::SSL   $IO::Socket::SSL::VERSION
+Digest::MD5       $Digest::MD5::VERSION
+Digest::HMAC_MD5  $Digest::HMAC_MD5::VERSION
+Term::ReadKey     $Term::ReadKey::VERSION
+Date::Manip       $Date::Manip::VERSION
+";	
+    return($modules_releases);
+
+}
+
+
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.261 $ ',
-		  '$Date: 2008/08/16 15:56:00 $ ',
+		  '$Revision: 1.264 $ ',
+		  '$Date: 2008/08/27 15:19:05 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -555,6 +572,8 @@ $port1 ||= defined $ssl1 ? 993 : 143;
 $host2 || missing_option("--host2") ;
 $port2 ||= defined $ssl2 ? 993 : 143;
 
+
+
 sub connect_imap {
 	my($host, $port, $debugimap, $ssl) = @_;
 	my $imap = Mail::IMAPClient->new();
@@ -569,13 +588,15 @@ sub connect_imap {
 sub localhost_info {
 	
 	my($infos) = join("", 
-	"Here is a [$OSNAME] system (", 
-	join(" ", 
-	     uname(),
-	),
-        ")\n",
-	"with perl ", 
-	sprintf("%vd", $PERL_VERSION));		  
+	    "Here is a [$OSNAME] system (", 
+	    join(" ", 
+	         uname(),
+	         ),
+                 ")\n",
+	         "with perl ", 
+	         sprintf("%vd", $PERL_VERSION),
+	         modules_VERSION()
+            );	  
 	return($infos);
 
 }
@@ -661,7 +682,6 @@ print "To   imap server [$host2] port [$port2] user [$user2]\n";
 
 
 sub ask_for_password {
-	require Term::ReadKey;
 	my ($user, $host) = @_;
 	print "What's the password for $user\@$host? ";
 	Term::ReadKey::ReadMode(2);
@@ -1737,6 +1757,8 @@ sub get_options
 	}
 
 
+	load_modules();
+
 	# exit with --help option or no option at all
         usage() and exit if ($help or ! $numopt) ;
 
@@ -1744,7 +1766,23 @@ sub get_options
         exit(EX_USAGE()) unless ($opt_ret) ;
 	
 	
+	
 }
+
+
+sub load_modules {
+
+	require IO::Socket::SSL if ($ssl1 or $ssl2);
+	require Date::Manip if ($syncinternaldates || $idatefromheader) ;
+
+#	require Term::ReadKey if (
+#		(not($password1 or $passfile1)) 
+#	     or (not($password2 or $passfile2))
+#        or (not $help));
+
+	#require Data::Dumper if ($debug);
+}
+
 
 
 sub parse_header_msg1 {
@@ -1978,7 +2016,6 @@ $0 \\
    --host2 imap.trac.org --user2 bar --passfile2 /etc/secret2
 
 $localhost_info
-Mail::IMAPClient version is $Mail::IMAPClient::VERSION
 $rcs
 
 $thank
@@ -2398,14 +2435,14 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
                 }
         }
 	use warnings;
-        my $candump = 0;
-        if ($self->Debug) {
-                eval {
-                        require Data::Dumper;
-                        Data::Dumper->import;
-                };
-                $candump++ unless $@;
-        }
+#       my $candump = 0;
+#       if ($self->Debug) {
+#                eval {
+#                        require Data::Dumper;
+#                        Data::Dumper->import;
+#                };
+#                $candump++ unless $@;
+#        }
 
 	}
         # if we asked for one message, just return its hash,
@@ -2585,7 +2622,6 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 	$self->Socket($sock);
 	$self->State(Connected);
 	$sock->autoflush(1)				;
-	
 	my ($code, $output);
         $output = "";
         until ( $code ) {

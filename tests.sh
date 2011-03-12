@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.78 2008/08/16 15:54:40 gilles Exp gilles $  
+# $Id: tests.sh,v 1.79 2008/08/27 15:18:12 gilles Exp gilles $  
 
 #### Shell pragmas
 
@@ -129,6 +129,35 @@ locallocal() {
                 :
         fi
 }
+
+ll_timeout() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                $CMD_PERL ./imapsync \
+                --host1 localhost  --user1 tata@est.belle \
+                --passfile1 /var/tmp/secret.tata \
+                --host2 localhost --user2 titi@est.belle \
+                --passfile2 /var/tmp/secret.titi \
+                --folder INBOX --timeout 1
+        else
+                :
+        fi
+}
+
+ll_timeout_ssl() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                $CMD_PERL ./imapsync \
+                --host1 localhost  --user1 tata@est.belle \
+                --passfile1 /var/tmp/secret.tata \
+                --host2 localhost --user2 titi@est.belle \
+                --passfile2 /var/tmp/secret.titi \
+                --folder INBOX --timeout 5 --ssl1 --ssl2
+        else
+                :
+        fi
+}
+
 
 
 
@@ -1014,6 +1043,17 @@ ariasolutions2() {
 
 
 }
+
+genomics() {
+
+# Blocked, timeout ignored
+./imapsync \
+ --host1 mail.genomics.org.cn --user1 lamiral --passfile1 /var/tmp/secret.genomics \
+ --host2 szmail.genomics.cn   --user2 lamiral --passfile2 /var/tmp/secret.genomics \
+ --sep1 . --prefix1 'INBOX.' --folder INBOX  --useheader 'Message-Id' --expunge --skipsize \
+ --timeout 7  --debug --debugimap
+
+}
 ##########################
 ##########################
 
@@ -1035,6 +1075,7 @@ test $# -eq 0 && run_tests \
         option_tests \
         first_sync \
         locallocal \
+        ll_timeout \
         ll_folder \
         ll_buffersize \
         ll_justfolders \
