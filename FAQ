@@ -369,4 +369,59 @@ Q. From Cyrus to Notes
 
 Juhu! --useheader 'Message-ID' --skipsize does wonders! :)
 
+======================================================================
+Q. From cyrus to dbmail
+
+R. (Given by Michael Monnerie, left as is)
+
+dbmail creates a header like
+X-DBMail-PhysMessage-ID:94348
+on messages. There was another problem with cyrus, other headers get 
+modified also, so I recommend this for a full sync:
+
+imapsync --host1 cyrushost  --user1 u1 --password1 p1 \
+         --host2 dbmailhost --user2 u2 --password2 p2 \
+         --useheader 'Message-ID' \
+         --skipsize \
+         --syncinternaldates
+
+I needed it because there are obviously some 
+encoding differences between the two servers, and modified headers lead 
+to all messages being doubled. Examples:
+
+dbmail:
+Content-Type:text/plain; format=flowed; charset=iso-8859-1; 
+reply-type=original
+cyrus:
+Content-Type:text/plain; format=flowed; charset="iso-8859-1"; 
+reply-type=original
+
+And also the "Received" headers got blanks added in DBmail, etc.
+
+******************
+
+For a full server copy from cyrus to dbmail I used:
+imapsync --host1 cyrus  --user1 x --authuser1 x --password1 x --ssl1  \
+         --host2 dbmail --user2 x --authuser2 x --password2 x \
+         --skipheader '(^X-|^Received|^MIME-|^Content-Type|^Disposition-|^From|^Cc|^Reply-|^Subject|^To|^DomainKey).*' \
+         --skipsize \
+         --sep1 '/' --exclude 'user/demo/Trash' \
+         --regextrans2 's/^user.//' --syncinternaldates
+
+The 'exclude user/demo/Trash'  was used because there was one message 
+there with 8 bit headers which dbmail doesn't accept, so I had to skip 
+the whole folder. It would be nice to have an option to just ignore and 
+log unsyncable messages, but do the rest, instead of stopping.
+
+******************
+
+There are two other major problems:
+1) dbmail doesn't accept utf8 header, while cyrus does. imapsync stops 
+in that case, making sync impossible
+
+To convert the wholes messages from 8bit to 7bit, use option :
+
+--regexmess 's/[\x80-\xff]/X/g'
+
+======================================================================
 

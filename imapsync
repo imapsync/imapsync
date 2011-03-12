@@ -4,10 +4,10 @@
 
 imapsync - IMAP synchronisation, sync, copy or migration
 tool. Synchronise mailboxes between two imap servers. Good
-at IMAP migration. More than 25 different IMAP server softwares
+at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.209 $
+$Revision: 1.213 $
 
 =head1 INSTALL
 
@@ -175,12 +175,15 @@ in a Bourne shell:
 
 Gilles LAMIRAL <lamiral@linux-france.org>
 
-Feedback good or bad is always welcome. The first you send
-me an email you will receive a confirmation request before I
-really read your message.
+Feedback good or bad is always welcome.
 
 The newsgroup comp.mail.imap is a good place to talk about
 imapsync. I read it when imapsync is concerned.
+
+Gilles LAMIRAL earn his living writing, installing,
+configuring and teaching free open and gratis
+softwares. Do not hesitate to pay him for that services.
+
 
 =head1 LICENSE
 
@@ -190,8 +193,6 @@ the distribution or the web site
 http://www.gnu.org/licenses/licenses.html
 
 =head1 BUGS
-
-
 
 No known serious bug.  Report any bug to the author.
 Before reporting bugs, read the FAQ, this README and the
@@ -211,9 +212,11 @@ In your report, please include:
 
  And also, if it can help :
 
- - operating systems on both sides.
+ - operating systems on both sides and the third side in case
+   you run imapsync on a foreign host from the both.
  - imapsync with all the options you use,  the full command line
-   you use (except the passwords of course)
+   you use (except the passwords of course). This can be found
+   at the beginning of the output.
  - output given with --debug --debugimap near the failure point.
 
 =head1 IMAP SERVERS
@@ -226,7 +229,7 @@ Failure stories reported with the following 4 imap servers :
  - dkimap4 2.39
  - Imail 7.04 (maybe).
 
-Success stories reported with the following 31 imap servers 
+Success stories reported with the following 32 imap servers 
 (softwares names are in alphabetic order) : 
 
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
@@ -251,7 +254,8 @@ Success stories reported with the following 31 imap servers
  - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
  - iPlanet Messaging server 4.15, 5.1, 5.2
  - IMail 7.15 (Ipswitch/Win2003), 8.12
- - MDaemon 7.0.1, 8.1
+ - MDaemon 7.0.1, 8.1, 9.5.4 (Windows server 2003 R2 platform)
+ - Mercury 4.1 (Windows server 2000 platform)
  - Microsoft Exchange Server 5.5
  - Netscape Mail Server 3.6 (Wintel !)
  - Netscape Messaging Server 4.15 Patch 7
@@ -266,7 +270,7 @@ Success stories reported with the following 31 imap servers
  - Sun Java System Messaging Server 6.2-2.05
  - Surgemail 3.6f5-5
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
-   (RedHat uses UW like 2003.338rh) (OSI Approved) 
+   (RedHat uses UW like 2003.338rh), v12.264 Solaris 5.7 (OSI Approved) 
    (http://www.washington.edu/imap/)
  - UW - QMail v2.1
  - Imap part of TCP/IP suite of VMS 7.3.2
@@ -287,7 +291,10 @@ Example :
 
   imapsync --host1 imap.troc.org --host2 imap.trac.org --justconnect
 
-And please rate imapsync at http://freshmeat.net/projects/imapsync/
+Please rate imapsync at http://freshmeat.net/projects/imapsync/
+or better give the author a book, he likes books:
+http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/
+
 
 =head1 HUGE MIGRATION
 
@@ -353,13 +360,9 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-=head1 AUTHOR
+$Id: imapsync,v 1.213 2007/02/16 04:07:19 gilles Exp $
 
-Gilles LAMIRAL earn his living writing, installing,
-configuring and teaching free open and gratis
-softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.209 2007/02/02 02:06:50 gilles Exp $
 
 =cut
 
@@ -403,7 +406,7 @@ my(
         $mess_size_total_trans,
         $mess_size_total_skipped,
         $mess_size_total_error,
-        $mess_trans, $mess_skipped,
+        $mess_trans, $mess_skipped, $mess_skipped_dry, 
         $timeout,   # whr (ESS/PRW)
 	$timestart, $timeend, $timediff,
         $timesize, $timebefore,
@@ -416,7 +419,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.209 2007/02/02 02:06:50 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.213 2007/02/16 04:07:19 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -429,7 +432,7 @@ check_lib_version() or
 $mess_size_total_trans   = 0;
 $mess_size_total_skipped = 0;
 $mess_size_total_error   = 0;
-$mess_trans = $mess_skipped = 0;
+$mess_trans = $mess_skipped = $mess_skipped_dry = 0;
 
 
 sub check_lib_version {
@@ -453,11 +456,13 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.209 $ ',
-		  '$Date: 2007/02/02 02:06:50 $ ',
+		  '$Revision: 1.213 $ ',
+		  '$Date: 2007/02/16 04:07:19 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
-		  $VERSION_IMAPClient,"\n"
+		  $VERSION_IMAPClient,"\n",
+		  "Command line used :\n",
+		  "$0 @ARGV\n",
 		 );
 
 unless(defined(&_SYSEXITS_H)) {
@@ -1120,12 +1125,13 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			unlink($message_file);
 			$from->message_to_file($message_file, $f_msg);
 			my $string = file_to_string($message_file);
+			#unlink($message_file);
 			if (@regexmess) {
 				foreach my $regexmess (@regexmess) {
 					$debug and print "eval \$string =~ $regexmess\n";
 					eval("\$string =~ $regexmess");
 				}
-				#string_to_file($string, $message_file);
+				string_to_file($string, $message_file);
 			}
 			$debug and print "F message content begin next line\n",
 			  $string,
@@ -1146,9 +1152,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			print "flags from : [$flags_f][$d]\n";
 			last FOLDER if   $to->IsUnconnected();
 			unless ($dry) {
-				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
-				#unless($new_id = $to->append_file($t_fold, $message_file, $flags_f, $d)){
-					warn "Couldn't append msg #$f_msg (Subject:[".$from->subject($f_msg)."]) to folder $t_fold: ",
+				#unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
+				unless($new_id = $to->append_file2($t_fold, $message_file, "", $flags_f, $d)){
+					warn "Couldn't append msg #$f_msg (Subject:[".
+					  $from->subject($f_msg)."]) to folder $t_fold: ",
 					  $to->LastError, "\n";
 					$error++;
 					$mess_size_total_error += $f_size;
@@ -1167,6 +1174,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 						$from->expunge() if ($expunge and not $dry);
 					}
 				}
+			}else{
+				$mess_skipped_dry += 1;
 			}
 			unlink($message_file);
 			next MESS;
@@ -1296,17 +1305,21 @@ sub select_msgs {
 	return(@msgs);
 }
 
-
 sub stats {
 	print "++++ Statistics ++++\n";
 	print "Time                   : $timediff sec\n";
-	print "Messages transferred   : $mess_trans\n";
+	print "Messages transferred   : $mess_trans ";
+	print "(could be $mess_skipped_dry without dry mode)" if ($dry);
+	print "\n";
 	print "Messages skipped       : $mess_skipped\n";
 	print "Total bytes transferred: $mess_size_total_trans\n";
 	print "Total bytes skipped    : $mess_size_total_skipped\n";
 	print "Total bytes error      : $mess_size_total_error\n";
 	print "Detected $error errors\n";
 	print "Please, rate imapsync at http://freshmeat.net/projects/imapsync/\n";
+	print "?Happy with this free, open source and gratis GPL software?\n",
+	  "Feel free to thank the author by giving him a book:\n",
+	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n";
 
 
 }
@@ -1409,15 +1422,15 @@ sub parse_header_msg1 {
 			# remove the first blanks (dbmail bug ?)
 			# and uppercase  header keywords 
 			# (dbmail and dovecot)
-			$val =~ s/^\s*(.+?):(.+)$/\U$1\E:$2/;
-			
+			$val =~ s/^\s*(.+)$/$1/;
+			my $H = uc($h);
 			# show stuff in debug mode
-			$debug and print "${s}H $h:", $val, "\n";
-			if ($skipheader and $h =~ m/$skipheader/) {
+			$debug and print "${s}H $H:", $val, "\n";
+			if ($skipheader and $H =~ m/$skipheader/i) {
 				$debug and print "Skipping header $h\n";
 				next;
 			}
-			$headstr .= "$h:". $val;
+			$headstr .= "$H:". $val;
 		}
 	}
 	#return unless ($headstr);
@@ -1633,6 +1646,162 @@ sub Split {
 	return $self->{SPLIT};
 }
 
+# From IMAPClient.pm
+sub append_file2 {
+
+        my $self        = shift;
+        my $folder      = $self->Massage(shift);
+        my $file        = shift; 
+        my $control     = shift || undef;
+        my $count       = $self->Count($self->Count+1);
+	my $flags       = shift || undef;
+	my $date        = shift || undef;
+	
+	if (defined($flags)) {
+                $flags =~ s/^\s+//g;
+                $flags =~ s/\s+$//g;
+        }
+	
+        if (defined($date)) {
+                $date =~ s/^\s+//g;
+                $date =~ s/\s+$//g;
+        }
+	
+        $flags = "($flags)"  if $flags and $flags !~ /^\(.*\)$/ ;
+        $date  = qq/"$date"/ if $date  and $date  !~ /^"/       ;
+	
+
+        unless ( -f $file ) {
+                $self->LastError("File $file not found.\n");
+                return undef;
+        }
+
+        my $fh = IO::File->new($file) ;
+
+        unless ($fh) {
+                $self->LastError("Unable to open $file: $!\n");
+                $@ = "Unable to open $file: $!" ;
+                carp "unable to open $file: $!" if $^W;
+                return undef;
+        }
+
+        my $bare_nl_count = scalar grep { /^\x0a$|[^\x0d]\x0a$/} <$fh>;
+
+        seek($fh,0,0);
+
+        my $clear = $self->Clear;
+
+        $self->Clear($clear)
+                if $self->Count >= $clear and $clear > 0;
+
+        my $length = ( -s $file ) + $bare_nl_count;
+
+	my $string = "$count APPEND $folder " .
+	             ( $flags ? "$flags " : ""       ) .
+	             ( $date ? "$date " : ""         ) .
+	             "{" . $length  . "}\x0d\x0a" ;
+	
+        $self->_record($count,[ $self->_next_index($count), "INPUT", "$string" ] );
+
+        my $feedback = $self->_send_line("$string");
+
+        unless ($feedback) {
+                $self->LastError("Error sending '$string' to IMAP: $!\n");
+                close $fh;
+                return undef;
+        }
+
+        my ($code, $output) = ("","");
+
+        until ( $code ) {
+                $output = $self->_read_line or close $fh, return undef;
+                foreach my $o (@$output) {
+                        $self->_record($count,$o);              # $o is already an array ref
+                      ($code) = $o->[DATA] =~ /(^\+|^\d+\sNO|^\d+\sBAD)/i; 
+                      if ($o->[DATA] =~ /^\*\s+BYE/) {
+                              carp $o->[DATA] if $^W;
+                                $self->State(Unconnected);
+                                close $fh;
+                                return undef ;
+                      } elsif ( $o->[DATA]=~ /^\d+\s+(NO|BAD)/i ) {
+                              carp $o->[DATA] if $^W;
+                                close $fh;
+                                return undef;
+                        }
+                }
+        }
+
+        {       # Narrow scope
+                # Slurp up headers: later we'll make this more efficient I guess
+                local $/ = "\x0d\x0a\x0d\x0a"; 
+                my $text = <$fh>;
+                $text =~ s/\x0d?\x0a/\x0d\x0a/g;
+                $self->_record($count,[ $self->_next_index($count), "INPUT", "{From file $file}" ] ) ;
+                $feedback = $self->_send_line($text);
+
+                unless ($feedback) {
+                        $self->LastError("Error sending append msg text to IMAP: $!\n");
+                        close $fh;
+                        return undef;
+                }
+                _debug $self, "control points to $$control\n" if ref($control) and $self->Debug;
+                $/ =    ref($control) ?  "\x0a" : $control ? $control :         "\x0a";
+                while (defined($text = <$fh>)) {
+                        $text =~ s/\x0d?\x0a/\x0d\x0a/g;
+                        $self->_record( $count,
+                                        [ $self->_next_index($count), "INPUT", "{from $file}\x0d\x0a" ] 
+                        );
+                        $feedback = $self->_send_line($text,1);
+
+                        unless ($feedback) {
+                                $self->LastError("Error sending append msg text to IMAP: $!\n");
+                                close $fh;
+                                return undef;
+                        }
+                }
+                $feedback = $self->_send_line("\x0d\x0a");
+
+                unless ($feedback) {
+                        $self->LastError("Error sending append msg text to IMAP: $!\n");
+                        close $fh;
+                        return undef;
+                }
+        } 
+
+        # Now for the crucial test: Did the append work or not?
+        ($code, $output) = ("","");
+
+        my $uid = undef;
+        until ( $code ) {
+                $output = $self->_read_line or return undef;
+                foreach my $o (@$output) {
+                        $self->_record($count,$o);              # $o is already an array ref
+                      $self->_debug("append_file: Deciding if " . $o->[DATA] . " has the code.\n") 
+                                if $self->Debug;
+                      ($code) = $o->[DATA]  =~ /^\d+\s(NO|BAD|OK)/i; 
+                        # try to grab new msg's uid from o/p
+                      $o->[DATA]  =~ m#UID\s+\d+\s+(\d+)\]# and $uid = $1; 
+                      if ($o->[DATA] =~ /^\*\s+BYE/) {
+                              carp $o->[DATA] if $^W;
+                                $self->State(Unconnected);
+                                close $fh;
+                                return undef ;
+                      } elsif ( $o->[DATA]=~ /^\d+\s+(NO|BAD)/i ) {
+                              carp $o->[DATA] if $^W;
+                                close $fh;
+                                return undef;
+                        }
+                }
+        }
+        close $fh;
+
+        if ($code !~ /^OK/i) {
+                return undef;
+        }
+
+
+        return defined($uid) ? $uid : $self;
+}
 
 # From IMAPClient.pm
 sub fetch_hash2 {

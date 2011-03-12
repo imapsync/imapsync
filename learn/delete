@@ -1,0 +1,30 @@
+#!/usr/bin/perl -w
+
+use Mail::IMAPClient;
+
+$ARGV[3] or die "usage: $0 host user password folder uid1 uid2 ...\n";
+
+$host = $ARGV[0];
+$user = $ARGV[1];
+$password = $ARGV[2];
+$folder = $ARGV[3];
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(1);
+$imap->Server($host);
+$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+$imap->select($folder) or die;
+
+foreach $uid (@ARGV[4..$#ARGV]) {
+	print "deleting $uid\n";
+	$imap->delete_message($uid);
+	$imap->expunge();
+}
+$imap->close();
+
+
