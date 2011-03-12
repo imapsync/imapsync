@@ -1,0 +1,124 @@
+#!/bin/sh
+
+# $Id: tests.sh,v 1.1 2003/03/12 23:14:45 gilles Exp gilles $	
+
+# $Log: tests.sh,v $
+# Revision 1.1  2003/03/12 23:14:45  gilles
+# Initial revision
+#
+
+
+#### Shell pragmas
+
+exec 3>&2
+#set -x # debug mode. See what is running
+set -e # exit on first failure
+
+#### functions definitions
+
+echo3() {
+	#echo '#####################################################' >&3
+	echo "$*" >&3
+}
+
+run_test() {
+	echo3 "#### $test_count $1"
+	$1
+	if test x"$?" = x"0"; then
+ 		echo "$1 passed"
+	else
+		echo "$1 failed" >&2
+	fi
+}
+
+run_tests() {
+	for t in $*; do
+		test_count=`expr 1 + $test_count`
+		run_test $t
+		sleep 1
+	done
+}
+
+
+#### Variable definitions
+
+prog=imapsync
+host1=localhost
+host2=localhost
+passfile1=/var/tmp/secret1
+passfile2=/var/tmp/secret2
+user1=toto@est.belle
+user2=titi@est.belle
+
+dirtest=/tmp/${prog}/test
+
+test_count=0
+
+##### The tests functions
+
+perl_syntax() {
+	perl -c ./${prog}
+}
+
+
+no_args() {
+	./${prog}
+}
+
+cleaning_test_directory() {
+	test -d $dirtest && find  $dirtest -type d| xargs chmod 700
+	rm -rf $dirtest
+	mkdir -p $dirtest
+}
+
+
+first_sync() {
+	./imapsync \
+	   --host1 $host1 --user1 $user1 --passfile1 $passfile1 \
+	   --host2 $host2 --user2 $user2 --passfile2 $passfile2
+}
+
+loulplume() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 loul  --user1 tata --passfile1 /var/tmp/secret.tata \
+		--host2 plume --user2 tata@est.belle --passfile2 /var/tmp/secret.tata
+	else
+		:
+	fi
+}
+
+plumeloul() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 plume --user1 tata@est.belle --passfile1 /var/tmp/secret.tata \
+		--host2 loul  --user2 tata --passfile2 /var/tmp/secret.tata
+	else
+		:
+	fi
+}
+
+
+
+# mandatory tests
+
+run_tests perl_syntax 
+
+# All tests
+
+test $# -eq 0 && run_tests \
+	no_args \
+	first_sync \
+	loulplume \
+	plumeloul
+
+# selective tests
+
+test $# -gt 0 && run_tests $*
+
+# If there, all is good
+
+echo3 ALL $test_count TESTS SUCCESSFUL
+

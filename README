@@ -1,0 +1,93 @@
+NAME
+    imapsync - synchronize mailboxes between two imap servers.
+
+    $Revision: 1.5 $
+
+INSTALL
+     Get imapsync at http://www.linux-france.org/prj/imapsync/dist/
+     tar xzvf  imapsync-x.xx.tgz  # x.xx is the version number
+     Read the INSTALL file.
+     freshmeat record: http://freshmeat.net/projects/imapsync/
+
+SYNOPSIS
+      imapsync [options] SOURCE DEST
+
+      imapsync [--host1 server1]  [--port1 <num>]
+               [--user1 <string>] [--passfile1 <string>] 
+               [--host2 server2]  [--port2 <num>]
+               [--user2 <string>] [--passfile2 <string>] 
+               [--folder <string> --folder <string> ...] 
+               [--delete] [--expunge]
+               [--dry]
+               [--debug] [--debugimap]
+               [--version] [--help]
+
+      imapsync --help
+      imapsync
+  
+DESCRIPTION
+    The command imapsync is a tool allowing incremental and recursive imap
+    transfer from one mailbox to another.
+
+    We sometimes need to transfer mailboxes from one imap server to another.
+    This is called migration.
+
+    imapsync is the adequate tool because it reduces the amount of data
+    transfered by not transfering a given message if it is already on both
+    sides. All flags are preserved, unread will stay unread, read will stay
+    read, deleted will stay deleted.
+
+OPTIONS
+    Invoke: imapsync --help
+
+HISTORY
+    I wrote imapsync because an enterprise (basystemes) paid me to install a
+    new imap server without loosing huge old mailboxes located on a far away
+    remote imap server accessible by a low bandwith link. The tool imapcp
+    (written in python) could not help me because I had to verify every
+    mailbox was well transfered and delete it after a good transfert.
+    imapsync started its life being a copy_folder.pl patch. The tool
+    copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl module tarball
+    source (in the examples/ directory).
+
+EXAMPLES
+    While working on imapsync parameters please run imapsync in dry mode (no
+    modification induced) with the --dry option. Nothing bad can be done
+    this way.
+
+    To synchronize the imap account "buddy" on host "imap.src.fr" to the
+    imap account "max" on host "imap.dest.fr" (the passwords are located in
+    too files "/etc/secret1" for "buddy", "/etc/secret2" for "max") :
+
+     imapsync --host1 imap.src.fr  --user1 buddy --passfile1 /etc/secret1 \
+              --host2 imap.dest.fr --user2 max   --passfile2 /etc/secret2
+
+    Then, you will have buddy's mailbox updated from max's mailbox.
+
+EXIT STATUS
+    imapsync will exit with a 0 status (return code) if everything went
+    good. Otherwise, it exits with a non-zero status.
+
+    So if you have a buggy internet connection, you can use this loop in a
+    Bourne shell:
+
+            while ! imapsync ...; do 
+                  echo imapsync not complete
+            done
+
+AUTHOR
+    Gilles LAMIRAL lamiral@linux-france.org
+
+LICENSE
+    imapsync is free, gratis and open source software cover by the GNU
+    General Public License. See the GPL file included in the distribution or
+    the web site http://www.gnu.org/licenses/licenses.html
+
+BUGS
+    No known bug. Report any bugs to the author: lamiral@linux-france.org
+
+SIMILAR SOFTWARES
+    None known. Feedback will be welcome.
+
+    $Id: imapsync,v 1.5 2003/03/14 01:20:37 gilles Exp gilles $
+
