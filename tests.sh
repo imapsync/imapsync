@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.32 2005/01/10 00:15:41 gilles Exp $	
+# $Id: tests.sh,v 1.33 2005/01/16 01:49:49 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.33  2005/01/16 01:49:49  gilles
+# Added  regexmess() test
+#
 # Revision 1.32  2005/01/10 00:15:41  gilles
 # Added --fast for big_transfert()
 #
@@ -644,7 +647,22 @@ essnet_plume2()
 	--nosyncacls 
 }
 
-
+regexmess() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--folder INBOX.yop.yap \
+		--regexmess 's/\157/O/g' --dry --debug
+	else
+		:
+	fi
+}
 
 
 # mandatory tests
@@ -679,7 +697,10 @@ test $# -eq 0 && run_tests \
 	lp_regextrans2 \
 	foldersizes2 \
 	foldersizes \
-	big_transfert_sizes_only
+	big_transfert_sizes_only \
+	regexmess \
+	
+
 
 # selective tests
 

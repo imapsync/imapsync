@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.115 $
+$Revision: 1.116 $
 
 =head1 INSTALL
 
@@ -20,7 +20,7 @@ $Revision: 1.115 $
  where x.xx is the version number. Untar the tarball where
  you want :
 
- tar xzvf  imapsync-x.xx.tgz  
+ tar xzvf  imapsync-x.xx.tgz
 
  Go into the directory imapsync-x.xx and read the INSTALL
  file.
@@ -281,7 +281,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.115 2005/01/10 00:14:45 gilles Exp $
+$Id: imapsync,v 1.116 2005/01/16 01:50:23 gilles Exp $
 
 =cut
 
@@ -300,7 +300,7 @@ my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-        @folder, $include, $exclude, $prefix2, $regextrans2,
+        @folder, $include, $exclude, $prefix2, $regextrans2, $regexmess,
         $sep1, $sep2,
 	$syncinternaldates, $syncacls,
 	$maxsize, $maxage,
@@ -324,7 +324,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.115 2005/01/10 00:14:45 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.116 2005/01/16 01:50:23 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -361,8 +361,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.115 $ ',
-		  '$Date: 2005/01/10 00:14:45 $ ',
+		  '$Revision: 1.116 $ ',
+		  '$Date: 2005/01/16 01:50:23 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -397,6 +397,7 @@ $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
 $authmd5 = (defined($authmd5)) ? $authmd5 : 1;
 
 $syncacls = (defined($syncacls)) ? $syncacls : 1;
+$foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
 
 print "From imap server [$host1] port [$port1] user [$user1]\n";
 print "To   imap server [$host2] port [$port2] user [$user2]\n";
@@ -548,11 +549,11 @@ print "To   separator : [$t_sep]\n";
 if ($foldersizes) {
 	my $tot = 0;
 	my $tmess = 0;
-	print "Calculating sizes...\n";
+	print "++++ Calculating sizes ++++\n";
 	foreach my $f_fold (@f_folders)     {
-		print "From Folder [$f_fold]\n";
 		my $stot = 0;
 		my $smess = 0;
+		printf("From Folder %-25s", "[$f_fold]");
 		unless ($from->select($f_fold)) {
 			warn 
 			  "From Folder $f_fold : Could not select ",
@@ -560,36 +561,29 @@ if ($foldersizes) {
 			$error++;
 			next;
 		}
-		
 		if ($maxage) {
-			# The pb is fetch_hash() an only be applied on ALL messages
-			# 
+			# The pb is fetch_hash() can only be applied on ALL messages
+		
 			my @f_msgs = $from->since(time - 86400 * $maxage);
 			my $smess = scalar(@f_msgs);
 			foreach my $m (@f_msgs) {
 				my $s = $from->size($m)
 				  or warn "Could not find size of message $m: $@\n";
 				$stot += $s;
-				print ".";
 			}
-			print "\n";
-			print "Size of $f_fold: $stot\n";
-			print "Messages in $f_fold: $smess\n";
-			$tot += $stot;
-			$tmess += $smess;
 		}else{
 			my $hashref = {};
-			my $stot2 = 0;
-			my $smess2 = $from->message_count();
-			unless ($smess2 == 0) {
+			$smess = $from->message_count();
+			unless ($smess == 0) {
 				$from->fetch_hash("RFC822.SIZE",$hashref);
 				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
-				map {$stot2 += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
+				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
 			}
-			print "Size of $f_fold: $stot2\n";
-			$tot += $stot2;
-			$tmess += $smess2;
 		}
+		printf(" Size: %9s", $stot);
+		printf(" Messages: %5s\n", $smess);
+		$tot += $stot;
+		$tmess += $smess;
 	}
 	print "Total size: $tot\n";
 	print "Total messages: $tmess\n";
@@ -747,7 +741,6 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	  parse_header_msg1($m, $f_heads, $f_size, "F", \%f_hash);
 	}
 	print "Time headers: ", timenext(), " s\n";
-
 	
 	print "\n++++ To   Parse 1 ++++\n";
 	my $t_heads =   $to->parse_headers([@t_msgs],"ALL") if (@t_msgs);
@@ -765,7 +758,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	print "\n++++ Verifying ++++\n";
 	# messages in "from" that are not good in "to"
-    
+	
 	my @f_hash_keys_sorted_by_uid 
 	  = sort {$f_hash{$a}{'m'} <=> $f_hash{$b}{'m'}} keys(%f_hash);
 	
@@ -785,33 +778,38 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
 			# copy
 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
+			my $string = $from->message_string($f_msg);
+			if ($regexmess) {
+				$debug and print "eval \$string =~ $regexmess\n";
+				eval("\$string =~ $regexmess");
+				
+			}
+			$debug and print "F message content begin next line\n",
+			  $string,
+			    "F message content ended on previous line\n";
+			my $d = "";
+			if ($syncinternaldates) {
+				$d = $from->internaldate($f_msg);
+				$d = "\"$d\"";
+				$debug and print "internal date from 1: [$d]\n";
+			}
+			
+			my $flags_f = join(" ", @{$from->flags($f_msg)});
+			# RFC 2060 : This flag can not be altered by the client
+			$flags_f =~ s@\\Recent@@g;
+			
+			my $new_id;
+			print "flags from : [$flags_f][$d]\n";
 			unless ($dry) {
-				my $string = $from->message_string($f_msg);
-				$debug and print "F message content begin next line\n",
-				  $string,
-				    "F message content end previous line\n";
-				my $d = "";
-				if ($syncinternaldates) {
-					$d = $from->internaldate($f_msg);
-					$d = "\"$d\"";
-					$debug and print "internal date from 1: [$d]\n";
-				}
-				
-				my $flags_f = join(" ", @{$from->flags($f_msg)});
-				# RFC 2060 : This flag can not be altered by the client
-				$flags_f =~ s@\\Recent@@g;
-				
-				my $new_id;
-				print "flags from : [$flags_f][$d]\n";
 				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
 					warn "Couldn't append msg #$f_msg (Subject:[".$from->subject($f_msg)."]) to folder $t_fold: ",
-					$to->LastError, "\n";
+					  $to->LastError, "\n";
 					$error++;
 					$mess_size_total_error += $f_size;
 					next MESS;
 					
 				}else{
-					# good
+						# good
 					# $new_id is an id if the IMAP server has the 
 					# UIDPLUS capability else just a ref
 					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
@@ -819,7 +817,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					$mess_trans += 1;
 				}
 			}
-	    		next MESS;
+			next MESS;
 		}else{
 			$debug and print "Message id [$m_id] found in t:$t_fold\n";
 			$mess_size_total_skipped += $f_size;
@@ -928,6 +926,7 @@ sub get_options
 				   "exclude=s"   => \$exclude,
 				   "prefix2=s"   => \$prefix2,
 				   "regextrans2=s" => \$regextrans2,
+				   "regexmess=s" => \$regexmess,
                                    "delete!"     => \$delete,
                                    "syncinternaldates!" => \$syncinternaldates,
                                    "syncacls!"   => \$syncacls,
@@ -1075,6 +1074,8 @@ Several options are mandatory.
 --prefix2     <string> : add prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
+--regexmess   <regex>  : Apply the whole regex to each message before transfer.
+                         Exemple : 's/\\000/ /g' # to replace null by space.
 --sep1        <string> : separator in case namespace is not supported.
 --sep2        <string> : idem.
 --delete               : delete messages in source imap server after
@@ -1101,9 +1102,9 @@ Several options are mandatory.
 --subscribe            : subscribe to the folders transfered on the 
                          "destination" server that are subscribed
                          on the "source" server.
---foldersizes          : Discover the size of each "From" folder in bytes
+--(no)foldersizes      : Calculate the size of each "From" folder in bytes
                          and message counts. Meant to be used with
-                         --justconnect.
+                         --justconnect. Turned on by default.
 --nosyncacls           : Don't synchronizes acls.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
