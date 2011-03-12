@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.40 $
+$Revision: 1.42 $
 
 =head1 INSTALL
 
@@ -26,6 +26,7 @@ $Revision: 1.40 $
            [--user2 <string>] [--passfile2 <string>] 
            [--folder <string> --folder <string> ...]
            [--prefix2 <string>]
+           [--syncinternaldate]
            [--delete] [--expunge]
            [--dry]
            [--debug] [--debugimap]
@@ -131,10 +132,17 @@ Success stories reported :
  - CommunicatePro server (Redhat 8.0)
  - SunONE Messaging server 5.2
  - iPlanet Messaging server 4.15
+ - dovecot ?.?? 
 
-Please report to the author any success or bad story with imapsync and
-don't forget to mention the IMAP server software names and version on
-both sides. This will help future users.
+Please report to the author any success or bad story with
+imapsync and don't forget to mention the IMAP server
+software names and version on both sides. This will help
+future users. To help the author maintaining this section
+report the two lines at the begining of the output if they
+are useful to know the softwares. Example:
+
+ From software :* OK louloutte Cyrus IMAP4 v1.5.19 server ready
+ To   software :* OK Courier-IMAP ready
 
 Rate imapsync : http://freshmeat.net/projects/imapsync/
 
@@ -147,7 +155,7 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.40 2003/10/17 01:34:59 gilles Exp $
+$Id: imapsync,v 1.42 2003/10/20 22:56:57 gilles Exp $
 
 =cut
 
@@ -162,7 +170,8 @@ my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-	@folder, $prefix2,
+	@folder, $prefix2, 
+	$syncinternaldates,
 	$delete, $expunge, $dry, 
 	$version, $VERSION, $help, 
 );
@@ -170,12 +179,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.40 2003/10/17 01:34:59 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.42 2003/10/20 22:56:57 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.40 $ ' . '$Date: 2003/10/17 01:34:59 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.42 $ ' . '$Date: 2003/10/20 22:56:57 $ ' . "\n";
 
 
 get_options();
@@ -330,14 +339,17 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			print "Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			unless ($dry) {
 				my $string = $from->message_string($f_msg);
-				#my $d = $from->internaldate($f_msg);
-				#my $date_f = `date -d"$d" "+%d-%b-%Y %T %z"`;
-				#print "date from 1: [$d]\n";
-				#print "date from 2: [$date_f]\n";
+				my $d = $from->internaldate($f_msg);
+				$d = "\"$d\"";
+				$debug and print "internal date from 1: [$d]\n";
+				$syncinternaldates or $d = "";
 				my $flags_f = join(" ", @{$from->flags($f_msg)});
+				# RFC 2060 : This flag can not be altered by the client
+				$flags_f =~ s@\\Recent@@g;
+				
 				my $new_id;
-				print "flags from : [$flags_f]\n";
-				unless($new_id = $to->append_string($t_fold,$string, $flags_f)){
+				print "flags from : [$flags_f][$d]\n";
+				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
 					warn "Couldn't append msg #$f_msg to folder $t_fold",
 					$to->LastError, "\n";
 					$error++;
@@ -361,6 +373,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		$debug and print "Setting flags\n"; 
 		my (@flags_f,@flags_t);
 		@flags_f = @{$from->flags($f_msg)};
+		# No flag \Recent here, no ?
+		
 		$to->store($t_msg,
 			   "+FLAGS (" . join(" ", @flags_f) . ")"
 			  );
@@ -414,8 +428,8 @@ sub get_options
 {
 	my $numopt = scalar(@ARGV);
         my $opt_ret = GetOptions(
-                                   "debug"       => \$debug,
-                                   "debugimap"   => \$debugimap,
+                                   "debug!"       => \$debug,
+                                   "debugimap!"   => \$debugimap,
                                    "host1=s"     => \$host1,
                                    "host2=s"     => \$host2,
                                    "port1=i"     => \$port1,
@@ -429,6 +443,7 @@ sub get_options
 				   "folder=s"    => \@folder,
 				   "prefix2=s"   => \$prefix2,
                                    "delete!"     => \$delete,
+                                   "syncinternaldates!" => \$syncinternaldates,
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
                                    "version"     => \$version,
@@ -511,6 +526,7 @@ Several options are mandatory.
 			 are not really deleted. See expunge.
 --expunge              : expunge messages on both account.
                          expunge delete messages marked deleted.
+--syncinternaldates    : set the internal dates on host2 same as host1
 --dry                  : do nothing, just print what would be done.
 --debug                : debug mode.
 --debugimap            : imap debug mode.

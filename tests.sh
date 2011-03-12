@@ -1,8 +1,14 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.7 2003/10/17 01:34:16 gilles Exp $	
+# $Id: tests.sh,v 1.9 2003/10/20 22:53:29 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.9  2003/10/20 22:53:29  gilles
+# Added lp_internaldate()
+#
+# Revision 1.8  2003/10/20 21:49:47  gilles
+# wrote sendtestmessage()
+#
 # Revision 1.7  2003/10/17 01:34:16  gilles
 # Added lp_folder_qqq() test
 #
@@ -82,14 +88,18 @@ first_sync() {
 	    --passfile2 /var/tmp/secret2
 }
 
+sendtestmessage() {
+    rand=`pwgen 16 1`
+    mess='test:'$rand
+    cmd="echo $mess""| mail -s ""$mess"" tata"
+    echo $cmd
+    ssh gilles@loul $cmd
+}
+
 loulplume() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
-		rand=`pwgen 16 1`
-		mess='test:'$rand
-		cmd="echo $mess""| mail -s ""$mess"" tata"
-		echo $cmd
-		ssh gilles@loul $cmd
+		sendtestmessage
 		#sleep 10
 		./imapsync \
 		--host1 loul  --user1 tata \
@@ -143,6 +153,22 @@ lp_folder_qqq() {
 	fi
 }
 
+lp_internaldate() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		sendtestmessage
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--folder INBOX  \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--syncinternaldates
+	else
+		:
+	fi
+}
+
 
 
 
@@ -177,7 +203,8 @@ test $# -eq 0 && run_tests \
 	plumeloul \
 	lp_folder \
 	pl_folder \
-	lp_folder_qqq
+	lp_folder_qqq \
+	lp_internaldate
 
 # selective tests
 
