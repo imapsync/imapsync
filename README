@@ -1,7 +1,7 @@
 NAME
     imapsync - synchronize mailboxes between two imap servers.
 
-    $Revision: 1.47 $
+    $Revision: 1.48 $
 
 INSTALL
      Get imapsync at http://www.linux-france.org/prj/imapsync/dist/
@@ -140,6 +140,23 @@ IMAP SERVERS
 
     Rate imapsync : http://freshmeat.net/projects/imapsync/
 
+HUGE MIGRATION
+    If you have many mailboxes to migrate think about a little shell
+    program. Write a file called file.csv (for example) containing users and
+    passwords. The separator used in this example is ';'
+
+    The file.csv file content is :
+
+    user0001;password0001;user0002;password0002
+    user0011;password0011;user0012;password0012 ...
+
+    And the shell program is just :
+
+    { while IFS=';' read u1 p1 u2 p2; do imapsync --user1 $u1 --password1
+    $p1 --user2 $u2 --password2 $p2 ... done ; } < file.csv
+
+    Welcome in shell programming !
+
 SIMILAR SOFTWARES
       offlineimap : http://gopher.quux.org:70/devel/offlineimap/
       mailsync    : http://mailsync.sourceforge.net/
@@ -148,5 +165,5 @@ SIMILAR SOFTWARES
 
     Feedback (good or bad) will be always welcome.
 
-    $Id: imapsync,v 1.47 2003/11/21 03:15:31 gilles Exp $
+    $Id: imapsync,v 1.48 2003/11/21 04:23:10 gilles Exp gilles $
 
