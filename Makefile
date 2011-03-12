@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.34 2010/07/25 21:30:45 gilles Exp gilles $	
+# $Id: Makefile,v 1.35 2010/08/15 11:18:38 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -13,6 +13,7 @@ usage:
 	@echo "make test3xx # run tests with (last) Mail-IMAPClient-3.xy"
 	@echo "make test229 # run tests with Mail-IMAPClient-2.2.9"
 	@echo "make all     "
+	@echo "make upload_index"
 
 DIST_NAME=imapsync-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz

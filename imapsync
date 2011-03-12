@@ -19,7 +19,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.340 $
+$Revision: 1.342 $
 
 =head1 SYNOPSIS
 
@@ -469,7 +469,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.340 2010/08/09 00:03:21 gilles Exp gilles $
+$Id: imapsync,v 1.342 2010/08/15 11:02:41 gilles Exp gilles $
 
 =cut
 
@@ -557,7 +557,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.340 2010/08/09 00:03:21 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.342 2010/08/15 11:02:41 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -728,8 +728,8 @@ $reconnectretry2 = (defined($reconnectretry2)) ? $reconnectretry2 : 3;
 
 @useheader = ("ALL") unless (@useheader);
 
-print "Host1 imap server [$host1] port [$port1] user [$user1]\n";
-print "Host2 imap server [$host2] port [$port2] user [$user2]\n";
+print "Host1: imap server [$host1] port [$port1] user [$user1]\n";
+print "Host2: imap server [$host2] port [$port2] user [$user2]\n";
 
 
 sub ask_for_password {
@@ -860,15 +860,14 @@ sub server_banner {
 	return $banner;
  }
 
-
-
-$debug and print "Host1 capability: ", join(" ", $imap1->capability()), "\n";
-$debug and print "Host2 capability: ", join(" ", $imap2->capability()), "\n";
-
 die_clean() unless $imap1->IsAuthenticated();
-print "host1: state Authenticated\n";
+print "Host1: state Authenticated\n";
 die_clean() unless   $imap2->IsAuthenticated();
-print "host2: state Authenticated\n";
+print "Host2: state Authenticated\n";
+
+print "Host1 capability: ", join(" ", $imap1->capability_update()), "\n";
+print "Host2 capability: ", join(" ", $imap2->capability_update()), "\n";
+
 
 exit_clean(0) if ($justlogin);
 
@@ -1087,12 +1086,8 @@ sub tests_compare_lists {
 }
 
 
-
-
-
 my($h1_sep,$h2_sep); 
 # what are the private folders separators for each server ?
-
 
 $debug and print "Getting separators\n";
 $h1_sep = get_separator($imap1, $sep1, "--sep1");
@@ -2101,7 +2096,7 @@ exit_clean(0);
 # subroutines
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.340 2010/08/09 00:03:21 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.342 2010/08/15 11:02:41 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -2185,8 +2180,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.340 $ ',
-		  '$Date: 2010/08/09 00:03:21 $ ',
+		  '$Revision: 1.342 $ ',
+		  '$Date: 2010/08/15 11:02:41 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -3476,6 +3471,29 @@ no warnings 'once';
 
 };
 
+# capability 2.2.9 is stupid: it caches and return first imap CAPABILITY call
+# but call imap CAPABILITY each time.
+# Copy/paste from 3.25
+*Mail::IMAPClient::capability = sub {
+    my $self = shift;
+
+    if ( $self->{CAPABILITY} ) {
+        my @caps = keys %{ $self->{CAPABILITY} };
+        return wantarray ? @caps : \@caps;
+    }
+
+    $self->_imap_command('CAPABILITY')
+      or return undef;
+
+    my @caps = map { split } grep s/^\*\s+CAPABILITY\s+//, $self->History;
+    foreach (@caps) {
+        $self->{CAPABILITY}{ uc $_ }++;
+        $self->{ uc $1 } = uc $2 if /(.*?)\=(.*)/;
+    }
+
+    return wantarray ? @caps : \@caps;
+};
+
 *Mail::IMAPClient::_read_line = sub {
 	my $self 	= shift;	
 	my $sh		= $self->Socket;
@@ -3751,6 +3769,7 @@ no warnings 'once';
 };
 
 
+
 }
 
 # End of sub override_imapclient (yes, very bad indentation)
@@ -3891,3 +3910,11 @@ sub RawSocket2  {
     #$self->Fast_io( $self->Fast_io );
     $sock;
 }
+
+sub capability_update {
+	my $self = shift;
+	
+	delete $self->{CAPABILITY};
+	$self->capability;
+}
+
