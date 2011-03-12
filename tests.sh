@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.13 2004/01/29 04:21:54 gilles Exp $	
+# $Id: tests.sh,v 1.14 2004/02/07 03:34:35 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.14  2004/02/07 03:34:35  gilles
+# Added lp_include()
+#
 # Revision 1.13  2004/01/29 04:21:54  gilles
 # Added lp_maxage
 # Added lp_maxsize
@@ -298,6 +301,24 @@ lp_maxsize()
 	fi
 }
 
+lp_include() 
+{
+	sendtestmessage
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--include 'INBOX.yop'
+	else
+		:
+	fi
+}
+
+
+
 # mandatory tests
 
 run_tests perl_syntax 
@@ -318,7 +339,8 @@ test $# -eq 0 && run_tests \
 	lp_justconnect \
 	lp_md5auth \
 	lp_maxage \
-	lp_maxsize
+	lp_maxsize \
+	lp_include
 
 # selective tests
 

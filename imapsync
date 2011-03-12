@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.71 $
+$Revision: 1.72 $
 
 =head1 INSTALL
 
@@ -229,7 +229,7 @@ Welcome in shell programming !
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.71 2004/01/29 04:28:36 gilles Exp $
+$Id: imapsync,v 1.72 2004/02/09 15:42:33 gilles Exp $
 
 =cut
 
@@ -264,7 +264,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.71 2004/01/29 04:28:36 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.72 2004/02/09 15:42:33 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -280,7 +280,7 @@ $mess_size_total_error   = 0;
 sub md5_supported {
 	
 	# before 2.2.6 no md5 native
-	# I know this is ugly I should write a sort function
+	# I know this is ugly, I should write a sort function
 	if ($VERSION_IMAPClient =~ m/(\d+)\.(\d+)\.(\d+)/) {
 		$debug and print "VERSION_IMAPClient $1 $2 $3\n";
 		my($major,$minor,$sub) = ($1, $2, $3);
@@ -299,8 +299,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.71 $ ',
-		  '$Date: 2004/01/29 04:28:36 $ ',
+		  '$Revision: 1.72 $ ',
+		  '$Date: 2004/02/09 15:42:33 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -340,6 +340,14 @@ my $to = ();
 
 my $authmech = "CRAM-MD5";
 
+unless ($md5_supported) {
+		print "Auth $authmech not supported by IMAPClient $VERSION_IMAPClient\n";
+	}else{
+		print "Auth $authmech supported by IMAPClient $VERSION_IMAPClient\n";	
+	}
+
+
+
 $debugimap and print "From connection\n";
 $from = login_imap($host1, $port1, $user1, $password1, $debugimap);
 
@@ -359,11 +367,33 @@ sub login_imap {
 	  or die "can't open imap connection on [$host] with user [$user] : $@\n";
 	$imap->User($user);
 	$imap->Password($password);
-	$md5_supported and $imap->has_capability($authmech) 
-	  and $to->Authmechanism($authmech);
-	
+	md5auth($imap);
 	$imap->login();
 	return($imap);
+}
+
+
+sub md5auth() {
+	my ($imap) = @_;
+	unless ($md5_supported) {
+		return;
+	}
+	
+	if ($imap->has_capability($authmech) 
+	    or $imap->has_capability("AUTH=$authmech")) {
+		print "Server [", $imap->Server, 
+		  "] has capability $authmech\n";
+	}else{
+		print "Server [", $imap->Server, 
+		  "] has NOT capability $authmech\n";
+		return;
+	}
+	if ($imap->Authmechanism($authmech)) {
+		print "Using $authmech authentification\n";
+	}else{
+		print "Can NOT use $authmech authentification, using plain\n";
+	}
+	return;
 }
 
 
