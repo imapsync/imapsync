@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.1 2003/03/12 23:14:02 gilles Exp gilles $	
+# $Id: Makefile,v 1.2 2003/03/14 02:25:27 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -14,7 +14,7 @@ usage:
 	@echo make testv   # run tests verbosely
 	@echo make all     
 
-all: test ChangeLog README
+all: test ChangeLog README VERSION
 
 .PHONY: test testp testf
 
@@ -37,6 +37,9 @@ ChangeLog: $(TARGET)
 
 README: $(TARGET)
 	perldoc -t $(TARGET) > README
+
+VERSION: $(TARGET) Makefile
+	./$(TARGET) --version > VERSION
 
 .PHONY: clean clean_tilde clean_test   
 
