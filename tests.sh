@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.104 2010/07/09 03:06:44 gilles Exp gilles $  
+# $Id: tests.sh,v 1.105 2010/07/12 00:14:00 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -157,6 +157,14 @@ locallocal() {
          --allow3xx
 }
 
+ll_pidfile() {
+         
+                $CMD_PERL ./imapsync \
+                --justbanner \
+                --pidfile /var/tmp/imapsync.pid
+                ! test -f /var/tmp/imapsync.pid
+}
+
 
 
 ll_ask_password() {
@@ -168,14 +176,15 @@ ll_ask_password() {
                 --justlogin
 }
 
+
+
 ll_timeout() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX --timeout 1 \
-            --allow3xx
+                --folder INBOX --timeout 1
 }
 
 
@@ -368,8 +377,15 @@ ll_dev_reconnect()
 {
 # in another terminal:
 #
-#   while :; do killall -u vmail imapd; sleepenh 3; done
-#
+: <<'EOF'
+while :; do 
+    killall -u vmail imapd; 
+    RAND_WAIT=`numrandom .1..5i.1`
+    echo sleeping $RAND_WAIT
+    sleepenh $RAND_WAIT
+done
+EOF
+
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -1288,6 +1304,7 @@ test $# -eq 0 && run_tests \
 	first_sync_dry \
         first_sync \
         locallocal \
+        ll_pidfile \
         ll_ask_password \
         ll_bug_folder_name_with_blank \
         ll_timeout \

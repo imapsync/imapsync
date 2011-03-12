@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.321 $
+$Revision: 1.327 $
 
 =head1 INSTALL
 
@@ -77,10 +77,12 @@ The option list:
            [--subscribed] [--subscribe] [--subscribe_all] 
            [--nofoldersizes]
            [--dry]
-           [--debug] [--debugimap]
+           [--debug] [--debugimap][--debugimap1][--debugimap2]
            [--timeout <int>] [--fast]
            [--split1] [--split2] 
            [--reconnectretry1 <int>] [--reconnectretry2 <int>]
+	   [--pidfile <filepath>]
+	   [--tmpdir  <dirpath>]
            [--version] [--help]
   
 =cut
@@ -433,7 +435,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.321 2010/07/09 03:27:31 gilles Exp gilles $
+$Id: imapsync,v 1.327 2010/07/12 00:23:02 gilles Exp gilles $
 
 =cut
 
@@ -463,7 +465,8 @@ eval { require 'usr/include/sysexits.ph' };
 
 
 my(
-        $rcs, $debug, $debugimap, $error,
+        $rcs, $pidfile,
+	$debug, $debugimap, $debugimap1, $debugimap2, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
         @folder, @include, @exclude, @folderrec,
@@ -507,7 +510,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.321 2010/07/09 03:27:31 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.327 2010/07/12 00:23:02 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -570,13 +573,11 @@ while (@argv_copy) {
 	}
 }
 
-my $banner = join("", 
+my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.321 $ ',
-		  '$Date: 2010/07/09 03:27:31 $ ',
-		  "\n",localhost_info(),
-		  " and the module Mail::IMAPClient version used here is ",
-		  $VERSION_IMAPClient,"\n",
+		  '$Revision: 1.327 $ ',
+		  '$Date: 2010/07/12 00:23:02 $ ',
+		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 @argv_nopassord\n",
 		 );
@@ -588,8 +589,27 @@ unless(defined(&_SYSEXITS_H)) {
 
 get_options();
 
+
+sub write_pidfile {
+	my $pidfile = shift;
+	
+	print "PID file is $pidfile\n";
+	if (-e $pidfile) {
+		warn "$pidfile already exists, overwriting it\n";
+	}
+	open(PIDFILE, ">$pidfile") or do {
+		warn "Could not open $pidfile for writing";
+		return undef;
+	};
+	
+	print PIDFILE $PROCESS_ID;
+	close PIDFILE;
+	return($PROCESS_ID);
+}
+
 $tmpdir ||= File::Spec->tmpdir();
 
+$pidfile ||= $tmpdir . '/imapsync.pid';
 
 sub check_dir {
 	my $dir = shift;
@@ -607,20 +627,34 @@ sub check_dir {
 $allow3xx = defined($allow3xx) ? $allow3xx : 1;
 
 check_lib_version() or 
-  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.0.19 or superior \n";
+  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.0.25 or superior \n";
 
 
-print $banner;
+print $banner_imapsync;
 print "Temp directory is $tmpdir\n";
 
 check_dir($tmpdir);
+write_pidfile($pidfile) if ($pidfile);
 
 
-exit(0) if ($justbanner);
+exit_clean(0) if ($justbanner);
+
+sub exit_clean {
+	my $status = shift;
+	
+	unlink($pidfile);
+	exit($status);
+}
+
+sub die_clean {
+
+	unlink($pidfile);
+	die @_;
+}
 
 sub missing_option {
 	my ($option) = @_;
-	die "$option option must be used, run $0 --help for help\n";
+	die_clean "$option option must be used, run $0 --help for help\n";
 }
 
 # By default, 1000 at a time, not more.
@@ -633,6 +667,7 @@ $port1 ||= (defined $ssl1 and !defined $tls1) ? 993 : 143;
 $host2 || missing_option("--host2") ;
 $port2 ||= (defined $ssl2 && !defined $tls2) ? 993 : 143;
 
+$debugimap1 = $debugimap2 = 1 if ($debugimap);
 
 sub connect_imap {
 	my($host, $port, $debugimap, $ssl, $tls) = @_;
@@ -644,7 +679,7 @@ sub connect_imap {
 	$imap->Tls($tls) if ($tls);
 	#$imap->connect()
 	myconnect($imap)
-	  or die "Can not open imap connection on [$host]: $@\n";	
+	  or die_clean("Can not open imap connection on [$host]: $@\n");	
 }
 
 sub localhost_info {
@@ -655,9 +690,9 @@ sub localhost_info {
 	         uname(),
 	         ),
                  ")\n",
-	         "with perl ", 
-	         sprintf("%vd", $PERL_VERSION),"\n",
-	         "Mail::IMAPClient  $Mail::IMAPClient::VERSION",
+	         "With perl ", 
+	         sprintf("%vd", $PERL_VERSION),
+	         " Mail::IMAPClient  $Mail::IMAPClient::VERSION",
             );	  
 	return($infos);
 
@@ -667,15 +702,15 @@ if ($justconnect) {
 	my $imap1 = ();
 	my $imap2 = ();
 	
-	$imap1 = connect_imap($host1, $port1, $debugimap, $ssl1, $tls1);
+	$imap1 = connect_imap($host1, $port1, $debugimap1, $ssl1, $tls1);
 	print "Host1 software: ", server_banner($imap1);
 	print "Host1 capability: ", join(" ", $imap1->capability()), "\n";
-	$imap2   = connect_imap($host2, $port2, $debugimap, $ssl2, $tls2);
+	$imap2   = connect_imap($host2, $port2, $debugimap2, $ssl2, $tls2);
 	print "Host2 software: ", server_banner($imap2);
 	print "Host2 capability: ", join(" ", $imap2->capability()), "\n";
 	$imap1->logout();
 	$imap2->logout();
-	exit(0);
+	exit_clean(0);
 }
 
 $user1 || missing_option("--user1");
@@ -774,14 +809,14 @@ my $imap2 = ();
 $timestart = time();
 $timebefore = $timestart;
 
-$debugimap and print "Host1 connection\n";
+$debugimap1 and print "Host1 connection\n";
 $imap1 = login_imap($host1, $port1, $user1, $password1, 
-		   $debugimap, $timeout, $fastio1, $ssl1, $tls1,
+		   $debugimap1, $timeout, $fastio1, $ssl1, $tls1,
 		   $authmech1, $authuser1, $reconnectretry1);
 
-$debugimap and print "Host2 connection\n";
+$debugimap2 and print "Host2 connection\n";
 $imap2 = login_imap($host2, $port2, $user2, $password2, 
-		 $debugimap, $timeout, $fastio2, $ssl2, $tls2,
+		 $debugimap2, $timeout, $fastio2, $ssl2, $tls2,
 		 $authmech2, $authuser2, $reconnectretry2);
 
 #  history
@@ -814,7 +849,7 @@ sub login_imap {
 
 	#$imap->connect()
 	myconnect($imap)
-	  or die "Can not open imap connection on [$host] with user [$user]: $@\n";
+	  or die_clean("Can not open imap connection on [$host] with user [$user]: $@\n");
 	
 	print "Banner: ", server_banner($imap);
 	
@@ -846,11 +881,11 @@ sub login_imap {
 		chomp($einfo);
 		my $error = "$info [$authmech]: $einfo\n";
 		print $error; # note: duplicating error on stdout/stderr
-		die $error if ($authmech eq 'LOGIN' or $imap->IsUnconnected() or $authuser);
+		die_clean($error) if ($authmech eq 'LOGIN' or $imap->IsUnconnected() or $authuser);
 		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
 		$imap->Authmechanism("");
 		$imap->login() or
-		  die "$info [LOGIN]: ", $imap->LastError, "\n";
+		  die_clean("$info [LOGIN]: ", $imap->LastError, "\n");
 	}
 	print "Success login on [$host] with user [$user] auth [$authmech]\n";
 	return($imap);
@@ -877,12 +912,12 @@ sub server_banner {
 $debug and print "Host1 capability: ", join(" ", $imap1->capability()), "\n";
 $debug and print "Host2 capability: ", join(" ", $imap2->capability()), "\n";
 
-die unless $imap1->IsAuthenticated();
+die_clean() unless $imap1->IsAuthenticated();
 print "host1: state Authenticated\n";
-die unless   $imap2->IsAuthenticated();
+die_clean() unless   $imap2->IsAuthenticated();
 print "host2: state Authenticated\n";
 
-exit(0) if ($justlogin);
+exit_clean(0) if ($justlogin);
 
 $split1 and $imap1->Split($split1);
 $split2 and $imap2->Split($split2);
@@ -891,7 +926,8 @@ $split2 and $imap2->Split($split2);
 # Folder stuff
 #
 
-my (@h1_folders, %requested_folder, @h2_folders, @h2_folders_list, %h2_folders_list, %subscribed_folder, %h2_folders);
+my (@h1_folders, %requested_folder, 
+@h2_folders, @h2_folders_list, %h2_folders_list, %subscribed_folder, %h2_folders);
 
 sub tests_folder_routines {
 	ok( !give_requested_folders()                ,"no requested folders"  );
@@ -1139,7 +1175,7 @@ sub get_prefix {
 		  "No NAMESPACE capability in imap server ", 
 		    $imap->Server(),"\n",
 		      "Give the prefix namespace with the $prefix_opt option\n";
-		exit(1);
+		exit_clean(1);
 	}
 }
 
@@ -1161,14 +1197,14 @@ sub get_separator {
 		warn 
 		  "NAMESPACE request failed for ", 
 		  $imap->Server(), ": ", $imap->LastError, "\n";
-		exit(1);
+		exit_clean(1);
 	}
 	else{
 		warn
 		  "No NAMESPACE capability in imap server ", 
 		    $imap->Server(),"\n",
 		      "Give the separator character with the $sep_opt option\n";
-		exit(1);
+		exit_clean(1);
 	}
 }
 
@@ -1214,7 +1250,7 @@ sub foldersizes {
 			$smess = $imap->message_count();
 			unless ($smess == 0) {
 				#$imap->Ranges(1);
-				$imap->fetch_hash("RFC822.SIZE",$hashref) or die "$@";
+				$imap->fetch_hash("RFC822.SIZE",$hashref) or die_clean("$@");
 				#$imap->Ranges(0);
 				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
 				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
@@ -1256,7 +1292,7 @@ sub timenext {
 	return($timerel);
 }
 
-exit if ($justfoldersizes);
+exit_clean(0) if ($justfoldersizes);
 
 # needed for setting flags
 my $imap2hasuidplus = $imap2->has_capability("UIDPLUS");
@@ -1344,7 +1380,7 @@ sub imap2_folder_name {
 	        my $h2_fold_before = $h2_fold;
 		eval("\$h2_fold =~ $regextrans2");
 		$debug and print "[$h2_fold_before] -> [$h2_fold] using re [$regextrans2]\n";
-		die("error: eval regextrans2 '$regextrans2': $@\n") if $@;
+		die_clean("error: eval regextrans2 '$regextrans2': $@\n") if $@;
 	}
 	return($h2_fold);
 }
@@ -1457,7 +1493,7 @@ sub flags_regex {
 		my $h1_flags_orig = $h1_flags;
 		$debug and print "eval \$h1_flags =~ $regexflag\n";
 		eval("\$h1_flags =~ $regexflag");
-		die("error: eval regexflag '$regexflag': $@\n") if $@;
+		die_clean("error: eval regexflag '$regexflag': $@\n") if $@;
 		$debug and print "regexflag $regexflag [$h1_flags_orig] -> [$h1_flags]\n";
 	}
 	return($h1_flags);
@@ -1544,14 +1580,17 @@ sub flags_filter {
 
 print "++++ Looping on each folder ++++\n";
 
+#sleep 10;
 FOLDER: foreach my $h1_fold (@h1_folders) {
+
+	last FOLDER if $imap1->IsUnconnected();
+	last FOLDER if $imap2->IsUnconnected();
+
 	my $h2_fold;
 	print "Host1 Folder [$h1_fold]\n";
 	$h2_fold = imap2_folder_name($h1_fold);
 	print "Host2 Folder [$h2_fold]\n";
 
-	last FOLDER if $imap1->IsUnconnected();
-	last FOLDER if   $imap2->IsUnconnected();
 
 	unless ($imap1->select($h1_fold)) {
 		warn 
@@ -1786,19 +1825,56 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 				@regexmess = 's{\AFrom\ }{From:}gxms';
 				ok(          '' 
 				eq regexmess(''),
-				'From mbox 1 blank');
+				'From mbox 1 add colon blank');
 				
 				ok(          'From:<tartanpion@machin.truc>' 
 				eq regexmess('From <tartanpion@machin.truc>'),
-				'From mbox 2');
+				'From mbox 2 add colo');
 				
 				ok(          "\n" . 'From <tartanpion@machin.truc>' 
 				eq regexmess("\n" . 'From <tartanpion@machin.truc>'),
-				'From mbox 3');
+				'From mbox 3 add colo');
 				
 				ok(          "From: zzz\n" . 'From <tartanpion@machin.truc>' 
 				eq regexmess("From  zzz\n" . 'From <tartanpion@machin.truc>'),
-				'From mbox 4');
+				'From mbox 4 add colo');
+				
+				@regexmess = 's{\AFrom\ [^\n]*(\n)?}{}gxms';
+				ok(          '' 
+				eq regexmess(''),
+				'From mbox 1 remove, blank');
+				
+				ok(          '' 
+				eq regexmess('From <tartanpion@machin.truc>'),
+				'From mbox 2 remove');
+				
+				ok(          "\n" . 'From <tartanpion@machin.truc>' 
+				eq regexmess("\n" . 'From <tartanpion@machin.truc>'),
+				'From mbox 3 remove');
+				
+				#print "[", regexmess("From  zzz\n" . 'From <tartanpion@machin.truc>'), "]";
+				ok(          ""            . 'From <tartanpion@machin.truc>' 
+				eq regexmess("From  zzz\n" . 'From <tartanpion@machin.truc>'),
+				'From mbox 4 remove');
+				
+
+				ok(
+'Date: Sat, 10 Jul 2010 05:34:45 -0700
+From:<tartanpion@machin.truc>
+
+Hello,
+Bye.'
+				eq regexmess(
+'From  zzz
+Date: Sat, 10 Jul 2010 05:34:45 -0700
+From:<tartanpion@machin.truc>
+
+Hello,
+Bye.'
+				),
+				'From mbox 5 remove');
+				
+				
 			}
 
 			sub regexmess {
@@ -1806,7 +1882,7 @@ FOLDER: foreach my $h1_fold (@h1_folders) {
 				foreach my $regexmess (@regexmess) {
 					$debug and print "eval \$string =~ $regexmess\n";
 					eval("\$string =~ $regexmess");
-					die("error: eval regexmess '$regexmess': $@\n") if $@;
+					die_clean("error: eval regexmess '$regexmess': $@\n") if $@;
 				}
 				return($string);
 			}
@@ -2040,13 +2116,18 @@ sub lost_connection {
 $imap1->logout();
 $imap2->logout();
 
+my $host1_reconnect_count = $imap1->Reconnect_counter() || 0;
+my $host2_reconnect_count = $imap2->Reconnect_counter() || 0;
+
 $timeend = time();
 
 $timediff = $timeend - $timestart;
 
 stats();
 
-exit(1) if($error);
+exit_clean(1) if($error);
+
+exit_clean(0);
 
 sub select_msgs {
 	my ($imap) = @_;
@@ -2091,7 +2172,9 @@ sub stats {
 	print   "Total bytes skipped      : $mess_size_total_skipped\n";
 	print   "Total bytes error        : $mess_size_total_error\n";
 	$timediff ||= 1; # No division per 0
-	printf ("Average bandwidth rate    : %.1f KiB/s\n", $mess_size_total_trans / 1024 / $timediff);
+	printf ("Average bandwidth rate   : %.1f KiB/s\n", $mess_size_total_trans / 1024 / $timediff);
+	print   "Reconnections to host1   : $host1_reconnect_count\n";
+	print   "Reconnections to host2   : $host2_reconnect_count\n";
 	print   "Detected $error errors\n\n";
 	print   thank_author();
 }
@@ -2119,6 +2202,8 @@ sub get_options {
         my $opt_ret = GetOptions(
                                    "debug!"       => \$debug,
                                    "debugimap!"   => \$debugimap,
+                                   "debugimap1!"  => \$debugimap1,
+                                   "debugimap2!"  => \$debugimap2,
                                    "host1=s"     => \$host1,
                                    "host2=s"     => \$host2,
                                    "port1=i"     => \$port1,
@@ -2190,6 +2275,8 @@ sub get_options {
                                    "allow3xx!"   => \$allow3xx,
                                    "justlogin!"  => \$justlogin,
 				   "tmpdir=s"    => \$tmpdir,
+				   "pidfile=s"    => \$pidfile,
+				   
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -2306,7 +2393,7 @@ sub  firstline {
         my($file) = @_;
         my $line  = "";
         
-        open FILE, $file or die("error [$file]: $! ");
+        open FILE, $file or die_clean("error [$file]: $! ");
         chomp($line = <FILE>);
         close FILE;
         $line = ($line) ? $line: "error !EMPTY! [$file]";
@@ -2317,7 +2404,7 @@ sub  firstline {
 sub file_to_string {
 	my($file) = @_;
 	my @string;
-	open FILE, $file or die("error [$file]: $! ");
+	open FILE, $file or die_clean("error [$file]: $! ");
 	@string = <FILE>;
 	close FILE;
 	return join("", @string);
@@ -2326,7 +2413,7 @@ sub file_to_string {
 
 sub string_to_file {
 	my($string, $file) = @_;
-	sysopen(FILE, $file,O_WRONLY|O_TRUNC|O_CREAT, 0600) or die("$! $file");
+	sysopen(FILE, $file,O_WRONLY|O_TRUNC|O_CREAT, 0600) or die_clean("$! $file");
 	print FILE $string;
 	close FILE;
 }
@@ -2378,6 +2465,7 @@ Several options are mandatory.
 --tmpdir      <string> : where to store temporary files and subdirectories.
                          Will be created if it doesn't exist.
 			 Default is system specific and should be ok.
+--pidfile     <string> : the file where imapsync pid is written.
 --prefix1     <string> : remove prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
                          you can use --prefix1 if your source imap server 
@@ -2450,14 +2538,16 @@ Several options are mandatory.
 --subscribe            : subscribe to the folders transferred on the 
                          host2 that are subscribed on host1.
 --subscribe_all        : subscribe to the folders transferred on the 
-                         host2even if they are not subscribed on host1.
+                         host2 even if they are not subscribed on host1.
 --nofoldersizes        : Do not calculate the size of each folder in bytes
                          and message counts. Default is to calculate them.
 --justfoldersizes      : exit after printed the folder sizes.
 --syncacls             : Synchronises acls (Access Control Lists).
 --nosyncacls           : Does not synchronise acls. This is the default.
 --debug                : debug mode.
---debugimap            : imap debug mode. Very verbose.
+--debugimap1           : imap debug mode for host1. imap debug is very verbose.
+--debugimap2           : imap debug mode for host2.
+--debugimap            : imap debug mode for host1 and host2.
 --version              : print software version.
 --justconnect          : just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
@@ -3144,7 +3234,7 @@ no warnings 'once';
 	    #print "call @_\n";
             $rc = $self->_imap_command_do(@_);
             push( @err, $self->LastError ) if $self->LastError;
-	    #print "call @_ done [$rc] [$retry][" . $self->IsUnconnected . "]\n";
+	    #print "call @_ done [", $rc || '', "] [$tries/$retry][" . $self->IsUnconnected . "]\n";
         }
 	
         if ( !defined($rc) and $retry and $self->IsUnconnected
@@ -3152,6 +3242,7 @@ no warnings 'once';
 	   print "\nWarning: disconnected. ";
            if ( $self->reconnect ) {
                 print "Reconnect successful on try #$tries\n";
+		$self->Reconnect_counter($self->Reconnect_counter() + 1);
             }
             else {
                 print "Reconnect failed on try #$tries\n";
@@ -3585,14 +3676,14 @@ sub starttls {
   my $banner = $self->Banner();
   $debug and print $banner;
   unless ($banner =~ /^\* OK \[CAPABILITY.*STARTTLS.*\]/) {
-    die "No STARTTLS capability: $banner";
+    die_clean( "No STARTTLS capability: $banner" );
   }
   print $socket, "\n";
   print $socket "z00 STARTTLS\015\012";
   my $txt = $socket->getline();
   $debug and print "Read: $txt";
   unless($txt =~ /^z00 OK/){
-    die "Invalid response for STARTTLS: $txt\n";
+    die_clean( "Invalid response for STARTTLS: $txt\n" );
   }
   $debug and print "Calling start_SSL\n";
   unless(IO::Socket::SSL->start_SSL($socket,
@@ -3602,10 +3693,10 @@ sub starttls {
       SSL_verify_depth => 1,
       }))
   {
-    die "Couldn't start TLS: ".IO::Socket::SSL::errstr()."\n";
+    die_clean( "Couldn't start TLS: ".IO::Socket::SSL::errstr()."\n");
   }
   if (ref($socket) ne "IO::Socket::SSL") {
-    die "Socket has NOT been converted to SSL";
+    die_clean( "Socket has NOT been converted to SSL");
   }else{
      $debug and print "Socket successfuly converted to SSL\n";
   }
@@ -3632,6 +3723,14 @@ sub Tls {
 	if (@_) { $self->{TLS} = shift }
 	return $self->{TLS};
 }
+
+sub Reconnect_counter {
+	my $self = shift;
+	if (@_) { $self->{Reconnect_counter} = shift }
+	return $self->{Reconnect_counter};
+
+}
+
 
 sub Banner {
 	my $self = shift;

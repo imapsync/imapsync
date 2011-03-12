@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.69 2010/07/07 22:47:39 gilles Exp gilles $
+# $Id: FAQ,v 1.70 2010/07/12 00:18:33 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -641,17 +641,28 @@ Any Maildir/ configured imap server may refuse this message since its
 header is invalid. The first "From " line is not valid. It lacks a
 colon character ":". To solve this problem you have several solutions
 
-a) Remove these first "From " line manually for each message before
-   using imapsync. Don't think to add a colon to this line since you
-   will end with two "From:" lines (just look at the other lines)
+a) Remove manually this first "From " line for each message before
+   using imapsync. 
 
-b) Run imapsync with the following options :
+b) Replace manually the whitespace by a colon in string "From " but you
+   might end with two "From:" lines (just have a look at the other header lines)
+
+c) Run imapsync with the following option :
    --regexmess 's/\AFrom /From:/'
 
 or may be better (no other "From:" collision):
 
-  --regexmess 's/\AFrom /X-om:/'
+d) Run imapsync with the following option :
+   --regexmess 's/\AFrom /X-om:/'
 
+e) Run imapsync with the following option :
+   --regexmess 's{\AFrom\ [^\n]*(\n)?}{}gxms'
+
+Solution e) is solution a) made by imapsync itself.
+Solutions c) and d) keep "From " lines information
+(normally it's useless to keep them)
+
+Best solutions are e) or d).
 
 =======================================================================
 Q. The contact folder isn't well copied. 
