@@ -1,11 +1,30 @@
 #!/bin/sh
 
+# $Id: memo,v 1.23 2010/10/24 23:49:28 gilles Exp gilles $
 
 software_version() {
 
 	VERSION=`cat VERSION`
 
 }
+
+statistics_lfo() {
+#grep    prj/imapsync/VERSION /usr/local/apache/logs/access_log  | sort -n | cut -d ' ' -f 1,12,13|uniq -c | sort -n # list ip
+
+cat <<EOFF
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|sort -n|cut -d ' ' -f 1,12,13|uniq -c|sort -n # list ip
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|grep    MSWin32|cut -d ' ' -f 1,12,13|sort -n|uniq -c| sort -n # Win32
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|grep -v MSWin32|cut -d ' ' -f 1,12,13|sort -n|uniq -c| sort -n # No Win32
+
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 13|sort -n|uniq -c| sort -n # OS usage
+grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 12|sort -n|uniq -c| sort -n # imapsync release
+
+
+tail -f /usr/local/apache/logs/access_log|cat -n|grep prj/imapsync/VERSION|cat -n |grep VERSION # lfo frequency'
+EOFF
+}
+
+
 
 niouzes_compil() {
 	DIR_SAVE=`pwd`

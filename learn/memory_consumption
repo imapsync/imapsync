@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use English;
+use Mail::IMAPClient;
+
+$ARGV[3] or die "usage: $0 host user password folder\n";
+
+my $host     = $ARGV[0];
+my $user     = $ARGV[1];
+my $password = $ARGV[2];
+my $folder   = $ARGV[3];
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(0);
+$imap->Server($host);
+$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+$imap->Clear(1);
+
+#print map {"$_\n"} $imap->folders();
+
+$imap->select($folder) or die;
+my @msgs = $imap->messages or die "Could not messages: $@\n";
+print "@msgs\n";
+print memory_consumption();
+foreach my $msg (@msgs) {
+	my $size = $imap->size($msg);
+	print "message size of $msg = $size bytes\n";
+	my $string = $imap->message_string($msg);
+	print memory_consumption();
+	$imap->append('INBOX.Trash', $string);
+	print memory_consumption();
+}
+$imap->close();
+print memory_consumption();
+
+
+sub memory_consumption {
+
+	my @PID = (@_) ? @_ : ($PROCESS_ID);
+	my $val;
+	
+	my ($package, $filename, $line, $subroutine) = caller(0);
+	$val = "$package $filename line $line: ";
+	my @ps = qx{ ps o vsz @PID };
+	my $vsz = $ps[1];
+	chomp($vsz);
+	$val .= $vsz * 1024 . " bytes\n";
+	#$val .= '-' x 80 . "\n";
+	return($val);
+}

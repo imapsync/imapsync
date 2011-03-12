@@ -1,0 +1,209 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use English;
+use Mail::IMAPClient;
+use Socket;
+
+$ARGV[3] or die "usage: $0 host user password folder\n";
+
+my $host     = $ARGV[0];
+my $user     = $ARGV[1];
+my $password = $ARGV[2];
+my $folder   = $ARGV[3];
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(0);
+$imap->Server($host);
+$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+$imap->Clear(1);
+
+#print map {"$_\n"} $imap->folders();
+
+$imap->select($folder) or die;
+my @msgs = $imap->messages or die "Could not messages: $@\n";
+print "@msgs\n";
+print memory_consumption_ratio(), "\n";
+
+my $size_max = 0;
+foreach my $msg (@msgs) {
+	my $size = $imap->size($msg);
+	$size_max = ($size_max > $size) ? $size_max : $size;
+	print "message size of $msg = $size bytes\n";
+	my $string_raw = $imap->message_string_raw($msg);
+	print "ms raw: ", memory_consumption_ratio($size_max), "\n";
+	
+	#$imap->append_string('INBOX.Trash', $string_raw);
+	my $uid_raw = $imap->append_string_raw('INBOX.Trash', $string_raw);
+	print "ap raw $uid_raw: ", memory_consumption_ratio($size_max), "\n";
+	my $string     = $imap->message_string($msg);
+	print "ms nor: ", memory_consumption_ratio($size_max), "\n";
+	print "NOT EQUAL\n" if ($string_raw ne $string); 
+	#print substr($string_raw,   0, 80), "]\n";
+	#print substr($string_raw, -80, 80), "]\n";
+	my $uid_nor = $imap->append_string('INBOX.Trash', $string_raw);
+	print "ap nor $uid_nor: ", memory_consumption_ratio($size_max), "\n";
+	$imap->select('INBOX.Trash')  or die;
+	$string_raw = $imap->message_string_raw($uid_raw);
+	print "msraw $uid_raw D:", substr($string_raw,   0, 80), "]\n";
+	print "msraw $uid_raw F:", substr($string_raw, -80, 80), "]\n";
+	$string     = $imap->message_string_raw($uid_nor);
+	print "msraw $uid_nor D:", substr($string,   0, 80), "]\n";
+	print "msraw $uid_nor F:", substr($string, -80, 80), "]\n";
+	print "NOT EQUAL app\n" if ($string_raw ne $string);
+	print "eq: ", memory_consumption_ratio($size_max), "\n";
+}
+$imap->close();
+
+
+sub memory_consumption_of_pid {
+
+	my @PID = (@_) ? @_ : ($PROCESS_ID);
+	my $val;
+	
+	my @ps = qx{ ps o vsz @PID };
+	shift @ps;
+	chomp @ps;
+	my @val = map { $_ * 1024 } @ps;
+	return(@val);
+}
+
+sub memory_consumption_ratio {
+
+	my ($base) = @_;
+	$base ||= 1;
+	my ($consu) = memory_consumption_of_pid();
+	return($consu / $base);
+}
+
+package Mail::IMAPClient;
+use Errno qw(EAGAIN EPIPE ECONNRESET);
+
+sub message_string_raw {
+
+	my $self  = shift;
+	my ($msg) = @_;
+	my $sock  = $self->{Socket};
+	my $io_sel= IO::Select->new($sock);
+	my $count = $self->Count($self->Count+1);
+
+	print "$count UID FETCH $msg BODY.PEEK[]\r\n";
+	print $sock "$count UID FETCH $msg BODY.PEEK[]\r\n";
+	my $buf;
+	my $line;
+	CORE::select( undef, undef, undef, 0.025 );
+	my $expected_size;
+	
+	local $/ = "\r\n";
+	$line = <$sock>;
+	print "msr <> [$line]";
+	
+	if ( $line =~ m/.*{(\d+)\}\r\n/o ) {
+		$expected_size = $1;
+		print "\nEXPECT $expected_size\n";
+	}
+	
+	#local $/;
+	while ($buf .= <$sock> and (length $buf <= $expected_size)){
+	}
+	CORE::select( undef, undef, undef, 0.025 );
+	$line = <$sock>;
+	print "[$line][$count OK FETCH]\n";
+	if ( $line =~ m/$count OK FETCH/o ) {
+		print "GOOD\n";
+		return(substr($buf, 0, $expected_size))
+	}else{
+		print "BAD\n";
+		return(undef);
+	}
+}
+
+
+sub append_string_raw {
+    my $self   = shift;
+
+    my $folder = $self->Massage(shift);
+    my ( $text, $flags, $date ) = @_;
+    defined $text or $text = '';
+
+    my $sock  = $self->{Socket};
+    my $io_sel   = IO::Select->new($sock);
+
+    my($count, $line);
+
+    if ( defined $flags ) {
+        $flags =~ s/^\s+//g;
+        $flags =~ s/\s+$//g;
+        $flags = "($flags)" if $flags !~ /^\(.*\)$/;
+    }
+
+    if ( defined $date ) {
+        $date =~ s/^\s+//g;
+        $date =~ s/\s+$//g;
+        $date = qq("$date") if $date !~ /^"/;
+    }
+
+    #$text =~ s/\r?\n/\r\n/og;
+
+    my $command =
+        "APPEND $folder "
+      . ( $flags ? "$flags " : "" )
+      . ( $date  ? "$date "  : "" ) . "{"
+      . length($text)
+      . "}\r\n";
+
+    local $/ = "\r\n";
+
+    #print  $command;
+    
+    $count = $self->Count($self->Count+1);
+    my $string = "$count ". $command . $text . "\r\n";
+    $io_sel->can_write();
+    $self->_send_bytes_2(\$string);
+    $io_sel->can_read();
+    $line = <$sock>;
+    #print "APP 1 [$line]\n";
+    
+    $io_sel->can_read();
+    $line = <$sock>;
+    print "APP 2 [$line]\n";
+
+    my $ret;
+    # <tag> OK [APPENDUID <size> <uid>] APPEND completed
+    if ($line =~ m{^$count\s+OK\s+\[APPENDUID\s+\d+\s+(\d+)\]}) {
+    	$ret = $1;
+    }else{
+    	$ret = undef;
+    }
+    return($ret);
+}
+
+sub _send_bytes_2 {
+    my ( $self, $byteref ) = @_;
+    my ( $total ) = ( 0 );
+
+    local $SIG{PIPE} = 'IGNORE';    # handle SIGPIPE as normal error
+
+    while ( $total < length $$byteref ) {
+        my $written =
+          syswrite( $self->Socket, $$byteref, length($$byteref) - $total,
+            $total );
+
+        if ( defined $written ) {
+		$total += $written;
+		next;
+	}
+
+        next if ( $! == EAGAIN ) ;
+	
+        return undef;    # no luck
+    }
+    $self->_debug("Sent $total bytes");
+    return $total;
+}

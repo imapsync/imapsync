@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.73 2010/08/08 23:09:04 gilles Exp gilles $
+# $Id: FAQ,v 1.75 2010/10/19 23:31:10 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -595,6 +595,14 @@ Examples:
 3) to substitute all characters dot "." by underscores "_"
     --regextrans2 's/\./_/g'
 
+4) to change folder names like this:
+[mail/Sent Items] -> [Sent]
+[mail/Test]       -> [INBOX/Test]
+[mail/Test2]      -> [INBOX/Test2]
+
+    --regextrans2 's#^mail/Sent Items$#Sent#' \
+    --regextrans2 's#^mail/#INBOX/#'
+
 =======================================================================
 Q. I would like to move emails from InBox to a sub-folder called,
    say "2005-InBox" based on the date (Like all emails received in the
@@ -755,13 +763,16 @@ Q. Synchronising from Gmail to XXX
 R. Gmail needs SSL 
 
 ./imapsync \
-           --host1 imap.gmail.com --ssl1 \
+           --host1 imap.gmail.com \
+           --ssl1 \
+           --authmech1 LOGIN \
            --user1 gilles.lamiral@gmail.com \
-           --passfile1 /var/tmp/secret.gilles_gmail \
+           --password1 gmailsecret \
            --host2 localhost
-           --user2 tata@est.belle \
-           --passfile2 /var/tmp/secret.tata \
-           --useheader="X-Gmail-Received"  --skipsize 
+           --user2 tata \
+           --password2 tatasecret \
+           --useheader="X-Gmail-Received" \
+           --useheader 'Message-Id'
 
 If your destination imap server doesn't like "[Gmail]" name, just add
 option:

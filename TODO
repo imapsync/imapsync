@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.85 2010/09/06 01:08:14 gilles Exp gilles $
+# $Id: TODO,v 1.86 2010/10/08 00:43:09 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
@@ -13,6 +13,8 @@ Start a wiki for imapsync.
 
 Add a best practice migration tips document.
 
+Write a Mail::imapsync package and use it.
+
 Fix the mailing-list archive bug with From at
 the beginning of a line
 http://www.linux-france.org/prj/imapsync_list/msg00307.html
@@ -21,18 +23,10 @@ Evaluate
 http://www.rackspace.com/apps/email_hosting/migrations
 http://www.yippiemove.com/
 
-Evaluate memory consumption with (or better):
-print qx{ ps o pid,pcpu,comm,vsz,rss,size $$ }, "\n"
-Search memory leaks with 
-Test-Weaken Test-Memory-Cycle Devel-Cycle Devel-Leak Test-Weaken
-sh -x tests.sh ll_bigmail 
-is a good candidate to stress memory.
-
 Suggestion: it's very difficult to track down messages which are behaving
 funny during the sync. It would be great - and presumably easy to code -
 to have an option to have imapsync display e.g. the subject of an
 e-mail when it gets synced, rather than just the message ID and the date/time.
-
 
 Add --noauthmd51 --noauthmd52 to permit noauthmd5 by host
 
@@ -109,13 +103,14 @@ Add a --skipheaderinfolder option
 
 Fix this:
 > - Erreur avec la traditionnelle différence entre Windows
-> et LInux sur les retour-chariots : le calcul de la
+> et Linux sur les retour-chariots : le calcul de la
 > longueur du message ou des entêtes à envoyer au serveur
 > cible n'est pas bon sur une machine Windows.
 > Ci-dessous la modif :
 > 
 >         # No NL Count on Windows my $length = ( -s $file ) + $bare_nl_count;
 >         my $length = ( -s $file );
+I wonder if it is Windows or the imap server used.
 
 
 Add stdin/stdout filter before transfer:
@@ -169,6 +164,17 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 Explain expunge behavior.
 
 ===========================================================================
+
+DONE. Evaluate memory consumption with (or better):
+print qx{ ps o pid,pcpu,comm,vsz,rss,size $$ }, "\n"
+Search memory leaks with 
+Test-Weaken Test-Memory-Cycle Devel-Cycle Devel-Leak Test-Weaken
+sh -x tests.sh ll_bigmail 
+sh -x tests.sh ll_memory_consumption
+are good candidate to stress memory.
+No memory leak detected just up to 8 memory copies of the same data
+in Mail::IMAPClient.
+Wrote ./learn/memory_consumption to show that it is a Mail::IMAPClient issue.
 
 DONE.Be more effiscient with large mailboxes
 Write a Mail::IMAPClient::fetch_hash allowing selecting messages to fetch

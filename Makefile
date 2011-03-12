@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.37 2010/08/24 01:46:36 gilles Exp gilles $	
+# $Id: Makefile,v 1.42 2010/10/24 23:52:31 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -15,6 +15,7 @@ usage:
 	@echo "make all     "
 	@echo "make upload_index"
 	@echo "make imapsync.exe"
+	@echo "make upload_imapsync_exe"
 
 
 DIST_NAME=imapsync-$(VERSION)
@@ -137,6 +138,9 @@ upload_index: index.shtml
 	../../public_html/www.linux-france.org/html/prj/imapsync/
 	sh $(HOME)/memo/lfo-rsync
 
+
+
+
 .dosify_bat: build_exe.bat test_exe.bat test.bat
 	unix2dos build_exe.bat test.bat test_exe.bat
 	touch .dosify_bat
@@ -149,18 +153,39 @@ dosify_bat: .dosify_bat
 
 imapsync_cidone: .imapsync_cidone
 
+copy_win32:
+	scp imapsync Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+
+tests_win32: dosify_bat
+	scp imapsync test.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'perl C:/msys/1.0/home/Admin/imapsync/imapsync --tests_debug'
+#	ssh Admin@c 'perl C:/msys/1.0/home/Admin/imapsync/imapsync'
+#	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test.bat'
+#	ssh Admin@c 'tasklist /FI "PID eq 0"' 
+#	ssh Admin@c 'tasklist /NH /FO CSV' 
+
+upload_imapsync_exe:
+	rsync -avH imapsync.exe \
+	../../public_html/www.linux-france.org/html/prj/imapsync/
+	 #sh $(HOME)/memo/lfo-rsync
 
 test_imapsync_exe: dosify_bat
 	scp test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
 imapsync.exe: imapsync imapsync_cidone dosify_bat
+	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
 	scp imapsync build_exe.bat test_exe.bat \
 	Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --version' > VERSION_EXE
+	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
+
+zzz:
+	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
+	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
 
 
 lfo: dist niouze_lfo upload_lfo 
@@ -173,10 +198,10 @@ upload_lfo:
 	sh ~/memo/lfo-rsync
 
 niouze_lfo : VERSION
-	. memo && lfo_announce
+	. ./memo && lfo_announce
 
 niouze_fm: VERSION
-	. memo && fm_announce
+	. ./memo && fm_announce
 
 
 public: niouze_fm
