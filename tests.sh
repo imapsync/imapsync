@@ -1,8 +1,14 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.20 2004/07/08 23:32:36 gilles Exp $	
+# $Id: tests.sh,v 1.22 2004/07/09 09:11:28 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.22  2004/07/09 09:11:28  gilles
+# comment about pl and lp
+#
+# Revision 1.21  2004/07/09 09:00:13  gilles
+# Added foldersizes2() to check old Mail-IMAPClient lib
+#
 # Revision 1.20  2004/07/08 23:32:36  gilles
 # Added foldersizes() test
 #
@@ -429,10 +435,29 @@ bad_host()
    
 }
 
+
 foldersizes()
 {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--justconnect --foldersizes
+	else
+		:
+	fi
+
+}
+
+
+foldersizes2()
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		perl -I ~gilles/build/Mail-IMAPClient-2.2.8/blib/lib/ \
 		./imapsync \
 		--host2 plume --user2 tata@est.belle \
 		--passfile2 /var/tmp/secret.tata \
@@ -466,6 +491,8 @@ big_transfert()
 run_tests perl_syntax 
 
 # All tests
+# lp : louloutte -> plume
+# pl : plume -> louloutte
 
 test $# -eq 0 && run_tests \
 	no_args \
@@ -489,6 +516,7 @@ test $# -eq 0 && run_tests \
         lp_skipsize \
         lp_skipheader \
 	lp_regextrans2 \
+	foldersizes2 \
 	foldersizes
 
 # selective tests
