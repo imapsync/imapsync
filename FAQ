@@ -6,7 +6,20 @@
 =======================================================================
 Q. Where I can read IMAP RFCs ?
 
-R. http://www.faqs.org/rfcs/rfc3501.html
+R. 
+
+RFC 3501 - INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1
+http://www.faqs.org/rfcs/rfc3501.html
+
+RFC 2822 - Internet Message Format
+http://www.faqs.org/rfcs/rfc2822.html
+
+RFC 2342 - IMAP4 Namespace
+http://www.faqs.org/rfcs/rfc2342.html
+
+RFC 4549 - Synchronization Operations for Disconnected IMAP4 Clients
+http://www.faqs.org/rfcs/rfc4549.html
+
 
 =======================================================================
 Q. We have found that the sent time and date have been changed to the 
@@ -21,7 +34,7 @@ R. This is the case with:
    - Thunderbird
 
 Eurora shows by default the time the imap server received the email.
-I think it is quite a strong behavior since the messages can
+I think it is quite a wrong behavior since the messages can
 have travelled some time before the reception.
 
 The sent time and date are given by the "Date:" header
@@ -35,7 +48,8 @@ both parts.
 Solutions: 
 a) Don't use buggy Eudora.
 b) Use the --syncinternaldates option and keep using Eudora :-)
-
+c) Use the script learn/adjust_time.pl to change the internal dates
+   from the "Date:" header.
 
 =======================================================================
 Q. Flags are not well synchonized. Is it a bug ?
@@ -45,6 +59,11 @@ Also, it was a bug from revision 1.200 to revision 1.207
 
 Solution: run imapsync a second time. imapsync synchronizes flags
 on each run unless option --fast is used.
+
+Q. imapsync hangs taking up 99.8% cpu right after start, 
+   after printing imapd doesn't support MD5 auth.
+
+R. Try option --noauthmd5
 
 =======================================================================
 Q. imapsync failed with a "word too long" error from the imap server,
@@ -446,4 +465,16 @@ To convert the wholes messages from 8bit to 7bit, use option :
 --regexmess 's/[\x80-\xff]/X/g'
 
 ======================================================================
+Q: From MailEnable 1.75
+R: --sep1 "/" --prefix1 ""
+
+Q: From MailEnable 2.2
+R: --sep1 "." --prefix1 ""
+
+======================================================================
+Q: How can I write an .rpm with imapsync
+R: I don't know but Neil Brown wrote one rpm package and you'll find
+   his .spec file here :
+   http://www.linux-france.org/prj/imapsync/learn/rpm/
+
 

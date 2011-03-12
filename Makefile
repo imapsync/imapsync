@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.15 2007/02/02 02:03:29 gilles Exp gilles $	
+# $Id: Makefile,v 1.16 2007/06/15 04:08:28 gilles Exp $	
 
 TARGET=imapsync
 
@@ -76,11 +76,11 @@ dist: cidone test clean clean_dist all INSTALL
 	echo making tarball $(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
-	rsync -aCv --delete ./  ../prepa_dist/$(DIST_NAME)
+	rsync -aCv --delete  --exclude dist/ ./  ../prepa_dist/$(DIST_NAME)
 	cd ../prepa_dist && tar czfv $(DIST_FILE) $(DIST_NAME)
-	cp -f ../prepa_dist/$(DIST_FILE) dist/
-	cd dist && md5sum $(DIST_FILE) > md5.txt
-	cd dist && md5sum -c md5.txt
+	ln -f ../prepa_dist/$(DIST_FILE) dist/
+	cd dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
+	cd dist && md5sum -c $(DIST_FILE).md5.txt
 
 
 deb: 
@@ -95,7 +95,7 @@ cidone:
 	rcsdiff RCS/*
 
 clean_dist:
-	rm -f dist/*
+	echo Used to be 'rm -f dist/*'
 
 # Local goals
 

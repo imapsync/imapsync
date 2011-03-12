@@ -1,5 +1,7 @@
 #! /usr/bin/perl -w
 #
+# Author : Jean-Yves Boisiaud
+#
 # Outlook (IMAP) manages mail dates from the creation date of the mail
 # instead of the content of the field 'Date:', included into the mail.
 # This script modifies the mtime of the mails, according to the 'Date:' field

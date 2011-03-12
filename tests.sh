@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.59 2007/02/02 02:02:08 gilles Exp gilles $	
+# $Id: tests.sh,v 1.61 2007/06/15 04:06:58 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -799,6 +799,48 @@ perl -I bugs/lib ./imapsync \
 	--passfile2 /var/tmp/secret.dynamicquest \
 	--noauthmd5 --sep2 "/" --debug --debugimap
 	
+}
+
+mailenable() {
+	./imapsync \
+	    --user1 imapsync@damashekconsulting.com \
+	    --host1  imap.damashekconsulting.com  \
+	    --passfile1 /var/tmp/secret.damashek \
+	    --sep1 "." --prefix1 "" \
+	    --host2 localhost --user2 toto@est.belle \
+	    --passfile2 /var/tmp/secret1 \
+	    --noauthmd5
+}
+
+ariasolutions() {
+	./imapsync \
+	--host1 209.17.174.20 \
+	--user1 chrisw@canadapack.com \
+	--passfile1 /var/tmp/secret.ariasolutions \
+	--host2 209.17.174.20 \
+	--user2 chrisw@canadapack.com \
+	--passfile2 /var/tmp/secret.ariasolutions \
+	--dry --noauthmd5 --justfoldersizes
+
+	./imapsync \
+	--host1 209.17.174.20 \
+	--user1 test@domain.local \
+	--passfile1 /var/tmp/secret.ariasolutions \
+	--host2 209.17.174.20 \
+	--user2 test@domain.local \
+	--passfile2 /var/tmp/secret.ariasolutions \
+	--dry --noauthmd5 --ssl1
+
+# hang after auth failure 
+	./imapsync \
+	--host1 209.17.174.20 \
+	--user1 test@domain.local \
+	--passfile1 /var/tmp/secret.ariasolutions \
+	--host2 209.17.174.20 \
+	--user2 test@domain.local \
+	--passfile2 /var/tmp/secret.ariasolutions \
+	--dry --debug --debugimap
+
 }
 
 ##########################
