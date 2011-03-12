@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.55 $
+$Revision: 1.64 $
 
 =head1 INSTALL
 
@@ -152,7 +152,7 @@ Report any bugs to the author: lamiral@linux-france.org
 
 Success stories reported : 
 
- - Courier IMAP 1.5.1, 2.1.1
+ - Courier IMAP 1.5.1, 2.2.0, 2.1.1
  - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.2.1, Cyrus 2.2.2-BETA
  - Netscape Mail Server 3.6 (Wintel)
  - CommunicatePro server (Redhat 8.0)
@@ -160,6 +160,9 @@ Success stories reported :
  - iPlanet Messaging server 4.15
  - dovecot ?.?? 
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
+ - BincImap 1.2.3
+ - DBMail 1.2.1
+
 
 Please report to the author any success or bad story with
 imapsync and don't forget to mention the IMAP server
@@ -170,6 +173,8 @@ are useful to know the softwares. Example:
 
  From software :* OK louloutte Cyrus IMAP4 v1.5.19 server ready
  To   software :* OK Courier-IMAP ready
+
+You can use option --justconnect to get those lines.
 
 Rate imapsync : http://freshmeat.net/projects/imapsync/
 
@@ -211,10 +216,11 @@ Welcome in shell programming !
   mailsync    : http://mailsync.sourceforge.net/
   imapxfer    : http://www.washington.edu/imap/
                 part of the imap-utils from UW.
+  pop2imap    : http://www.linux-france.org/prj/pop2imap/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.55 2003/12/13 18:16:56 gilles Exp $
+$Id: imapsync,v 1.64 2003/12/23 19:45:46 gilles Exp $
 
 =cut
 
@@ -224,6 +230,7 @@ use strict;
 use Getopt::Long;
 use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
+#use Digest::HMAC_MD5;
 
 eval { require 'usr/include/sysexits.ph' };
 
@@ -238,24 +245,48 @@ my(
 	$delete, $expunge, $dry, 
         $subscribed, $subscribe,
 	$version, $VERSION, $help, 
+        $justconnect,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.55 2003/12/13 18:16:56 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.64 2003/12/23 19:45:46 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
+
+my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
+
+my $md5_supported = 0;
+$md5_supported = md5_supported();
+
+sub md5_supported {
+	
+	# before 2.2.6 no md5 native
+	# I know this is ugly I should write a sort function
+	if ($VERSION_IMAPClient =~ m/(\d+)\.(\d+)\.(\d+)/) {
+		$debug and print "VERSION_IMAPClient $1 $2 $3\n";
+		my($major,$minor,$sub) = ($1, $2, $3);
+		return(1) if($major >=3);
+		return(0) if($major <=1);
+		return(1) if($minor >=3);
+		return(0) if($minor <=1);
+		return(1) if($sub >=6);
+		return(0) if($sub <=5);
+	}else{
+		return 0; # don't match regex => bad
+	}
+}
 
 $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.55 $ ',
-		  '$Date: 2003/12/13 18:16:56 $ ',
+		  '$Revision: 1.64 $ ',
+		  '$Date: 2003/12/23 19:45:46 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
-		  $Mail::IMAPClient::VERSION,
+		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
 		  "\n"
 		 );
 
@@ -290,29 +321,33 @@ print "To   imap server [$host2] port [$port2] user [$user2]\n";
 my $from = ();
 my $to = ();
 
-$debugimap and print "To connection\n";
-$from = Mail::IMAPClient->new( Server   => $host1,
-			       Port     => $port1,
-			       User     => $user1,
-			       Password => $password1,
-			       Fast_IO  => 1,
-			       Uid      => 1,
-			       Peek     => 1,
-			       Debug    => $debugimap,
-			     ) 
-  or die "can't open imap connection on [$host1] with user [$user1]\n";
+my $authmech = "CRAM-MD5";
 
 $debugimap and print "From connection\n";
-$to = Mail::IMAPClient->new( Server   => $host2,
-			     Port     => $port2,
-			     User     => $user2,
-			     Password => $password2,
-			     Fast_IO  => 1,
-			     Uid      => 1,
-			     Peek     => 1,
-			     Debug    => $debugimap,
-			   ) 
-  or die "can't open imap connection on [$host2] with user [$user2]\n";
+$from = login_imap($host1, $port1, $user1, $password1, $debugimap);
+
+$debugimap and print "To  connection\n";
+$to = login_imap($host2, $port2, $user2, $password2, $debugimap);
+
+sub login_imap {
+	my($host, $port, $user, $password, $debugimap, $authmech) = @_;
+	my $imap = Mail::IMAPClient->new();
+	$imap->Server($host);
+	$imap->Port($port);
+	$imap->Fast_io(1);
+	$imap->Uid(1);
+	$imap->Peek(1);
+	$imap->Debug($debugimap);
+	$imap->connect()
+	  or die "can't open imap connection on [$host] with user [$user] : $@\n";
+	$imap->User($user);
+	$imap->Password($password);
+	$md5_supported and $imap->has_capability($authmech) 
+	  and $to->Authmechanism($authmech);
+	
+	$imap->login();
+	return($imap);
+}
 
 
 print "From software : ", ($from->Report())[0];
@@ -325,6 +360,9 @@ my (@f_folders, @t_folders, %fs_folders);
 
 # Make a hash of subscribed folders in source server.
 map { $fs_folders{$_}=1 } $from->subscribed();
+
+
+
 
 if (scalar(@folder)) {
 	# folders given by option --folder
@@ -340,20 +378,27 @@ if (scalar(@folder)) {
 my($f_sep,$t_sep); 
 # what are the private folders separators for each server ?
 
+
+$debug and print "Getting separators\n";
 $f_sep = get_separator($from, $sep1, "--sep1");
 $t_sep = get_separator($to, $sep2, "--sep2");
 
 sub get_separator {
 	my($imap, $sep_in, $sep_opt) = @_;
 	my($sep_out);
+	$debug and print "Calling namespace capability\n";
 	if ($imap->has_capability("namespace")) {
-		$sep_out = $imap->namespace()->[0][0][1];
+		# Less complicated call. Must be tested
+		# before uncommenting definitively.
+		 $sep_out = $imap->separator();
+		#$sep_out = $imap->namespace()->[0][0][1];
+		
 	}elsif ($sep_in) {
 		$sep_out = $sep_in;
 	}else{
 		print 
 		  "No NAMESPACE capability in imap server ", 
-		    $from->Server(),"\n",
+		    $imap->Server(),"\n",
 		      "Give the separator caracter with the $sep_opt option\n";
 		exit(1);
 	}
@@ -364,6 +409,7 @@ sub get_separator {
 print "From separator : [$f_sep]\n";
 print "To   separator : [$t_sep]\n";
 
+exit if ($justconnect);
 
 # needed for setting flags
 # my $tohasuidplus = $to->has_capability("UIDPLUS");
@@ -376,8 +422,6 @@ print
 
 print 
   "From subscribed folders : ", map("[$_] ", keys(%fs_folders)), "\n";
-
-#exit;
 
 FOLDER: foreach my $f_fold (@f_folders) {
 	my $t_fold;
@@ -569,6 +613,7 @@ sub get_options
                                    "expunge!"    => \$expunge,
                                    "subscribed!" => \$subscribed,
                                    "subscribe!"  => \$subscribe,
+                                   "justconnect!"=> \$justconnect,
                                    "version"     => \$version,
                                    "help"        => \$help,
                                   );
@@ -643,8 +688,8 @@ Several options are mandatory.
 --user2       <string> : user to login.   Mandatory.
 --password2   <string> : password for the user2. Dangerous, use --passfile2
 --passfile2   <string> : password file for the user2. Contains the password.
---folder      <string> : sync only this folder and its children.
---folder      <string> : and this one (and its children).
+--folder      <string> : sync only this folder.
+--folder      <string> : and this one.
 --folder      <string> : and this one, etc.
 --prefix2     <string> : add prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
@@ -668,6 +713,8 @@ Several options are mandatory.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
 --version              : print sotfware version.
+--justconnect          : just connect to both servers and print useful 
+                         information.
 --help                 : print this.
 
 Example: to synchronise imap account "foo" on "imap.truc.org"

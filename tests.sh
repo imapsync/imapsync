@@ -1,8 +1,12 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.11 2003/12/12 17:48:02 gilles Exp $	
+# $Id: tests.sh,v 1.12 2003/12/23 18:16:09 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.12  2003/12/23 18:16:09  gilles
+# Added lp_justconnect()
+# Added lp_md5auth()
+#
 # Revision 1.11  2003/12/12 17:48:02  gilles
 # Added lp_subscribe() test
 #
@@ -226,6 +230,38 @@ lp_subscribe()
 	fi
 }
 
+lp_justconnect() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--justconnect
+	else
+		:
+	fi
+}
+
+lp_md5auth() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		perl -I ~gilles/build/Mail-IMAPClient-2.2.8/blib/lib/ \
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--justconnect
+	else
+		:
+	fi
+}
+
+
 
 # mandatory tests
 
@@ -244,6 +280,8 @@ test $# -eq 0 && run_tests \
 	lp_internaldate \
 	lp_subscribed \
 	lp_subscribe \
+	lp_justconnect \
+	lp_md5auth
 
 # selective tests
 
