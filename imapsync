@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.64 $
+$Revision: 1.65 $
 
 =head1 INSTALL
 
@@ -220,7 +220,7 @@ Welcome in shell programming !
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.64 2003/12/23 19:45:46 gilles Exp $
+$Id: imapsync,v 1.65 2003/12/24 03:04:34 gilles Exp $
 
 =cut
 
@@ -251,7 +251,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.64 2003/12/23 19:45:46 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.65 2003/12/24 03:04:34 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -282,8 +282,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.64 $ ',
-		  '$Date: 2003/12/23 19:45:46 $ ',
+		  '$Revision: 1.65 $ ',
+		  '$Date: 2003/12/24 03:04:34 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -423,13 +423,26 @@ print
 print 
   "From subscribed folders : ", map("[$_] ", keys(%fs_folders)), "\n";
 
+sub separator_invert {
+	my $o_sep="\000";
+
+	my($f_fold, $f_sep, $t_sep) = @_;
+
+	my $t_fold = $f_fold;
+	$t_fold =~ s@\Q$t_sep@$o_sep@g;
+	$t_fold =~ s@\Q$f_sep@$t_sep@g;
+	$t_fold =~ s@\Q$o_sep@$f_sep@g;
+	return($t_fold);
+}
+
 FOLDER: foreach my $f_fold (@f_folders) {
 	my $t_fold;
 	print "From Folder [$f_fold]\n";
-	$t_fold = $f_fold;
-	$t_fold =~ s@\Q$f_sep@$t_sep@g unless ($f_sep eq $t_sep);
+	
+	$t_fold = separator_invert($f_fold,$f_sep, $t_sep);
 	$t_fold = $prefix2 . $t_fold if ($prefix2);
 	print "To   Folder [$t_fold]\n";
+
 	unless ($from->select($f_fold)) {
 		warn 
 		"From Folder $f_fold : Could not select ",
