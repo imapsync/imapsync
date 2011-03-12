@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.36 2005/05/09 04:22:44 gilles Exp $	
+# $Id: tests.sh,v 1.37 2005/05/19 01:50:02 gilles Exp $	
 
 #### Shell pragmas
 
@@ -129,6 +129,22 @@ lp_folder() {
 		:
 	fi
 }
+
+lp_buffersize() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--buffersize 8
+	else
+		:
+	fi
+}
+
+
 
 lp_justfolders() {
 	if test X`hostname` = X"plume"; then
@@ -596,6 +612,7 @@ test $# -eq 0 && run_tests \
 	loulplume \
 	plumeloul \
 	lp_folder \
+	lp_buffersize \
 	pl_folder \
         pl_folder_qqq \
 	lp_internaldate \

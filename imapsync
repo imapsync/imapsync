@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.128 $
+$Revision: 1.129 $
 
 =head1 INSTALL
 
@@ -289,7 +289,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.128 2005/05/18 18:52:09 gilles Exp $
+$Id: imapsync,v 1.129 2005/05/19 01:54:31 gilles Exp $
 
 =cut
 
@@ -313,7 +313,7 @@ my(
         $sep1, $sep2,
 	$syncinternaldates, $syncacls,
 	$maxsize, $maxage,
-        $skipheader, $skipsize, $foldersizes,
+        $skipheader, $skipsize, $foldersizes, $buffersize,
 	$delete, $expunge, $dry, 
         $authmd5,
         $subscribed, $subscribe,
@@ -333,7 +333,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.128 2005/05/18 18:52:09 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.129 2005/05/19 01:54:31 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -370,8 +370,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.128 $ ',
-		  '$Date: 2005/05/18 18:52:09 $ ',
+		  '$Revision: 1.129 $ ',
+		  '$Date: 2005/05/19 01:54:31 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -401,7 +401,7 @@ $user2 || missing_option("--user2");
 
 $authmd5 = (defined($authmd5)) ? $authmd5 : 1;
 
-$syncacls = (defined($syncacls)) ? $syncacls : 1;
+$syncacls = (defined($syncacls)) ? $syncacls : 0;
 $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
 
 print "From imap server [$host1] port [$port1] user [$user1]\n";
@@ -451,7 +451,7 @@ sub login_imap {
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Fast_io(1);
-	$imap->Buffer(65536);
+	$imap->Buffer($buffersize || 65536);
 	$imap->Uid(1);
 	$imap->Peek(1);
 	$imap->Debug($debugimap);
@@ -980,7 +980,8 @@ sub get_options
                                    "syncacls!"   => \$syncacls,
 				   "maxsize=i"   => \$maxsize,
 				   "maxage=i"    => \$maxage,
-				   "foldersizes!"   => \$foldersizes,
+				   "buffersize=i" => \$buffersize,
+				   "foldersizes!" => \$foldersizes,
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
                                    "subscribed!" => \$subscribed,
@@ -1140,7 +1141,8 @@ Several options are mandatory.
                          are expunged if option --expunge is given.
                          no expunge is done on destination account but
                          it will change in future releases.
---syncinternaldates    : set the internal dates on host2 same as host1
+--syncinternaldates    : sets the internal dates on host2 same as host1
+--buffersize  <int>    : sets the size of a block of I/O.
 --maxsize     <int>    : skip messages larger than <int> bytes
 --maxage      <int>    : skip messages older than <int> days.
                          final stats (skipped) don't count older messages
@@ -1155,7 +1157,8 @@ Several options are mandatory.
 --(no)foldersizes      : Calculate the size of each "From" folder in bytes
                          and message counts. Meant to be used with
                          --justconnect. Turned on by default.
---nosyncacls           : Don't synchronizes acls.
+--syncacls             : Synchronizes acls.
+--nosyncacls           : Does not synchronize acls. This is the default.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
 --version              : print sotfware version.

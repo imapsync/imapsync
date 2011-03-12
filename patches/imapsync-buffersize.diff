@@ -1,0 +1,35 @@
+--- imapsync.orig	Mon May  9 12:03:59 2005
++++ imapsync	Mon May  9 12:07:05 2005
+@@ -44,6 +44,7 @@
+            [--sep1 <char>]
+            [--sep2 <char>]
+            [--syncinternaldates]
++           [--buffersize <int>]
+ 	   [--maxsize <int>]
+ 	   [--maxage <int>]
+            [--skipheader <regex>]
+@@ -312,6 +313,7 @@
+         $sep1, $sep2,
+ 	$syncinternaldates, $syncacls,
+ 	$maxsize, $maxage,
++	$buffersize,
+         $skipheader, $skipsize, $foldersizes,
+ 	$delete, $expunge, $dry, 
+         $authmd5,
+@@ -450,7 +452,7 @@
+ 	$imap->Server($host);
+ 	$imap->Port($port);
+ 	$imap->Fast_io(1);
+-	$imap->Buffer(65536);
++	$imap->Buffer($buffersize || 65536);
+ 	$imap->Uid(1);
+ 	$imap->Peek(1);
+ 	$imap->Debug($debugimap);
+@@ -979,6 +981,7 @@
+                                    "syncacls!"   => \$syncacls,
+ 				   "maxsize=i"   => \$maxsize,
+ 				   "maxage=i"    => \$maxage,
++				   "buffersize=i"   => \$buffersize,
+ 				   "foldersizes!"   => \$foldersizes,
+                                    "dry!"        => \$dry,
+                                    "expunge!"    => \$expunge,
