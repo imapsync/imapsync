@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.55 2006/10/30 01:19:46 gilles Exp gilles $	
+# $Id: tests.sh,v 1.56 2006/12/08 04:05:01 gilles Exp $	
 
 #### Shell pragmas
 
@@ -112,6 +112,20 @@ ll_folder() {
 		--host2 localhost --user2 titi@est.belle \
 		--passfile2 /var/tmp/secret.titi \
 		--folder INBOX.yop --folder INBOX.Trash
+	else
+		:
+	fi
+}
+
+ll_folderrec() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost  --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--folderrec INBOX.yop 
 	else
 		:
 	fi
@@ -819,7 +833,8 @@ test $# -eq 0 && run_tests \
 	ll_authmech_LOGIN \
 	ll_authmech_CRAMMD5 \
 	ll_authuser \
-	ll_delete2
+	ll_delete2 \
+	ll_folderrec
 
 
 
