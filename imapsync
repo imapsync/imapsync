@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.144 $
+$Revision: 1.145 $
 
 =head1 INSTALL
 
@@ -52,6 +52,7 @@ $Revision: 1.144 $
            [--regexmess <regex>] [--regexmess <regex>] 
            [--maxsize <int>]
            [--maxage <int>]
+           [--minage <int>]
            [--skipheader <regex>]
            [--useheader <string>] [--useheader <string>]
            [--skipsize]
@@ -250,6 +251,7 @@ Have a special attention on options
 --expunge1
 --expunge2
 --maxage
+--minage
 --maxsize
 --useheader
 
@@ -306,7 +308,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.144 2005/11/28 00:32:05 gilles Exp gilles $
+$Id: imapsync,v 1.145 2005/12/04 01:58:54 gilles Exp $
 
 =cut
 
@@ -332,7 +334,7 @@ my(
         $sep1, $sep2,
 	$syncinternaldates, $syncacls,
         $fastio1, $fastio2, 
-	$maxsize, $maxage,
+	$maxsize, $maxage, $minage, 
         $skipheader, @useheader,
         $skipsize, $foldersizes, $buffersize,
 	$delete, $expunge, $expunge1, $expunge2, $dry, 
@@ -353,7 +355,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.144 2005/11/28 00:32:05 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.145 2005/12/04 01:58:54 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -390,8 +392,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.144 $ ',
-		  '$Date: 2005/11/28 00:32:05 $ ',
+		  '$Revision: 1.145 $ ',
+		  '$Date: 2005/12/04 01:58:54 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -657,12 +659,10 @@ sub foldersizes {
 			$error++;
 			next;
 		}
-		if ($maxage) {
+		if (defined($maxage) or defined($minage)) {
 			# The pb is fetch_hash() can only be applied on ALL messages
-		
-			my @msgs = $imap->since(time - 86400 * $maxage);
+			my @msgs = select_msgs($imap);
 			$smess = scalar(@msgs);
-			#print "maxage smess $smess " ;
 			foreach my $m (@msgs) {
 				my $s = $imap->size($m)
 				  or warn "Could not find size of message $m: $@\n";
@@ -817,11 +817,16 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	
 	next FOLDER if ($justfolders);
 
-	my @f_msgs = $maxage ? $from->since(time - 86400 * $maxage) : $from->search("ALL");
+
+	my @f_msgs = select_msgs($from);
+
+
+
 	$debug and print "LIST FROM : @f_msgs\n";
 	# internal dates on "TO" are after the ones on "FROM"
 	# normally...
-	my @t_msgs = $maxage ? $to->since(time - 86400 * $maxage) : $to->search("ALL");
+	my @t_msgs = select_msgs($to);
+	
 	$debug and print "LIST TO   : @t_msgs\n";
 
 	my %f_hash = ();
@@ -1017,6 +1022,35 @@ stats();
 
 exit(1) if($error);
 
+sub select_msgs {
+	my ($imap) = @_;
+	my (@msgs,@max,@min,@union,@inter);
+	
+	unless (defined($maxage) or defined($minage)) {
+		@msgs = $imap->search("ALL");
+		return(@msgs);
+	}
+	if (defined($maxage)) {
+		@max = $imap->since(time - 86400 * $maxage);
+	}
+	if (defined($minage)) {
+		@min = $imap->before(time - 86400 * $minage);
+	}
+      SWITCH: {
+		unless(defined($minage)) {@msgs = @max; last SWITCH};
+		unless(defined($maxage)) {@msgs = @min; last SWITCH};
+		my (%union, %inter); 
+		foreach my $m (@min, @max) {$union{$m}++ && $inter{$m}++}
+		# normal case
+		if ($minage <= $maxage)  {@msgs = @inter; last SWITCH};
+		# just exclude messages between
+		if ($minage > $maxage)  {@msgs = @union; last SWITCH};
+		
+	}
+	return(@msgs);
+}
+
+
 sub stats {
 	print "++++ Statistics ++++\n";
 	print "Time                   : $timediff sec\n";
@@ -1063,6 +1097,7 @@ sub get_options
                                    "syncacls!"   => \$syncacls,
 				   "maxsize=i"   => \$maxsize,
 				   "maxage=i"    => \$maxage,
+				   "minage=i"    => \$minage,
 				   "buffersize=i" => \$buffersize,
 				   "foldersizes!" => \$foldersizes,
                                    "dry!"        => \$dry,
@@ -1221,6 +1256,13 @@ Several options are mandatory.
 --maxsize     <int>    : skip messages larger than <int> bytes
 --maxage      <int>    : skip messages older than <int> days.
                          final stats (skipped) don't count older messages
+--minage      <int>    : skip messages newer than <int> days.
+                         final stats (skipped) don't count newer messages
+                         You can do (+ are the messages selected):
+                         ------maxage+++++++++++++++++++|now
+                         +++++++++++++++++++minage------|now
+                         ------maxage+++++++minage------|now intersection
+                         ++++++minage-------maxage++++++|now union
 --skipheader  <regex>  : Don't take into account header keyword 
                          matching <string> ex: --skipheader 'X.*'
 --useheader   <string> : Use this header to compare messages on both sides.
