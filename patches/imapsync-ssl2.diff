@@ -1,0 +1,108 @@
+--- /tmp/imapsync-1.118	2005-01-21 09:24:18.915332630 -0800
++++ imapsync	2005-01-21 13:38:57.842421835 -0800
+@@ -34,9 +34,9 @@
+   imapsync --help
+   imapsync
+ 
+-  imapsync [--host1 server1]  [--port1 <num>]
++  imapsync [--host1 server1]  [--port1 <num>] [--ssl1]
+            [--user1 <string>] [--passfile1 <string>] 
+-           [--host2 server2]  [--port2 <num>]
++           [--host2 server2]  [--port2 <num>] [--ssl2]
+            [--user2 <string>] [--passfile2 <string>] 
+            [--folder <string> --folder <string> ...]
+ 	   [--include <regex>] [--exclude <regex>]
+@@ -292,13 +292,15 @@
+ use Mail::IMAPClient;
+ use Digest::MD5  qw(md5_base64);
+ #use Digest::HMAC_MD5;
++use IO::Socket::INET;
++use IO::Socket::SSL;
+ 
+ eval { require 'usr/include/sysexits.ph' };
+ 
+ 
+ my(
+         $rcs, $debug, $debugimap, $error,
+-	$host1, $host2, $port1, $port2,
++	$host1, $host2, $port1, $port2, $ssl1, $ssl2,
+ 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
+         @folder, $include, $exclude, $prefix2, $regextrans2, @regexmess,
+         $sep1, $sep2,
+@@ -383,13 +385,13 @@
+ }
+ 
+ $host1 || missing_option("--host1") ;
+-$port1 = (defined($port1)) ? $port1 : 143;
++$port1 =  (defined($port1)) ? $port1 : ((defined($ssl1)) ? 993 : 143);
+ $user1 || missing_option("--user1");
+ $password1 || $passfile1 || missing_option("--passfile1 or --password1");
+ $password1 = (defined($passfile1)) ? firstline ($passfile1) : $password1;
+ 
+ $host2 || missing_option("--host2") ;
+-$port2 = (defined($port2)) ? $port2 : 143;
++$port2 =  (defined($port2)) ? $port2 : ((defined($ssl2)) ? 993 : 143);
+ $user2 || missing_option("--user2");
+ $password2 || $passfile2 || missing_option("--passfile2 or --password2");
+ $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
+@@ -417,17 +419,35 @@
+ $timebefore = $timestart;
+ 
+ $debugimap and print "From connection\n";
+-$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout);
++$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout, $ssl1);
+ 
+ $debugimap and print "To  connection\n";
+-$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout);
++$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout, $ssl2);
+ 
+ sub login_imap {
+ 	my($host, $port, $user, $password, 
+-	   $debugimap, $timeout, $authmech) = @_;
+-	my $imap = Mail::IMAPClient->new();
+-	$imap->Server($host);
+-	$imap->Port($port);
++	   $debugimap, $timeout, $authmech, $ssl) = @_;
++	my $socket = undef;
++	
++	if (!defined($ssl)) {
++		$socket = IO::Socket::INET->new( PeerAddr => $host,
++																		 PeerPort => $port,
++																		 Proto    => 'tcp');
++	} else {
++		$socket = IO::Socket::SSL->new( PeerAddr => $host,
++																		PeerPort => $port,
++																		Proto    => 'tcp');
++	}
++	if (!$socket) {
++		die "Can not open imap connection on [$host:$port]: $@";
++	}
++	
++	my $imap = Mail::IMAPClient->new(Server  => $host,
++																	 Port    => $port,
++																	 Socket  => $socket,
++																	 User    => $user,
++																	 Password=> $password);
++	$imap->State($imap->Connected());
+ 	$imap->Fast_io(1);
+ 	$imap->Buffer(65536);
+ 	$imap->Uid(1);
+@@ -440,9 +460,6 @@
+         $imap->Timeout($timeout);
+         print "Setting imap timeout to $timeout\n";
+     }
+-
+-	$imap->User($user);
+-	$imap->Password($password);
+ 	md5auth($imap);
+ 	$imap->login() or die "Error login : [$host] with user [$user] : $@";
+ 	return($imap);
+@@ -918,6 +935,8 @@
+                                    "host2=s"     => \$host2,
+                                    "port1=i"     => \$port1,
+                                    "port2=i"     => \$port2,
++																   "ssl1!"       => \$ssl1,
++																   "ssl2!"       => \$ssl2,
+                                    "user1=s"     => \$user1,
+                                    "user2=s"     => \$user2,
+                                    "password1=s" => \$password1,

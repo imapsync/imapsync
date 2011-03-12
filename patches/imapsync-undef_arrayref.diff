@@ -1,0 +1,62 @@
+--- imapsync	Mon Oct 18 21:15:27 2004
++++ imapsync-mod	Sat Nov 20 15:15:52 2004
+@@ -552,7 +552,7 @@
+ 	my $tmess = 0;
+ 	print "Calculating sizes...\n";
+ 	foreach my $f_fold (@f_folders)     {
+-		print "From Folder [$f_fold]\n";
++		print "\nFrom Folder [$f_fold]\n";
+ 		my $stot = 0;
+ 		my $smess = 0;
+ 		unless ($from->select($f_fold)) {
+@@ -574,7 +574,6 @@
+ 				$stot += $s;
+ 				print ".";
+ 			}
+-			print "\n";
+ 			print "Size of $f_fold: $stot\n";
+ 			print "Messages in $f_fold: $smess\n";
+ 			$tot += $stot;
+@@ -589,11 +588,12 @@
+ 				map {$stot2 += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
+ 			}
+ 			print "Size of $f_fold: $stot2\n";
++                        print "Messages in $f_fold: $smess2\n";
+ 			$tot += $stot2;
+ 			$tmess += $smess2;
+ 		}
+ 	}
+-	print "Total size: $tot\n";
++	print "\n\nTotal size: $tot\n";
+ 	print "Total messages: $tmess\n";
+ 	print "Time : ", timenext(), " s\n";
+ 	
+@@ -746,7 +746,9 @@
+ 				$d = "\"$d\"";
+ 				$debug and print "internal date from 1: [$d]\n";
+ 				$syncinternaldates or $d = "";
+-				my $flags_f = join(" ", @{$from->flags($f_msg)});
++				my $flags_f_rv = $from->flags($f_msg);
++				my $flags_f = '';
++				$flags_f = join(" ", @{$flags_f_rv}) if ref($flags_f_rv);
+ 				# RFC 2060 : This flag can not be altered by the client
+ 				$flags_f =~ s@\\Recent@@g;
+ 				
+@@ -781,13 +783,15 @@
+ 
+ 		$debug and print "Setting flags\n"; 
+ 		my (@flags_f,@flags_t);
+-		@flags_f = @{$from->flags($f_msg)};
++                my $flags_f_rv = $from->flags($f_msg);
++		@flags_f = @{$flags_f_rv} if ref($flags_f_rv);
+ 		# No flag \Recent here, no ?
+ 		
+ 		$to->store($t_msg,
+ 			   "+FLAGS (" . join(" ", @flags_f) . ")"
+ 			  );
+-		@flags_t = @{$to->flags($t_msg)};
++                my $flags_t_rv = $to->flags($t_msg);
++		@flags_t = @{$flags_t_rv} if ref($flags_t_rv);
+ 		$debug and print 
+ 		  "flags from : @flags_f\n",
+ 		  "flags to   : @flags_t\n";
