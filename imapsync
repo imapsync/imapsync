@@ -2,9 +2,10 @@
 
 =head1 NAME 
 
-imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
+imapsync - IMAP sync or copy tool. Synchronize mailboxes
+between two imap servers.
 
-$Revision: 1.91 $
+$Revision: 1.94 $
 
 =head1 INSTALL
 
@@ -12,7 +13,7 @@ $Revision: 1.91 $
  imapsync works fine under Windows 2000 (at least) and ActiveState's 5.8 Perl
 
  Get imapsync at
- http://www.linux-france.org/prj/imapsync/dist/ 
+ http://www.linux-france.org/prj/imapsync/dist/
 
  You'll find a compressed tarball called imapsync-x.xx.tgz
  where x.xx is the version number. Untar the tarball where
@@ -144,8 +145,9 @@ Gilles LAMIRAL lamiral@linux-france.org
 
 =head1 LICENSE
 
-imapsync is free, gratis and open source software cover by the GNU General 
-Public License. See the GPL file included in the distribution or the web site
+imapsync is free, gratis and open source software cover by
+the GNU General Public License. See the GPL file included in
+the distribution or the web site
 http://www.gnu.org/licenses/licenses.html
 
 =head1 BUGS
@@ -166,10 +168,10 @@ this problem is by using options --skipheader and
 
  imapsync ... --skipheader '^X-.*' --skipsize
 
-Flags : with some IMAP servers the flags are not very well copied the
-first time.  Run imapsync twice if you want the flags set correctly.
-(fixed since 1.28 release but wait for a time before removing those
-lines)
+Flags : with some IMAP servers the flags are not very well
+copied the first time.  Run imapsync twice if you want the
+flags set correctly.  (fixed since 1.28 release but wait for
+a time before removing those lines)
 
 Report any bugs to the author: lamiral@linux-france.org
 
@@ -269,7 +271,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.91 2004/04/07 18:51:24 gilles Exp $
+$Id: imapsync,v 1.94 2004/06/15 03:42:56 gilles Exp gilles $
 
 =cut
 
@@ -301,13 +303,16 @@ my(
         $mess_size_total_trans,
         $mess_size_total_skipped,
         $mess_size_total_error,
+        $mess_trans, $mess_skipped,
         $timeout,   # whr (ESS/PRW)
+	$timestart, $timeend, $timediff,
+
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.91 2004/04/07 18:51:24 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.94 2004/06/15 03:42:56 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -319,6 +324,7 @@ $md5_supported = md5_supported();
 $mess_size_total_trans   = 0;
 $mess_size_total_skipped = 0;
 $mess_size_total_error   = 0;
+$mess_trans = $mess_skipped = 0;
 
 sub md5_supported {
 	
@@ -343,8 +349,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.91 $ ',
-		  '$Date: 2004/04/07 18:51:24 $ ',
+		  '$Revision: 1.94 $ ',
+		  '$Date: 2004/06/15 03:42:56 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -392,7 +398,7 @@ unless ($md5_supported) {
 		print "Auth $authmech supported by IMAPClient $VERSION_IMAPClient\n";	
 	}
 
-
+$timestart = time();
 
 $debugimap and print "From connection\n";
 $from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout);
@@ -673,12 +679,14 @@ FOLDER: foreach my $f_fold (@f_folders) {
 					# UIDPLUS capability else just a ref
 					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
 					$mess_size_total_trans += $f_size;
+					$mess_trans += 1;
 				}
 			}
 	    		next MESS;
 		}else{
 			$debug and print "Message id [$m_id] found in t:$t_fold\n";
 			$mess_size_total_skipped += $f_size;
+			$mess_skipped += 1;
 		}
 		
 		#$debug and print "MESSAGE $m_id\n"; 
@@ -730,12 +738,19 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	}
 }
 
+$timeend = time();
+
+$timediff = $timeend - $timestart;
+
 stats();
 
 exit(1) if($error);
 
 sub stats {
 	print "++++ Statistics ++++\n";
+	print "Time                   : $timediff sec\n";
+	print "Messages transfered    : $mess_trans\n";
+	print "Messages skipped       : $mess_skipped\n";
 	print "Total bytes transfered : $mess_size_total_trans\n";
 	print "Total bytes skipped    : $mess_size_total_skipped\n";
 	print "Total bytes error      : $mess_size_total_error\n";
@@ -879,15 +894,18 @@ Several options are mandatory.
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
 --sep1        <char>   : separator in case namespace is not supported.
 --sep2        <char>   : idem.
---delete               : delete messages in "from" imap server after
-                         a successful transfert. useful in case you
+--delete               : delete messages in source imap server after
+                         a successful transfert. Useful in case you
                          want to migrate from one server to another one.
 			 With imap, delete tags messages as deleted, they
 			 are not really deleted. See expunge.
---expunge              : expunge messages on both account.
-                         expunge delete messages marked deleted.
-                         expunge is made at the begining so newly
-                         transfered messages won't be expunged.
+--expunge              : expunge messages on source account.
+                         expunge really deletes messages marked deleted.
+                         expunge is made at the begining on the 
+                         source server only. newly transfered messages
+                         are expunged if option --expunge is given.
+                         no expunge is done on destination account but
+                         it will change in future releases.
 --syncinternaldates    : set the internal dates on host2 same as host1
 --maxsize     <int>    : skip messages larger than <int> bytes
 --maxage      <int>    : skip messages older than <int> days.

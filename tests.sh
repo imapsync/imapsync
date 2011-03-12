@@ -1,8 +1,14 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.17 2004/04/07 18:13:29 gilles Exp $	
+# $Id: tests.sh,v 1.19 2004/06/15 03:42:16 gilles Exp gilles $	
 
 # $Log: tests.sh,v $
+# Revision 1.19  2004/06/15 03:42:16  gilles
+# success on bigtransfer()
+#
+# Revision 1.18  2004/06/14 23:03:41  gilles
+# Added big_transfert()
+#
 # Revision 1.17  2004/04/07 18:13:29  gilles
 # Added lp_regextrans2()
 #
@@ -420,7 +426,20 @@ bad_host()
    
 }
 
-
+big_transfert()
+{
+    date1=`date`
+    { ./imapsync \
+	--host1 louloutte --user1 gilles \
+	--passfile1 /var/tmp/secret \
+	--host2 plume --user2 tete@est.belle \
+	--passfile2 /var/tmp/secret.tete \
+	--subscribed || \
+    true
+    }
+    date2=`date`
+    echo3 $date1 $date2
+}
 
 # mandatory tests
 
