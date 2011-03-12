@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.169 $
+$Revision: 1.171 $
 
 =head1 INSTALL
 
@@ -184,34 +184,28 @@ http://www.gnu.org/licenses/licenses.html
 
 =head1 BUGS
 
-No known serious bug.
+No known serious bug.  Report any bug to the author.
+Before reporting bugs, read the FAQ, this README and the
+TODO files.
 
-Multiple copies: Multiple copies of the emails on the
-destination server. Some IMAP servers (Domino for example)
-add some headers for each message transfered. The message is
-transfered again and again each time you run imapsync. This
-is bad of course. The explanation is that imapsync considers
-the message is not the same since headers have changed (one
-line added) and size too (the header part). You can look at
-the headers found by imapsync by using the --debug option
-(and search for the message on both part). The way to avoid
-this problem is by using options --skipheader and
---skipsize, like this (avoid headers beginning whith X-):
+In your report, please include:
 
- imapsync ... --skipheader '^X-' --skipsize
+ - imapsync version.
+ - IMAPClient.pm version.
+ - perl version.
+ - operating system running imapsync.
+ - imap servers softwares on both side and their version.
 
-You can use --skipheader only one time; if you need to skip
-several different headers use the "or" perl regex caracter
-which is "|". Example:
+ Those values can be found with the command line
 
- imapsync ... --skipheader '^X-|^Status|^Bcc'
+ imapsync --host1 imap.host1.net  --host2 imap.host2.org  --justconnect
 
-Flags : with some IMAP servers the flags are not very well
-copied the first time.  Run imapsync twice if you want the
-flags set correctly.  (fixed since 1.28 release but wait for
-a time before removing those lines)
+ And also, if it can help :
 
-Report any bugs to the author.
+ - operating systems on both sides.
+ - imapsync with all the options you use,  the full command line
+   you use (except the passwords of course)
+ - output given with --debug --debugimap near the failure point.
 
 =head1 IMAP SERVERS
 
@@ -340,7 +334,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.169 2006/04/13 21:36:15 gilles Exp $
+$Id: imapsync,v 1.171 2006/04/27 08:25:04 gilles Exp $
 
 =cut
 
@@ -354,7 +348,8 @@ use Term::ReadKey;
 #use Digest::HMAC_MD5;
 use IO::Socket::SSL;
 use MIME::Base64;
-
+use English;
+use POSIX qw(uname);
 
 eval { require 'usr/include/sysexits.ph' };
 
@@ -396,7 +391,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.169 2006/04/13 21:36:15 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.171 2006/04/27 08:25:04 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -433,8 +428,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.169 $ ',
-		  '$Date: 2006/04/13 21:36:15 $ ',
+		  '$Revision: 1.171 $ ',
+		  '$Date: 2006/04/27 08:25:04 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -475,9 +470,13 @@ if ($justconnect) {
 	my $from = ();
 	my $to = ();
 	
+
+	print "Here is a $OSNAME system (",
+	  join(" ", uname()), 
+	  ")\nwith perl ", 
+	  sprintf("%vd", $PERL_VERSION), "\n";
+	
 	$from = connect_imap($host1, $port1);
-
-
 	print "From software : ", server_banner($from);
 	print "From capability : ", join(" ", $from->capability()), "\n";
 	$to   = connect_imap($host2, $port2);

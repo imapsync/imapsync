@@ -7,7 +7,13 @@
 Q. We have found that the sent time and date have been changed to the 
    time at which the file was synchronised. 
 
-R. I guess this is the case with Eudora but not with Mutt, no ?
+R. This is the case with:
+   - Eudora
+   - Zimbra
+   but not with 
+   - Mutt
+   - Thunderbird
+
 Eurora shows by default the time the imap server received the email.
 I think it is quite a strong behavior since the messages can
 have travelled some time before the reception.
@@ -58,6 +64,31 @@ b) or use stunnel :
 
 c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
+
+=======================================================================
+Q: Multiple copies when I run imapsync twice ore more.
+
+R. Multiple copies of the emails on the destination
+server. Some IMAP servers (Domino for example) add some
+headers for each message transfered. The message is
+transfered again and again each time you run imapsync. This
+is bad of course. The explanation is that imapsync considers
+the message is not the same since headers have changed (one
+line added) and size too (the header part). You can look at
+the headers found by imapsync by using the --debug option
+(and search for the message on both part). The way to avoid
+this problem is by using options --skipheader and
+--skipsize, like this (avoid headers beginning whith the
+string "X-"):
+
+ imapsync ... --skipheader '^X-' --skipsize
+
+You can use --skipheader only one time; if you need to skip
+several different headers use the "or" perl regex caracter
+which is "|". Example:
+
+ imapsync ... --skipheader '^X-|^Status|^Bcc'
+
 
 ======================================================================
 Q. I want the --folder 'MyFolder' option be recurse.
