@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.3 2003/05/05 22:32:01 gilles Exp $	
+# $Id: tests.sh,v 1.4 2003/08/21 15:40:32 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.4  2003/08/21 15:40:32  gilles
+# Added a email in loulplume test
+#
 # Revision 1.3  2003/05/05 22:32:01  gilles
 # Added pl_folder() test
 #
@@ -87,6 +90,12 @@ first_sync() {
 loulplume() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
+		rand=`pwgen 16 1`
+		mess='test:'$rand
+		cmd="echo $mess""| mail -s ""$mess"" tata"
+		echo $cmd
+		ssh gilles@loul $cmd
+		sleep 10
 		./imapsync \
 		--host1 loul  --user1 tata --passfile1 /var/tmp/secret.tata \
 		--host2 plume --user2 tata@est.belle --passfile2 /var/tmp/secret.tata
@@ -111,7 +120,7 @@ lp_folder() {
 		echo3 Here is plume
 		./imapsync \
 		--host2 plume --user2 tata@est.belle --passfile2 /var/tmp/secret.tata \
-		--folder INBOX.yop \
+		--folder INBOX.yop --folder INBOX.Trash  \
 		--host1 loul  --user1 tata --passfile1 /var/tmp/secret.tata
 	else
 		:

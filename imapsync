@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.15 $
+$Revision: 1.20 $
 
 =head1 INSTALL
 
@@ -132,11 +132,12 @@ both sides. This will help future users.
 
   offlineimap : http://gopher.quux.org:70/devel/offlineimap/
   mailsync    : http://mailsync.sourceforge.net/
-  imapxfer    : ?
+  imapxfer    : http://www.washington.edu/imap/
+                part of the imap-utils from UW.
 
-Feedback will be welcome.
+Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.15 2003/07/17 12:22:23 gilles Exp $
+$Id: imapsync,v 1.20 2003/08/21 16:31:53 gilles Exp $
 
 =cut
 
@@ -147,7 +148,6 @@ use Getopt::Long;
 use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
 
-
 my(
 	$rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
@@ -155,18 +155,21 @@ my(
 	@folder,
 	$delete, $expunge, $dry, 
 	$version, $VERSION, $help, 
-	
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.15 2003/07/17 12:22:23 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.20 2003/08/21 16:31:53 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.20 $ ' . '$Date: 2003/08/21 16:31:53 $ ' . "\n";
+
+
 get_options();
+print $banner;
 
 sub missing_option {
 	my ($option) = @_;
@@ -224,7 +227,7 @@ my $t_sep = $to->namespace()->[0][0][1];
 if (scalar(@folder)) {
 	# folders are given as argument.
 	foreach my $f_fold (@folder) {
-		push (@f_folders, @{$from->folders("$f_fold", ".")});
+		push (@f_folders, @{$from->folders($f_fold)});
 	}
 }else{
 	# no folder given so select all
@@ -237,14 +240,14 @@ print "From folders : @f_folders\n";
 
 FOLDER: foreach my $f_fold (@f_folders) {
 	my $t_fold;
-	print "From Folder $f_fold\n";
+	print "From Folder [$f_fold]\n";
 #	unless ($f_fold =~ m/^INBOX/) {
 #		$t_fold = "INBOX." . $f_fold;
 #	}else {
 		$t_fold = $f_fold;
 #	}
 	$t_fold =~ s@\$f_sep@\$t_sep@g;
-	print "To   Folder $t_fold\n";
+	print "To   Folder [$t_fold]\n";
 	unless ($from->select($f_fold)) {
 		warn 
 		"From Folder $f_fold : Could not select ",
@@ -254,10 +257,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	}
 	unless ($to->exists($t_fold)) { 
 		print "To   Folder $t_fold does not exist\n";
-		print "Creating folder $t_fold\n";
+		print "Creating folder [$t_fold]\n";
 		unless ($dry){
 			unless ($to->create($t_fold)){
-				warn "Couldn't create $t_fold ",
+				warn "Couldn't create [$t_fold]",
 				$to->LastError,"\n";
 				$error++;
 				next FOLDER;
@@ -344,7 +347,7 @@ sub header_parse {
 		my $f_msg = $f_hash{$m_id}{'m'};
 		$debug and print "key     $m_id #$f_msg\n";
 		unless (exists($t_hash{$m_id})) {
-			print "Message NO msg #$f_msg $m_id in $t_fold\n";
+			print "Message NO msg #$f_msg [$m_id] in $t_fold\n";
 			# copy
 			print "Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			unless ($dry) {
@@ -357,8 +360,11 @@ sub header_parse {
 					$error++;
 					next MESS;
 				}else{
-				# good
-					print "Copied msg #$f_msg to folder $t_fold msg #$new_id\n";
+					# good
+					# $new_id is an id if the IMAP server has the 
+					# UIDPLUS capability else just a ref
+					
+					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
 					$to->store($new_id,
 						"+FLAGS (" . join(" ",
 						@{$from->flags($f_msg)}
@@ -367,7 +373,7 @@ sub header_parse {
 			}
 	    		next MESS;
 		}else{
-			$debug and print "Message $m_id found in t:$t_fold\n";
+			$debug and print "Message id [$m_id] found in t:$t_fold\n";
 		}
 		#$debug and print "MESSAGE $m_id\n"; 
 		my $t_size = $t_hash{$m_id}{'s'};
