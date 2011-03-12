@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.23 2009/07/03 01:01:13 gilles Exp gilles $	
+# $Id: Makefile,v 1.25 2010/01/12 06:31:22 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -102,8 +102,9 @@ tarball:
 	echo making tarball $(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
-	rsync -aCv --delete  --exclude dist/ ./  ../prepa_dist/$(DIST_NAME)
-	cd ../prepa_dist && tar czfv --verify $(DIST_FILE) $(DIST_NAME)
+	rsync -aCv --delete --omit-dir-times --exclude dist/ ./  ../prepa_dist/$(DIST_NAME)
+	#sync && sync && sync && sleep 2
+	cd ../prepa_dist &&  (tar czfv $(DIST_FILE) $(DIST_NAME) || tar czfv  $(DIST_FILE) $(DIST_NAME))
 	ln -f ../prepa_dist/$(DIST_FILE) dist/
 	cd dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	cd dist && md5sum -c $(DIST_FILE).md5.txt

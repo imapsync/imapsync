@@ -36,28 +36,28 @@ fi
 niouzes_compil
 }
 
-
-fm_read_param() {
-
-# read definitions
-. $NEWS_FILE_FM_INP
-
-}
+#' nedit sucks with syntax color
 
 fm_init() {
 software_version
-NEWS_FILE_FM="/home/gilles/public_html/imapsync/freshmeat_submition"
+NEWS_FILE_FM="./freshmeat_submition"
 NEWS_FILE_FM_INP=${NEWS_FILE_FM}.inp
 NEWS_FILE_FM_OUT=${NEWS_FILE_FM}.out
 
 }
 
+fm_read_param() {
+# read definitions
+. $NEWS_FILE_FM_INP
+}
+
+
 fm_read_announce() {
 
-fm_init
-fm_read_param
+  fm_init
+  fm_read_param
 
-cat << EOF
+  cat << EOF
 Project: imapsync
 Version: $VERSION
 Release-Focus: $RELEASE_FOCUS
@@ -71,22 +71,19 @@ EOF
 }
 
 fm_announce() {
-fm_init
+  fm_init
 
-if ! newer VERSION $NEWS_FILE_FM_OUT; then 
+  if ! newer VERSION $NEWS_FILE_FM_OUT; then 
 	echo "$VERSION already submitted on freshmeat"
-else
+  else
     if newer VERSION $NEWS_FILE_FM_INP; then
 	echo "Update $NEWS_FILE_FM_INP please"
 	return 1
     fi
 
-    fm_read_param
     fm_read_announce > $NEWS_FILE_FM_OUT 
-
-freshmeat-submit < $NEWS_FILE_FM_OUT
-fi
-
+    freshmeat-submit < $NEWS_FILE_FM_OUT
+  fi
 }
 
 

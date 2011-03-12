@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.286 $
+$Revision: 1.293 $
 
 =head1 INSTALL
 
@@ -418,7 +418,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.286 2009/07/24 15:53:04 gilles Exp gilles $
+$Id: imapsync,v 1.293 2010/01/12 05:34:27 gilles Exp gilles $
 
 =cut
 
@@ -484,7 +484,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.286 2009/07/24 15:53:04 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.293 2010/01/12 05:34:27 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
@@ -547,8 +547,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.286 $ ',
-		  '$Date: 2009/07/24 15:53:04 $ ',
+		  '$Revision: 1.293 $ ',
+		  '$Date: 2010/01/12 05:34:27 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -657,7 +657,7 @@ if ($syncinternaldates || $idatefromheader) {
 	no warnings 'redefine';
 	local *Carp::confess = sub { return undef; };
 	require Date::Manip;
-	Date::Manip->import(qw(ParseDate Date_Cmp UnixDate Date_Init Date_TimeZone));
+	Date::Manip->import(qw(ParseDate UnixDate Date_Init Date_TimeZone));
 	#print "Date_init: [", join(" ",Date_Init()), "]\n";
 	print "TimeZone:[", Date_TimeZone(), "]\n";
 	if (not (Date_TimeZone())) {
@@ -912,7 +912,7 @@ sub remove_from_requested_folders {
 map { $subscribed_folder{$_} = 1 } $from->subscribed();
 
 
-my @all_source_folders = sort $from->folders();
+
 
 if (scalar(@folder) or $subscribed or scalar(@folderrec)) {
 	# folders given by option --folder
@@ -936,6 +936,7 @@ else {
 	
 	# no include, no folder/subscribed/folderrec options => all folders
 	if (not scalar(@include)) {
+		my @all_source_folders = sort $from->folders();
 		add_to_requested_folders(@all_source_folders);
 	}
 }
@@ -943,6 +944,7 @@ else {
 
 # consider (optional) includes and excludes
 if (scalar(@include)) {
+	my @all_source_folders = sort $from->folders();
 	foreach my $include (@include) {
 		my @included_folders = grep /$include/, @all_source_folders;
 		add_to_requested_folders(@included_folders);
@@ -1215,8 +1217,8 @@ foreach my $folder (@t_folders_list) {
 
 print 
   "++++ Listing folders ++++\n",
-  "From folders list: ", map("[$_] ",@f_folders),"\n",
-  "To   folders list: ", map("[$_] ",@t_folders_list),"\n";
+  "From folders list:\n", map("[$_]\n",@f_folders),"\n",
+  "To   folders list:\n", map("[$_]\n",@t_folders_list),"\n";
 
 print 
   "From subscribed folders list: ", 
@@ -1828,9 +1830,10 @@ sub stats {
 sub thank_author {
 
 	return(join("", "Happy with this free, open and gratis GPL software?\n",
-	  "Please, thank the author (Gilles LAMIRAL) by giving him a book:\n",
+	  "Encourage the author (Gilles LAMIRAL) by giving him a book:\n",
 	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n",
-          "or rate imapsync at http://freshmeat.net/projects/imapsync/\n"));
+          "or via paypal:\n",
+	  "http://www.linux-france.org/prj/imapsync/paypal.html\n"));
 }
 
 sub get_options {
@@ -1926,7 +1929,7 @@ sub get_options {
 		exit;
 	}
 
-
+	$help = 1 if ! $numopt;
 	load_modules();
 
 	# exit with --help option or no option at all
@@ -1943,10 +1946,10 @@ sub load_modules {
 	require IO::Socket::SSL if ($ssl1 or $ssl2);
 	require Date::Manip if ($syncinternaldates || $idatefromheader) ;
 
-#	require Term::ReadKey if (
-#		(not($password1 or $passfile1)) 
-#	     or (not($password2 or $passfile2))
-#        or (not $help));
+        require Term::ReadKey if (
+	       ((not($password1 or $passfile1)) 
+	    or (not($password2 or $passfile2)))
+	and (not $help));
 
 	#require Data::Dumper if ($debug);
 }
@@ -2448,7 +2451,7 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
                                 "|          # then closing quote; or ...
                                 \(          # ...an open paren
                                   (\\.|     # then bslashed anychar or ...
-                                   [^\)]+)  # ... non-close-paren char
+                                   [^\)]*)  # ... non-close-paren char
                                 \)|         # then closing paren; or ...
                                 (\S+))      # unquoted string
                                 (?:\s.*)?   # possibly followed by space-stuff

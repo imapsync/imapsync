@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.93 2009/07/24 17:20:41 gilles Exp gilles $  
+# $Id: tests.sh,v 1.95 2010/01/12 04:09:57 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -157,6 +157,15 @@ locallocal() {
          --allow3xx
 }
 
+ll_ask_password() {
+                { sleep 2; cat ../../var/pass/secret.tata; } | \
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justlogin
+}
+
 ll_timeout() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
@@ -234,6 +243,17 @@ ll_justfolders() {
                 --justfolders  \
                 --allow3xx
                 echo "rm -rf /home/vmail/titi/.new_folder/"
+}
+
+ll_bug_folder_name_with_blank() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders  \
+                --allow3xx
+                echo "rm -rf /home/vmail/titi/.bugs/"
 }
 
 
@@ -627,11 +647,39 @@ ll_regex_flag()
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
-                --dry --debug --regexflag 's/\\Answered/\\AnXweXed/g' \
-                --allow3xx
+                --debug --regexflag 's/\\Answered/\\Flagged/g'
                 
-                echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
+
+ll_regex_flag2() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --debug --regexflag s/\\\\Answered/\\\\Flagged/g 
+                
+                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
+
+ll_regex_flag3() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --debug --regexflag s/\\\\Answered//g 
+                
+                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
+
 
 
 ssl_justconnect() {
@@ -783,7 +831,8 @@ gmail_gmail() {
                 --useheader 'Message-Id'  --skipsize \
                 --regextrans2 's¤INBOX¤inbox_copy¤' \
                 --folder INBOX \
-                --authmech1 LOGIN --authmech2 LOGIN 
+                --authmech1 LOGIN --authmech2 LOGIN \
+                --allowsizemismatch
 		#--dry # --debug --debugimap # --authmech1 LOGIN
 
 }
@@ -801,7 +850,8 @@ gmail_gmail2() {
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --useheader 'Message-Id'  --skipsize \
                 --folder INBOX \
-                --authmech1 LOGIN --authmech2 LOGIN 
+                --authmech1 LOGIN --authmech2 LOGIN \
+                --allowsizemismatch
 		#--dry # --debug --debugimap # --authmech1 LOGIN
 
 }
@@ -1107,6 +1157,8 @@ test $# -eq 0 && run_tests \
 	first_sync_dry \
         first_sync \
         locallocal \
+        ll_ask_password \
+        ll_bug_folder_name_with_blank \
         ll_timeout \
         ll_folder \
         ll_buffersize \
