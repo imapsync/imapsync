@@ -1,0 +1,37 @@
+#!/bin/sh
+
+
+software_version() {
+
+	VERSION=`cat VERSION`
+
+}
+
+niouzes_compil() {
+	DIR_SAVE=`pwd`
+	cd /home/gilles/public_html/www.linux-france.org/html/
+	m4 niouzes.m4 > niouzes.xml
+	python ./niouzes/getmynews.py --neuf niouzes.xml > niouzes-neuf.html
+	python ./niouzes/getmynews.py --html niouzes.xml > niouzes-html.html
+	cd $DIR_SAVE
+}
+
+lfo_announce() {
+software_version
+NEWS_FILE="/home/gilles/public_html/www.linux-france.org/html/niouzes/niouzes_imapsync.xml"
+if ! newer VERSION $NEWS_FILE; then 
+	echo "$VERSION already announced"
+else
+	cat >> $NEWS_FILE << EOF
+
+<news date="`date  '+%Y%m%d'`">
+`LANG=fr date  '+%A %d %B %Y'` : Synchronisez ou migrez vos boites 
+aux lettres avec économie et l'outil <A
+HREF="prj/imapsync/">imapsync $VERSION</A> (Gilles LAMIRAL)
+</news>
+EOF
+fi
+niouzes_compil
+}
+
+

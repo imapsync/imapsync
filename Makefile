@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.4 2003/08/23 01:55:43 gilles Exp $	
+# $Id: Makefile,v 1.5 2004/03/24 00:59:41 gilles Exp $	
 
 TARGET=imapsync
 
@@ -82,11 +82,13 @@ clean_dist:
 
 # Local goals
 
-.PHONY: lfo
+.PHONY: lfo niouze
 
-lfo: dist 
+lfo: dist niouze
 	rsync -av --delete . \
 	/home/gilles/public_html/www.linux-france.org/html/prj/$(TARGET)/
 	sh ~/memo/lfo-rsync
 
 
+niouze: VERSION
+	. memo && lfo_announce
