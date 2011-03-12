@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.3 2003/05/05 22:55:25 gilles Exp $	
+# $Id: Makefile,v 1.4 2003/08/23 01:55:43 gilles Exp $	
 
 TARGET=imapsync
 
@@ -14,7 +14,7 @@ usage:
 	@echo make testv   # run tests verbosely
 	@echo make all     
 
-all: test ChangeLog README VERSION
+all: ChangeLog README VERSION
 
 .PHONY: test testp testf
 
@@ -61,7 +61,7 @@ DIST_NAME=$(TARGET)-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
 VERSION=$(shell ./$(TARGET) --version)
 
-dist: cidone clean_dist all INSTALL  
+dist: cidone test clean clean_dist all INSTALL  
 	echo making tarball $(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
@@ -70,7 +70,6 @@ dist: cidone clean_dist all INSTALL
 	cp -f ../prepa_dist/$(DIST_FILE) dist/
 	cd dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5
 	cd dist && md5sum -c $(DIST_FILE).md5
-
 
 
 .PHONY: cidone clean_dist

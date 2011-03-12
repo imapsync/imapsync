@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.22 $
+$Revision: 1.25 $
 
 =head1 INSTALL
 
@@ -137,7 +137,7 @@ both sides. This will help future users.
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.22 2003/08/22 17:17:18 gilles Exp $
+$Id: imapsync,v 1.25 2003/08/23 01:44:33 gilles Exp $
 
 =cut
 
@@ -160,12 +160,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.22 2003/08/22 17:17:18 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.25 2003/08/23 01:44:33 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.22 $ ' . '$Date: 2003/08/22 17:17:18 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.25 $ ' . '$Date: 2003/08/23 01:44:33 $ ' . "\n";
 
 
 get_options();
@@ -194,6 +194,7 @@ print "To   imap server [$host2] port [$port2] user [$user2]\n";
 my $from = ();
 my $to = ();
 
+$debugimap and print "To connection\n";
 $from = Mail::IMAPClient->new( Server   => $host1,
 			       Port     => $port1,
 			       User     => $user1,
@@ -205,7 +206,7 @@ $from = Mail::IMAPClient->new( Server   => $host1,
 			     ) 
   or die "can't open imap connection on [$host1] with user [$user1]\n";
 
-
+$debugimap and print "From connection\n";
 $to = Mail::IMAPClient->new( Server   => $host2,
 			     Port     => $port2,
 			     User     => $user2,
@@ -217,12 +218,22 @@ $to = Mail::IMAPClient->new( Server   => $host2,
 			   ) 
   or die "can't open imap connection on [$host2] with user [$user2]\n";
 
+
+print "From software : ", ($from->Report())[0];
+print "To   software : ", ($to->Report())[0];
+
+print "From capability : ", join(" ", $from->capability()), "\n";
+print "To   capability : ", join(" ", $to->capability()), "\n";
+
 my (@f_folders, @t_folders);
 @f_folders = (scalar(@folder)) ? @folder : @{$from->folders()};
 
 # what are the private folders separators for each server ?
 my $f_sep = $from->namespace()->[0][0][1];
 my $t_sep = $to->namespace()->[0][0][1];
+
+# needed for setting flags
+my $tohasuidplus = $to->has_capability("UIDPLUS");
 
 #if (scalar(@folder)) {
 #	# folders are given as argument.
@@ -365,20 +376,52 @@ sub header_parse {
 					# UIDPLUS capability else just a ref
 					
 					print "Copied msg id [$f_msg] to folder $t_fold msg id [$new_id]\n";
+					
+					unless ($tohasuidplus) {
+						next MESS;
+					}
+					print "Setting flags (UIDPLUS welcome)\n"; 
+					my @flags_f = @{$from->flags($f_msg)};
+
+					$debugimap and print "Store flags [@flags_f]";
 					$to->store($new_id,
-						"+FLAGS (" . join(" ",
-						@{$from->flags($f_msg)}
-					 	) . ")");
+						   "+FLAGS (" . join(" ", @flags_f) . ")"
+						  );
+					my @flags_t;
+					my $flags_t = $to->flags($new_id);
+					# a bug ?
+					if ($flags_t) {
+						@flags_t = @$flags_t;
+						print 
+						  "flags from : @flags_f\n",
+						  "flags to   : @flags_t\n";
+					}else{
+						print "To flags could not be retrieved\n"
+					}
 				}
 			}
 	    		next MESS;
 		}else{
 			$debug and print "Message id [$m_id] found in t:$t_fold\n";
 		}
+		
 		#$debug and print "MESSAGE $m_id\n"; 
 		my $t_size = $t_hash{$m_id}{'s'};
 		my $t_msg  = $t_hash{$m_id}{'m'};
+
+		$debug and print "Setting flags\n"; 
+		my (@flags_f,@flags_t);
+		@flags_f = @{$from->flags($f_msg)};
+		$to->store($t_msg,
+			   "+FLAGS (" . join(" ", @flags_f) . ")"
+			  );
+		@flags_t = @{$to->flags($t_msg)};
+		$debug and print 
+		  "flags from : @flags_f\n",
+		  "flags to   : @flags_t\n";
+		
 		unless ($f_size == $t_size) {
+			# Bad size
 			print 
 			"Message $m_id SZ_BAD  f:$f_msg:$f_size t:$t_msg:$t_size\n";
 			# delete in to and recopy ?
