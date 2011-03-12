@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.95 2010/01/12 04:09:57 gilles Exp gilles $  
+# $Id: tests.sh,v 1.96 2010/01/14 23:40:54 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -454,8 +454,8 @@ ll_skipheader()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --skipheader 'X-.*' --folder INBOX.yop.yap \
-            --allow3xx
+                --skipheader '^X-.*|^Date' --folder INBOX.yop.yap \
+            --allow3xx --debug
 }
 
 

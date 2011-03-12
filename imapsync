@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.293 $
+$Revision: 1.299 $
 
 =head1 INSTALL
 
@@ -189,9 +189,9 @@ in a Bourne shell:
 =head1 LICENSE
 
 imapsync is free, gratis and open source software cover by
-the GNU General Public License. See the GPL file included in
-the distribution or the web site
-http://www.gnu.org/licenses/licenses.html
+the Do What The Fuck You Want To Public License (WTFPL).
+See COPYING file included in the distribution or the web site
+http://sam.zoy.org/wtfpl/COPYING
 
 =head1 MAILING-LIST
 
@@ -387,7 +387,7 @@ Welcome in shell programming !
 
 =head1 Hacking
 
-Feel free to hack imapsync as the GPL Licence permits it.
+Feel free to hack imapsync as the WTFPL Licence permits it.
 
 =head1 Links
 
@@ -418,7 +418,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will always be welcome.
 
-$Id: imapsync,v 1.293 2010/01/12 05:34:27 gilles Exp gilles $
+$Id: imapsync,v 1.299 2010/01/15 00:19:32 gilles Exp gilles $
 
 =cut
 
@@ -435,6 +435,8 @@ use MIME::Base64;
 use English;
 use POSIX qw(uname);
 use Fcntl;
+use File::Spec;
+use File::Path qw(mkpath rmtree);
 
 #use Test::Simple tests => 1;
 use Test::More 'no_plan';
@@ -479,23 +481,23 @@ my(
         $reconnectretry1, $reconnectretry2,
 	$tests, $test_builder,
 	$allow3xx, $justlogin,
+	$tmpdir,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = '$Id: imapsync,v 1.293 2010/01/12 05:34:27 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.299 2010/01/15 00:19:32 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1: "UNKNOWN";
 
 my $VERSION_IMAPClient = $Mail::IMAPClient::VERSION;
 
-
-
 $mess_size_total_trans   = 0;
 $mess_size_total_skipped = 0;
 $mess_size_total_error   = 0;
 $mess_trans = $mess_skipped = $mess_skipped_dry = 0;
+
 
 
 sub check_lib_version {
@@ -533,6 +535,8 @@ Date::Manip       $Date::Manip::VERSION
 
 }
 
+
+# Construct a command line copy with passwords replaced by MASKED.
 my @argv_nopassord;
 my @argv_copy = @ARGV;
 while (@argv_copy) {
@@ -547,8 +551,8 @@ while (@argv_copy) {
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.293 $ ',
-		  '$Date: 2010/01/12 05:34:27 $ ',
+		  '$Revision: 1.299 $ ',
+		  '$Date: 2010/01/15 00:19:32 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -563,6 +567,20 @@ unless(defined(&_SYSEXITS_H)) {
 
 get_options();
 
+$tmpdir ||= File::Spec->tmpdir();
+
+
+sub check_dir {
+	my $dir = shift;
+	return(1) if (-d $dir and -r _ and -w _);
+	# Trying to create it
+	mkpath($dir) or die "Error creating tmpdir $tmpdir : $!";
+	die "Error with tmpdir $tmpdir : $!" if not (-d $dir and -r _ and -w _);
+	return(1);
+}
+
+
+
 # allow Mail::IMAPClient 3.0.xx by default
 
 $allow3xx = defined($allow3xx) ? $allow3xx : 1;
@@ -572,6 +590,10 @@ check_lib_version() or
 
 
 print $banner;
+print "Temp directory is $tmpdir\n";
+
+check_dir($tmpdir);
+
 
 exit(0) if ($justbanner);
 
@@ -1278,8 +1300,6 @@ sub tests_flags_regex {
 	@regexflag = ('s/(\s|^)[^\\\\]\w+//g');
 	ok('\Seen \Middle \End' eq flags_regex('\Seen NonJunk \Middle $Spam \End'), 'flags_regex, only \word [' . flags_regex('\Seen NonJunk \Middle $Spam \End'.']'));
 	ok(' \Seen \Middle \End1' eq flags_regex('Begin \Seen NonJunk \Middle $Spam \End1 End'), 'flags_regex, only \word [' . flags_regex('Begin \Seen NonJunk \Middle $Spam \End1 End'.']'));
-
-	
 }
 
 sub flags_regex {
@@ -1315,6 +1335,62 @@ sub acls_sync {
 }
 
 
+sub tests_permanentflags {
+	
+	my $string;
+	ok('' eq permanentflags(' * OK [PERMANENTFLAGS (\* \Draft \Answered)] Limited'), 
+	   'permanentflags \*');
+	ok('\Draft \Answered' eq permanentflags(' * OK [PERMANENTFLAGS (\Draft \Answered)] Limited'), 
+	   'permanentflags \Draft \Answered');
+	ok('\Draft \Answered' 
+	   eq permanentflags('Blabla', 
+	                     ' * OK [PERMANENTFLAGS (\Draft \Answered)] Limited',
+			     'Blabla'),
+	   'permanentflags \Draft \Answered'
+	);
+	ok('' eq permanentflags('Blabla'), 'permanentflags nothing');
+}
+
+sub permanentflags {
+	my @lines = @_;
+
+	foreach my $line (@lines) {
+		if ($line =~ m{\[PERMANENTFLAGS \(([^)]+?)\)\]}) {
+			#print "%%%$1%%%\n";
+			my $permanentflags = $1;
+			if ($permanentflags =~ m{\\\*}) {
+				$permanentflags = '';
+			}
+			return($permanentflags);
+		};
+	}
+}
+
+sub tests_flags_filter {
+
+	ok( '\Seen' eq flags_filter('\Seen', '\Draft \Seen \Answered'), 'flags_filter ' );
+	ok( '' eq flags_filter('\Seen', '\Draft  \Answered'), 'flags_filter ' );
+	ok( '\Seen' eq flags_filter('\Seen', '\Seen'), 'flags_filter ' );
+	ok( '\Seen' eq flags_filter('\Seen', ' \Seen '), 'flags_filter ' );
+	ok( '\Seen \Draft' 
+	   eq flags_filter('\Seen \Draft', '\Draft \Seen \Answered'), 'flags_filter ' );
+	ok( '\Seen \Draft' 
+	   eq flags_filter('\Seen \Draft', ' \Draft \Seen \Answered '), 'flags_filter ' );
+
+}
+
+sub flags_filter {
+	my($flags, $allowed_flags) = @_;
+	
+	my @flags = split(/\s+/, $flags);
+	my %allowed_flags = map { $_ => 1 } split(' ', $allowed_flags );
+	my @flags_out     = map { exists $allowed_flags{$_} ? $_ : () } @flags;
+
+	my $flags_out = join(' ', @flags_out);
+	#print "%%%$flags_out%%%\n";
+	return($flags_out);
+}
+
 print "++++ Looping on each folder ++++\n";
 
 FOLDER: foreach my $f_fold (@f_folders) {
@@ -1333,6 +1409,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		$error++;
 		next FOLDER;
 	}
+	
 	if ( ! exists($t_folders_list{$t_fold})) {
 		print "To   Folder $t_fold does not exist\n";
 		print "Creating folder [$t_fold]\n";
@@ -1358,10 +1435,15 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		$error++;
 		next FOLDER;
 	}
+	my @select_results = $to->Results();
+	
+	#print "%%% @select_results\n";
+	my $permanentflags2 = permanentflags(@select_results);
 	
 	if ($expunge){
-		print "Expunging $f_fold and $t_fold\n";
+		print "Expunging host1 $f_fold\n";
 		unless($dry) { $from->expunge() };
+		#print "Expunging host2 $t_fold\n";
 		#unless($dry) { $to->expunge() };
 	}
 	
@@ -1388,6 +1470,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	my %f_hash = ();
 	my %t_hash = ();
+	
+	#print "++++ Using cache ++++\n";
 	
 	print "++++ From [$f_fold] Parse 1 ++++\n";
 	last FOLDER if $from->IsUnconnected();
@@ -1533,6 +1617,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 				#string_to_file($string, $message_file);
 			}
 
+			
+			
 			sub tests_regexmess {
 				
 				ok("blabla" eq regexmess("blabla"), "regexmess, nothing to do");
@@ -1588,6 +1674,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			# RFC 2060: This flag can not be altered by any client
 			$flags_f =~ s@\\Recent\s?@@gi;
 			$flags_f = flags_regex($flags_f) if @regexflag;
+			
+			$flags_f = flags_filter($flags_f, $permanentflags2) if ($permanentflags2);
 			
 			my $new_id;
 			print "flags from: [$flags_f][$d]\n";
@@ -1655,7 +1743,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		# RFC 2060: This flag can not be altered by any client
 		$flags_f =~ s@\\Recent\s?@@gi;
 		$flags_f = flags_regex($flags_f) if @regexflag;
-
+		$flags_f = flags_filter($flags_f, $permanentflags2) if ($permanentflags2);
 		# compare flags - add missing flags
 		my @ff = split(' ', $flags_f );
 		my %ft = map { $_ => 1 } split(' ', $flags_t );
@@ -1829,7 +1917,7 @@ sub stats {
 
 sub thank_author {
 
-	return(join("", "Happy with this free, open and gratis GPL software?\n",
+	return(join("", "Happy with this free, open and gratis WTFPL software?\n",
 	  "Encourage the author (Gilles LAMIRAL) by giving him a book:\n",
 	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n",
           "or via paypal:\n",
@@ -1915,7 +2003,8 @@ sub get_options {
 				   "reconnectretry2=i" => \$reconnectretry2,
                                    "tests"       => \$tests,
                                    "allow3xx!"   => \$allow3xx,
-                                   "justlogin!"   => \$justlogin,
+                                   "justlogin!"  => \$justlogin,
+				   "tmpdir=s"    => \$tmpdir,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -2094,6 +2183,9 @@ Several options are mandatory.
                          Several folders to avoid:
 			  --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
 --exclude     <regex>  : or this one, etc.
+--tmpdir      <string> : where to store temporary files and subdirectories.
+                         Will be created if it doesn't exist.
+			 Default is system specific and should be ok.
 --prefix1     <string> : remove prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
                          you can use --prefix1 if your source imap server 
@@ -2170,14 +2262,15 @@ Several options are mandatory.
 --syncacls             : Synchronises acls (Access Control Lists).
 --nosyncacls           : Does not synchronise acls. This is the default.
 --debug                : debug mode.
---debugimap            : imap debug mode.
+--debugimap            : imap debug mode. Very verbose.
 --version              : print software version.
 --justconnect          : just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
 --justlogin            : just login to both servers with users credentials 
                          and exit.
 --justfolders          : just do things about folders (ignore messages).
---fast                 : be faster (just does not sync flags).
+--fast                 : be faster (just does not sync flags with files
+                         already transfered).
 --reconnectretry1 <int>: reconnect if connection is lost up to <int> times
 --reconnectretry2 <int>: reconnect if connection is lost up to <int> times
 --split1     <int>     : split the requests in several parts on source server.
@@ -2215,6 +2308,8 @@ sub tests {
 		tests_compare_lists();
 		tests_regexmess();
 		tests_flags_regex();
+		tests_permanentflags();
+		tests_flags_filter();
 	}
 }
 
