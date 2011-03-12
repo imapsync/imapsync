@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.73 2008/05/08 02:10:31 gilles Exp gilles $  
+# $Id: tests.sh,v 1.77 2008/08/13 23:33:18 gilles Exp gilles $  
 
 #### Shell pragmas
 
@@ -243,6 +243,22 @@ ll_internaldate() {
         fi
 }
 
+
+ll_idatefromheader() {
+        if test X`hostname` = X"plume"; then
+                echo3 Here is plume
+                sendtestmessage
+                $CMD_PERL ./imapsync \
+                --host1 localhost  --user1 tata@est.belle \
+                --passfile1 /var/tmp/secret.tata \
+                --host2 localhost --user2 titi@est.belle \
+                --passfile2 /var/tmp/secret.titi \
+                --folder INBOX.oneemail  \
+                --idatefromheader  --debug --dry
+        else
+                :
+        fi
+}
 
 
 
@@ -557,6 +573,7 @@ ll_regexmess()
 {
         if test X`hostname` = X"plume"; then
                 echo3 Here is plume
+                rm -f /home/vmail/titi/.yop.yap/cur/*
                 $CMD_PERL ./imapsync \
                 --host1 localhost --user1 tata@est.belle \
                 --passfile1 /var/tmp/secret.tata \
@@ -565,8 +582,10 @@ ll_regexmess()
                 --folder INBOX.yop.yap \
                 --regexmess 's/\157/O/g' \
                 --regexmess 's/p/Z/g' \
-                --dry --debug
-                echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+                 --debug
+                file=`ls -t /home/vmail/titi/.yop.yap/cur/* | tail -1`
+                diff /var/tmp/imapsync/tests/ll_regexmess/dest_01 $file
+                #echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
         else
                 :
         fi
@@ -742,6 +761,7 @@ msw() {
         scp imapsync  Admin@192.168.68.77:'C:/msys/1.0/home/Admin/imapsync/imapsync'
         ssh Admin@192.168.68.77 'C:/msys/1.0/home/Admin/imapsync/test.bat'
 }
+
 
 
 ##########################
@@ -980,6 +1000,7 @@ test $# -eq 0 && run_tests \
         ll_justfolders \
         ll_prefix12 \
         ll_internaldate \
+        ll_idatefromheader \
         ll_folder_rev \
         ll_subscribed \
         ll_subscribe \

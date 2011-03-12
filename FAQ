@@ -26,6 +26,9 @@ R.
 RFC 3501 - INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1
 http://www.faqs.org/rfcs/rfc3501.html
 
+RFC 2595 - Using TLS with IMAP, POP3 and ACAP
+http://www.faqs.org/rfcs/rfc2595.html
+
 RFC 2822 - Internet Message Format
 http://www.faqs.org/rfcs/rfc2822.html
 
@@ -294,6 +297,14 @@ R. Use
 
 --folderrec 'MyFolder'
 
+
+======================================================================
+Q. How to migrate from uw-imap with an admin/authuser account ?
+
+R. Use 
+--user1="user*admin_user" --password1 "admin_user_password"
+
+
 ======================================================================
 Q. How to migrate from cyrus with an admin account ?
 
@@ -469,8 +480,25 @@ before using imapsync. Don't think to add a colon to this
 line since you will end with two "From:" lines (just look at
 the other lines)
 
-b) Run imapsync with the following option :
---regexmess 's/\AFrom \w  .*\n//'
+b) Run imapsync with the following options :
+--regexmess 's/\AFrom \w  .*\n//'  --skipsize
+
+=======================================================================
+Q. The contact folder isn't well copied. 
+   How to copy the contact folder ?
+
+R. Forget the destination server (chose the same)
+Change the script around line 1426
+       # ITSD
+       $new_id = $from->copy($t_fold,$f_msg);
+       #$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
+and tried a copy of the mail instead an append_string.
+Because we are using the same server, we can use $from->copy
+Therefore we seem to not download and upload the message and therefore
+we do not have any format issues.
+And now it works fine.
+(Thanks to Hansjoerg.Maurer)
+
 
 =======================================================================
 Q. Synchronysing from XXX to Gmail
@@ -647,6 +675,8 @@ To convert the wholes messages from 8bit to 7bit, use option :
 
 --regexmess 's/[\x80-\xff]/X/g'
 
+(This is bad since only headers need this).
+
 ======================================================================
 Q: From MailEnable 1.75
 R: --sep1 "/" --prefix1 ""
@@ -665,6 +695,25 @@ R. http://www.archiveopteryx.org/migration/imapsync
 Use:
    --useheader Message-Id --skipsize
 
+
+======================================================================
+Q. From any to Exchange2007 
+
+Several problems:
+- Big messages: increse the "send- and receive-connector" 
+  in exchange2007 to 40 MB.
+
+R. 2 solutions
+
+R1. With imapsync (only partial success)
+--skipsize --skipheader 'Received' \
+--regexmess 's{\A(.*?(?!^$))^Date:(.*?)$}{$1Date:$2\nReceived: From; $2}gxms'
+Any user having time to spend to debug Exchange2007 with imapsync
+is welcome.
+
+R2. Other solution
+Two users succeded by using "MS Transporter Suite" (which is closed
+expensive nonfree software).
 
 
 ======================================================================

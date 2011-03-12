@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.255 $
+$Revision: 1.260 $
 
 =head1 INSTALL
 
@@ -61,6 +61,7 @@ The option list :
            [--sep2 <char>]
            [--justfolders] [--justfoldersizes] [--justconnect]
            [--syncinternaldates]
+           [--idatefromheader]
            [--buffersize  <int>]
            [--syncacls]
            [--regexmess <regex>] [--regexmess <regex>]
@@ -234,39 +235,41 @@ post to this list if you want to stay private.
 
 Thank you for your participation.
 
-=head1 BUGS
+=head1 BUGS and BUG REPORT
 
-No known serious bug.  Report any bug or feature request to the author
+No known serious bug.  
+
+Report any bug or feature request to the author
 or the mailing-list.
+
 Before reporting bugs, read the FAQ, this README and the
 TODO files.
 
 Don't write imapsync in uppercase in the email title, I'll
-know you run windows.
+know you run windows and you haven't read the README yet.
 
 Make a good title, not just "imapsync" or "problem",
 a good title is made of keywords summary,  not too long (one visible line).
 
-In your report, please include:
+Before reporting bugs, read the FAQ, this README and the
+TODO files. http://www.linux-france.org/prj/imapsync/
+
+Help me to help you: in your report, please include:
 
  - imapsync version.
- - IMAPClient.pm version.
- - perl version.
+ - output given with --debug --debugimap near the failure point.
  - operating system running imapsync.
- - imap servers softwares on both side and their version.
+ - imap servers softwares on both side and their version number.
+ - imapsync with all the options you use,  the full command line
+   you use (except the passwords of course). 
+ - IMAPClient.pm version.
 
- Those values can be found with the command line
-
- imapsync --host1 imap.host1.net  --host2 imap.host2.org  --justconnect
+ Those values can be found as a copy/paste at the begining of the output.
 
  And also, if it can help :
 
  - operating systems on both sides and the third side in case
    you run imapsync on a foreign host from the both.
- - imapsync with all the options you use,  the full command line
-   you use (except the passwords of course). This can be found
-   at the beginning of the output.
- - output given with --debug --debugimap near the failure point.
 
 =head1 IMAP SERVERS
 
@@ -281,7 +284,8 @@ Failure stories reported with the following 4 imap servers :
 Success stories reported with the following 35 imap servers 
 (softwares names are in alphabetic order) : 
 
- - Archiveopteryx 2.03, 2.04, 2.09 (OSL 3.0) http://www.archiveopteryx.org/
+ - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [dest]
+   (OSL 3.0) http://www.archiveopteryx.org/
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
  - CommuniGatePro server (Redhat 8.0)
  - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
@@ -331,7 +335,7 @@ Success stories reported with the following 35 imap servers
  - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 5.5.
 
 Please report to the author any success or bad story with
-imapsync and don't forget to mention the IMAP server
+imapsync and do not forget to mention the IMAP server
 software names and version on both sides. This will help
 future users. To help the author maintaining this section
 report the two lines at the begining of the output if they
@@ -418,7 +422,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.255 2008/06/24 16:38:49 gilles Exp gilles $
+$Id: imapsync,v 1.260 2008/08/13 03:14:14 gilles Exp gilles $
 
 
 
@@ -453,7 +457,9 @@ my(
         $prefix1, $prefix2, 
         @regextrans2, @regexmess, @regexflag, 
         $sep1, $sep2,
-	$syncinternaldates, $syncacls,
+	$syncinternaldates,
+        $idatefromheader,
+        $syncacls,
         $fastio1, $fastio2, 
 	$maxsize, $maxage, $minage, 
         $skipheader, @useheader,
@@ -483,7 +489,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.255 2008/06/24 16:38:49 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.260 2008/08/13 03:14:14 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -517,8 +523,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.255 $ ',
-		  '$Date: 2008/06/24 16:38:49 $ ',
+		  '$Revision: 1.260 $ ',
+		  '$Date: 2008/08/13 03:14:14 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -592,13 +598,21 @@ $user1 || missing_option("--user1");
 $user2 || missing_option("--user2");
 
 $syncinternaldates = defined($syncinternaldates) ? defined($syncinternaldates) : 1;
+
+if($idatefromheader) {
+	print "Turned ON idatefromheader, ",
+	      "will set the internal dates on host2 from the 'Date:' header line.\n";
+	$syncinternaldates = 0;
+
+}
 if ($syncinternaldates) {
-	print "Turned ON syncinternaldates, will set the internal dates on host2 same as host1.\n";
+	print "Turned ON syncinternaldates, ",
+	      "will set the internal dates on host2 same as host1.\n";
 }else{
 	print "Turned OFF syncinternaldates\n";
 }
 
-if ($syncinternaldates) {
+if ($syncinternaldates || $idatefromheader) {
 	no warnings 'redefine';
 	local *Carp::confess = sub { return undef; };
 	require Date::Manip;
@@ -906,6 +920,15 @@ if (scalar(@exclude)) {
 		remove_from_requested_folders(@excluded_folders);
 		print "Excluding folders matching pattern '$exclude': @excluded_folders\n";
 	}
+}
+
+# Remove no selectable folders
+
+foreach my $folder (keys(%requested_folder)) {
+        if ( not $from->selectable($folder)) {
+		print "Warning : ignoring folder $folder because it is not selectable\n";
+                remove_from_requested_folders($folder);
+        }
 }
 
 
@@ -1386,12 +1409,33 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			#print "AAA1[$string]ZZZ\n";
 			#unlink($message_file);
 			if (@regexmess) {
+				$string = regexmess($string);
+				
+				#string_to_file($string, $message_file);
+			}
+
+			sub tests_regexmess {
+				
+				ok("blabla" eq regexmess("blabla"), "regexmess, nothing to do");
+				@regexmess = ('s/p/Z/g');
+				ok("ZoZoZo" eq regexmess("popopo"), "regexmess, s/p/Z/g");
+				@regexmess = 's{c}{C}gxms';
+				#print "RRR¤\n", regexmess("H1: abc\nH2: cde\n\nBody abc"), "\n";
+				ok("H1: abC\nH2: Cde\n\nBody abC" 
+					   eq regexmess("H1: abc\nH2: cde\n\nBody abc"), 
+				   "regexmess, c->C");
+				
+			}
+
+			sub regexmess {
+				my ($string) = @_;
 				foreach my $regexmess (@regexmess) {
 					$debug and print "eval \$string =~ $regexmess\n";
 					eval("\$string =~ $regexmess");
 				}
-				#string_to_file($string, $message_file);
+				return($string);
 			}
+
 			$debug and print 
 				"=" x80, "\n", 
 				"F message content begin next line\n",
@@ -1400,12 +1444,26 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			my $d = "";
 			if ($syncinternaldates) {
 				$d = $f_idate;
-				$debug and print "internal date from 1: [$d]\n";				
-				$d = UnixDate(ParseDate($d), "%d-%b-%Y %H:%M:%S %z");
-				$d = "\"$d\"";
+				$debug and print "internal date from 1: [$d]\n";
+				$d = good_date($d);
 				$debug and print "internal date from 1: [$d] (fixed)\n";
 			}
 			
+			if ($idatefromheader) {
+				
+				$d = $from->get_header($f_msg,"Date");
+				$debug and print "header date from 1: [$d]\n";
+				$d = good_date($d);
+				$debug and print "header date from 1: [$d] (fixed)\n";
+			}
+
+			sub good_date {
+				my ($d) = @_;
+				$d = UnixDate(ParseDate($d), "%d-%b-%Y %H:%M:%S %z");
+				$d = "\"$d\"";
+				return($d);
+			}
+
 			my $flags_f = $f_hash{$m_id}{'F'} || "";
 			# RFC 2060 : This flag can not be altered by any client
 			$flags_f =~ s@\\Recent@@gi;
@@ -1597,16 +1655,18 @@ sub stats {
 	print "Total bytes transferred: $mess_size_total_trans\n";
 	print "Total bytes skipped    : $mess_size_total_skipped\n";
 	print "Total bytes error      : $mess_size_total_error\n";
-	print "Detected $error errors\n";
-	print "Please, rate imapsync at http://freshmeat.net/projects/imapsync/\n";
-	print "?Happy with this free, open source and gratis GPL software?\n",
-	  "Feel free to thank the author by giving him a book:\n",
-	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n",
-	  "(or its paypal account gilles.lamiral\@laposte.net)\n";
-
-
+	print "Detected $error errors\n\n";
+	print thank_author();
 }
 
+sub thank_author {
+
+	return(join("", "Happy with this free, open and gratis GPL software?\n",
+	  "Please, thank the author (Gilles LAMIRAL) by giving him a book:\n",
+	  "http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/\n",
+          "and rate imapsync at http://freshmeat.net/projects/imapsync/\n"));
+
+}
 
 sub get_options
 {
@@ -1639,6 +1699,7 @@ sub get_options
                                    "delete!"     => \$delete,
                                    "delete2!"    => \$delete2,
                                    "syncinternaldates!" => \$syncinternaldates,
+                                   "idatefromheader!" => \$idatefromheader,
                                    "syncacls!"   => \$syncacls,
 				   "maxsize=i"   => \$maxsize,
 				   "maxage=i"    => \$maxage,
@@ -1797,6 +1858,7 @@ sub string_to_file {
 
 sub usage {
 	my $localhost_info = localhost_info();
+	my $thank = thank_author();
         print <<EOF;
 
 usage: $0 [options]
@@ -1874,6 +1936,8 @@ Several options are mandatory.
 --expunge2             : expunge messages on target account.
 --syncinternaldates    : sets the internal dates on host2 same as host1.
                          Turned on by default.
+--idatefromheader      : sets the internal dates on host2 same as the 
+                         "Date:" headers. 
 --buffersize  <int>    : sets the size of a block of I/O.
 --maxsize     <int>    : skip messages larger than <int> bytes
 --maxage      <int>    : skip messages older than <int> days.
@@ -1927,13 +1991,13 @@ $0 \\
    --host2 imap.trac.org --user2 bar --passfile2 /etc/secret2
 
 $localhost_info
- Mail::IMAPClient version is $Mail::IMAPClient::VERSION
+Mail::IMAPClient version is $Mail::IMAPClient::VERSION
 $rcs
-      imapsync copyleft is the GNU General Public License.
-      See http://www.gnu.org/copyleft/gpl.html
-http://www.amazon.com/gp/registry/wishlist/1C9UNDIH3P7R7/
+
+$thank
 EOF
 }
+
 
 
 sub tests {
@@ -1942,6 +2006,7 @@ sub tests {
 		skip "No test in normal run" if (not $tests);
 		tests_folder_routines();
 		tests_compare_lists();
+		tests_regexmess();
 	}
 }
 
@@ -2217,6 +2282,19 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 };
 
 
+*Mail::IMAPClient::get_header = sub {
+        my($self , $msg, $header ) = @_;
+        my $val;
+        
+	#eval { $val = $self->parse_headers([$msg],$header)->{$header}[0] };
+	my $h = $self->parse_headers([$msg],$header);
+	#require Data::Dumper;
+	#print Data::Dumper->Dump([$h]);
+        #$val = $self->parse_headers([$msg],$header)->{$header}[0];
+	
+	$val = $h->{$msg}{$header}[0];
+        return defined($val)? $val : undef;
+};
 
 
 *Mail::IMAPClient::parse_headers = sub {
@@ -2232,7 +2310,7 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 	unless(ref($msgspec_all) eq 'ARRAY') {
 		print "parse_headers want an ARRAY ref\n";
 		#exit 1;
-        return undef;
+		return undef;
 	}
 	
 	my $headers = {};       # hash from message ids to header hash
@@ -2466,27 +2544,18 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
               $string .= $result->[DATA]
                 if defined($result) and $self->_is_literal($result) ;
         }
+
         # BUG? should probably return undef if length != expected
+	# No bug, somme servers are buggy.
+
         if ( length($string) != $expected_size ) {
-                carp "${self}::message_string: " .
+                carp "message_string: " .
                         "expected $expected_size bytes but received " .
                         length($string);
-		$self->LastError("${self}::message_string: expected ".
+		$self->LastError("message_string: expected ".
                         "$expected_size bytes but received " .
                         length($string)."\n");
         }
-# REMOVE NEXT COMMENTED LINES
-#        if ( length($string) > $expected_size ){ 
-#		$string = substr($string,0,$expected_size) 
-#	}
-#        if ( length($string) < $expected_size ) {
-#                $self->LastError("${self}::message_string: expected ".
-#                        "$expected_size bytes but received " .
-#                        length($string)."\n");
-#                return $string;
-#                #return undef;
-#        }
-
         return $string;
 };
 
