@@ -1,6 +1,9 @@
 TODO file for imapsync
 ----------------------
 
+Read the IMAP RFC http://www.faqs.org/rfcs/rfc3501.html
+
+Respect the NAMESPACE behavior like the RFC.
 
 Add debian packaging in the Makefile.
 Write to the debian maintener about that.
@@ -9,29 +12,6 @@ Interface with external software like procmail
 
 Look at http://barnson.org/node/81
 
-Add in doc:
-> The problem seems to be that one of the imap servers (the destination
-> one) only supports connections over TLS, and refuses logins via plain tcp.
-> Does imapsync support IMAP over TLS (IMAPS)?
-
-Not natively. 
-but, 2 ways, at least :
-
-a) There are patches in patches/ directory to do this 
-   in imapsync code.
-   I tried to include them but it broke my tests.
-   It works but not always.
-
-b) Use stunnel
-   http://www.stunnel.org/
-   Assuming there is an imaps (993) server on imap.foo.org,
-   on your localhost machine (or bar machine) run :
-       stunnel -c -d imap -r imap.foo.org:imaps
-   or
-       stunnel -c -d 143 -r imap.foo.org:993
-   then use imapsync on localhost (or bar machine) imap (143) port.
-   
-
 Read:
 http://www.washington.edu/imap/documentation/commndmt.txt.html
 
@@ -39,7 +19,6 @@ Talk about :
 "I think notes is right but MS Eudora is bad with dates.
 (netscape or thunderbird is ok with dates)
 use the option --syncinternaldates "
-
 
 Add usage about --regextrans2
 To remove INBOX. in the name of destination folders :
@@ -58,6 +37,17 @@ Explain expunge behavior
 Add a --recurse option when --folder option is used.
 
 Add --prefix1 option. Don't know what is the need exactly.
+
+
+
+
+DONE. Add in doc: Does imapsync support IMAP over TLS (IMAPS)?
+
+DONE. Add the licence of each IMAP software (the free ones).
+
+DONE. Add  MailEnable version 1.54 if 
+Javier Gomez succeed. He failed.
+MailEnable is an early stage developpment IMAP server.
 
 DONE. Update doc with ALL options.
 

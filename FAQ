@@ -4,7 +4,8 @@
 +------------------+
 
 =======================================================================
-Q. We have found that the sent time and date have been changed to the time at which the file was synchronised. 
+Q. We have found that the sent time and date have been changed to the 
+   time at which the file was synchronised. 
 
 R. I guess this is the case with Eudora but not with Mutt, no ?
 Eurora shows by default the time the imap server received the email.
@@ -21,6 +22,26 @@ both parts.
 
 Solutions: a) Don't use buggy Eudora
 b) Use the --syncinternaldates option and keep using Eudora :-)
+
+=======================================================================
+Q. Does imapsync support IMAP over TLS (IMAPS)?
+
+R. Not natively. 
+but, 2 ways, at least :
+
+a) There are patches in patches/ directory to do this 
+   in imapsync code.
+   I tried to include them but it broke my tests.
+   It works but not always.
+
+b) Use stunnel
+   http://www.stunnel.org/
+   Assuming there is an imaps (993) server on imap.foo.org,
+   on your localhost machine (or bar machine) run :
+       stunnel -c -d imap -r imap.foo.org:imaps
+   or
+       stunnel -c -d 143 -r imap.foo.org:993
+   then use imapsync on localhost (or bar machine) imap (143) port.
 
 
 =======================================================================

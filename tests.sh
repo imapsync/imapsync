@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.39 2005/06/21 01:29:07 gilles Exp $	
+# $Id: tests.sh,v 1.40 2005/07/16 12:45:59 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -576,6 +576,51 @@ essnet_plume2()
         --noauthmd5 --sep1 / --foldersizes \
         --prefix2 INBOX. --regextrans2 's¤INBOX.INBOX¤INBOX¤'
 }
+
+dynamicquest_1()
+{
+
+perl -I bugs/lib ./imapsync \
+	--host1 69.38.48.81 \
+	--user1 testuser1@dq.com \
+	--passfile1 /var/tmp/secret.dynamicquest \
+	--host2 69.38.48.81 \
+	--user2 testuser2@dq.com \
+	--passfile2 /var/tmp/secret.dynamicquest \
+	--noauthmd5 --sep1 "/" --sep2 "/" \
+	--justconnect --dry 
+}
+
+dynamicquest_2()
+{
+
+perl -I bugs/lib ./imapsync \
+	--host1 mail.dynamicquest.com \
+	--user1 gomez \
+	--passfile1 /var/tmp/secret.dynamicquestgomez \
+	--host2 69.38.48.81 \
+	--user2 testuser2@dq.com \
+	--passfile2 /var/tmp/secret.dynamicquest \
+	--noauthmd5 \
+	--justconnect --dry 
+}
+
+dynamicquest_3()
+{
+
+perl -I bugs/lib ./imapsync \
+	--host1 loul \
+	--user1 tata \
+	--passfile1 /var/tmp/secret.tata \
+	--host2 69.38.48.81 \
+	--user2 testuser2@dq.com \
+	--passfile2 /var/tmp/secret.dynamicquest \
+	--noauthmd5 --sep2 "/" --debug --debugimap
+	
+}
+
+
+
 
 useheader() 
 {
