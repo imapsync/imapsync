@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.72 2008/04/21 03:44:35 gilles Exp gilles $  
+# $Id: tests.sh,v 1.73 2008/05/08 02:10:31 gilles Exp gilles $  
 
 #### Shell pragmas
 
@@ -1012,7 +1012,7 @@ test $# -eq 0 && run_tests \
         ll_delete2 \
         ll_folderrec \
         ll_bigmail \
-        msw
+#        msw
 
 
 

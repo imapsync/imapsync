@@ -9,7 +9,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 32 different IMAP server softwares
 supported with success.
 
-$Revision: 1.250 $
+$Revision: 1.252 $
 
 =head1 INSTALL
 
@@ -205,9 +205,39 @@ the GNU General Public License. See the GPL file included in
 the distribution or the web site
 http://www.gnu.org/licenses/licenses.html
 
+=head1 MAILING-LIST
+
+Here is the welcome message:
+
+Welcome on the imapsync mailing-list.
+
+This list is dedicated to the users of imapsync
+http://www.linux-france.org/prj/imapsync/
+
+To write on the list, the address is:
+mailto:imapsync@linux-france.org
+
+To unsubscribe, send a message to:
+mailto:imapsync-unsubscribe@listes.linux-france.org
+
+To subscribe, send a message to:
+mailto:imapsync-subscribe@listes.linux-france.org
+
+To contact the person in charge for the list:
+mailto:imapsync-request@listes.linux-france.org
+
+The list archives may be available at:
+http://www.linux-france.org/prj/imapsync_list/
+So consider that the list is public, anyone
+can see your post. Use a pseudonym or do not
+post to this list if you want to stay private.
+
+Thank you for your participation.
+
 =head1 BUGS
 
-No known serious bug.  Report any bug to the author.
+No known serious bug.  Report any bug or feature request to the author
+or the mailing-list.
 Before reporting bugs, read the FAQ, this README and the
 TODO files.
 
@@ -387,7 +417,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.250 2008/04/21 03:46:01 gilles Exp gilles $
+$Id: imapsync,v 1.252 2008/05/08 02:30:17 gilles Exp gilles $
 
 
 
@@ -452,7 +482,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.250 2008/04/21 03:46:01 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.252 2008/05/08 02:30:17 gilles Exp gilles $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -486,8 +516,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.250 $ ',
-		  '$Date: 2008/04/21 03:46:01 $ ',
+		  '$Revision: 1.252 $ ',
+		  '$Date: 2008/05/08 02:30:17 $ ',
 		  "\n",localhost_info(),
 		  " and the module Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n",
@@ -2192,14 +2222,16 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
         my($self,$msgspec_all,@fields) = @_;
         my(%fieldmap) = map { ( lc($_),$_ )  } @fields;
         my $msg; my $string; my $field;
-	
-	if(ref($msgspec_all) eq 'HASH') {
-		$msgspec_all = [$msgspec_all];
-	}
+	#print ref($msgspec_all), "\n";
+	#if(ref($msgspec_all) eq 'HASH') {
+    #    print ref($msgspec_all), "\n";
+		#$msgspec_all = [$msgspec_all];
+	#}
 
 	unless(ref($msgspec_all) eq 'ARRAY') {
 		print "parse_headers want an ARRAY ref\n";
-		exit 1;
+		#exit 1;
+        return undef;
 	}
 	
 	my $headers = {};       # hash from message ids to header hash
@@ -2278,22 +2310,28 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
                         my $hdr = $header;
                         chomp $hdr;
                         $hdr =~ s/\r$//;
-			#print "W[$hdr]\n";
-			
-                        if (defined($hdr) and $hdr =~ s/^(\S+):\s*//) {
-			        #print "X";
+			#print "W[$hdr]", ref($hdr), "!\n";
+			#next if ( ! defined($hdr));
+			#print "X[$hdr]\n";
+
+                        if (defined($hdr) and ($hdr =~ s/^(\S+):\s*//)) {
+			# if ($hdr =~ s/^(\S+):\s*//) {
+				#print "X1\n";
 				$field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
                                 push @{$h->{$field}} , $hdr ;
                         } elsif ($hdr =~ s/^.*FETCH\s\(.*BODY\[HEADER\.FIELDS.*\)\]\s(\S+):\s*//) { 
+				#print "X2\n";
                                 $field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
                                 push @{$h->{$field}} , $hdr ;
                         } elsif ( ref($h->{$field}) eq 'ARRAY') {
+				#print "X3\n";
                                 
                                         $hdr =~ s/^\s+/ /;
                                         $h->{$field}[-1] .= $hdr ;
                         }
                 }
         }
+	use warnings;
         my $candump = 0;
         if ($self->Debug) {
                 eval {
@@ -2410,6 +2448,40 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
   return MIME::Base64::encode($client->User() . " $hmac", "");
 };
 
+*Mail::IMAPClient::message_string = sub {
+        my $self = shift;
+        my $msg  = shift;
+        my $expected_size = $self->size($msg);
+        return undef unless(defined $expected_size);    # unable to get size
+        my $cmd  =      $self->has_capability('IMAP4REV1')                              ?
+                                "BODY" . ( $self->Peek ? '.PEEK[]' : '[]' )             :
+                                "RFC822" .  ( $self->Peek ? '.PEEK' : ''  )             ;
+
+        $self->fetch($msg,$cmd) or return undef;
+
+        my $string = "";
+
+        foreach my $result  (@{$self->{"History"}{$self->Transaction}}) {
+              $string .= $result->[DATA]
+                if defined($result) and $self->_is_literal($result) ;
+        }
+        # BUG? should probably return undef if length != expected
+        if ( length($string) != $expected_size ) {
+                carp "${self}::message_string: " .
+                        "expected $expected_size bytes but received " .
+                        length($string);
+        }
+        if ( length($string) > $expected_size )
+        { $string = substr($string,0,$expected_size) }
+        if ( length($string) < $expected_size ) {
+                $self->LastError("${self}::message_string: expected ".
+                        "$expected_size bytes but received " .
+                        length($string)."\n");
+                return $string;
+                #return undef;
+        }
+        return $string;
+};
 
 
 
