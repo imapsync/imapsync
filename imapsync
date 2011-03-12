@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.13 $
+$Revision: 1.14 $
 
 =head1 INSTALL
 
@@ -136,7 +136,7 @@ both sides. This will help future users.
 
 Feedback will be welcome.
 
-$Id: imapsync,v 1.13 2003/07/16 17:28:59 gilles Exp $
+$Id: imapsync,v 1.14 2003/07/17 11:58:56 gilles Exp $
 
 =cut
 
@@ -161,7 +161,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.13 2003/07/16 17:28:59 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.14 2003/07/17 11:58:56 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
@@ -198,18 +198,20 @@ $from = Mail::IMAPClient->new( Server   => $host1,
 			       Fast_IO  => 1,
 			       Uid      => 1,
 			       Peek     => 1,
-			       Debug    => $debugimap,) 
+			       Debug    => $debugimap,
+			     ) 
   or die "can't open imap connection on [$host1] with user [$user1]\n";
 
 
-$to = Mail::IMAPClient->new( Server => $host2,
-			     Port     => $port1,
-			     User => $user2,
-			     Password=> $password2,
-			     Fast_IO => 1,
-			     Uid => 1,
-			     Peek => 1,
-			     Debug => 0,) 
+$to = Mail::IMAPClient->new( Server   => $host2,
+			     Port     => $port2,
+			     User     => $user2,
+			     Password => $password2,
+			     Fast_IO  => 1,
+			     Uid      => 1,
+			     Peek     => 1,
+			     Debug    => 0,
+			   ) 
   or die "can't open imap connection on [$host2] with user [$user2]\n";
 
 my @f_folders;
