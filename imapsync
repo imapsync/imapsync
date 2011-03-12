@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.163 $
+$Revision: 1.164 $
 
 =head1 INSTALL
 
@@ -64,6 +64,7 @@ $Revision: 1.163 $
            [--dry]
            [--debug] [--debugimap]
            [--timeout <int>] [--fast]
+           [--split1] [--split2] 
            [--version] [--help]
   
 =cut
@@ -336,7 +337,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.163 2006/03/24 04:18:58 gilles Exp $
+$Id: imapsync,v 1.164 2006/03/26 03:17:48 gilles Exp $
 
 =cut
 
@@ -385,12 +386,13 @@ my(
         $ssl1, $ssl2,
         $authuser1, $authuser2,
         $authmech1, $authmech2,
+        $split1, $split2,
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.163 2006/03/24 04:18:58 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.164 2006/03/26 03:17:48 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -427,8 +429,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.163 $ ',
-		  '$Date: 2006/03/24 04:18:58 $ ',
+		  '$Revision: 1.164 $ ',
+		  '$Date: 2006/03/26 03:17:48 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -641,6 +643,10 @@ print "From state Authenticated\n";
 die unless   $to->IsAuthenticated();
 print "To   state Authenticated\n";
 
+$split1 and $from->Split($split1);
+$split2 and $to->Split($split2);
+
+
 my (@f_folders, @t_folders, %fs_folders);
 
 # Make a hash of subscribed folders in source server.
@@ -771,7 +777,7 @@ sub foldersizes {
 			$smess = $imap->message_count();
 			unless ($smess == 0) {
 				#$imap->Ranges(1);
-				$imap->fetch_hash("RFC822.SIZE",$hashref) or die "$@";
+				$imap->fetch_hash2("RFC822.SIZE",$hashref) or die "$@";
 				#$imap->Ranges(0);
 				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
 				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
@@ -944,7 +950,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my $f_heads = $from->parse_headers($from->Range([@f_msgs]),@useheader) 
 	  if (@f_msgs) ;
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $f_fir  = $from->fetch_hash("FLAGS",
+	my $f_fir  = $from->fetch_hash2("FLAGS",
 				       "INTERNALDATE",
 				       "RFC822.SIZE") if (@f_msgs);
 	$debug and print "Time fir  : ", timenext(), " s\n";
@@ -958,7 +964,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my $t_heads =   $to->parse_headers($to->Range([@t_msgs]),@useheader) 
 	  if (@t_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
-	my $t_fir  =   $to->fetch_hash("FLAGS",
+	my $t_fir  =   $to->fetch_hash2("FLAGS",
 				       "INTERNALDATE",
 				       "RFC822.SIZE") if (@t_msgs);
 	$debug and print "Time fir  : ", timenext(), " s\n";
@@ -1221,6 +1227,8 @@ sub get_options
 				   "authmech2=s" => \$authmech2,
 				   "authuser1=s" => \$authuser1,
 				   "authuser2=s" => \$authuser2,
+				   "split1=i"    => \$split1,
+				   "split2=i"    => \$split2,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -1408,7 +1416,9 @@ Several options are mandatory.
 --justconnect          : just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
 --justfolders          : just do things about folders (ignore messages).
---fast                 : be faster (does not sync flags).
+--fast                 : be faster (just does not sync flags).
+--split1               : split the requests in several parts on source server.
+--split2               : same thing on the "destination" server.
 --nofastio1            : don't use fastio with the "from" server.
 --nofastio2            : don't use fastio with the "destination" server.
 --timeout     <int>    : imap connect timeout.
@@ -1438,4 +1448,82 @@ sub Authuser {
 	
 	if (@_) { $self->{AUTHUSER} = shift }
 	return $self->{AUTHUSER};
+}
+
+
+sub Split {
+	my $self = shift;
+	
+	if (@_) { $self->{SPLIT} = shift }
+	return $self->{SPLIT};
+}
+
+
+
+sub fetch_hash2 {
+	# taken from original lib, 
+	# just added split code.
+        my $self = shift;
+        my $hash = ref($_[-1]) ? pop @_ : {};
+        my @words = @_;
+        for (@words) { 
+                s/([\( ])FAST([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE$2/i  ;
+                s/([\( ])FULL([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE ENVELOPE BODY$2/i  ;
+        }
+        my $msgref_all = scalar($self->messages);
+	my $split = $self->Split() || scalar(@$msgref_all);
+	while(my @msgs = splice(@$msgref_all, 0, $split)) {
+	#print "SPLIT: @msgs\n";
+	my $msgref = \@msgs;
+	my $output = scalar($self->fetch($msgref,"(" . join(" ",@_) . ")")) 
+        ; #     unless grep(/\b(?:FAST|FULL)\b/i,@words);
+        my $x;
+        for ($x = 0;  $x <= $#$output ; $x++) {
+                my $entry = {};
+                my $l = $output->[$x];
+                if ($self->Uid) {       
+                        my($uid) = $l =~ /\((?:.* )?UID (\d+).*\)/i;
+                        next unless $uid;
+                        if ( exists $hash->{$uid} ) {
+                                $entry = $hash->{$uid} ;
+                        } else {
+                                $hash->{$uid} ||= $entry;
+                        }
+                } else {
+                        my($mid) = $l =~ /^\* (\d+) FETCH/i;
+                        next unless $mid;
+                        if ( exists $hash->{$mid} ) {
+                                $entry = $hash->{$mid} ;
+                        } else {
+                                $hash->{$mid} ||= $entry;
+                        }
+                }
+                        
+                foreach my $w (@words) {
+                   if ( $l =~ /\Q$w\E\s*$/i ) {
+                        $entry->{$w} = $output->[$x+1];
+                        $entry->{$w} =~ s/(?:\x0a?\x0d)+$//g;
+                        chomp $entry->{$w};
+                   } else {
+                        $l =~ /\(           # open paren followed by ... 
+                                (?:.*\s)?   # ...optional stuff and a space
+                                \Q$w\E\s    # escaped fetch field<sp>
+                                (?:"        # then: a dbl-quote
+                                  (\\.|   # then bslashed anychar(s) or ...
+                                   [^"]+)   # ... nonquote char(s)
+                                "|          # then closing quote; or ...
+                                \(          # ...an open paren
+                                  (\\.|     # then bslashed anychar or ...
+                                   [^\)]+)  # ... non-close-paren char
+                                \)|         # then closing paren; or ...
+                                (\S+))      # unquoted string
+                                (?:\s.*)?   # possibly followed by space-stuff
+                                \)          # close paren
+                        /xi;
+                        $entry->{$w}=defined($1)?$1:defined($2)?$2:$3;
+                   }
+                }
+        }
+}
+        return wantarray ? %$hash : $hash;
 }
