@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.6 2003/08/24 01:56:49 gilles Exp $	
+# $Id: tests.sh,v 1.7 2003/10/17 01:34:16 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.7  2003/10/17 01:34:16  gilles
+# Added lp_folder_qqq() test
+#
 # Revision 1.6  2003/08/24 01:56:49  gilles
 # Indented long lines
 #
@@ -125,6 +128,24 @@ lp_folder() {
 	fi
 }
 
+lp_folder_qqq() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--folder INBOX.qqq  \
+		--prefix2 INBOX. \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata
+	else
+		:
+	fi
+}
+
+
+
+
 pl_folder() {
 	if test X`hostname` = X"plume"; then
 		echo3 Here is plume
@@ -140,6 +161,9 @@ pl_folder() {
 }
 
 
+
+
+
 # mandatory tests
 
 run_tests perl_syntax 
@@ -152,7 +176,8 @@ test $# -eq 0 && run_tests \
 	loulplume \
 	plumeloul \
 	lp_folder \
-	pl_folder
+	pl_folder \
+	lp_folder_qqq
 
 # selective tests
 

@@ -4,7 +4,7 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.37 $
+$Revision: 1.40 $
 
 =head1 INSTALL
 
@@ -24,7 +24,8 @@ $Revision: 1.37 $
            [--user1 <string>] [--passfile1 <string>] 
            [--host2 server2]  [--port2 <num>]
            [--user2 <string>] [--passfile2 <string>] 
-	   [--folder <string> --folder <string> ...] 
+           [--folder <string> --folder <string> ...]
+           [--prefix2 <string>]
            [--delete] [--expunge]
            [--dry]
            [--debug] [--debugimap]
@@ -146,7 +147,7 @@ Rate imapsync : http://freshmeat.net/projects/imapsync/
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.37 2003/10/16 01:37:52 gilles Exp $
+$Id: imapsync,v 1.40 2003/10/17 01:34:59 gilles Exp $
 
 =cut
 
@@ -158,10 +159,10 @@ use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
 
 my(
-	$rcs, $debug, $debugimap, $error,
+        $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-	@folder,
+	@folder, $prefix2,
 	$delete, $expunge, $dry, 
 	$version, $VERSION, $help, 
 );
@@ -169,12 +170,12 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.37 2003/10/16 01:37:52 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.40 2003/10/17 01:34:59 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.37 $ ' . '$Date: 2003/10/16 01:37:52 $ ' . "\n";
+my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.40 $ ' . '$Date: 2003/10/17 01:34:59 $ ' . "\n";
 
 
 get_options();
@@ -248,16 +249,6 @@ print "To   separator : [$t_sep]\n";
 # needed for setting flags
 my $tohasuidplus = $to->has_capability("UIDPLUS");
 
-#if (scalar(@folder)) {
-#	# folders are given as argument.
-#	foreach my $f_fold (@folder) {
-#		push (@f_folders, @{$from->folders($f_fold)});
-#	}
-#}else{
-#	# no folder given so select all
-#	@f_folders = @{$from->folders()};
-#}
-
 
 @t_folders = @{$to->folders()};
 print 
@@ -270,6 +261,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	print "From Folder [$f_fold]\n";
 	$t_fold = $f_fold;
 	$t_fold =~ s@\Q$f_sep@$t_sep@g unless ($f_sep eq $t_sep);
+	$t_fold = $prefix2 . $t_fold if ($prefix2);
 	print "To   Folder [$t_fold]\n";
 	unless ($from->select($f_fold)) {
 		warn 
@@ -435,6 +427,7 @@ sub get_options
                                    "passfile1=s" => \$passfile1,
                                    "passfile2=s" => \$passfile2,
 				   "folder=s"    => \@folder,
+				   "prefix2=s"   => \$prefix2,
                                    "delete!"     => \$delete,
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
@@ -509,6 +502,8 @@ Several options are mandatory.
 --folder      <string> : sync only this folder and its children.
 --folder      <string> : and this one (and its children).
 --folder      <string> : and this one, etc.
+--prefix2     <string> : Add prefix to all destination folders 
+                         (usually INBOX. for cyrus imap servers)
 --delete               : delete messages in "from" imap server after
                          a successful transfert. useful in case you
                          want to migrate from one server to another one.
