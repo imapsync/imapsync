@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.2 2003/03/14 02:25:27 gilles Exp gilles $	
+# $Id: Makefile,v 1.3 2003/05/05 22:55:25 gilles Exp $	
 
 TARGET=imapsync
 
@@ -89,4 +89,5 @@ lfo: dist
 	rsync -av --delete . \
 	/home/gilles/public_html/www.linux-france.org/html/prj/$(TARGET)/
 	sh ~/memo/lfo-rsync
+
 

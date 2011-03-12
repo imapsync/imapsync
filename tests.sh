@@ -1,8 +1,14 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.1 2003/03/12 23:14:45 gilles Exp gilles $	
+# $Id: tests.sh,v 1.3 2003/05/05 22:32:01 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.3  2003/05/05 22:32:01  gilles
+# Added pl_folder() test
+#
+# Revision 1.2  2003/05/05 21:05:49  gilles
+# Added lp_folder to test --folder option
+#
 # Revision 1.1  2003/03/12 23:14:45  gilles
 # Initial revision
 #
@@ -10,9 +16,9 @@
 
 #### Shell pragmas
 
-exec 3>&2
-#set -x # debug mode. See what is running
-set -e # exit on first failure
+exec 3>&2 # 
+#set -x   # debug mode. See what is running
+set -e    # exit on first failure
 
 #### functions definitions
 
@@ -100,6 +106,29 @@ plumeloul() {
 	fi
 }
 
+lp_folder() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle --passfile2 /var/tmp/secret.tata \
+		--folder INBOX.yop \
+		--host1 loul  --user1 tata --passfile1 /var/tmp/secret.tata
+	else
+		:
+	fi
+}
+
+pl_folder() {
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 plume --user1 tata@est.belle --passfile1 /var/tmp/secret.tata \
+		--folder INBOX.yop \
+		--host2 loul  --user2 tata --passfile2 /var/tmp/secret.tata
+	else
+		:
+	fi
+}
 
 
 # mandatory tests
@@ -112,7 +141,9 @@ test $# -eq 0 && run_tests \
 	no_args \
 	first_sync \
 	loulplume \
-	plumeloul
+	plumeloul \
+	lp_folder \
+	pl_folder
 
 # selective tests
 
