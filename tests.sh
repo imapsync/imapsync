@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.50 2006/03/25 22:22:53 gilles Exp $	
+# $Id: tests.sh,v 1.51 2006/03/30 02:22:56 gilles Exp $	
 
 #### Shell pragmas
 
@@ -729,6 +729,9 @@ lp_authuser() {
 		:
 	fi
 }
+
+
+
 
 lp_authmech_LOGIN() {
 	if test X`hostname` = X"plume"; then

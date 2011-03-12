@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.164 $
+$Revision: 1.166 $
 
 =head1 INSTALL
 
@@ -337,7 +337,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.164 2006/03/26 03:17:48 gilles Exp $
+$Id: imapsync,v 1.166 2006/03/30 02:22:39 gilles Exp $
 
 =cut
 
@@ -392,7 +392,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.164 2006/03/26 03:17:48 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.166 2006/03/30 02:22:39 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -429,8 +429,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.164 $ ',
-		  '$Date: 2006/03/26 03:17:48 $ ',
+		  '$Revision: 1.166 $ ',
+		  '$Date: 2006/03/30 02:22:39 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -527,13 +527,13 @@ sub ask_for_password {
 
 
 $password1 || $passfile1 || do {
-	ask_for_password($authuser1 || $user1, $host1);
+	$password1 = ask_for_password($authuser1 || $user1, $host1);
 };
 
 $password1 = (defined($passfile1)) ? firstline ($passfile1) : $password1;
 
 $password2 || $passfile2 || do {
-	ask_for_password($authuser2 || $user2, $host2);
+	$password2 = ask_for_password($authuser2 || $user2, $host2);
 };
 
 $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
@@ -944,11 +944,11 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	my %f_hash = ();
 	my %t_hash = ();
-
+	
 	print "++++ From [$f_fold] Parse 1 ++++\n";
 	
-	my $f_heads = $from->parse_headers($from->Range([@f_msgs]),@useheader) 
-	  if (@f_msgs) ;
+	my $f_heads = $from->parse_headers2([@f_msgs],
+					    @useheader)if (@f_msgs) ;
 	$debug and print "Time headers: ", timenext(), " s\n";
 	my $f_fir  = $from->fetch_hash2("FLAGS",
 				       "INTERNALDATE",
@@ -961,8 +961,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	$debug and print "Time headers: ", timenext(), " s\n";
 	
 	print "++++ To   [$t_fold] Parse 1 ++++\n";
-	my $t_heads =   $to->parse_headers($to->Range([@t_msgs]),@useheader) 
-	  if (@t_msgs);
+	my $t_heads =   $to->parse_headers2([@t_msgs],
+					    @useheader) if (@t_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
 	my $t_fir  =   $to->fetch_hash2("FLAGS",
 				       "INTERNALDATE",
@@ -1459,7 +1459,7 @@ sub Split {
 }
 
 
-
+# From IMAPClient.pm
 sub fetch_hash2 {
 	# taken from original lib, 
 	# just added split code.
@@ -1526,4 +1526,120 @@ sub fetch_hash2 {
         }
 }
         return wantarray ? %$hash : $hash;
+}
+
+
+# From IMAPClient.pm
+sub parse_headers2 {
+        my($self,$msgspec_all,@fields) = @_;
+        my(%fieldmap) = map { ( lc($_),$_ )  } @fields;
+        my $msg; my $string; my $field;
+	
+	unless(ref($msgspec_all) eq 'ARRAY') {
+		print "parse_headers2 want an ARRAY ref\n";
+		exit 1;
+	}
+	
+	my $headers = {};       # hash from message ids to header hash
+	my $split = $self->Split() || scalar(@$msgspec_all);
+	while(my @msgs = splice(@$msgspec_all, 0, $split)) {
+		print "SPLIT: @msgs\n";
+		my $msgspec = \@msgs;
+
+        # Make $msg a comma separated list, of messages we want
+        $msg = $self->Range($msgspec);
+		
+        if ($fields[0]  =~      /^[Aa][Ll]{2}$/         ) { 
+
+                $string =       "$msg body" . 
+                # use ".peek" if Peek parameter is a) defined and true, 
+                #       or b) undefined, but not if it's defined and untrue:
+
+                (       defined($self->Peek)            ? 
+                        ( $self->Peek ? ".peek" : "" )  : 
+                        ".peek" 
+                ) .  "[header]"                         ; 
+
+        } else {
+                $string =       "$msg body" .
+                # use ".peek" if Peek parameter is a) defined and true, or 
+                # b) undefined, but not if it's defined and untrue:
+
+                ( defined($self->Peek)                  ? 
+                        ( $self->Peek ? ".peek" : "" )  : 
+                        ".peek" 
+                ) .  "[header.fields (" . join(" ",@fields)     . ')]' ;
+        }
+
+        my @raw=$self->fetch(   $string ) or return undef;
+
+        
+        my $h = 0;              # reference to hash of current msgid, or 0 between msgs
+        
+        for my $header (map { split(/(?:\x0d\x0a)/,$_) } @raw) {
+                local($^W) = undef;
+                if ( $header =~ /^\*\s+\d+\s+FETCH\s+\(.*BODY\[HEADER(?:\]|\.FIELDS)/i) {
+                        if ($self->Uid) {
+                                if ( my($msgid) = $header =~ /UID\s+(\d+)/ ) {
+                                        $h = {};
+                                        $headers->{$msgid} = $h;
+                                } else {
+                                        $h = {};
+                                }
+                        } else {
+                                if ( my($msgid) = $header =~ /^\*\s+(\d+)/ ) {
+                                        #start of new message header:
+                                        $h = {};
+                                        $headers->{$msgid} = $h;
+                                }
+                        }
+                }
+                next if $header =~ /^\s+$/;
+
+                # ( for vi
+                if ($header =~ /^\)/) {           # end of this message
+                        $h = 0;                   # set to be between messages
+                        next;
+                }
+                # check for '<optional_white_space>UID<white_space><UID_number><optional_white_space>)'
+                # when parsing headers by UID.
+                if ($self->Uid and my($msgid) = $header =~ /^\s*UID\s+(\d+)\s*\)/) {
+                        $headers->{$msgid} = $h;        # store in results against this message
+                        $h = 0;                         # set to be between messages
+                        next;
+                }
+
+                if ($h != 0) {                    # do we expect this to be a header?
+                        my $hdr = $header;
+                        chomp $hdr;
+                        $hdr =~ s/\r$//;   
+                        if ($hdr =~ s/^(\S+):\s*//) { 
+                                $field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
+                                push @{$h->{$field}} , $hdr ;
+                        } elsif ($hdr =~ s/^.*FETCH\s\(.*BODY\[HEADER\.FIELDS.*\)\]\s(\S+):\s*//) { 
+                                $field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
+                                push @{$h->{$field}} , $hdr ;
+                        } elsif ( ref($h->{$field}) eq 'ARRAY') {
+                                
+                                        $hdr =~ s/^\s+/ /;
+                                        $h->{$field}[-1] .= $hdr ;
+                        }
+                }
+        }
+        my $candump = 0;
+        if ($self->Debug) {
+                eval {
+                        require Data::Dumper;
+                        Data::Dumper->import;
+                };
+                $candump++ unless $@;
+        }
+
+	}
+        # if we asked for one message, just return its hash,
+        # otherwise, return hash of numbers => header hash
+        # if (ref($msgspec) eq 'ARRAY') {
+        
+	return $headers;
+        
 }
