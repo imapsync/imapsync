@@ -87,6 +87,51 @@ R. Examples:
     --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
 
 =======================================================================
+Q. I would like to move emails from InBox to a sub-folder
+called , say "2005-InBox" based on the date (Like all emails
+received in the Year 2005 should be moved to the folder
+called "2005-InBox").
+
+R. 2 ways :
+
+a) Manually:
+------------
+
+1) You create a folder INBOX.2005-INBOX
+2) Mostly every email software allow sorting by date.
+In inbox, you select from 1 january to 31 december
+messages with the shift key.
+3) Cut/paste in INBOX.2005-INBOX
+
+b) With imapsync:
+-----------------
+
+you have to calculate the day of year (and
+add 365).  For example, running it today, Sat Mar 11
+13:06:01 CET 2006:
+
+imapsync ... 
+--host1 imap.truc.org --host2 imap.trac.org \
+--user1 foo --user2 foo  \
+...
+--maxage 435 --minage 70 \
+--regextrans2 's/^INBOX$/INBOX.2005-INBOX/' \
+--folder INBOX
+
+
+To know the day of year:
+
+$ date
+Sat Mar 11 13:06:01 CET 2006
+
+$ date +%j
+070
+
+Also, you must take imapsync 1.159 at least since I tested
+what I just wrote above and found 2 bugs about --mindate
+--maxdate options behavior.
+
+=======================================================================
 Q. I'm migrating from WU to Cyrus, and the mail folders are
 under /home/user/mail but the tool copies everything in
 /home/user, how can i avoid that?
