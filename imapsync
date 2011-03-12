@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.111 $
+$Revision: 1.112 $
 
 =head1 INSTALL
 
@@ -281,7 +281,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.111 2005/01/04 04:05:07 gilles Exp $
+$Id: imapsync,v 1.112 2005/01/04 04:49:43 gilles Exp $
 
 =cut
 
@@ -323,7 +323,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.111 2005/01/04 04:05:07 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.112 2005/01/04 04:49:43 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -360,8 +360,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.111 $ ',
-		  '$Date: 2005/01/04 04:05:07 $ ',
+		  '$Revision: 1.112 $ ',
+		  '$Date: 2005/01/04 04:49:43 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -679,29 +679,30 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		$error++;
 		next FOLDER;
 	}
-
+	
 	if ($expunge){
 		print "Expunging $f_fold and $t_fold\n";
 		unless($dry) { $from->expunge() };
 		#unless($dry) { $to->expunge() };
 	}
-
+	
 	if ($subscribe and exists $fs_folders{$f_fold}) {
 		print "Subscribing to folder $t_fold on destination server\n";
 		unless($dry) { $to->subscribe($t_fold) };
 	}
 	
-	my $hash = $from->getacl($f_fold)
-	  or warn "Could not getacl for $f_fold: $@\n";
-	foreach my $user (keys(%$hash)) {
-		my $acl = $hash->{$user};
-		print "acl $user : " . $acl . "\n";
-		if ($syncacls and ! $dry) {
-			print "setting acl $t_fold $user $acl\n";
-			$to->setacl($t_fold, $user, $acl)
-			  or warn "Could not set acl: $@\n";
-		}
-
+	if ($syncacls) {
+	  my $hash = $from->getacl($f_fold)
+	    or warn "Could not getacl for $f_fold: $@\n";
+	  foreach my $user (keys(%$hash)) {
+	    my $acl = $hash->{$user};
+	    print "acl $user : " . $acl . "\n";
+	    unless ($dry) {
+	      print "setting acl $t_fold $user $acl\n";
+	      $to->setacl($t_fold, $user, $acl)
+		or warn "Could not set acl: $@\n";
+	    }
+	  }
 	}
 	
 	next FOLDER if ($justfolders);

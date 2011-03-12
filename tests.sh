@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.30 2004/12/28 23:22:02 gilles Exp $	
+# $Id: tests.sh,v 1.31 2005/01/04 04:50:12 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.31  2005/01/04 04:50:12  gilles
+# essnet update
+#
 # Revision 1.30  2004/12/28 23:22:02  gilles
 # Added lp_justfolders()
 #
@@ -600,7 +603,8 @@ essnet_mail2_mail()
 	--user2 gilles@softwareuno.com \
 	--passfile2 /var/tmp/secret.prw \
 	--noauthmd5 --sep1 / --foldersizes \
-	--prefix2 "INBOX/" --regextrans2 's¤INBOX¤¤'
+	--nosyncacls \
+        --prefix2 "INBOX/" --regextrans2 's¤INBOX/INBOX¤INBOX¤'
 }
 
 essnet_mail2_mail_t123()
@@ -615,7 +619,8 @@ for user1 in test1 test2 test3; do
 	--user2 gilles@softwareuno.com \
 	--passfile2 /var/tmp/secret.prw \
 	--noauthmd5 --sep1 / --foldersizes \
-	--prefix2 "INBOX/" --regextrans2 's¤INBOX¤¤' \
+	--prefix2 "INBOX/" --regextrans2 's¤INBOX/INBOX¤INBOX¤' \
+        --nosyncacls --debug \
 	|| true
 done
 }
@@ -629,7 +634,10 @@ essnet_plume2()
 	--passfile1 /var/tmp/secret.prw \
 	--host2 plume --user2 tata@est.belle \
 	--passfile2 /var/tmp/secret.tata \
-	--noauthmd5 --sep1 / --foldersizes --prefix2 INBOX.
+	--nosyncacls \
+        --noauthmd5 --sep1 / --foldersizes \
+        --prefix2 INBOX. --regextrans2 's¤INBOX.INBOX¤INBOX¤' \
+	--nosyncacls 
 }
 
 
