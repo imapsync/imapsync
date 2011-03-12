@@ -313,14 +313,21 @@ Q. Give examples about --regextrans2
 
 R. Examples: 
 
-0) First try with --dry option since imapsync shows the transformation
-it will do. Then when happy with the output remove the --dry option
+0) First try with --dry --justfolders options since imapsync shows the 
+transformations it will do without really doing them. Then when happy 
+with the output remove the --dry --justfolders options.
 
 1) To remove INBOX. in the name of destination folders:
     --regextrans2 's/^INBOX\.(.+)/$1/'
 
 2) To sync a complete account in a subfolder called FOO:
+  
+  a) Separator is dot character "." and "INBOX" prefixes every folder
     --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
+
+  Or
+  b) Separator is slash character "/" 
+   --regextrans2 's#(.*)#FOO/$1#'
 
 3) to substitute all characters dot "." by underscores "_"
     --regextrans2 's/\./_/g'
@@ -599,5 +606,19 @@ Q: How can I write an .rpm with imapsync
 R: I don't know but Neil Brown wrote one rpm package and you'll find
    his .spec file here :
    http://www.linux-france.org/prj/imapsync/learn/rpm/
+
+======================================================================
+Q: Problems on win32, Timezone and Date::Manip
+R: Comment the code like the following
+
+  if ($syncinternaldates) {
+     $d = $f_idate;
+     $debug and print "internal date from 1: [$d]\n";
+     #require Date::Manip;
+     #Date::Manip->import(qw(ParseDate Date_Cmp UnixDate));
+     #$d = UnixDate(ParseDate($d), "%d %b %Y %H:%M:%S %z");
+     #$d = "\"$d\"";
+     #$debug and print "internal date from 1: [$d] (fixed)\n";
+  }
 
 

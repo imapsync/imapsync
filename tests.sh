@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.68 2007/12/29 02:40:06 gilles Exp gilles $	
+# $Id: tests.sh,v 1.69 2007/12/31 13:38:37 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -419,6 +419,24 @@ ll_include()
 		:
 	fi
 }
+
+ll_exclude() 
+{
+	sendtestmessage
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host1 localhost --user1 tata@est.belle \
+		--passfile1 /var/tmp/secret.tata \
+		--host2 localhost --user2 titi@est.belle \
+		--passfile2 /var/tmp/secret.titi \
+		--exclude '^INBOX.yop'
+	else
+		:
+	fi
+}
+
+
 
 ll_regextrans2() 
 {
@@ -939,6 +957,7 @@ test $# -eq 0 && run_tests \
 	ll_skipsize \
 	ll_skipheader \
 	ll_include \
+	ll_exclude \
 	ll_regextrans2 \
 	ll_sep2 \
 	ll_bad_login \
