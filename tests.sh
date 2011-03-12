@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.91 2009/06/30 03:16:31 gilles Exp gilles $  
+# $Id: tests.sh,v 1.92 2009/07/03 01:00:42 gilles Exp gilles $  
 
 # Example:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.14/lib' sh -x tests.sh
@@ -91,6 +91,12 @@ sendtestmessage() {
 }
 
 
+can_send() {
+    test X`hostname` = X"plume" && return 0;
+    test X`hostname` = X"vadrouille" && return 0;
+    return 1
+}
+
 zzzz() {
         $CMD_PERL -V
 
@@ -136,7 +142,7 @@ first_sync() {
 
 
 locallocal() {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
                 sendtestmessage
         else
@@ -246,7 +252,7 @@ ll_prefix12() {
 
 
 ll_internaldate() {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
                 sendtestmessage
         else
@@ -264,7 +270,7 @@ ll_internaldate() {
 
 
 ll_idatefromheader() {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
                 sendtestmessage
         else
@@ -362,7 +368,7 @@ ll_noauthmd5()
 
 ll_maxage() 
 {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 		sendtestmessage
         else
@@ -382,7 +388,7 @@ ll_maxage()
 ll_maxsize() 
 {
         
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 		sendtestmessage
         else
@@ -400,7 +406,7 @@ ll_maxsize()
 ll_skipsize() 
 {
         
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 		sendtestmessage
         else
@@ -417,7 +423,7 @@ ll_skipsize()
 
 ll_skipheader() 
 {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
         	sendtestmessage
         else
@@ -436,7 +442,7 @@ ll_skipheader()
 
 ll_include() 
 {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 	        sendtestmessage
         else
@@ -453,7 +459,7 @@ ll_include()
 
 ll_exclude() 
 {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 	        sendtestmessage
         else
@@ -472,7 +478,7 @@ ll_exclude()
 
 ll_regextrans2() 
 {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 	        sendtestmessage
         else
@@ -563,7 +569,7 @@ ll_useheader()
 
 ll_regexmess() 
 {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 rm -f /home/vmail/titi/.yop.yap/cur/*
         fi
                 $CMD_PERL ./imapsync \
@@ -577,7 +583,7 @@ ll_regexmess()
                  --debug \
             --allow3xx
                 
-        if test X`hostname` = X"plume"; then 	
+        if can_send; then 	
 		file=`ls -t /home/vmail/titi/.yop.yap/cur/* | tail -1`
                 diff ../../var/imapsync/tests/ll_regexmess/dest_01 $file
                 #echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
@@ -639,7 +645,7 @@ ssl_justconnect() {
 }
 
 ll_ssl() {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 		sendtestmessage
         else
@@ -705,7 +711,7 @@ ll_authmech_CRAMMD5() {
 }
 
 ll_delete2() {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
 		sendtestmessage titi
         else
@@ -802,7 +808,7 @@ gmail_gmail2() {
 
 
 allow3xx() {
-        if test X`hostname` = X"plume"; then
+        if can_send; then
                 #echo3 Here is plume
                 sendtestmessage
         else
@@ -819,7 +825,7 @@ allow3xx() {
 
 
 archiveopteryx_1() {
-	if test X`hostname` = X"plume"; then
+	if can_send; then
                 #echo3 Here is plume
                 sendtestmessage je@lupus.aox.org
         else

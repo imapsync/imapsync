@@ -1,0 +1,98 @@
+--- imapsync.ORIG	2009-06-30 15:39:54.156250000 -0400
++++ imapsync	2009-06-30 15:55:06.703125000 -0400
+@@ -1237,7 +1237,7 @@
+ 	my ($t_fold);
+ 	my ($x_fold) = @_;
+ 	# first we remove the prefix
+-	$x_fold =~ s/^$f_prefix//;
++	$x_fold =~ s/^\Q$f_prefix\E//;
+ 	$debug and print "removed source prefix: [$x_fold]\n";
+ 	$t_fold = separator_invert($x_fold,$f_sep, $t_sep);
+ 	$debug and print "inverted   separators: [$t_fold]\n";
+@@ -1406,9 +1406,11 @@
+ 	last FOLDER if $from->IsUnconnected();
+ 
+ 	foreach my $m (@f_msgs) {
+-		unless (parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash)) {
++		my $rc = parse_header_msg1($from, $m, $f_heads, $f_fir, "F", \%f_hash);
++		if (!$rc) {
++			my $reason = !defined($rc) ? "no header" : "duplicate";
+ 			my $f_size = $f_fir->{$m}->{"RFC822.SIZE"} || 0;
+-			print "+ Skipping msg #$m:$f_size in folder $f_fold (no header so we ignore this message)\n";
++			print "+ Skipping msg #$m:$f_size in folder $f_fold ($reason so we ignore this message)\n";
+ 			$mess_size_total_skipped += $f_size;
+ 			$mess_skipped += 1;
+ 		}
+@@ -1427,7 +1429,14 @@
+ 	$debug and print "Time fir: ", timenext(), " s\n";
+ 	last FOLDER if   $to->IsUnconnected();
+ 	foreach my $m (@t_msgs) {
+-		parse_header_msg1($to, $m, $t_heads, $t_fir, "T", \%t_hash);
++		my $rc = parse_header_msg1($to, $m, $t_heads, $t_fir, "T", \%t_hash);
++		if (!$rc) {
++			my $reason = !defined($rc) ? "no header" : "duplicate";
++			my $t_size = $t_fir->{$m}->{"RFC822.SIZE"} || 0;
++			print "+ Skipping msg #$m:$t_size in 'to' folder $t_fold ($reason so we ignore this message)\n";
++			#$mess_size_total_skipped += $msize;
++			#$mess_skipped += 1;
++		}
+ 	}
+ 	$debug and print "Time headers: ", timenext(), " s\n";
+ 
+@@ -1572,7 +1581,7 @@
+ 
+ 			my $flags_f = $f_hash{$m_id}{'F'} || "";
+ 			# RFC 2060: This flag can not be altered by any client
+-			$flags_f =~ s@\\Recent@@gi;
++			$flags_f =~ s@\\Recent\s?@@gi;
+ 			$flags_f = flags_regex($flags_f) if @regexflag;
+ 			
+ 			my $new_id;
+@@ -1638,14 +1647,24 @@
+ 		my $flags_f = $f_hash{$m_id}{'F'} || "";
+ 		my $flags_t = $t_hash{$m_id}{'F'} || "";
+ 
+-		# No flag \Recent here, no ?
++		# RFC 2060: This flag can not be altered by any client
++		$flags_f =~ s@\\Recent\s?@@gi;
+ 		$flags_f = flags_regex($flags_f) if @regexflag;
+ 
+-		$debug and print "Setting flags from($flags_f) to($flags_t)\n";
++		# compare flags - add missing flags
++		my @ff = split(' ', $flags_f );
++		my %ft = map { $_ => 1 } split(' ', $flags_t );
++		my @flags_a = map { exists $ft{$_} ? () : $_ } @ff;
+ 
+-		# This add or change flags but no flag are removed with this
+-		$to->store($t_msg, "+FLAGS.SILENT ($flags_f)" )
+-		  if (!$dry and $flags_f ne $flags_t);
++		$debug and print "Setting flags(@flags_a) ffrom($flags_f) fto($flags_t) on msg #$t_msg in $t_fold\n";
++
++		# This adds or changes flags but no flag are removed with this
++		if (!$dry and @flags_a and !$to->store($t_msg, "+FLAGS.SILENT (@flags_a)") ) {
++			warn "Could not add flags '@flags_a' flagf '$flags_f'",
++			  " flagt '$flags_t' on msg #$t_msg in $t_fold: ",
++			  $to->LastError, "\n";
++			#$error++;
++		}
+ 		last FOLDER if   $to->IsUnconnected();
+ 
+ 		$debug and do {
+@@ -1971,7 +1990,7 @@
+ 		#$headstr = $imap->message_string($m_uid);
+ 		
+ 		print "no header so we ignore this message\n";
+-		return;
++		return undef;
+ 	}
+ 	my $size  = $s_fir->{$m_uid}->{"RFC822.SIZE"};
+ 	my $flags = $s_fir->{$m_uid}->{"FLAGS"};
+@@ -1986,6 +2005,8 @@
+ 	else {
+                 $key = "$m_md5:$size";
+         }
++	# 0 return code is used to identify duplicate message hash
++	return 0 if exists $s_hash->{"$key"};
+ 	$s_hash->{"$key"}{'5'} = $m_md5;
+ 	$s_hash->{"$key"}{'s'} = $size;
+ 	$s_hash->{"$key"}{'D'} = $idate;

@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.22 2009/06/30 04:33:25 gilles Exp gilles $	
+# $Id: Makefile,v 1.23 2009/07/03 01:01:13 gilles Exp gilles $	
 
 TARGET=imapsync
 
@@ -69,7 +69,7 @@ VERSION: $(TARGET) Makefile
 clean: clean_tilde clean_man
 
 clean_test:
-	rm -f .test .test_3xx
+	rm -f .test .test_3xx .test_229
 
 clean_tilde:
 	rm -f *~
@@ -127,7 +127,7 @@ clean_dist:
 
 .PHONY: lfo niouze
 
-lfo: dist niouze_lfo lfo_upload niouze
+lfo: dist lfo_upload niouze_lfo  niouze
 
 lfo_upload: 
 	rsync -avH --delete . \
