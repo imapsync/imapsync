@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.142 $
+$Revision: 1.143 $
 
 =head1 INSTALL
 
@@ -41,7 +41,8 @@ $Revision: 1.142 $
            [--noauthmd5]
            [--folder <string> --folder <string> ...]
            [--include <regex>] [--exclude <regex>]
-           [--prefix2 <string>] [--regextrans2 <regex>]
+           [--prefix2 <string>] 
+           [--regextrans2 <regex> --regextrans2 <regex> ...] 
            [--sep1 <char>]
            [--sep2 <char>]
            [--justfolders] [--justconnect]
@@ -305,7 +306,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.142 2005/11/16 01:08:49 gilles Exp gilles $
+$Id: imapsync,v 1.143 2005/11/27 20:36:12 gilles Exp $
 
 =cut
 
@@ -325,7 +326,7 @@ my(
         $rcs, $debug, $debugimap, $error,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
-        @folder, $include, $exclude, $prefix2, $regextrans2, @regexmess,
+        @folder, $include, $exclude, $prefix2, @regextrans2, @regexmess,
         $sep1, $sep2,
 	$syncinternaldates, $syncacls,
         $fastio1, $fastio2, 
@@ -350,7 +351,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.142 2005/11/16 01:08:49 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.143 2005/11/27 20:36:12 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -387,8 +388,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.142 $ ',
-		  '$Date: 2005/11/16 01:08:49 $ ',
+		  '$Revision: 1.143 $ ',
+		  '$Date: 2005/11/27 20:36:12 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -709,8 +710,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	# Adding the prefix supplied by the --prefix2 option
 	$t_fold = $prefix2 . $t_fold if ($prefix2);
 
-	# Transforming the folder name by the --regextrans2 option
-	if ($regextrans2) {
+	# Transforming the folder name by the --regextrans2 option(s)
+	foreach my $regextrans2 (@regextrans2) {
 		$debug and print "eval \$t_fold =~ $regextrans2\n";
 		eval("\$t_fold =~ $regextrans2");
 	}
@@ -1018,7 +1019,7 @@ sub get_options
 				   "include=s"   => \$include,
 				   "exclude=s"   => \$exclude,
 				   "prefix2=s"   => \$prefix2,
-				   "regextrans2=s" => \$regextrans2,
+				   "regextrans2=s" => \@regextrans2,
 				   "regexmess=s" => \@regexmess,
                                    "delete!"     => \$delete,
                                    "syncinternaldates!" => \$syncinternaldates,
@@ -1151,6 +1152,7 @@ Several options are mandatory.
 --prefix2     <string> : add prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
+--regextrans2 <regex>  : and this one. etc.
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
                          Exemple : 's/\\000/ /g' # to replace null by space.
 --regexmess   <regex>  : and this one.
