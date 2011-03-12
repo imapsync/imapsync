@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.132 $
+$Revision: 1.133 $
 
 =head1 INSTALL
 
@@ -191,7 +191,7 @@ Report any bugs to the author: lamiral@linux-france.org
 =head1 IMAP SERVERS
 
 Success stories reported with the following imap servers 
-(softwares inames are in alphabetic order) : 
+(softwares names are in alphabetic order) : 
 
  - BincImap 1.2.3
  - CommunicatePro server (Redhat 8.0)
@@ -241,6 +241,7 @@ Have a special attention on options
 --expunge
 --maxage
 --maxsize
+--useheader
 
 If you have many mailboxes to migrate think about a little
 shell program. Write a file called file.csv (for example)
@@ -295,7 +296,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.132 2005/05/20 03:18:48 gilles Exp $
+$Id: imapsync,v 1.133 2005/05/21 02:33:29 gilles Exp $
 
 =cut
 
@@ -340,7 +341,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.132 2005/05/20 03:18:48 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.133 2005/05/21 02:33:29 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -377,8 +378,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.132 $ ',
-		  '$Date: 2005/05/20 03:18:48 $ ',
+		  '$Revision: 1.133 $ ',
+		  '$Date: 2005/05/21 02:33:29 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -447,35 +448,38 @@ unless ($md5_supported) {
 $timestart = time();
 $timebefore = $timestart;
 
+my $fastio1 = 1;
+my $fastio2 = 1;
+
 $debugimap and print "From connection\n";
-$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout);
+$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout, $fastio1);
 
 $debugimap and print "To  connection\n";
-$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout);
+$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout, $fastio2);
 
 # No history
-$from->Clear(1);
-$to->Clear(1);
+$from->Clear(2);
+$to->Clear(2);
 
 
 sub login_imap {
 	my($host, $port, $user, $password, 
-	   $debugimap, $timeout, $authmech) = @_;
+	   $debugimap, $timeout, $fastio) = @_;
 	my $imap = Mail::IMAPClient->new();
 	$imap->Server($host);
 	$imap->Port($port);
-	$imap->Fast_io(1);
-	$imap->Buffer($buffersize || 65536);
+	$imap->Fast_io($fastio);
+	$imap->Buffer($buffersize || 4096);
 	$imap->Uid(1);
 	$imap->Peek(1);
 	$imap->Debug($debugimap);
 	$imap->connect()
 	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
-    if ($timeout)    # whr (ESS/PRW)
-    {
-        $imap->Timeout($timeout);
-        print "Setting imap timeout to $timeout\n";
-    }
+	if ($timeout)    # whr (ESS/PRW)
+	  {
+		  $imap->Timeout($timeout);
+		  print "Setting imap timeout to $timeout\n";
+	  }
 
 	$imap->User($user);
 	$imap->Password($password);
@@ -588,36 +592,40 @@ sub get_separator {
 print "From separator : [$f_sep]\n";
 print "To   separator : [$t_sep]\n";
 
-if ($foldersizes) {
+
+sub foldersizes {
+
+	my ($side, $imap, $folders_r) = @_;
 	my $tot = 0;
 	my $tmess = 0;
+	my @folders = @{$folders_r};
 	print "++++ Calculating sizes ++++\n";
-	foreach my $f_fold (@f_folders)     {
+	foreach my $folder (@folders)     {
 		my $stot = 0;
 		my $smess = 0;
-		printf("From Folder %-35s", "[$f_fold]");
-		unless ($from->select($f_fold)) {
+		printf("$side Folder %-35s", "[$folder]");
+		unless ($imap->select($folder)) {
 			warn 
-			  "From Folder $f_fold : Could not select ",
-			    $from->LastError,  "\n";
+			  "$side Folder $folder : Could not select ",
+			    $imap->LastError,  "\n";
 			$error++;
 			next;
 		}
 		if ($maxage) {
 			# The pb is fetch_hash() can only be applied on ALL messages
 		
-			my @f_msgs = $from->since(time - 86400 * $maxage);
-			my $smess = scalar(@f_msgs);
-			foreach my $m (@f_msgs) {
-				my $s = $from->size($m)
+			my @msgs = $imap->since(time - 86400 * $maxage);
+			my $smess = scalar(@msgs);
+			foreach my $m (@msgs) {
+				my $s = $imap->size($m)
 				  or warn "Could not find size of message $m: $@\n";
 				$stot += $s;
 			}
 		}else{
 			my $hashref = {};
-			$smess = $from->message_count();
+			$smess = $imap->message_count();
 			unless ($smess == 0) {
-				$from->fetch_hash("RFC822.SIZE",$hashref);
+				$imap->fetch_hash("RFC822.SIZE",$hashref);
 				#print map {$hashref->{$_}->{"RFC822.SIZE"}, " "} keys %$hashref;
 				map {$stot += $hashref->{$_}->{"RFC822.SIZE"}} keys %$hashref;
 			}
@@ -630,8 +638,14 @@ if ($foldersizes) {
 	print "Total size: $tot\n";
 	print "Total messages: $tmess\n";
 	print "Time : ", timenext(), " s\n";
-	
 }
+
+if ($foldersizes) {
+	foldersizes("From", $from, \@f_folders);
+	foldersizes("To  ", $to,   \@t_folders);
+}
+
+
 
 sub timenext {
 	my ($timenow, $timerel);
