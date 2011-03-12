@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.58 2007/01/02 08:23:04 gilles Exp $	
+# $Id: tests.sh,v 1.59 2007/02/02 02:02:08 gilles Exp gilles $	
 
 #### Shell pragmas
 
@@ -403,7 +403,7 @@ ll_regextrans2()
 		--passfile1 /var/tmp/secret.tata \
 		--host2 localhost --user2 titi@est.belle \
 		--passfile2 /var/tmp/secret.titi \
-		--regextrans2 's/yop/yopX/' --dry
+		--regextrans2 's/yop/yopX/'
 	else
 		:
 	fi

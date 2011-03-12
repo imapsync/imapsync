@@ -7,12 +7,15 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 25 different IMAP server softwares
 supported with success.
 
-$Revision: 1.204 $
+$Revision: 1.209 $
 
 =head1 INSTALL
 
- imapsync works fine under any Unix OS.
+ imapsync works fine under any Unix OS with perl.
  imapsync works fine under Windows 2000 (at least) and ActiveState's 5.8 Perl
+
+ imapsync is already available on the following distributions (at least):
+ FreeBSD, Debian, Gentoo, NetBSD.
 
  Get imapsync at
  http://www.linux-france.org/prj/imapsync/dist/
@@ -356,7 +359,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.204 2007/01/13 07:51:21 gilles Exp $
+$Id: imapsync,v 1.209 2007/02/02 02:06:50 gilles Exp $
 
 =cut
 
@@ -366,7 +369,7 @@ use strict;
 use Getopt::Long;
 use Mail::IMAPClient;
 use Digest::MD5  qw(md5_base64);
-use Term::ReadKey;
+#use Term::ReadKey;
 #use IO::Socket::SSL;
 use MIME::Base64;
 use English;
@@ -413,7 +416,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.204 2007/01/13 07:51:21 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.209 2007/02/02 02:06:50 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -450,8 +453,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.204 $ ',
-		  '$Date: 2007/01/13 07:51:21 $ ',
+		  '$Revision: 1.209 $ ',
+		  '$Date: 2007/02/02 02:06:50 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -544,14 +547,15 @@ print "To   imap server [$host2] port [$port2] user [$user2]\n";
 
 
 sub ask_for_password {
-       my ($user, $host) = @_;
-       print "What's the password for $user\@$host? ";
-       ReadMode 2;
-       my $password = <>;
-       chomp $password;
-       printf "\n";
-       ReadMode 0;
-       return $password;
+	require Term::ReadKey;
+	my ($user, $host) = @_;
+	print "What's the password for $user\@$host? ";
+	Term::ReadKey::ReadMode(2);
+	my $password = <>;
+	chomp $password;
+	printf "\n";
+	Term::ReadKey::ReadMode(0);
+	return $password;
 }
 
 
@@ -648,6 +652,7 @@ sub login_imap {
 	unless ($imap->login2()) {
 		print "Error login : [$host] with user [$user] auth [$authmech]: $@\n";
 		die if ($authmech eq 'LOGIN');
+		die if $imap->IsUnconnected();
 		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
 		$imap->Authmechanism("");
 		$imap->login2() or
@@ -690,7 +695,7 @@ $split1 and $from->Split($split1);
 $split2 and $to->Split($split2);
 
 
-my (@f_folders, @t_folders, %fs_folders);
+my (@f_folders, @t_folders, %fs_folders, %t_folders);
 
 # Make a hash of subscribed folders in source server.
 map { $fs_folders{$_}=1 } $from->subscribed();
@@ -720,7 +725,7 @@ if (scalar(@include)) {
 		push(@f_folders_inc, grep  /$include/, @f_folders);
 		print "Including folders matching pattern '$include'\n";
 	}
-	@f_folders = sort @f_folders_inc;
+	push(@f_folders, sort @f_folders_inc);
 }
 
 foreach my $exclude (@exclude) {
@@ -812,6 +817,10 @@ sub foldersizes {
 		my $stot = 0;
 		my $smess = 0;
 		printf("$side Folder %-35s", "[$folder]");
+		unless($imap->exists($folder)) {
+			print("does not exist yet\n");
+			next;
+		}
 		unless ($imap->select($folder)) {
 			warn 
 			  "$side Folder $folder : Could not select ",
@@ -849,10 +858,21 @@ sub foldersizes {
 	print "Time : ", timenext(), " s\n";
 }
 
+
+foreach my $f_fold (@f_folders) {
+	my $t_fold;
+	$t_fold = to_folder_name($f_fold);
+	$t_folders{$t_fold}++;
+}
+
+@t_folders = sort keys(%t_folders);
+
+
 if ($foldersizes) {
 	foldersizes("From", $from, \@f_folders);
 	foldersizes("To  ", $to,   \@t_folders);
 }
+
 
 
 
@@ -873,11 +893,14 @@ my $tohasuidplus = $to->has_capability("UIDPLUS");
 
 
 print 
-  "From folders : ", map("[$_] ",@f_folders),"\n",
-  "To   folders : ", map("[$_] ",@t_folders),"\n";
+  "++++ Listing folders ++++\n",
+  "From folders list : ", map("[$_] ",@f_folders),"\n",
+  "To   folders list : ", map("[$_] ",@t_folders),"\n";
 
 print 
-  "From subscribed folders : ", map("[$_] ", sort keys(%fs_folders)), "\n";
+  "From subscribed folders list : ", 
+  map("[$_] ", sort keys(%fs_folders)), "\n" 
+  if ($subscribed);
 
 sub separator_invert {
 	# The separator we hope we'll never encounter
@@ -902,7 +925,7 @@ sub to_folder_name {
 	$debug and print "inverted   separators : [$t_fold]\n";
 	# Adding the prefix supplied by namespace or the --prefix2 option
 	$t_fold = $t_prefix . $t_fold 
-	  unless($t_prefix eq "INBOX." and $t_fold eq "INBOX");
+	  unless(($t_prefix eq "INBOX.") and ($t_fold =~ m/^INBOX$/i));
 	$debug and print "added   target prefix : [$t_fold]\n";
 
 	# Transforming the folder name by the --regextrans2 option(s)
@@ -944,6 +967,9 @@ sub acls_sync {
 	}
 }
 
+
+print "++++ Looping on each folder ++++\n";
+
 FOLDER: foreach my $f_fold (@f_folders) {
 	my $t_fold;
 	print "From Folder [$f_fold]\n";
@@ -952,7 +978,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 
 	last FOLDER if $from->IsUnconnected();
 	last FOLDER if   $to->IsUnconnected();
-
+	
 	unless ($from->select($f_fold)) {
 		warn 
 		"From Folder $f_fold : Could not select ",
@@ -1093,17 +1119,16 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			my $message_file = "tmp_imapsync_$$";
 			unlink($message_file);
 			$from->message_to_file($message_file, $f_msg);
-			
+			my $string = file_to_string($message_file);
 			if (@regexmess) {
-				my $string = file_to_string($message_file);
 				foreach my $regexmess (@regexmess) {
 					$debug and print "eval \$string =~ $regexmess\n";
 					eval("\$string =~ $regexmess");
 				}
-				string_to_file($string, $message_file);
+				#string_to_file($string, $message_file);
 			}
 			$debug and print "F message content begin next line\n",
-			  file_to_string($message_file),
+			  $string,
 			    "F message content ended on previous line\n";
 			my $d = "";
 			if ($syncinternaldates) {
@@ -1113,7 +1138,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			}
 			
 			my $flags_f = $f_hash{$m_id}{'F'} || "";
-			# RFC 2060 : This flag can not be altered by the client
+			# RFC 2060 : This flag can not be altered by any client
 			$flags_f =~ s@\\Recent@@g;
 			$flags_f = flags_regex($flags_f) if @regexflag;
 			
@@ -1121,8 +1146,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			print "flags from : [$flags_f][$d]\n";
 			last FOLDER if   $to->IsUnconnected();
 			unless ($dry) {
-				#unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
-				unless($new_id = $to->append_file($t_fold, $message_file, $flags_f, $d)){
+				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
+				#unless($new_id = $to->append_file($t_fold, $message_file, $flags_f, $d)){
 					warn "Couldn't append msg #$f_msg (Subject:[".$from->subject($f_msg)."]) to folder $t_fold: ",
 					  $to->LastError, "\n";
 					$error++;
@@ -1397,7 +1422,7 @@ sub parse_header_msg1 {
 	}
 	#return unless ($headstr);
 	unless ($headstr){
-		# no header so taking everything
+		print "no header so taking everything\n";
 		$headstr = $imap->message_string($m_uid);
 	}
 	my $size  = $s_fir->{$m_uid}->{"RFC822.SIZE"};
@@ -1426,10 +1451,10 @@ sub  firstline {
         my($file) = @_;
         my $line  = "";
         
-        open FILE, $file or die("$! $file");
+        open FILE, $file or die("error [$file]: $! ");
         chomp($line = <FILE>);
         close FILE;
-        $line = ($line) ? $line : "!EMPTY! $file";
+        $line = ($line) ? $line : "error !EMPTY! [$file]";
         return $line;
 }
 
@@ -1437,7 +1462,7 @@ sub  firstline {
 sub file_to_string {
 	my($file) = @_;
 	my @string;
-	open FILE, $file or die("$! $file");
+	open FILE, $file or die("error [$file]: $! ");
 	@string = <FILE>;
 	close FILE;
 	return join("", @string);
@@ -1478,18 +1503,18 @@ Several options are mandatory.
 --authmech2   <string> : auth mechanism to use with host2. See --authmech1
 --ssl1                 : use an SSL connection on host1.
 --ssl2                 : use an SSL connection on host2.
---folder      <string> : sync only this folder.
+--folder      <string> : sync this folder.
 --folder      <string> : and this one, etc.
---folderrec   <string> : sync only this folder recursively.
+--folderrec   <string> : sync this folder recursively.
 --folderrec   <string> : and this one, etc.
---include     <regex>  : only sync folders matching this regular expression
+--include     <regex>  : sync folders matching this regular expression
 --include     <regex>  : or this one, etc.
                          in case both --include --exclude options are
                          use, include is done before.
 --exclude     <regex>  : skips folders matching this regular expression
                          Several folders to avoid:
 			  --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
---exclude     <regex>  : and this one, etc.
+--exclude     <regex>  : or this one, etc.
 --prefix1     <string> : remove prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
                          use --prefix1 if your source imap server does not
@@ -1548,7 +1573,7 @@ Several options are mandatory.
 --useheader   <string>   and this one, etc.
 --skipsize             : Don't take message size into account.
 --dry                  : do nothing, just print what would be done.
---subscribed           : transfers only subscribed folders.
+--subscribed           : transfers subscribed folders.
 --subscribe            : subscribe to the folders transferred on the 
                          "destination" server that are subscribed
                          on the "source" server.
