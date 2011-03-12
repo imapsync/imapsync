@@ -6,7 +6,7 @@ imapsync - IMAP synchronization, copy or migration
 tool. Synchronize mailboxes between two imap servers. Good
 at IMAP migration.
 
-$Revision: 1.125 $
+$Revision: 1.127 $
 
 =head1 INSTALL
 
@@ -288,7 +288,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.125 2005/04/22 01:12:18 gilles Exp $
+$Id: imapsync,v 1.127 2005/05/09 04:14:48 gilles Exp $
 
 =cut
 
@@ -332,7 +332,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.125 2005/04/22 01:12:18 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.127 2005/05/09 04:14:48 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -369,8 +369,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.125 $ ',
-		  '$Date: 2005/04/22 01:12:18 $ ',
+		  '$Revision: 1.127 $ ',
+		  '$Date: 2005/05/09 04:14:48 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -580,7 +580,7 @@ if ($foldersizes) {
 	foreach my $f_fold (@f_folders)     {
 		my $stot = 0;
 		my $smess = 0;
-		printf("From Folder %-25s", "[$f_fold]");
+		printf("From Folder %-35s", "[$f_fold]");
 		unless ($from->select($f_fold)) {
 			warn 
 			  "From Folder $f_fold : Could not select ",
@@ -693,7 +693,26 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			next FOLDER;
 		}
 	}
-    
+	
+	if ($syncacls) {
+	  my $f_hash = $from->getacl($f_fold)
+	    or warn "Could not getacl for $f_fold: $@\n";
+	  my $t_hash = $to->getacl($t_fold)
+	    or warn "Could not getacl for $t_fold: $@\n";
+	  my %users = map({ ($_, 1) } (keys(%$f_hash), keys(%$t_hash)));
+	  foreach my $user (sort(keys(%users))) {
+	    my $acl = $f_hash->{$user} || "none";
+	    print "acl $user : [$acl]\n";
+	    next if ($f_hash->{$user} && $t_hash->{$user} &&
+		$f_hash->{$user} eq $t_hash->{$user});
+	    unless ($dry) {
+	      print "setting acl $t_fold $user $acl\n";
+	      $to->setacl($t_fold, $user, $acl)
+		or warn "Could not set acl: $@\n";
+	    }
+	  }
+	}
+	
 	unless ($to->select($t_fold)) { 
 		warn 
 		"To   Folder $t_fold : Could not select ",
@@ -711,20 +730,6 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	if ($subscribe and exists $fs_folders{$f_fold}) {
 		print "Subscribing to folder $t_fold on destination server\n";
 		unless($dry) { $to->subscribe($t_fold) };
-	}
-	
-	if ($syncacls) {
-	  my $hash = $from->getacl($f_fold)
-	    or warn "Could not getacl for $f_fold: $@\n";
-	  foreach my $user (keys(%$hash)) {
-	    my $acl = $hash->{$user};
-	    print "acl $user : " . $acl . "\n";
-	    unless ($dry) {
-	      print "setting acl $t_fold $user $acl\n";
-	      $to->setacl($t_fold, $user, $acl)
-		or warn "Could not set acl: $@\n";
-	    }
-	  }
 	}
 	
 	next FOLDER if ($justfolders);
@@ -806,10 +811,9 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			# copy
 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			my $string = $from->message_string($f_msg);
-			while (my $regexmess = shift(@regexmess)) {
+			foreach my $regexmess (@regexmess) {
 				$debug and print "eval \$string =~ $regexmess\n";
 				eval("\$string =~ $regexmess");
-				
 			}
 			$debug and print "F message content begin next line\n",
 			  $string,

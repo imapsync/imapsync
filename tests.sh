@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.35 2005/01/17 14:47:49 gilles Exp $	
+# $Id: tests.sh,v 1.36 2005/05/09 04:22:44 gilles Exp $	
 
 #### Shell pragmas
 
@@ -108,7 +108,8 @@ plumeloul() {
 		--host1 plume --user1 tata@est.belle \
 		--passfile1 /var/tmp/secret.tata \
 		--host2 loul  --user2 tata \
-		--passfile2 /var/tmp/secret.tata
+		--passfile2 /var/tmp/secret.tata \
+		--nosyncacls
 	else
 		:
 	fi
@@ -122,7 +123,8 @@ lp_folder() {
 		--passfile2 /var/tmp/secret.tata \
 		--folder INBOX.yop --folder INBOX.Trash  \
 		--host1 loul  --user1 tata \
-		--passfile1 /var/tmp/secret.tata
+		--passfile1 /var/tmp/secret.tata \
+		--nosyncacls
 	else
 		:
 	fi
@@ -137,7 +139,8 @@ lp_justfolders() {
 		--folder INBOX.yop --folder INBOX.Trash  \
 		--host1 loul  --user1 tata \
 		--passfile1 /var/tmp/secret.tata \
-		--justfolders
+		--justfolders  \
+		--nosyncacls
 	else
 		:
 	fi
@@ -153,7 +156,8 @@ pl_folder_qqq() {
 		--folder INBOX.qqq  \
 		--prefix2 "" \
 		--host2 loul  --user2 tata \
-		--passfile2 /var/tmp/secret.tata
+		--passfile2 /var/tmp/secret.tata \
+		--nosyncacls
 	else
 		:
 	fi
@@ -186,7 +190,8 @@ pl_folder() {
 		--passfile1 /var/tmp/secret.tata \
 		--folder INBOX.yop \
 		--host2 loul  --user2 tata \
-		--passfile2 /var/tmp/secret.tata
+		--passfile2 /var/tmp/secret.tata \
+		--nosyncacls
 	else
 		:
 	fi
@@ -552,8 +557,7 @@ essnet_plume2()
 	--passfile2 /var/tmp/secret.tata \
 	--nosyncacls \
         --noauthmd5 --sep1 / --foldersizes \
-        --prefix2 INBOX. --regextrans2 's¤INBOX.INBOX¤INBOX¤' \
-	--nosyncacls 
+        --prefix2 INBOX. --regextrans2 's¤INBOX.INBOX¤INBOX¤'
 }
 
 regexmess() 

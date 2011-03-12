@@ -1,0 +1,58 @@
+--- imapsync.orig	Fri Apr 22 03:12:18 2005
++++ imapsync	Mon May  2 11:16:51 2005
+@@ -580,7 +580,7 @@
+ 	foreach my $f_fold (@f_folders)     {
+ 		my $stot = 0;
+ 		my $smess = 0;
+-		printf("From Folder %-25s", "[$f_fold]");
++		printf("From Folder %-35s", "[$f_fold]");
+ 		unless ($from->select($f_fold)) {
+ 			warn 
+ 			  "From Folder $f_fold : Could not select ",
+@@ -694,6 +694,25 @@
+ 		}
+ 	}
+     
++	if ($syncacls) {
++	  my $f_hash = $from->getacl($f_fold)
++	    or warn "Could not getacl for $f_fold: $@\n";
++	  my $t_hash = $to->getacl($t_fold)
++	    or warn "Could not getacl for $t_fold: $@\n";
++	  my %users = map({ ($_, 1) } (keys(%$f_hash), keys(%$t_hash)));
++	  foreach my $user (sort(keys(%users))) {
++	    my $acl = $f_hash->{$user} || "none";
++	    print "acl $user : [$acl]\n";
++	    next if ($f_hash->{$user} && $t_hash->{$user} &&
++		$f_hash->{$user} eq $t_hash->{$user});
++	    unless ($dry) {
++	      print "setting acl $t_fold $user $acl\n";
++	      $to->setacl($t_fold, $user, $acl)
++		or warn "Could not set acl: $@\n";
++	    }
++	  }
++	}
++	
+ 	unless ($to->select($t_fold)) { 
+ 		warn 
+ 		"To   Folder $t_fold : Could not select ",
+@@ -711,20 +730,6 @@
+ 	if ($subscribe and exists $fs_folders{$f_fold}) {
+ 		print "Subscribing to folder $t_fold on destination server\n";
+ 		unless($dry) { $to->subscribe($t_fold) };
+-	}
+-	
+-	if ($syncacls) {
+-	  my $hash = $from->getacl($f_fold)
+-	    or warn "Could not getacl for $f_fold: $@\n";
+-	  foreach my $user (keys(%$hash)) {
+-	    my $acl = $hash->{$user};
+-	    print "acl $user : " . $acl . "\n";
+-	    unless ($dry) {
+-	      print "setting acl $t_fold $user $acl\n";
+-	      $to->setacl($t_fold, $user, $acl)
+-		or warn "Could not set acl: $@\n";
+-	    }
+-	  }
+ 	}
+ 	
+ 	next FOLDER if ($justfolders);
