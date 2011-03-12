@@ -7,7 +7,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 25 different IMAP server softwares
 supported with success.
 
-$Revision: 1.178 $
+$Revision: 1.179 $
 
 =head1 INSTALL
 
@@ -340,7 +340,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.178 2006/07/02 23:26:07 gilles Exp $
+$Id: imapsync,v 1.179 2006/07/18 01:57:31 gilles Exp $
 
 =cut
 
@@ -397,7 +397,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.178 2006/07/02 23:26:07 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.179 2006/07/18 01:57:31 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -434,8 +434,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.178 $ ',
-		  '$Date: 2006/07/02 23:26:07 $ ',
+		  '$Revision: 1.179 $ ',
+		  '$Date: 2006/07/18 01:57:31 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -1025,7 +1025,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		
 		if (defined $maxsize and $f_size > $maxsize) {
 			print "+ Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit $maxsize bytes)\n";
-			$mess_size_total_skipped += $f_msg;
+			$mess_size_total_skipped += $f_size;
+			$mess_skipped += 1;
 			next MESS;
 		}
 		$debug and print "+ key     $m_id #$f_msg\n";
