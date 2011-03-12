@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.10 2003/11/21 03:20:14 gilles Exp $	
+# $Id: tests.sh,v 1.11 2003/12/12 17:48:02 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.11  2003/12/12 17:48:02  gilles
+# Added lp_subscribe() test
+#
 # Revision 1.10  2003/11/21 03:20:14  gilles
 # Renamed lp_folder_qqq() pl_folder_qqq()
 # Removed --prefix2 INBOX. in pl_folder_qqq()
@@ -205,11 +208,23 @@ lp_subscribed()
 	else
 		:
 	fi
-
-    
-
 }
 
+
+lp_subscribe() 
+{
+	if test X`hostname` = X"plume"; then
+		echo3 Here is plume
+		./imapsync \
+		--host2 plume --user2 tata@est.belle \
+		--passfile2 /var/tmp/secret.tata \
+		--host1 loul  --user1 tata \
+		--passfile1 /var/tmp/secret.tata \
+		--subscribed --subscribe
+	else
+		:
+	fi
+}
 
 
 # mandatory tests
@@ -227,7 +242,8 @@ test $# -eq 0 && run_tests \
 	pl_folder \
         pl_folder_qqq \
 	lp_internaldate \
-	lp_subscribed
+	lp_subscribed \
+	lp_subscribe \
 
 # selective tests
 

@@ -4,14 +4,23 @@
 
 imapsync - synchronize mailboxes between two imap servers.
 
-$Revision: 1.48 $
+$Revision: 1.53 $
 
 =head1 INSTALL
 
- Get imapsync at http://www.linux-france.org/prj/imapsync/dist/
- tar xzvf  imapsync-x.xx.tgz  # x.xx is the version number
- Read the INSTALL file.
- freshmeat record: http://freshmeat.net/projects/imapsync/
+ Get imapsync at
+ http://www.linux-france.org/prj/imapsync/dist/ 
+
+ You'll find a compressed tarball called imapsync-x.xx.tgz
+ where x.xx is the version number. Untar the tarball where
+ you want :
+
+ tar xzvf  imapsync-x.xx.tgz  
+
+ Go into the directory imapsync-x.xx and read the INSTALL
+ file.
+
+ The freshmeat record is http://freshmeat.net/projects/imapsync/
 
 =head1 SYNOPSIS
 
@@ -143,8 +152,8 @@ Report any bugs to the author: lamiral@linux-france.org
 
 Success stories reported : 
 
- - Courier IMAP 1.5.1
- - Cyrus IMAP 1.5, 1.6, 2.1
+ - Courier IMAP 1.5.1, 2.1.1
+ - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.2.1
  - Netscape Mail Server 3.6 (Wintel)
  - CommunicatePro server (Redhat 8.0)
  - SunONE Messaging server 5.2
@@ -185,6 +194,10 @@ done ; } < file.csv
 
 Welcome in shell programming !
 
+=head1 Hacking
+
+
+
 =head1 SIMILAR SOFTWARES
 
   offlineimap : http://gopher.quux.org:70/devel/offlineimap/
@@ -194,7 +207,7 @@ Welcome in shell programming !
 
 Feedback (good or bad) will be always welcome.
 
-$Id: imapsync,v 1.48 2003/11/21 04:23:10 gilles Exp gilles $
+$Id: imapsync,v 1.53 2003/12/12 17:34:45 gilles Exp $
 
 =cut
 
@@ -215,19 +228,28 @@ my(
         @folder, $prefix2,
         $sep1, $sep2,
 	$syncinternaldates,
-	$delete, $expunge, $dry, $subscribed,
+	$delete, $expunge, $dry, $subscribed, $subscribe,
 	$version, $VERSION, $help, 
 );
 
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.48 2003/11/21 04:23:10 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.53 2003/12/12 17:34:45 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
+
 $error=0;
 
-my $banner = '$RCSfile: imapsync,v $ ' . '$Revision: 1.48 $ ' . '$Date: 2003/11/21 04:23:10 $ ' . "\n";
+my $banner = join("", 
+		  '$RCSfile: imapsync,v $ ',
+		  '$Revision: 1.53 $ ',
+		  '$Date: 2003/12/12 17:34:45 $ ',
+		  "\n",
+		  "Mail::IMAPClient version used here is ",
+		  $Mail::IMAPClient::VERSION,
+		  "\n"
+		 );
 
 unless(defined(&_SYSEXITS_H)) {
 	# 64 on my linux box.
@@ -388,6 +410,11 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		$to->expunge();
 	}
 
+	if ($subscribe) {
+		print "Subscribing to folder $t_fold on destination server\n";
+		$to->subscribe($t_fold);
+	}
+	
 	my @f_msgs = $from->search("ALL");
 	$debug and print "LIST FROM : @f_msgs\n";
 	my @t_msgs = $to->search("ALL");
@@ -528,13 +555,20 @@ sub get_options
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
                                    "subscribed!" => \$subscribed,
+                                   "subscribe!"  => \$subscribe,
                                    "version"     => \$version,
                                    "help"        => \$help,
                                   );
           
         $debug and print "get options: [$opt_ret]\n";
+
+	# just the version
         print "$VERSION\n" and exit if ($version) ;
+
+	# exit with --help option or no option at all
         usage() and exit if ($help or ! $numopt) ;
+
+	# don't go on if options are not all known.
         exit(EX_USAGE()) unless ($opt_ret) ;
 	
 	
@@ -613,6 +647,8 @@ Several options are mandatory.
 --syncinternaldates    : set the internal dates on host2 same as host1
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfer only subscribed folders.
+--subscribe            : subscribe to the folders transfered on the 
+                         "destination" server.
 --debug                : debug mode.
 --debugimap            : imap debug mode.
 --version              : print sotfware version.
@@ -626,6 +662,7 @@ $0 \\
    --host2 imap.trac.org --user2 bar --passfile2 /etc/secret2
 
 
+ Mail::IMAPClient version is $Mail::IMAPClient::VERSION
 $rcs
       imapsync copyleft is the GNU General Public License.
       See http://www.gnu.org/copyleft/gpl.html
