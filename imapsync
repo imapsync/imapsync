@@ -7,7 +7,7 @@ tool. Synchronise mailboxes between two imap servers. Good
 at IMAP migration. More than 25 different IMAP server softwares
 supported with success.
 
-$Revision: 1.180 $
+$Revision: 1.181 $
 
 =head1 INSTALL
 
@@ -340,7 +340,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.180 2006/07/19 13:45:55 gilles Exp gilles $
+$Id: imapsync,v 1.181 2006/07/19 14:45:29 gilles Exp $
 
 =cut
 
@@ -397,7 +397,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.180 2006/07/19 13:45:55 gilles Exp gilles $ ';
+$rcs = ' $Id: imapsync,v 1.181 2006/07/19 14:45:29 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -434,8 +434,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.180 $ ',
-		  '$Date: 2006/07/19 13:45:55 $ ',
+		  '$Revision: 1.181 $ ',
+		  '$Date: 2006/07/19 14:45:29 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient,"\n"
@@ -906,6 +906,9 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	$t_fold = to_folder_name($f_fold);
 	print "To   Folder [$t_fold]\n";
 
+	last FOLDER if $from->IsUnconnected();
+	last FOLDER if   $to->IsUnconnected();
+
 	unless ($from->select($f_fold)) {
 		warn 
 		"From Folder $f_fold : Could not select ",
@@ -952,6 +955,8 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	
 	next FOLDER if ($justfolders);
 
+	last FOLDER if $from->IsUnconnected();
+	last FOLDER if   $to->IsUnconnected();
 
 	my @f_msgs = select_msgs($from);
 
@@ -968,7 +973,9 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my %t_hash = ();
 	
 	print "++++ From [$f_fold] Parse 1 ++++\n";
-	
+	last FOLDER if $from->IsUnconnected();
+	last FOLDER if   $to->IsUnconnected();
+
 	my $f_heads = $from->parse_headers2([@f_msgs],
 					    @useheader)if (@f_msgs) ;
 	$debug and print "Time headers: ", timenext(), " s\n";
@@ -983,6 +990,9 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	$debug and print "Time headers: ", timenext(), " s\n";
 	
 	print "++++ To   [$t_fold] Parse 1 ++++\n";
+	last FOLDER if $from->IsUnconnected();
+	last FOLDER if   $to->IsUnconnected();
+
 	my $t_heads =   $to->parse_headers2([@t_msgs],
 					    @useheader) if (@t_msgs);
 	$debug and print "Time headers: ", timenext(), " s\n";
@@ -1034,6 +1044,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
 			# copy
 			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
+			last FOLDER if $from->IsUnconnected();
 			my $string = $from->message_string($f_msg);
 			foreach my $regexmess (@regexmess) {
 				$debug and print "eval \$string =~ $regexmess\n";
@@ -1056,6 +1067,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 			
 			my $new_id;
 			print "flags from : [$flags_f][$d]\n";
+			last FOLDER if   $to->IsUnconnected();
 			unless ($dry) {
 				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
 					warn "Couldn't append msg #$f_msg (Subject:[".$from->subject($f_msg)."]) to folder $t_fold: ",
@@ -1086,7 +1098,10 @@ FOLDER: foreach my $f_fold (@f_folders) {
 		my $t_msg  = $t_hash{$m_id}{'m'};
 		
 		
-		$debug and print "Setting flags\n"; 
+		$debug and print "Setting flags\n";
+		last FOLDER if $from->IsUnconnected();
+		last FOLDER if   $to->IsUnconnected();
+
 		my (@flags_f,@flags_t);
 		my $flags_f_rv = $from->flags($f_msg);
 		@flags_f = @{$flags_f_rv} if ref($flags_f_rv);
