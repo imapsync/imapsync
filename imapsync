@@ -4,7 +4,7 @@
 
 imapsync - IMAP sync or copy tool. Synchronize mailboxes between two imap servers.
 
-$Revision: 1.88 $
+$Revision: 1.89 $
 
 =head1 INSTALL
 
@@ -269,7 +269,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.88 2004/03/29 23:33:00 gilles Exp $
+$Id: imapsync,v 1.89 2004/03/31 17:37:23 gilles Exp $
 
 =cut
 
@@ -307,7 +307,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.88 2004/03/29 23:33:00 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.89 2004/03/31 17:37:23 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -343,8 +343,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.88 $ ',
-		  '$Date: 2004/03/29 23:33:00 $ ',
+		  '$Revision: 1.89 $ ',
+		  '$Date: 2004/03/31 17:37:23 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -615,33 +615,36 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	my %f_hash = ();
 	my %t_hash = ();
 
-	$debug and print "From Parse\n";
+	$debug and print "++++ From Parse ++++\n";
 	foreach my $m (@f_msgs) {
 		parse_header_msg($m, $from, "F", \%f_hash);
 	}
     
-	$debug and print "To   Parse\n";
+	$debug and print "++++ To   Parse ++++\n";
 	foreach my $m (@t_msgs) {
 		parse_header_msg($m, $to, "T", \%t_hash);
 	}
-	$debug and print "Verifying\n";
+	$debug and print "++++ Verifying ++++\n";
 	# messages in "from" that are not good in "to"
     
 	MESS: foreach my $m_id (keys(%f_hash)) {
 		my $f_size = $f_hash{$m_id}{'s'};
 		my $f_msg = $f_hash{$m_id}{'m'};
 		if (defined $maxsize and $f_size > $maxsize) {
-			print "Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit $maxsize bytes)\n";
+			print "+ Skipping msg #$f_msg:$f_size in folder $f_fold (exceeds maxsize limit $maxsize bytes)\n";
 			$mess_size_total_skipped += $f_msg;
 			next MESS;
 		}
-		$debug and print "key     $m_id #$f_msg\n";
+		$debug and print "+ key     $m_id #$f_msg\n";
 		unless (exists($t_hash{$m_id})) {
-			print "NO msg #$f_msg [$m_id] in $t_fold\n";
+			print "+ NO msg #$f_msg [$m_id] in $t_fold\n";
 			# copy
-			print "Copying msg #$f_msg:$f_size to folder $t_fold\n";
+			print "+ Copying msg #$f_msg:$f_size to folder $t_fold\n";
 			unless ($dry) {
 				my $string = $from->message_string($f_msg);
+				$debug and print "F message content begin next line\n",
+				  $string,
+				    "F message content end previous line\n";
 				my $d = $from->internaldate($f_msg);
 				$d = "\"$d\"";
 				$debug and print "internal date from 1: [$d]\n";
@@ -653,7 +656,7 @@ FOLDER: foreach my $f_fold (@f_folders) {
 				my $new_id;
 				print "flags from : [$flags_f][$d]\n";
 				unless($new_id = $to->append_string($t_fold,$string, $flags_f, $d)){
-					warn "Couldn't append msg #$f_msg (Subject: ".$from->subject($f_msg).") to folder $t_fold: ",
+					warn "Couldn't append msg #$f_msg (Subject:[".$from->subject($f_msg)."]) to folder $t_fold: ",
 					$to->LastError, "\n";
 					$error++;
 					$mess_size_total_error += $f_size;
@@ -726,6 +729,7 @@ stats();
 exit(1) if($error);
 
 sub stats {
+	print "++++ Statistics ++++\n";
 	print "Total bytes transfered : $mess_size_total_trans\n";
 	print "Total bytes skipped    : $mess_size_total_skipped\n";
 	print "Total bytes error      : $mess_size_total_error\n";
