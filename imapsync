@@ -5,7 +5,7 @@
 imapsync - IMAP sync or copy tool. Synchronize mailboxes
 between two imap servers.
 
-$Revision: 1.96 $
+$Revision: 1.98 $
 
 =head1 INSTALL
 
@@ -187,13 +187,14 @@ Success stories reported (softwares in alphabetic order) :
  - Cyrus IMAP 1.5, 1.6, 2.1, 2.1.15, 2.1.16, 2.2.1, Cyrus 2.2.2-BETA
  - DBMail 1.2.1
  - Dovecot 0.99.10.4
- - Domino (Notes) 6.5
+ - Domino (Notes) 6.5, 5.0.6
  - iPlanet Messaging server 4.15, 5.1
  - IMail 7.15 (Ipswitch/Win2003)
  - MS Exchange Server 5.5
  - Netscape Mail Server 3.6 (Wintel !)
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
+   (RedHat uses UW like 2003.338rh)
  - UW - QMail v2.1
 
 Please report to the author any success or bad story with
@@ -272,7 +273,7 @@ Gilles LAMIRAL earn his living writing, installing,
 configuring and teaching free open and gratis
 softwares. Don't hesitate to pay him for that services.
 
-$Id: imapsync,v 1.96 2004/07/09 09:08:43 gilles Exp $
+$Id: imapsync,v 1.98 2004/09/29 15:49:53 gilles Exp $
 
 =cut
 
@@ -313,7 +314,7 @@ my(
 use vars qw ($opt_G); # missing code for this will be option.
 
 
-$rcs = ' $Id: imapsync,v 1.96 2004/07/09 09:08:43 gilles Exp $ ';
+$rcs = ' $Id: imapsync,v 1.98 2004/09/29 15:49:53 gilles Exp $ ';
 $rcs =~ m/,v (\d+\.\d+)/;
 $VERSION = ($1) ? $1 : "UNKNOWN";
 
@@ -350,8 +351,8 @@ $error=0;
 
 my $banner = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.96 $ ',
-		  '$Date: 2004/07/09 09:08:43 $ ',
+		  '$Revision: 1.98 $ ',
+		  '$Date: 2004/09/29 15:49:53 $ ',
 		  "\n",
 		  "Mail::IMAPClient version used here is ",
 		  $VERSION_IMAPClient, " auth md5 : $md5_supported",
@@ -677,7 +678,12 @@ FOLDER: foreach my $f_fold (@f_folders) {
 	$debug and print "++++ Verifying ++++\n";
 	# messages in "from" that are not good in "to"
     
-	MESS: foreach my $m_id (keys(%f_hash)) {
+	my @f_hash_keys_sorted_by_uid 
+	  = sort {$f_hash{$a}{'m'} <=> $f_hash{$b}{'m'}} keys(%f_hash);
+	
+	#print map { $f_hash{$_}{'m'} . " "} @f_hash_keys_sorted_by_uid;
+	
+	MESS: foreach my $m_id (@f_hash_keys_sorted_by_uid) {
 		my $f_size = $f_hash{$m_id}{'s'};
 		my $f_msg = $f_hash{$m_id}{'m'};
 		if (defined $maxsize and $f_size > $maxsize) {

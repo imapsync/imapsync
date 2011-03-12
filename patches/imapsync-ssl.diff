@@ -1,0 +1,131 @@
+--- imapsync	Fri Jul  9 11:08:43 2004
++++ imapsync-ssl	Tue Aug 31 12:13:06 2004
+@@ -33,9 +33,9 @@ $Revision: 1.96 $
+   imapsync --help
+   imapsync
+ 
+-  imapsync [--host1 server1]  [--port1 <num>]
++  imapsync [--host1 server1]  [--port1 <num>] [--ssl1]
+            [--user1 <string>] [--passfile1 <string>] 
+-           [--host2 server2]  [--port2 <num>]
++           [--host2 server2]  [--port2 <num>] [--ssl2]
+            [--user2 <string>] [--passfile2 <string>] 
+            [--folder <string> --folder <string> ...]
+ 	   [--include <regex>] [--exclude <regex>]
+@@ -283,13 +283,15 @@ use Getopt::Long;
+ use Mail::IMAPClient;
+ use Digest::MD5  qw(md5_base64);
+ #use Digest::HMAC_MD5;
++use IO::Socket::INET;
++use IO::Socket::SSL;
+ 
+ eval { require 'usr/include/sysexits.ph' };
+ 
+ 
+ my(
+         $rcs, $debug, $debugimap, $error,
+-	$host1, $host2, $port1, $port2,
++	$host1, $host2, $port1, $port2, $ssl1, $ssl2,
+ 	$user1, $user2, $password1, $password2, $passfile1, $passfile2,
+         @folder, $include, $exclude, $prefix2, $regextrans2,
+         $sep1, $sep2,
+@@ -372,13 +374,13 @@ sub missing_option {
+ }
+ 
+ $host1 || missing_option("--host1") ;
+-$port1 = (defined($port1)) ? $port1 : 143;
++$port1 = (defined($port1)) ? $port1 : ((defined($ssl1)) ? 993 : 143);
+ $user1 || missing_option("--user1");
+ $password1 || $passfile1 || missing_option("--passfile1 or --password1");
+ $password1 = (defined($passfile1)) ? firstline ($passfile1) : $password1;
+ 
+ $host2 || missing_option("--host2") ;
+-$port2 = (defined($port2)) ? $port2 : 143;
++$port2 = (defined($port2)) ? $port2 : ((defined($ssl2)) ? 993 : 143);
+ $user2 || missing_option("--user2");
+ $password2 || $passfile2 || missing_option("--passfile2 or --password2");
+ $password2 = (defined($passfile2)) ? firstline ($passfile2) : $password2;
+@@ -402,38 +404,56 @@ unless ($md5_supported) {
+ $timestart = time();
+ 
+ $debugimap and print "From connection\n";
+-$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout);
++$from = login_imap($host1, $port1, $user1, $password1, $debugimap, $timeout, undef, $ssl1);
+ 
+ $debugimap and print "To  connection\n";
+-$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout);
++$to = login_imap($host2, $port2, $user2, $password2, $debugimap, $timeout, undef, $ssl2);
+ 
+ sub login_imap {
+ 	my($host, $port, $user, $password, 
+-	   $debugimap, $timeout, $authmech) = @_;
+-	my $imap = Mail::IMAPClient->new();
+-	$imap->Server($host);
+-	$imap->Port($port);
++	   $debugimap, $timeout, $authmech, $ssl) = @_;
++	my $socket = undef;
++
++	if (!defined($ssl)) {
++		$socket = IO::Socket::INET->new( PeerAddr => $host,
++					PeerPort => $port,
++					Proto    => 'tcp');
++	} else {
++		$socket = IO::Socket::SSL->new( PeerAddr => $host,
++					PeerPort => $port,
++					Proto    => 'tcp');
++	}
++	if (!$socket) {
++		die "Can not open imap connection on [$host:$port]: $@";
++	}
++
++	my $imap = Mail::IMAPClient->new(Server  => $host,
++					 Port    => $port,
++					 Socket  => $socket,
++					 User    => $user,
++					 Password=> $password);
++	$imap->State($imap->Connected());
++
+ 	$imap->Fast_io(1);
+ 	$imap->Uid(1);
+ 	$imap->Peek(1);
+ 	$imap->Debug($debugimap);
+-	$imap->connect()
+-	  or die "Can not open imap connection on [$host] with user [$user] : $@\n";
+-    if ($timeout)    # whr (ESS/PRW)
+-    {
+-        $imap->Timeout($timeout);
+-        print "Setting imap timeout to $timeout\n";
+-    }
+-
+-	$imap->User($user);
+-	$imap->Password($password);
+-	md5auth($imap);
++
++	if ($timeout)    # whr (ESS/PRW)
++	{
++    		$imap->Timeout($timeout);
++    		print "Setting imap timeout to $timeout\n";
++	}
++
++	select_auth($imap);
++
+ 	$imap->login() or die "Error login : [$host] with user [$user] : $@";
++
+ 	return($imap);
+ }
+ 
+ 
+-sub md5auth() {
++sub select_auth() {
+ 	my ($imap) = @_;
+ 	unless ($md5_supported) {
+ 		return;
+@@ -810,6 +830,8 @@ sub get_options
+                                    "host2=s"     => \$host2,
+                                    "port1=i"     => \$port1,
+                                    "port2=i"     => \$port2,
++                                   "ssl1!"       => \$ssl1,
++                                   "ssl2!"       => \$ssl2,
+                                    "user1=s"     => \$user1,
+                                    "user2=s"     => \$user2,
+                                    "password1=s" => \$password1,

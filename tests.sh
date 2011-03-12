@@ -1,8 +1,11 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.22 2004/07/09 09:11:28 gilles Exp $	
+# $Id: tests.sh,v 1.23 2004/09/07 00:38:36 gilles Exp $	
 
 # $Log: tests.sh,v $
+# Revision 1.23  2004/09/07 00:38:36  gilles
+# Added noauthmd5 to first_sync test
+#
 # Revision 1.22  2004/07/09 09:11:28  gilles
 # comment about pl and lp
 #
@@ -132,7 +135,8 @@ first_sync() {
 	    --host1 localhost --user1 toto@est.belle \
 	    --passfile1 /var/tmp/secret1 \
 	    --host2 localhost --user2 titi@est.belle \
-	    --passfile2 /var/tmp/secret2
+	    --passfile2 /var/tmp/secret2 \
+	    --noauthmd5
 }
 
 sendtestmessage() {
