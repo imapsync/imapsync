@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.60 2011/02/21 02:20:38 gilles Exp gilles $	
+# $Id: Makefile,v 1.67 2011/04/20 01:20:06 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -90,7 +90,7 @@ test_quick_229: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 test_quick_3xx: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.27/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 testv:
 	nice -40 sh -x tests.sh
@@ -108,18 +108,12 @@ test229: .test_229
 	touch .test_229
 
 .test_3xx: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.27/lib' /usr/bin/time sh tests.sh 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_3xx
 
 testf: clean_test test
 
 .PHONY: lfo upload_lfo niouze_lfo niouze_fm public  imapsync_cidone
-
-upload_index: index.shtml 
-	rcsdiff index.shtml
-	rsync -avH index.shtml \
-	../../public_html/www.linux-france.org/html/prj/imapsync/
-	sh $(HOME)/memo/lfo-rsync
 
 .dosify_bat: build_exe.bat test_exe.bat test.bat test2.bat
 	unix2dos build_exe.bat test.bat test_exe.bat test2.bat
@@ -164,14 +158,14 @@ imapsync.exe: imapsync build_exe.bat test_exe.bat .dosify_bat
 imapsync_elf_x86.bin: imapsync
 	rcsdiff imapsync
 	{ test 'vadrouille' = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.27/lib \
+	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.28/lib \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
 	imapsync ; \
 	} || :
 	{ test 'petite'     = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.27/lib \
+	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.28/lib \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
@@ -180,7 +174,7 @@ imapsync_elf_x86.bin: imapsync
 	imapsync ; \
 	} || :
 	{ test 'ks200821.kimsufi.com'     = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.27/lib \
+	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.28/lib \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
@@ -195,7 +189,7 @@ lfo: cidone  niouze_lfo upload_lfo
 
 dist: cidone test clean all INSTALL tarball
 
-tarball: cidone all imapsync_elf_x86.bin imapsync.exe
+tarball: cidone all imapsync.exe
 	echo making tarball $(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
@@ -208,24 +202,43 @@ tarball: cidone all imapsync_elf_x86.bin imapsync.exe
 	ls -l ../prepa_dist/$(DIST_FILE)
 
 ks:
-	rsync -av . imapsync@ks.lamiral.info:public_html/imapsync
+	rsync -avz . imapsync@ks.lamiral.info:public_html/imapsync
 	{ cd /g/var/paypal_reply/ &&\
 	rsync -av url_exe url_release url_source imapsync@ks.lamiral.info:/g/var/paypal_reply/ \
 	; }
 
+
+PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
+./index.shtml ./INSTALL ./TIME \
+./logo_imapsync.png ./logo_imapsync_s.png \
+./paypal.shtml ./paypal_return.shtml ./paypal_return_support.shtml \
+./README ./style.css ./TODO ./VERSION ./VERSION_EXE
+
+upload_ks:
+	rsync -lptvHz  $(PUBLIC_FILES) \
+	root@ks.lamiral.info:/var/www/imapsync/
+	rsync -lptvHz ./dist/index.shtml \
+	root@ks.lamiral.info:/var/www/imapsync/dist/
+
 upload_lfo:
 	#rm -rf /home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
 	#rm -rf /home/gilles/public_html/www.linux-france.org/ftp/prj/imapsync/
-	rsync -avH ./ChangeLog ./COPYING ./CREDITS ./FAQ \
-	./index.shtml ./INSTALL ./TIME \
-	./logo_imapsync.png ./logo_imapsync_s.png \
-	./paypal.shtml ./README ./style.css ./TODO ./VERSION ./VERSION_EXE \
+	rsync -avH $(PUBLIC_FILES) \
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
 	rsync -avH ./dist/index.shtml \
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/dist/
 	sh ~/memo/lfo-rsync
 
-niouze_lfo : VERSION
+upload_index: index.shtml 
+	validate --verbose index.shtml
+	rcsdiff index.shtml
+	rsync -avH index.shtml \
+	../../public_html/www.linux-france.org/html/prj/imapsync/
+	sh $(HOME)/memo/lfo-rsync
+
+
+
+niouze_lfo : 
 	echo "CORRECT ME: . ./memo && lfo_announce"
 
 niouze_fm: VERSION

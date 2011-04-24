@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.149 2011/02/21 02:13:52 gilles Exp gilles $  
+# $Id: tests.sh,v 1.159 2011/04/20 01:18:40 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -24,7 +24,7 @@ CMD_PERL=${CMD_PERL:-'perl -I./Mail-IMAPClient-2.2.9'}
 
 # few debugging tests use:
 CMD_PERL_2xx='perl -I./Mail-IMAPClient-2.2.9'
-CMD_PERL_3xx='perl -I./Mail-IMAPClient-3.27/lib'
+CMD_PERL_3xx='perl -I./Mail-IMAPClient-3.28/lib'
 
 #### Shell pragmas
 
@@ -922,7 +922,7 @@ ll_regex_flag()
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
-                --debug --regexflag 's/\\Answered/\\Seen/g'
+                --regexflag 's/\\Answered/\$Forwarded/g'
                 
                 echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
@@ -994,9 +994,9 @@ ll_tls_justlogin() {
 
 ll_tls_devel() {
    CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_justlogin ll_ssl_justlogin \
-&& CMD_PERL='perl -I./Mail-IMAPClient-3.27/lib' ll_justlogin ll_ssl_justlogin \
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' ll_justlogin ll_ssl_justlogin \
 && CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' ll_tls_justconnect  ll_tls_justlogin \
-&& CMD_PERL='perl -I./Mail-IMAPClient-3.27/lib' ll_tls_justconnect ll_tls_justlogin
+&& CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' ll_tls_justconnect ll_tls_justlogin
 }
 
 ll_tls() {
@@ -1097,6 +1097,17 @@ ll_authuser() {
                 --passfile2 ../../var/pass/secret.titi \
                 --justfoldersizes --nofoldersizes \
                 --authuser2 titi 
+}
+
+ll_authuser_2() {
+
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 anything \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfoldersizes \
+                --authuser2 titi --folder INBOX.lalala
 }
 
 
@@ -1214,6 +1225,65 @@ xxxxx_gmail() {
 		--justfolders --dry --prefix2 '[Gmail]/'
 }
 
+xxxxx_gmail_2() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--nofoldersizes \
+                --regextrans2 's,(.*),SMS,'
+#--dry --prefix2 '[Gmail]/'
+}
+
+xxxxx_gmail_3() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--nofoldersizes \
+                --folder INBOX.few_emails --justfolders --debug \
+                --regextrans2 's,few_emails,Gmail/Messages envoyes,' 
+}
+
+xxxxx_gmail_4() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--nofoldersizes \
+                --folder INBOX.Sent  \
+                --regextrans2 's{Sent}{Gmail/Messages envoyes}' 
+}
+
+xxxxx_gmail_5_justlogin() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--justlogin
+}
+
+
 gmail_xxxxx() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -1292,7 +1362,7 @@ allow3xx() {
 }
 
 noallow3xx() {
-                ! perl -I./Mail-IMAPClient-3.27/lib ./imapsync \
+                ! perl -I./Mail-IMAPClient-3.28/lib ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -1480,6 +1550,59 @@ ll_useuid_nousecache()
 # specific tests
 ##########################
 
+godaddy_1_justlogin() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 imap.secureserver.net --user2 migrationtest@overnightmac.com \
+	--passfile2 ../../var/pass/secret.overnightmac --tls2 \
+	--folder INBOX.oneemail --folder INBOX.few_emails
+}
+
+mailenable_1() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 email.avonvalley.wilts.sch.uk --user2 "GLamiral" \
+	--passfile2 ../../var/pass/secret.avonvalley  \
+	--sep2 / --prefix2 ''  --useuid \
+	--folder INBOX.Junk --folder INBOX.few_emails \
+	--delete2 --expunge2
+}
+
+mailenable_2_justfolders() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 email.avonvalley.wilts.sch.uk --user2 "GLamiral" \
+	--passfile2 ../../var/pass/secret.avonvalley  \
+	--sep2 / --prefix2 ''  --useuid \
+	--justfolders --exclude "Gmail" --exclude ' '
+}
+
+
+mailenable_3_reverse() {
+	$CMD_PERL ./imapsync \
+	--host2 $HOST1  --user2 tata \
+	--passfile2 ../../var/pass/secret.tata \
+	--host1 email.avonvalley.wilts.sch.uk --user1 "GLamiral" \
+	--passfile1 ../../var/pass/secret.avonvalley  \
+	--sep1 / --prefix1 ''  \
+	--folder few_emails  \
+	--delete2 --expunge2 --debug --useuid
+}
+
+
+
+bug_zero_byte() {
+	$CMD_PERL ./imapsync \
+	--host1 buzon.us.es  --user1 rafaeltovar \
+	--passfile1 ../../var/pass/secret.rafaeltovar \
+	--host2 $HOST2 --user2 titi \
+	--passfile2 ../../var/pass/secret.titi \
+	--folder INBOX --regextrans2 s/INBOX/INBOX.rafaeltovar/
+}
+
 exchange_1() {
 	$CMD_PERL ./imapsync \
 	--host1 $HOST1  --user1 tata \
@@ -1489,11 +1612,32 @@ exchange_1() {
 	--folder INBOX.oneemail --folder INBOX.few_emails --folder INBOX -maxage 1
 }
 
+exchange_2() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
+	--passfile2 ../../var/pass/secret.ethz.ch \
+	--folder INBOX.Junk --useuid
+}
+
+exchange_3_delete2() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
+	--passfile2 ../../var/pass/secret.ethz.ch \
+	--folder INBOX.Junk --useuid --delete2
+}
+
+
+
 jong_1() {
 $CMD_PERL ./imapsync \
     --host1 mail.y-publicaties.nl --user1 gillesl --passfile1 ../../var/pass/secret.jong \
     --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi --sep1 /  --prefix1 '' \
-    --delete2 --expunge2 --folder INBOX --nofoldersizes 
+    --delete2 --expunge2 --expunge1 --expunge \
+    --foldersizes --folder Junk/2009 --useuid
 # --debugimap1 --dry
 }
 
@@ -1502,7 +1646,7 @@ $CMD_PERL ./imapsync \
     --host2 mail.y-publicaties.nl --user2 gillesl --passfile2 ../../var/pass/secret.jong \
     --host1 $HOST2 --user1 gilles@est.belle --passfile1 ../../var/pass/secret.gilles_mbox \
     --sep2 /  --prefix2 ''  \
-    --folder INBOX.Junk.2009 --delete2 --expunge2 --debug > zzz 2>&1
+    --folder INBOX.Junk.2009 --delete2 --expunge2 --expunge1 --expunge --useuid
 #--nofoldersizes 
 # --debugimap1 --dry
 }

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.29 2010/12/14 15:14:46 gilles Exp gilles $
+# $Id: memo,v 1.30 2011/03/23 19:14:37 gilles Exp gilles $
 
 software_version() {
 
@@ -13,11 +13,11 @@ statistics_lfo() {
 #grep    prj/imapsync/VERSION /usr/local/apache/logs/access_log  | sort -n | cut -d ' ' -f 1,12,13|uniq -c | sort -n # list ip
 
 cat <<EOFF
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n # list ip
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32 # Win32
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n" # list ip
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32" # Win32
 
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n # OS usage+basename
-grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n # imapsync release
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n" # OS usage+basename
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log*|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n" # imapsync release
 
 
 tail -f /usr/local/apache/logs/access_log|cat -n|grep prj/imapsync/VERSION|cat -n |grep VERSION # lfo frequency'

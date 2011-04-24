@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: paypal_imapget,v 1.6 2010/12/29 23:50:45 gilles Exp gilles $
+# $Id: paypal_imapget,v 1.7 2011/03/23 17:05:24 gilles Exp gilles $
 
 use Getopt::Long;
 use Mail::IMAPClient;
@@ -15,6 +15,7 @@ my $user;
 my $password;
 my $passfile;
 my $folder = 'INBOX';
+my @search ;
 my $help;
 
 my $numopt = scalar(@ARGV);
@@ -24,6 +25,7 @@ my $opt_ret = GetOptions(
 	"password=s"	=> \$password,
 	"passfile=s"	=> \$passfile,
 	"folder=s"	=> \$folder,
+	"search=s"	=> \@search,
 	"help"		=> \$help,
 	"delete!"	=> \$delete,
 	"expunge!"	=> \$expunge,
@@ -51,7 +53,10 @@ $imap->select($folder) or die "Error select folder [$folder] host [$host] user [
 
 #my @uids = $imap->search('HEADER', 'SUBJECT',"=?windows-1252?Q?Avis_de_r=E9ception_d=27un_paiement?=");
 #my @uids = $imap->search('HEADER', 'Sender','sendmail@paypal.com');
-my @uids = $imap->search('TEXT', 'PP341');
+#my @uids = $imap->search('TEXT', 'PP341');
+print "@search\n" ;
+@search = ('TEXT', 'PP341') if not @search ;
+my @uids = $imap->search('HEADER', 'Sender','sendmail@paypal.com', @search );
 print "Search: [@uids]\n";
 
 foreach $msg (@uids) {
