@@ -1,0 +1,83 @@
+#!/bin/sh
+
+# usage: sh paypal_build_invoices/g/var/paypal_invoices/???
+
+cp /home/gilles/public_html/AGIL/factures/000/facture_imapsync-000.tex /g/var/paypal_invoices/
+
+set -x
+/g/public_html/imapsync/paypal_reply/paypal_bilan --write_invoices --first_in 147 /g/paypal/paypal_2010_11_complet.csv
+/g/public_html/imapsync/paypal_reply/paypal_bilan --write_invoices --first_in 214 /g/paypal/paypal_2010_12_complet.csv
+/g/public_html/imapsync/paypal_reply/paypal_bilan --write_invoices --first_in 294 /g/paypal/paypal_2011_01_complet.csv
+/g/public_html/imapsync/paypal_reply/paypal_bilan --write_invoices --first_in 382 /g/paypal/paypal_2011_02_complet.csv
+/g/public_html/imapsync/paypal_reply/paypal_bilan --write_invoices --first_in 473 /g/paypal/paypal_2011_03_complet.csv
+set +x
+
+# USD de 147 à 340
+# EUR de 341 à ...
+
+# 20110413 Found problems with  189 199     249 258 263 359     537
+# 20110412 Found problems with  189 199 242 249 258 263 359 382 537
+#                               cen cen JAP cen cen cen cen TCH JAP
+#                                       cen
+# 155 TVA 1,89
+# 171 TVA 4,42
+# 220 TVA 3,16
+# 225 TVA 3,16
+# 236 TVA 4,42
+# 298 TVA 3,16
+# 307 TVA 4,42
+# 312 TVA 4,42
+# 324 TVA 4,42
+# 351 TVA 4,92
+# 395 TVA 4,92
+# 408 TVA 4,92
+# 419 TVA 4,92
+# 432 TVA 4,92
+# 435 TVA 4,92
+# 452 TVA 4,92
+# 460 TVA 4,92
+# 461 TVA 4,92
+# 463 TVA 4,92
+# 464 TVA 4,92
+# 475 TVA 4,92
+# 487 TVA 4,92
+# 489 TVA 4,92
+# 502 TVA 4,92
+# 504 TVA 4,92
+# 511 TVA 4,92
+# 522 TVA 4,92
+# 523 TVA 4,92
+# 533 TVA 4,92
+# 537 TVA 4,92
+# 540 TVA 4,92
+# 543 TVA 4,92
+# 549 TVA 4,92
+# 551 TVA 4,92
+# 552 TVA 4,92
+# 556 TVA 4,92
+# 563 TVA 4,92 
+
+for d in "$@"; do 
+	echo "==== $d ===="
+	cd $d
+	bd=`basename $d`
+	ln -f ../facture_imapsync-000.tex facture_imapsync-$bd.tex;
+	if ! pdflatex facture_imapsync-$bd.tex < /dev/null > /dev/null; then
+		echo "PB $bd"
+		if test -f facture_imapsync-${bd}_good.tex \
+                   && pdflatex facture_imapsync-${bd}_good.tex < /dev/null > /dev/null
+                then
+			ln -f facture_imapsync-${bd}_good.pdf facture_imapsync-$bd.pdf
+			echo "PB $bd solved with manual facture_imapsync-${bd}_good.tex"
+			PB_LIST_MANUAL="$PB_LIST_MANUAL $bd"
+		else
+			PB_LIST="$PB_LIST $bd"
+			rm -f facture_imapsync-$bd.pdf
+			continue		
+		fi
+	fi
+	gpg --use-agent --armor --detach-sign --yes facture_imapsync-$bd.pdf
+done
+
+echo "Found problems with $PB_LIST"
+echo "Manual invoices for $PB_LIST_MANUAL"

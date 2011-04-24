@@ -1,9 +1,10 @@
 #!/usr/bin/perl 
 
-# $Id: paypal_build_reply,v 1.10 2011/02/02 22:31:41 gilles Exp gilles $
+# $Id: paypal_build_reply,v 1.12 2011/03/23 18:31:52 gilles Exp gilles $
 
 use warnings;
 use strict;
+use Getopt::Long;
 
 my ($msg_id_file, $msg_id);
 my ($amount, $name, $email);
@@ -13,23 +14,39 @@ my (
 	$url_source, $url_exe, $url, $release,
 );
 
+my $help ;
+my $debug ;
+
+my $numopt = scalar(@ARGV);
+my $opt_ret = GetOptions(
+        "help"          => \$help,
+        "debug!"        => \$debug,
+);
+
+usage() and exit if ($help or ! $numopt) ;
+
 $msg_id_file = $ARGV[1];
 $msg_id = firstline($msg_id_file);
 
+$debug and print "Hi!\n" ;
 
 while(<>) {
-	next if ( ! /^(.*Num.+ro de transaction :.*)$/ );
+	next if ( ! /^(.*Num.+ro de transaction.*)$/ );
 	$paypal_line = $1;
 	$paypal_info  = "===== Paypal id =====\n$paypal_line\n";
+	$debug and print "$paypal_info" ;
 	last;
 }
-
 while(<>) {
-	next if ( ! /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/);
-	($amount, $name, $email) = ($1, $2, $3);
-	last;
+	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/) {
+		($amount, $name, $email) = ($1, $2, $3);
+		last;
+	}
+	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*)/) {
+		($amount, $name, $email) = ($1, "", $2);
+		last;
+	}
 }
-
 $url_source = firstline('/g/var/paypal_reply/url_source');
 $url_exe    = firstline('/g/var/paypal_reply/url_exe');
 $release    = firstline('/g/var/paypal_reply/url_release');
@@ -37,17 +54,24 @@ $release    = firstline('/g/var/paypal_reply/url_release');
 #print "[$amount] [$name] [$email] [$paypal_line]\n";
 
 
-
 while(<>) {
-	next if ( ! /^Acheteur/ );
-	$buyer .= "===== Acheteur =====\n";
-	last;
+	if ( /^Acheteur/ ) {
+		$buyer .= "===== Acheteur =====\n";
+		last;
+	}
+	if ( /^Informations sur l'acheteur/ ) {
+		$buyer .= "===== Acheteur =====\n";
+		chomp( $name = <> );
+		$buyer .= "$name\n" ;
+		last;
+	}
 }
 
 while(<>) { 
-	$buyer .= $_ if ( ! /^Instructions/ );
-	last if ( /^Instructions/ );
+      $buyer .= $_ if ( ! /^-----------------------------------/ );
+      last if ( /^-----------------------------------/ );
 }
+
 
 while(<>) { 
 	next if ( ! /^Description :(.*)/ );
@@ -57,13 +81,16 @@ while(<>) {
 }
 
 while(<>) { 
+	$debug and print "LINE:$_" ;
 	$description .= $_;
 	last if ( /^Paiement envoy/ );
+	last if ( /^N.*d'avis de r.*ception/ );
 }
+
 
 my $address = 'gilles.lamiral@laposte.net';
 my $address2 = 'gilles@lamiral.info';
-my $rcstag  = '$Id: paypal_build_reply,v 1.10 2011/02/02 22:31:41 gilles Exp gilles $';
+my $rcstag  = '$Id: paypal_build_reply,v 1.12 2011/03/23 18:31:52 gilles Exp gilles $';
 
 my $message = <<EOM
 X-Comment: $rcstag
@@ -80,6 +107,8 @@ $url_source
 
 You will find the latest imapsync.exe binary release $release at the following link:
 $url_exe
+
+You will receive an invoice soon.
 
 Next imapsync releases will be available for one year without extra payment.
 Just keep this message and ask for the new links.

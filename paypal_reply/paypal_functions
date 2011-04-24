@@ -1,8 +1,6 @@
 #!/bin/sh
 
-# $Id: paypal_functions,v 1.12 2011/02/02 22:32:26 gilles Exp gilles $
-
-
+# $Id: paypal_functions,v 1.15 2011/03/23 19:10:56 gilles Exp gilles $
 
 paypal_prerequisites() {
 	perl -mMIME::Lite -e '' || echo 'sudo aptitude install libmime-lite-perl'
@@ -35,14 +33,13 @@ paypal_init_petite_INBOX() {
 }
 
 
-paypal_init_test() {
+paypal_init_petite_dev() {
 	user=gilles@est.belle
 	passfile=/g/var/pass/secret.gilles_mbox
 	host=p
-	tmpdir=/g/var/paypal_reply_test
-	folder='INBOX.03_imapsync.imapsync_paypal'
+	tmpdir=/g/var/paypal_reply_dev
+	folder='INBOX.03_imapsync.imapsync_paypal_dev'
 }
-
 
 
 get_mail() {
@@ -55,6 +52,19 @@ get_mail() {
 	# transférés
 	paypal_imapget --host $host --user $user --passfile $passfile \
 	         --folder $folder
+	)
+}
+
+get_mail_PP1470() {
+	# creation des répertoires
+	mkdir -p $tmpdir/msg_in/
+	mkdir -p $tmpdir/msg_id/
+	(
+	cd $tmpdir/msg_in/
+	# recuperation des messages de la boite sans destruction des messages
+	# transférés
+	paypal_imapget --host $host --user $user --passfile $passfile \
+	         --folder $folder --search TEXT --search PP1470
 	)
 }
 
@@ -123,9 +133,8 @@ build_reply_arg() {
 		bd=`basename "$d"`
 		file_id=`troncate_last_2_chars $bd`
 		d_reply="$tmpdir/msg_reply/$file_id"
-		test -f "$d_reply/$file_id.txt" && continue
-		mkdir -p "$d_reply"
 		echo building "$d_reply/$file_id.txt"
+		echo paypal_build_reply "$f" "$tmpdir/msg_id/$file_id"
 		paypal_build_reply "$f" "$tmpdir/msg_id/$file_id"
 	done
 }
@@ -151,8 +160,8 @@ paypal_all() {
         paypal_prerequisites
 	echo "Will get messages in $tmpdir/msg_in/"
 	get_mail
+	get_mail_PP1470
 	echo "Done get messages in $tmpdir/msg_in/"
-	
 	echo "Will extract_mail in $tmpdir/msg_out/"
 	extract_mail
 	echo "Done extract_mail in $tmpdir/msg_out/"
@@ -188,4 +197,31 @@ paypal_reply_laposte() {
 	echo "Done paypal_reply_laposte"
 }
 
+paypal_all_dev() {
+        paypal_prerequisites
+	echo "Will get messages in $tmpdir/msg_in/"
+	get_mail_PP1470
+	echo "Done get messages in $tmpdir/msg_in/"
+	echo "Will extract_mail in $tmpdir/msg_out/"
+	extract_mail
+	echo "Done extract_mail in $tmpdir/msg_out/"
+	echo "Will converting to utf8 in $tmpdir/msg_out_utf8/"
+	convert_utf8
+	echo "Done converting to utf8 in $tmpdir/msg_out_utf8/"
+	echo "Will build_reply in $tmpdir/msg_reply/"
+	build_reply
+	echo "Done build_reply in $tmpdir/msg_reply/"
+	echo "Will send_reply $@"
+	send_reply "$@"
+	echo "Done send_reply $@"
+}
+
+
+paypal_reply_petite_dev() {
+	echo "Doing paypal_reply_petite_dev"
+	echo paypal_init_petite_dev
+	paypal_init_petite_dev
+	paypal_all_dev "$@"
+	echo "Done paypal_reply_petite_dev"
+}
 

@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.83 2011/01/28 05:14:12 gilles Exp gilles $
+# $Id: FAQ,v 1.85 2011/02/28 16:02:17 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -24,7 +24,7 @@ R. http://www.linux-france.org/prj/imapsync/FAQ
 Q. How can I have commercial support?
 
 R. Ask the imapsync author and expert: Gilles LAMIRAL
-Rates per hour (2010) : 81 euros (111 USD)
+Rates per hour (2011) : 84 euros (111 USD)
 
 =======================================================================
 Q. How can I have gratis support?
@@ -81,7 +81,7 @@ http://www.faqs.org/rfcs/rfc4549.html
 =======================================================================
 Q. Where I can find old imapsync releases?
 
-R. ftp://www.linux-france.org/pub/prj/imapsync/
+R. Search the internet.
 
 =======================================================================
 Q. How can I try imapsync with the new Mail::IMAPClient 3.xx perl library?
@@ -103,8 +103,7 @@ R. - Download latest Mail::IMAPClient 3.xx at
         perl -I./Mail-IMAPClient-3.23/lib   /path/imapsync ...
 
 =======================================================================
-Q. imapsync does not work with Mail::IMAPClient 3.xx
-   How can I downgrade to 2.2.9 release?
+Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
 
 R. - Download Mail::IMAPClient 2.2.9 at 
    http://search.cpan.org/~djkernen/Mail-IMAPClient-2.2.9/
@@ -119,11 +118,17 @@ R. - Download Mail::IMAPClient 2.2.9 at
         perl -I./Mail-IMAPClient-2.2.9  /path/imapsync [...]
 
 =======================================================================
-Q. Can I use imapsync to migrate emails from pop server to imap server?
+Q. Can I use imapsync to migrate emails from pop3 server to imap server?
 
-R. No. 
+R1. No. 
 You can migrate emails from pop server to imap server with pop2imap:
 http://www.linux-france.org/prj/pop2imap/
+
+R2. Yes 
+Many pop3 servers runs in parallel with an imap server on the
+exactly the same mailboxes. They serve the same INBOX
+(imap serves INBOX and several other folders, pop3 serves only INBOX)
+So have a try with imapsync on the same host1.
 
 =======================================================================
 Q. I am interested in creating  a local clone of the IMAP on a LAN 
@@ -178,17 +183,34 @@ d) Use the --syncinternaldates option and keep using Eudora.
 Q. imapsync calculates 479 messages in a folder but only transfers 400 
    messages. What's happen?
 
-R. imapsync considers the header part of a message (as a whole or
+R1. imapsync considers the header part of a message (as a whole or
    only specific lines depending on --useheader --skipheader) 
    to identify a message on both sides.
 
-Two consequences:
+Consequences:
 
-  1) Messages with no header are not transferred.
-  2) Duplicate messages (identical header) are not transferred
+  1) Duplicate messages (identical header) are not transferred
      several times.
 
 The result is that you can have more messages on host1 than on host2.
+
+R2. With option --useuid imapsync doesn't use headers to identify
+messages on both sides but it uses their imap uid. In than case
+duplicates are transfered and --delete2 won't work.
+
+=======================================================================
+Q.  I run multiple imapsync applications at the same time then get a
+    warning "imapsync.pid already exists, overwriting it".
+    Is this a potential problem when trying to sync multiple 
+    IMAP account in parallel?
+
+R1. No issue with the file imapsync.pid if you don't use its content.
+This file can help you to manage multiple runs by sending
+signals to the processes (sigterm or sigkill) using their PID, 
+each run can have its own pid file with --pidfile option.
+The file imapsync.pid contains the PID of the imapsync process.
+This file is removed at the end of a normal run.
+You can saafely ignore the warning if you don't use imapsync.pid.
 
 =======================================================================
 Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
@@ -208,7 +230,7 @@ Sometimes the sep1 character is not valid on host2 (character "/" usualy)
 
 R. Try :
 
-  --regextrans2 's,/,X,g'
+  --regextrans2 "s,/,X,g"
 
 It'll convert / character to X 
 Choose X as you wish: _ or SEP or 
@@ -267,7 +289,7 @@ R. For some servers, flags have to begin with a \ character.
 The flag "NonJunk" may be a invalid flag for your server 
 so use for example:
 
-imapsync ...    --regexflag 's/NonJunk//g'
+imapsync ...    --regexflag "s/NonJunk//g"
 
 Remark (thanks to Arnt Gulbrandsen): 
 IMAP system flags have to begin with \ character.
@@ -1157,19 +1179,3 @@ Q: How can I write an .rpm with imapsync
 R: I don't know but Neil Brown wrote one rpm package and you'll find
    his .spec file here :
    http://www.linux-france.org/prj/imapsync/learn/rpm/
-
-======================================================================
-Q: Problems on win32, Timezone and Date::Manip
-R: Comment the code like the following
-
-  if ($syncinternaldates) {
-     $d = $f_idate;
-     $debug and print "internal date from 1: [$d]\n";
-     #require Date::Manip;
-     #Date::Manip->import(qw(ParseDate Date_Cmp UnixDate));
-     #$d = UnixDate(ParseDate($d), "%d %b %Y %H:%M:%S %z");
-     #$d = "\"$d\"";
-     #$debug and print "internal date from 1: [$d] (fixed)\n";
-  }
-
-

@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# usages:
+# sh paypal_send_invoices /g/var/paypal_invoices/147
+# sh paypal_send_invoices /g/var/paypal_invoices/15?
+
+
+send_invoice() {
+	test X"" = X"$1" && { echo "usage: send_invoice /g/var/paypal_invoices/147 vince@norestech.net"; return; }
+	d="$1"
+	echo "====== $d ======"
+	#echo
+	cd $d || return
+	bd=`basename $d`
+	#echo "$bd"
+	invoice="$bd"
+	test -f facture_imapsync-${invoice}.pdf || { echo NO facture_imapsync-${invoice}.pdf ;  return; }
+	test -f facture_imapsync-${invoice}.pdf.asc || { echo NO facture_imapsync-${invoice}.pdf.asc ;  return; }
+	test -f facture_message_header.txt || { echo NO facture_message_header.txt ;  return; }
+	test -f facture_message_body.txt || { echo NO facture_message_body.txt ;  return; }
+	test -f email_address.txt || { echo NO email_address.txt ;  return; }
+
+	email=${2:-`cat email_address.txt`}
+	> facture_message_to.txt
+	egrep '^To: ' facture_message_header.txt > /dev/null || echo "To: $email" > facture_message_to.txt
+	cat facture_message_header.txt facture_message_to.txt facture_message_body.txt > facture_message.txt
+	more facture_message.txt
+
+	echo '====== END of message ======'
+	test -f "SENT_TO_$email" && { echo "Already SENT_TO_$email"; }
+	test -f "SENT_TO_$email" || acroread facture_imapsync-${invoice}.pdf&
+        echo "Send this invoice ${invoice} to $email?"
+        read r < /dev/tty
+        echo SAID "[$r]"
+        test X"$r" = Xy && {
+		echo | mutt -H facture_message.txt -a facture_imapsync-${invoice}.pdf facture_imapsync-${invoice}.pdf.asc --
+		touch SENT_TO_$email
+	}
+}
+
+for d in "$@"; do 
+	send_invoice "$d"
+done
