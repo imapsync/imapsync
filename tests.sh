@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.165 2011/05/16 16:41:11 gilles Exp gilles $  
+# $Id: tests.sh,v 1.168 2011/05/31 16:42:38 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -297,6 +297,24 @@ ll_few_emails() {
                 --folder INBOX.few_emails
 }
 
+ll_few_emails_dev() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails --nofoldersizes
+}
+
+ll_size_null() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.size_null
+}
+
 ll_noheader() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
@@ -336,8 +354,19 @@ ll_folderrec() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folderrec INBOX.yop  
+                --folderrec INBOX.yop  --debugimap --justfolders
 }
+
+ll_folderrec_star() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folderrec 'INBOX.yop.*'  --justfolders
+}
+
+
 
 ll_folderrec_blank_bug() {
                 $CMD_PERL ./imapsync \
@@ -711,6 +740,19 @@ ll_maxage()
         --passfile2 ../../var/pass/secret.titi \
         --maxage 1
 }
+
+ll_maxage_nonew() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 1 --nofoldersizes \
+        --folder INBOX.few_emails
+}
+
 
 ll_newmessage()
 {
@@ -1274,9 +1316,7 @@ ll_authmech_CRAMMD5() {
 }
 
 ll_delete2() {
-        if can_send; then
-		sendtestmessage titi
-        fi
+        can_send && sendtestmessage titi
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
@@ -1285,6 +1325,55 @@ ll_delete2() {
         --folder INBOX \
         --delete2 --expunge2 
 }
+
+ll_delete2_minage() {
+        can_send && sendtestmessage titi
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX \
+        --delete2 --expunge2 --minage 1
+}
+
+ll_delete2_minage_useuid() {
+        can_send && sendtestmessage titi
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX \
+        --delete2 --uidexpunge2 --minage 1 --useuid
+}
+
+ll_delete2_uidexpunge2_implicit() {
+        can_send && sendtestmessage titi
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX \
+        --delete2 --useuid
+}
+
+
+
+
+ll_delete2_dev() {
+        can_send && sendtestmessage titi
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX  --nofoldersizes \
+        --delete2
+}
+
 
 ll_delete() {
         if can_send; then
@@ -1301,7 +1390,7 @@ ll_delete() {
 
 
 ll_delete_delete2() {
-        $CMD_PERL ./imapsync \
+        ! $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
         --host2 $HOST2 --user2 tata \

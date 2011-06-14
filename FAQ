@@ -1,9 +1,33 @@
 #!/bin/cat
-# $Id: FAQ,v 1.86 2011/05/16 16:43:12 gilles Exp gilles $
+# $Id: FAQ,v 1.88 2011/05/26 00:53:26 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
 +------------------+
+
+Unix versus Windows syntax.
+On Unix shells you can write a single command on multiple lines
+by using the escape character \ at the end of each line 
+(except the last one).
+
+./imapsync \
+   --host1 imap.truc.org --user1 foo --password1 secret1 \
+   --host2 imap.trac.org --user2 bar --password2 secret2
+
+
+On Windows this character is ^
+
+imapsync ^
+   --host1 imap.truc.org --user1 foo --password1 secret1 ^
+   --host2 imap.trac.org --user2 bar --password2 secret2
+
+
+Of course you can write the command on one only line without 
+characters \ nor ^. I use them because the output is
+better, no truncation, pretty print. It's just sugar.
+
+In this FAQ I use \ for examples. Transcript to ^ if
+you're on a Windows system.
 
 =======================================================================
 Q. How to install imapsync?
@@ -519,12 +543,11 @@ Q. I want the --folder 'MyFolder' option be recursive.
 
 Two solutions:
 
-R. Use
+R1. Use
 
 --folderrec 'MyFolder'
 
-R. Do not use the --folder option. 
-   Instead, use --include '^MyFolder'
+R2. Use --include '^MyFolder'
    Then the folder "MyFolder" and all its subfolders will be handled
    and only them.
 
@@ -1192,6 +1215,10 @@ R. imapsync ... \
 
 ======================================================================
 Q: How can I write an .rpm with imapsync
-R: I don't know but Neil Brown wrote one rpm package and you'll find
-   his .spec file here :
-   http://www.linux-france.org/prj/imapsync/learn/rpm/
+
+R. You'll find an RPM imapsync.spec file in the directory learn/rpm/
+   It has been downloaded from
+   https://svn.fysik.dtu.dk/projects/rpmbuild/trunk/SPECS/imapsync.spec
+   It has been tested with imapsync 1.434 (May 2011) on CentOS5 
+   and RedHat RHEL5 Linux. (Thanks to Ole Holm Nielsen).
+   This imapsync.spec is derivated from Neil Brown work in 2007.

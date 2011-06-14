@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2011-05-16T19:09:12+0200"/>
+<meta name="date" content="2011-05-31T18:38:11+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -68,9 +68,17 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 
 <p>See <b><a href="ChangeLog">ChangeLog</a></b> to know what's new in details since 2001.</p>
 
-<p>New features or bugfixes since previous release 1.411:</p>
+<p>New features or bugfixes since previous releases:</p>
 
 <ul>
+<li><b>1.446</b></li>
+<li><b>Bugfix</b>: Better --idatefromheader behavior (thank to Dax Kelson patches).</li>
+<li><b>Usability</b>: Now --delete2 sets --uidexpunge2 instead of --expunge2 if possible.</li>
+<li><b>Usability</b>: Adapted the usage output multiline character to Unix or Win, \ or ^</li>
+<li><b>Bugfix</b>: Avoid a "not a number" warning when size is null.</li>
+<li><b>Bugfix</b>: Added "Date" in the default --useheader list. It is ("Message-Id", "Message-ID", "Date")</li>
+<li><b>Bugfix</b>: allows bad header beginning with a blank character.</li>
+
 <li><b>1.434</b></li>
 <li><b>Bugfix</b>: Changed the way imapsync knows <b>whether a folder exists</b> or not. <b>Exchange</b> might be happy and <b>stop deconnecting</b> for this reason.</li>
 <li><b>Bugfix</b>: <b>Reconnections</b> are well done in <b>TLS mode</b> now.</li>
@@ -84,17 +92,6 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 </ul>
 </li>
 
-<li><b>1.422</b></li>
-<li><b>Better default behavior</b>: Option --delete2 implies --expunge2 now (unless --noexpunge2 is given.)</li>
-<li><b>Better default behavior</b>: Correct flags case to be RFC compliant on host2 if host1 is not (\SEEN -> \Seen)</li>
-<li><b>Better debug</b>: Added --debugcontent option to avoid debugging content (can be big) with --debug option.</li>
-<li><b>Better debug</b>: Added --debugflags to permit flag debugging only.</li>
-<li><b>Bugfix</b>: The APPEND error then the FETCH 0 byte error is fixed</li>
-<li><b>Bugfix</b>: Options --maxsize --minsize now work with --useuid</li>
-<li><b>Bugfix</b>: Flag sync of already transfered messages now take care of --maxsize --minsize options</li>
-<li><b>Bugfix</b>: Added 0 length message tracking when fetching host1 (to avoid frequently "APPEND {0}" recent issues).</li>
-<li><b>Bugfix</b>: Avoid Inbox vs INBOX case problem ("already exists").</li>
-<li><b>Bugfix</b>: --proxyauth2 was setting proxyauth1 instead of proxyauth2</li>
 </ul>
 
 <!-- 
@@ -438,7 +435,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.69 2011/05/16 17:10:13 gilles Exp gilles $)
+($Id: index.shtml,v 1.70 2011/05/31 16:43:38 gilles Exp gilles $)
 </p>
 
 </body>
