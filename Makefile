@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.67 2011/04/20 01:20:06 gilles Exp gilles $	
+# $Id: Makefile,v 1.72 2011/05/09 00:11:00 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -93,7 +93,10 @@ test_quick_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
 
 testv:
-	nice -40 sh -x tests.sh
+	sh -x tests.sh
+
+testv3:
+	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' sh -x tests.sh
 
 test: .test_229 .test_3xx
 
@@ -193,8 +196,8 @@ tarball: cidone all imapsync.exe
 	echo making tarball $(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
-	rsync -aCv --delete --omit-dir-times --exclude dist/ ./ ../prepa_dist/$(DIST_NAME)/
-	rsync -av ./imapsync.exe ../prepa_dist/$(DIST_NAME)/
+	rsync -aCv --delete --omit-dir-times --exclude dist/ --exclude imapsync.exe ./ ../prepa_dist/$(DIST_NAME)/
+	#rsync -av ./imapsync.exe ../prepa_dist/$(DIST_NAME)/
 	cd ../prepa_dist &&  (tar czfv $(DIST_FILE) $(DIST_NAME) || tar czfv  $(DIST_FILE) $(DIST_NAME))
 	#ln -f ../prepa_dist/$(DIST_FILE) dist/
 	cd ../prepa_dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
@@ -202,7 +205,7 @@ tarball: cidone all imapsync.exe
 	ls -l ../prepa_dist/$(DIST_FILE)
 
 ks:
-	rsync -avz . imapsync@ks.lamiral.info:public_html/imapsync
+	rsync -avz --delete . imapsync@ks.lamiral.info:public_html/imapsync
 	{ cd /g/var/paypal_reply/ &&\
 	rsync -av url_exe url_release url_source imapsync@ks.lamiral.info:/g/var/paypal_reply/ \
 	; }
