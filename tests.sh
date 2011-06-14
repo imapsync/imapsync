@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.159 2011/04/20 01:18:40 gilles Exp gilles $  
+# $Id: tests.sh,v 1.163 2011/05/09 00:10:16 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -257,6 +257,18 @@ ll_folder_create() {
 		--justfolders
 }
 
+ll_folder_create_INBOX_Inbox() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX --regextrans2 's/INBOX/Inbox/' \
+		--justfolders
+}
+
+
+
 
 ll_oneemail() {
 	$CMD_PERL ./imapsync \
@@ -449,12 +461,9 @@ ll_nosyncinternaldates() {
 # 2.xx noidate: Sending: 62 APPEND INBOX {428}
 
 ll_idatefromheader() {
-        if can_send; then
-                #echo3 Here is plume
-                sendtestmessage
-        else
-                :
-        fi
+
+        can_send && sendtestmessage
+
         $CMD_PERL ./imapsync \
          --host1 $HOST1  --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -520,22 +529,57 @@ ll_dev_reconnect()
 #
 : <<'EOF'
 while :; do 
-    killall -u vmail imapd; 
+    killall -v -u vmail imapd; 
     RAND_WAIT=`numrandom .1..5i.1`
     echo sleeping $RAND_WAIT
     sleepenh $RAND_WAIT
 done
-EOF
+# or 
+while read y; do 
+    killall -u vmail imapd; 
+done
 
-                $CMD_PERL ./imapsync \
+EOF
+        can_send && sendtestmessage
+#        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi 
-
-                #--folder INBOX 
-		#--debug --debugimap
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX --useuid \
+		--delete2 --expunge2
 }
+
+ll_dev_reconnect_ssl_tls() 
+{
+# in another terminal:
+#
+: <<'EOF'
+while :; do 
+    killall -v -u vmail imapd; 
+    RAND_WAIT=`numrandom .1..5i.1`
+    echo sleeping $RAND_WAIT
+    sleepenh $RAND_WAIT
+done
+# or 
+while read y; do
+    echo ENTER to kill all imapd
+    killall -v -u vmail imapd; 
+done
+
+EOF
+        can_send && sendtestmessage
+#        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --ssl1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --tls2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX --useuid \
+		--delete2
+}
+
 
 
 
@@ -631,21 +675,28 @@ ll_maxage_9999()
 
 
 ll_maxsize() 
-{
-        
-        if can_send; then
-                #echo3 Here is plume
-		sendtestmessage
-        else
-                :
-        fi
-                $CMD_PERL ./imapsync \
+{       
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --maxsize 10 
+                --maxsize 10 --nofoldersizes --folder INBOX
 }
+
+ll_maxsize_useuid() 
+{       
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --maxsize 10 --nofoldersizes --folder INBOX \
+                --useuid
+}
+
 
 ll_skipsize() 
 {
@@ -1159,6 +1210,16 @@ ll_delete() {
 }
 
 
+ll_delete_delete2() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --delete --delete2
+}
+
+
 ll_bigmail() {
         $CMD_PERL ./imapsync \
         --host1 $HOST1  --user1 big1 \
@@ -1550,6 +1611,16 @@ ll_useuid_nousecache()
 # specific tests
 ##########################
 
+Giancarlo_1() {
+	$CMD_PERL ./imapsync \
+	--host1 87.241.29.226 --user1 "Diego@studiobdp.local" \
+	--passfile1 ../../var/pass/secret.Giancarlo  \
+	--host2 $HOST1  --user2 tata \
+	--passfile2 ../../var/pass/secret.tata \
+	--regextrans2 's/.*/INBOX.Giancarlo/'  \
+	--nofoldersizes --useuid
+}
+
 godaddy_1_justlogin() {
 	$CMD_PERL ./imapsync \
 	--host1 $HOST1  --user1 tata \
@@ -1566,7 +1637,7 @@ mailenable_1() {
 	--host2 email.avonvalley.wilts.sch.uk --user2 "GLamiral" \
 	--passfile2 ../../var/pass/secret.avonvalley  \
 	--sep2 / --prefix2 ''  --useuid \
-	--folder INBOX.Junk --folder INBOX.few_emails \
+	--folder INBOX --folder INBOX.Junk --folder INBOX.few_emails \
 	--delete2 --expunge2
 }
 
@@ -1590,6 +1661,34 @@ mailenable_3_reverse() {
 	--sep1 / --prefix1 ''  \
 	--folder few_emails  \
 	--delete2 --expunge2 --debug --useuid
+}
+
+
+
+
+
+
+
+mailenable_21_host1() {
+	$CMD_PERL ./imapsync \
+	--host1 elix-irr.com --user1 "greg.watson" \
+	--passfile1 ../../var/pass/secret.greg.watson  \
+	--host2 $HOST1  --user2 zzz \
+	--passfile2 ../../var/pass/secret.zzz \
+	--sep1 / --prefix1 '' \
+	--delete2 --expunge2 --useuid
+
+}
+
+mailenable_22_host2() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 elix-irr.com --user2 "greg.watson" \
+	--passfile2 ../../var/pass/secret.greg.watson  \
+	--sep2 / --prefix2 ''  \
+	--folder INBOX.Junk --folder INBOX --folder INBOX.few_emails \
+	--useuid --debugLIST
 }
 
 
@@ -1629,8 +1728,6 @@ exchange_3_delete2() {
 	--passfile2 ../../var/pass/secret.ethz.ch \
 	--folder INBOX.Junk --useuid --delete2
 }
-
-
 
 jong_1() {
 $CMD_PERL ./imapsync \
@@ -1854,7 +1951,7 @@ dprof_bigmail()
 # Tests list
 
 mandatory_tests='
-no_args 
+no_args
 option_version 
 option_tests 
 option_tests_debug
@@ -1922,6 +2019,7 @@ ll_authmech_PLAIN
 ll_authmech_LOGIN 
 ll_authmech_CRAMMD5 
 ll_authuser 
+ll_delete_delete2
 ll_delete2 
 ll_delete 
 ll_folderrec 
@@ -1936,6 +2034,8 @@ ll_nousecache
 ll_delete2foldersonly
 ll_delete2foldersonly_tmp
 ll_delete2foldersbutnot
+ll_folder_create
+ll_folder_create_INBOX_Inbox
 ll_delete2folders
 ll_useuid
 ll_useuid_nousecache

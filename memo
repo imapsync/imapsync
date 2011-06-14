@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.30 2011/03/23 19:14:37 gilles Exp gilles $
+# $Id: memo,v 1.31 2011/05/07 02:30:54 gilles Exp gilles $
 
 software_version() {
 
@@ -24,7 +24,45 @@ tail -f /usr/local/apache/logs/access_log|cat -n|grep prj/imapsync/VERSION|cat -
 EOFF
 }
 
+statistics_VERSION() {
 
+TMPDIR=.
+export TMPDIR
+
+echo statistics_VERSION_getstats
+statistics_VERSION_getstats() {
+	for f in /home/lf/backuplog/linux-france.org.??-??-2011.bz2; do 
+		b=`basename "$f" .bz2`
+		echo "$b"
+		test -f ${b}.imapsync_VERSION && continue
+		echo NOT DONE ${b}.imapsync_VERSION
+		bzip2 -dc "$f" | grep -h /prj/imapsync/VERSION > ${b}.imapsync_VERSION
+	done
+}
+
+echo statistics_VERSION_monthly_ip
+statistics_VERSION_monthly_ip() {
+	month=$1
+	cut -d ' ' -f 1,12,13,18,19 linux-france.org.??-${month}-2011.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_2011_${month}.ip
+}
+
+echo statistics_VERSION_monthly_ip_wc
+statistics_VERSION_monthly_ip_wc() {
+	month=$1
+	test -f stats_imapsync_2011_${month}.ip || statistics_VERSION_monthly_ip $month
+	wc -l stats_imapsync_2011_${month}.ip
+}
+
+echo statistics_VERSION_monthly_runs
+statistics_VERSION_monthly_runs() {
+	month=$1
+	test -f stats_imapsync_2011_${month}.runs || wc -l linux-france.org.??-${month}-2011.imapsync_VERSION > stats_imapsync_2011_${month}.runs
+	cat stats_imapsync_2011_${month}.runs
+}
+
+
+
+}
 
 niouzes_compil() {
 	(

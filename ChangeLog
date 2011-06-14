@@ -1,17 +1,71 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.411
+head: 1.422
 branch:
 locks: strict
-	gilles: 1.411
+	gilles: 1.422
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 411;	selected revisions: 411
+total revisions: 422;	selected revisions: 422
 description:
 ----------------------------
-revision 1.411	locked by: gilles;
+revision 1.422	locked by: gilles;
+date: 2011/05/08 17:21:38;  author: gilles;  state: Exp;  lines: +17 -12
+Added --debugLIST to track messages list uid or number only.
+Bugfix: a lack of variable initialisation caused to fetch no existing messages.
+  The APPEND error then the FETCH 0 byte error may be fixed now.
+----------------------------
+revision 1.421
+date: 2011/05/08 12:28:10;  author: gilles;  state: Exp;  lines: +8 -8
+relogin1 before each folder select.
+----------------------------
+revision 1.420
+date: 2011/05/08 00:54:05;  author: gilles;  state: Exp;  lines: +15 -18
+--splitX are set into sub login_imap() now.
+----------------------------
+revision 1.419
+date: 2011/05/08 00:36:36;  author: gilles;  state: Exp;  lines: +58 -8
+Added --relogin1 option (--relogin1 5) to force a reconnection when FETCH message fails on host1.
+----------------------------
+revision 1.418
+date: 2011/05/07 22:15:36;  author: gilles;  state: Exp;  lines: +95 -38
+Added --debugcontent to avoid debugging content (can be big) with --debug option.
+Added --debugflags to permit flag debugging only.
+Added --flagsCase to correct flag case that are not RFC compliant \SEEN -> \Seen (on by default).
+Added output to track 0 byte messages during the fetch on host1.
+----------------------------
+revision 1.417
+date: 2011/05/05 16:12:02;  author: gilles;  state: Exp;  lines: +7 -7
+Bugfix. --proxyauth2 was setting proxyauth1!
+Thanks to Denis BREAN!
+----------------------------
+revision 1.416
+date: 2011/05/01 20:44:40;  author: gilles;  state: Exp;  lines: +8 -8
+MDaemon 12
+Exchange 6.5 host1
+----------------------------
+revision 1.415
+date: 2011/04/30 15:33:31;  author: gilles;  state: Exp;  lines: +20 -14
+Bugfix. Modified create_folder() to avoid Inbox -> INBOX problem ("already exists").
+----------------------------
+revision 1.414
+date: 2011/04/30 00:25:38;  author: gilles;  state: Exp;  lines: +41 -19
+Bugfix. --maxsize --minsize now work with --useuid
+Bugfix. flag sync of already transfered messages now take care of --maxsize --minsize options.
+----------------------------
+revision 1.413
+date: 2011/04/28 22:55:48;  author: gilles;  state: Exp;  lines: +25 -12
+--delete2 implies --expunge2 now unless --noexpunge2 is given.
+exit if --delete and --delete2 are given together.
+Same behavior for --expunge or --expunge1.
+----------------------------
+revision 1.412
+date: 2011/04/28 14:49:59;  author: gilles;  state: Exp;  lines: +17 -15
+Added 0 length message tracking when fetching host1.
+----------------------------
+revision 1.411
 date: 2011/04/19 23:34:30;  author: gilles;  state: Exp;  lines: +19 -11
 Bugfix for "Folders in host2 not in host1" list when folders are given by --folder option or equivalent.
 The old list listed too many folders with --folder INBOX for example.
