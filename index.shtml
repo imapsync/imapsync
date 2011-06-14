@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2011-04-20T01:50:31+0200"/>
+<meta name="date" content="2011-05-09T02:42:11+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -66,21 +66,39 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 
 <p>Written on <!--#flastmod file="VERSION" --></p>
 
-<p>See <a href="ChangeLog">ChangeLog</a> to know what's new in details.</p>
+<p>See <b><a href="ChangeLog">ChangeLog</a></b> to know what's new in details since 2001.</p>
 
-<p>New features since previous releases 1.404:</p>
+<p>New features or bugfixes since previous release 1.411:</p>
 
 <ul>
-<li>Updated imapsync.exe to last <b>Mail-IMAPClient 3.28</b> (thanks to Phil Pearl Lobbes)</li>
-<li>Option <b>--useuid</b> now works also with <b>--delete2</b> option.</li>
+<li><b>Better default behavior</b>: Option --delete2 implies --expunge2 now (unless --noexpunge2 is given.)</li>
+<li><b>Better default behavior</b>: Correct flags case to be RFC compliant on host2 if host1 is not (\SEEN -> \Seen)</li>
+<li><b>Better debug</b>: Added --debugcontent option to avoid debugging content (can be big) with --debug option.</li>
+<li><b>Better debug</b>: Added --debugflags to permit flag debugging only.</li>
+<li><b>Bugfix</b>: The APPEND error then the FETCH 0 byte error is fixed</li>
+<li><b>Bugfix</b>: Options --maxsize --minsize now work with --useuid</li>
+<li><b>Bugfix</b>: Flag sync of already transfered messages now take care of --maxsize --minsize options</li>
+<li><b>Bugfix</b>: Added 0 length message tracking when fetching host1 (to avoid frequently "APPEND {0}" recent issues).</li>
+<li><b>Bugfix</b>: Avoid now Inbox <-> INBOX problem ("already exists").</li>
+<li><b>Bugfix</b>: --proxyauth2 was setting proxyauth1 instead of proxyauth2</li>
 </ul>
 
-
+<!-- 
 <p>The next imapsync release should see:</p>
 <ul>
-<li>An option to sync to and from files (local backup)</li>
+<li>nothing planned</li>
 </ul>
+ -->
+ 
+<h2><a id="NUMBERS"></a>Some numbers</h2>
 
+<ul>
+<li>Number of <b>imapsync users</b> per month: between <b>2 and 3 thousands </b>users</li>
+<li>Number of <b>imapsync transfers</b> per month: between <b>3 and 8 millions </b>transfers</li>
+<li>Pourcentage of <b>MSWin32</b> users : <b>10%</b></li>
+<li><b>Biggest user</b> usage: <b>5 millions</b> of transfers in a month (one every 2 seconds)</li>
+</ul>
+ 
 <h2><a id="AUTHOR"></a>Who is the author?</h2>
 
     <p>Gilles LAMIRAL<br/>
@@ -126,7 +144,7 @@ The Perl <b>imapsync</b> source code will run anywhere a <b>Perl interpreter can
 <p>You will receive a download link <b>just after</b> the payment.<br/>
 <b>30 days money-back guarantee!</b></p>
 
-<h2><a id="buy_exe"></a>Standalone imapsync.exe for win32</h2>
+<h2><a id="buy_exe"></a>Buy standalone imapsync.exe for win32</h2>
 
 <p>Struggle free from source code and Perl installation by<br/> 
 buying the latest win32 <b>standalone imapsync.exe</b> for <b>30 EUR</b></p>
@@ -162,12 +180,12 @@ thanks to Strawberry Perl 5.12 and Par::Packer module.<br/>
 The build system for imapsync.exe is XP Pro SP2 on a Intel Celeron 400 MHz 256 Mo RAM. </p>
 -->
 
-<h2><a id="buy_support"></a>Support for imapsync</h2>
+<h2><a id="buy_support"></a>Buy professional support for imapsync</h2>
 
-<p>For <b>90 EUR</b> buy imapsync <b>support</b> by the developper who wrote and maintains imapsync.
+<p>For <b>60 EUR</b> buy imapsync <b>support</b> by the developper who wrote and maintains imapsync.
 </p>
 <p>
-90 EUR is equal to around <b>125 USD</b>, no problem to pay in USD (or any currency) with paypal:
+60 EUR is equal to around <b>80 USD</b>, no problem to pay in USD (or any currency) with paypal:
 </p>
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
@@ -182,7 +200,6 @@ The build system for imapsync.exe is XP Pro SP2 on a Intel Celeron 400 MHz 256 M
 <input name="return" type="hidden" value="http://www.linux-france.org/prj/imapsync/paypal_return_support.shtml?utm_nooverride=1" />
 </p>
 </form>
-
 
 <p>Then you will be able to expose your issues by email or phone and to converse until your issues are solved.
 </p>
@@ -333,7 +350,7 @@ will be to code it or fix it.<br/>
    v2.3.7,
    (http://asg.web.cmu.edu/cyrus/)
    </li>
-	<li>David Tobit V8 (proprietary Message system).</li>
+	<li>David Tobit V8.</li>
 	<li>DBMail 1.2.1, 2.0.4, 2.0.9, 2.2rc1 (GPL) (http://www.dbmail.org/).
    2.0.7 seems buggy.</li>
 	<li>Deerfield VisNetic MailServer 5.8.6 [host1]</li>
@@ -344,16 +361,16 @@ will be to code it or fix it.<br/>
 	<li>Eudora WorldMail v2</li>
 	<li>Gimap (Gmail imap) [host1] [host2]</li>
 	<li>GMX IMAP4 StreamProxy.</li>
-	<li>Goddy IMAP (since Goddy runs Courier)</li>
+	<li>Godaddy IMAP (since Godaddy runs Courier)</li>
 	<li>Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.</li>
 	<li>hMailServer 5.3.3 [host2], 4.4.1 [host1], HMAILSERVER 5.3.2-B1769 on windows 2003 [hsot2]</li>
 	<li>iPlanet Messaging server 4.15, 5.1, 5.2</li>
 	<li>IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]</li>
 	<li>MailEnable 4.23 [host1] [host2]</li>
-	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform)</li>
+	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2]</li>
 	<li>Mercury 4.1 (Windows server 2000 platform)</li>
 	<li>Microsoft Exchange Server 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
-   6.5.7638.1 [host2], Exchange 2007 SP1 (with Update Rollup 2), 
+   6.5.7638.1 [host2], 6.5 [host1], Exchange 2007 SP1 (with Update Rollup 2), 
    Exchange2007-EP-SP2, 
    Exchange 2010 RTM (Release to Manufacturing) [host2]</li>
    <li>Mirapoint server</li>
@@ -404,7 +421,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.63 2011/04/19 23:51:09 gilles Exp gilles $)
+($Id: index.shtml,v 1.66 2011/05/09 00:45:40 gilles Exp gilles $)
 </p>
 
 </body>
