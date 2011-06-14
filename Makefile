@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.74 2011/05/16 17:25:22 gilles Exp gilles $	
+# $Id: Makefile,v 1.79 2011/05/31 21:32:16 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -25,6 +25,12 @@ DIST_NAME=imapsync-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
 DEB_FILE=$(DIST_NAME).deb
 VERSION=$(shell perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version)
+VERSION_EXE=$(shell cat ./VERSION_EXE)
+
+HELLO=$(shell date;uname -a)
+
+hello:
+	echo "$(HELLO)"
 
 
 all: ChangeLog README VERSION 
@@ -48,7 +54,7 @@ VERSION: imapsync
 clean: clean_tilde clean_man
 
 clean_test:
-	rm -f .test .test_3xx .test_229
+	rm -f .test_3xx .test_229
 
 clean_tilde:
 	rm -f *~
@@ -93,8 +99,9 @@ test_quick_229: imapsync tests.sh
 test_quick_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh -x tests.sh locallocal
 
-testv:
-	sh -x tests.sh
+testv2:
+	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh
+	touch .test_229
 
 testv3:
 	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' sh -x tests.sh
@@ -155,6 +162,7 @@ imapsync.exe: imapsync build_exe.bat test_exe.bat .dosify_bat
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --version' > VERSION_EXE
+	dos2unix VERSION_EXE
 	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
 
 
@@ -191,7 +199,7 @@ imapsync_elf_x86.bin: imapsync
 
 lfo: cidone  niouze_lfo upload_lfo 
 
-dist: cidone test clean all INSTALL tarball
+dist: cidone test clean all INSTALL dist_prepa dist_prepa_exe
 
 tarball: cidone all
 	echo making tarball $(DIST_FILE)
@@ -204,6 +212,36 @@ tarball: cidone all
 	cd ../prepa_dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	cd ../prepa_dist && md5sum -c $(DIST_FILE).md5.txt
 	ls -l ../prepa_dist/$(DIST_FILE)
+
+
+DO_IT       := $(shell test -f ./dist/path_$(VERSION).txt || makepasswd --chars 4 > ./dist/path_$(VERSION).txt)
+DIST_SECRET := $(shell cat ./dist/path_$(VERSION).txt)
+DIST_PATH   := ./dist/$(DIST_SECRET)
+
+lalala:
+	echo $(DIST_SECRET)
+
+dist_prepa: tarball dist_dir
+	ln -f ../prepa_dist/$(DIST_FILE) $(DIST_PATH)/
+	#cd $(DIST_PATH)/ && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
+	#cd $(DIST_PATH)/ && md5sum -c $(DIST_FILE).md5.txt
+	ls -l $(DIST_PATH)/
+
+dist_dir:
+	@echo $(DIST_SECRET)
+	@echo $(DIST_PATH)
+	mkdir -p $(DIST_PATH)
+	ln -f ./dist/path_$(VERSION).txt ./dist/path_last.txt 
+
+
+dist_prepa_exe: imapsync.exe
+	mkdir -p $(DIST_PATH)
+	ln -f ./imapsync.exe $(DIST_PATH)/
+	#cd $(DIST_PATH)/ && md5sum ./imapsync.exe > ./imapsync.exe.md5.txt
+	#cd $(DIST_PATH)/ && md5sum -c ./imapsync.exe.md5.txt
+
+
+
 
 ks:
 	rsync -avz --delete . imapsync@ks.lamiral.info:public_html/imapsync
@@ -221,7 +259,7 @@ PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
 upload_ks:
 	rsync -lptvHz  $(PUBLIC_FILES) \
 	root@ks.lamiral.info:/var/www/imapsync/
-	rsync -lptvHz ./dist/index.shtml \
+	rsync -lptvHzr ./dist/ \
 	root@ks.lamiral.info:/var/www/imapsync/dist/
 
 upload_lfo:
