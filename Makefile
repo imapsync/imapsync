@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.72 2011/05/09 00:11:00 gilles Exp gilles $	
+# $Id: Makefile,v 1.74 2011/05/16 17:25:22 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -10,6 +10,7 @@ usage:
 	@echo "make install # as root"
 	@echo "make testf   # run tests"
 	@echo "make testv   # run tests verbosely"
+	@echo "make test_quick # few tests verbosely"
 	@echo "make test3xx # run tests with (last) Mail-IMAPClient-3.xy"
 	@echo "make test229 # run tests with Mail-IMAPClient-2.2.9"
 	@echo "make tests_win32 # run tests on win32"
@@ -84,13 +85,13 @@ cidone:
 
 .PHONY: test tests testp testf test3xx
 
-test_quick : test_quick_229 test_quick_3xx
+test_quick : test_quick_3xx test_quick_229 
 
 test_quick_229: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh locallocal 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh -x tests.sh locallocal
 
 test_quick_3xx: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh tests.sh locallocal 1>/dev/null
+	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh -x tests.sh locallocal
 
 testv:
 	sh -x tests.sh
@@ -192,7 +193,7 @@ lfo: cidone  niouze_lfo upload_lfo
 
 dist: cidone test clean all INSTALL tarball
 
-tarball: cidone all imapsync.exe
+tarball: cidone all
 	echo making tarball $(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)

@@ -1,17 +1,74 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.422
+head: 1.434
 branch:
 locks: strict
-	gilles: 1.422
+	gilles: 1.434
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 422;	selected revisions: 422
+total revisions: 434;	selected revisions: 434
 description:
 ----------------------------
-revision 1.422	locked by: gilles;
+revision 1.434	locked by: gilles;
+date: 2011/05/16 07:16:19;  author: gilles;  state: Exp;  lines: +142 -57
+Bugfix. Made --usecache work with --maxage or --maxsize or --min*
+----------------------------
+revision 1.433
+date: 2011/05/16 03:07:59;  author: gilles;  state: Exp;  lines: +191 -49
+Improved the way imapsync deals with headers:
+ - Stopped getting first 2KB of message. Not a good idea.
+ - If $imap2->parse_headers() fails then take the whole header (instead of body).
+ - Default is like --useheader Message-Id --useheader Message-ID
+ - Use header Message-Id and header Date as sig md5 when taking the whole header.
+
+Better output in debug mode.
+----------------------------
+revision 1.432
+date: 2011/05/15 22:06:19;  author: gilles;  state: Exp;  lines: +8 -7
+Options --usecache and --maxsize --minsize can safely be used if --delete is there
+----------------------------
+revision 1.431
+date: 2011/05/15 00:47:03;  author: gilles;  state: Exp;  lines: +17 -8
+Added tests of mkpath very long path > 300 char. Win32 fails on them.
+----------------------------
+revision 1.430
+date: 2011/05/14 23:13:06;  author: gilles;  state: Exp;  lines: +14 -9
+Bugfix. Added special case for Inbox vs INBOX bug creation ("Couldn't create folder [Inbox] from [INBOX]: 143 NO INBOX already exists!")
+----------------------------
+revision 1.429
+date: 2011/05/14 21:24:31;  author: gilles;  state: Exp;  lines: +8 -8
+Adapted regression tests for good_date() when no zone is given.
+----------------------------
+revision 1.428
+date: 2011/05/14 02:31:02;  author: gilles;  state: Exp;  lines: +8 -8
+Bugfix. intarnal date needs zone data. Default to  +0000.
+----------------------------
+revision 1.427
+date: 2011/05/14 01:48:07;  author: gilles;  state: Exp;  lines: +15 -13
+Bugfix. Starttls() only for 2.2.9
+----------------------------
+revision 1.426
+date: 2011/05/14 01:14:16;  author: gilles;  state: Exp;  lines: +8 -8
+Fix. Removed a debug print always printed.
+----------------------------
+revision 1.425
+date: 2011/05/14 00:33:46;  author: gilles;  state: Exp;  lines: +16 -15
+Bugfix. Changed the way imapsync knows whether a folder exists or not. Exchange might be happy and stop deconnecting for this reason.
+----------------------------
+revision 1.424
+date: 2011/05/14 00:12:38;  author: gilles;  state: Exp;  lines: +20 -9
+Added a warning and die if --usecache and one of  --maxsize--minsize --maxage --minage is used.
+----------------------------
+revision 1.423
+date: 2011/05/13 22:26:01;  author: gilles;  state: Exp;  lines: +23 -12
+Bugfix. Reconnections are well done in tls mode now.
+Zimbra 5.0.24_GA_3356.RHEL4 [host1]
+Exchange 2010 SP1 RU2 [host2]
+Added --debugsleep to have to play will kill and reconnections.
+----------------------------
+revision 1.422
 date: 2011/05/08 17:21:38;  author: gilles;  state: Exp;  lines: +17 -12
 Added --debugLIST to track messages list uid or number only.
 Bugfix: a lack of variable initialisation caused to fetch no existing messages.

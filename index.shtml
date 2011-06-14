@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2011-05-09T02:42:11+0200"/>
+<meta name="date" content="2011-05-16T19:09:12+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -71,6 +71,20 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 <p>New features or bugfixes since previous release 1.411:</p>
 
 <ul>
+<li><b>1.434</b></li>
+<li><b>Bugfix</b>: Changed the way imapsync knows <b>whether a folder exists</b> or not. <b>Exchange</b> might be happy and <b>stop deconnecting</b> for this reason.</li>
+<li><b>Bugfix</b>: <b>Reconnections</b> are well done in <b>TLS mode</b> now.</li>
+<li><b>Bugfix</b>:  IMAP RFC 3501 and some imap servers require <b>internal dates</b> have a <b>zone data</b>. Default <b>to +0000</b> when host1 doesn't give it.</li>
+<li><b>Bugfix</b>: Options --maxsize --minsize now really work with --useuid (1.422 had a cache issue).</li>
+<li><b>Bugfix</b>: <b>Improved</b> the way imapsync <b>deals with headers</b>:<ul>
+	<li><b>Stopped</b> getting <b>first 2KB body</b> of message. Not a good idea in practice.</li>
+	<li>If <b>massive</b> get headers <b>fails</b> then take the <b>whole header</b> one by one (instead of body).</li>
+	<li>Default is like --useheader <b>"Message-Id"</b> --useheader <b>"Message-ID"</b> (instead of just "Message-Id").</li>
+	<li>Use header "Message-Id" and header "Date" as md5 signature when taking the whole header.</li>
+</ul>
+</li>
+
+<li><b>1.422</b></li>
 <li><b>Better default behavior</b>: Option --delete2 implies --expunge2 now (unless --noexpunge2 is given.)</li>
 <li><b>Better default behavior</b>: Correct flags case to be RFC compliant on host2 if host1 is not (\SEEN -> \Seen)</li>
 <li><b>Better debug</b>: Added --debugcontent option to avoid debugging content (can be big) with --debug option.</li>
@@ -79,7 +93,7 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 <li><b>Bugfix</b>: Options --maxsize --minsize now work with --useuid</li>
 <li><b>Bugfix</b>: Flag sync of already transfered messages now take care of --maxsize --minsize options</li>
 <li><b>Bugfix</b>: Added 0 length message tracking when fetching host1 (to avoid frequently "APPEND {0}" recent issues).</li>
-<li><b>Bugfix</b>: Avoid now Inbox <-> INBOX problem ("already exists").</li>
+<li><b>Bugfix</b>: Avoid Inbox vs INBOX case problem ("already exists").</li>
 <li><b>Bugfix</b>: --proxyauth2 was setting proxyauth1 instead of proxyauth2</li>
 </ul>
 
@@ -356,23 +370,25 @@ will be to code it or fix it.<br/>
 	<li>Deerfield VisNetic MailServer 5.8.6 [host1]</li>
 	<li>dkimap4 [host1]</li>
 	<li>Domino (Notes) 4.61[host1], 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1[host1], 8.0.1[host1]</li>
-	<li>Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
+	<li><b>Dovecot</b> 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
    1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)</li>
 	<li>Eudora WorldMail v2</li>
-	<li>Gimap (Gmail imap) [host1] [host2]</li>
+	<li><b>Gimap</b> (<b>Gmail</b> imap) [host1] [host2]</li>
 	<li>GMX IMAP4 StreamProxy.</li>
 	<li>Godaddy IMAP (since Godaddy runs Courier)</li>
 	<li>Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.</li>
 	<li>hMailServer 5.3.3 [host2], 4.4.1 [host1], HMAILSERVER 5.3.2-B1769 on windows 2003 [hsot2]</li>
 	<li>iPlanet Messaging server 4.15, 5.1, 5.2</li>
 	<li>IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]</li>
-	<li>MailEnable 4.23 [host1] [host2]</li>
+	<li><b>MailEnable</b> 4.23 [host1][host2], 4.26 [host1][host2]</li>
 	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2]</li>
 	<li>Mercury 4.1 (Windows server 2000 platform)</li>
-	<li>Microsoft Exchange Server 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
+	<li><b>Microsoft Exchange Server</b> 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
    6.5.7638.1 [host2], 6.5 [host1], Exchange 2007 SP1 (with Update Rollup 2), 
    Exchange2007-EP-SP2, 
-   Exchange 2010 RTM (Release to Manufacturing) [host2]</li>
+   Exchange 2010 RTM (Release to Manufacturing) [host2],
+   Exchange 2010 SP1 RU2 [host2]
+   </li>
    <li>Mirapoint server</li>
 	<li>Netscape Mail Server 3.6 (Wintel)</li>
 	<li>Netscape Messaging Server 4.15 Patch 7</li>
@@ -392,7 +408,8 @@ will be to code it or fix it.<br/>
    (http://www.washington.edu/imap/)</li>
 	<li>UW - QMail v2.1</li>
 	<li>VMS, Imap part of TCP/IP suite of VMS 7.3.2</li>
-	<li>Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 5.5, 6.x</li>
+	<li><b>Zimbra-IMAP</b> 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 
+               Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x</li>
 </ul>
 
 <hr/>
@@ -421,7 +438,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.66 2011/05/09 00:45:40 gilles Exp gilles $)
+($Id: index.shtml,v 1.69 2011/05/16 17:10:13 gilles Exp gilles $)
 </p>
 
 </body>
