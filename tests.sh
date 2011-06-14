@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.163 2011/05/09 00:10:16 gilles Exp gilles $  
+# $Id: tests.sh,v 1.165 2011/05/16 16:41:11 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -264,7 +264,7 @@ ll_folder_create_INBOX_Inbox() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX --regextrans2 's/INBOX/Inbox/' \
-		--justfolders
+		--justfolders --nofoldersizes
 }
 
 
@@ -287,6 +287,7 @@ ll_debugimap() {
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.oneemail --debugimap
 }
+
 ll_few_emails() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
@@ -295,6 +296,38 @@ ll_few_emails() {
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.few_emails
 }
+
+ll_noheader() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails --useheader ''
+}
+
+ll_noheader_force() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails \
+		--useheader '' \
+		--skipheader 'Message-Id|Date'
+}
+
+
+
+ll_usecachemaxage() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --useuid --maxage 3
+}
+
 
 
 ll_folderrec() {
@@ -523,6 +556,19 @@ ll_justfoldersizes()
                 --justfoldersizes
 }
 
+ll_justfoldersizes_noexist() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfoldersizes --folder NoExist --folder INBOX
+}
+
+
+
+
 ll_dev_reconnect() 
 {
 # in another terminal:
@@ -578,6 +624,35 @@ EOF
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX --useuid \
 		--delete2
+}
+
+ll_dev_reconnect_tls() 
+{
+# in another terminal:
+#
+: <<'EOF'
+while :; do 
+    killall -v -u vmail imapd; 
+    RAND_WAIT=`numrandom .1..5i.1`
+    echo sleeping $RAND_WAIT
+    sleepenh $RAND_WAIT
+done
+# or 
+while read y; do
+    echo ENTER to kill all imapd
+    killall -v -u vmail imapd; 
+done
+
+EOF
+        can_send && sendtestmessage
+#        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --tls1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --tls2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX --useuid \
+		--delete2 --debugsleep --debugimap
 }
 
 
@@ -646,7 +721,8 @@ ll_newmessage()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --maxage 1 --folder INBOX --nofoldersizes --noreleasecheck 
+        --maxage 1 --folder INBOX --nofoldersizes --noreleasecheck \
+	--debugLIST
 }
 
 ll_folder_INBOX()
@@ -694,8 +770,22 @@ ll_maxsize_useuid()
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --maxsize 10 --nofoldersizes --folder INBOX \
-                --useuid
+                --useuid --debugcache
 }
+
+ll_minsize_useuid() 
+{       
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --nofoldersizes --folder INBOX \
+                --useuid --debugLIST --minsize 500 --maxage 1
+}
+
+
 
 
 ll_skipsize() 
@@ -2039,6 +2129,8 @@ ll_folder_create_INBOX_Inbox
 ll_delete2folders
 ll_useuid
 ll_useuid_nousecache
+ll_noheader_force
+ll_noheader
 '
 
 other_tests='

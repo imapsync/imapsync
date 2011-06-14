@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.85 2011/02/28 16:02:17 gilles Exp gilles $
+# $Id: FAQ,v 1.86 2011/05/16 16:43:12 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -533,14 +533,21 @@ R. Do not use the --folder option.
 Q. How to migrate from or to Exchange 2007/2010 with an 
    admin/authuser account?
    
-R. The trick comes from Michele Marcionelli:
+R. The tricks comes from Michele Marcionelli and Benjamin Priestman:
 
 This doesn't work:
-imapsync ... --user2 user2 --authuser2 admin2 --password2 adminpassword2 ...
+  imapsync ... --user2 user2 --authuser2 admin2 --password2 adminpassword2 ...
 
-This works:
-imapsync ... --user2 'domain\admin2\user2' --password2 adminpassword2 ...
+This might works:
+  imapsync ... --user2 'domain\admin2\user2' --password2 adminpassword2 ...
+or 
+  imapsync ... --user2 'admin2@domain\user2' --password2 adminpassword2 ...
 
+where "domain" is set be the user's UPN in Active Directory
+or the NETBIOS or DNS name of the domain.
+
+The exact format might vary depending on local configuration and you
+should experiment with the different formats.
 
 ======================================================================
 Q. How to migrate from uw-imap with an admin/authuser account?
@@ -845,6 +852,15 @@ format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
               Server specific issues and solutions
 =======================================================================
 
+=======================================================================
+Q. From Zimbra to XXX
+
+imapsync ... \
+	--exclude "Conversation Action Settings" \
+	--exclude "Quick Step Settings" \
+	--exclude "News Feed"
+
+=======================================================================
 Q. From or to HMailServer version 4.4.1.
 
 R. You have to add prefix and separator manually because  4.4.1 doesn't
