@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.434 $
+$Revision: 1.446 $
 
 =head1 SYNOPSIS
 
@@ -498,7 +498,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.434 2011/05/16 07:16:19 gilles Exp gilles $
+$Id: imapsync,v 1.446 2011/05/31 09:11:18 gilles Exp gilles $
 
 =cut
 
@@ -525,6 +525,7 @@ use IO::Socket qw(:crlf SOL_SOCKET SO_KEEPALIVE);
 use Errno qw(EAGAIN EPIPE ECONNRESET);
 use File::Glob qw( :glob ) ;
 use IO::File;
+use Time::Local ;
 
 use Test::More 'no_plan';
 
@@ -610,7 +611,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.434 2011/05/16 07:16:19 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.446 2011/05/31 09:11:18 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -625,10 +626,27 @@ $h1_total_bytes_duplicate = $h2_total_bytes_duplicate = 0;
 $nb_errors = 0;
 $max_msg_size_in_bytes = 0;
 
+my %month_abrev = (
+   Jan => 0,
+   Feb => 1,
+   Mar => 2,
+   Apr => 3,
+   May => 4,
+   Jun => 5,
+   Jul => 6,
+   Aug => 7,
+   Sep => 8,
+   Oct => 9,
+   Nov => 10,
+   Dec => 11,
+);
+
 unless(defined(&_SYSEXITS_H)) {
 	# 64 on my linux box.
 	eval 'sub EX_USAGE () {64;}' unless defined(&EX_USAGE);
 }
+
+
 
 # @ARGV will be eat by get_options()
 my @argv_copy = @ARGV;
@@ -731,15 +749,24 @@ if ($delete) {
 	}
 }
 
-if ( $delete2 ) {
-	if ( ! defined( $expunge2 ) ) {
-		$expunge2 = 1 ;
-	}
+if ( $uidexpunge2 and !  Mail::IMAPClient->can( 'uidexpunge' ) ) {
+        print "Failure: uidexpunge not supported (IMAPClient release < 3.17), use --expunge2 instead\n" ;
+        exit_clean( 3 ) ;
+}
+
+if ( $delete2 and ! defined( $uidexpunge2 ) ) {
+        if ( Mail::IMAPClient->can( 'uidexpunge' ) ) {
+                print "Info: will act as --uidexpunge2\n" ;
+		$uidexpunge2 = 1 ;
+        }elsif ( ! defined( $expunge2 ) ) {
+                 print "Info: will act as --expunge2 (no uidexpunge support)\n" ;
+                $expunge2 = 1 ;
+        }
 }
 
 if ( $delete and $delete2 ) {
 	print "Warning: using --delete and --delete2 is almost always a bad idea, exiting imapsync\n" ;
-	exit_clean( 0 ) ;
+	exit_clean( 4 ) ;
 }
 
 if ($idatefromheader) {
@@ -749,10 +776,10 @@ if ($idatefromheader) {
 }
 
 if ($syncinternaldates) {
-	print "Turned ON syncinternaldates, ",
+	print "Info: turned ON syncinternaldates, ",
 	      "will set the internal dates (arrival dates) on host2 same as host1.\n";
 }else{
-	print "Turned OFF syncinternaldates\n";
+	print "Info: turned OFF syncinternaldates\n";
 }
 
 if (defined($authmd5) and ($authmd5)) {
@@ -788,8 +815,8 @@ if (defined $proxyauth2 && !$authuser2) {
 $authuser1 ||= $user1;
 $authuser2 ||= $user2;
 
-print "Will try to use $authmech1 authentication on host1\n";
-print "Will try to use $authmech2 authentication on host2\n";
+print "Info: will try to use $authmech1 authentication on host1\n";
+print "Info: will try to use $authmech2 authentication on host2\n";
 
 $syncacls = (defined($syncacls)) ? $syncacls : 0;
 $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
@@ -800,15 +827,12 @@ $fastio2 = (defined($fastio2)) ? $fastio2 : 0;
 $reconnectretry1 = (defined($reconnectretry1)) ? $reconnectretry1 : 3;
 $reconnectretry2 = (defined($reconnectretry2)) ? $reconnectretry2 : 3;
 
-@useheader = ( "Message-Id", "Message-ID" ) unless ( @useheader ) ;
+@useheader = ( "Message-Id", "Message-ID", "Date" ) unless ( @useheader ) ;
 
 my %useheader ;
 
 # Make a hash %useheader of each --useheader 'key' in uppercase
 @useheader{ map( { uc( $_ ) } @useheader ) } = (  ) ;
-
-my %useheaderclassic ;
-@useheaderclassic{ qw(MESSAGE-ID DATE) } = (  ) ;
 
 #require Data::Dumper ;
 #print Data::Dumper->Dump( [ \%useheader ] ) ;
@@ -1084,7 +1108,6 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		$debug and print '[',
 		    map ( { "$_->$cache_1_2_ref->{$_} " } keys %$cache_1_2_ref ), " ]\n";
 	}
-	#sleep 4 ;
 	
 	my %h1_hash = ();
 	my %h2_hash = ();
@@ -1096,33 +1119,33 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	my @h1_msgs_in_cache = sort { $a <=> $b } keys %$cache_1_2_ref ;
 	my @h2_msgs_in_cache = keys %$cache_2_1_ref ;
 	
-	my ( %h1_msgs_no_cache, %h2_msgs_no_cache ) ;
-	%h1_msgs_no_cache = %h1_msgs ;
-	%h2_msgs_no_cache = %h2_msgs ;
-	delete @h1_msgs_no_cache{ @h1_msgs_in_cache } ;
-	delete @h2_msgs_no_cache{ @h2_msgs_in_cache } ;
+	my ( %h1_msgs_not_in_cache, %h2_msgs_not_in_cache ) ;
+	%h1_msgs_not_in_cache = %h1_msgs ;
+	%h2_msgs_not_in_cache = %h2_msgs ;
+	delete @h1_msgs_not_in_cache{ @h1_msgs_in_cache } ;
+	delete @h2_msgs_not_in_cache{ @h2_msgs_in_cache } ;
 	
-	my @h1_msgs_no_cache = keys %h1_msgs_no_cache ;
-	#print "h1_msgs_no_cache: [@h1_msgs_no_cache]\n" ;
-	my @h2_msgs_no_cache = keys %h2_msgs_no_cache ;
+	my @h1_msgs_not_in_cache = keys %h1_msgs_not_in_cache ;
+	#print "h1_msgs_not_in_cache: [@h1_msgs_not_in_cache]\n" ;
+	my @h2_msgs_not_in_cache = keys %h2_msgs_not_in_cache ;
 	
-	my @h2_msgs_delete2_no_cache = () ;
+	my @h2_msgs_delete2_not_in_cache = () ;
 	%h1_msgs_copy_by_uid = (  ) ;
 	
 	if ( $useuid ) {
 		# use uid so we have to avoid getting header
-		@h1_msgs_copy_by_uid{ @h1_msgs_no_cache } = (  ) ;
-		@h2_msgs_delete2_no_cache = @h2_msgs_no_cache if $usecache ;
-		@h1_msgs_no_cache = (  ) ;
-		@h2_msgs_no_cache = (  ) ;
+		@h1_msgs_copy_by_uid{ @h1_msgs_not_in_cache } = (  ) ;
+		@h2_msgs_delete2_not_in_cache = @h2_msgs_not_in_cache if $usecache ;
+		@h1_msgs_not_in_cache = (  ) ;
+		@h2_msgs_not_in_cache = (  ) ;
 		
-		#print "delete2: @h2_msgs_delete2_no_cache\n";
+		#print "delete2: @h2_msgs_delete2_not_in_cache\n";
 	}
 	
 	$debug and print "Host1 parsing headers of folder [$h1_fold]\n";
 
 	my ($h1_heads_ref, $h1_fir_ref) = ({}, {});
-	$h1_heads_ref = $imap1->parse_headers([@h1_msgs_no_cache], @useheader) if (@h1_msgs_no_cache);
+	$h1_heads_ref = $imap1->parse_headers([@h1_msgs_not_in_cache], @useheader) if (@h1_msgs_not_in_cache);
 	$debug and print "Host1 parsing headers of folder [$h1_fold] took ", timenext(), " s\n";
 
 	@$h1_fir_ref{@h1_msgs} = (undef);
@@ -1132,7 +1155,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	  if (@h1_msgs);
 	$debug and print "Host1 getting flags idate and sizes of folder [$h1_fold] took ", timenext(), " s\n";
 	unless ($h1_fir_ref) {
-		warn
+		print
 		"Host1 folder $h1_fold: Could not fetch_hash_2 ",
 		scalar(@h1_msgs), " msgs: ", $imap1->LastError, "\n";
 		$nb_errors++;
@@ -1140,7 +1163,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	}
 
 	my @h1_msgs_duplicate;
-	foreach my $m (@h1_msgs_no_cache) {
+	foreach my $m (@h1_msgs_not_in_cache) {
 		my $rc = parse_header_msg($imap1, $m, $h1_heads_ref, $h1_fir_ref, 'Host1', \%h1_hash);
 		if (! defined($rc)) {
 			my $h1_size = $h1_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
@@ -1164,7 +1187,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	$debug and print "Host2 parsing headers of folder [$h2_fold]\n";
         
 	my ($h2_heads_ref, $h2_fir_ref) = ( {}, {} );
-	$h2_heads_ref =   $imap2->parse_headers([@h2_msgs_no_cache], @useheader) if (@h2_msgs_no_cache);
+	$h2_heads_ref =   $imap2->parse_headers([@h2_msgs_not_in_cache], @useheader) if (@h2_msgs_not_in_cache);
 	$debug and print "Host2 parsing headers of folder [$h2_fold] took ", timenext(), " s\n" ;
 
 	$debug and print "Host2 getting flags idate and sizes of folder [$h2_fold]\n" ;
@@ -1174,7 +1197,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	$debug and print "Host2 getting flags idate and sizes of folder [$h2_fold] took ", timenext(), " s\n" ;
 	
 	my @h2_msgs_duplicate;
-	foreach my $m (@h2_msgs_no_cache) {
+	foreach my $m (@h2_msgs_not_in_cache) {
 		my $rc = parse_header_msg($imap2, $m, $h2_heads_ref, $h2_fir_ref, 'Host2', \%h2_hash);
 		my $h2_size = $h2_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
 		if (! defined($rc)) {
@@ -1200,7 +1223,19 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	my @h2_hash_keys_sorted_by_uid 
 	  = sort {$h2_hash{$a}{'m'} <=> $h2_hash{$b}{'m'}} keys(%h2_hash);
 
-	
+        if ( 0 ) {
+        # hashes, keys are uid, values are the internaldates in epoch (best format to compare dates)
+        my %h1_epoch ;
+        my %h2_epoch ;
+        @h1_epoch{ @h1_msgs } = map( { epoch( $h1_fir_ref->{ $_ }->{ 'INTERNALDATE' } ) } @h1_msgs ) ;
+        @h2_epoch{ @h2_msgs } = map( { epoch( $h2_fir_ref->{ $_ }->{ 'INTERNALDATE' } ) } @h2_msgs ) ;
+        #print keyval( %h1_epoch ) ;
+        #print keyval( %h2_epoch ) ;
+        my $h1_greatest_epoch = max( values %h1_epoch ) ;
+        print "h1_greatest_epoch $h1_greatest_epoch\n" ;
+        }
+        
+        #next FOLDER ;
 	if($delete2) {
 		my @h2_expunge;
 		foreach my $m_id (@h2_hash_keys_sorted_by_uid) {
@@ -1226,24 +1261,22 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 				$h2_nb_msg_deleted += 1;
 			}
 		}
-		foreach my $h2_msg ( @h2_msgs_delete2_no_cache ) {
+		foreach my $h2_msg ( @h2_msgs_delete2_not_in_cache ) {
 			print "msg $h2_fold/$h2_msg marked \\Deleted [not in cache] on host2\n";
+                        push(@h2_expunge, $h2_msg) if $uidexpunge2;
 			unless ($dry) {
 				$imap2->delete_message($h2_msg);
 				$h2_nb_msg_deleted += 1;
 			}
 		}
-		my $cnt = scalar @h2_expunge;
-		if(@h2_expunge and !$imap2->can("uidexpunge")) {
-			warn "uidexpunge not supported (< IMAPClient 3.17)\n";
-		}
-		elsif(@h2_expunge) {
-			print "uidexpunge $cnt message(s)\n";
-			$imap2->uidexpunge(\@h2_expunge) if !$dry;
+		my $cnt = scalar @h2_expunge ;
+		if( @h2_expunge ) {
+			print "uidexpunge $cnt message(s)\n" ;
+			$imap2->uidexpunge( \@h2_expunge ) if ! $dry ;
 		}
         	if ($expunge2){
-                	print "Expunging host2 folder $h2_fold\n";
-                	unless($dry) { $imap2->expunge() };
+                	print "Expunging host2 folder $h2_fold\n" ;
+                	$imap2->expunge(  ) if ! $dry ;
         	}
 	}
 
@@ -1319,7 +1352,7 @@ $debug and print "Time: ", timenext(), " s\n";
 }
 
 sub size_filtered_flag {
-	my( $h1_size ) = @_ ;
+	my $h1_size = shift ;
 	
 	if (defined $maxsize and $h1_size >= $maxsize) {
 		return( 1 ) ;
@@ -1362,7 +1395,7 @@ sub sync_flags {
 	# we need most of the time.
 	
 	if ( ! $dry and $diff and ! $imap2->store( $h2_msg, "FLAGS.SILENT (@h1_flags)" ) ) {
-		warn "- msg $h2_fold/$h2_msg could not add flags [@h1_flags]: ",
+		print "- msg $h2_fold/$h2_msg could not add flags [@h1_flags]: ",
 		  $imap2->LastError, "\n";
 		#$nb_errors++;
 	}
@@ -1402,6 +1435,13 @@ sub tests_max {
 	ok(100 == max("100", "42", 1), "max 100 42 1");
 	#ok(100 == max(100, "haha", 1), "max 100 42 1");
 }
+
+sub keyval {
+        my %hash = @_ ;
+        return( join( " ", map( { "$_ => " . $hash{ $_ } } keys %hash ) ) . "\n" ) ;
+}
+        
+
 
 sub check_lib_version {
 	$debug and print "IMAPClient $Mail::IMAPClient::VERSION\n";
@@ -1681,22 +1721,22 @@ sub login_imap {
 
 	#$imap->connect()
 	myconnect($imap)
-	  or die_clean("Can not open imap connection on [$host] with user [$user]: $@\n");
+	  or die_clean("Failure: can not open imap connection on [$host] with user [$user]: $@\n");
 	
 	print "Banner: ", server_banner($imap);
 	
 	if ($imap->has_capability("AUTH=$authmech")
 	    or $imap->has_capability($authmech)
 	   ) {
-		printf("Host %s says it has CAPABILITY for AUTHENTICATE %s\n",
+		printf("Info: host %s says it has CAPABILITY for AUTHENTICATE %s\n",
 		       $imap->Server, $authmech);
 	} 
 	else {
-		printf("Host %s says it has NO CAPABILITY for AUTHENTICATE %s\n",
+		printf("Info: host %s says it has NO CAPABILITY for AUTHENTICATE %s\n",
 		       $imap->Server, $authmech);
 		if ($authmech eq 'PLAIN') {
-			print "Frequently PLAIN is only supported with SSL, ",
-			  "try --ssl1 or --ssl2 option\n";
+			print "Info: frequently PLAIN is only supported with SSL, ",
+			  "try --ssl or --tls options\n";
 		}
 	}
 	
@@ -1722,13 +1762,13 @@ sub login_imap {
         }
 
 	unless ($imap->login()) {
-		my $info  = "Error login: [$host] with user [$user] auth";
+		my $info  = "Failure: error login [$host] with user [$user] auth";
 		my $einfo = $imap->LastError || @{$imap->History}[-1];
 		chomp($einfo);
 		my $error = "$info [$authmech]: $einfo\n";
 		print $error; # note: duplicating error on stdout/stderr
 		die_clean($error) if ($authmech eq 'LOGIN' or $imap->IsUnconnected() or $authuser);
-		print "Trying LOGIN Auth mechanism on [$host] with user [$user]\n";
+		print "Info: trying LOGIN Auth mechanism on [$host] with user [$user]\n";
 		$imap->Authmechanism("");
 		$imap->login() or
 		  die_clean("$info [LOGIN]: ", $imap->LastError, "\n");
@@ -1736,7 +1776,7 @@ sub login_imap {
 	$proxyauth && $imap->proxyauth($user);
 	$split and $imap->Split( $split ) ;
 	
-	print "Success login on [$host] with user [$user] auth [$authmech]\n";
+	print "Info: success login on [$host] with user [$user] auth [$authmech]\n";
 	return($imap);
 }
 
@@ -1763,8 +1803,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.434 $ ',
-		  '$Date: 2011/05/16 07:16:19 $ ',
+		  '$Revision: 1.446 $ ',
+		  '$Date: 2011/05/31 09:11:18 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -1786,10 +1826,10 @@ sub write_pidfile {
 	
 	print "PID file is $pidfile\n";
 	if (-e $pidfile) {
-		warn "$pidfile already exists, overwriting it\n";
+		print "$pidfile already exists, overwriting it\n";
 	}
 	open(PIDFILE, ">$pidfile") or do {
-		warn "Could not open $pidfile for writing";
+		print "Could not open $pidfile for writing";
 		return undef;
 	};
 	
@@ -1820,7 +1860,7 @@ sub missing_option {
 sub select_folder {
 	my ($imap, $folder, $hostside) = @_;
 	if ( ! $imap->select($folder)) {
-		warn 
+		print 
 		"$hostside folder $folder: Could not select: ",
 		$imap->LastError,  "\n";
 		$nb_errors++;
@@ -1842,18 +1882,21 @@ sub create_folder {
                 return( 1 ) ;
         }
 	if ( ! $dry ){
-		if ( ! $imap2->create($h2_fold)){
-			warn( "Couldn't create folder [$h2_fold] from [$h1_fold]: ",
-			$imap2->LastError(), "\n" );
+		if ( ! $imap2->create( $h2_fold ) ) {
+			print( "Couldn't create folder [$h2_fold] from [$h1_fold]: ",
+			$imap2->LastError(  ), "\n" );
 			$nb_errors++;
-			return(0);
+                        # success if folder exists ("already exists" error)
+                        return( 1 ) if $imap2->exists( $h2_fold ) ;
+                        # failure since create failed
+			return( 0 );
 		}else{
 			#create succeeded
-			return(1);
+			return( 1 );
 		}
 	}else{
 		# dry mode, no folder so many imap will fail, assuming failure
-		return(0);
+		return( 0 );
 	}
 }
 
@@ -2149,14 +2192,14 @@ sub imap2_folder_name {
 sub foldersizes {
 
 	my ($side, $imap, @folders) = @_;
-	my $tot = 0;
-	my $tmess = 0;
+	my $total_size = 0;
+	my $total_nb = 0;
 	my $biggest = 0 ;
 	
 	print "++++ Calculating sizes\n";
 	foreach my $folder (@folders)     {
 		my $stot = 0;
-		my $smess = 0;
+		my $nb_msgs = 0;
 		printf("$side folder %-35s", "[$folder]");
                 if ( 'Host2' eq $side and ! exists( $h2_folders_all{ $folder } ) ) {
 		        print(" does not exist yet\n") ;
@@ -2168,7 +2211,7 @@ sub foldersizes {
 		}
                 
 		unless ($imap->examine($folder)) {
-			warn 
+			print 
 			  "$side Folder $folder: Could not examine: ",
 			    $imap->LastError,  "\n";
 			$nb_errors++;
@@ -2177,10 +2220,10 @@ sub foldersizes {
 		
 		my $hash_ref = {};
 		my @msgs = select_msgs($imap);
-		$smess = scalar(@msgs);
+		$nb_msgs = scalar(@msgs);
 		my $smax = 0 ;
-		@$hash_ref{@msgs} = (undef);
-		unless ($smess == 0) {
+		@$hash_ref{@msgs} = (undef) if @msgs ;
+		if ( $nb_msgs > 0 and @msgs ) {
 			$imap->fetch_hash_2("RFC822.SIZE",$hash_ref) or die_clean("$@");
 			#print map {$hash_ref->{$_}->{"RFC822.SIZE"}, " "} keys %$hash_ref;
 			map {$stot += $hash_ref->{$_}->{"RFC822.SIZE"}} keys %$hash_ref ;
@@ -2189,13 +2232,13 @@ sub foldersizes {
 		}
 		
 		printf(" Size: %9s", $stot);
-		printf(" Messages: %5s", $smess);
+		printf(" Messages: %5s", $nb_msgs);
 		printf(" Biggest: %9s\n", $smax);
-		$tot += $stot;
-		$tmess += $smess;
+		$total_size += $stot;
+		$total_nb += $nb_msgs;
 	}
-	printf ("Nb messages:     %11s\n", $tmess ) ;
-	printf ("Total size:      %11s bytes\n", $tot ) ;
+	printf ("Nb messages:     %11s\n", $total_nb ) ;
+	printf ("Total size:      %11s bytes\n", $total_size ) ;
 	printf ("Biggest message: %11s bytes\n", $biggest ) ;
 	printf ("Time:            %11s secondes\n", timenext(  ) ) ;
 }
@@ -2328,9 +2371,9 @@ sub acls_sync {
 	my($h1_fold, $h2_fold) = @_;
 	if ($syncacls) {
 		my $h1_hash = $imap1->getacl($h1_fold)
-		  or warn "Could not getacl for $h1_fold: $@\n";
+		  or print "Could not getacl for $h1_fold: $@\n";
 		my $h2_hash = $imap2->getacl($h2_fold)
-		  or warn "Could not getacl for $h2_fold: $@\n";
+		  or print "Could not getacl for $h2_fold: $@\n";
 		my %users = map({ ($_, 1) } (keys(%$h1_hash), keys(%$h2_hash)));
 		foreach my $user (sort(keys(%users))) {
 			my $acl = $h1_hash->{$user} || "none";
@@ -2340,7 +2383,7 @@ sub acls_sync {
 			unless ($dry) {
 				print "setting acl $h2_fold $user $acl\n";
 				$imap2->setacl($h2_fold, $user, $acl)
-				  or warn "Could not set acl: $@\n";
+				  or print "Could not set acl: $@\n";
 			}
 		}
 	}
@@ -2520,6 +2563,7 @@ sub lastuid {
 sub size_filtered {
 	my( $h1_size, $h1_msg, $h1_fold, $h2_fold  ) = @_ ;
 	
+        $h1_size = 0 if ( ! $h1_size ) ; # null if empty or undef
 	if (defined $maxsize and $h1_size >= $maxsize) {
 		print "msg $h1_fold/$h1_msg skipped ($h1_size exceeds maxsize limit $maxsize bytes)\n";
 		$total_bytes_skipped += $h1_size;
@@ -2558,7 +2602,7 @@ sub copy_message {
 	my $string_len = defined( $string ) ? length( $string ) : '' ; # length or undef
 	#print "- msg $h1_fold/$h1_msg {$string_len}\n" ;
 	unless ( defined( $string ) and $string_len ) { # undef or 0 length
-		warn
+		print
 		"- msg $h1_fold/$h1_msg {$string_len} S[$h1_size] F[$h1_flags] I[$h1_idate] could not be fetched: ",
 		$imap1->LastError, "\n" ;
 		$nb_errors++ ;
@@ -2607,7 +2651,7 @@ sub copy_message {
 		$new_id = $imap2->append_string($h2_fold, $string, $h1_flags, $h1_date);
 		unless($new_id){
 			no warnings 'uninitialized';
-			warn "- msg $h1_fold/$h1_msg {$string_len} couldn't append  (Subject:[".
+			print "- msg $h1_fold/$h1_msg {$string_len} couldn't append  (Subject:[".
 			  $imap1->subject($h1_msg)."]) to folder $h2_fold: ",
 			  $imap2->LastError, "\n";
 			$nb_errors++;
@@ -2900,7 +2944,7 @@ sub clean_cache {
                   or ( ! exists( $h2_msgs_all_hash_ref->{ $uid2 } ) )
                 ) {
 			$debugcache and print "remove $file\n" ;
-			unlink( $file ) or warn "$!" ;
+			unlink( $file ) or print "$!" ;
 		}
 	}
 	
@@ -3057,6 +3101,8 @@ sub cache_folder {
 	my $h2_fold_slash = convert_sep_to_slash( $h2_fold, $sep2 );
 	
 	return( "$cache_dir/$h1_fold_slash/$h2_fold_slash" ) ;
+        
+        
 }
 
 sub convert_sep_to_slash {
@@ -3393,8 +3439,7 @@ sub parse_header_msg {
 
 	foreach my $h (sort keys(%$head)){
                 next if ( ! exists( $useheader{ uc( $h ) } )
-                      and ! exists( $useheader{ 'ALL' } ) 
-                      and ! exists( $useheaderclassic{ uc( $h ) } ) 
+                      and ! exists( $useheader{ 'ALL' } )
                 ) ;
 		foreach my $val (sort @{$head->{$h}}) {
 			# no 8-bit data in headers !
@@ -3506,7 +3551,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.434 2011/05/16 07:16:19 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.446 2011/05/31 09:11:18 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3562,7 +3607,7 @@ sub not_long {
 	
         	POSIX::sigaction(SIGALRM,
                          POSIX::SigAction->new(sub { die "alarm" }))
-        		or warn "Error setting SIGALRM handler: $!\n";
+        		or print "Error setting SIGALRM handler: $!\n";
 	}
 	
 	eval {
@@ -3613,6 +3658,7 @@ sub usage {
 	my $thank = thank_author();
 	my $warn_release ='';
 	$warn_release = check_last_release() if (not defined($releasecheck));
+        my $escape_char = ( 'MSWin32' eq $OSNAME ) ? '^' : '\\';
         print <<EOF;
 
 usage: $0 [options]
@@ -3781,8 +3827,8 @@ Example: to synchronise imap account "foo" on "imap.truc.org"
                     with foo password "secret1"
                     and  bar password "secret2"
 
-$0 \\
-   --host1 imap.truc.org --user1 foo --password1 secret1 \\
+$0 $escape_char
+   --host1 imap.truc.org --user1 foo --password1 secret1 $escape_char
    --host2 imap.trac.org --user2 bar --password2 secret2
 
 $localhost_info
@@ -3793,41 +3839,6 @@ $thank
 EOF
 }
 
-
-sub good_date {
-        # two incoming formats:
-        # header    Tue, 24 Aug 2010 16:00:00 +0200
-	# internal       24-Aug-2010 16:00:00 +0200
-	
-        # outgoing format: internal date format
-        #   24-Aug-2010 16:00:00 +0200
-	
-    my ($d) = @_;
-    return ('') if not defined($d);
-    
-    if ( $d =~ m{(\d?)(\d-...-\d{4})( \d{2}:\d{2}:\d{2})( (?:\+|-)\d{4})?}o ) {
-    	#print "internal: [$1][$2][$3][$4]\n";
-	my ($day_1, $date_rest, $hour, $zone) = ($1,$2,$3,$4);
-	$day_1 = '0' if ($day_1 eq '');
-	$zone  = ' +0000'  if not defined($zone);
-	$d = $day_1 . $date_rest . $hour . $zone;
-	
-	
-    }elsif ($d =~ m{(?:.{3}, )(\d?)(\d) (...) (\d{4})( \d{2}:\d{2}:\d{2})( (?:\+|-)\d{4})?}o  ) {
-    	#print "header: [$1][$2][$3][$4][$5][$6]\n";
-	my ($day_1, $day_rest, $month, $year, $hour, $zone) = ($1,$2,$3,$4,$5,$6);
-	$day_1 = '0' if ($day_1 eq '');
-	$zone  = ' +0000'  if not defined($zone);
-	$d = $day_1 . "$day_rest-$month-$year" . $hour . $zone;
-	
-    }else{
-    	# unknown/unmatch => return same string
-    	return($d);
-    }
-    
-    $d = qq("$d");
-    return($d);
-} 
 
 sub memory_consumption {
 	# memory consumed by imapsync until now in bytes
@@ -3938,6 +3949,109 @@ sub tests_memory_consumption {
 	ok(print memory_consumption(), "\n");
 }
 
+sub good_date {
+        # two incoming formats:
+        # header    Tue, 24 Aug 2010 16:00:00 +0200
+	# internal       24-Aug-2010 16:00:00 +0200
+	
+        # outgoing format: internal date format
+        #   24-Aug-2010 16:00:00 +0200
+	
+    my $d = shift ;
+    return ('') if not defined($d);
+    
+    if ( $d =~ m{(\d?)(\d-...-\d{4})( \d{2}:\d{2}:\d{2})( (?:\+|-)\d{4})?}o ) {
+    	#print "internal: [$1][$2][$3][$4]\n";
+	my ($day_1, $date_rest, $hour, $zone) = ($1,$2,$3,$4);
+	$day_1 = '0' if ($day_1 eq '');
+	$zone  = ' +0000'  if not defined($zone);
+	$d = $day_1 . $date_rest . $hour . $zone;
+    }elsif ($d =~ m{(?:\w{3,}, )?(\d{1,2}),?\s+(\w{3,})\s+(\d{2,4})\s+(\d{1,2})(?::|\.)(\d{1,2})(?:(?::|\.)(\d{1,2}))?\s*((?:\+|-)\d{4})?}o ) {
+       # Handles any combination of following formats
+       # Tue, 24 Aug 2010 16:00:00 +0200 -- Standard
+       # 24 Aug 2010 16:00:00 +0200 -- Missing Day of Week
+       # Tue, 24 Aug 97 16:00:00 +0200 -- Two digit year
+       # Tue, 24 Aug 1997 16.00.00 +0200 -- Periods instead of colons 
+       # Tue, 24 Aug 1997  16:00:00 +0200 -- Extra whitespace between year and hour
+       # Tue, 24 Aug 1997 6:5:2 +0200 -- Single digit hour, min, or second
+       # Tue, 24, Aug 1997 16:00:00 +0200 -- Extra comma
+       
+       #print "header: [$1][$2][$3][$4][$5][$6][$7][$8]\n";
+       my ($day, $month, $year, $hour, $min, $sec, $zone) = ($1,$2,$3,$4,$5,$6,$7,$8);
+       $year = '19' . $year if length($year) == 2 && $year =~ /^[789]/;
+       $year = '20' . $year if length($year) == 2;
+        
+       $month = substr $month, 0, 3 if length($month) > 4;
+       $day = sprintf("%02d", $day);
+       $hour = sprintf("%02d", $hour);
+       $min = sprintf("%02d", $min);
+       $sec  = '00' if not defined($sec);
+       $sec = sprintf("%02d", $sec);
+       $zone  = '+0000' if not defined($zone);
+       $d = "$day-$month-$year $hour:$min:$sec $zone";
+
+    }elsif ($d =~ m{(?:.{3}) (...)\s+(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2}) (?:\w{3})?\s?(\d{4})}o ) {
+       # Handles any combination of following formats
+       # Sun Aug 20 11:55:09 2006
+       # Wed Jan 24 11:58:38 MST 2007
+       # Wed Jan  2 08:40:57 2008
+       
+       #print "header: [$1][$2][$3][$4][$5][$6]\n";
+       my ($month, $day, $hour, $min, $sec, $year) = ($1,$2,$3,$4,$5,$6);
+       $day = sprintf("%02d", $day);
+       $hour = sprintf("%02d", $hour);
+       $min = sprintf("%02d", $min);
+       $sec = sprintf("%02d", $sec);
+       $d = "$day-$month-$year $hour:$min:$sec +0000";
+       
+       }elsif ($d =~ m{(\d{2})/(\d{2})/(\d{2}) (\d{2}):(\d{2}):(\d{2})}o ) {
+       # Handles the following format
+       # 02/06/09 22:18:08 -- Generated by AVTECH TemPageR devices
+       
+       #print "header: [$1][$2][$3][$4][$5][$6]\n";
+       my ($month, $day, $year, $hour, $min, $sec) = ($1,$2,$3,$4,$5,$6);
+       $year = '20' . $year;
+       my %num2mon = qw(01 Jan 02 Feb 03 Mar 04 Apr 05 May 06 Jun 07 Jul 08 Aug 09 Sep 10 Oct 11 Nov 12 Dec);
+       $month = $num2mon{$month};
+       $d = "$day-$month-$year $hour:$min:$sec +0000";
+       
+    }elsif ($d =~ m{\w{6,}, (\w{3})\w+\s+(\d{1,2}), (\d{4}) (\d{2}):(\d{2}) (AM|PM)}o ) {
+       # Handles the following format
+       # Saturday, December 14, 2002 05:00 PM - KBtoys.com order confirmations
+
+       my ($month, $day, $year, $hour, $min, $apm) = ($1,$2,$3,$4,$5,$6);
+       
+       $hour += 12 if $apm eq 'PM';
+       $day = sprintf("%02d", $day);
+       $d = "$day-$month-$year $hour:$min:00 +0000";
+
+    }elsif ($d =~ m{(\w{3}) (\d{1,2}) (\d{4}) (\d{2}):(\d{2}):(\d{2}) ((?:\+|-)\d{4})}o ) {
+       # Handles the following format
+       # Saturday, December 14, 2002 05:00 PM - jr.com order confirmations
+
+       my ($month, $day, $year, $hour, $min, $sec, $zone) = ($1,$2,$3,$4,$5,$6,$7);
+
+       $day = sprintf("%02d", $day);
+       $d = "$day-$month-$year $hour:$min:$sec $zone";
+
+    }elsif ($d =~ m{(\d{1,2})-(\w{3})-(\d{4})}o ) {
+       # Handles the following format
+       # 21-Jun-2001 - register.com domain transfer email circa 2001
+
+       my ($day, $month, $year) = ($1,$2,$3);
+       $day = sprintf("%02d", $day);
+       $d = "$day-$month-$year 11:11:11 +0000";
+
+    }else{
+    	# unknown/unmatch => return same string
+    	return($d);
+    }
+    
+    $d = qq("$d");
+    return($d);
+} 
+
+
 sub tests_good_date {
 
 	ok('' eq good_date(), 'good_date no arg');
@@ -3948,6 +4062,25 @@ sub tests_good_date {
 	ok('"01-Sep-2010 16:00:00 +0000"' eq good_date('Wed, 1 Sep 2010 16:00:00'), 'good_date header SP 1digit zone');
 	ok('"01-Sep-2010 16:00:00 +0200"' eq good_date('Wed, 1 Sep 2010 16:00:00 +0200'), 'good_date header SP 1digit zone');
 	ok('"01-Sep-2010 16:00:00 +0200"' eq good_date('Wed, 1 Sep 2010 16:00:00 +0200 (CEST)'), 'good_date header SP 1digit zone');
+        ok('"06-Feb-2009 22:18:08 +0000"' eq good_date('02/06/09 22:18:08'), 'good_date header TemPageR');
+        ok('"02-Jan-2008 08:40:57 +0000"' eq good_date('Wed Jan  2 08:40:57 2008'), 'good_date header dice.com support 1digit day');
+        ok('"20-Aug-2006 11:55:09 +0000"' eq good_date('Sun Aug 20 11:55:09 2006'), 'good_date header dice.com support 2digit day');
+        ok('"24-Jan-2007 11:58:38 +0000"' eq good_date('Wed Jan 24 11:58:38 MST 2007'), 'good_date header status-now.com');
+        ok('"24-Aug-2010 16:00:00 +0200"' eq good_date('24 Aug 2010 16:00:00 +0200'), 'good_date header missing date of week');
+        ok('"24-Aug-2067 16:00:00 +0200"' eq good_date('Tue, 24 Aug 67 16:00:00 +0200'), 'good_date header 2digit year');
+        ok('"24-Aug-1977 16:00:00 +0200"' eq good_date('Tue, 24 Aug 77 16:00:00 +0200'), 'good_date header 2digit year');
+        ok('"24-Aug-1987 16:00:00 +0200"' eq good_date('Tue, 24 Aug 87 16:00:00 +0200'), 'good_date header 2digit year');
+        ok('"24-Aug-1997 16:00:00 +0200"' eq good_date('Tue, 24 Aug 97 16:00:00 +0200'), 'good_date header 2digit year');
+        ok('"24-Aug-2004 16:00:00 +0200"' eq good_date('Tue, 24 Aug 04 16:00:00 +0200'), 'good_date header 2digit year');
+        ok('"24-Aug-1997 16:00:00 +0200"' eq good_date('Tue, 24 Aug 1997 16.00.00 +0200'), 'good_date header period time sep');
+        ok('"24-Aug-1997 16:00:00 +0200"' eq good_date('Tue, 24 Aug 1997  16:00:00 +0200'), 'good_date header extra white space type1');
+        ok('"24-Aug-1997 05:06:02 +0200"' eq good_date('Tue, 24 Aug 1997 5:6:2 +0200'), 'good_date header 1digit time vals');
+        ok('"24-Aug-1997 05:06:02 +0200"' eq good_date('Tue, 24, Aug 1997 05:06:02 +0200'), 'good_date header extra commas');
+        ok('"01-Oct-2003 12:45:24 +0000"' eq good_date('Wednesday, 01 October 2003 12:45:24 CDT'), 'good_date header no abbrev');
+        ok('"11-Jan-2005 17:58:27 -0500"' eq good_date('Tue,  11  Jan 2005 17:58:27 -0500'), 'good_date extra white space');
+        ok('"18-Dec-2002 15:07:00 +0000"' eq good_date('Wednesday, December 18, 2002 03:07 PM'), 'good_date kbtoys.com orders');
+        ok('"16-Dec-2004 02:01:49 -0500"' eq good_date('Dec 16 2004 02:01:49 -0500'), 'good_date jr.com orders');
+        ok('"21-Jun-2001 11:11:11 +0000"' eq good_date('21-Jun-2001'), 'good_date register.com domain transfer');
 
 }
 
@@ -4054,7 +4187,7 @@ sub decompose_header{
                 }elsif( $line =~ m/^(\s+)(.*)/ ) {
                         $val = $2 ;
                         #print "DDD only [$val]\n" ;
-                        @{ $header->{ $key } }[ -1 ] .= " $val" ;
+                        @{ $header->{ $key } }[ -1 ] .= " $val" if $key ;
                 }else{
                         next ;
                 }
@@ -4126,18 +4259,72 @@ Received: from plume [192.168.68.7]
         ok(
         'from plume [192.168.68.7] by plume with POP3 (fetchmail-6.3.6) for <gilles@localhost> (single-drop); Mon, 26 Nov 2007 10:39:06 +0100 (CET)'
         eq $header_dec->{ 'Received' }[1], 'decompose_header: 3' ) ;
+
+# Bad header beginning with a blank character
+        $header_dec = decompose_header(
+' KEY_1: VAL_1
+KEY_2: VAL_2
+  VAL_2_+
+        VAL_2_++
+KEY_3: VAL_3
+KEY_1: VAL_1_other
+'
+        ) ;
+        
+        ok( 'VAL_3' 
+        eq $header_dec->{ 'KEY_3' }[0], 'decompose_header: Bad header VAL_3' ) ;
+
+        ok( 'VAL_1_other' 
+        eq $header_dec->{ 'KEY_1' }[0], 'decompose_header: Bad header VAL_1_other' ) ;
+
+        ok( 'VAL_2 VAL_2_+ VAL_2_++' 
+        eq $header_dec->{ 'KEY_2' }[0], 'decompose_header: Bad header VAL_2 VAL_2_+ VAL_2_++' ) ;
 }
 
+sub epoch {
+        # incoming format:
+	# internal date 24-Aug-2010 16:00:00 +0200
+	
+        # outgoing format: epoch
+
+
+        my $d = shift ;
+        return ('') if not defined($d);
+
+        my ( $mday, $month, $year, $hour, $min, $sec, $sign, $zone_h, $zone_m ) ;
+        my $time ;
+        
+        if ( $d =~ m{(\d{2})-([A-Z][a-z]{2})-(\d{4}) (\d{2}):(\d{2}):(\d{2}) ((?:\+|-))(\d{2})(\d{2})}o ) {
+                #print "internal: [$1][$2][$3][$4][$5][$6][$7][$8][$9]\n" ;
+                ( $mday, $month, $year, $hour, $min, $sec, $sign, $zone_h, $zone_m ) 
+                =  ( $1,   $2,     $3,    $4,    $5,  $6,    $7,     $8,     $9 ) ;
+                #print "( $mday, $month, $year, $hour, $min, $sec, $sign, $zone_h, $zone_m )\n" ;
+                
+                $sign = +1 if ( '+' eq $sign ) ;
+                $sign = -1 if ( '-' eq $sign ) ;
+                
+                $time = timegm( $sec, $min, $hour, $mday, $month_abrev{$month}, $year ) 
+                        - $sign * ( 3600 * $zone_h + 60 * $zone_m ) ;
+                
+                #print( "$time ", scalar(localtime($time)), "\n");
+        }
+        return( $time ) ;
+}
+
+sub tests_epoch {
+        ok( '1282658400' eq epoch( '24-Aug-2010 16:00:00 +0200' ), 'epoch 24-Aug-2010 16:00:00 +0200 -> 1282658400' ) ;
+        ok( '1282658400' eq epoch( '24-Aug-2010 14:00:00 +0000' ), 'epoch 24-Aug-2010 14:00:00 +0000 -> 1282658400' ) ;
+        ok( '1282658400' eq epoch( '24-Aug-2010 12:00:00 -0200' ), 'epoch 24-Aug-2010 12:00:00 -0200 -> 1282658400' ) ;
+        ok( '1282658400' eq epoch( '24-Aug-2010 16:01:00 +0201' ), 'epoch 24-Aug-2010 16:01:00 +0201 -> 1282658400' ) ;
+        ok( '1282658400' eq epoch( '24-Aug-2010 14:01:00 +0001' ), 'epoch 24-Aug-2010 14:01:00 +0001 -> 1282658400' ) ;
+}
 
 sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-		tests_match_a_cache_file(  ) ;
-		tests_cache_map(  ) ;
-		tests_get_cache(  ) ;
-		tests_clean_cache(  ) ;
-		tests_clean_cache_2(  ) ;
+		tests_good_date();
+                tests_epoch(  ) ;
 	}
 }
 
@@ -4172,6 +4359,7 @@ sub tests {
                 tests_mkpath(  ) ;
                 tests_extract_header(  ) ;
                 tests_decompose_header(  ) ;
+                tests_epoch(  ) ;
 	}
 }
 
@@ -4617,7 +4805,7 @@ use constant NonFolderArg => 1;                 # Value to pass to Massage to
 
 	if (! $self->Ignoresizeerrors ) {
         	if ( length($string) != $expected_size ) {
-                	warn "message_string: " .
+                	print "message_string: " .
                         	"expected $expected_size bytes but received " .
                         	length($string) . "\n";
 			$self->LastError("message_string: expected ".
