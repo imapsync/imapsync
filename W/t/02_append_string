@@ -1,0 +1,35 @@
+#!/usr/bin/perl -w
+
+use Carp;
+use Mail::IMAPClient;
+
+$imap = Mail::IMAPClient->new();
+$imap->Debug(0);
+$imap->Server('louloutte.dyndns.org');
+$imap->connect() or croak "Error connecting $@ !";
+$imap->User('MarkOv@est.belle');
+$imap->Password('emhj91ly');
+$imap->login() or croak "Error login $@ !";
+
+$imap->Uid(1) or croak "Error Uid $@ !";
+
+print "[", $imap->folders, "]\n";
+
+$imap->select('Inbox') or croak "Could not select: $@ !";
+my @messages = $imap->messages or croak "Could not get message list: $@ !";
+print "[@messages]\n";
+$message = $messages[1];
+print "[$message]\n";
+my $string = $imap->message_string($message);
+print $string;
+
+#my $uid = $imap->append_string('INBOX.Trash', $string, '\Seen', "30-Oct-2006 01:34:14 +0100")
+#          or croak "Could not append_string: $@\n";
+my $uid = $imap->append_string('INBOX.Trash', "$string", '\Seen', "")
+          or croak "Could not append_string: $@\n";
+
+print "$uid\n";
+
+$imap->logout();
+
+

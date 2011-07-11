@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.79 2011/05/31 21:32:16 gilles Exp gilles $	
+# $Id: Makefile,v 1.82 2011/07/11 01:02:45 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -152,7 +152,7 @@ test_imapsync_exe: dosify_bat
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
 
-imapsync.exe: imapsync build_exe.bat test_exe.bat .dosify_bat
+imapsync.exe: imapsync build_exe.bat .dosify_bat
 	rcsdiff imapsync
 	ssh Admin@c 'perl -V'
 	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
@@ -223,6 +223,8 @@ lalala:
 
 dist_prepa: tarball dist_dir
 	ln -f ../prepa_dist/$(DIST_FILE) $(DIST_PATH)/
+	rcsdiff imapsync
+	cp -a imapsync $(DIST_PATH)/
 	#cd $(DIST_PATH)/ && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	#cd $(DIST_PATH)/ && md5sum -c $(DIST_FILE).md5.txt
 	ls -l $(DIST_PATH)/
@@ -244,36 +246,35 @@ dist_prepa_exe: imapsync.exe
 
 
 ks:
-	rsync -avz --delete . imapsync@ks.lamiral.info:public_html/imapsync
-	{ cd /g/var/paypal_reply/ &&\
-	rsync -av url_exe url_release url_source imapsync@ks.lamiral.info:/g/var/paypal_reply/ \
-	; }
+	rsync -avz --delete --exclude imapsync.exe \
+	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
 
 PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL ./TIME \
 ./logo_imapsync.png ./logo_imapsync_s.png \
 ./paypal.shtml ./paypal_return.shtml ./paypal_return_support.shtml \
-./README ./style.css ./TODO ./VERSION ./VERSION_EXE
+./README ./style.css ./TODO ./VERSION ./VERSION_EXE ./memo
 
 upload_ks:
-	rsync -lptvHz  $(PUBLIC_FILES) \
+	rsync -lptvHzP  $(PUBLIC_FILES) \
 	root@ks.lamiral.info:/var/www/imapsync/
-	rsync -lptvHzr ./dist/ \
+	rsync -lptvHzrP ./dist/ \
 	root@ks.lamiral.info:/var/www/imapsync/dist/
 
 upload_lfo:
 	#rm -rf /home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
 	#rm -rf /home/gilles/public_html/www.linux-france.org/ftp/prj/imapsync/
-	rsync -avH $(PUBLIC_FILES) \
+	rsync -avHz $(PUBLIC_FILES) \
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
-	rsync -avH ./dist/index.shtml \
-	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/dist/
+	rsync -lptvHzP ./lfo.htaccess \
+	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
 upload_index: index.shtml 
 	validate --verbose index.shtml
 	rcsdiff index.shtml
+	rsync -avH index.shtml root@ks.lamiral.info:/var/www/imapsync/
 	rsync -avH index.shtml \
 	../../public_html/www.linux-france.org/html/prj/imapsync/
 	sh $(HOME)/memo/lfo-rsync

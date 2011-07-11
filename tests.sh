@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.168 2011/05/31 16:42:38 gilles Exp gilles $  
+# $Id: tests.sh,v 1.170 2011/07/11 01:03:48 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -354,7 +354,7 @@ ll_folderrec() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folderrec INBOX.yop  --debugimap --justfolders
+                --folderrec INBOX.yop  --justfolders
 }
 
 ll_folderrec_star() {
@@ -728,8 +728,6 @@ ll_noauthmd5()
 }
 
 
-
-
 ll_maxage() 
 {
         can_send && sendtestmessage
@@ -740,6 +738,54 @@ ll_maxage()
         --passfile2 ../../var/pass/secret.titi \
         --maxage 1
 }
+
+ll_maxage_0() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 0 --folder INBOX
+}
+
+
+ll_search_ALL() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search 'ALL' --folder INBOX
+}
+
+ll_search_FLAGGED() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search 'FLAGGED' --folder INBOX
+}
+
+ll_search_SENTSINCE() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search 'SENTSINCE 11-Jul-2011' --folder INBOX
+}
+
+
+
 
 ll_maxage_nonew() 
 {
@@ -911,22 +957,51 @@ ll_exclude_INBOX()
 
 ll_regextrans2() 
 {
-        if can_send; then
-                #echo3 Here is plume
-	        sendtestmessage
-        else
-                :
-        fi
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1 --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --justfolders \
-                --nofoldersize \
-                --regextrans2 's/yop/yoX/' \
-                --folder 'INBOX.yop.yap'
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --justfolders \
+       --nofoldersize \
+       --regextrans2 's/yop/yoX/' \
+       --folder 'INBOX.yop.yap'
 }
+
+ll_regextrans2_downcase() 
+{
+# lowercase the last basename part
+# [INBOX.yop.YAP] -> [INBOX.yop.yap] using re [s/(.*)\Q${h1_sep}\E(.+)$/$1${h2_sep}\L$2\E/]
+# [INBOX.yop.YAP]                     -> [INBOX.yop.yap]                    
+
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --justfolders \
+       --nofoldersize \
+       --regextrans2 's/(.*)\Q${h1_sep}\E(.+)$/$1${h2_sep}\L$2\E/' \
+       --folder 'INBOX.yop.YAP' --justfolders --debug --dry
+}
+
+ll_regextrans2_ucfirst() 
+{
+# lowercase the last basename part
+# [INBOX.yop.YAP] -> [INBOX.yop.yap] using re [s/(.*)\Q${h1_sep}\E(.+)$/$1${h2_sep}\L$2\E/]
+# [INBOX.yop.YAP]                     -> [INBOX.yop.yap]                    
+
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --justfolders \
+       --nofoldersize \
+       --regextrans2 's/(.*)\Q${h1_sep}\E(.)(.+)$/$1${h2_sep}\u$2\L$3\E/' \
+       --folder 'INBOX.yop.YAP' --justfolders --debug --dry
+}
+
 
 ll_regextrans2_slash() 
 {
@@ -1136,6 +1211,20 @@ ll_regex_flag3()
                 
                 echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
+
+ll_regex_flag4() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap --nofoldersizes \
+                --regexflag 's/\$label1/\\label1/g' --debugflags
+                
+                echo 'sudo rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
 
 ll_regex_flag_keep_only() 
 {
@@ -1675,6 +1764,23 @@ ll_usecache() {
          --folder INBOX 
 }
 
+ll_usecache_all() {
+        if can_send; then
+                sendtestmessage
+        else
+                :
+        fi
+	
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --usecache --nofoldersizes
+}
+
+
+
 
 ll_nousecache() {
         if can_send; then
@@ -1767,10 +1873,21 @@ ll_useuid()
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX.useuid \
-        --delete2 --expunge2 \
+        --delete2 \
         --useuid
-        echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
+
+ll_useuid_all() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --delete2 --useuid --nofoldersizes
+}
+
+
 
 ll_useuid_nousecache() 
 {

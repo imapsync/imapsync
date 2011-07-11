@@ -2,10 +2,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
+<title>imapsync <!--#exec cmd="cat VERSION" --> </title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2011-07-11T03:40:56+0200"/>
+<meta name="date" content="2011-02-22T01:52:58+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -33,7 +33,6 @@
 <ul class="none">
 	<li>Buy <a href="#buy_source">imapsync <b>source code</b></a> (any OS)</li>
 	<li>Buy <a href="#buy_exe"><b>standalone win32</b></a> imapsync.exe</li>
-   <li>Buy <a href="#buy_support">imapsync <b>support</b></a> to succeed your migration</li>
 	<li>Are your <a href="#imap_server_success">imap servers <b>supported</b></a> by imapsync?</li>
 </ul>
 
@@ -60,65 +59,6 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 </p>
 
 
-<h2><a id="latest"></a>Latest release is imapsync 
-<!--#exec cmd="cat VERSION" --> 
-</h2>
-
-<p>Written on <!--#flastmod file="VERSION" --></p>
-
-<p>See <b><a href="ChangeLog">ChangeLog</a></b> to know what's new in details since 2001.</p>
-
-<p>New features or bugfixes since previous releases:</p>
-
-<ul>
-
-<li><b>1.452</b></li>
-<li><b>New feature</b>: Added <b>--search</b> option allowing to <b>select messages</b> with the <b>powerful IMAP SEARCH</b> command.
-<li><b>Bugfix</b>: Date reference to select messages with --maxdate --mindate is the beginning of imapsync run now.
-<li>Bugfix: Fixed ps call to work with Solaris 10. Thanks to Daniel Rohde.
-<li>Success: <b>Kerio 7.2.0P1</b> success story.
-<li>Success: <b>MDaemon 12.0.3</b> success story.
-
-
-<li><b>1.446</b></li>
-<li><b>Bugfix</b>: Better --idatefromheader behavior (thank to Dax Kelson patches).</li>
-<li><b>Usability</b>: Now --delete2 sets --uidexpunge2 instead of --expunge2 if possible.</li>
-<li><b>Usability</b>: Adapted the usage output multiline character to Unix or Win, \ or ^</li>
-<li>Bugfix: Avoid a "not a number" warning when size is null.</li>
-<li><b>Bugfix</b>: Added "Date" in the default --useheader list. It is ("Message-Id", "Message-ID", "Date")</li>
-<li>Bugfix: allows bad header beginning with a blank character.</li>
-
-<li><b>1.434</b></li>
-<li><b>Bugfix</b>: Changed the way imapsync knows <b>whether a folder exists</b> or not. <b>Exchange</b> might be happy and <b>stop deconnecting</b> for this reason.</li>
-<li><b>Bugfix</b>: <b>Reconnections</b> are well done in <b>TLS mode</b> now.</li>
-<li><b>Bugfix</b>:  IMAP RFC 3501 and some imap servers require <b>internal dates</b> have a <b>zone data</b>. Default <b>to +0000</b> when host1 doesn't give it.</li>
-<li><b>Bugfix</b>: Options --maxsize --minsize now really work with --useuid (1.422 had a cache issue).</li>
-<li><b>Bugfix</b>: <b>Improved</b> the way imapsync <b>deals with headers</b>:<ul>
-	<li><b>Stopped</b> getting <b>first 2KB body</b> of message. Not a good idea in practice.</li>
-	<li>If <b>massive</b> get headers <b>fails</b> then take the <b>whole header</b> one by one (instead of body).</li>
-	<li>Default is like --useheader <b>"Message-Id"</b> --useheader <b>"Message-ID"</b> (instead of just "Message-Id").</li>
-	<li>Use header "Message-Id" and header "Date" as md5 signature when taking the whole header.</li>
-</ul>
-</li>
-
-</ul>
-
-<!-- 
-<p>The next imapsync release should see:</p>
-<ul>
-<li>nothing planned</li>
-</ul>
- -->
- 
-<h2><a id="NUMBERS"></a>Some numbers</h2>
-
-<ul>
-<li>Number of <b>imapsync users</b> per month: between <b>2 and 3 thousands </b>users</li>
-<li>Number of <b>imapsync transfers</b> per month: between <b>3 and 8 millions </b>transfers</li>
-<li>Pourcentage of <b>MSWin32</b> users : <b>10%</b></li>
-<li><b>Biggest user</b> usage: <b>5 millions</b> of transfers in a month (one every 2 seconds)</li>
-</ul>
- 
 <h2><a id="AUTHOR"></a>Who is the author?</h2>
 
     <p>Gilles LAMIRAL<br/>
@@ -132,6 +72,31 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
     imapsync mailing-list (see below section <a href="#MAILING-LIST">Mailing-List</a>).
     </p>
 
+<h2><a id="latest"></a>Latest release is imapsync 
+<!--#exec cmd="cat VERSION" --> 
+</h2>
+
+<p>Written on <!--#flastmod file="VERSION" --></p>
+
+<p>See <a href="ChangeLog">ChangeLog</a> to know what's new in details.</p>
+
+<p>New features since previous releases 1.383 and 1.398:</p>
+
+<ul>
+<li>Fixed the <b>not enough memory</b> issue with big messages by using perl module <b>Mail-IMAPClient 3.27</b> (thanks to Phil Pearl Lobbes)</li>
+<li>New option <b>--useuid</b> to speed up or deal with problems using headers.</li>
+<li>New option <b>--notakebody</b> to avoid getting first 2Ko body when got "no header"</li>
+<li>Better performance of --usecache with MS Exchange</li>
+<li>New option <b>--usecache</b> to speedup transfers when using multiple runs.</li>
+</ul>
+
+
+<p>The next imapsync release should see:</p>
+<ul>
+<li>An option to sync to and from files (local backup)</li>
+</ul>
+
+
 <h2><a id="buy_source"></a>Buy imapsync source code</h2>
 
 <p>
@@ -141,7 +106,7 @@ The Perl <b>imapsync</b> source code will run anywhere a <b>Perl interpreter can
 <p>Buy <b>latest</b> imapsync Perl <b>source code</b> for <b>30 EUR</b>
 </p>
 <p>
-30 EUR is equal to around <b>45 USD</b>, no problem to pay in USD (or any currency) with paypal:
+30 EUR is about <b>40 USD</b>, no problem to pay in USD with paypal:
 </p>
 
 
@@ -161,17 +126,16 @@ The Perl <b>imapsync</b> source code will run anywhere a <b>Perl interpreter can
 </p>
 </form>
 
-<p>You will receive a download link <b>just after</b> the payment.<br/>
-<b>One year</b> of imapsync <b>updates</b> without extra payment.<br/>
-<b>30 days money-back guarantee!</b></p>
+<p>You will receive a download link in few minutes (contact me if the delay is over a couple of hours).<br/>
+<b>30 days money-back guarantee.</b></p>
 
-<h2><a id="buy_exe"></a>Buy standalone imapsync.exe for win32</h2>
+<h2><a id="buy_exe"></a>Standalone imapsync.exe for win32</h2>
 
 <p>Struggle free from source code and Perl installation by<br/> 
 buying the latest win32 <b>standalone imapsync.exe</b> for <b>30 EUR</b></p>
 
 <p>
-30 EUR is equal to around  <b>45 USD</b>, no problem to pay in USD (or any currency) with paypal:
+30 EUR is about <b>40 USD</b>, no problem to pay in USD with paypal:
 </p>
 
 
@@ -183,51 +147,21 @@ buying the latest win32 <b>standalone imapsync.exe</b> for <b>30 EUR</b></p>
 	<option value="professional">professional </option>
 	<option value="individual">individual </option>
 </select><br/>
-<input type="hidden" name="encrypted" 
-value="-----BEGIN PKCS7-----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-----END PKCS7-----
+<input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
 "/>
-<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_buynowCC_LG.gif"
-name="submit" alt="PayPal - The safer, easier way to pay online!"/>
+<input type="image" src="https://www.paypal.com/en_US/i/btn/btn_buynowCC_LG.gif" name="submit" alt="PayPal - The safer, easier way to pay online!"/>
 <img alt="" src="https://www.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1"/>
 </p>
 </form>
 
-<p>You will receive a download link <b>just after</b> the payment.<br/>
-<b>One year</b> of imapsync <b>updates</b> without extra payment.<br/>
-<b>30 days money-back guarantee!</b></p>
+<p>You will receive a download link in few minutes (contact me if the delay is over a couple of hours).<br/>
+<b>30 days money-back guarantee.</b></p>
 
 <!-- 
 <p>
 thanks to Strawberry Perl 5.12 and Par::Packer module.<br/>
 The build system for imapsync.exe is XP Pro SP2 on a Intel Celeron 400 MHz 256 Mo RAM. </p>
 -->
-
-<h2><a id="buy_support"></a>Buy professional support for imapsync</h2>
-
-<p>For <b>90 EUR</b> buy imapsync <b>support</b> by the developper who wrote and maintains imapsync.
-</p>
-<p>
-90 EUR is equal to around <b>130 USD</b>, no problem to pay in USD (or any currency) with paypal:
-</p>
-
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-<p>
-<input type="hidden" name="cmd" value="_s-xclick" />
-<input type="hidden" name="hosted_button_id" value="E25UVGFNDJWW8" />
-<input type="image" 
-	src="https://www.paypalobjects.com/WEBSCR-640-20110401-1/en_US/i/btn/btn_buynowCC_LG.gif"
-	name="submit"
-	alt="PayPal - The safer, easier way to pay online!" />
-<img alt="" src="https://www.paypalobjects.com/WEBSCR-640-20110401-1/fr_FR/i/scr/pixel.gif" width="1" height="1" />
-<input name="return" type="hidden" value="http://www.linux-france.org/prj/imapsync/paypal_return_support.shtml?utm_nooverride=1" />
-</p>
-</form>
-
-
-
-
-<p>Then you will be able to expose your issues by email or phone and to converse until your issues are solved.
-</p>
 
 <h2>Documentation</h2>
 
@@ -306,7 +240,7 @@ If you really want a feature or a fix you can donate money and my next developme
 will be to code it or fix it.<br/>
 </p>
 
-<p>On april 2011: <b>1 EUR ~ 1.48 USD</b>.</p>
+<p>On february 2011: <b>1 EUR ~ 1.3 USD</b>.</p>
 
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
@@ -326,7 +260,6 @@ will be to code it or fix it.<br/>
 <tr align="right"><th>DONE</th><th>Feature                </th><th>Time guessed</th><th>Time spent</th><th>Money received</th><th>Money needed</th></tr>
 <tr align="right"><td>  No</td><td>Backup to files        </td><td>20 hours    </td><td>  60 min  </td><td>  0 $          </td><td>800 $       </td></tr>
 <tr align="right"><td>  No</td><td>Efficient Gmail backup </td><td>20 hours    </td><td>  80 min  </td><td>  0 $          </td><td>800 $       </td></tr>
-<tr align="right"><td>  No</td><td>Better error reporting </td><td> 5 hours    </td><td>   0 min  </td><td>  0 $          </td><td>200 $       </td></tr>
 <tr align="right"><td> Yes</td><td>Add cache              </td><td>10 hours    </td><td>1310 min  </td><td>400 $          </td><td>400 $       </td></tr>
 <tr align="right"><td> Yes</td><td>Speedup 50%            </td><td>10 hours    </td><td>  80 min  </td><td> 10 $          </td><td>400 $       </td></tr>
 <tr align="right"><td> Yes</td><td>--delete2folders       </td><td> 3 hours    </td><td> 270 min  </td><td> 90 $          </td><td>  0 $       </td></tr>
@@ -341,19 +274,19 @@ will be to code it or fix it.<br/>
 
 <h2><a id="imap_server_success"></a>Lists of imap server software failures and success stories</h2>
 
-<p>Let's start with reported <b>failure stories</b> over the past.<br/>
-Maybe <b>new imapsync releases can run successfully with them</b>.<br/>
-Don't hesitate to have a try, I will help you and make efforts to switch them to the success list.
+<p>Let's start with reported <b>failure stories</b> over the past 
+(maybe new imapsync release can run successfully with them).
 </p>
 
 <ul>
-	<li>DBMail 0.9, 2.0.7 (GPL). But most other DBMail releases are supported (see below)</li>
+	<li>DBMail 0.9, 2.0.7 (GPL). But most other DBMail releases work (see below)</li>
 	<li>Imail 7.04 (maybe).</li>
-	<li>MailEnable 1.54 (Proprietary) but MailEnable 4.23 is supported. </li>
+	<li>MailEnable 1.54 (Proprietary) http://www.mailenable.com/</li>
 </ul>
 
-<p>Now the long reported <b>success stories</b> list: <b>44 different imap server softwares supported!</b><br/>
-([host1] means "source server", [host2] means "destination server"):
+<p>Now the long reported <b>success stories</b> list
+([host1] means "source server", 
+[host2] means "destination server"):
 </p>
 
 <ul>
@@ -376,32 +309,26 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
    v2.3.7,
    (http://asg.web.cmu.edu/cyrus/)
    </li>
-	<li>David Tobit V8.</li>
+	<li>David Tobit V8 (proprietary Message system).</li>
 	<li>DBMail 1.2.1, 2.0.4, 2.0.9, 2.2rc1 (GPL) (http://www.dbmail.org/).
    2.0.7 seems buggy.</li>
 	<li>Deerfield VisNetic MailServer 5.8.6 [host1]</li>
 	<li>dkimap4 [host1]</li>
 	<li>Domino (Notes) 4.61[host1], 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1[host1], 8.0.1[host1]</li>
-	<li><b>Dovecot</b> 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
+	<li>Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
    1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)</li>
 	<li>Eudora WorldMail v2</li>
-	<li><b>Gimap</b> (<b>Gmail</b> imap) [host1] [host2]</li>
 	<li>GMX IMAP4 StreamProxy.</li>
-	<li>Godaddy IMAP (since Godaddy runs Courier)</li>
 	<li>Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.</li>
 	<li>hMailServer 5.3.3 [host2], 4.4.1 [host1], HMAILSERVER 5.3.2-B1769 on windows 2003 [hsot2]</li>
 	<li>iPlanet Messaging server 4.15, 5.1, 5.2</li>
-	<li>IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]</li>
-	<li>Kerio 7.2.0P1 [host1]</li>
-	<li><b>MailEnable</b> 4.23 [host1][host2], 4.26 [host1][host2]</li>
-	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2], 12.0.3 [host1]</li>
+	<li>IMail 7.15 (Ipswitch/Win2003), 8.12</li>
+	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform)</li>
 	<li>Mercury 4.1 (Windows server 2000 platform)</li>
-	<li><b>Microsoft Exchange Server</b> 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
-   6.5.7638.1 [host2], 6.5 [host1], Exchange 2007 SP1 (with Update Rollup 2), 
+	<li>Microsoft Exchange Server 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
+   6.5.7638.1 [host2], Exchange 2007 SP1 (with Update Rollup 2), 
    Exchange2007-EP-SP2, 
-   Exchange 2010 RTM (Release to Manufacturing) [host2],
-   Exchange 2010 SP1 RU2 [host2]
-   </li>
+   Exchange 2010 RTM (Release to Manufacturing) [host2]</li>
    <li>Mirapoint server</li>
 	<li>Netscape Mail Server 3.6 (Wintel)</li>
 	<li>Netscape Messaging Server 4.15 Patch 7</li>
@@ -421,8 +348,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
    (http://www.washington.edu/imap/)</li>
 	<li>UW - QMail v2.1</li>
 	<li>VMS, Imap part of TCP/IP suite of VMS 7.3.2</li>
-	<li><b>Zimbra-IMAP</b> 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 
-               Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x</li>
+	<li>Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 5.5, 6.x</li>
 </ul>
 
 <hr/>
@@ -451,7 +377,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.75 2011/07/11 01:42:17 gilles Exp gilles $)
+($Id: index.shtml,v 1.57 2011/02/22 00:53:54 gilles Exp $)
 </p>
 
 </body>
