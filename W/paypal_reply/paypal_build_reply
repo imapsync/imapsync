@@ -1,0 +1,208 @@
+#!/usr/bin/perl 
+
+# $Id: paypal_build_reply,v 1.16 2011/05/31 21:25:48 gilles Exp gilles $
+
+use warnings;
+use strict;
+use Getopt::Long;
+
+my ($msg_id_file, $msg_id);
+my ($amount, $name, $email);
+my (
+	$paypal_line, $paypal_info,
+	$buyer, $description, $object, 
+	$url_source, $url_exe, $url, $release, $release_exe, 
+);
+
+my $help ;
+my $debug ;
+
+my $numopt = scalar(@ARGV);
+my $opt_ret = GetOptions(
+        "help"          => \$help,
+        "debug!"        => \$debug,
+);
+
+usage() and exit if ($help or ! $numopt) ;
+
+$msg_id_file = $ARGV[1];
+$msg_id = firstline($msg_id_file);
+
+$debug and print "Hi!\n" ;
+
+while(<>) {
+	next if ( ! /^(.*Num.+ro de transaction.*)$/ );
+	$paypal_line = $1;
+	$paypal_info  = "===== Paypal id =====\n$paypal_line\n";
+	$debug and print "$paypal_info" ;
+	last;
+}
+while(<>) {
+	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/) {
+		($amount, $name, $email) = ($1, $2, $3);
+		last;
+	}
+	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*)/) {
+		($amount, $name, $email) = ($1, "", $2);
+		last;
+	}
+}
+
+
+$release      = firstline( '/g/public_html/imapsync/VERSION' ) ;
+$release_exe  = firstline( '/g/public_html/imapsync/VERSION_EXE' ) ;
+my $path_last = firstline( '/g/public_html/imapsync/dist/path_last.txt' ) ;
+$url_source   = firstline( '/g/var/paypal_reply/url_source' ) ;
+$url_exe      = firstline( '/g/var/paypal_reply/url_exe' ) ;
+
+$url = "http://ks.lamiral.info/imapsync/dist/$path_last/" ;
+
+#print "[$amount] [$name] [$email] [$paypal_line]\n";
+
+
+while(<>) {
+	if ( /^Acheteur/ ) {
+		$buyer .= "===== Acheteur =====\n";
+		last;
+	}
+	if ( /^Informations sur l'acheteur/ ) {
+		$buyer .= "===== Acheteur =====\n";
+		chomp( $name = <> );
+		$buyer .= "$name\n" ;
+		last;
+	}
+}
+
+while(<>) { 
+      $buyer .= $_ if ( ! /^-----------------------------------/ );
+      last if ( /^-----------------------------------/ );
+}
+
+
+while(<>) { 
+	next if ( ! /^Description :(.*)/ );
+        $object = $1 ;
+	$description  = "===== Details =====\n";
+	$description .= $_;
+	last;
+}
+
+
+
+while(<>) { 
+	$debug and print "LINE:$_" ;
+	$description .= $_;
+	last if ( /^Paiement envoy/ );
+	last if ( /^N.*d'avis de r.*ception/ );
+}
+
+
+my $address = 'gilles.lamiral@laposte.net';
+my $address2 = 'gilles@lamiral.info';
+my $rcstag  = '$Id: paypal_build_reply,v 1.16 2011/05/31 21:25:48 gilles Exp gilles $';
+
+my $download_info = "You will find the latest imapsync.exe binary (release $release_exe)
+and the latest imapsync source code (release $release) at the following link:
+$url" ;
+
+my $next_releases ="Next imapsync releases will be available for one year without extra payment.
+Just keep this message and ask for the new links.
+(I will build an automatic subscription tool soon)" ;
+
+my $thanks_software = "I thank you for buying and using imapsync,
+I wish you successful transfers!" ;
+
+my $thanks_support = "I thank you for buying support and using imapsync,
+I wish you successful transfers, I will help you to succeed." ;
+
+my $support_info = 'Now you have access to imapsync professional support.
+
+You can contact me (Gilles LAMIRAL) by email or phone.
+
+Email address:              gilles.lamiral@laposte.net.
+Professionnal phone number: +33 951 84 42 42 (France) 
+Mobile phone number:        +33 620 79 76 06 (France).
+
+I can call you back for free in many countries on landline telephone numbers
+and to mobile numbers in the United States and France. So do not hesitate
+to send me a note if you need vocal support.' ;
+
+
+my $text_software = "$download_info\n
+$next_releases\n
+You will receive an invoice soon.\n
+$thanks_software" ;
+
+my $text_support = "$support_info\n
+You will receive an invoice soon.\n
+$thanks_support" ;
+
+my $subject_software = "[imapsync download] imapsync release $release [$email]" ;
+
+my $subject_support = "[imapsync support] imapsync release $release [$email]" ;
+
+my $subject ;
+
+my $text ;
+if ( 'imapsync support' eq $object ) {
+        $text = $text_support ;
+        $subject = $subject_support ;
+}else{
+        $text = $text_software ;
+        $subject = $subject_software ;
+}
+
+
+my $message = <<EOM
+X-Comment: $rcstag
+In-Reply-To: $msg_id
+From: Gilles LAMIRAL <$address>
+To: <$email>
+Bcc: Gilles LAMIRAL <$address>, <$address2>
+Subject: $subject
+
+Hello $name,
+
+$text
+
+$paypal_info
+$buyer
+$description
+==== Vendeur ====
+Gilles LAMIRAL
+4 La Billais
+35580 Baulon
+FRANCE
+
+Tel: +33 951 84 42 42
+Mob: +33 620 79 76 06
+Fax: +33 956 84 42 42
+
+email: $address
+
+--
+Au revoir,                             09 51 84 42 42
+Gilles Lamiral. France, Baulon (35580) 06 20 79 76 06
+EOM
+;
+
+=pod
+=cut
+
+
+print $message;
+#print "[$amount] [$name] [$email] [$paypal_line] [$object]\n";
+
+
+sub firstline {
+        # extract the first line of a file (without \n)
+
+        my($file) = @_;
+        my $line  = "";
+        
+        open FILE, $file or die("error [$file]: $! ");
+        chomp($line = <FILE>);
+        close FILE;
+        $line = ($line) ? $line: "error !EMPTY! [$file]";
+        return $line;
+}

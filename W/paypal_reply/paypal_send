@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+# $Id: paypal_send,v 1.3 2010/12/29 23:50:24 gilles Exp gilles $
+
+use strict;
+use warnings;
+use Getopt::Long;
+use MIME::Lite;
+
+my (
+	$help,
+	$debug,
+	$send,
+);
+
+my $numopt = scalar(@ARGV);
+my $opt_ret = GetOptions(
+	"help"		=> \$help,
+	"debug!"	=> \$debug,
+	"send!"	        => \$send,
+);
+
+usage() and exit if ($help or ! $numopt or ! $opt_ret) ;
+
+my @reply = <>;
+my %header;
+
+while (my $line = shift @reply) {
+	#print $line;
+	chomp($line);
+	last if ($line =~ /^$/) ;
+	my($blank, $key, $value) = split /^(.+?:)\s*/, $line;
+	#print "[$key] [$value]\n";
+	$header{$key} = $value;
+}
+
+my $data = join('', @reply);
+
+#print "[", $data, "]\n";
+
+my $message = MIME::Lite->new();
+$message->attr("content-type" => "text/plain");
+$message->attr("content-type.charset" => "UTF-8");
+
+$message->build(%header);
+$message->build(Data => $data);
+$message->print(\*STDOUT);
+
+
+if ($send) {
+	$message->send;
+	print "Sent to ", $header{'To:'},"\n";
+}
+
+
+
+sub usage {
+        print <<EOF;
+
+usage: $0 [options] file
+
+--help              : print this help message
+--debug             : verbose output
+--send              : send message
+
+Examples: 
+$0 file
+$0 --send file
+EOF
+}
+
