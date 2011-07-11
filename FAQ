@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.88 2011/05/26 00:53:26 gilles Exp gilles $
+# $Id: FAQ,v 1.89 2011/07/11 01:17:39 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -284,6 +284,25 @@ Some imap servers have problems with flags not beginning with
 the backslash character \ 
 (see next question to find a solution to this issue)
 
+
+=======================================================================
+Q. How to convert flags?
+
+R. use --regexflag
+For example to convert flag IMPORTANT to flag CANWAIT
+
+  imapsync ... --regexflag 's/IMPORTANT/CANWAIT/g' --debugflags
+
+option --debugflags is usefull to see in details what imapsync
+does with flags.
+
+=======================================================================
+Q. How to convert flags with $ to \ character?
+
+R. $ and \ are special characters we have to "escape" them.
+For example to convert flag $label1 to \label1
+
+  imapsync ... --regexflag 's/\$label1/\\label1/g' --debugflags
 
 =======================================================================
 Q. I need to keep only a defind list of flags, how can I do?

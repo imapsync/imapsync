@@ -1,0 +1,26 @@
+#!/usr/bin/perl -w
+
+use Carp;
+use Mail::IMAPClient;
+use IO::Socket::SSL;
+
+my $ssl = new IO::Socket::SSL("louloutte.dyndns.org:993");
+
+my $imap = Mail::IMAPClient->new();
+$imap->Socket($ssl);
+
+$imap->Debug(1);
+$imap->Server('louloutte.dyndns.org');
+$imap->connect() or croak "Error connecting @!";
+$imap->User('MarkOv@est.belle');
+$imap->Password('emhj91ly');
+$imap->login();
+
+$imap->select('Inbox');
+my @messages = $imap->messages();
+
+my $headers = $imap->parse_headers([@messages]);
+
+$imap->logout();
+
+
