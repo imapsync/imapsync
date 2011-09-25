@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use English;
+use Mail::IMAPClient;
+
+my $rcs = '$Id: append,v 1.1 2011/07/14 16:49:02 gilles Exp gilles $ ';
+
+$ARGV[3] or die "usage: $0 host user password folder uid\n";
+
+my $host     = $ARGV[0];
+my $user     = $ARGV[1];
+my $password = $ARGV[2];
+my $folder   = $ARGV[3];
+my $uid      = $ARGV[4];
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(1);
+$imap->Server($host);
+$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+$imap->Clear(0);
+
+#print map {"$_\n"} $imap->folders();
+
+$imap->select($folder) or die;
+my @msgs = $imap->messages ;
+print "LIST: @msgs\n";
+
+my $msgtext = "Subject: 9
+
+??
+" ;
+
+my $flags = '\Seen' ;
+my $date  = "16-Mar-2011 11:07:11 +0000" ;
+
+my $new_id_1b = $imap->append_string( $folder, $msgtext ) ;
+print "==== OK 1b $new_id_1b\n" if $new_id_1b ;
+$imap->noop ;
+@msgs = $imap->messages ;
+print "LIST: @msgs\n";#my $new_id_1 = $imap->append_string( $folder, $msgtext, $flags, $date ) ;
+#print "==== OK 1 $new_id_1\n" if $new_id_1 ;
+#my $new_id_2 = $imap->append_string( $folder, $msgtext, $flags, $date ) ;
+#print "==== OK 2 $new_id_2\n" if $new_id_2 ;
+
+$imap->close();
+

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.170 2011/07/11 01:03:48 gilles Exp gilles $  
+# $Id: tests.sh,v 1.174 2011/08/24 06:48:23 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -450,7 +450,7 @@ ll_delete2foldersbutnot() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes \
-                --delete2foldersbutnot '/NEW_2/' \
+                --delete2foldersbutnot '/NEW_2|NEW_3/' \
 		--dry
 }
 
@@ -475,9 +475,27 @@ ll_bug_folder_name_with_blank() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --justfolders  
+                --justfolders --fast 
                 echo "rm -rf /home/vmail/titi/.bugs/"
 }
+
+
+ll_bug_folder_name_with_backslash() {
+# Bug with Mail-IMAPClient-2.2.9
+# Fixed using Mail-IMAPClient-3.28
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --fast
+
+#		--folder "INBOX.yop.jj\\kk" 
+#		--folder '"INBOX.yop.jj\kk"' --debug --debugimap --regextrans2 's,\\,_,g'
+#		--folder "INBOX.yop.jj\\kk" --debug --debugimap1
+                echo "sudo rm -rf '/home/vmail/titi/.yop.jj\\kk'"
+}
+
 
 
 ll_prefix12() {
@@ -1645,6 +1663,38 @@ gmail() {
                 --regextrans2 's/\[Gmail\]/Gmail/'
 }
 
+gmail_justfolders() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --host2 $HOST2 \
+                --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --useheader 'Message-Id' \
+                --useheader="X-Gmail-Received" \
+                --regextrans2 's/\[Gmail\]/Gmail/' \
+		--justfolders
+}
+
+
+gmail_via_stunnel_ks() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 ks.lamiral.info \
+                --port1 243 --nossl1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --host2 $HOST2 \
+                --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --useheader 'Message-Id' \
+                --useheader="X-Gmail-Received" \
+                --debug --justfolders
+}
+
 gmail_gmail() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -1679,6 +1729,34 @@ gmail_gmail2() {
 		#--dry # --debug --debugimap # --authmech1 LOGIN
 
 }
+
+yahoo_xxxx_login() {
+                ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --ssl1 \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 $HOST2 \
+                --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+		--justlogin 
+}
+
+yahoo_xxxx() {
+                ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 $HOST2 \
+                --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+		--sep1 '.'
+
+# Yahoo works also with ssl
+#                --ssl1 \
+}
+
+
 
 
 allow3xx() {
@@ -1907,6 +1985,48 @@ ll_useuid_nousecache()
 # specific tests
 ##########################
 
+
+b2btech_1() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 pod51008.outlook.com \
+	--user2 TestGilles@uncc.edu \
+	--passfile2 ../../var/pass/secret.b2btech --tls2 \
+	--useheader Message-Id --useheader Message-ID --fast --delete2 --expunge2 \
+	--folder INBOX.oneemail --folder INBOX.few_emails --folder INBOX.Junk
+
+
+}
+
+Otilio() {
+	$CMD_PERL ./imapsync \
+	--host1 imap.gmail.com --ssl1 --user1 jacarmona@eurotyre.es \
+	--passfile1 ../../var/pass/secret.Otilio1 \
+	--host2 mail.eurotyre.es --user2 josedemo@eurotyre.es \
+	--passfile2 ../../var/pass/secret.Otilio2 \
+	--folder INBOX  --nofoldersizes
+}
+
+Otilio2() {
+	$CMD_PERL ./imapsync \
+	--host1 imap.gmail.com --ssl1 --user1 jacarmona@eurotyre.es \
+	--passfile1 ../../var/pass/secret.Otilio1 \
+	--host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+	--useuid --folder INBOX  --nofoldersizes 
+}
+
+Otilio3() {
+	$CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+	--host2 mail.eurotyre.es --user2 josedemo@eurotyre.es \
+	--passfile2 ../../var/pass/secret.Otilio2 \
+	--folder INBOX  --nofoldersizes --regextrans2 's,INBOX,INBOX/delete_me,g'
+}
+
+
 Giancarlo_1() {
 	$CMD_PERL ./imapsync \
 	--host1 87.241.29.226 --user1 "Diego@studiobdp.local" \
@@ -1917,7 +2037,7 @@ Giancarlo_1() {
 	--nofoldersizes --useuid
 }
 
-godaddy_1_justlogin() {
+godaddy_1() {
 	$CMD_PERL ./imapsync \
 	--host1 $HOST1  --user1 tata \
 	--passfile1 ../../var/pass/secret.tata \
@@ -1925,6 +2045,18 @@ godaddy_1_justlogin() {
 	--passfile2 ../../var/pass/secret.overnightmac --tls2 \
 	--folder INBOX.oneemail --folder INBOX.few_emails
 }
+
+godaddy_2() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 imap.secureserver.net --user2 migrationtest@overnightmac.com \
+	--passfile2 ../../var/pass/secret.overnightmac --tls2 \
+	--folder INBOX.Junk --debug
+}
+
+
+
 
 mailenable_1() {
 	$CMD_PERL ./imapsync \
@@ -2264,6 +2396,7 @@ gmail_xxxxx
 gmail 
 gmail_gmail 
 gmail_gmail2 
+yahoo_xxxx
 ll_ask_password 
 ll_bug_folder_name_with_blank 
 ll_timeout 

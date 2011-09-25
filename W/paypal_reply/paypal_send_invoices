@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: paypal_send_invoices,v 1.6 2011/06/07 23:40:21 gilles Exp gilles $
+# $Id: paypal_send_invoices,v 1.7 2011/07/14 12:31:44 gilles Exp gilles $
 
 # usages:
 # sh paypal_send_invoices /g/var/paypal_invoices/147
@@ -26,7 +26,7 @@ send_invoice() {
 	test -f facture_message_body.txt || { echo NO facture_message_body.txt ;  return; }
 	test -f email_address.txt || { echo NO email_address.txt ;  return; }
 
-	email=${2:-`cat email_address.txt`}
+	email=${2:-`cat email_address_2.txt || cat email_address.txt`}
 	> facture_message_to.txt
 	egrep '^To: ' facture_message_header.txt > /dev/null || echo "To: $email" > facture_message_to.txt
 	cat facture_message_header.txt facture_message_to.txt facture_message_body.txt > facture_message.txt
@@ -48,6 +48,8 @@ send_invoice() {
 		touch SENT_TO_$email
 	}
 }
+
+echo $0 '/g/var/paypal_invoices/99?'
 
 for d in "$@"; do 
 	( send_invoice "$d" )

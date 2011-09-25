@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.89 2011/07/11 01:17:39 gilles Exp gilles $
+# $Id: FAQ,v 1.92 2011/08/24 06:50:17 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -8,14 +8,16 @@
 Unix versus Windows syntax.
 On Unix shells you can write a single command on multiple lines
 by using the escape character \ at the end of each line 
-(except the last one).
+(except the last one). On Windows this character is ^
+
+Unix example:
 
 ./imapsync \
    --host1 imap.truc.org --user1 foo --password1 secret1 \
    --host2 imap.trac.org --user2 bar --password2 secret2
 
 
-On Windows this character is ^
+Windows example:
 
 imapsync ^
    --host1 imap.truc.org --user1 foo --password1 secret1 ^
@@ -47,8 +49,8 @@ R. http://www.linux-france.org/prj/imapsync/FAQ
 =======================================================================
 Q. How can I have commercial support?
 
-R. Ask the imapsync author and expert: Gilles LAMIRAL
-Rates per hour (2011) : 84 euros (111 USD)
+R. Buy support from imapsync author and expert: Gilles LAMIRAL
+http://ks.lamiral.info/imapsync/#buy_support
 
 =======================================================================
 Q. How can I have gratis support?
@@ -76,31 +78,36 @@ post to this list if you want to stay private.
 Thank you for your participation.
 
 =======================================================================
-Q. Where I can read up on the various IMAP RFCs?
+Q. I need to migrate hundred accounts, how can I do?
 
-R. Here:
+R. If you have many mailboxes to migrate think about a little
+shell program. Write a file called file.csv (for example)
+containing users and passwords.
+The separator used in this example is ';'
 
-RFC 3501 - INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1
-http://www.faqs.org/rfcs/rfc3501.html
+The file.csv file contains:
 
-RFC2683 - IMAP4 Implementation Recommendations
-http://www.faqs.org/rfcs/rfc2683.html
+user001_1;password001_1;user001_2;password001_2
+user002_1;password002_1;user002_2;password002_2
+user003_1;password003_1;user003_2;password003_2
+user004_1;password004_1;user004_2;password004_2
+user005_1;password005_1;user005_2;password005_2
+...
 
-RFC 2595 - Using TLS with IMAP, POP3 and ACAP
-http://www.faqs.org/rfcs/rfc2595.html
+On Unix the shell program can be:
 
-RFC 2822 - Internet Message Format
-http://www.faqs.org/rfcs/rfc2822.html
+ { while IFS=';' read  u1 p1 u2 p2; do 
+	imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
+                 --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
+ done ; } < file.csv
 
-RFC 2342 - IMAP4 Namespace
-http://www.faqs.org/rfcs/rfc2342.html
+On Windows the batch program can be:
 
-RFC2180 - IMAP4 Multi-Accessed Mailbox Practice
-http://www.faqs.org/rfcs/rfc2180.html
+  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.csv) DO imapsync ^
+  --host1 imap.side1.org --user1 %%G --password1 %%H ^
+  --host2 imap.side2.org --user2 %%I --password2 %%J ...
 
-RFC 4549 - Synchronization Operations for Disconnected IMAP4 Clients
-http://www.faqs.org/rfcs/rfc4549.html
-
+The ... can be replaced by nothing or any supplementary imapsync option.
 
 =======================================================================
 Q. Where I can find old imapsync releases?
@@ -190,26 +197,34 @@ The sent time and date are given by the "Date:" header and it is set
 most of the time by the MUA (Mail User Agent, Mutt, Eudora,
 Thunderbird etc.).
 
-imapsync does not touch any header since the header is used to
-identify the messages in both parts.
+imapsync does not touch any byte of messages unless told to do so
+by an option. Messages on both parts should be identical
+(some IMAP servers add or even change header lines).
 
 Solutions: 
-a) use --idatefromheader to set the internal dates on host2 same as the 
-   "Date:" headers.
-b) In Maildir boxes, after the sync (too late...), use the script
+a) Use the --syncinternaldates option and keep using Eudora.
+   But --syncinternaldates is now turn on by default so if you 
+   encounter the issue then the solution is harder, depending
+   on email client softwares and IMAP server softwares.
+
+b) use --idatefromheader to set the internal dates on host2 same as the 
+   "Date:" headers. It won't work if a) doesn't work.
+
+c) In Maildir boxes, after the sync (too late...), use the script
 learn/adjust_time.pl to change the internal dates from the "Date:" header.
-c) Don't use buggy Eudora.
-d) Use the --syncinternaldates option and keep using Eudora.
-   --syncinternaldates is now turn on by default.
+
+d) Use a better email client.
 
 
 =======================================================================
 Q. imapsync calculates 479 messages in a folder but only transfers 400 
    messages. What's happen?
 
-R1. imapsync considers the header part of a message (as a whole or
-   only specific lines depending on --useheader --skipheader) 
-   to identify a message on both sides.
+R1. Unless --useuid is used, imapsync considers the header part 
+   of a message to identify a message on both sides.
+   Header part is taken as a whole with "--useheader ALL" or
+   only specific lines depending on --useheader --skipheader
+   or default values.
 
 Consequences:
 
@@ -221,6 +236,22 @@ The result is that you can have more messages on host1 than on host2.
 R2. With option --useuid imapsync doesn't use headers to identify
 messages on both sides but it uses their imap uid. In than case
 duplicates are transfered and --delete2 won't work.
+
+=======================================================================
+Q. I need to log every output on a file named log.txt
+
+R. Use redirections of both standard and error outputs "> log.txt 2>&1"
+
+  imapsync ... > log.txt 2>&1
+
+=======================================================================
+Q. I need to log every output on a file named log.txt and also to the 
+   screen in order to keep seeing what's going on during execution
+
+R. Use the tee program (also available on Windows)
+http://en.wikipedia.org/wiki/Tee_%28command%29
+
+  imapsync ...  2>&1 | tee log.txt
 
 =======================================================================
 Q.  I run multiple imapsync applications at the same time then get a
@@ -1241,3 +1272,31 @@ R. You'll find an RPM imapsync.spec file in the directory learn/rpm/
    It has been tested with imapsync 1.434 (May 2011) on CentOS5 
    and RedHat RHEL5 Linux. (Thanks to Ole Holm Nielsen).
    This imapsync.spec is derivated from Neil Brown work in 2007.
+
+=======================================================================
+Q. Where I can read up on the various IMAP RFCs?
+
+R. Here:
+
+RFC 3501 - INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1
+http://www.faqs.org/rfcs/rfc3501.html
+
+RFC2683 - IMAP4 Implementation Recommendations
+http://www.faqs.org/rfcs/rfc2683.html
+
+RFC 2595 - Using TLS with IMAP, POP3 and ACAP
+http://www.faqs.org/rfcs/rfc2595.html
+
+RFC 2822 - Internet Message Format
+http://www.faqs.org/rfcs/rfc2822.html
+
+RFC 2342 - IMAP4 Namespace
+http://www.faqs.org/rfcs/rfc2342.html
+
+RFC2180 - IMAP4 Multi-Accessed Mailbox Practice
+http://www.faqs.org/rfcs/rfc2180.html
+
+RFC 4549 - Synchronization Operations for Disconnected IMAP4 Clients
+http://www.faqs.org/rfcs/rfc4549.html
+
+

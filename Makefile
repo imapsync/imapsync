@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.82 2011/07/11 01:02:45 gilles Exp gilles $	
+# $Id: Makefile,v 1.84 2011/07/29 03:02:01 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -17,6 +17,7 @@ usage:
 	@echo "make tests_win32_dev # run test2.bat on win32"
 	@echo "make all     "
 	@echo "make upload_index"
+	@echo "make upload_ks"
 	@echo "make imapsync.exe"
 	@echo "make imapsync_elf_x86.bin"
 
@@ -144,7 +145,7 @@ tests_win32: dosify_bat
 #	ssh Admin@c 'tasklist /NH /FO CSV' 
 
 tests_win32_dev: dosify_bat
-	scp imapsync test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	scp imapsync file.csv test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test2.bat'
 
 test_imapsync_exe: dosify_bat
@@ -238,7 +239,7 @@ dist_dir:
 
 dist_prepa_exe: imapsync.exe
 	mkdir -p $(DIST_PATH)
-	ln -f ./imapsync.exe $(DIST_PATH)/
+	cp -a ./imapsync.exe $(DIST_PATH)/
 	#cd $(DIST_PATH)/ && md5sum ./imapsync.exe > ./imapsync.exe.md5.txt
 	#cd $(DIST_PATH)/ && md5sum -c ./imapsync.exe.md5.txt
 
@@ -278,8 +279,6 @@ upload_index: index.shtml
 	rsync -avH index.shtml \
 	../../public_html/www.linux-france.org/html/prj/imapsync/
 	sh $(HOME)/memo/lfo-rsync
-
-
 
 niouze_lfo : 
 	echo "CORRECT ME: . ./memo && lfo_announce"

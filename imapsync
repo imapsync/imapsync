@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.452 $
+$Revision: 1.456 $
 
 =head1 SYNOPSIS
 
@@ -341,6 +341,10 @@ Failure stories reported with the following 3 imap servers:
  - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 is supported.
    Patient and confident testers are welcome.
  - Imail 7.04 (maybe).
+ - (2011) MDaemon 12.0.3 as host2 but MDaemon is supported as host1.
+   MDaemon is simply buggy with the APPEND IMAP command with 
+   any IMAP email client.
+ 
 
 Success stories reported with the following 44 imap servers 
 (software names are in alphabetic order): 
@@ -454,15 +458,27 @@ The separator used in this example is ';'
 
 The file.csv file contains:
 
-user0001;password0001;user0002;password0002
-user0011;password0011;user0012;password0012
+user001_1;password001_1;user001_2;password001_2
+user002_1;password002_1;user002_2;password002_2
+user003_1;password003_1;user003_2;password003_2
+user004_1;password004_1;user004_2;password004_2
+user005_1;password005_1;user005_2;password005_2
 ...
 
-And the shell program is just:
+On Unix the shell program can be:
 
  { while IFS=';' read  u1 p1 u2 p2; do 
-	imapsync --user1 "$u1" --password1 "$p1" --user2 "$u2" --password2 "$p2" ...
+	imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
+                 --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
  done ; } < file.csv
+
+On Windows the batch program can be:
+
+  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.csv) DO imapsync ^
+  --host1 imap.side1.org --user1 %%G --password1 %%H ^
+  --host2 imap.side2.org --user2 %%I --password2 %%J ...
+
+The ... have to be replaced by nothing or any imapsync option.
 
 Welcome in shell programming !
 
@@ -500,7 +516,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.452 2011/07/11 00:29:06 gilles Exp gilles $
+$Id: imapsync,v 1.456 2011/08/24 04:21:30 gilles Exp gilles $
 
 =cut
 
@@ -614,7 +630,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.452 2011/07/11 00:29:06 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.456 2011/08/24 04:21:30 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -980,17 +996,18 @@ my @requested_folder = sort(keys(%requested_folder));
 
 @h1_folders_wanted = @requested_folder;
 
+#my $h1_namespace = $imap1->namespace() ;
+#my $h2_namespace = $imap2->namespace() ;
+#require Data::Dumper ;
+#$debug and print "Host1 namespace:\n", Data::Dumper->Dump([$h1_namespace]) ;
+#$debug and print "Host2 namespace:\n", Data::Dumper->Dump([$h2_namespace]) ;
+
 my($h1_sep,$h2_sep); 
 # what are the private folders separators for each server ?
 
 $debug and print "Getting separators\n";
 $h1_sep = get_separator($imap1, $sep1, "--sep1");
 $h2_sep = get_separator($imap2, $sep2, "--sep2");
-
-#my $h1_namespace = $imap1->namespace();
-#my $h2_namespace = $imap2->namespace();
-#$debug and print "Host1 namespace:\n", Data::Dumper->Dump([$h1_namespace]);
-#$debug and print "Host2 namespace:\n", Data::Dumper->Dump([$h2_namespace]);
 
 my($h1_prefix,$h2_prefix); 
 $h1_prefix = get_prefix($imap1, $prefix1, "--prefix1");
@@ -1372,8 +1389,8 @@ sub sync_flags {
 	return() if size_filtered_flag( $h1_size ) ;
 
 	# used cached flag values for efficiency
-	my $h1_flags = $h1_fir_ref->{ $h1_msg }->{ "FLAGS" } ;
-	my $h2_flags = $h2_fir_ref->{ $h2_msg }->{ "FLAGS" } ;
+	my $h1_flags = $h1_fir_ref->{ $h1_msg }->{ "FLAGS" } || '' ;
+	my $h2_flags = $h2_fir_ref->{ $h2_msg }->{ "FLAGS" } || '' ;
 
 	# RFC 2060: This flag can not be altered by any client
 	$h1_flags =~ s@\\Recent\s?@@gi ;
@@ -1805,8 +1822,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.452 $ ',
-		  '$Date: 2011/07/11 00:29:06 $ ',
+		  '$Revision: 1.456 $ ',
+		  '$Date: 2011/08/24 04:21:30 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2061,7 +2078,7 @@ sub get_separator {
 	my($sep_out);
 	
 	
-	if ($sep_in) {
+	if ( defined( $sep_in ) ) {
 		print "Using [$sep_in] given by $sep_opt\n";
 		$sep_out = $sep_in;
 		return($sep_out);
@@ -2072,7 +2089,8 @@ sub get_separator {
 		return($sep_out) if defined $sep_out;
 		print 
 		  "NAMESPACE request failed for ", 
-		  $imap->Server(), ": ", $imap->LastError, "\n";
+		  $imap->Server(), ": ", $imap->LastError, "\n",
+                  help_to_guess_sep( $imap, $sep_opt ) ;
 		exit_clean(1);
 	}
 	else{
@@ -3562,7 +3580,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.452 2011/07/11 00:29:06 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.456 2011/08/24 04:21:30 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
