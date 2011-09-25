@@ -13,14 +13,24 @@ set -x
 #/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 473 /g/paypal/paypal_2011_03_complet.csv
 #/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 570 /g/paypal/paypal_2011_04_complet.csv
 #/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 645 /g/paypal/paypal_2011_05_complet.csv
-/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 733 /g/paypal/paypal_2011_06_complet.csv
-/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 824 /g/paypal/paypal_2011_07_complet.csv
+#/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 733 /g/paypal/paypal_2011_06_complet.csv
+#/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 824 /g/paypal/paypal_2011_07_complet.csv
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 917 /g/paypal/paypal_2011_08_complet.csv
+
+# /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 824 /g/paypal/paypal_2011_07_complet.csv
+# /g/public_html/imapsync/W/paypal_reply/paypal_bilan  --first_in 917 /g/paypal/paypal_2011_08_complet.csv
 set +x
 
 # La totale
 : || /g/public_html/imapsync/W/paypal_reply/paypal_bilan --bnc --debug \
   --first_in 147 --avoid_numbers '292 293  643 644 731 732' \
   /g/paypal/paypal_201?_??_complet.csv
+
+: || /g/public_html/imapsync/W/paypal_reply/paypal_bilan \
+  --first_in 147 --avoid_numbers '292 293  643 644 731 732' \
+  /g/paypal/paypal_201?_??_complet.csv
+
+
 
 # USD de 147 à 340
 # EUR de 341 à ...
@@ -66,6 +76,8 @@ set +x
 # 552 TVA 4,92
 # 556 TVA 4,92
 # 563 TVA 4,92 
+
+echo 'sh paypal_build_invoices  /g/var/paypal_invoices/???'
 
 for d in "$@"; do 
 	echo "==== $d ===="
