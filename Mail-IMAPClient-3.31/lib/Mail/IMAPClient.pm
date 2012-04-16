@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.30';
+our $VERSION = '3.31';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -2130,25 +2130,60 @@ sub fetch_hash {
     # fetch has similar logic for dealing with message list
     my $msgs = 'ALL';
     if ( $words[0] ) {
-        if ( $words[0] eq 'ALL' || ref $words[0] ) {
+        if ( ref $words[0] ) {
             $msgs = shift @words;
         }
-        elsif ( $words[0] =~ s/^([,:\d]+)\s*// ) {
-            $msgs = $1;
-            shift @words if $words[0] eq "";
+        elsif ( $#words > 0 ) {
+            if ( $words[0] eq 'ALL' ) {
+                $msgs = shift @words;
+            }
+            elsif ( $words[0] =~ s/^([,:\d]+)\s*// ) {
+                $msgs = $1;
+                shift @words if $words[0] eq "";
+            }
         }
     }
 
     # message list (if any) is now removed from @words
-    my $what = join ' ', @words;
+    my $what = join( " ", @words );
 
-    for (@words) {
-        s/([\( ])FAST([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE$2/i;
-s/([\( ])FULL([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE ENVELOPE BODY$2/i;
+    # RFC 3501:
+    #   fetch = "FETCH" SP sequence-set SP ("ALL" / "FULL" / "FAST" /
+    #           fetch-att / "(" fetch-att *(SP fetch-att) ")")
+    my %macro = (
+        "ALL"  => [qw(FLAGS INTERNALDATE RFC822.SIZE ENVELOPE)],
+        "FULL" => [qw(FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODY)],
+        "FAST" => [qw(FLAGS INTERNALDATE RFC822.SIZE)],
+    );
+
+    if ( $macro{$what} ) {
+        @words = @{ $macro{$what} };
     }
-    my %words = map { uc($_) => 1 } @words;
+    else {
+        $what = "($what)";
+        my @twords;
+        foreach my $word (@words) {
+            $word = uc($word);
 
-    my $output = $self->fetch( $msgs, "($what)" )
+            # server response to BODY[]<10.20> is a field named BODY[]<10>
+            if ( $word =~ /^BODY/ ) {
+                $word =~ s/<(\d+)\.\d+>$/<$1>/;
+
+                # server response to BODY.PEEK[] is a field named BODY[]
+                # BUG? allow for BODY.PEEK in response (historical behavior)
+                if ( $word =~ /^BODY\.PEEK/ ) {
+                    push( @twords, $word );
+                    $word =~ s/^BODY\.PEEK/BODY/;
+                }
+            }
+            unshift( @twords, $word );
+        }
+        @words = @twords;
+    }
+
+    my %words = map { $_ => 1 } @words;
+
+    my $output = $self->fetch( $msgs, $what )
       or return undef;
 
     while ( my $l = shift @$output ) {
@@ -2157,7 +2192,7 @@ s/([\( ])FULL([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE ENVELOPE BODY$2/i;
         my ( $key, $value );
       ATTR:
         while ( $l and $l !~ m/\G\s*\)\s*$/gc ) {
-            if ( $l =~ m/\G\s*([^\s\[]+(?:\[[^\]]*\])?)\s*/gc ) {
+            if ( $l =~ m/\G\s*([^\s\[]+(?:\[[^\]]*\])?(?:<[^>]*>)?)\s*/gc ) {
                 $key = uc($1);
             }
             elsif ( !defined $key ) {
@@ -2220,13 +2255,9 @@ s/([\( ])FULL([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE ENVELOPE BODY$2/i;
             $uids->{$mid} = $entry;
         }
 
+        # remove things not asked for (i.e. UID/$mid)
         for my $word ( keys %$entry ) {
-            next if exists $words{$word};
-
-            if ( my ($stuff) = $word =~ m/^BODY(\[.*)$/ ) {
-                next if exists $words{ "BODY.PEEK" . $stuff };
-            }
-
+            next if ( exists $words{$word} );
             delete $entry->{$word};
         }
     }

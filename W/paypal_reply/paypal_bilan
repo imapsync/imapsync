@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.47 2012/02/24 12:22:05 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.48 2012/04/15 09:24:49 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -477,8 +477,10 @@ sub compute_line {
 		$FR_flag = ' FR' if $Pays eq 'France' ;
 		my $IND_flag = '' ;
 		$IND_flag = ' IND' if ('imapsync usage' eq $Nom_Option_1 and 'individual' eq $Valeur_Option_1 ) ;
+                my $SUPPORT_flag = '' ;
+                $SUPPORT_flag = ' support' if ( 'imapsync support'    eq $Titre_de_l_objet ) ;
 		print "FE $invoice$FR_flag$IND_flag\n" ;
-		print "FE $invoice$FR_flag$IND_flag imapsync $Nom\n" ;
+		print "FE $invoice$FR_flag$IND_flag imapsync$SUPPORT_flag $Nom\n" ;
 		printf( "%.2f [EUR %.2f]\n", $Montant, $MontantEUR ) ;
 	}
 }

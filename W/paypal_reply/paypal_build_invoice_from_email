@@ -1,0 +1,293 @@
+#!/usr/bin/perl 
+
+# $Id: paypal_build_invoice_from_email,v 1.1 2012/03/14 00:24:50 gilles Exp gilles $
+
+use warnings;
+use strict;
+use Getopt::Long;
+use Test::More 'no_plan';
+
+
+my ($msg_id_file, $msg_id);
+my ($amount, $name, $email);
+my (
+	$paypal_line, $paypal_info,
+	$buyer, $description, $object, 
+	$url, $release, $release_exe, 
+) ;
+
+my( $day, $month, $year, $hour, $min, $sec, $fuseau, $transaction,
+    $postal_address ) ;
+
+my ( $help, $debug, $tests ) ;
+
+my $numopt = scalar( @ARGV ) ;
+
+my $test_builder = Test::More->builder;
+$test_builder->no_ending(1);
+
+my $opt_ret = GetOptions(
+        "help"          => \$help,
+        "debug!"        => \$debug,
+        "tests!"        => \$tests,
+);
+
+if ($tests) {
+        $test_builder->no_ending(0);
+        tests();
+        exit;
+}
+
+
+usage() and exit if ($help or ! $numopt) ;
+
+$msg_id_file = $ARGV[1];
+$msg_id = firstline($msg_id_file);
+
+$debug and print "Hi!\n" ;
+
+while(<>) {
+	$debug and print "LINE 1:$_" ;
+	next if ( ! /^(.*Num.+ro de transaction.*)$/ );
+	$paypal_line = $1;
+	$paypal_info  = "===== Paypal id =====\n$paypal_line\n";
+	$debug and print "paypal_line: [$paypal_line]\n" ;
+        ( $day, $month, $year, $hour, $min, $sec, $fuseau, $transaction )
+        = paypal_infos( $paypal_line ) ;
+        $debug and print "$day, $month, $year, $hour, $min, $sec, $fuseau, $transaction\n" ;
+	last;
+}
+while(<>) {
+	$debug and print "LINE 2:$_" ;
+	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/) {
+		($amount, $name, $email) = ($1, $2, $3);
+		last;
+	}
+	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*)/) {
+		($amount, $name, $email) = ($1, "", $2);
+		last;
+	}
+}
+
+
+$release      = firstline( '/g/public_html/imapsync/VERSION' ) ;
+$release_exe  = firstline( '/g/public_html/imapsync/VERSION_EXE' ) ;
+my $path_last = firstline( '/g/public_html/imapsync/dist/path_last.txt' ) ;
+
+$url = "http://ks.lamiral.info/imapsync/dist/$path_last/" ;
+
+#print "[$amount] [$name] [$email] [$paypal_line]\n";
+
+
+while(<>) {
+	$debug and print "LINE 3:$_" ;
+	if ( /^Acheteur/ ) {
+		$buyer .= "===== Acheteur =====\n";
+		last;
+	}
+	if ( /^Informations sur l'acheteur/ ) {
+		$buyer .= "===== Acheteur =====\n";
+		chomp( $name = <> );
+		$buyer .= "$name\n" ;
+		last;
+	}
+}
+
+while(<>) { 
+      $debug and print "LINE 4a:$_" ;
+      $buyer .= $_ if ( ! /^Adresse de livraison/ );
+      last if ( /^Adresse de livraison/ );
+}
+
+
+while(<>) { 
+      $debug and print "LINE 4b:$_" ;
+      $postal_address .= $_ if ( ! /^Instructions .* l'attention du marchand/ and "\n" ne $_ );
+      last if ( /^Instructions .* l'attention du marchand/ );
+}
+
+my @postal_address = split( "\n", $postal_address ) ;
+my $country = $postal_address[-1] ;
+
+while(<>) { 
+      $debug and print "LINE 4c:$_" ;
+      $buyer .= $_ if ( ! /^-----------------------------------/ );
+      last if ( /^-----------------------------------/ );
+}
+
+while(<>) { 
+	$debug and print "LINE 5:$_" ;
+	next if ( ! /^Description :(.*)/ );
+        $object = $1 ;
+	$description  = "===== Details =====\n";
+	$description .= $_;
+	last;
+}
+
+
+
+while(<>) { 
+	$debug and print "LINE 6:$_" ;
+	$description .= $_;
+	last if ( /^Paiement envoy/ );
+	last if ( /^N.*d'avis de r.*ception/ );
+}
+
+
+my $address = 'gilles.lamiral@laposte.net';
+my $address2 = 'gilles@lamiral.info';
+my $rcstag  = '$Id: paypal_build_invoice_from_email,v 1.1 2012/03/14 00:24:50 gilles Exp gilles $';
+
+my $download_info = "You will find the latest imapsync.exe binary (release $release_exe)
+and the latest imapsync source code (release $release) at the following link:
+$url" ;
+
+my $next_releases =
+"Next imapsync releases will be available to you for one year without extra payment.
+You'll be subscribed to a newsletter [imapsync_update] announcing new releases.
+Just keep this message and ask for the new links in case you miss the newsletter.
+Run imapsync without any argument to know if a new release is available." ;
+
+
+my $thanks_software = "I thank you for buying and using imapsync,
+I wish you successful transfers!" ;
+
+my $thanks_support = "I thank you for buying support and using imapsync,
+I wish you successful transfers, I will help you to succeed." ;
+
+my $support_info = 'Now you have access to imapsync professional support.
+
+You can contact me (Gilles LAMIRAL) by email or phone.
+
+Email address:              gilles.lamiral@laposte.net.
+Professionnal phone number: +33 951 84 42 42 (France) 
+Mobile phone number:        +33 620 79 76 06 (France).
+
+I can call you back for free in many countries on landline telephone numbers
+and to mobile numbers in the United States and France. So do not hesitate
+to send me a note if you need vocal support.' ;
+
+
+my $text_software = "$download_info\n
+$next_releases\n
+You will receive an invoice soon.\n
+$thanks_software" ;
+
+my $text_support = "$support_info\n
+You will receive an invoice soon.\n
+$thanks_support" ;
+
+my $subject_software = "[imapsync download] imapsync release $release [$email]" ;
+
+my $subject_support = "[imapsync support] imapsync release $release [$email]" ;
+
+my $subject ;
+
+my $text ;
+if ( 'imapsync support' eq $object ) {
+        $text = $text_support ;
+        $subject = $subject_support ;
+}else{
+        $text = $text_software ;
+        $subject = $subject_software ;
+}
+
+
+my $message = <<EOM
+X-Comment: $rcstag
+In-Reply-To: $msg_id
+From: Gilles LAMIRAL <$address>
+To: <$email>
+Bcc: Gilles LAMIRAL <$address>, <$address2>
+Subject: $subject
+
+Hello $name,
+
+$text
+
+$paypal_info
+$buyer
+$description
+==== Vendeur ====
+Gilles LAMIRAL
+4 La Billais
+35580 Baulon
+FRANCE
+
+Tel: +33 951 84 42 42
+Mob: +33 620 79 76 06
+Fax: +33 956 84 42 42
+
+email: $address
+
+--
+Au revoir,                             09 51 84 42 42
+Gilles Lamiral. France, Baulon (35580) 06 20 79 76 06
+EOM
+;
+
+=pod
+=cut
+
+
+#print $message;
+#print "[$amount] [$name] [$email] [$paypal_line] [$object]\n";
+print "[$postal_address]
+@postal_address
+$country
+\n" ;
+
+sub firstline {
+        # extract the first line of a file (without \n)
+
+        my($file) = @_;
+        my $line  = "";
+        
+        open FILE, $file or die("error [$file]: $! ");
+        chomp($line = <FILE>);
+        close FILE;
+        $line = ($line) ? $line: "error !EMPTY! [$file]";
+        return $line;
+}
+
+sub tests {
+        
+      SKIP: {
+                skip "No test in normal run" if ( not $tests ) ;
+                tests_paypal_infos() ;
+      }
+}
+
+sub paypal_infos {
+
+	my $paypal_infos = shift ;
+        $paypal_infos =~ /(\d{1,2}) (.*) (\d{4}) (\d\d):(\d\d):(\d\d) (.*) \| Num.*ro de transaction : (.*)/ ;
+        my( $day, $month, $year, $hour, $min, $sec, $fuseau, $transaction ) 
+        = ( $1, $2, $3, $4, $5, $6, $7, $8 ) ;
+        #print "$day, $month, $year, $hour, $min, $sec, $fuseau, $transaction\n" ;
+        return( $day, $month, $year, $hour, $min, $sec, $fuseau, $transaction ) ;
+
+}
+
+sub tests_paypal_infos {
+	#ok( 1 == 1 ) ;
+	my( $day, $month, $year, $hour, $min, $sec, $fuseau, $transaction ) 
+        = paypal_infos( "14 mar 2012 01:47:55 CET | Numéro de transaction : 75E02654YS4206549" ) ;
+        ok( '14' eq $day, 'paypal_infos: day' ) ;
+        ok( 'mar' eq $month, 'paypal_infos: month' ) ;
+        ok( '2012' eq $year, 'paypal_infos: year' ) ;
+        ok( '01' eq $hour, 'paypal_infos: hour' ) ;
+        ok( '47' eq $min, 'paypal_infos: min' ) ;
+        ok( '55' eq $sec, 'paypal_infos: sec' ) ;
+        ok( 'CET' eq $fuseau, 'paypal_infos: fuseau' ) ;
+        ok( '75E02654YS4206549' eq $transaction, 'paypal_infos: transaction' ) ;
+
+	( $day, $month, $year, $hour, $min, $sec, $fuseau, $transaction ) 
+        = paypal_infos( "1 fév 2012 20:18:10 CET | Numéro de transaction : 5HF11160SD123724S" ) ;
+        ok( '1' eq $day, 'paypal_infos: day' ) ;
+        ok( 'fév' eq $month, 'paypal_infos: month' ) ;
+
+
+}
+
+

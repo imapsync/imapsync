@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.93 2012/02/07 10:55:04 gilles Exp gilles $	
+# $Id: Makefile,v 1.94 2012/04/15 19:19:14 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -32,7 +32,7 @@ VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
 IMAPClient_2xx=./Mail-IMAPClient-2.2.9
-IMAPClient_3xx=./Mail-IMAPClient-3.30/lib
+IMAPClient_3xx=./Mail-IMAPClient-3.31/lib
 IMAPClient=$(IMAPClient_3xx)
 
 hello:
