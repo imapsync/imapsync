@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: paypal_imapget,v 1.7 2011/03/23 17:05:24 gilles Exp gilles $
+# $Id: paypal_imapget,v 1.8 2012/01/25 18:25:50 gilles Exp gilles $
 
 use Getopt::Long;
 use Mail::IMAPClient;
@@ -56,7 +56,7 @@ $imap->select($folder) or die "Error select folder [$folder] host [$host] user [
 #my @uids = $imap->search('TEXT', 'PP341');
 print "@search\n" ;
 @search = ('TEXT', 'PP341') if not @search ;
-my @uids = $imap->search('HEADER', 'Sender','sendmail@paypal.com', @search );
+my @uids = $imap->search('HEADER', 'Return-Path','<payment@paypal.com>', @search );
 print "Search: [@uids]\n";
 
 foreach $msg (@uids) {
