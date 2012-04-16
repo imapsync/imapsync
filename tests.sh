@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.182 2011/11/12 23:40:55 gilles Exp gilles $  
+# $Id: tests.sh,v 1.183 2011/11/17 22:13:27 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -828,6 +828,17 @@ ll_search_SENTBEFORE()
         --search 'SENTBEFORE 2-Oct-2011' --folder INBOX --delete2
 }
 
+ll_search_SENTSINCE_and_BEFORE() 
+{
+        can_send && sendtestmessage titi
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010' --folder INBOX --delete2 --dry
+}
+
 
 
 
@@ -1544,6 +1555,18 @@ ll_bigmail() {
         echo 'sudo sh -c "rm -v /home/vmail/big2/.bigmail/cur/*"'
 }
 
+ll_bigmail_fastio() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1  --user1 big1 \
+        --passfile1 ../../var/pass/secret.big1 \
+        --host2 $HOST2 --user2 big2 \
+        --passfile2 ../../var/pass/secret.big2 \
+        --folder INBOX.bigmail --fastio1 --fastio2
+        echo 'sudo sh -c "rm -v /home/vmail/big2/.bigmail/cur/*"'
+}
+
+
+
 ll_memory_consumption() {
         $CMD_PERL ./imapsync \
         --host1 $HOST1  --user1 big1 \
@@ -1996,7 +2019,25 @@ ll_useuid_nousecache()
         echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
+ll_fastio() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --fastio1 --fastio2
+}
 
+ll_nofastio() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --nofastio1 --nofastio2
+}
 
 ##########################
 # specific tests

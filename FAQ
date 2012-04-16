@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.95 2011/11/12 23:41:20 gilles Exp gilles $
+# $Id: FAQ,v 1.97 2011/11/17 22:14:15 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -45,23 +45,27 @@ To fix it just replace single quotes ' by double quotes "
 =======================================================================
 Q. How to install imapsync?
 
-R. http://www.linux-france.org/prj/imapsync/INSTALL
+R. Read the INSTALL file in the tarball also available at
+   http://imapsync.lamiral.info/INSTALL
 
 =======================================================================
-Q. How to configure imapsync?
+Q. How to configure and run imapsync?
 
-R. http://www.linux-france.org/prj/imapsync/README
+R. Read the README and FAQ files in the tarball also available at 
+   http://imapsync.lamiral.info/README
+   http://imapsync.lamiral.info/FAQ
 
 =======================================================================
 Q. Can you give some configuration examples?
 
-R. http://www.linux-france.org/prj/imapsync/FAQ
+R. The FAQ file contains many examples for several scenarios
+   http://www.linux-france.org/prj/imapsync/FAQ
 
 =======================================================================
 Q. How can I have commercial support?
 
 R. Buy support from imapsync author and expert: Gilles LAMIRAL
-http://ks.lamiral.info/imapsync/#buy_support
+http://imapsync.lamiral.info/#buy_support
 
 =======================================================================
 Q. How can I have gratis support?
@@ -126,6 +130,16 @@ Q. Where I can find old imapsync releases?
 R. Search the internet.
 
 =======================================================================
+Q. Where I can find free open and gratis imapsync releases?
+
+R. Search the internet.
+
+Q. Is is legal?
+
+R. Yes, the license permits it
+   http://imapsync.lamiral.info/COPYING
+
+=======================================================================
 Q. How can I try imapsync with the new Mail::IMAPClient 3.xx perl library?
 
 R. - Download latest Mail::IMAPClient 3.xx at
@@ -133,8 +147,7 @@ R. - Download latest Mail::IMAPClient 3.xx at
    - untar it anywhere:
         tar xzvf Mail-IMAPClient-3.xx.tar.gz
 
-   - Download latest imapsync at
-   http://lamiral.info/~gilles/imapsync/imapsync
+   - Get any imapsync (latest is better).
 
    - run imapsync with perl and -I option tailing to use the perl
      module Mail-IMAPClient-3.xx. Example:
@@ -233,17 +246,19 @@ b) use --idatefromheader to set the internal dates on host2 same as the
 
 c) In Maildir boxes, after the sync (too late...), use the script
 learn/adjust_time.pl to change the internal dates from the "Date:" header.
+(this a Unix fix using touch command)
 
-d) Use a better email client.
+d) Use a better email client or configure it in order it sorts messages
+by sent date.
 
 
 =======================================================================
 Q. imapsync calculates 479 messages in a folder but only transfers 400 
    messages. What's happen?
 
-R1. Unless --useuid is used, imapsync considers the header part 
+R1. Unless --useuid is used, imapsync considers a header part 
    of a message to identify a message on both sides.
-   Header part is taken as a whole with "--useheader ALL" or
+   The header part is whole header with "--useheader ALL" or
    only specific lines depending on --useheader --skipheader
    or default values.
 
@@ -256,7 +271,7 @@ The result is that you can have more messages on host1 than on host2.
 
 R2. With option --useuid imapsync doesn't use headers to identify
 messages on both sides but it uses their imap uid. In than case
-duplicates are transfered and --delete2 won't work.
+duplicates on host1 are transfered on host2.
 
 =======================================================================
 Q. I need to log every output on a file named log.txt
@@ -280,27 +295,35 @@ Q.  I run multiple imapsync applications at the same time then get a
     Is this a potential problem when trying to sync multiple 
     IMAP account in parallel?
 
-R1. No issue with the file imapsync.pid if you don't use its content.
-This file can help you to manage multiple runs by sending
-signals to the processes (sigterm or sigkill) using their PID, 
-each run can have its own pid file with --pidfile option.
+R1. No issue with the file imapsync.pid if you don't use its content
+by yourself. 
+
+This file can help you to manage multiple runs by sending signals 
+to the processes (sigterm or sigkill) using their PID.
+Each run can have its own pid file with --pidfile option.
 The file imapsync.pid contains the PID of the imapsync process.
 This file is removed at the end of a normal run.
-You can saafely ignore the warning if you don't use imapsync.pid.
+You can safely ignore the warning if you don't use imapsync.pid file.
 
 =======================================================================
 Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
 INBOX.Ops/foo/bar 
 
-Example:
-sep1=/
-sep2=.
+Let begin by an explanation.
 
-imapsync revert each separator automaticaly. 
+Example:
+sep1 = /
+sep2 = .
+
+imapsync reverts each separator automaticaly. 
 
 a) All / character coming from host1 are converted to . (convert the separator)
 b) All . character coming from host1 are converted to / (to avoid 
 intermediate unwanted folder creation). 
+
+So 
+INBOX/Ops.foo.bar (Ops.foo.bar is just one folder name) will be translated to 
+INBOX.Ops/foo/bar 
 
 Sometimes the sep1 character is not valid on host2 (character "/" usualy)
 
@@ -316,7 +339,10 @@ any string (including the empty string).
 =======================================================================
 Q. The option --subscribe does not seem to work
 
-R. Use it with --subscribed
+R1. Use it with --subscribed
+
+R2. There is also the --subscribe_all option that subscribe
+to all folders on host2.
 
 =======================================================================
 Q. Does imapsync retain the \Answered and $Forwarded flags?
@@ -324,13 +350,14 @@ Q. Does imapsync retain the \Answered and $Forwarded flags?
 R. It depends on the destination server.
 
 a) If the destination server honors the "PERMAENTFLAGS \*" 
-directive or no PERMAENTFLAGS at all then imapsync synchronises 
-all flags except the flag \Recent
-(RFC 3501 says "This flag can not be altered by the client.").
+directive (meaning it accepts any flag) or no PERMAENTFLAGS at all 
+then imapsync synchronises all flags except the \Recent flag
+(RFC 3501 says about \Recent flag "This flag can not be 
+altered by the client.").
 
 b) If the destination server honors the "PERMAENTFLAGS without the 
-special "\*" (meaning it accepts any flag) then imapsync synchronises 
-only the flags listed in PERMANENTFLAGS.
+special "\*"  then imapsync synchronises only the flags listed 
+in PERMANENTFLAGS.
 
 Some imap servers have problems with flags not beginning with
 the backslash character \ 
@@ -360,7 +387,10 @@ For example to convert flag $label1 to \label1
 Q. I need to keep only a defind list of flags, how can I do?
 The destination imap server complains about bad flags (Exchange).
 
-R. For example if you want to keep only the following flags
+R1. Recent imapsync deals with this issue by filter with PERMANENTFLAGS
+automatically.
+
+R2. For example if you want to keep only the following flags
 \Seen \Answered \Flagged \Deleted \Draft
 then use these magic --regexflag options (thanks to Phil):
 
@@ -392,7 +422,7 @@ Any other flag must begin with another character.
 System flags are just flags defined by an RFC instead of by users.
 Conclusion, some imap server coders don't read the RFCs (so do I).
 
-recent imapsync deals with this issue by filter with PERMANENTFLAGS
+Recent imapsync deals with this issue by filter with PERMANENTFLAGS
 automatically.
 
 =======================================================================
@@ -402,13 +432,7 @@ R. It happens with some servers on the first sync.
 Also, it was a bug from revision 1.200 to revision 1.207
 
 Solution: run imapsync a second time. imapsync synchronizes flags
-on each run unless option --fast is used.
-
-=======================================================================
-Q. imapsync hangs taking up 99.8% cpu right after start, 
-   after printing imapd doesn't support MD5 auth.
-
-R. Try option --noauthmd5
+on each run.
 
 =======================================================================
 Q. Some passwords contain * and " characters. Login fails.
@@ -443,10 +467,8 @@ What can I do?
 
 R. May be spending too much time on the source server, the connection 
 timed out on the destination server.
-Try options :
-  --nofoldersizes --useheader Message-ID --fast
+Try options --nofoldersizes 
 
-recent imapsync reconnects automatically.
 
 =======================================================================
 Q. imapsync failed with a "word too long" error from the imap server,
@@ -492,28 +514,24 @@ c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
 
 =======================================================================
-Q: I'm trying to use imapsync on win32 for gmail, but it requires ssl,
-or at least claims to. Imapsync appears to require io-socket-ssl, 
-which doesn't seem to be available on win32. Are there any other
-options?
+Q: I'm trying to use imapsync on win32 for gmail and it requires ssl.
+Imapsync appears to require IO::Socket::SSL. What can I do?
 
-R: (Q and R come as is from Bryce Walter)
+R1: use standalone imapsync.exe, it contains IO::Socket::SSL 
+Perl module embeded.
 
-I think I'm having success using cygwin perl instead of ActiveState
-Perl. I wasn't able to get CPAN working and building IO::Socket::SSL
-in ActiveState, but cygwin did all right. I had to force the install
-of the Net::SSLeay dependency, because it partially failed one test,
-but I think it worked anyway. In order to get working in cygwin, I
-installed the entire "perl" category, lynx, ncftp, and lftp (specified
-as ftp program in cpan setup). I'm not sure if I needed all those, or
-if cpan just kept asking because I didn't have any installed at the
-time. Anyway, cpan worked, and I installed all dependencies that
-imapsync complained about until it started working. 
+R2: IO::Socket::SSLio-socket-ssl is available on Win32 
+with Strawberry Perl.
 
 =======================================================================
 Q: Multiple copies when I run imapsync twice ore more.
 
-R. Multiple copies of the emails on the destination server. Some IMAP
+R1. You can use option --useuid, imapsync then won't use header lines to
+compare messages in folders. Keep in ming it uses a local cache.
+
+  imapsync ... --useuid
+
+R2. Multiple copies of the emails on the destination server. Some IMAP
 servers (Domino for example) add some headers for each message
 transfered. The message is transfered again and again each time you
 run imapsync. This is bad of course. The explanation is that imapsync
@@ -815,48 +833,29 @@ Examples:
 
 =======================================================================
 Q. I would like to move emails from InBox to a sub-folder called,
-   say "2005-InBox" based on the date (Like all emails received in the
-   Year 2005 should be moved to the folder called "2005-InBox").
+   say "2010-INBOX" based on the date (Like all emails received in the
+   Year 2010 should be moved to the folder called "2010-INBOX").
 
 R. 2 ways :
 
 a) Manually:
 ------------
 
-1) You create a folder INBOX.2005-INBOX
+1) You create a folder INBOX.2010-INBOX
 
-2) Mostly every email software allow sorting by date. In inbox, you
-   select from 1 january to 31 december messages with the shift key.
+2) Mostly every email software allow sorting by date. In INBOX, you
+   select from 1 january to 31 december 2010 messages with the shift key.
    (in mutt, use ~d)
 
-3) Cut/paste in INBOX.2005-INBOX
+3) Cut/paste in INBOX.2010-INBOX
 
 b) With imapsync:
 -----------------
 
-You have to calculate the day of year (and add 365).  For example,
-running it today, Sat Mar 11 13:06:01 CET 2006:
-
-imapsync ... 
---host1 imap.truc.org --host2 imap.trac.org \
---user1 foo --user2 foo  \
-...
---maxage 435 --minage 70 \
---regextrans2 's/^INBOX$/INBOX.2005-INBOX/' \
+imapsync ... \
+--search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010'
+--regextrans2 's/^INBOX$/INBOX.2010-INBOX/' \
 --folder INBOX
-
-
-To know the day of year:
-
-$ date
-Sat Mar 11 13:06:01 CET 2006
-
-$ date +%j
-070
-
-Also, you must take imapsync 1.159 at least since I tested what I just
-wrote above and found 2 bugs about --mindate --maxdate options
-behavior.
 
 =======================================================================
 Q. I want to play with headers line and --regexmess but I want to leave
@@ -997,8 +996,6 @@ imapsync --host1 mail.oldhost.com \
          --host2 imap.gmail.com --ssl2 \
          --user2 my_email@gmail.com \
          --password2 password \
-         --useheader 'Message-Id' \
-         --prefix2 '[Gmail]/' \
          --folder 'INBOX.Sent' \
          --regextrans2 's/Sent/Sent Mail/'
 
@@ -1025,6 +1022,8 @@ If your destination imap server doesn't like "[Gmail]" name, just add
 option:
            --regextrans2 's/\[Gmail\]/Gmail/'
 
+You can select folders exported to imap within the gmail preferences,
+unselect all "System labels"
 
 =======================================================================
 Q. migrate email from gmail to google apps
@@ -1050,6 +1049,7 @@ R. Use --host1 imap.mail.yahoo.com --sep1 '/'
         --sep1 '/'
 
 Can also add --ssl1 to gain encrypted transfer from yahoo.
+SSL seems to be mandatory for yahoo (since november 2011)
 
 =======================================================================
 Q. from Microsoft's Exchange 2007 to Google Apps for your Domain 
@@ -1178,77 +1178,22 @@ patch saved in ./patches/imapsync-1.337_tobit_V6.patch
 
 
 =======================================================================
-Q. I need to migrate 1250 mailboxes from one cyrus-IMAP server to another
-(empty) one. (Box-swap). The passwords are in a MySQL Database.
+Q. I need to migrate 1250 mailboxes, passwords are in a MySQL Database.
 Can you tell me if your script suits my needs?
 
-R. Partially, mailboxes must exist before running imapsync.
-May be, Box-swap is not listed in "Failure stories"
-nor "Success stories" in the README file.
-You have to extract user and password in a csv file.
+R. Mailboxes must exist before running imapsync.
+You have to extract users logins and passwords in a csv file.
 See the "HUGE MIGRATION" section in the README file.
 
 ======================================================================
 Q. From Cyrus to Notes
 
-Juhu! --useheader 'Message-ID' --skipsize does wonders! :)
+Default behavior might works.
 
 ======================================================================
 Q. From cyrus to dbmail
 
-R. (Given by Michael Monnerie, left as is)
-
-dbmail creates a header like
-X-DBMail-PhysMessage-ID:94348
-on messages. There was another problem with cyrus, other headers get 
-modified also, so I recommend this for a full sync:
-
-imapsync --host1 cyrushost  --user1 u1 --password1 p1 \
-         --host2 dbmailhost --user2 u2 --password2 p2 \
-         --useheader 'Message-ID' \
-         --skipsize \
-         --syncinternaldates
-
-I needed it because there are obviously some 
-encoding differences between the two servers, and modified headers lead 
-to all messages being doubled. Examples:
-
-dbmail:
-Content-Type:text/plain; format=flowed; charset=iso-8859-1; 
-reply-type=original
-cyrus:
-Content-Type:text/plain; format=flowed; charset="iso-8859-1"; 
-reply-type=original
-
-And also the "Received" headers got blanks added in DBmail, etc.
-
-******************
-
-For a full server copy from cyrus to dbmail I used:
-imapsync --host1 cyrus  --user1 x --authuser1 x --password1 x --ssl1  \
-         --host2 dbmail --user2 x --authuser2 x --password2 x \
-         --skipheader '(^X-|^Received|^MIME-|^Content-Type|^Disposition-|^From|^Cc|^Reply-|^Subject|^To|^DomainKey).*' \
-         --skipsize \
-         --sep1 '/' --exclude 'user/demo/Trash' \
-         --regextrans2 's/^user.//' --syncinternaldates
-
-The 'exclude user/demo/Trash' was used because there was one message 
-there with 8 bit headers which dbmail doesn't accept, so I had to skip
-the whole folder. It would be nice to have an option to just ignore
-and log unsyncable messages, but do the rest, instead of stopping.
-
-******************
-
-There are two other major problems:
-
-1) dbmail doesn't accept utf8 header, while cyrus does. imapsync stops
-in that case, making sync impossible
-
-To convert the whole messages from 8bit to 7bit, use option :
-
---regexmess 's/[\x80-\xff]/X/g'
-
-(This is bad since only headers need this).
+Default behavior might works.
 
 ======================================================================
 Q: From MailEnable 1.75
@@ -1264,9 +1209,8 @@ R. Use:
 
 ======================================================================
 Q. From Courier to Archiveopteryx
-R. http://www.archiveopteryx.org/migration/imapsync
-Use:
-   --useheader Message-Id --skipsize
+R. You can read http://www.archiveopteryx.org/migration/imapsync
+   Default values might be fine now with latest imapsync.
 
 ======================================================================
 Q. To Sun Java(tm) System Messaging Server 6.2-7.05
@@ -1297,8 +1241,7 @@ expensive nonfree software).
 Q. From Microsoft Exchange 2000 IMAP4rev1 server version 6.0.6487.0.
 
 R. imapsync ... \
-   --prefix1 INBOX. --prefix2 INBOX. --syncinternaldates --subscribe \
-   --maxsize 10485760
+   --prefix1 INBOX. 
 
 ======================================================================
 Q: How can I write an .rpm with imapsync
