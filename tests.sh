@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.191 2012/02/07 09:27:17 gilles Exp gilles $  
+# $Id: tests.sh,v 1.192 2012/02/25 14:41:47 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -1968,6 +1968,17 @@ ll_justlogin_dollar_char() {
                 --passfile2 ../../var/pass/secret.dollar \
 		--justlogin
 }
+
+ll_justlogin_equal_char() {
+                $CMD_PERL  ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 equal \
+                --passfile2 ../../var/pass/secret.equal \
+		--justlogin --debugimap2
+}
+
+
 
 
 ll_usecache() {
