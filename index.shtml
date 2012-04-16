@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2012-02-20T18:40:26+0100"/>
+<meta name="date" content="2012-04-15T21:16:36+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -31,7 +31,7 @@
 <ul class="none">
 	<li>Buy <a href="#buy_source"><b>imapsync source code</b></a> (any OS)</li>
 	<li>Buy <a href="#buy_exe"><b>standalone win32</b></a> <b>imapsync.exe</b> (also <b>works on win64</b>)</li>
-   <li>Buy professional <a href="#buy_support">imapsync <b>support</b></a> to succeed your migration</li>
+   <li>Buy <b>full professional</b> <a href="#buy_support">imapsync <b>support</b></a> to succeed your migration</li>
 	<li>Are your <a href="#imap_server_success">imap servers <b>supported</b></a> by imapsync?</li>
 </ul>
 
@@ -63,12 +63,12 @@ for <b>2 ways synchronizations</b>.
 <p>Alternatives to imapsync are listed in the <a href="#similar"><b>Similar softwares</b></a> section.
 </p>
 
-<h2><a id="NUMBERS"></a>Some numbers for past year 2011</h2>
+<h2><a id="NUMBERS"></a>Some numbers for 2011</h2>
 
 <ul>
 <li>Number of <b>imapsync users</b> per month: between <b>2 and 3 thousands </b>users</li>
-<li>Number of <b>imapsync transfers</b> between <b>3 and 25 millions mailboxes </b>transfers per month, 93 millions in 2011</li>
-<li>Pourcentage between <b>operating systems</b> users running imapsync:
+<li>Number of <b>imapsync transfers</b> between <b>3 and 25 millions mailboxes </b>transfers per month, total is 93 millions in 2011</li>
+<li>Percentage between <b>operating systems</b> users running imapsync:
 <ul>
 <li><b>Linux: 65 %</b></li>
 <li><b>Win32: 18 %</b></li>
@@ -94,6 +94,29 @@ for <b>2 ways synchronizations</b>.
 <p>New features or bugfixes since previous releases:</p>
 
 <ul>
+<li><b>1.488</b></li>
+<li><b>Bug fix</b>: Reverse half of the last patch about --delete2foldersonly since it destroyed a good feature  permitting imapsync variables like ${h2_sep}
+in --delete2foldersonly, the good escaping has to be done in the parameter value:
+	<ul>
+ 		<li>--delete2foldersonly --delete2foldersbutnot need good escaping in call, not in code. Example: --delete2foldersbutnot "/\[Gmail\]/"</li>
+	</ul>
+</li>
+<li>Bug fix: removed several useless Perl warnings in different contexts.</li> 
+</ul>
+
+<ul>
+<li><b>1.487</b></li>
+<li><b>Bug fix</b>: for example the issue was <b>brackets in [Gmail] folder names</b> in the context of cache --useuid. 
+Thanks to Pierre GUILLAUME, applied patch about:
+	<ul>
+ 		<li>$cache_dir and bsd_globs() that needs escaped characters.</li>
+ 		<li>eval and --delete2foldersonly --delete2foldersbutnot that need also good escaping.</li>
+	</ul>
+</li>
+<li>Bug fix: removed several useless Perl warnings in different contexts.</li> 
+</ul>
+
+<ul>
 <li><b>1.484</b></li>
 <li><b>Bug fix</b>: Back to select() (read-write mode) instead of examine() (read-only mode in 1.468) on host1. <b>Needed with --delete</b></li>
 <li><b>Enhancement</b>: Added option --exitwhenover option <b>to avoid locking</b> when transfers exceed maximum limit.
@@ -107,13 +130,14 @@ See for example <a href="http://support.google.com/a/bin/answer.py?hl=en&amp;ans
 <li><b>Better behavior</b>: Check if a message exists before fetching it (could have been deleted recently)</li>
 <li><b>Usability</b>: Unified outout in --debug mode. Lines start with Host1 or Host2.</li>
 <li><b>Usability</b>: Changed output about messages ignored to better reflect what is going on.</li>
-<li><b>Better behavior</b>: --split down to 100 by defaultto follow the recommendation of RFC2683 section 3.2.1.5
+<li><b>Better behavior</b>: --split down to 100 by default to follow the recommendation of RFC2683 section 3.2.1.5
 Thanks to Phil Pearl for this advice.</li>
 
 
 </ul>
 
 <ul>
+
 <li><b>1.476</b></li>
 <li><b>Usability</b>: Added <b>start</b> and <b>end dates</b> in the final statistics.</li>
 <li><b>Better behavior</b>: Default headers used to identify a message are now "Message-Id" and "Received" (<b>Exchange compatibility</b> bu default).</li>
@@ -135,7 +159,7 @@ Thanks to Phil Pearl for this advice.</li>
 </ul>
  -->
  
-<h2><a id="DOC_BASIC"></a>Basic usage</h2>
+<h2><a id="DOC_BASIC"></a>Simple transfer on Windows</h2>
 
 <p>
 See <b><a href="./imapsync_example.bat.txt">imapsync_example.bat.txt</a></b> batch file example
@@ -143,7 +167,7 @@ that you can easily adapt with your parameters (remove .txt extension in order t
 </p>
 
 
-<h2><a id="DOC_MASS"></a>Huge usage</h2>
+<h2><a id="DOC_MASS"></a>Massive transfers</h2>
 
 <p>
 See <b><a href="./file.txt">file.txt</a></b> example for <b>batch massive migration</b> 
@@ -172,18 +196,20 @@ See <b><a href="./file.txt">file.txt</a></b> example for <b>batch massive migrat
 </p>
 
 <p>
-<b>+ One year</b> of imapsync <b>updates</b> without extra payment.<br/>
-<b>+ 30 days money-back guarantee!</b><br/>
-<b>+ A little support</b>.
-</p>
-
-<p>
-42 EUR is equal to around <b>54 USD</b>, no problem to pay in USD (or any currency) with paypal:
-</p>
-
-<p>
 The Perl <b>imapsync</b> source code will run anywhere a <b>Perl interpreter can run</b>: any Unix, Linux, Windows, or Mac OS operating system.
 </p>
+
+<p>
+<b>+ One year</b> of imapsync <b>updates</b> without extra payment.<br/>
+<b>+ 30 days money-back guarantee!</b><br/>
+<b>+ Limited support</b>.
+</p>
+
+<p>
+Payment by Paypal account and credit card accepted. <br/>
+Price <b>42 EUR</b> is equal to around <b>54 USD</b>, no problem to pay in USD (or any currency) via paypal:
+</p>
+
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
 <p>
@@ -203,15 +229,16 @@ name="submit" alt="PayPal - The safer, easier way to pay online!"/>
 <p>You will receive a download link <b>just after</b> the payment.
 </p>
 
-<h2><a id="buy_support"></a>Buy professional support for imapsync</h2>
+<h2><a id="buy_support"></a>Buy full professional support for imapsync</h2>
 
-<p>You will be able to expose your issues by email or phone and to converse until your issues are solved.
+<p>You will be able to expose your issues by email or phone and we'll work together until complete success.
 </p>
 
-<p>For <b>180 EUR</b> buy imapsync <b>support</b> by the developper who wrote and maintains imapsync.
+<p>For <b>90 EUR</b> buy imapsync <b>full support</b> done by the imapsync designer/developper.
 </p>
 <p>
-180 EUR is equal to around <b>230 USD</b>, no problem to pay in USD (or any currency) with paypal:
+Payment by Paypal account and credit card accepted. <br/>
+90 EUR is equal to around <b>120 USD</b>, no problem to pay in USD (or any currency) with paypal:
 </p>
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
@@ -239,12 +266,12 @@ buying the latest win32 <b>standalone imapsync.exe</b> for <b>42 EUR</b>
 <p>
 <b>+ One year</b> of imapsync <b>updates</b> without extra payment.<br/>
 <b>+ 30 days money-back guarantee!</b><br/>
-<b>+ A little support</b>.
+<b>+ Limited support</b>.
 </p>
 
-
 <p>
-42 EUR is equal to around <b>54 USD</b>, no problem to pay in USD (or any currency) with paypal:
+Payment by Paypal account and credit card accepted. <br/>
+Price <b>42 EUR</b> is equal to around <b>54 USD</b>, no problem to pay in USD (or any currency) via paypal:
 </p>
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
@@ -284,8 +311,7 @@ The build system for imapsync.exe is XP Pro SP2 on a Intel Celeron 400 MHz 256 M
 <p>The <a href="FAQ">FAQ</a> file presents Frequently Asked Questions (and not so frequently asked ones).
 </p>
 
-<p>The <a href="TODO">TODO</a> file list what may be coded or done in the future.<br/>
-See also the <a href="#WANTED">wanted</a> section.
+<p>The <a href="TODO">TODO</a> file list what may be coded or done in the future.
 </p>
 
 <p>All the people I thank are in the <a href="CREDITS">CREDITS</a> file.
@@ -343,20 +369,6 @@ See also the <a href="#WANTED">wanted</a> section.
 </p>
 
 
-<h2><a id="WANTED"></a>WANTED!</h2>
-
-<p>I fix bugs as soon as possible and I code new features when I find them useful.<br/>
-Don't hesitate to ask for them.
-</p>
-
-<p>Some features and their time to be done evaluation:</p>
-
-<table cellpadding="10" cellspacing="0" border="1">
-<tr align="right"><th>DONE</th><th>Feature                </th><th>Time guessed</th><th>Time spent</th></tr>
-<tr align="right"><td>  <b>No</b></td><td>Backup to files        </td><td>20 hours    </td><td>  60 min  </td></tr>
-<tr align="right"><td>  <b>No</b></td><td>Efficient Gmail backup </td><td>20 hours    </td><td>  80 min  </td></tr>
-<tr align="right"><td>  <b>No</b></td><td>Better error reporting </td><td> 5 hours    </td><td>   0 min  </td></tr>
-</table>
 
 <h2><a id="imap_server_success"></a>Lists of imap server software failures and success stories</h2>
 
@@ -481,7 +493,8 @@ Prices are given par mailbox and may be outdated (december 2011).</p>
 <li> Migrationwiz 10 USD:         <a href="http://www.migrationwiz.com/">http://www.migrationwiz.com/</a></li>
 <li> Rackspace migration 10 USD:  <a href="http://www.rackspace.com/apps/email_hosting/migrations/">http://www.rackspace.com/apps/email_hosting/migrations/</a></li>
 <li> Yippiemove 15 USD:           <a href="http://www.yippiemove.com">http://www.yippiemove.com/</a></li>
-<li>Trueswitch 29.5 USD:          <a href="http://www.trueswitch.com">http://www.trueswitch.com</a></li>
+<li> Audriga Gmbh 14.99 EUR :     <a href="https://www.email-umzug.de/en.html">https://www.email-umzug.de/</a></li>
+<li> Trueswitch 29.5 USD:         <a href="http://www.trueswitch.com">http://www.trueswitch.com</a></li>
 </ul>
 
 <hr/>
@@ -510,7 +523,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.112 2012/02/20 18:23:06 gilles Exp gilles $)
+($Id: index.shtml,v 1.117 2012/04/15 19:16:51 gilles Exp gilles $)
 </p>
 
 </body>

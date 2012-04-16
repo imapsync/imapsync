@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.487 $
+$Revision: 1.488 $
 
 =head1 SYNOPSIS
 
@@ -519,7 +519,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.487 2012/02/29 05:29:21 gilles Exp gilles $
+$Id: imapsync,v 1.488 2012/04/15 17:38:21 gilles Exp gilles $
 
 =cut
 
@@ -636,7 +636,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.487 2012/02/29 05:29:21 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.488 2012/04/15 17:38:21 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -1868,8 +1868,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.487 $ ',
-		  '$Date: 2012/02/29 05:29:21 $ ',
+		  '$Revision: 1.488 $ ',
+		  '$Date: 2012/04/15 17:38:21 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -3674,7 +3674,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.487 2012/02/29 05:29:21 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.488 2012/04/15 17:38:21 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -4262,11 +4262,11 @@ sub delete_folders_in_2_not_in_1 {
 	my $dry_message = '';
 	$dry_message = "\t(not really since --dry mode)" if $dry;
 	foreach my $folder (@h2_folders_not_in_1) {
-		if ( defined( $delete2foldersonly ) and eval( "\$folder !~ \$delete2foldersonly" ) ) {
+		if ( defined( $delete2foldersonly ) and eval( "\$folder !~ $delete2foldersonly" ) ) {
 			print "Not deleting $folder because of --delete2foldersonly $delete2foldersonly\n";
 			next;
 		}
-		if ( defined( $delete2foldersbutnot ) and eval( "\$folder =~ \$delete2foldersbutnot" ) ) {
+		if ( defined( $delete2foldersbutnot ) and eval( "\$folder =~ $delete2foldersbutnot" ) ) {
 			print "Not deleting $folder because of --delete2foldersbutnot $delete2foldersbutnot\n";
 			next;
 		}
