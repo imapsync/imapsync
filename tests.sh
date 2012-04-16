@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.186 2011/12/10 01:37:20 gilles Exp gilles $  
+# $Id: tests.sh,v 1.188 2012/01/08 06:38:29 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -165,18 +165,26 @@ first_sync() {
 
 
 locallocal() {
-        if can_send; then
-                sendtestmessage
-        else
-                :
-        fi
-	
+        can_send && sendtestmessage
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi 
 }
+
+ll_nofoldersizes() 
+{
+	can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --nofoldersizes --debug --folder INBOX.yop
+}
+
+
 
 pidfile() {
          
@@ -1867,8 +1875,6 @@ dkimap_1() {
 }
 
 ll_justlogin() {
-# Look in the file ../../var/pass/secret.tptp to see 
-# strange \ character behavior
                 $CMD_PERL  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -1886,6 +1892,15 @@ ll_justlogin_backslash_char() {
                 --host2 $HOST2 --user2 tptp@est.belle \
                 --passfile2 ../../var/pass/secret.tptp \
 		--justlogin --noauthmd5
+}
+
+ll_justlogin_dollar_char() {
+                $CMD_PERL  ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 dollar \
+                --passfile2 ../../var/pass/secret.dollar \
+		--justlogin
 }
 
 

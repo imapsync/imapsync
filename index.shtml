@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2011-11-24T10:37:23+0100"/>
+<meta name="date" content="2012-01-08T02:59:44+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -45,8 +45,8 @@
 
 <p><b>imapsync</b> software is a command line tool allowing incremental and
 recursive <b>IMAP</b> transfers from one mailbox to another, both anywhere on the internet
-or in your local network. Incremental means you can stop the transfer at any time
-and restart it later efficiently. Recursive means all folders hierarchy can be copied.  
+or in your local network. "Incremental" means you can stop the transfer at any time
+and restart it later efficiently. "Recursive" means all folders hierarchy can be copied.  
 </p>
 
 <p><b>imapsync</b> is useful for imap account <b>migration</b> or imap account <b>backup</b>.
@@ -60,11 +60,14 @@ or <a href="http://isync.sourceforge.net/"><b>mbsync</b></a> (written by Michael
 for <b>2 ways synchronizations</b>.
 </p>
 
+<p>Alternatives to imapsync are listed in the <a href="#similar"><b>Similar softwares</b></a> section.
+</p>
+
 <h2><a id="NUMBERS"></a>Some numbers for 2011</h2>
 
 <ul>
 <li>Number of <b>imapsync users</b> per month: between <b>2 and 3 thousands </b>users</li>
-<li>Number of <b>imapsync transfers</b> per month: between <b>3 and 11 millions mailboxes </b>transfers </li>
+<li>Number of <b>imapsync transfers</b> per month: between <b>3 and 25 millions mailboxes </b>transfers </li>
 <li>Pourcentage between <b>operating systems</b> users running imapsync:
 <ul>
 <li><b>Linux: 65 %</b></li>
@@ -72,10 +75,10 @@ for <b>2 ways synchronizations</b>.
 <li><b>Darwin: 11 %</b></li>
 <li>FreeBSD: 6 %</li>
 <li>Solaris: 0.4 %</li>
-<li>OpenBSD: 0.1 %</li>
+<li>OpenBSD: 0.05 %</li>
 </ul>
 </li>
-<li><b>Biggest user usage</b>: more than <b>11 millions</b> of IMAP mailbox transfers</li>
+<li><b>Biggest user usage</b>: about <b>21 millions</b> of IMAP mailbox transfers (in one month)</li>
 </ul>
  
 
@@ -90,11 +93,24 @@ for <b>2 ways synchronizations</b>.
 
 <p>New features or bugfixes since previous releases:</p>
 
+
+<ul>
+<li><b>1.476</b></li>
+<li><b>Usability</b>: Added <b>start</b> and <b>end dates</b> in the final statistics.</li>
+<li><b>Better behavior</b>: Default headers used to identify a message are now "Message-Id" and "Received" (<b>Exchange compatibility</b> bu default).</li>
+<li><b>Cyrus fix</b>: Default value down from --split 1000 to <b>--split1 500</b> (Cyrus bug "<b>Word too long</b>")</li>
+<li><b>Enhancement</b>: Added option --addheader to fix the issue 
+    "ignored (no header so we ignore this message)" (on <b>Sent</b> folder usually). 
+    Thanks to Ameir Abdeldayem</li>
+<li><b>Similar tools</b>: Checked and updated "Similar softwares" section in the documentation.</li>
+<li><b>Experimental</b>: Added --nofilterflags to check any STORE flags by ignoring PERMANENTFLAGS (Exchange tests)</li>
+</ul>
+
 <ul>
 <li><b>1.468</b></li>
-<li><b>Usability</b>: Subscribe to host2 folders only for those not already subscribed.</li>
-<li><b>Safer behavior</b>: Use examine() on host1 instead of select().</li>
-<li><b>Gmail fix</b>: Fix select behavior on host2 to allow Gmail folders that don't exist but that are listed.</li>
+<li><b>Usability</b>: Subscribe to host2 folders only for folders not already subscribed.</li>
+<li><b>Safer behavior</b>: Use examine() (read-only mode) on host1 instead of select().</li>
+<li><b>Gmail fix</b>: Fix select behavior on host2 to allow (silly) Gmail folders that don't exist but that are listed.</li>
 <li><b>Cosmetic</b>: Changed imapsync homepage from http://www.linux-france.org/prj/imapsync/ to http://imapsync.lamiral.info/</li>
 <li><b>Bugfix</b>: stay compatible with perl 5.8 (no use of // operator)</li>
 </ul>
@@ -354,14 +370,16 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 	<li>(2011) <b>MDaemon 12.0.3</b> as <b>host2</b> but MDaemon is <b>supported as host1</b>. MDaemon is simply buggy with the APPEND IMAP command with any IMAP email client.</li>
 </ul>
 
-<p>Now the long reported <b>success stories</b> list: <b>44 different imap server softwares supported!</b><br/>
+<p>Now the long reported <b>success stories</b> list: <b>46 different imap server softwares supported!</b><br/>
 [host1] means "source server" and [host2] means "destination server":
 </p>
 
 <ul>
-	<li>1und1 H mimap1 84498 [host1]</li>
+	<li>1und1 H mimap1 84498 [host1]</li>	
+	<li>a1.net imap.a1.net IMAP4 Ready [host1]</li>
 	<li>Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
    (OSL 3.0) http://www.archiveopteryx.org/</li>
+   <li>Axigen Mail Server Version 8.0.0</li>
 	<li>BincImap 1.2.3 (GPL) (http://www.bincimap.org/)</li>
 	<li>CommuniGatePro server (Redhat 8.0) (Solaris), CommuniGate Pro 5.2.17[host2] (CentOS 5.4)</li>
 	<li>Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
@@ -428,7 +446,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
                Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x</li>
 </ul>
 
-<h2>Similar softwares</h2>
+<h2><a id="similar"></a>Similar softwares</h2>
 
 
 <ul>
@@ -450,11 +468,16 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 
 <h2>Online IMAP migration services</h2>
 
+<p>I have  no share in these free or paid services. 
+I don't think they use imapsync. 
+Prices are given par mailbox and may be outdated (december 2011).</p>
+
 <ul>
-<li> ovh imapcopy (French) 0 USD: <a href="https://ssl0.ovh.net/fr/imapcopy/">https://ssl0.ovh.net/fr/imapcopy/</a></li>
-<li> yippiemove 15 USD:           <a href="http://www.yippiemove.com">http://www.yippiemove.com/</a></li>
-<li> migrationwiz 10 USD:         <a href="http://www.migrationwiz.com/">http://www.migrationwiz.com/</a></li>
-<li> rackspace migration 10 USD:  <a href="http://www.rackspace.com/apps/email_hosting/migrations/">http://www.rackspace.com/apps/email_hosting/migrations/</a></li>
+<li> Ovh imapcopy (French) <b>0 USD</b>: <a href="https://ssl0.ovh.net/fr/imapcopy/">https://ssl0.ovh.net/fr/imapcopy/</a></li>
+<li> Mailbox Mover 7 USD:         <a href="https://mailboxmover.com/">https://mailboxmover.com/</a></li>
+<li> Migrationwiz 10 USD:         <a href="http://www.migrationwiz.com/">http://www.migrationwiz.com/</a></li>
+<li> Rackspace migration 10 USD:  <a href="http://www.rackspace.com/apps/email_hosting/migrations/">http://www.rackspace.com/apps/email_hosting/migrations/</a></li>
+<li> Yippiemove 15 USD:           <a href="http://www.yippiemove.com">http://www.yippiemove.com/</a></li>
 </ul>
 
 <hr/>
@@ -483,7 +506,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.99 2011/11/24 09:38:35 gilles Exp gilles $)
+($Id: index.shtml,v 1.106 2012/01/08 02:00:53 gilles Exp gilles $)
 </p>
 
 </body>
