@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.35 2011/08/22 00:31:14 gilles Exp gilles $
+# $Id: memo,v 1.38 2011/11/07 15:12:06 gilles Exp gilles $
 
 software_version() {
 
@@ -14,30 +14,70 @@ statistics_lfo() {
 
 cat <<EOFF
 ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n" # list ip
-ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n|wc" # count ip
 ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32" # Win32
 
 ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n" # OS usage+basename
 ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n" # imapsync release
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n|wc -l" # count ip
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|wc -l" # imapsync runs
 
 
 tail -f /usr/local/apache/logs/access_log|cat -n|grep prj/imapsync/VERSION|cat -n |grep VERSION # lfo frequency
 EOFF
 }
 
+statistics_lfo_run() {
+# 62.147.165.21 - - [31/Oct/2010:23:45:28 +0100] "GET /prj/imapsync/VERSION HTTP/1.0" 200 6 "-" "imapsync/1.368 (linux system, perl 5.8.8, Mail::IMAPClient 2.2.9 imapsync)"
+#grep    prj/imapsync/VERSION /usr/local/apache/logs/access_log  | sort -n | cut -d ' ' -f 1,12,13|uniq -c | sort -n # list ip
+
+echo lfo list ip
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n" # list ip
+echo lfo Win32
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32" # Win32
+echo lfo OS usage+basename
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n" # OS usage+basename
+echo lfo imapsync release
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n" # imapsync release
+echo -n "lfo count ip:      "
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n|wc -l" # count ip
+echo -n "lfo imapsync runs: "
+ssh glamiral@linux-france.org "grep -h prj/imapsync/VERSION /usr/local/apache/logs/access_log.bak|wc -l" # imapsync runs
+
+}
+
+
 statistics_ks() {
 
 cat <<EOFF
-ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n" # list ip
-ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n|wc" # count ip
-ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32" # Win32
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n" # list ip
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32" # Win32
 
-ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log access.log_????????|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n" # OS usage+basename
-ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log access.log_????????|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n" # imapsync release
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n" # OS usage+basename
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n" # imapsync release
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n|wc -l" # count ip
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|wc -l" # imapsync runs
 
 tail -f /var/log/apache2/access.log |cat -n|grep prj/imapsync/VERSION|cat -n |grep VERSION # ks frequency
 EOFF
 }
+
+statistics_ks_run() {
+
+echo ks list ip
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n" # list ip
+echo ks Win32
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n |grep MSWin32" # Win32
+echo OS usage+basename
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 13,18,19     |sort -n|uniq -c| sort -n" # OS usage+basename
+echo ks imapsync release
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 12           |sort -n|uniq -c| sort -n" # imapsync release
+echo -n "ks count ip:      "
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|cut -d ' ' -f 1,12,13,18,19|sort -n|uniq -c|sort -n|wc -l" # count ip
+echo -n "ks imapsync runs: "
+ssh root@ks "cd /var/log/apache2/;grep -h prj/imapsync/VERSION access.log_????????|wc -l" # imapsync runs
+
+}
+
 
 statistics_VERSION_lfo() {
 
@@ -86,14 +126,52 @@ statistics_VERSION_monthly() {
 	)
 }
 
+echo statistics_VERSION_yearly_ip
+statistics_VERSION_yearly_ip() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd /home/lf/glamiral/imapsync_stats
+	cut -d ' ' -f 1,12,13,18,19 linux-france.org.??-??-${year}.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}.ip
+	)
+}
+
+echo statistics_VERSION_yearly_os
+statistics_VERSION_yearly_os() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd /home/lf/glamiral/imapsync_stats
+	Linux=`grep linux     stats_imapsync_${year}.ip | wc -l`
+	Win32=`grep MSWin32   stats_imapsync_${year}.ip | wc -l`
+	Darwin=`grep darwin   stats_imapsync_${year}.ip | wc -l`
+	FreeBSD=`grep freebsd stats_imapsync_${year}.ip | wc -l`
+	Solaris=`grep solaris stats_imapsync_${year}.ip | wc -l`
+	OpenBSD=`grep openbsd stats_imapsync_${year}.ip | wc -l`
+	Nb_All=`cat           stats_imapsync_${year}.ip | wc -l`
+	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD; do
+		#echo $OS `eval "echo \\$$OS"` / $Nb_All
+		Nb_OS=`eval "echo \\$$OS"`
+		PerCent=`echo "scale=2; 100*$Nb_OS/$Nb_All" | bc -l`
+		echo $OS $PerCent %
+	done
+	)
+}
+
+
 echo statistics_VERSION_synthesis
 statistics_VERSION_synthesis() {
+	year=${1:-`date '+%Y'`}
 	(
 	cd /home/lf/glamiral/imapsync_stats
 	echo Nb users each month
-	wc -l *.ip
+	wc -l stats_imapsync_${year}_??.ip
+	echo Nb users each year
+	wc -l stats_imapsync_????.ip
 	echo Nb runs each month
-	tail -n 1 *.runs
+	tail -n 1 stats_imapsync_${year}_??.runs
+	echo % Operating systems
+	statistics_VERSION_yearly_os $year
+	echo Biggest users
+	tail -n 5 stats_imapsync_${year}.ip
 	)
 }
 
@@ -128,11 +206,57 @@ statistics_VERSION_monthly_ip() {
 	)
 }
 
-echo statistics_VERSION_yearly_ip
-statistics_VERSION_yearly_ip() {
+echo statistics_VERSION_monthly_os 08
+statistics_VERSION_monthly_os() {
+	month=${1:-`date '+%m'`}
 	(
 	cd /home/imapsync/imapsync_stats
-	cut -d ' ' -f 1,12,13,18,19 access.log_2011????.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_2011.ip
+	Linux=`grep linux stats_imapsync_2011_${month}.ip | wc -l`
+	Win32=`grep MSWin32 stats_imapsync_2011_${month}.ip | wc -l`
+	Darwin=`grep darwin stats_imapsync_2011_${month}.ip | wc -l`
+	FreeBSD=`grep freebsd stats_imapsync_2011_${month}.ip | wc -l`
+	Solaris=`grep solaris stats_imapsync_2011_${month}.ip | wc -l`
+	OpenBSD=`grep openbsd stats_imapsync_2011_${month}.ip | wc -l`
+	Nb_All=`cat stats_imapsync_2011_${month}.ip | wc -l `
+	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD; do
+		#echo $OS `eval "echo \\$$OS"` / $Nb_All
+		Nb_OS=`eval "echo \\$$OS"`
+		PerCent=`echo "scale=2; 100*$Nb_OS/$Nb_All" | bc -l`
+		echo $OS $PerCent%
+	done
+	)
+}
+
+echo statistics_VERSION_yearly_os
+statistics_VERSION_yearly_os() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd /home/imapsync/imapsync_stats
+	Linux=`grep linux     stats_imapsync_${year}.ip | wc -l`
+	Win32=`grep MSWin32   stats_imapsync_${year}.ip | wc -l`
+	Darwin=`grep darwin   stats_imapsync_${year}.ip | wc -l`
+	FreeBSD=`grep freebsd stats_imapsync_${year}.ip | wc -l`
+	Solaris=`grep solaris stats_imapsync_${year}.ip | wc -l`
+	OpenBSD=`grep openbsd stats_imapsync_${year}.ip | wc -l`
+	Nb_All=`cat           stats_imapsync_${year}.ip | wc -l`
+	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD; do
+		#echo $OS `eval "echo \\$$OS"` / $Nb_All
+		Nb_OS=`eval "echo \\$$OS"`
+		PerCent=`echo "scale=2; 100*$Nb_OS/$Nb_All" | bc -l`
+		echo $OS $PerCent %
+	done
+	)
+}
+
+
+
+
+echo statistics_VERSION_yearly_ip
+statistics_VERSION_yearly_ip() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd /home/imapsync/imapsync_stats
+	cut -d ' ' -f 1,12,13,18,19 access.log_${year}????.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}.ip
 	)
 }
 
@@ -170,12 +294,19 @@ statistics_VERSION_monthly() {
 
 echo statistics_VERSION_synthesis
 statistics_VERSION_synthesis() {
+	year=${1:-`date '+%Y'`}
 	(
 	cd /home/imapsync/imapsync_stats
 	echo Nb users each month
-	wc -l *.ip
+	wc -l stats_imapsync_${year}_??.ip
+	echo Nb users each year
+	wc -l stats_imapsync_????.ip
 	echo Nb runs each month
-	tail -n 1 *.runs
+	tail -n 1 stats_imapsync_${year}_??.runs
+	echo % Operating systems
+	statistics_VERSION_yearly_os $year
+	echo Biggest users
+	tail -n 5 stats_imapsync_${year}.ip
 	)
 }
 

@@ -148,6 +148,10 @@ L<perl>, L<Mail::IMAPClient>, L<LWP::Authen::Ntlm>
 
 =head1 HISTORY
 
+    1.09 - fix CPAN ticket # 70703
+    1.08 - fix CPAN ticket # 39925
+    1.07 - not publicly released
+    1.06 - relicense as GPL+ or Artistic
     1.05 - add OO interface by Dmitry Karasik
     1.04 - implementation of NTLMv2 by Andrew Hobson/Dmitry Karasik 
     1.03 - fixes long-standing 1 line bug L<http://rt.cpan.org/Public/Bug/Display.html?id=9521> - released by David Bussenschutt 9th Aug 2007 
@@ -155,7 +159,7 @@ L<perl>, L<Mail::IMAPClient>, L<LWP::Authen::Ntlm>
 
 =cut
 
-$VERSION = "1.05";
+$VERSION = "1.09";
 @ISA = qw(Exporter);
 @EXPORT = qw(ntlm ntlm_domain ntlm_user ntlm_password ntlm_reset ntlm_host ntlmv2);
 
@@ -210,7 +214,7 @@ sub challenge
    my ( $self, $challenge) = @_;
    $state = defined $challenge;
    ($user,$domain,$password,$host) = @{$self}{qw(user domain password host)};
-   $ntlm_v2 = ($self-> {version} > 1) ? 1 : 0;
+   $ntlm_v2 = ($self-> {version} eq '2') ? 1 : 0;
    return ntlm($challenge);
 }
 
@@ -287,10 +291,17 @@ sub ntlm
       $lmResp = &lmEncrypt($c_info->{data});
       $ntResp = &ntEncrypt($c_info->{data});
       $flags = pack($msg3_tl, $c_info->{flags});
-    } else {
+	 }
+	 elsif ($ntlm_v2 eq '1') {
       $lmResp = &lmv2Encrypt($c_info->{data});
       $ntResp = &ntv2Encrypt($c_info->{data}, $c_info->{target_data});
       $flags = pack($msg3_tl, $ntlm_v2_msg3_flags);
+	 }
+    else {
+      $domain = &unicode($domain);#substr($challenge, $c_info->{domain}{offset}, $c_info->{domain}{len}); 
+      $lmResp = &lmEncrypt($c_info->{data});
+      $ntResp = &ntEncrypt($c_info->{data});
+      $flags = pack($msg3_tl, $c_info->{flags});
     }
     $u_host = &unicode(($host ? $host : $user));
     $response = pack($msg3, $ident, 3);
@@ -318,7 +329,7 @@ sub ntlm
       $f &= ~NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED;
     }
     $msg1_host = $user;
-    if ($ntlm_v2) {
+    if ($ntlm_v2 and $ntlm_v2 eq '1') {
       $f &= ~NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED;
       $f |= NTLMSSP_NEGOTIATE_NTLM2;
       $msg1_host = "";
@@ -360,7 +371,8 @@ sub decode_challenge
   my (@res, @hdr);
   my $original = $challenge;
 
-  $res->{buffer} = substr($challenge, $msg2_hlen);
+  $res->{buffer} = $msg2_hlen < length $challenge
+  ? substr($challenge, $msg2_hlen) : '';
   $challenge = substr($challenge, 0, $msg2_hlen);
   @res = unpack($msg2, $challenge);
   $res->{ident} = $res[0];

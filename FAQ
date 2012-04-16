@@ -1,11 +1,14 @@
 #!/bin/cat
-# $Id: FAQ,v 1.92 2011/08/24 06:50:17 gilles Exp gilles $
+# $Id: FAQ,v 1.95 2011/11/12 23:41:20 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
 +------------------+
 
 Unix versus Windows syntax.
+
+A) \ versus ^
+
 On Unix shells you can write a single command on multiple lines
 by using the escape character \ at the end of each line 
 (except the last one). On Windows this character is ^
@@ -30,6 +33,14 @@ better, no truncation, pretty print. It's just sugar.
 
 In this FAQ I use \ for examples. Transcript to ^ if
 you're on a Windows system.
+
+B) ' versus " 
+
+On Windows the single quote character ' doesn't work
+like on Unix so in the examples of this FAQ the 
+command containing single quotes ' will fail on Windows.
+To fix it just replace single quotes ' by double quotes "
+
 
 =======================================================================
 Q. How to install imapsync?
@@ -81,11 +92,11 @@ Thank you for your participation.
 Q. I need to migrate hundred accounts, how can I do?
 
 R. If you have many mailboxes to migrate think about a little
-shell program. Write a file called file.csv (for example)
+shell program. Write a file called file.txt (for example)
 containing users and passwords.
 The separator used in this example is ';'
 
-The file.csv file contains:
+The file.txt file contains:
 
 user001_1;password001_1;user001_2;password001_2
 user002_1;password002_1;user002_2;password002_2
@@ -99,11 +110,11 @@ On Unix the shell program can be:
  { while IFS=';' read  u1 p1 u2 p2; do 
 	imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
                  --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
- done ; } < file.csv
+ done ; } < file.txt
 
 On Windows the batch program can be:
 
-  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.csv) DO imapsync ^
+  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO imapsync ^
   --host1 imap.side1.org --user1 %%G --password1 %%H ^
   --host2 imap.side2.org --user2 %%I --password2 %%J ...
 
@@ -128,10 +139,15 @@ R. - Download latest Mail::IMAPClient 3.xx at
    - run imapsync with perl and -I option tailing to use the perl
      module Mail-IMAPClient-3.xx. Example:
 
-         perl -I./Mail-IMAPClient-3.23/lib  ./imapsync ...
+         perl -I./Mail-IMAPClient-3.30/lib  ./imapsync ...
 
      or if imapsync is in directory /path/
-        perl -I./Mail-IMAPClient-3.23/lib   /path/imapsync ...
+        perl -I./Mail-IMAPClient-3.30/lib   /path/imapsync ...
+
+   - Look at the script named i3 in the tarball, it can be used to
+     run imapsync with included Mail-IMAPClient-3.30/ wherever you 
+     unpacked the imapsync tarball
+
 
 =======================================================================
 Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
@@ -147,6 +163,11 @@ R. - Download Mail::IMAPClient 2.2.9 at
 
      or if imapsync is in directory /path/
         perl -I./Mail-IMAPClient-2.2.9  /path/imapsync [...]
+
+   - Look at the script named i2 in the tarball, it can be used to
+     run imapsync with included Mail-IMAPClient-2.2.9/ wherever you 
+     unpacked the imapsync tarball
+
 
 =======================================================================
 Q. Can I use imapsync to migrate emails from pop3 server to imap server?
@@ -322,7 +343,7 @@ Q. How to convert flags?
 R. use --regexflag
 For example to convert flag IMPORTANT to flag CANWAIT
 
-  imapsync ... --regexflag 's/IMPORTANT/CANWAIT/g' --debugflags
+  imapsync ... --regexflag "s/IMPORTANT/CANWAIT/g" --debugflags
 
 option --debugflags is usefull to see in details what imapsync
 does with flags.
@@ -1013,6 +1034,22 @@ http://www.linux-france.org/prj/imapsync_list/msg00639.html
 
 http://biasecurities.com/blog/2009/migrate-email-from-gmail-to-google-apps/
 http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
+
+=======================================================================
+Q. Synchronising from Yahoo to XXX
+
+R. Use --host1 imap.mail.yahoo.com --sep1 '/'
+
+./imapsync \
+	--host1 imap.mail.yahoo.com \
+        --user1 billy \
+        --password1 secret \
+        --host2 XXX \
+        --user2 billy \
+        --password2 secret \
+        --sep1 '/'
+
+Can also add --ssl1 to gain encrypted transfer from yahoo.
 
 =======================================================================
 Q. from Microsoft's Exchange 2007 to Google Apps for your Domain 

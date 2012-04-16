@@ -8,6 +8,7 @@ my @missing;
 my %optional = (
     "Authen::NTLM"     => { for => "Authmechanism 'NTLM'" },
     "Authen::SASL"     => { for => "Authmechanism 'DIGEST-MD5'" },
+    "Compress::Zlib"   => { for => "COMPRESS DEFLATE support" },
     "Digest::HMAC_MD5" => { for => "Authmechanism 'CRAM-MD5'" },
     "Digest::MD5"      => { for => "Authmechanism 'DIGEST-MD5'" },
     "IO::Socket::SSL"  => { for => "SSL enabled connections (Ssl => 1)" },
