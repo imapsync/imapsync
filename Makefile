@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.90 2012/01/08 06:39:38 gilles Exp gilles $	
+# $Id: Makefile,v 1.93 2012/02/07 10:55:04 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -134,8 +134,8 @@ testf: clean_test test
 
 .PHONY: lfo upload_lfo niouze_lfo niouze_fm public  imapsync_cidone
 
-.dosify_bat: build_exe.bat test_exe.bat test.bat test2.bat
-	unix2dos build_exe.bat test.bat test_exe.bat test2.bat
+.dosify_bat: build_exe.bat test_exe.bat test.bat test2.bat imapsync_example.bat.txt
+	unix2dos build_exe.bat test.bat test_exe.bat test2.bat imapsync_example.bat.txt
 	touch .dosify_bat
 
 dosify_bat: .dosify_bat
@@ -264,7 +264,8 @@ PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL ./TIME \
 ./logo_imapsync.png ./logo_imapsync_s.png \
 ./paypal.shtml ./paypal_return.shtml ./paypal_return_support.shtml \
-./README ./style.css ./TODO ./VERSION ./VERSION_EXE ./memo ./file.txt
+./README ./style.css ./TODO ./VERSION ./VERSION_EXE ./memo ./file.txt \
+./imapsync_example.bat.txt
 
 upload_ks:
 	rsync -lptvHzP  $(PUBLIC_FILES) \
@@ -284,7 +285,7 @@ upload_lfo:
 upload_index: index.shtml FAQ
 	validate --verbose index.shtml
 	rcsdiff index.shtml
-	rsync -avH index.shtml root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH index.shtml FAQ root@ks.lamiral.info:/var/www/imapsync/
 	rsync -avH index.shtml FAQ \
 	../../public_html/www.linux-france.org/html/prj/imapsync/
 	sh $(HOME)/memo/lfo-rsync

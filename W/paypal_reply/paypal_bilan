@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.39 2011/11/30 07:59:11 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.45 2012/01/30 03:12:55 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -32,6 +32,9 @@ my ( $tests, $testeur ) ;
 my $debug ;
 my $debug_csv ;
 my $debug_dev ;
+my $debug_invoice ;
+my $debug_invoice_utf8 ;
+
 my $first_invoice = 1 ;
 my $print_details = '' ;
 my $bnc = '' ;
@@ -49,6 +52,9 @@ my $option_ret = GetOptions (
 	'debug'                 => \$debug,
 	'debug_csv'             => \$debug_csv,
 	'debug_dev'             => \$debug_dev,
+	'debug_invoice'         => \$debug_invoice,
+	'debug_invoice_utf8'    => \$debug_invoice_utf8,
+        
 	'first_invoice=i'       => \$first_invoice,
 	'print_details|details' => \$print_details,
 	'bnc'                   => \$bnc,
@@ -95,6 +101,7 @@ foreach my $file ( @files ) {
 		'Devise', 'Montant', "Numéro d'avis de réception", 'Solde',
 		'Pays', 'Nom Option 1', 'Valeur Option 1', 'Hors taxe', "Titre de l'objet") } ;
 		#print "$Nom\n" ;
+                ( $Etat ) = @action{ ( 'Etat', ) } || @action{ ( 'État' ) } ;
 		my $invoice = 'NONE' ;
 		$Montant = $action->{ Net } if not defined $Montant;
 		compute_line($action, $invoice, $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat, 
@@ -130,6 +137,7 @@ foreach my $invoice ( @invoices_wanted ) {
 
 	if ( $invoice_sent ) {
 		$invoice_sent{ $invoice }++ ;
+                #build_invoice( $invoice ) ;
 	}else{
 		$invoice_not_sent{ $invoice }++ ;
 		build_invoice( $invoice ) ;
@@ -313,22 +321,22 @@ sub keyval {
 
 
 sub tests_next_invoice {
-        ok( 1 ==  next_invoice(  ) ) ;
-        ok( 2 ==  next_invoice(  ) ) ;
+        ok( 1 ==  next_invoice(  ), 'next_invoice: 1' ) ;
+        ok( 2 ==  next_invoice(  ), 'next_invoice: 2' ) ;
         @avoid_numbers{ (3, 4, 6, 8 ) } = ( ) ;
-        ok( 5 ==  next_invoice(  ) ) ;
-        ok( 7 ==  next_invoice(  ) ) ;
-        ok( 9 ==  next_invoice(  ) ) ;
+        ok( 5 ==  next_invoice(  ), 'next_invoice: 7' ) ;
+        ok( 7 ==  next_invoice(  ), 'next_invoice: 8' ) ;
+        ok( 9 ==  next_invoice(  ), 'next_invoice: 9' ) ;
         %invoice_paypal = () ;
         $first_invoice = 7 ;
-        ok( 7 ==  next_invoice(  ) ) ;
-        
+        ok( 7 ==  next_invoice(  ), 'next_invoice: 7' ) ;
 }
 
 
 sub tests {
         tests_next_invoice(  ) ;
-
+        #tests_half(  ) ;
+        tests_cut(  ) ;
 }
 
 sub compute_line {
@@ -480,6 +488,13 @@ sub build_invoice {
 	'Adresse 1', 'Adresse 2/district/quartier', 'Ville', 
 	'Etat/Province/Région/Comté/Territoire/Préfecture/République', 'Code postal', 'Pays', 'line_number', 'line_csv', 'file_csv' ) } ;
 
+	my( $Etat_Province1 ) = @action{ ( 'Etat/Province/Région/Comté/Territoire/Préfecture/République' ) } ;
+        my( $Etat_Province2 ) = @action{ ( 'État/Province/Région/Comté/Territoire/Préfecture/République' ) } ;
+        
+        $Etat_Province = @action{ ( 'Etat/Province/Région/Comté/Territoire/Préfecture/République' ) }
+                      || @action{ ( 'État/Province/Région/Comté/Territoire/Préfecture/République' ) }
+                      || '' ;
+
 	#print "$Hors_taxe $Devise\n" ;
 	my $Hors_taxe_num = $Hors_taxe ;
 	$Hors_taxe_num =~ s{,}{.} ;
@@ -510,7 +525,7 @@ sub build_invoice {
 		$clientAdrE,
 		$clientAdrF,
 	) 
-	= build_adress(
+	= build_address(
 		$Nom,
 		$Adresse_1,
 		$Adresse_2_district_quartier,
@@ -564,10 +579,11 @@ sub build_invoice {
 	my ( $urlSrc, $urlExe ) = download_urls( $Date, $object_type ) ;
         #print "ZZZ $object_type ( $urlSrc, $urlExe )\n" ;
         
+        my ( $Nom1 ) = cut( $Nom, 42 ) ;
 	my $tex_variables = qq{
-%% Begin input from $0
+%% Begin input from paypal_bilan
 \\providecommand{\\invoiceNumber}{$invoice}
-\\providecommand{\\clientName}{$Nom}
+\\providecommand{\\clientName}{$Nom1}
 \\providecommand{\\clientEmail}{$De_l_adresse_email}
 \\providecommand{\\clientAdrA}{$clientAdrA}
 \\providecommand{\\clientAdrB}{$clientAdrB}
@@ -594,15 +610,17 @@ sub build_invoice {
 \\providecommand{\\messageTVAEN}{$messageTVAEN}
 \\providecommand{\\urlSrc}{\\url{$urlSrc}}
 \\providecommand{\\urlExe}{\\url{$urlExe}}
-%% End input from $0
+%% End input from paypal_bilan
 } ;
 
+	my $tex_variables_utf8 = to_utf8( { -string => $tex_variables, -charset => 'ISO-8859-1' } ) ;
 
-	#print $tex_variables ;
+	print $tex_variables_utf8 if $debug_invoice_utf8 ;
+	print $tex_variables      if $debug_invoice ;
 
 	#print "$invoice ", invoice_sent( $dir_invoices, $invoice, $De_l_adresse_email ), "\n" ;
 	if ( $write_invoices and ! invoice_sent( $dir_invoices, $invoice, $De_l_adresse_email ) ) {
-		write_tex_variables_file( $dir_invoices, $invoice, $Date, $tex_variables ) ;
+		write_tex_variables_file( $dir_invoices, $invoice, $Date, $tex_variables_utf8 ) ;
 	}
 	
 }
@@ -823,18 +841,19 @@ sub write_email_message {
 }
 
 
-sub write_tex_variables_file {
-	my ( $dir_invoices, $invoice, $date_jjSmmSaaaa, $tex_variables ) = @_ ;
+sub write_tex_variables_file { 
+	my ( $dir_invoices, $invoice, $date_jjSmmSaaaa, $tex_variables_utf8 ) = @_ ;
 	
-	my $tex_variables_utf8 = to_utf8({ -string => $tex_variables, -charset => 'ISO-8859-1' });
 	mkdir( "$dir_invoices/$invoice" ) or die if ! -d "$dir_invoices/$invoice" ;
 	open( FILE, "> $dir_invoices/$invoice/imapsync_var.tex") or die ;
 	print FILE $tex_variables_utf8 ;
 	close( FILE ) ;
+        
         if ( ! -f "$dir_invoices/$invoice/imapsync_var_manual.tex" ) {
 	open( FILE, "> $dir_invoices/$invoice/imapsync_var_manual.tex") or die ;
         print FILE "%% $0 created file
 %% Can be used to override imapsync_var.tex definitions\n" ;
+	print FILE $tex_variables_utf8 ;
 	close( FILE ) ;
         }
 
@@ -1012,7 +1031,7 @@ sub client_type {
 	return( $clientTypeEN, $clientTypeFR ) ;
 }
 
-sub build_adress {
+sub build_address {
 	my(
 	$Nom,
 	$Adresse_1,
@@ -1036,7 +1055,9 @@ Pays                            $Pays
 	
 	my @address ;
 	$Nom = '' if ( $Nom =~ m/^\s+$/ ) ;
-	push( @address, $Nom                  ) if $Nom ;
+        my( $Nom1, $Nom2 ) = cut( $Nom, 42 ) ;
+	push( @address, $Nom1                  ) if $Nom1 ;
+	#push( @address, $Nom2                  ) if $Nom2 ;
 	push( @address, $Adresse_1            ) if $Adresse_1 ;
 	push( @address, $Adresse_2_district_quartier ) if $Adresse_2_district_quartier ;
 	push( @address, "$Ville $Code_postal" ) if ( $Ville or $Code_postal );
@@ -1069,4 +1090,34 @@ $addr = "
 		$clientAdrE,
 		$clientAdrF,
 	) ;
+}
+
+
+sub half {
+	my $string = shift ;
+        my $half = int( lenght( $string ) / 2 ) ;
+        # TO BE DONE
+
+}
+
+sub tests_half {
+	my( $aa, $bb ) = half( 'aa bb' ) ;
+	ok( 'aa' eq $aa, 'half: aa' ) ;
+	ok( 'bb' eq $bb, 'half: bb' ) ;
+}
+
+sub cut {
+	my $string = shift ;
+        my $offset = shift ;
+        
+        return( $string, '' ) if length( $string ) < $offset ;
+        my $first = substr( $string, 0, $offset ) ;
+        my $last  = substr( $string, $offset ) ;
+        return( $first, $last ) ;
+}
+
+sub tests_cut {
+	my( $aa, $bb ) = cut("123456789", 4 ) ;
+        ok( '1234'  eq $aa, 'cut 123456789 4 => first 1234' ) ;
+        ok( '56789' eq $bb, 'cut 123456789 4 => last 56789' ) ;
 }
