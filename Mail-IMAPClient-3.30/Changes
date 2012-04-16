@@ -5,7 +5,49 @@ Changes from 2.99_01 to 3.16    made by Mark Overmeer
 Changes from 0.09    to 2.99_01 made by David Kernen
 	- Potential compatibility issues from 3.17+ highlighted with '*'
 
-version 3.28_04: Fri Mar  4 00:17:38 EST 2011
+version 3.30: Fri Nov 11 09:37:00 EST 2011
+	- rt.cpan.org#72347: Starttls array ref argument dereferenced twice
+	  [Jonathan Buhacoff]
+	- during connect(): Port now defaults 143 or 993 if $self->Ssl
+	  [Kodi Arfer]
+	- stop reconnect deep recursion if server disconnects on login
+	  [Luca Ferrario]
+	- reconnect() now returns 1 on success; on error undef or 0=recursive
+	- handle EBADF from syswrite in _send_bytes
+	- rt.cpan.org#67263: add RFC4978 IMAP COMPRESS Extension support
+	  [SDIZ]
+	  + new method: compress()
+	  + new attributes: Compress Readmoremethod
+	- general code cleanup:
+	  + new() now always returns $self or undef (never $sock any more)
+	  + Socket() now always return a socket or undef
+	  + login() now always return $self or undef
+	  + _read_more() will now use Readmoremethod if set
+	- missing second arg '' for encode_base64 causing AUTHENTICATE
+	  PLAIN to fail on lines longer than 76 characters
+	  [Yoshiho Yoshida]
+
+version 3.29: Tue Aug  9 00:33:52 EDT 2011
+	- rt.cpan.org#69876: ENVELOPE as part of fetch_hash convenience method
+	  [Chris Huttman]
+	  + added Mail::IMAPClient::BodyStructure::Envelope->parse_string($str)
+	    convenience method for handling ENVELOPE data from fetch_hash
+	- rt.cpan.org#68310: folders() should not call exists()/STATUS
+	  [Gilles Lamiral]
+	    - affects folders() and subscribed() methods
+	  + use selectable() instead of exists() in call
+	    - consider removing extra call to folders()/subscribed()
+	  + ensure separator is set properly in folders()
+	  + selectable now properly checks for \Noselect flag
+	  + update folders() POD to match implementation behavior
+	- rt.cpan.org#68648: [patch]: CAPABILITY after authenticate
+	  [Stef Simoens]
+	  + delete cache after State set to Authenticate
+	    - State() is no longer an auto-generated method
+	- rt.cpan.org#68755: provided socket loses blocking in 3.19-3.28
+	  [Martin Schmitt]
+
+version 3.28: Fri Mar  4 00:17:38 EST 2011
 	- rt.cpan.org#66004: internaldate() return undef if no internaldate in reply
 	  [Jason Long]
 	- rt.cpan.org#66367: fetch_hash uses Escaped_results() in 3.26/3.27

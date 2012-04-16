@@ -649,7 +649,11 @@ The B<capability> method returns an array of capabilities as returned
 by the CAPABILITY IMAP Client command, or a reference to an array of
 capabilities if called in scalar context.  If the CAPABILITY IMAP
 Client command fails for any reason then the B<capability> method will
-return C<undef>.
+return C<undef>.  Supported capabilities are cached by the client,
+however, this cache is deleted after a connection is set to
+I<Authenticated> and when L</starttls> is called.
+
+See also L</has_capability>.
 
 =head2 close
 
@@ -667,6 +671,18 @@ B<close> can be thought of as an "unselect".
 Note: this closes the currently selected folder, not the IMAP session.
 
 See also L</delete_message>, L</expunge>, and RFC3501.
+
+=head2 compress
+
+Example:
+
+  $imap->compress or die "Could not enable RFC4978 compression: $@\n";
+
+The B<compress> method accepts no arguments.  This method is used to
+instruct the server to use the DEFLATE (RFC1951) compression
+extension.  See the L</Compress> attribute for how to specify arguments for use during the the initialization process.
+
+Version note: method added in Mail::IMAPClient 3.30
 
 =head2 connect
 
@@ -1142,9 +1158,12 @@ For example:
   # Prints:
   # Projects/Completed, Projects/Ongoing
 
-Notice that if you just want to list a folder's subfolders (and not
-the folder itself), then you need to include the hierarchy separator
-character (as returned by the L</separator> method).
+Please note that documentation previously suggested that if you just
+want to list a folder's subfolders (and not the folder itself), then
+you need to include the hierarchy separator character (as returned by
+the L</separator> method). However, this does not match the behavior
+of the existing implementation, so you will need to manually exclude
+the parent folder from the results.
 
 =head2 xlist_folders
 
@@ -1457,6 +1476,8 @@ Status of I<Authenticated> is returned.  On failure, undef is returned
 and $@ is set.  The methods L</new>, L</connect>, and L</Socket> may
 automatically invoke B<login> see the documentation of each method for
 details.
+
+If the L</Compress> parameter is set, the L</compress> method will automatically be called after successful authentication.
 
 See also L</proxyauth> and L</Proxy> for additional information
 regarding ways of authenticating with a server via SASL and/or
@@ -2834,6 +2855,22 @@ will (except of course for that inevitable last transaction).
 The default I<Clear> value is set to five (5) in order to conserve
 memory.
 
+=head2 Compress
+
+If set, Mail::IMAPClient attempts to enable use of the RFC4978
+COMPRESS DEFLATE extension.  This requires that the server supports
+this CAPABILITY.  This attribute can be set to a true value to enable
+or an ARRAYREF to control the arguments used in the call to
+Compress::Zlib::deflateInit().
+
+Mail::IMAPClient will automatically use L<Compress::Zlib> to
+deflate/inflate the data to/from the server.  This attribute is used
+in the L</login> method.
+
+See also L</compress> and L</capability>.
+
+Version note: attribute added in Mail::IMAPClient 3.30
+
 =head2 Debug
 
 Example:
@@ -2914,20 +2951,12 @@ Example:
   # or:
   $imap->Fast_io($true_or_false);
 
-The I<Fast_io> parameter controls whether or not your
-Mail::IMAPClient object will attempt to use buffered (i.e. "Fast")
-I/O.  It is turned on by default.  If you turn it off you will
-definitely slow down your program, often to a painful degree.
-However, if you are experience problems you may want to try this just
-to see if it helps.  If it does then that means you have found a bug
-and should report it immediately (by following the instructions in the
-section on L</"REPORTING BUGS">).  Even if it doesn't fix the problem,
-testing with both I<Fast_io> turned on and with it turned off will
-often aid in identifying the source of the problem.  (If it doesn't
-help you, it may help me when you report it!)
+The I<Fast_io> parameter controls whether or not the Mail::IMAPClient
+object will attempt to use non-blocking I/O on the IMAP socket.  It is
+turned on by default (unless the caller provides the socket to be
+used).
 
-Lately there have not been any bugs associated with I<Fast_io> so this
-parameter may become deprecated in the future.
+See also L</Buffer>.
 
 =head2 Folder
 
@@ -3056,10 +3085,11 @@ Example:
   # or:
   $imap->Port($new_value);
 
-Specifies the port on which the IMAP server is listening.  The default
-is 143, which is the standard IMAP port.  Can be supplied with the
-L</new> method call or separately by calling the L</Port> object
-method.
+Specifies the port on which the IMAP server is listening.  A default
+value of 993 (if L</Ssl> is true) or 143 is set during a call to
+L</connect> if no value is provided by the caller.  This argument can
+be supplied with the L</new> method call or separately by calling the
+L</Port> object method.
 
 =head2 Prewritemethod
 
@@ -3185,6 +3215,18 @@ where your method can get to it, possibly in the I<Mail::IMAPClient>
 object itself.
 
 See also L</Prewritemethod>.
+
+=head2 Readmoremethod
+
+B<Readmoremethod> should contain a reference to a subroutine that will
+replace/enhance the behavior of the internal _read_more() method.  The
+subroutine will be passed the following arguments: first the used
+Mail::IMAPClient object.  Second, a reference to a socket.  Third, a
+timeout value which is used as the timeout value for CORE::select() by
+default.  Depending upon changes/features introduced by Readmethod
+changes may be required here.
+
+Version note: attribute added in Mail::IMAPClient 3.30
 
 =head2 Reconnectretry
 

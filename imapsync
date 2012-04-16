@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 36 different IMAP server softwares
 supported with success.
 
-$Revision: 1.456 $
+$Revision: 1.463 $
 
 =head1 SYNOPSIS
 
@@ -383,8 +383,8 @@ Success stories reported with the following 44 imap servers
  - hMailServer 5.3.3 [host2], 4.4.1 [host1] (see FAQ)
  - iPlanet Messaging server 4.15, 5.1, 5.2
  - IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]
- - Kerio 7.2.0P1 [host1]
- - MailEnable 4.23 [host1] [host2]
+ - Kerio 7.2.0 Patch 1 [host1] [host2]
+ - MailEnable 4.23 [host1] [host2], 4.26 [host1][host2], 5 [host1]
  - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2],
    12.0.3 [host1]
  - Mercury 4.1 (Windows server 2000 platform)
@@ -393,7 +393,7 @@ Success stories reported with the following 44 imap servers
    Exchange2007-EP-SP2,
    Exchange 2010 RTM (Release to Manufacturing) [host2],
    Exchange 2010 SP1 RU2[host2],
- - Mirapoint
+ - Mirapoint, 4.1.9-GA [host1]
  - Netscape Mail Server 3.6 (Wintel !)
  - Netscape Messaging Server 4.15 Patch 7
  - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
@@ -412,6 +412,7 @@ Success stories reported with the following 44 imap servers
    (http://www.washington.edu/imap/)
  - UW - QMail v2.1
  - VMS, Imap part of TCP/IP suite of VMS 7.3.2
+ - Yahoo [host1]
  - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 
    Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x
 
@@ -452,11 +453,11 @@ Pay special attention to options
 --usecache
 
 If you have many mailboxes to migrate think about a little
-shell program. Write a file called file.csv (for example)
+shell program. Write a file called file.txt (for example)
 containing users and passwords.
 The separator used in this example is ';'
 
-The file.csv file contains:
+The file.txt file contains:
 
 user001_1;password001_1;user001_2;password001_2
 user002_1;password002_1;user002_2;password002_2
@@ -470,11 +471,11 @@ On Unix the shell program can be:
  { while IFS=';' read  u1 p1 u2 p2; do 
 	imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
                  --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
- done ; } < file.csv
+ done ; } < file.txt
 
 On Windows the batch program can be:
 
-  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.csv) DO imapsync ^
+  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO imapsync ^
   --host1 imap.side1.org --user1 %%G --password1 %%H ^
   --host2 imap.side2.org --user2 %%I --password2 %%J ...
 
@@ -516,7 +517,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.456 2011/08/24 04:21:30 gilles Exp gilles $
+$Id: imapsync,v 1.463 2011/11/12 21:58:52 gilles Exp gilles $
 
 =cut
 
@@ -622,7 +623,7 @@ my(
 	$max_msg_size_in_bytes,
 	$modules_version,
 	$delete2folders, $delete2foldersonly, $delete2foldersbutnot,
-	$usecache, $debugcache, 
+	$usecache, $debugcache, $cacheaftercopy,
 	$wholeheaderifneeded, %h1_msgs_copy_by_uid, $useuid, $h2_uidguess,
 );
 
@@ -630,7 +631,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.456 2011/08/24 04:21:30 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.463 2011/11/12 21:58:52 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -705,6 +706,7 @@ if ( $fast ) {
 
 # Activate --usecache if --useuid is set and no --nousecache
 $usecache = 1 if ( $useuid and ( ! defined( $usecache ) ) ) ;
+$cacheaftercopy = 1 if ( $usecache and ( ! defined( $cacheaftercopy ) ) ) ;
 
 print banner_imapsync(@argv_copy);
 
@@ -738,6 +740,8 @@ $skipsize = (defined $skipsize) ? $skipsize : 1;
 
 $uid1 = defined($uid1) ? $uid1 : 1;
 $uid2 = defined($uid2) ? $uid2 : 1;
+
+$subscribe = defined($subscribe) ? $subscribe : 1;
 
 # Allow size mismatch by default
 $allowsizemismatch = defined($allowsizemismatch) ? $allowsizemismatch : 1;
@@ -878,7 +882,7 @@ if ( ! ( 1
      and $usecache 
      and ! $delete ) ) {
         die_clean( 
-"Problem --usecache can not be used safely with options --maxsize--minsize --maxage --minage
+"Problem --usecache can not be used safely with options --maxsize --minsize --maxage --minage
 Use --nousecache or suppress the --max* --min* options\n" ) ;    
 }
 
@@ -1299,6 +1303,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	}
 
 	my $h2_uidnext = $imap2->uidnext( $h2_fold ) ;
+        $debug and print "uidnext h2: $h2_uidnext\n" ;
 	$h2_uidguess = $h2_uidnext ;
 	MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
 		my $h1_size  = $h1_hash{$m_id}{'s'};
@@ -1822,8 +1827,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.456 $ ',
-		  '$Date: 2011/08/24 04:21:30 $ ',
+		  '$Revision: 1.463 $ ',
+		  '$Date: 2011/11/12 21:58:52 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2694,11 +2699,11 @@ sub copy_message {
 				$new_id = lastuid( $imap2, $h2_fold, $h2_uidguess ) ;
 			}
 			printf( "msg %s/%-19s copied to %s/%-10s\n", $h1_fold, "$h1_msg {$string_len}", $h2_fold, $new_id );
-			$h2_uidguess++;
+			$h2_uidguess += 1 ;
 			$total_bytes_transferred += $h1_size;
 			$nb_msg_transferred += 1;
-			$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n"  if ( $usecache ) ;
-			touch( "$cache_dir/${h1_msg}_$new_id" ) if ( $usecache and $new_id =~ m{^\d+$} );
+			$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n"  if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$} ) ;
+			touch( "$cache_dir/${h1_msg}_$new_id" ) if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$} ) ;
 			if ( $delete ) {
 				print "msg $h1_fold/$h1_msg deleted on host1\n";
 				unless($dry) {
@@ -2731,8 +2736,8 @@ sub cache_map {
 		$debugcache and print "C12: $file\n" ;
 		( $uid1, $uid2 ) = match_a_cache_file( $file ) ;
 		
-		if (  exists( $h1_msgs_hash_ref->{ $uid1 } ) 
-		  and exists( $h2_msgs_hash_ref->{ $uid2 } ) ) {
+		if (  exists( $h1_msgs_hash_ref->{ $uid1 // q{} } ) 
+		  and exists( $h2_msgs_hash_ref->{ $uid2 // q{} } ) ) {
 		  	# keep only the greatest uid2 
 			# 130_2301 and
 			# 130_231  => keep only 130 -> 2301
@@ -3396,6 +3401,7 @@ sub get_options {
 				   "releasecheck!" => \$releasecheck,
 				   "modules_version!" => \$modules_version,
 				   "usecache!"    => \$usecache,
+                                   "cacheaftercopy!" => \$cacheaftercopy,
 				   "debugcache!" => \$debugcache,
 				   "useuid!"      => \$useuid,
                                   );
@@ -3580,7 +3586,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.456 2011/08/24 04:21:30 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.463 2011/11/12 21:58:52 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3808,7 +3814,7 @@ Several options are mandatory.
 --dry                  : do nothing, just print what would be done.
 --subscribed           : transfers subscribed folders.
 --subscribe            : subscribe to the folders transferred on the 
-                         host2 that are subscribed on host1.
+                         host2 that are subscribed on host1. On by default.
 --subscribe_all        : subscribe to the folders transferred on the 
                          host2 even if they are not subscribed on host1.
 --nofoldersizes        : Do not calculate the size of each folder in bytes

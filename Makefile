@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.84 2011/07/29 03:02:01 gilles Exp gilles $	
+# $Id: Makefile,v 1.89 2011/11/13 08:53:12 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -20,21 +20,27 @@ usage:
 	@echo "make upload_ks"
 	@echo "make imapsync.exe"
 	@echo "make imapsync_elf_x86.bin"
+	@echo "make publish"
 
 
 DIST_NAME=imapsync-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
 DEB_FILE=$(DIST_NAME).deb
-VERSION=$(shell perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version)
+
+VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version)
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
+IMAPClient_2xx=./Mail-IMAPClient-2.2.9
+IMAPClient_3xx=./Mail-IMAPClient-3.30/lib
+IMAPClient=$(IMAPClient_3xx)
 
 hello:
-	echo "$(HELLO)"
+	echo "$(VERSION)"
+	echo "$(IMAPClient)"
 
 
-all: ChangeLog README VERSION 
+all: ChangeLog README VERSION imapsync_elf_x86.bin
 
 
 testp :
@@ -47,7 +53,7 @@ README: imapsync
 	perldoc -t imapsync > README
 
 VERSION: imapsync
-	perl -I./Mail-IMAPClient-2.2.9 ./imapsync --version > VERSION
+	perl -I./$(IMAPClient) ./imapsync --version > VERSION
 
 
 .PHONY: clean clean_tilde clean_test   
@@ -90,22 +96,23 @@ cidone:
 ###############
 
 
-.PHONY: test tests testp testf test3xx
+.PHONY: test tests testp testf test3xx testv2 testv3
 
 test_quick : test_quick_3xx test_quick_229 
 
 test_quick_229: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh -x tests.sh locallocal
+	CMD_PERL='perl -I./$(IMAPClient_2xx)' /usr/bin/time sh -x tests.sh locallocal
 
 test_quick_3xx: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh -x tests.sh locallocal
+	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh -x tests.sh locallocal
 
-testv2:
-	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh
+testv2: .test_229
+	CMD_PERL='perl -I./$(IMAPClient_2xx) /usr/bin/time sh tests.sh
 	touch .test_229
 
-testv3:
-	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' sh -x tests.sh
+testv3:.test_3xx
+	CMD_PERL='perl -I./$(IMAPClient_3xx)' sh -x tests.sh
+	touch .test_3xx
 
 test: .test_229 .test_3xx
 
@@ -116,11 +123,11 @@ test3xx: .test_3xx
 test229: .test_229
 
 .test_229: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-2.2.9' /usr/bin/time sh tests.sh 1>/dev/null
+	CMD_PERL='perl -I./$(IMAPClient_2xx)' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_229
 
 .test_3xx: imapsync tests.sh
-	CMD_PERL='perl -I./Mail-IMAPClient-3.28/lib' /usr/bin/time sh tests.sh 1>/dev/null
+	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh 1>/dev/null
 	touch .test_3xx
 
 testf: clean_test test
@@ -145,7 +152,7 @@ tests_win32: dosify_bat
 #	ssh Admin@c 'tasklist /NH /FO CSV' 
 
 tests_win32_dev: dosify_bat
-	scp imapsync file.csv test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	scp imapsync file.txt test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test2.bat'
 
 test_imapsync_exe: dosify_bat
@@ -171,23 +178,24 @@ imapsync.exe: imapsync build_exe.bat .dosify_bat
 imapsync_elf_x86.bin: imapsync
 	rcsdiff imapsync
 	{ test 'vadrouille' = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.28/lib \
+	pp -o imapsync_elf_x86.bin -I $(IMAPClient_3xx) \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
 	imapsync ; \
 	} || :
 	{ test 'petite'     = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.28/lib \
+	pp -o imapsync_elf_x86.bin -I $(IMAPClient_3xx) \
+	-I NTLM-1.09/blib/lib \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
 	-M Tie::Hash::NamedCapture \
-	-a '/usr/lib/perl/5.10.0/auto/POSIX/SigAction;auto/POSIX/SigAction' \
+	-a '/usr/lib/perl/5.10.1/auto/POSIX/SigAction;auto/POSIX/SigAction' \
 	imapsync ; \
 	} || :
 	{ test 'ks200821.kimsufi.com'     = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I Mail-IMAPClient-3.28/lib \
+	pp -o imapsync_elf_x86.bin -I $(IMAPClient_3xx) \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
@@ -244,18 +252,19 @@ dist_prepa_exe: imapsync.exe
 	#cd $(DIST_PATH)/ && md5sum -c ./imapsync.exe.md5.txt
 
 
-
+.PHONY: publish upload_ks ks
 
 ks:
 	rsync -avz --delete --exclude imapsync.exe \
 	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
+publish: upload_ks ks
 
 PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL ./TIME \
 ./logo_imapsync.png ./logo_imapsync_s.png \
 ./paypal.shtml ./paypal_return.shtml ./paypal_return_support.shtml \
-./README ./style.css ./TODO ./VERSION ./VERSION_EXE ./memo
+./README ./style.css ./TODO ./VERSION ./VERSION_EXE ./memo ./file.txt
 
 upload_ks:
 	rsync -lptvHzP  $(PUBLIC_FILES) \
