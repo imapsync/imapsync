@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 #
-#
 # tests for fetch_hash()
 #
 # fetch_hash() calls fetch() internally. rather than refactor
@@ -9,7 +8,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 20;
+use Test::More tests => 22;
 
 BEGIN { use_ok('Mail::IMAPClient') or exit; }
 
@@ -109,6 +108,18 @@ my @tests = (
         [q{* 1 FETCH (BODY.PEEK[] foo)}],
         [ [1], qw(BODY.PEEK[]) ],
         { "1" => { "BODY.PEEK[]" => q{foo}, }, },
+    ],
+    [
+        "BODY[]<0.1024> requests match BODY[]<0> responses",
+        [ q{* 1 FETCH (BODY[]<0>}, q{foo}, ")\r\n" ],
+        [ [1], qw(BODY[]<0.1024>) ],
+        { "1" => { "BODY[]<0>" => q{foo}, }, },
+    ],
+    [
+        "BODY.PEEK[]<0.1024> requests match BODY[]<0> responses",
+        [ q{* 1 FETCH (BODY[]<0>}, q{foo}, ")\r\n" ],
+        [ [1], qw(BODY.PEEK[]<0.1024>) ],
+        { "1" => { "BODY[]<0>" => q{foo}, }, },
     ],
     [
         "escaped ENVELOPE subject",

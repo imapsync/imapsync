@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.192 2012/02/25 14:41:47 gilles Exp gilles $  
+# $Id: tests.sh,v 1.194 2012/04/15 19:17:33 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -23,7 +23,7 @@ echo HOST2=$HOST2
 
 # few debugging tests use:
 CMD_PERL_2xx='perl -I./Mail-IMAPClient-2.2.9'
-CMD_PERL_3xx='perl -I./Mail-IMAPClient-3.30/lib'
+CMD_PERL_3xx='perl -I./Mail-IMAPClient-3.31/lib'
 
 CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
 
@@ -248,6 +248,8 @@ ll_folder() {
                 --folder INBOX.yop --folder INBOX.Trash 
 }
 
+
+
 ll_folder_noexist() {
                 ! $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
@@ -449,7 +451,8 @@ ll_delete2foldersonly() {
                 --justfolders  --nofoldersizes \
                 --regextrans2 's,${h1_prefix}(.*),${h2_prefix}NEW${h2_sep}$1,' \
 		--regextrans2 's,^INBOX$,${h2_prefix}NEW${h2_sep}INBOX,' \
-                --delete2foldersonly '/${h2_prefix}NEW/'
+                --delete2foldersonly '/${h2_prefix}NEW/' --dry
+#                --delete2foldersonly '${h2_prefix}NEW'
 }
 
 ll_delete2foldersonly_tmp() {
@@ -471,7 +474,7 @@ ll_delete2foldersbutnot() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes \
-                --delete2foldersbutnot '/NEW_2|NEW_3/' \
+                --delete2foldersbutnot '/NEW_2|NEW_3|\[abc\]/' \
 		--dry
 }
 
@@ -1260,6 +1263,32 @@ ll_regexmess_scwchu()
                 echo 'rm /home/vmail/titi/.scwchu/cur/*'
 }
 
+ll_regexmess_wong() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.scwchu \
+                --regexmess 's{\A}{Content-Type: text/plain; charset="big5"\n}gxms' \
+                --debugcontent  --debug
+                echo "sudo sh -c 'rm /home/vmail/titi/.scwchu/cur/*'"
+}
+
+ll_regexmess_wong_2() 
+{
+#Received: from hkuhp22.hku.hk
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.scwchu \
+                --regexmess 's{\A(.*?(?!^$))^(Received: from hkuhp22.hku.hk.*?)$}{$1Content-Type: text/plain; charset="big5"\n$2}gms' \
+                --debugcontent  --debug --dry
+                echo "sudo sh -c 'rm /home/vmail/titi/.scwchu/cur/*'"
+}
 
 ll_flags() 
 {
@@ -1648,6 +1677,17 @@ ll_memory_consumption() {
 }
 
 
+ll_remove_duplicates() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST1 --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --folder INBOX.duplicates --delete2 
+}
+
+
+
 msw() {
 	if can_send; then
         	sendtestmessage toto
@@ -1678,13 +1718,13 @@ msw2() {
 xxxxx_gmail() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
                 --host2 imap.gmail.com \
                 --ssl2 \
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
-                --host1 $HOST2 \
-                --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
 		--nofoldersizes \
 		--justfolders --regextrans2 's/ //g' --exclude 'INBOX.yop.YAP' --exclude Gmail
 }
@@ -1763,19 +1803,33 @@ xxxxx_gmail_5_justlogin() {
 xxxxx_gmail_6() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
                 --host2 imap.gmail.com \
                 --ssl2 \
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
-                --host1 $HOST2 \
-                --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
 		--nofoldersizes \
 		--justfolders \
 		--regextrans2 "s, +$,,g" --regextrans2 "s, +/,/,g" \
 		--exclude INBOX.yop.YAP
 
 #--dry --prefix2 '[Gmail]/'
+}
+
+xxxxx_gmail_7() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--nofoldersizes \
+                --folder INBOX.yop.yap
 }
 
 

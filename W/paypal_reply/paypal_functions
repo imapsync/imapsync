@@ -83,7 +83,7 @@ extract_mail() {
 
 convert_utf8() {
 	mkdir -p $tmpdir/msg_out_utf8/
-	test -z "`ls $tmpdir/msg_out/`" && echo no mail && return
+	test -z "`ls $tmpdir/msg_out/*_d/*.txt`" && echo no mail && return
 	for f in $tmpdir/msg_out/*_d/*.txt; do
 		b=`basename "$f"`
 		d=`dirname  "$f"`
@@ -113,8 +113,9 @@ troncate_last_2_chars() {
 
 build_reply() {
 	mkdir -p $tmpdir/msg_reply/
+	test -z "`ls $tmpdir/msg_out/`" && echo no mail && return
 	for f in $tmpdir/msg_out_utf8/*/*.txt; do
-		#echo "$f"
+		echo "$f"
 		d=`dirname  "$f"`
 		bd=`basename "$d"`
 		file_id=`troncate_last_2_chars $bd`
@@ -122,6 +123,7 @@ build_reply() {
 		test -f "$d_reply/$file_id.txt" && continue
 		mkdir -p "$d_reply"
 		echo building "$d_reply/$file_id.txt"
+		echo paypal_build_reply "$f" "$tmpdir/msg_id/$file_id"
 		paypal_build_reply "$f" "$tmpdir/msg_id/$file_id" > "$d_reply/$file_id.txt"
 	done
 }
@@ -139,21 +141,38 @@ build_reply_arg() {
 	done
 }
 
+
+build_invoice_arg() {
+	for f in "$@"; do
+		#echo "$f"
+		d=`dirname  "$f"`
+		bd=`basename "$d"`
+		file_id=`troncate_last_2_chars $bd`
+		d_invoice="$tmpdir/invoices/$file_id"
+		echo building "$d_invoice/imapsync_var.tex"
+		echo paypal_build_invoice_from_email "$f" "$tmpdir/msg_id/$file_id"
+		paypal_build_invoice_from_email "$f" "$tmpdir/msg_id/$file_id"
+	done
+}
+
+
+
 debug_mode() {
-        #return 0
+        return 0
         return 1
 }
 
 send_reply() {
 	mkdir -p $tmpdir/msg_sent/
+	test -z "`ls $tmpdir/msg_reply/*/*.txt`" && echo no mail && return
 	for f in $tmpdir/msg_reply/*/*.txt; do
 		b=`basename "$f"`
 		d=`dirname  "$f"`
 		bd=`basename "$d"`
 		d_sent="$tmpdir/msg_sent/$bd"
-                debug_mode && echo "paypal_send $f"
 		test -f "$d_sent/$b" && continue
 		mkdir -p "$d_sent"
+                debug_mode && echo "paypal_send $f"
 		test X"--send" = X"$1" && paypal_send --send --subscribe "$f" && touch "$d_sent/$b"
 		#test X"--send" = X"$1" && touch "$d_sent/$b"
 		test X"" = X"$1" && paypal_send "$f" 
@@ -218,9 +237,9 @@ paypal_all_dev() {
 	build_reply
 	echo "Done build_reply in $tmpdir/msg_reply/"
 	echo "Will send_reply $@"
-        
 	send_reply "$@"
 	echo "Done send_reply $@"
+	
 }
 
 
