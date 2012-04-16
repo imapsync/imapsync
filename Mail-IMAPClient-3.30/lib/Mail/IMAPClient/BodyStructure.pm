@@ -164,6 +164,12 @@ sub new
     $parser->envelope($envelope);
 }
 
+sub parse_string
+{   my ($class, $envelope) = @_;
+    $envelope = "(" . $envelope . ")" unless ( $envelope =~ /^\(/ );
+    $parser->envelopestruct($envelope);
+}
+
 sub from_addresses    { shift->_addresses(from    => 1) }
 sub sender_addresses  { shift->_addresses(sender  => 1) }
 sub replyto_addresses { shift->_addresses(replyto => 1) }

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.36 2011/07/18 19:21:07 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.37 2011/09/17 22:54:31 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -171,8 +171,9 @@ print "Nb invoice suspended  $nb_invoice_suspended\n" ;
 print "Nb invoice sent       $nb_invoice_sent\n" ;
 print "Have to send invoices @invoice_not_sent\n" if ( @invoice_not_sent ) ;
 
-print "$total_eur != $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup\n" 
-if ( $total_eur != $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup ) ;
+my $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup ;
+print "$total_eur != $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup\n" 
+if ( $total_eur !=  $total_eur2 ) ;
 
 sub parse_one_line_io {
 	my $csv = shift ;

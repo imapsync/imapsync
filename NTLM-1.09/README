@@ -1,0 +1,104 @@
+NTLM Authentication Scheme
+==========================
+
+This module implements the NTLM authentication mechanism.  It can be
+used to perform NTLM style authentication for any desired protocol.
+
+The module works well with the Mail::IMAPClient module in the
+"authenticate" method, however I had to make a change to that method
+for it to work.  The following line (2511 in version 2.1.4):
+
+			($code) = $o->[DATA] =~ /^\+ (.*)$/ ;
+
+needed to be changed to:
+
+			($code) = $o->[DATA] =~ /^\+(.*)$/ ;
+
+as the initial NTLM challenge is empty.
+
+This module also works well with LWP::Authen::Ntlm , allowing LWP::UserAgent 
+and/or WWW::Mechanise to automate/browse/fetch/etc remote Microsoft Windows 
+servers running NTLM authentication. 
+Example use is like this(note the fact that NTLM.pm is NOT explicitly used!):
+
+    use WWW::Mechanize;
+    $mech = WWW::Mechanize->new(keep_alive=>1);
+    $mech->no_proxy('my.server'); 
+    $mech->credentials('my.server:80', '', "my_domain\\my_user", my_pass);
+    $response = $mech->get( $url  );
+
+
+INSTALLATION
+
+To install this application:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires the MIME::Base64 module, and Digest::HMAC_MD5
+
+COPYRIGHT AND LICENSE
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of either:
+
+	a) the GNU General Public License as published by the Free
+	Software Foundation; either version 1, or (at your option) any
+	later version, or
+
+	b) the "Artistic License" which comes with this Kit.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either
+the GNU General Public License or the Artistic License for more details.
+
+You should have received a copy of the Artistic License with this
+Kit, in the file named "COPYING-Artistic".  If not, I'll be glad to provide one.
+
+You should also have received a copy of the GNU General Public License version 1
+along with this program in the file named "COPYING-GPL". If not, write to the
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+Boston, MA 02110-1301, USA or visit their web page on the internet at
+http://www.gnu.org/copyleft/gpl.html.
+
+For those of you that choose to use the GNU General Public License,
+my interpretation of the GNU General Public License is that no Perl
+script falls under the terms of the GPL unless you explicitly put
+said script under the terms of the GPL yourself.  Furthermore, any
+object code linked with perl does not automatically fall under the
+terms of the GPL, provided such object code only adds definitions
+of subroutines and variables, and does not otherwise impair the
+resulting interpreter from executing any standard Perl script.  I
+consider linking in C subroutines in this manner to be the moral
+equivalent of defining subroutines in the Perl language itself.  You
+may sell such an object file as proprietary provided that you provide
+or offer to provide the Perl source, as specified by the GNU General
+Public License.  (This is merely an alternate way of specifying input
+to the program.)  You may also sell a binary produced by the dumping of
+a running Perl script that belongs to you, provided that you provide or
+offer to provide the Perl source as specified by the GPL.  (The
+fact that a Perl interpreter and your code are in the same binary file
+is, in this case, a form of mere aggregation.)  This is my interpretation
+of the GPL.  If you still have concerns or difficulties understanding
+my intent, feel free to contact me.  Of course, the Artistic License
+spells all this out for your protection, so you may prefer to use that.
+
+License clarified by Nick Bebout per email from David Bussenschutt.
+<nb@fedoraproject.org>
+
+Parts of this code Copyright (C) 2007 David (Buzz) Bussenschutt.
+<davidbuzz@gmail.com>
+
+Perl port of this code is Copyright (C) 2001 Mark Bush.
+<Mark.Bush@bushnet.demon.co.uk>
+
+The code is originally based on fetchmail code which is Copyright (C) 1997 Eric
+S. Raymond.
+
+Fetchmail uses SMB/Netbios code from samba which is Copyright (C)
+Andrew Tridgell 1992-1998 with modifications from Jeremy Allison.

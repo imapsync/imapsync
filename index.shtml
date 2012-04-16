@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2011-08-03T03:25:16+0200"/>
+<meta name="date" content="2011-11-13T00:45:16+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -29,8 +29,8 @@
 <body>
 
 <ul class="none">
-	<li>Buy <a href="#buy_source">imapsync <b>source code</b></a> (any OS)</li>
-	<li>Buy <a href="#buy_exe"><b>standalone win32</b></a> imapsync.exe</li>
+	<li>Buy <a href="#buy_source"><b>imapsync source code</b></a> (any OS)</li>
+	<li>Buy <a href="#buy_exe"><b>standalone win32</b></a> <b>imapsync.exe</b> (also <b>works on win64</b>)</li>
    <li>Buy <a href="#buy_support">imapsync <b>support</b></a> to succeed your migration</li>
 	<li>Are your <a href="#imap_server_success">imap servers <b>supported</b></a> by imapsync?</li>
 </ul>
@@ -39,10 +39,7 @@
 <a href="http://ks.lamiral.info/imapsync/"><img src="logo_imapsync.png" width="486" height="309"  alt="imapsync logo"/></a>
 
 <h1>Welcome to the imapsync web site!</h1>
-<span style="font-size:300%;">Ten years old since release 1.1!</span><br/>
-(on Friday 29 July 2011)
 </div>
-
 
 <h2>What is imapsync?</h2>
 
@@ -59,13 +56,22 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 (written by John Goerzen) for this purpose.
 </p>
 
-<h2><a id="NUMBERS"></a>Some numbers</h2>
+<h2><a id="NUMBERS"></a>Some numbers for 2011</h2>
 
 <ul>
 <li>Number of <b>imapsync users</b> per month: between <b>2 and 3 thousands </b>users</li>
-<li>Number of <b>imapsync transfers</b> per month: between <b>3 and 8 millions </b>transfers</li>
-<li>Pourcentage of <b>Windows</b> users : <b>10%</b></li>
-<li><b>Biggest user</b> usage: <b>5 millions</b> of IMAP mailbox transfers <b>in a month</b> (one every 2 seconds)</li>
+<li>Number of <b>imapsync transfers</b> per month: between <b>3 and 11 millions </b>transfers </li>
+<li>Pourcentage between <b>operating systems</b> users running imapsync:
+<ul>
+<li><b>Linux: 65 %</b></li>
+<li><b>Win32: 18 %</b></li>
+<li><b>Darwin: 11 %</b></li>
+<li>FreeBSD: 6 %</li>
+<li>Solaris: 0.4 %</li>
+<li>OpenBSD: 0.1 %</li>
+</ul>
+</li>
+<li><b>Biggest user usage</b>: more than <b>11 millions</b> of IMAP mailbox transfers</li>
 </ul>
  
 
@@ -81,37 +87,32 @@ where the user plays independently on both sides. Use <b>offlineimap</b>
 <p>New features or bugfixes since previous releases:</p>
 
 <ul>
+<li><b>1.463</b></li>
+<li><b>Update</b>: include and use of Mail-IMAPClient-3.30 (imapsync.exe)</li>
+<li><b>Usability</b>: --subscribe option is on by defaut.</li>
+<li><b>BugFix</b>: Added --nocacheaftercopy to avoid bad uids in cache with --useuid or --usecache and strange uid generator like dbmail 2.2.17</li>
+<li><b>BugFix</b>: Avoid Perl warning 'Use of uninitialized value $uid1 in exists'. Thanks to Klaus Franken</li>
 
+
+</ul>
+
+<ul>
+<li><b>1.456</b></li>
+<li>Added a <b><a href="./file.txt">file.txt</a></b> example to <b>batch massive migration</b> (many mailboxes) on Windows or Unix</li>
+<li>Added support to <b>Yahoo</b> as host1 (just add <kbd>--sep1 "/"</kbd> option. Add <kbd>--ssl1</kbd> for encryption)</li>
+<li>Empty default value for $h1_flags $h2_flags to avoid useless Perl warnings.</li>
+<li><b>MDaemon 12.0.3 failure as host2</b> (successive APPEND are buggy on MDaemon)</li>
+</ul>
+
+<ul>
 <li><b>1.452</b></li>
 <li><b>New feature</b>: Added <b>--search</b> option allowing to <b>select messages</b> with the <b>powerful IMAP SEARCH</b> command.</li>
 <li><b>Bugfix</b>: Date reference to select messages with --maxdate --mindate is the beginning of imapsync run now.</li>
 <li>Bugfix: Fixed ps call to work with Solaris 10. Thanks to Daniel Rohde.</li>
 <li>Success: <b>Kerio 7.2.0P1</b> success story.</li>
-<li>Success: <b>MDaemon 12.0.3</b> success story.</li>
-
-
-<li><b>1.446</b></li>
-<li><b>Bugfix</b>: Better --idatefromheader behavior (thank to Dax Kelson patches).</li>
-<li><b>Usability</b>: Now --delete2 sets --uidexpunge2 instead of --expunge2 if possible.</li>
-<li><b>Usability</b>: Adapted the usage output multiline character to Unix or Win, \ or ^</li>
-<li>Bugfix: Avoid a "not a number" warning when size is null.</li>
-<li><b>Bugfix</b>: Added "Date" in the default --useheader list. It is ("Message-Id", "Message-ID", "Date")</li>
-<li>Bugfix: allows bad header beginning with a blank character.</li>
-
-<li><b>1.434</b></li>
-<li><b>Bugfix</b>: Changed the way imapsync knows <b>whether a folder exists</b> or not. <b>Exchange</b> might be happy and <b>stop deconnecting</b> for this reason.</li>
-<li><b>Bugfix</b>: <b>Reconnections</b> are well done in <b>TLS mode</b> now.</li>
-<li><b>Bugfix</b>:  IMAP RFC 3501 and some imap servers require <b>internal dates</b> have a <b>zone data</b>. Default <b>to +0000</b> when host1 doesn't give it.</li>
-<li><b>Bugfix</b>: Options --maxsize --minsize now really work with --useuid (1.422 had a cache issue).</li>
-<li><b>Bugfix</b>: <b>Improved</b> the way imapsync <b>deals with headers</b>:<ul>
-	<li><b>Stopped</b> getting <b>first 2KB body</b> of message. Not a good idea in practice.</li>
-	<li>If <b>massive</b> get headers <b>fails</b> then take the <b>whole header</b> one by one (instead of body).</li>
-	<li>Default is like --useheader <b>"Message-Id"</b> --useheader <b>"Message-ID"</b> (instead of just "Message-Id").</li>
-	<li>Use header "Message-Id" and header "Date" as md5 signature when taking the whole header.</li>
+<li>Success: <b>MDaemon 12.0.3 success story as host1</b>.</li>
 </ul>
-</li>
 
-</ul>
 
 <!-- 
 <p>The next imapsync release should see:</p>
@@ -193,7 +194,8 @@ name="submit" alt="PayPal - The safer, easier way to pay online!"/>
 
 <h2><a id="buy_exe"></a>Buy standalone imapsync.exe for win32</h2>
 <p>Struggle free from source code and Perl installation by<br/> 
-buying the latest win32 <b>standalone imapsync.exe</b> for <b>10</b> EUR</p>
+buying the latest win32 <b>standalone imapsync.exe</b> for <b>30 EUR</b> 
+</p>
 
 <p>
 30 EUR is equal to around <b>45 USD</b>, no problem to pay in USD (or any currency) with paypal:
@@ -333,7 +335,7 @@ will be to code it or fix it.<br/>
 <tr align="right"><td> Yes</td><td>Fix capability changes </td><td> 1 hour     </td><td>  80 min  </td><td>  0 $          </td><td> 0 $       </td></tr>
 <tr align="right"><td> Yes</td><td>Large mailbox --maxage </td><td> 4 hours    </td><td> 270 min  </td><td>  0 $          </td><td> 0 $       </td></tr>
 <tr align="right"><td> Yes</td><td>dkimap support         </td><td> 3 hours    </td><td> 120 min  </td><td>  0 $          </td><td> 0 $       </td></tr>
-<tr align="right"><td>  No</td><td>gratis from here       </td><td> 4 hours    </td><td>   0 min  </td><td>  0 $          </td><td>60000 $    </td></tr>
+
 </table>
 
 <h2><a id="imap_server_success"></a>Lists of imap server software failures and success stories</h2>
@@ -351,7 +353,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 </ul>
 
 <p>Now the long reported <b>success stories</b> list: <b>44 different imap server softwares supported!</b><br/>
-([host1] means "source server", [host2] means "destination server"):
+[host1] means "source server" and [host2] means "destination server":
 </p>
 
 <ul>
@@ -391,7 +393,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 	<li>iPlanet Messaging server 4.15, 5.1, 5.2</li>
 	<li>IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]</li>
 	<li>Kerio 7.2.0P1 [host1]</li>
-	<li><b>MailEnable</b> 4.23 [host1][host2], 4.26 [host1][host2]</li>
+	<li><b>MailEnable</b> 4.23 [host1][host2], 4.26 [host1][host2], 5 [host1]</li>
 	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2], 12.0.3 [host1]</li>
 	<li>Mercury 4.1 (Windows server 2000 platform)</li>
 	<li><b>Microsoft Exchange Server</b> 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
@@ -400,7 +402,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
    Exchange 2010 RTM (Release to Manufacturing) [host2],
    Exchange 2010 SP1 RU2 [host2]
    </li>
-   <li>Mirapoint server</li>
+   <li>Mirapoint server 4.1.9-GA [host1]</li>
 	<li>Netscape Mail Server 3.6 (Wintel)</li>
 	<li>Netscape Messaging Server 4.15 Patch 7</li>
 	<li>OpenMail IMAP server B.07.00.k0</li>
@@ -419,6 +421,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
    (http://www.washington.edu/imap/)</li>
 	<li>UW - QMail v2.1</li>
 	<li>VMS, Imap part of TCP/IP suite of VMS 7.3.2</li>
+	<li><b>Yahoo</b> [host1]</li>
 	<li><b>Zimbra-IMAP</b> 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 
                Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x</li>
 </ul>
@@ -449,7 +452,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.86 2011/08/03 01:26:05 gilles Exp gilles $)
+($Id: index.shtml,v 1.92 2011/11/12 23:45:34 gilles Exp gilles $)
 </p>
 
 </body>

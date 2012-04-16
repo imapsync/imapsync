@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.28';
+our $VERSION = '3.30';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -16,7 +16,7 @@ use IO::Select ();
 use Carp qw(carp);    #local $SIG{__WARN__} = \&Carp::cluck; #DEBUG
 
 use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
-use Errno qw(EAGAIN EPIPE ECONNRESET);
+use Errno qw(EAGAIN EBADF ECONNRESET EPIPE);
 use List::Util qw(first min max sum);
 use MIME::Base64 qw(encode_base64 decode_base64);
 use File::Spec ();
@@ -47,6 +47,7 @@ my %SEARCH_KEYS = map { ( $_ => 1 ) } qw(
 
 # modules require(d) during runtime when applicable
 my %Load_Module = (
+    "Compress-Zlib" => "Compress::Zlib",
     "SSL"           => "IO::Socket::SSL",
     "BodyStructure" => "Mail::IMAPClient::BodyStructure",
     "Envelope"      => "Mail::IMAPClient::BodyStructure::Envelope",
@@ -83,11 +84,11 @@ BEGIN {
 
     # set-up accessors
     foreach my $datum (
-        qw(Authcallback Authmechanism Authuser Buffer Count Debug
-        Debug_fh Domain Folder Ignoresizeerrors Keepalive
+        qw(Authcallback Authmechanism Authuser Buffer Count Compress
+        Debug Debug_fh Domain Folder Ignoresizeerrors Keepalive
         Maxappendstringlength Maxcommandlength Maxtemperrors
         Password Peek Port Prewritemethod Proxy Ranges Readmethod
-        Reconnectretry Server Showcredentials Ssl Starttls State
+        Readmoremethod Reconnectretry Server Showcredentials Ssl Starttls
         Supportedflags Timeout Uid User)
       )
     {
@@ -256,7 +257,6 @@ sub new {
         LastError             => "",
         Uid                   => 1,
         Count                 => 0,
-        Fast_io               => 1,
         Clear                 => 2,
         Keepalive             => 0,
         Maxappendstringlength => 1024**2,
@@ -264,7 +264,6 @@ sub new {
         Maxtemperrors         => undef,
         State                 => Unconnected,
         Authmechanism         => 'LOGIN',
-        Port                  => 143,
         Timeout               => 600,
         History               => {},
     };
@@ -274,6 +273,12 @@ sub new {
         $self->{$k} = $v if defined $v;
     }
     bless $self, ref($class) || $class;
+
+    # Fast_io is enabled by default when not given a socket
+    unless ( exists $self->{Fast_io} || $self->{Socket} || $self->{Rawsocket} )
+    {
+        $self->{Fast_io} = 1;
+    }
 
     if ( my $sup = $self->{Supportedflags} ) {    # unpack into case-less HASH
         my %sup = map { m/^\\?(\S+)/ ? lc $1 : () } @$sup;
@@ -299,7 +304,10 @@ sub new {
         $self->RawSocket($sock) unless $self->{Socket};
     }
 
-    !$self->{Socket} && $self->{Server} ? $self->connect : $self;
+    if ( !$self->{Socket} && $self->{Server} ) {
+        $self->connect or return undef;
+    }
+    return $self;
 }
 
 sub connect(@) {
@@ -309,7 +317,7 @@ sub connect(@) {
     %$self = ( %$self, @_ ) if @_;
 
     my $server  = $self->Server;
-    my $port    = $self->Port;
+    my $port    = $self->Port || $self->Port( $self->Ssl ? "993" : "143" );
     my @timeout = $self->Timeout ? ( Timeout => $self->Timeout ) : ();
     my $sock;
 
@@ -323,27 +331,28 @@ sub connect(@) {
     }
     else {
         my $ioclass = "IO::Socket::INET";
-        if ( $self->Ssl ) {
-            $ioclass = $self->_load_module("SSL") or return undef;
-        }
+        $ioclass = $self->_load_module("SSL") if ( $self->Ssl );
 
-        $self->_debug("Connecting via $ioclass to $server:$port @timeout");
-        $sock = $ioclass->new(
-            PeerAddr => $server,
-            PeerPort => $port,
-            Proto    => 'tcp',
-            Debug    => $self->Debug,
-            @timeout
-        );
+        if ($ioclass) {
+            $self->_debug("Connecting via $ioclass to $server:$port @timeout");
+            $sock = $ioclass->new(
+                PeerAddr => $server,
+                PeerPort => $port,
+                Proto    => 'tcp',
+                Debug    => $self->Debug,
+                @timeout
+            );
+        }
     }
 
-    unless ($sock) {
+    if ($sock) {
+        $self->_debug( "Connected to $server" . ( $! ? " errno($!)" : "" ) );
+        return $self->Socket($sock);
+    }
+    else {
         $self->LastError("Unable to connect to $server: $@");
         return undef;
     }
-
-    $self->_debug( "Connected to $server" . ( $! ? " errno($!)" : "" ) );
-    $self->Socket($sock);
 }
 
 sub RawSocket(;$) {
@@ -357,7 +366,7 @@ sub RawSocket(;$) {
     delete $self->{_fcntl};
     $self->Fast_io( $self->Fast_io );
 
-    $sock;
+    return $sock;
 }
 
 sub Socket($) {
@@ -387,7 +396,11 @@ sub Socket($) {
         $self->starttls or return undef;
     }
 
-    $self->User && $self->Password ? $self->login : $self;
+    if ( defined $self->User && defined $self->Password ) {
+        $self->login or return undef;
+    }
+
+    return $self->{Socket};
 }
 
 # RFC2595 section 3.1
@@ -418,7 +431,7 @@ sub starttls {
     # give caller control of args to start_SSL if desired
     my @sslargs =
         ( $self->Starttls and ref( $self->Starttls ) eq "ARRAY" )
-      ? ( @${ $self->Starttls } )
+      ? ( @{ $self->Starttls } )
       : ( Timeout => 30 );
 
     unless ( $ioclass->start_SSL( $sock, @sslargs ) ) {
@@ -432,30 +445,129 @@ sub starttls {
     return $self;
 }
 
+# RFC4978 COMPRESS
+sub compress {
+    my ($self) = @_;
+
+    # BUG? strict check on capability commented out for now...
+    #my $can = $self->has_capability("COMPRESS")
+    #return undef unless $can and $can eq "DEFLATE";
+
+    $self->_imap_command("COMPRESS DEFLATE") or return undef;
+
+    my $zcl = $self->_load_module("Compress-Zlib") or return undef;
+
+    # give caller control of args if desired
+    $self->Compress(
+        [
+            -WindowBits => -$zcl->MAX_WBITS(),
+            -Level      => $zcl->Z_BEST_SPEED()
+        ]
+    ) unless ( $self->Compress and ref( $self->Compress ) eq "ARRAY" );
+
+    my ( $rc, $do, $io );
+
+    ( $do, $rc ) = Compress::Zlib::deflateInit( @{ $self->Compress } );
+    unless ( $rc == $zcl->Z_OK ) {
+        $self->LastError("deflateInit failed (rc=$rc)");
+        return undef;
+    }
+
+    ( $io, $rc ) =
+      Compress::Zlib::inflateInit( -WindowBits => -$zcl->MAX_WBITS() );
+    unless ( $rc == $zcl->Z_OK ) {
+        $self->LastError("inflateInit failed (rc=$rc)");
+        return undef;
+    }
+
+    $self->{Prewritemethod} = sub {
+        my ( $imap, $string ) = @_;
+
+        my ( $rc, $out1, $out2 );
+        ( $out1, $rc ) = $do->deflate($string);
+        ( $out2, $rc ) = $do->flush( $zcl->Z_PARTIAL_FLUSH() )
+          unless ( $rc != $zcl->Z_OK );
+
+        unless ( $rc == $zcl->Z_OK ) {
+            $self->LastError("deflate/flush failed (rc=$rc)");
+            return undef;
+        }
+
+        return $out1 . $out2;
+    };
+
+    # need to retain some state for Readmoremethod/Readmethod calls
+    my ( $Zbuf, $Ibuf ) = ( "", "" );
+
+    $self->{Readmoremethod} = sub {
+        my $self = shift;
+        return 1 if ( length($Zbuf) || length($Ibuf) );
+        $self->__read_more(@_);
+    };
+
+    $self->{Readmethod} = sub {
+        my ( $imap, $fh, $buf, $len, $off ) = @_;
+
+        # get more data, but empty $Ibuf first if any data is left
+        my ( $lz, $li ) = ( length $Zbuf, length $Ibuf );
+        if ( $lz || !$li ) {
+            my $ret = sysread( $fh, $Zbuf, $len, length $Zbuf );
+            $lz = length $Zbuf;
+            return $ret if ( !$ret && !$lz );    # $ret is undef or 0
+        }
+
+        # accummulate inflated data in $Ibuf
+        if ($lz) {
+            my ( $tbuf, $rc ) = $io->inflate( \$Zbuf );
+            unless ( $rc == $zcl->Z_OK ) {
+                $self->LastError("inflate failed (rc=$rc)");
+                return undef;
+            }
+            $Ibuf .= $tbuf;
+        }
+
+        # pull desired length of data from $Ibuf
+        my $tbuf = substr( $Ibuf, 0, $len );
+        substr( $Ibuf, 0, $len ) = "";
+        substr( $$buf, $off ) = $tbuf;
+
+        return length $tbuf;
+    };
+
+    return $self;
+}
+
 sub login {
     my $self = shift;
     my $auth = $self->Authmechanism;
-    return $self->authenticate( $auth, $self->Authcallback )
-      if $auth && $auth ne 'LOGIN';
 
-    my $passwd = $self->Password;
-    my $id     = $self->User;
+    if ( $auth && $auth ne 'LOGIN' ) {
+        $self->authenticate( $auth, $self->Authcallback )
+          or return undef;
+    }
+    else {
+        my $passwd = $self->Password;
+        my $id     = $self->User;
 
-    return undef unless ( defined($passwd) and defined($id) );
+        return undef unless ( defined($passwd) and defined($id) );
 
-    # BUG: should use Quote() with $passwd and $id
-    if ( $passwd eq "" or $passwd =~ m/\W/ ) {
-        $passwd =~ s/(["\\])/\\$1/g;
-        $passwd = qq("$passwd");
+        # BUG: should use Quote() with $passwd and $id
+        if ( $passwd eq "" or $passwd =~ m/\W/ ) {
+            $passwd =~ s/(["\\])/\\$1/g;
+            $passwd = qq("$passwd");
+        }
+
+        $id = qq("$id") if $id !~ /^".*"$/;
+
+        $self->_imap_command("LOGIN $id $passwd")
+          or return undef;
     }
 
-    $id = qq("$id") if $id !~ /^".*"$/;
-
-    $self->_imap_command("LOGIN $id $passwd")
-      or return undef;
-
     $self->State(Authenticated);
-    $self;
+    if ( $self->Compress ) {
+        $self->compress or return undef;
+    }
+    return $self;
 }
 
 sub noop {
@@ -557,7 +669,7 @@ sub _folders_or_subscribed {
         {
             my @list;
             if ($what) {
-                my $sep = $self->separator($what);
+                my $sep = $self->separator($what) || $self->separator(undef);
                 last unless defined $sep;
 
                 my $whatsub = $what =~ m/\Q${sep}\E$/ ? "$what*" : "$what$sep*";
@@ -566,8 +678,10 @@ sub _folders_or_subscribed {
                 shift @$tref;    # remove command
                 push @list, @$tref;
 
-                my $exists = $self->exists($what) or last;
-                if ($exists) {
+                # BUG?: this behavior has been around since 2.x, why?
+                my $cansel = $self->selectable($what);
+                last unless defined $cansel;
+                if ($cansel) {
                     $tref = $self->$method( undef, $what ) or last;
                     shift @$tref;    # remove command
                     push @list, @$tref;
@@ -1051,16 +1165,32 @@ sub reconnect {
 
     if ( $self->IsAuthenticated ) {
         $self->_debug("reconnect called but already authenticated");
-        return $self;
+        return 1;
+    }
+
+    # safeguard from deep recursion via connect
+    if ( $self->{_doing_reconnect} ) {
+        $self->_debug("recursive call to reconnect, returning 0\n");
+        $self->LastError("unexpected reconnect recursion")
+          unless $self->LastError;
+        return 0;
     }
 
     my $einfo = $self->LastError || "";
     $self->_debug( "reconnecting to ", $self->Server, ", last error: $einfo" );
+    $self->{_doing_reconnect} = 1;
 
     # reconnect and select appropriate folder
-    $self->connect or return undef;
+    my $ret;
+    if ( $self->connect ) {
+        $ret = 1;
+        if ( defined $self->Folder ) {
+            $ret = defined( $self->select( $self->Folder ) ) ? 1 : undef;
+        }
+    }
 
-    return ( defined $self->Folder ) ? $self->select( $self->Folder ) : $self;
+    delete $self->{_doing_reconnect};
+    return $ret ? 1 : $ret;
 }
 
 # wrapper for _imap_command_do to enable retrying on lost connections
@@ -1091,11 +1221,15 @@ sub _imap_command {
                 # BUG? reconnect if caller ignored/missed earlier errors?
                 # or $self->LastError =~ /NO not connected/
               );
-            if ( $self->reconnect ) {
-                $self->_debug("reconnect successful on try #$tries");
+            my $ret = $self->reconnect;
+            if ($ret) {
+                $self->_debug("reconnect success($ret) on try #$tries/$retry");
+            }
+            elsif ( defined $ret and $ret == 0 ) {    # escaping recursion
+                return undef;
             }
             else {
-                $self->_debug("reconnect failed on try #$tries");
+                $self->_debug("reconnect failure on try #$tries/$retry");
                 push( @err, $self->LastError ) if $self->LastError;
             }
         }
@@ -1340,10 +1474,10 @@ sub _send_bytes($) {
 
     local $SIG{PIPE} = 'IGNORE';    # handle SIGPIPE as normal error
 
+    my $socket = $self->Socket;
     while ( $total < length $$byteref ) {
         my $written =
-          syswrite( $self->Socket, $$byteref, length($$byteref) - $total,
-            $total );
+          syswrite( $socket, $$byteref, length($$byteref) - $total, $total );
 
         if ( defined $written ) {
             $temperrs = 0;
@@ -1364,7 +1498,8 @@ sub _send_bytes($) {
 
         # Unconnected might be apropos for more than just these?
         my $emsg = $! ? "$!" : "no error caught";
-        $self->State(Unconnected) if ( $! == EPIPE or $! == ECONNRESET );
+        $self->State(Unconnected)
+          if ( $! == EPIPE or $! == ECONNRESET or $! == EBADF );
         $self->LastError("Write failed '$emsg'");
 
         return undef;    # no luck
@@ -1621,6 +1756,12 @@ sub _sysread {
 
 sub _read_more {
     my $self = shift;
+    my $rm   = $self->Readmoremethod;
+    $rm ? $rm->( $self, @_ ) : $self->__read_more(@_);
+}
+
+sub __read_more {
+    my $self = shift;
     my $opt = ref( $_[0] ) eq "HASH" ? shift : {};
     my ( $socket, $timeout ) = @_;
 
@@ -1756,7 +1897,7 @@ sub _disconnect {
         local ($@);    # avoid stomping on global $@
         eval { $sock->close };
     }
-    $self;
+    return $self;
 }
 
 # LIST/XLIST/LSUB Response
@@ -2710,8 +2851,8 @@ sub is_parent {
 
 sub selectable {
     my ( $self, $f ) = @_;
-    my $info = $self->list( "", $f );
-    defined $info ? not( grep /NoSelect/i, @$info ) : undef;
+    my $info = $self->list( "", $f ) or return undef;
+    return not( grep /\b\\Noselect\b/i, @$info );
 }
 
 # append( $self, $folder, $text [, $optmsg] )
@@ -2992,6 +3133,7 @@ sub authenticate {
                     : ( "", $client->User ),
                     defined $client->Password ? $client->Password : "",
                 ),
+                ''
             );
         };
     }
@@ -3248,6 +3390,19 @@ sub unseen_count {
 
     $r =~ s/\D//g;
     return $r;
+}
+
+sub State($) {
+    my ( $self, $state ) = @_;
+
+    if ( defined $state ) {
+        $self->{State} = $state;
+
+        # discard cached capability info after authentication
+        delete $self->{CAPABILITY} if ( $state == Authenticated );
+    }
+
+    return defined( $self->{State} ) ? $self->{State} : Unconnected;
 }
 
 sub Status          { shift->State }
