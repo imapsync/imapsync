@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.476 $
+$Revision: 1.480 $
 
 =head1 SYNOPSIS
 
@@ -354,9 +354,10 @@ Success stories reported with the following 44 imap servers
 (software names are in alphabetic order): 
 
  - 1und1 H mimap1 84498 [host1]
- - a1.net imap.a1.net IMAP4 Ready WARSBL614 00029c23 [host1]
+ - a1.net imap.a1.net IMAP4 Ready [host1]
  - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
    (OSL 3.0) http://www.archiveopteryx.org/
+ - Axigen Mail Server Version 8.0.0
  - BincImap 1.2.3 (GPL) (http://www.bincimap.org/)
  - CommuniGatePro server (Redhat 8.0) (Solaris), CommuniGate Pro 5.2.17[host2] (CentOS 5.4)
  - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
@@ -518,7 +519,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.476 2011/12/10 01:33:50 gilles Exp gilles $
+$Id: imapsync,v 1.480 2012/01/08 05:11:03 gilles Exp gilles $
 
 =cut
 
@@ -627,13 +628,14 @@ my(
 	$usecache, $debugcache, $cacheaftercopy,
 	$wholeheaderifneeded, %h1_msgs_copy_by_uid, $useuid, $h2_uidguess,
         $addheader,
+        %h1, %h2,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.476 2011/12/10 01:33:50 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.480 2012/01/08 05:11:03 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -728,8 +730,8 @@ check_lib_version() or
 exit_clean(0) if ($justbanner);
 
 # By default, 1000 at a time, not more.
-$split1 ||= 500;
-$split2 ||= 500;
+$split1 ||= 100;
+$split2 ||= 100;
 
 $host1 || missing_option("--host1") ;
 $port1 ||= (defined $ssl1 and !defined $tls1) ? 993 : 143;
@@ -1120,17 +1122,18 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         my $h1_msgs_all_hash_ref = {  } ;
 	my @h1_msgs = select_msgs( $imap1, $h1_msgs_all_hash_ref );
 
-	( $debug or $debugLIST ) and print "Host1 LIST: ", scalar( @h1_msgs ), " messages [@h1_msgs]\n" ;
-	#( $debug or $debugLIST ) and print "Host1 LIST: ", scalar( @$h1_msgs_all_ref ), " messages [@$h1_msgs_all_ref]\n" ;
-	# internal dates on host2 are after the ones on host1
-	# normally...
+        my $h1_msgs_nb = scalar( @h1_msgs ) ;
+        $h1{ $h1_fold }{ 'messages_nb' } = $h1_msgs_nb ;
+
+	( $debug or $debugLIST ) and print "Host1 LIST: $h1_msgs_nb messages [@h1_msgs]\n" ;
         
         my $h2_msgs_all_hash_ref = {  } ;
 	my @h2_msgs = select_msgs( $imap2, $h2_msgs_all_hash_ref ) ;
 	
-	( $debug or $debugLIST ) and print "Host2 LIST: ", scalar(@h2_msgs), " messages [@h2_msgs]\n";
-        #( $debug or $debugLIST ) and print "Host2 LIST ALL: ", scalar( keys %$h2_msgs_all_hash_ref ), " messages [", 
-        #  join( ' ', keys( %$h2_msgs_all_hash_ref ) ), "]\n" ;
+        my $h2_msgs_nb = scalar( @h2_msgs ) ;
+        $h2{ $h2_fold }{ 'messages_nb' } = $h2_msgs_nb ;
+
+	( $debug or $debugLIST ) and print "Host2 LIST: $h2_msgs_nb messages [@h2_msgs]\n";
         
 	my $cache_base = "$tmpdir/imapsync_cache/$host1/$user1/$host2/$user2";
 	my $cache_dir = cache_folder( $cache_base, $h1_fold, $h2_fold );
@@ -1204,7 +1207,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		my $rc = parse_header_msg($imap1, $m, $h1_heads_ref, $h1_fir_ref, 'Host1', \%h1_hash);
 		if (! defined($rc)) {
 			my $h1_size = $h1_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
-			print "Host1 $h1_fold/$m size $h1_size ignored (no header so we ignore this message)\n";
+			print "Host1 $h1_fold/$m size $h1_size ignored (no wanted headers so we ignore this message)\n" ;
 			$total_bytes_skipped += $h1_size;
 			$nb_msg_skipped += 1;
 			$h1_nb_msg_noheader +=1;
@@ -1218,8 +1221,11 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 			$h1_nb_msg_duplicate += 1;
 		}
 	}
+        my $h1_msgs_duplicate_nb = scalar( @h1_msgs_duplicate ) ;
+        $h1{ $h1_fold }{ 'duplicates_nb' } = $h1_msgs_duplicate_nb ;
+        
+        $debug and print "Host1 selected: $h1_msgs_nb  duplicates: $h1_msgs_duplicate_nb\n" ;
 	$debug and print "Host1 whole time parsing headers took ", timenext(), " s\n";
-	$debug and print "\n";
         
 	$debug and print "Host2 parsing headers of folder [$h2_fold]\n";
         
@@ -1238,7 +1244,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		my $rc = parse_header_msg($imap2, $m, $h2_heads_ref, $h2_fir_ref, 'Host2', \%h2_hash);
 		my $h2_size = $h2_fir_ref->{$m}->{"RFC822.SIZE"} || 0;
 		if (! defined($rc)) {
-                        print "Host2 $h2_fold/$m size $h2_size ignored (no header so we ignore this message)\n";
+                        print "Host2 $h2_fold/$m size $h2_size ignored (no wanted headers so we ignore this message)\n" ;
 			$h2_nb_msg_noheader += 1 ;
 		} elsif(0 == $rc) {
 			# duplicate
@@ -1247,6 +1253,10 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 			push(@h2_msgs_duplicate, $m);
 		}
 	}
+        my $h2_msgs_duplicate_nb = scalar( @h2_msgs_duplicate ) ;
+        $h2{ $h2_fold }{ 'duplicates_nb' } = $h2_msgs_duplicate_nb ;
+        
+        $debug and print "Host2 selected: $h2_msgs_nb  duplicates: $h2_msgs_duplicate_nb\n" ;
 	$debug and print "Host2 whole time parsing headers took ", timenext(), " s\n";
 
 	$debug and print "++++ Verifying [$h1_fold] -> [$h2_fold]\n";
@@ -1318,7 +1328,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	}
 
 	my $h2_uidnext = $imap2->uidnext( $h2_fold ) ;
-        $debug and print "uidnext h2: $h2_uidnext\n" ;
+        $debug and print "Host2 uidnext: $h2_uidnext\n" ;
 	$h2_uidguess = $h2_uidnext ;
 	MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
 		my $h1_size  = $h1_hash{$m_id}{'s'};
@@ -1333,7 +1343,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		else{
 		        # already on host2
 			my $h2_msg   = $h2_hash{$m_id}{'m'} ;
-			$debug and print "msg   $h1_fold/$h1_msg equals $h2_fold/$h2_msg\n" ;
+			$debug and print "Host1 found msg $h1_fold/$h1_msg equals Host2 $h2_fold/$h2_msg\n" ;
 			$total_bytes_skipped += $h1_size ;
 			$nb_msg_skipped += 1 ;
 			$debugcache and print "touch $cache_dir/${h1_msg}_$h2_msg\n"  if ( $usecache ) ;
@@ -1348,9 +1358,9 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	    	# Good
 		my $h2_size = $h2_hash{$m_id}{'s'};
 		$debug and print
-		"msg   $h1_fold/$h1_msg sizes $h1_size <> $h2_size $h2_fold/$h2_msg\n";
+		"Host1 size  msg $h1_fold/$h1_msg = $h1_size <> $h2_size = Host2 $h2_fold/$h2_msg\n";
 		if( $delete ) {
-			print "msg   $h1_fold/$h1_msg deleted on host1\n";
+			print "Host1 msg $h1_fold/$h1_msg deleted\n";
 			unless( $dry ) {
 				$imap1->delete_message( $h1_msg );
 				$h1_nb_msg_deleted += 1;
@@ -1403,7 +1413,7 @@ sub size_filtered_flag {
 
 sub sync_flags {
 	my ( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) = @_ ;
-	$debug and print "flags $h1_fold/$h1_msg -> $h2_fold/$h2_msg\n";
+	$debug and print "Host1 flags $h1_fold/$h1_msg -> Host2 $h2_fold/$h2_msg\n";
 
 	my $h1_size = $h1_fir_ref->{$h1_msg}->{"RFC822.SIZE"} ;
 	return() if size_filtered_flag( $h1_size ) ;
@@ -1413,7 +1423,7 @@ sub sync_flags {
 	my $h2_flags = $h2_fir_ref->{ $h2_msg }->{ "FLAGS" } || '' ;
 
 	( $debug or $debugflags ) and 
-        print "init msg h1 $h1_fold/$h1_msg flags( $h1_flags ) h2 $h2_fold/$h2_msg flags( $h2_flags )\n" ;
+        print "Host1 flags init msg $h1_fold/$h1_msg flags( $h1_flags ) Host2 $h2_fold/$h2_msg flags( $h2_flags )\n" ;
 
 	# RFC 2060: This flag can not be altered by any client
 	$h1_flags =~ s@\\Recent\s?@@gi ;
@@ -1427,16 +1437,16 @@ sub sync_flags {
 	my $diff = compare_lists( \@h1_flags, \@h2_flags );
 
 	#$diff = 1 ;
-	( $debug or $debugflags ) and print "filt msg h1 $h1_fold/$h1_msg flags( $h1_flags ) h2 $h2_fold/$h2_msg flags( $h2_flags )\n" ;
+	( $debug or $debugflags ) and print "Host1 flags filt msg $h1_fold/$h1_msg flags( $h1_flags ) Host2 $h2_fold/$h2_msg flags( $h2_flags )\n" ;
 	$diff and ( $debug or $debugflags ) 
-		and     print "msg $h2_fold/$h2_msg replacing h2 flags( $h2_flags ) with h1 flags( $h1_flags )\n";
+		and     print "Host2 flags msg $h2_fold/$h2_msg replacing h2 flags( $h2_flags ) with h1 flags( $h1_flags )\n";
 	# This sets flags so flags can be removed with this
 	# When you remove a \Seen flag on host1 you want to it
 	# to be removed on host2. Just add flags is not what 
 	# we need most of the time.
 	
 	if ( ! $dry and $diff and ! $imap2->store( $h2_msg, "FLAGS.SILENT (@h1_flags)" ) ) {
-		print "- msg $h2_fold/$h2_msg could not add flags [@h1_flags]: ",
+		print "Host2 flags msg $h2_fold/$h2_msg could not add flags [@h1_flags]: ",
 		  $imap2->LastError, "\n";
 		#$nb_errors++;
 	}
@@ -1845,8 +1855,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.476 $ ',
-		  '$Date: 2011/12/10 01:33:50 $ ',
+		  '$Revision: 1.480 $ ',
+		  '$Date: 2012/01/08 05:11:03 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -3498,7 +3508,7 @@ sub parse_header_msg {
 	my $headstr;
 	
 	if ( ( ! $headnum ) and ( $wholeheaderifneeded ) ){
-		print "$s uid $m_uid no header by classic way so taking whole header\n";
+		print "$s uid $m_uid no header by parse_headers so taking whole header with BODY.PEEK[HEADER]\n" ;
 		$imap->fetch($m_uid, "BODY.PEEK[HEADER]");
 		my $whole_header = $imap->_transaction_literals;
 		
@@ -3633,7 +3643,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.476 2011/12/10 01:33:50 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.480 2012/01/08 05:11:03 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
