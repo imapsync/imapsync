@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.484 $
+$Revision: 1.487 $
 
 =head1 SYNOPSIS
 
@@ -519,7 +519,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.484 2012/02/07 00:19:33 gilles Exp gilles $
+$Id: imapsync,v 1.487 2012/02/29 05:29:21 gilles Exp gilles $
 
 =cut
 
@@ -636,7 +636,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.484 2012/02/07 00:19:33 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.487 2012/02/29 05:29:21 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -1377,7 +1377,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		my $h2_msg = $cache_1_2_ref->{ $h1_msg } ;
 		$debugcache and print "cache messages update flags $h1_msg->$h2_msg\n";
 		sync_flags( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
-		my $h1_size = $h1_fir_ref->{ $h1_msg }->{ 'RFC822.SIZE' } ;
+		my $h1_size = $h1_fir_ref->{ $h1_msg }->{ 'RFC822.SIZE' } || 0 ;
 		$total_bytes_skipped += $h1_size;
 		$nb_msg_skipped += 1;
 	}
@@ -1399,7 +1399,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		unless($dry) { $imap2->expunge() };
 	}
 
-$debug and print "Time: ", timenext(), " s\n";
+	$debug and print "Time: ", timenext(), " s\n";
 }
 
 sub total_bytes_max_reached {
@@ -1868,8 +1868,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.484 $ ',
-		  '$Date: 2012/02/07 00:19:33 $ ',
+		  '$Revision: 1.487 $ ',
+		  '$Date: 2012/02/29 05:29:21 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2874,14 +2874,18 @@ sub tests_cache_map {
 }
 
 
-sub get_cache {
+sub get_cache { 
 	$debugcache and print "Entering get_cache\n";
 	my ( $cache_dir, $h1_msgs_ref, $h2_msgs_ref, $h1_msgs_all_hash_ref, $h2_msgs_all_hash_ref ) = @_;
 
 	-d $cache_dir or return( undef ); # exit if cache directory doesn't exist
-	$debugcache and print "cache_dir: $cache_dir\n";
+	$debugcache and print "cache_dir    : $cache_dir\n";
 	
-	$cache_dir =~ s{\\}{\\\\}g;
+	#$cache_dir =~ s{\\}{\\\\}g;
+        $cache_dir =~ s/([;<>\*\|`&\$!#\(\)\[\]\{\}:'"\\])/\\$1/g ;
+
+	$debugcache and print "cache_dir fix: $cache_dir\n";
+        
 	my @cache_files = bsd_glob( "$cache_dir/*" ) ;
 	#$debugcache and print "cache_files: [@cache_files]\n";
 	
@@ -3312,7 +3316,7 @@ sub stats {
 	my $timestart_str = localtime( $timestart ) ;
 	my $timeend_str   = localtime( $timeend ) ;
         
-	my $memory_consumption = memory_consumption();
+	my $memory_consumption = memory_consumption(  ) || 0 ;
 	my $memory_ratio = ($max_msg_size_in_bytes) ?  
 		sprintf('%.1f', $memory_consumption / $max_msg_size_in_bytes) : "NA";
 
@@ -3345,7 +3349,7 @@ sub stats {
 	print   "Reconnections to host2            : $host2_reconnect_count\n";
 	printf ("Memory consumption                : %.1f MB\n", $memory_consumption / 1024 / 1024);
 	print   "Biggest message                   : $max_msg_size_in_bytes bytes\n";
-	print   "Memory/biggest message ratio      : $memory_ratio\n";
+#	print   "Memory/biggest message ratio      : $memory_ratio\n";
 	print   "Detected $nb_errors errors\n\n";
 
 	print   $warn_release, "\n";
@@ -3670,7 +3674,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.484 2012/02/07 00:19:33 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.487 2012/02/29 05:29:21 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3973,7 +3977,7 @@ EOF
 
 sub memory_consumption {
 	# memory consumed by imapsync until now in bytes
-	return((memory_consumption_of_pids())[0]);
+	return( ( memory_consumption_of_pids(  ) )[0] );
 }
 
 sub memory_consumption_of_pids {
@@ -4253,16 +4257,16 @@ sub list_folders_in_2_not_in_1 {
 	return( reverse @h2_folders_not_in_1 );
 }
 
-sub delete_folders_in_2_not_in_1 {
+sub delete_folders_in_2_not_in_1 { 
 
 	my $dry_message = '';
 	$dry_message = "\t(not really since --dry mode)" if $dry;
 	foreach my $folder (@h2_folders_not_in_1) {
-		if ( defined($delete2foldersonly) and eval("\$folder !~ $delete2foldersonly" ) ) {
+		if ( defined( $delete2foldersonly ) and eval( "\$folder !~ \$delete2foldersonly" ) ) {
 			print "Not deleting $folder because of --delete2foldersonly $delete2foldersonly\n";
 			next;
 		}
-		if ( defined($delete2foldersbutnot) and eval("\$folder =~ $delete2foldersbutnot" ) ) {
+		if ( defined( $delete2foldersbutnot ) and eval( "\$folder =~ \$delete2foldersbutnot" ) ) {
 			print "Not deleting $folder because of --delete2foldersbutnot $delete2foldersbutnot\n";
 			next;
 		}

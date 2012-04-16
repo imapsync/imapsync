@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.47 2012/02/24 12:22:05 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.46 2012/02/24 11:53:06 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -27,7 +27,6 @@ my $total_eur_invoice  = 0 ;
 my $nb_invoice = 0 ;
 my $nb_invoice_refund = 0 ;
 my $nb_invoice_suspended = 0 ;
-my $nb_invoice_canceled = 0 ;
 
 my ( $tests, $testeur ) ;
 my $debug ;
@@ -42,7 +41,6 @@ my $bnc = '' ;
 my $usdeur = 1.2981 ;
 my $invoices ;
 my %invoice_refund ;
-my %invoice_canceled ;
 my %invoice_suspended ;
 my $write_invoices = 0 ;
 my $avoid_numbers ;
@@ -150,10 +148,6 @@ foreach my $invoice ( @invoices_wanted ) {
 my $nb_invoice_sent = scalar( @invoice_sent ) ;
 @invoice_not_sent = sort { $a <=> $b } keys( %invoice_not_sent ) ;
 
-my @invoice_canceled  = sort { $a <=> $b } keys( %invoice_canceled ) ;
-my @invoice_suspended = sort { $a <=> $b } keys( %invoice_suspended ) ;
-my @invoice_refund    = sort { $a <=> $b } keys( %invoice_refund ) ;
-
 print "USD banque   $total_usd_received\n" ;
 print "USD invoice  $total_usd_invoice\n" ;
 my $total_eur_from_usd ;
@@ -180,9 +174,8 @@ print "EUR total TVA         $total_TVA_EUR\n" ;
 print "EUR total HT  sup     $total_HT_EUR_sup\n" ;
 print "EUR total TVA sup     $total_TVA_EUR_sup\n" ;
 print "Nb invoice            $nb_invoice ( from $first_invoice_paypal to $last_invoice )\n" ;
-print "Nb invoice canceled   $nb_invoice_canceled  @invoice_canceled\n" ;
-print "Nb invoice suspended  $nb_invoice_suspended @invoice_suspended\n" ;
-print "Nb invoice refund     $nb_invoice_refund    @invoice_refund\n" ;
+print "Nb invoice refund     $nb_invoice_refund\n" ;
+print "Nb invoice suspended  $nb_invoice_suspended\n" ;
 print "Nb invoice sent       $nb_invoice_sent\n" ;
 print "Have to send invoices @invoice_not_sent\n" if ( @invoice_not_sent ) ;
 
@@ -427,6 +420,7 @@ sub compute_line {
 	and 'EUR' eq $Devise
 	and 'Remboursé' eq $Etat
 	) {
+		#$invoice = $first_invoice + $nb_invoice ;
                 $invoice = next_invoice(  ) ;
 		$nb_invoice++ ;
 		$nb_invoice_refund++;
@@ -438,21 +432,9 @@ sub compute_line {
 	if (
 	'Paiement sur site marchand reçu' eq $Type
 	and 'EUR' eq $Devise
-	and 'Annulé' eq $Etat
-	) {
-                $invoice = next_invoice(  ) ;
-		$nb_invoice++ ;
-		$nb_invoice_canceled++;
-		$invoice_canceled{ $invoice }++ ;
-		
-		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
-	}
-	
-	if (
-	'Paiement sur site marchand reçu' eq $Type
-	and 'EUR' eq $Devise
 	and 'Suspendu' eq $Etat
 	) {
+		#$invoice = $first_invoice + $nb_invoice ;
                 $invoice = next_invoice(  ) ;
 		$nb_invoice++ ;
 		$nb_invoice_suspended++;
@@ -466,6 +448,7 @@ sub compute_line {
 	and 'EUR' eq $Devise
 	and 'Non compensé' eq $Etat
 	) {
+		#$invoice = $first_invoice + $nb_invoice ;
                 $invoice = next_invoice(  ) ;
 		$nb_invoice++ ;
 		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
