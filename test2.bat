@@ -1,5 +1,5 @@
 
-REM $Id: test2.bat,v 1.7 2012/01/08 06:39:12 gilles Exp gilles $
+REM $Id: test2.bat,v 1.8 2012/02/25 14:42:23 gilles Exp gilles $
 
 cd C:\msys\1.0\home\Admin\imapsync
 REM perl ./imapsync --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --user2 titi --passfile2 secret.titi --delete2 --expunge2 --folder INBOX 
@@ -25,4 +25,7 @@ REM --host2 imap.side2.org --user2 %%I --password2 %%J
 
 REM imapsync --host1 p --user1 tata   --passfile1 secret.tata ^
 REM          --host2 p --user2 dollar --password2 "$%%&<>|^"^" --justlogin
+
+imapsync --host1 p --user1 tata   --passfile1 secret.tata ^
+         --host2 p --user2 equal --password2 "==lalala" --justlogin --debugimap2
 
