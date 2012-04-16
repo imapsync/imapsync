@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.97 2011/11/17 22:14:15 gilles Exp gilles $
+# $Id: FAQ,v 1.100 2011/12/10 01:38:36 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -140,6 +140,34 @@ R. Yes, the license permits it
    http://imapsync.lamiral.info/COPYING
 
 =======================================================================
+Q. How can I speed up transfers?
+
+R. By using --useuid imapsync avoid getting messages headers and build
+   a cache. On Unix a good thing is to add also --tmpdir /var/tmp
+   to keep the cache since /tmp is often cleared on reboot.
+
+   imapsync ... --useuid 
+
+R. Add also --nofoldersizes since the default behavior is to compute
+   folder sizes. Folder sizes are useless for the transfer, just 
+   useful to see what has to be done on each folder.
+
+=======================================================================
+Q. I see warning messages like 
+"Host1 Sent/15 size 1428 ignored (no header so we ignore this message)"
+What can I do to transfer those messages?
+
+R1. Use --addheader option, it will add a header like
+   "Message-Id: <15@imapsync>" and transfer the message on host2.
+   Duplicates won't happen in next runs.
+
+   imapsync ... --addheader
+
+R2. Use --useuid then imapsync will avoid dealing with headers.
+
+   imapsync ... --useuid
+
+=======================================================================
 Q. How can I try imapsync with the new Mail::IMAPClient 3.xx perl library?
 
 R. - Download latest Mail::IMAPClient 3.xx at
@@ -270,7 +298,7 @@ Consequences:
 The result is that you can have more messages on host1 than on host2.
 
 R2. With option --useuid imapsync doesn't use headers to identify
-messages on both sides but it uses their imap uid. In than case
+messages on both sides but it uses their imap uid. In that case
 duplicates on host1 are transfered on host2.
 
 =======================================================================
@@ -642,6 +670,41 @@ R2. Use --include '^MyFolder'
 
 
 ======================================================================
+Q. How to migrate from or to Exchange 2003 with an admin/authuser 
+   account?
+
+R. Thomas Edgar wrote the following
+
+In case you can glean something from this snippet which allowed us 
+to migrate from Exchange 2003 t0 Cyrus Imap 2.4 (you would reverse 
+the flow to go the other way):
+
+  imapsync --dry --host1 ExchangeServer.mycompany.com \
+    --user1 Some.User@mycompany.com --authuser1 ExchangeAdminAccount \
+    --proxyauth1 --password1 '$pass_with_dollars$' \
+    --host2 cyrusimapbackend.mycompany.com \
+    --user2 SameOrDiffererentUser@mycompany.com \
+    --authuser2 CyrusAdminAccount --proxyauth2
+
+We also needed to:
+
+- Ensure the Exchange Admin Acct had IMAP4 enabled in it's 
+  profile (it initially didn't!)
+- Ensure the Some.User Exchange Acct had IMAP4 enabled 
+  in it's profile (it initially didn't!)
+- Add the CyrusAdminAccount to admins line in /etc/imapd.conf
+- Give CyrusAdminAccount lrswipkxtecda to the Cyrus Imap account 
+  being migrated to (- or in your case, from)
+
+In case you are not aware:
+
+- It will prompt for a password if you don't supply it
+- the domain part of the fully-qualified email could be 
+  omitted in our case
+- Use --debugimap when testing initial connectivity, if necessary
+
+
+======================================================================
 Q. How to migrate from or to Exchange 2007/2010 with an 
    admin/authuser account?
    
@@ -786,6 +849,9 @@ Q. Give examples about --regextrans2
 
 R. --regextrans2 is used to transform folder names
 
+Remember that --regextrans2 applies after the default 
+inversion prefix1 <-> prefix2 and sep1 <-> sep2
+
 Examples: 
 
 0) First try with --dry --justfolders options since imapsync shows the
@@ -809,15 +875,14 @@ Examples:
    --regextrans2 's#(.*)#FOO/$1#'
    
    or:
-   
-   
+
   c) Any separator, any prefix solution, FOO is the subfolder:
 
   It is a complicated line because every case is taken into account.
   Type it in one line (or with the \ at the end of first line on Unix shells.
    
-   --regextrans2 's,${h1_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
-   --regextrans2 's,^INBOX$,${h2_prefix}NEW${h2_sep}INBOX,'
+   --regextrans2 's,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
+   --regextrans2 's,^INBOX$,${h2_prefix}FOO{h2_sep}INBOX,'
 
 
 3) to substitute all characters dot "." by underscores "_"
