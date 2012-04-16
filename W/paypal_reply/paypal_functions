@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: paypal_functions,v 1.17 2011/05/31 21:26:24 gilles Exp gilles $
+# $Id: paypal_functions,v 1.18 2011/12/02 01:56:55 gilles Exp gilles $
 
 paypal_prerequisites() {
 	perl -mMIME::Lite -e '' || echo 'sudo aptitude install libmime-lite-perl'
@@ -154,7 +154,7 @@ send_reply() {
                 debug_mode && echo "paypal_send $f"
 		test -f "$d_sent/$b" && continue
 		mkdir -p "$d_sent"
-		test X"--send" = X"$1" && paypal_send --send "$f" && touch "$d_sent/$b"
+		test X"--send" = X"$1" && paypal_send --send --subscribe "$f" && touch "$d_sent/$b"
 		#test X"--send" = X"$1" && touch "$d_sent/$b"
 		test X"" = X"$1" && paypal_send "$f" 
 	done

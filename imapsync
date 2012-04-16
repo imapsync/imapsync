@@ -17,10 +17,10 @@
 
 imapsync - IMAP synchronisation, sync, copy or migration tool.
 Synchronise mailboxes between two imap servers.
-Good at IMAP migration. More than 36 different IMAP server softwares
+Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.468 $
+$Revision: 1.476 $
 
 =head1 SYNOPSIS
 
@@ -140,9 +140,7 @@ and the transfer is done only once. All flags are
 preserved, unread will stay unread, read will stay read,
 deleted will stay deleted. You can stop the transfer at any
 time and restart it later, imapsync works well with bad 
-connections. imapsync is CPU hungry so nice and renice 
-commands can be a good help. imapsync can be memory hungry too,
-especially with large messages.
+connections.
 
 You can decide to delete the messages from the source mailbox
 after a successful transfer (it is a good feature when migrating).
@@ -155,6 +153,12 @@ real world scenario for the combinaison --delete --noexpunge).
 You can also just synchronize a mailbox A from another mailbox B
 in case you just want to keep a "live" copy of B in A (--delete2
 may help)
+
+imapsync is not adequate for maintaining two active imap accounts 
+in synchronization where the user plays independently on both sides.
+Use offlineimap (written by John Goerzen) or mbsync (written by 
+Michael R. Elkins) for 2 ways synchronizations.
+
 
 =head1 OPTIONS
 
@@ -496,28 +500,25 @@ Entries for imapsync:
 =head1 SIMILAR SOFTWARES
 
   imap_tools    : http://www.athensfbc.com/imap_tools
-  offlineimap   : http://software.complete.org/offlineimap
+  offlineimap   : https://github.com/nicolas33/offlineimap
+  mbsync        : http://isync.sourceforge.net/
   mailsync      : http://mailsync.sourceforge.net/
-  imapxfer      : http://www.washington.edu/imap/
-                   part of the imap-utils from UW.
-  mailutil      : replace imapxfer in 
-                   part of the imap-utils from UW.
-                  http://www.gsp.com/cgi-bin/man.cgi?topic=mailutil
+  mailutil      : http://www.washington.edu/imap/
+                  part of the UW IMAP tookit.
   imaprepl      : http://www.bl0rg.net/software/
-                  http://freshmeat.net/projects/imap-repl/
-  imap_migrate  : http://freshmeat.net/projects/imapmigration/
+                  http://freecode.com/projects/imap-repl/
   imapcopy      : http://home.arcor.de/armin.diehl/imapcopy/imapcopy.html
   migrationtool : http://sourceforge.net/projects/migrationtool/
   imapmigrate   : http://sourceforge.net/projects/cyrus-utils/
   wonko_imapsync: http://wonko.com/article/554
-                  see also tools/wonko_ruby_imapsync
-  isync         : http://isync.sourceforge.net/
+                  see also file W/tools/wonko_ruby_imapsync
+  exchange-away : http://exchange-away.sourceforge.net/
   pop2imap      : http://www.linux-france.org/prj/pop2imap/
 
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.468 2011/11/18 01:23:37 gilles Exp gilles $
+$Id: imapsync,v 1.476 2011/12/10 01:33:50 gilles Exp gilles $
 
 =cut
 
@@ -571,7 +572,7 @@ my(
         @folder, @include, @exclude, @folderrec,
         $prefix1, $prefix2, 
         @regextrans2, @regexmess, @regexflag,
-	$flagsCase,
+	$flagsCase, $filterflags,
         $sep1, $sep2,
 	$syncinternaldates,
         $idatefromheader,
@@ -625,13 +626,14 @@ my(
 	$delete2folders, $delete2foldersonly, $delete2foldersbutnot,
 	$usecache, $debugcache, $cacheaftercopy,
 	$wholeheaderifneeded, %h1_msgs_copy_by_uid, $useuid, $h2_uidguess,
+        $addheader,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.468 2011/11/18 01:23:37 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.476 2011/12/10 01:33:50 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -695,6 +697,9 @@ $wholeheaderifneeded  = defined( $wholeheaderifneeded )  ? $wholeheaderifneeded 
 # turn on RFC standard flags correction like \SEEN -> \Seen
 $flagsCase = defined( $flagsCase ) ? $flagsCase : 1 ;
 
+# Use PERMANENTFLAGS if available
+$filterflags = defined( $filterflags ) ? $filterflags : 1 ;
+
 # turn on relogin 5 by default
 $relogin1 = defined( $relogin1 ) ? $relogin1 : 5 ;
 $relogin2 = defined( $relogin2 ) ? $relogin2 : 5 ;
@@ -723,8 +728,8 @@ check_lib_version() or
 exit_clean(0) if ($justbanner);
 
 # By default, 1000 at a time, not more.
-$split1 ||= 1000;
-$split2 ||= 1000;
+$split1 ||= 500;
+$split2 ||= 500;
 
 $host1 || missing_option("--host1") ;
 $port1 ||= (defined $ssl1 and !defined $tls1) ? 993 : 143;
@@ -848,7 +853,7 @@ $fastio2 = (defined($fastio2)) ? $fastio2 : 0;
 $reconnectretry1 = (defined($reconnectretry1)) ? $reconnectretry1 : 3;
 $reconnectretry2 = (defined($reconnectretry2)) ? $reconnectretry2 : 3;
 
-@useheader = ( "Message-Id", "Message-ID", "Date" ) unless ( @useheader ) ;
+@useheader = ( "Message-Id", "Message-ID", "Received" ) unless ( @useheader ) ;
 
 my %useheader ;
 
@@ -1188,7 +1193,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	$debug and print "Host1 getting flags idate and sizes of folder [$h1_fold] took ", timenext(), " s\n";
 	unless ($h1_fir_ref) {
 		print
-		"Host1 folder $h1_fold: Could not fetch_hash_2 ",
+		"Host1 folder $h1_fold: Could not fetch_hash ",
 		scalar(@h1_msgs), " msgs: ", $imap1->LastError, "\n";
 		$nb_errors++;
 		next FOLDER;
@@ -1223,7 +1228,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	$debug and print "Host2 parsing headers of folder [$h2_fold] took ", timenext(), " s\n" ;
 
 	$debug and print "Host2 getting flags idate and sizes of folder [$h2_fold]\n" ;
-	@$h2_fir_ref{@h2_msgs} = (  ); # fetch_hash_2 can select by uid with last arg as ref
+	@$h2_fir_ref{@h2_msgs} = (  ); # fetch_hash can select by uid with last arg as ref
 	$h2_fir_ref   =   $imap2->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE", $h2_fir_ref)
 	  if (@h2_msgs);
 	$debug and print "Host2 getting flags idate and sizes of folder [$h2_fold] took ", timenext(), " s\n" ;
@@ -1407,11 +1412,14 @@ sub sync_flags {
 	my $h1_flags = $h1_fir_ref->{ $h1_msg }->{ "FLAGS" } || '' ;
 	my $h2_flags = $h2_fir_ref->{ $h2_msg }->{ "FLAGS" } || '' ;
 
+	( $debug or $debugflags ) and 
+        print "init msg h1 $h1_fold/$h1_msg flags( $h1_flags ) h2 $h2_fold/$h2_msg flags( $h2_flags )\n" ;
+
 	# RFC 2060: This flag can not be altered by any client
 	$h1_flags =~ s@\\Recent\s?@@gi ;
 	$h1_flags = flags_regex( $h1_flags ) if @regexflag;
 	$h1_flags = flagsCase( $h1_flags ) if $flagsCase ;
-	$h1_flags = flags_filter( $h1_flags, $permanentflags2) if ( $permanentflags2 ) ;
+	$h1_flags = flags_filter( $h1_flags, $permanentflags2) if ( $permanentflags2 and $filterflags ) ;
 	
 	# compare flags - set flags if there a difference
 	my @h1_flags = sort split(' ', $h1_flags );
@@ -1419,7 +1427,7 @@ sub sync_flags {
 	my $diff = compare_lists( \@h1_flags, \@h2_flags );
 
 	#$diff = 1 ;
-	$debugflags and print "msg h1 $h1_fold/$h1_msg flags( $h1_flags ) h2 $h2_fold/$h2_msg flags( $h2_flags )\n" ;
+	( $debug or $debugflags ) and print "filt msg h1 $h1_fold/$h1_msg flags( $h1_flags ) h2 $h2_fold/$h2_msg flags( $h2_flags )\n" ;
 	$diff and ( $debug or $debugflags ) 
 		and     print "msg $h2_fold/$h2_msg replacing h2 flags( $h2_flags ) with h1 flags( $h1_flags )\n";
 	# This sets flags so flags can be removed with this
@@ -1837,8 +1845,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.468 $ ',
-		  '$Date: 2011/11/18 01:23:37 $ ',
+		  '$Revision: 1.476 $ ',
+		  '$Date: 2011/12/10 01:33:50 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2289,7 +2297,7 @@ sub foldersizes {
 	printf ( "Nb messages:     %11s\n", $total_nb ) ;
 	printf ( "Total size:      %11s bytes\n", $total_size ) ;
 	printf ( "Biggest message: %11s bytes\n", $biggest ) ;
-	printf ( "Time:            %11s secondes\n", timenext(  ) ) ;
+	printf ( "Time:            %11s seconds\n", timenext(  ) ) ;
 }
 
 sub timenext {
@@ -2693,6 +2701,11 @@ sub copy_message {
 		$debug and print "header date from host1: [$h1_date] (fixed)\n";
 	}
 
+        if ( $addheader and defined $h1_fir_ref->{$h1_msg}->{"NO_HEADER"} ) {
+                my $header = add_header( $h1_msg ) ;
+                $debug and print "msg $h1_fold/$h1_msg adding custom header [$header]\n" ;
+                $string = $header . "\r\n" . $string ;
+        }
 	# RFC 2060: This flag can not be altered by any client
 	$h1_flags =~ s@\\Recent\s?@@gi;
 	$h1_flags = flags_regex($h1_flags) if @regexflag;
@@ -3260,6 +3273,9 @@ sub stats {
 	$timeend = time();
 	$timediff = $timeend - $timestart;
 
+	my $timestart_str = localtime( $timestart ) ;
+	my $timeend_str   = localtime( $timeend ) ;
+        
 	my $memory_consumption = memory_consumption();
 	my $memory_ratio = ($max_msg_size_in_bytes) ?  
 		sprintf('%.1f', $memory_consumption / $max_msg_size_in_bytes) : "NA";
@@ -3268,6 +3284,8 @@ sub stats {
 	my $host2_reconnect_count = $imap2->Reconnect_counter() || 0;
 
 	print   "++++ Statistics\n";
+	print   "Transfer started on               : $timestart_str\n";
+	print   "Transfer ended on                 : $timeend_str\n";
 	print   "Transfer time                     : $timediff sec\n";
 	print   "Messages transferred              : $nb_msg_transferred ";
 	print   "(could be $nb_msg_skipped_dry_mode without dry mode)" if ($dry);
@@ -3355,6 +3373,7 @@ sub get_options {
 				   "regextrans2=s" => \@regextrans2,
 				   "regexmess=s" => \@regexmess,
 				   "regexflag=s" => \@regexflag,
+				   "filterflags!" => \$filterflags,
 				   "flagsCase!"  => \$flagsCase,
                                    "delete!"     => \$delete,
                                    "delete2!"    => \$delete2,
@@ -3424,6 +3443,7 @@ sub get_options {
                                    "cacheaftercopy!" => \$cacheaftercopy,
 				   "debugcache!" => \$debugcache,
 				   "useuid!"      => \$useuid,
+                                   "addheader!"   => \$addheader,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -3518,6 +3538,13 @@ sub parse_header_msg {
 		}
 	}
 	
+	if ( ( ! $headstr) and ( $addheader ) and ( $s eq "Host1" )){
+        	my $header = add_header( $m_uid ) ;
+		print "Host1 uid $m_uid no header found so adding our own [$header]\n";
+		$headstr .= uc( $header ) ;
+		$s_fir->{$m_uid}->{"NO_HEADER"} = 1;
+	}
+
 	return() if ( ! $headstr );
 	
 	my $size  = $s_fir->{$m_uid}->{"RFC822.SIZE"};
@@ -3606,7 +3633,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.468 2011/11/18 01:23:37 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.476 2011/12/10 01:33:50 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3896,7 +3923,7 @@ sub usage_complete {
 --reconnectretry2 <int>: same as --reconnectretry1 but for host2
 --split1     <int>     : split the requests in several parts on host1.
                          <int> is the number of messages handled per request.
-                         default is like --split1 1000.
+                         default is like --split1 500.
 --split2     <int>     : same thing on host2.
 --timeout     <int>    : imap connect timeout.
 
@@ -4382,12 +4409,24 @@ sub tests_epoch {
         ok( '1282658400' eq epoch( '24-Aug-2010 14:01:00 +0001' ), 'epoch 24-Aug-2010 14:01:00 +0001 -> 1282658400' ) ;
 }
 
+sub add_header {
+	my $uid = shift || 'mistake' ;
+	my $header = 'Message-Id: <' . $uid . '@imapsync>' ;
+        return( $header ) ;
+}
+
+sub tests_add_header {
+	ok( 'Message-Id: <mistake@imapsync>' eq add_header(), 'add_header no arg' ) ;
+	ok( 'Message-Id: <123456789@imapsync>' eq add_header(123456789), 'add_header 123456789' ) ;
+
+}
+
+
 sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-		tests_good_date();
-                tests_epoch(  ) ;
+                tests_add_header(  ) ;
 	}
 }
 

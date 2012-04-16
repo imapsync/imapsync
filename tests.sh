@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.183 2011/11/17 22:13:27 gilles Exp gilles $  
+# $Id: tests.sh,v 1.186 2011/12/10 01:37:20 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -325,7 +325,7 @@ ll_noheader() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.few_emails --useheader ''
+                --folder INBOX.few_emails --useheader '' --debug
 }
 
 ll_noheader_force() {
@@ -337,6 +337,15 @@ ll_noheader_force() {
                 --folder INBOX.few_emails \
 		--useheader '' \
 		--skipheader 'Message-Id|Date'
+}
+
+ll_addheader() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.addheader --delete2 --expunge2 --addheader
 }
 
 
@@ -1083,8 +1092,8 @@ ll_regextrans2_subfolder()
                 --justfolders \
                 --nofoldersize \
                 --folder 'INBOX.yop.yap' \
-                --regextrans2 's,${h1_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' --dry
-
+		--prefix1 'INBOX.yop.' \
+                --regextrans2 's,^${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' --dry
 }
 
 
@@ -1159,6 +1168,20 @@ ll_useheader()
                 --folder INBOX.yop.yap \
                 --useheader 'Message-ID' \
                 --dry --debug   
+                echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+}
+
+
+ll_useheader_Received() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --useheader 'Received' \
+                --dry --debug   --fast
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
@@ -2258,7 +2281,13 @@ exchange_1() {
 	--passfile1 ../../var/pass/secret.tata \
 	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
 	--passfile2 ../../var/pass/secret.ethz.ch \
-	--folder INBOX.oneemail --folder INBOX.few_emails --folder INBOX -maxage 1
+	--folder INBOX.few_emails \
+	--debugflags  \
+	--useheader 'MESSAGE-ID' --delete2 --expunge2 \
+	--nofilterflags \
+
+	#--regexflag 's/\$\w+//g'
+        #-maxage 1
 }
 
 exchange_2() {
@@ -2278,6 +2307,25 @@ exchange_3_delete2() {
 	--passfile2 ../../var/pass/secret.ethz.ch \
 	--folder INBOX.Junk --useuid --delete2
 }
+
+
+exchange_4_useheader_Received() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
+	--passfile2 ../../var/pass/secret.ethz.ch \
+	--folder INBOX.yop.yap \
+	--delete2 --expunge2 \
+	--useheader 'Received'
+
+
+# --useheader 'Received'
+
+	#--regexflag 's/\$\w+//g'
+        #-maxage 1
+}
+
 
 jong_1() {
 $CMD_PERL ./imapsync \
