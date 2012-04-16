@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.89 2011/11/13 08:53:12 gilles Exp gilles $	
+# $Id: Makefile,v 1.90 2012/01/08 06:39:38 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -40,7 +40,7 @@ hello:
 	echo "$(IMAPClient)"
 
 
-all: ChangeLog README VERSION imapsync_elf_x86.bin
+all: ChangeLog README VERSION imapsync_elf_x86.bin imapsync.exe
 
 
 testp :
@@ -281,11 +281,11 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: index.shtml 
+upload_index: index.shtml FAQ
 	validate --verbose index.shtml
 	rcsdiff index.shtml
 	rsync -avH index.shtml root@ks.lamiral.info:/var/www/imapsync/
-	rsync -avH index.shtml \
+	rsync -avH index.shtml FAQ \
 	../../public_html/www.linux-france.org/html/prj/imapsync/
 	sh $(HOME)/memo/lfo-rsync
 

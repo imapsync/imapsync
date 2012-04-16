@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.100 2011/12/10 01:38:36 gilles Exp gilles $
+# $Id: FAQ,v 1.102 2012/01/08 06:40:50 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -138,6 +138,22 @@ Q. Is is legal?
 
 R. Yes, the license permits it
    http://imapsync.lamiral.info/COPYING
+
+=======================================================================
+Q. I use --useuid which uses a cache in /tmp or --tmpdir, the hostnames
+   host1 or host2 has changed but mailboxes are the same. Will imapsync
+   generate duplicate messages on next runs?
+
+R. Yes
+
+Q. How can I fix this?
+
+R. The cache path reflects hostnames or ip adresses, just change the
+   directory names of host1 or host2. Use --dry to see if next runs
+   will generate duplucates.
+   By default the cache is like 
+
+   /tmp/imapsync_cache/host1/user1/host2/user2/...
 
 =======================================================================
 Q. How can I speed up transfers?
@@ -463,29 +479,29 @@ Solution: run imapsync a second time. imapsync synchronizes flags
 on each run.
 
 =======================================================================
-Q. Some passwords contain * and " characters. Login fails.
+Q. On Unix, some passwords contain * and " characters. Login fails.
 R. Use a backslash to escape the characters:
 
-    imapsync --password1 \"password\" 
+    imapsync ... --password1 \"password\" 
 
 It works for the star * character,
 I don't know if it works for the " character.
 
 =======================================================================
-Q. Out of memory on FreeBSD
+Q. On Windows, some passwords contain $ characters. Login fails.
+R1. Enclose passwords between ""
 
-R. http://groups.google.com/group/lucky.freebsd.questions/browse_thread/thread/f4218e4252863328
+    imapsync ... --password1 "zzz$zz$$z"
 
-See the user limit with the command
-    ulimit -a
-To change it, try 
-    ulimit -d 1000000000  
-Also
-http://www.unixadmintalk.com/f41/perl-out-memory-sbrk-9112/
-The default hard datasize limit on FreeBSD is 512MB. To raise it, put this 
-(or more) in /boot/loader.conf and reboot:
+R2. Prefix each $ character with a ^ since ^ is the escape character
+    on Windows
 
-kern.maxdsiz="1024M"
+    imapsync ... --password1 zzz^$zz^$^$z
+
+For a password that is exactly the 8 characters string $%&<>|^"
+you have to enter
+
+    imapsync ... --password1 "$%%&<>|^"^"
 
 =======================================================================
 Q. With huge account (many messages) when it comes to reading the
