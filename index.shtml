@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2012-01-08T02:59:44+0100"/>
+<meta name="date" content="2012-02-07T11:52:59+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -63,11 +63,11 @@ for <b>2 ways synchronizations</b>.
 <p>Alternatives to imapsync are listed in the <a href="#similar"><b>Similar softwares</b></a> section.
 </p>
 
-<h2><a id="NUMBERS"></a>Some numbers for 2011</h2>
+<h2><a id="NUMBERS"></a>Some numbers for past year 2011</h2>
 
 <ul>
 <li>Number of <b>imapsync users</b> per month: between <b>2 and 3 thousands </b>users</li>
-<li>Number of <b>imapsync transfers</b> per month: between <b>3 and 25 millions mailboxes </b>transfers </li>
+<li>Number of <b>imapsync transfers</b> between <b>3 and 25 millions mailboxes </b>transfers per month, 93 millions in 2011</li>
 <li>Pourcentage between <b>operating systems</b> users running imapsync:
 <ul>
 <li><b>Linux: 65 %</b></li>
@@ -93,6 +93,25 @@ for <b>2 ways synchronizations</b>.
 
 <p>New features or bugfixes since previous releases:</p>
 
+<ul>
+<li><b>1.484</b></li>
+<li><b>Bug fix</b>: Back to select() (read-write mode) instead of examine() (read-only mode in 1.468) on host1. <b>Needed with --delete</b></li>
+<li><b>Enhancement</b>: Added option --exitwhenover option <b>to avoid locking</b> when transfers exceed maximum limit.
+See for example <a href="http://support.google.com/a/bin/answer.py?hl=en&amp;answer=1071518">this Gmail constraint</a>
+<ul>
+<li>imapsync ... --exitwhenover 2500000000 # 2.5GB if <b>host1 is Gmail</b></li>
+<li>imapsync ... --exitwhenover  500000000 # 500MB if <b>host2 is Gmail</b></li>
+</ul></li>
+
+
+<li><b>Better behavior</b>: Check if a message exists before fetching it (could have been deleted recently)</li>
+<li><b>Usability</b>: Unified outout in --debug mode. Lines start with Host1 or Host2.</li>
+<li><b>Usability</b>: Changed output about messages ignored to better reflect what is going on.</li>
+<li><b>Better behavior</b>: --split down to 100 by defaultto follow the recommendation of RFC2683 section 3.2.1.5
+Thanks to Phil Pearl for this advice.</li>
+
+
+</ul>
 
 <ul>
 <li><b>1.476</b></li>
@@ -106,40 +125,7 @@ for <b>2 ways synchronizations</b>.
 <li><b>Experimental</b>: Added --nofilterflags to check any STORE flags by ignoring PERMANENTFLAGS (Exchange tests)</li>
 </ul>
 
-<ul>
-<li><b>1.468</b></li>
-<li><b>Usability</b>: Subscribe to host2 folders only for folders not already subscribed.</li>
-<li><b>Safer behavior</b>: Use examine() (read-only mode) on host1 instead of select().</li>
-<li><b>Gmail fix</b>: Fix select behavior on host2 to allow (silly) Gmail folders that don't exist but that are listed.</li>
-<li><b>Cosmetic</b>: Changed imapsync homepage from http://www.linux-france.org/prj/imapsync/ to http://imapsync.lamiral.info/</li>
-<li><b>Bugfix</b>: stay compatible with perl 5.8 (no use of // operator)</li>
-</ul>
 
-<ul>
-<li><b>1.463</b></li>
-<li><b>Update</b>: include and use of <b>Mail-IMAPClient-3.30</b> (imapsync.exe). Thanks to <b>Phil Pearl</b> (Mail-IMAPClient maintainer)
-</li>
-<li><b>Usability</b>: --subscribe option is on by default. --nosubscribe option can avoid this behavior.</li>
-<li><b>BugFix</b>: Added --nocacheaftercopy to avoid bad uids in cache with --useuid or --usecache and strange uid generator like dbmail 2.2.17</li>
-<li><b>BugFix</b>: Avoid Perl warning 'Use of uninitialized value $uid1 in exists'. Thanks to Klaus Franken</li>
-</ul>
-
-<ul>
-<li><b>1.456</b></li>
-<li>Added a <b><a href="./file.txt">file.txt</a></b> example to <b>batch massive migration</b> (many mailboxes) on Windows or Unix</li>
-<li>Added support to <b>Yahoo</b> as host1 (just add <kbd>--sep1 "/"</kbd> option. Add <kbd>--ssl1</kbd> for encryption)</li>
-<li>Empty default value for $h1_flags $h2_flags to avoid useless Perl warnings.</li>
-<li><b>MDaemon 12.0.3 failure as host2</b> (successive APPEND are buggy on MDaemon)</li>
-</ul>
-
-<ul>
-<li><b>1.452</b></li>
-<li><b>New feature</b>: Added <b>--search</b> option allowing to <b>select messages</b> with the <b>powerful IMAP SEARCH</b> command.</li>
-<li><b>Bugfix</b>: Date reference to select messages with --maxdate --mindate is the beginning of imapsync run now.</li>
-<li>Bugfix: Fixed ps call to work with Solaris 10. Thanks to Daniel Rohde.</li>
-<li>Success: <b>Kerio 7.2.0P1</b> success story.</li>
-<li>Success: <b>MDaemon 12.0.3 success story as host1</b>.</li>
-</ul>
 
 
 <!-- 
@@ -149,6 +135,22 @@ for <b>2 ways synchronizations</b>.
 </ul>
  -->
  
+<h2><a id="DOC_BASIC"></a>Basic usage</h2>
+
+<p>
+See <b><a href="./imapsync_example.bat.txt">imapsync_example.bat.txt</a></b> batch file example
+that you can easily adapt with your parameters (remove .txt extension in order to run it).
+</p>
+
+
+<h2><a id="DOC_MASS"></a>Huge usage</h2>
+
+<p>
+See <b><a href="./file.txt">file.txt</a></b> example for <b>batch massive migration</b> 
+(many mailboxes) on Windows or Unix.
+
+</p>
+
 <h2><a id="AUTHOR"></a>Who is the author?</h2>
 
     <p>Gilles LAMIRAL<br/>
@@ -176,7 +178,7 @@ for <b>2 ways synchronizations</b>.
 </p>
 
 <p>
-30 EUR is equal to around <b>45 USD</b>, no problem to pay in USD (or any currency) with paypal:
+30 EUR is equal to around <b>40 USD</b>, no problem to pay in USD (or any currency) with paypal:
 </p>
 
 <p>
@@ -209,7 +211,7 @@ name="submit" alt="PayPal - The safer, easier way to pay online!"/>
 <p>For <b>180 EUR</b> buy imapsync <b>support</b> by the developper who wrote and maintains imapsync.
 </p>
 <p>
-180 EUR is equal to around <b>260 USD</b>, no problem to pay in USD (or any currency) with paypal:
+180 EUR is equal to around <b>230 USD</b>, no problem to pay in USD (or any currency) with paypal:
 </p>
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
@@ -242,7 +244,7 @@ buying the latest win32 <b>standalone imapsync.exe</b> for <b>30 EUR</b>
 
 
 <p>
-30 EUR is equal to around <b>45 USD</b>, no problem to pay in USD (or any currency) with paypal:
+30 EUR is equal to around <b>40 USD</b>, no problem to pay in USD (or any currency) with paypal:
 </p>
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
@@ -506,7 +508,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.106 2012/01/08 02:00:53 gilles Exp gilles $)
+($Id: index.shtml,v 1.109 2012/02/07 10:54:11 gilles Exp gilles $)
 </p>
 
 </body>

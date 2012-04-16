@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.480 $
+$Revision: 1.484 $
 
 =head1 SYNOPSIS
 
@@ -519,7 +519,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.480 2012/01/08 05:11:03 gilles Exp gilles $
+$Id: imapsync,v 1.484 2012/02/07 00:19:33 gilles Exp gilles $
 
 =cut
 
@@ -580,7 +580,8 @@ my(
 	$usedatemanip,
         $syncacls,
         $fastio1, $fastio2, 
-	$maxsize, $minsize, $maxage, $minage, 
+	$maxsize, $minsize, $maxage, $minage,
+        $exitwhenover,
         $search,
         $skipheader, @useheader,
         $skipsize, $allowsizemismatch, $foldersizes, $buffersize,
@@ -635,7 +636,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.480 2012/01/08 05:11:03 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.484 2012/02/07 00:19:33 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -1083,8 +1084,9 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	#relogin1(  ) if ( $relogin1 ) ;
 	printf( "%-35s -> %-35s\n", "[$h1_fold]", "[$h2_fold]" ) ;
 
-	# host1 can be fetched read only, select is not needed.
-	examine_folder( $imap1, $h1_fold, 'Host1' ) or next FOLDER ;
+	# host1 can not be fetched read only, select is needed because of expunge.
+	select_folder( $imap1, $h1_fold, 'Host1' ) or next FOLDER ;
+	#examine_folder( $imap1, $h1_fold, 'Host1' ) or next FOLDER ;
 	
 	
 	if ( ! exists( $h2_folders_all{ $h2_fold } ) ) {
@@ -1338,6 +1340,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		unless (exists($h2_hash{$m_id})) {
 			# copy
 			copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+                        last FOLDER if total_bytes_max_reached(  ) ;
 			next MESS;
 		}
 		else{
@@ -1381,10 +1384,10 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	
 	#print "Messages by uid: ", map { "$_ " } keys %h1_msgs_copy_by_uid, "\n" ;
 	MESS_BY_UID: foreach my $h1_msg ( sort { $a <=> $b } keys %h1_msgs_copy_by_uid ) {
-		# copy_message
+		# 
 		$debug and print "Copy by uid $h1_fold/$h1_msg\n" ;
 		copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
-		
+		last FOLDER if total_bytes_max_reached(  ) ;
 	}
 	
 	if ($expunge or $expunge1){
@@ -1397,6 +1400,16 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	}
 
 $debug and print "Time: ", timenext(), " s\n";
+}
+
+sub total_bytes_max_reached {
+
+	return( 0 ) if not $exitwhenover ;
+	if ( $total_bytes_transferred >= $exitwhenover ) {
+        	print "Maximum bytes transfered reached, $total_bytes_transferred >= $exitwhenover, ending sync\n" ;
+        	return( 1 ) ;
+        }  
+
 }
 
 sub size_filtered_flag {
@@ -1855,8 +1868,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.480 $ ',
-		  '$Date: 2012/01/08 05:11:03 $ ',
+		  '$Revision: 1.484 $ ',
+		  '$Date: 2012/02/07 00:19:33 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2654,6 +2667,19 @@ sub size_filtered {
 	return( 0 ) ;
 }
 
+sub message_exists {
+
+	my( $imap, $msg ) = @_ ;
+	return( 1 ) if not $imap->Uid(  ) ;
+        
+	my $search ;
+        ( $search ) = $imap->search( "UID $msg" ) ;
+        #print "$search ? $msg\n" ;
+        return( 1 ) if ( $search eq $msg ) ;
+        return( 0 ) ;
+
+}
+
 sub copy_message {
 	# copy
 	
@@ -2670,7 +2696,7 @@ sub copy_message {
 	do { print "SLEEP 5\n" and sleep 5 ; } if ( $debugsleep ) ;
 	print "- msg $h1_fold/$h1_msg S[$h1_size] F[$h1_flags] I[$h1_idate] has RFC822.SIZE null!\n" if ( ! $h1_size ) ;
 
-	
+	return(  ) if not message_exists( $imap1, $h1_msg ) ;
 	$string = $imap1->message_string($h1_msg);
 	
 	
@@ -3454,6 +3480,7 @@ sub get_options {
 				   "debugcache!" => \$debugcache,
 				   "useuid!"      => \$useuid,
                                    "addheader!"   => \$addheader,
+                                   "exitwhenover=i" => \$exitwhenover,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -3643,7 +3670,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.480 2012/01/08 05:11:03 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.484 2012/02/07 00:19:33 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3864,7 +3891,9 @@ Several options are mandatory.
                          past|+++++++++++++++minage---->now
                          past|----maxage+++++minage---->now (intersection)
                          past|++++minage-----maxage++++>now (union)
---search      <string> : Select messages returned by this IMAP SEARCH command
+--search      <string> : Select messages returned by this IMAP SEARCH command.
+--exitwhenover   <int> : Stop syncing when total bytes transferred reached.
+                         Gmail per day allows 2500000000 down 500000000 upload.
 --useheader   <string> : Use this header to compare messages on both sides.
                          Ex: Message-ID or Subject or Date.
 --useheader   <string>   and this one, etc.
@@ -3880,9 +3909,11 @@ Several options are mandatory.
 --syncacls             : synchronises acls (Access Control Lists).
 --nosyncacls           : does not synchronise acls. This is the default.
 --usecache             : Use cache to speedup.
---nousecache           : Do not use cache.
+--nousecache           : Do not use cache. Caveat: --useuid --nousecache creates
+                         duplicates on multiple runs.
 --useuid               : Use uid instead of header as a criterium to sync.
-                         --usecache is then implied unless --nousecache
+                         --usecache is then implied unless --nousecache is
+                         used.  
 --debug                : debug mode.
 --debugcontent         : debug content of the messages transfered.
 --debugflags           : debug flags.
