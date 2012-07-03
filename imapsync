@@ -3309,6 +3309,24 @@ sub regexmess {
 	return($string);
 }
 
+sub bytes_display_string {
+	my ($bytes) = @_;
+
+	if ($bytes < (1024 * 1024)) {
+	    return sprintf("%.1f KiB", $bytes / 1024);
+	} elsif ($bytes < (1024 * 1024 * 1024)) {
+	    return sprintf("%.1f MiB", $bytes / (1024 * 1024));
+	} elsif ($bytes < (1024 * 1024 * 1024 * 1024)) {
+	    return sprintf("%.1f GiB", $bytes / (1024 * 1024 * 1024));
+	} elsif ($bytes < (1024 * 1024 * 1024 * 1024 * 1024)) {
+	    return sprintf("%.1f TiB", $bytes / (1024 * 1024 * 1024 * 1024));
+	} else {
+	    return sprintf("%.1f PiB", $bytes / (1024 * 1024 * 1024 * 1024 * 1024));
+	}
+	# if you have exabytes (EiB) of email to transfer, you have too much email
+}
+
+
 sub stats {
 	$timeend = time();
 	$timediff = $timeend - $timestart;
@@ -3337,17 +3355,28 @@ sub stats {
 	print   "Messages void (noheader) on host2 : $h2_nb_msg_noheader\n";
 	print   "Messages deleted on host1         : $h1_nb_msg_deleted\n";
 	print   "Messages deleted on host2         : $h2_nb_msg_deleted\n";
-	print   "Total bytes transferred           : $total_bytes_transferred\n";
-	print   "Total bytes duplicate host1       : $h1_total_bytes_duplicate\n";
-	print   "Total bytes duplicate host2       : $h2_total_bytes_duplicate\n";
-	print   "Total bytes skipped               : $total_bytes_skipped\n";
-	print   "Total bytes error                 : $total_bytes_error\n";
+	printf( "Total bytes transferred           : %d (%s)\n",
+		$total_bytes_transferred,
+		bytes_display_string($total_bytes_transferred));
+	printf( "Total bytes duplicate host1       : %d (%s)\n",
+		$h1_total_bytes_duplicate,
+		bytes_display_string($h1_total_bytes_duplicate));
+	printf( "Total bytes duplicate host2       : %d (%s)\n",
+		$h2_total_bytes_duplicate,
+		bytes_display_string($h2_total_bytes_duplicate));
+	printf( "Total bytes skipped               : %d (%s)\n",
+		$total_bytes_skipped,
+		bytes_display_string($total_bytes_skipped));
+	printf( "Total bytes error                 : %d (%s)\n",
+		$total_bytes_error,
+		bytes_display_string($total_bytes_error));
+
 	$timediff ||= 1; # No division per 0
 	printf ("Message rate                      : %.1f messages/s\n", $nb_msg_transferred / $timediff);
 	printf ("Average bandwidth rate            : %.1f KiB/s\n", $total_bytes_transferred / 1024 / $timediff);
 	print   "Reconnections to host1            : $host1_reconnect_count\n";
 	print   "Reconnections to host2            : $host2_reconnect_count\n";
-	printf ("Memory consumption                : %.1f MB\n", $memory_consumption / 1024 / 1024);
+	printf ("Memory consumption                : %.1f MiB\n", $memory_consumption / 1024 / 1024);
 	print   "Biggest message                   : $max_msg_size_in_bytes bytes\n";
 #	print   "Memory/biggest message ratio      : $memory_ratio\n";
 	print   "Detected $nb_errors errors\n\n";
