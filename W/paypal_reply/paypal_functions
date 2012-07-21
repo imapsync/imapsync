@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: paypal_functions,v 1.18 2011/12/02 01:56:55 gilles Exp gilles $
+# $Id: paypal_functions,v 1.19 2012/04/17 12:05:32 gilles Exp gilles $
 
 paypal_prerequisites() {
 	perl -mMIME::Lite -e '' || echo 'sudo aptitude install libmime-lite-perl'
@@ -105,9 +105,9 @@ convert_utf8() {
 
 
 troncate_last_2_chars() {
-	length=`expr length "$1"`
-	length_2=`expr $length - 2`
-	expr substr "$1" 1 $length_2
+        length=`expr length "$1"`
+        length_2=`expr $length - 2`
+        expr substr "$1" 1 $length_2
 
 }
 
@@ -115,16 +115,17 @@ build_reply() {
 	mkdir -p $tmpdir/msg_reply/
 	test -z "`ls $tmpdir/msg_out/`" && echo no mail && return
 	for f in $tmpdir/msg_out_utf8/*/*.txt; do
-		echo "$f"
+		#echo "$f"
 		d=`dirname  "$f"`
 		bd=`basename "$d"`
 		file_id=`troncate_last_2_chars $bd`
 		d_reply="$tmpdir/msg_reply/$file_id"
-		test -f "$d_reply/$file_id.txt" && continue
+		test -s "$d_reply/$file_id.txt" && continue
 		mkdir -p "$d_reply"
 		echo building "$d_reply/$file_id.txt"
 		echo paypal_build_reply "$f" "$tmpdir/msg_id/$file_id"
 		paypal_build_reply "$f" "$tmpdir/msg_id/$file_id" > "$d_reply/$file_id.txt"
+                test -s "$d_reply/$file_id.txt" || rm "$d_reply/$file_id.txt"
 	done
 }
 

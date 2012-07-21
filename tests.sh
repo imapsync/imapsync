@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.194 2012/04/15 19:17:33 gilles Exp gilles $  
+# $Id: tests.sh,v 1.195 2012/07/18 11:10:00 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -215,6 +215,18 @@ ll_ask_password() {
                 --passfile2 ../../var/pass/secret.titi \
                 --justlogin
 }
+
+
+ll_authmech_PREAUTH() {
+		# No PREAUTH on my box
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata --authmech1 PREAUTH \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justlogin
+}
+
+
 
 
 
@@ -1021,18 +1033,22 @@ ll_include()
 
 ll_exclude() 
 {
-        if can_send; then
-                #echo3 Here is plume
-	        sendtestmessage
-        else
-                :
-        fi
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --exclude '^INBOX.yop' --justfolders --nofoldersizes
+}
+
+ll_exclude_2() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --exclude '^INBOX.yop$' --justfolders --nofoldersizes
 }
 
 ll_exclude_INBOX() 
@@ -1432,6 +1448,15 @@ ll_ssl_justlogin() {
          --justlogin
 }
 
+ll_ssl_tls_justlogin() {
+        $CMD_PERL ./imapsync \
+	 --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --tls1  --ssl2 --tls2  \
+         --justlogin --debug
+}
 
 ll_ssl() {
         if can_send; then
@@ -1905,6 +1930,7 @@ gmail_gmail() {
 
 }
 
+
 gmail_gmail2() {
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
@@ -1917,8 +1943,37 @@ gmail_gmail2() {
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --folder INBOX 
 		#--dry # --debug --debugimap # --authmech1 LOGIN
+}
+
+gmail_gmail3_delete() {
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 imapsync.gl@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl_gmail \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+                --folder '[Gmail]/All Mail' --delete
+		# '[Gmail]/All Mail' is not expunge by default!
 
 }
+
+gmail_gmail4_tls() {
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1  \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --host2 imap.gmail.com \
+                --ssl2 --tls2 --port2 993 \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --folder INBOX 
+		#--dry # --debug --debugimap # --authmech1 LOGIN
+}
+
 
 yahoo_xxxx_login() {
                 ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
@@ -2211,6 +2266,35 @@ ll_nofastio()
 ##########################
 # specific tests
 ##########################
+
+
+exchange_hoch_1() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 ex.fhstp.ac.at --ssl2 --user2 nscdummy@fhstp.local \
+	--passfile2 ../../var/pass/secret.fhstp \
+	--folder INBOX.oneemail  --debug --delete2
+}
+
+exchange_hoch_2() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 ex.fhstp.ac.at --ssl2 --user2 nscdummy@fhstp.local \
+	--passfile2 ../../var/pass/secret.fhstp \
+	--folder INBOX.oneemail  --dry --debugflags --debug --nofilterflags
+}
+
+exchange_hoch_3() {
+	$CMD_PERL ./imapsync \
+	--host1 $HOST1  --user1 tata \
+	--passfile1 ../../var/pass/secret.tata \
+	--host2 ex.fhstp.ac.at --ssl2 --user2 nscdummy2@fhstp.local \
+	--passfile2 ../../var/pass/secret.fhstp \
+	--folder INBOX.few_emails --debugflags --debug  --regexflag 's#\$Forwarded#\$MDNSent#'
+}
+
 
 dbmail_uid() {
 	# --useuid alone does not work on dbmaikl server 2.2.17 ready to run
@@ -2805,6 +2889,7 @@ ll_useuid
 ll_useuid_nousecache
 ll_noheader_force
 ll_noheader
+ll_authmech_PREAUTH
 '
 
 other_tests='
