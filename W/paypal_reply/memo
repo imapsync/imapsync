@@ -1,16 +1,67 @@
 #!/bin/sh
 
-# $Id: memo,v 1.6 2012/02/24 12:23:38 gilles Exp gilles $
+# $Id: memo,v 1.9 2012/07/05 20:37:53 gilles Exp gilles $
 
 
-echo paypal_bilan_tests_invoice
-paypal_bilan_tests_invoice() {
-# DID output no diff between paypal_bilan_1.47 and 1.48
+echo paypal_bilan_todo
+paypal_bilan_todo() {
+cat <<EOF
+http://www.cabinet-antoine.fr/spip.php?article138
+Si vous réalisez des ventes de biens au profit d\u2019entreprises ressortissantes d\u2019autres états membres de l\u2019Union européenne et si ces ventes sont exonérées de TVA, les factures correspondantes doivent impérativement comporter le numéro de TVA intracommunautaire de vos clients ainsi que la mention : « Exonération de TVA, article 262 ter, I du Code général des impôts ». Là encore, ces factures ne doivent évidemment pas comporter de taux ni de montant de TVA.
+Si vous fournissez des prestations de services à un client installé dans un autre État membre de l\u2019Union européenne, depuis le 1er janvier 2010, le lieu d\u2019imposition des prestations de services entre entreprises est celui où est situé l\u2019acheteur et non plus celui où est établi le prestataire. En conséquence, en application du système dit de l\u2019autoliquidation de la TVA, vous ne devez plus faire mention de la TVA sur vos factures, mais vous devez indiquer : « Exonération de TVA, article 283-2 du Code général des impôts ».
+
+
+Hors Europe a un non-assujetti : Article 259 B => prestation hors France pour
+- Article 259 B-1 Cessions de droits de licences
+- Article 259 B-4 Prestations des conseillers, ingénieurs dans tous les domaines
+- Article 259 B-5 Traitement de données et fournitures d information
+
+Hors Europe : Article 262 => Exoneration 
+- Article 262-1 les livraisons de biens expédiés par le vendeur [...] ainsi que les prestations de services directement liées à l exportation ;
+- Article 262-2 les livraisons de biens expédiés ou transportés par l acheteur [...] ainsi que les prestations de services directement liées à l exportation.
+
+Europe a un autre assujetti : Article 262 ter => Exoneration 
+- Article 262 ter-1 sur livraisons de biens expédiés. Question : oeuvre immaterielle, service ?
+
+
+
+EOF
+}
+
+echo paypal_bilan_tests_tva
+paypal_bilan_tests_tva() {
+# DID output no diff between paypal_bilan_1.55 and 1.5?
 (
 #set -x
-/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.47 --bnc --debug --debug_invoice --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334' /g/paypal/paypal_201?_??_complet.csv \
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.55 --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+   /g/paypal/paypal_201?_??_complet.csv \
  > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
-/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --debug_invoice --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334' /g/paypal/paypal_201?_??_complet.csv \
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
+
+#echo paypal_bilan_tests_invoice
+paypal_bilan_tests_invoice() {
+# DID output no diff between paypal_bilan_1.53 and 1.53
+(
+#set -x
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.52 --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+   /g/paypal/paypal_201?_??_complet.csv \
  > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
 
 echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2

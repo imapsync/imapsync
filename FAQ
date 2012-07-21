@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.106 2012/04/15 19:18:29 gilles Exp gilles $
+# $Id: FAQ,v 1.114 2012/07/19 09:42:13 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -109,7 +109,7 @@ Q. I need to migrate hundred accounts, how can I do?
 R. If you have many mailboxes to migrate think about a little
 shell program. Write a file called file.txt (for example)
 containing users and passwords.
-The separator used in this example is ';'
+The separator used in this example is ";"
 
 The file.txt file contains:
 
@@ -179,6 +179,61 @@ R. Add also --nofoldersizes since the default behavior is to compute
    folder sizes. Folder sizes are useless for the transfer, just 
    useful to see what has to be done on each folder.
 
+Notes about --useuid
+
+Case where building the cache first is necessary (to avoid multiples transfers)
+
+If you run again imapsync with --useuid on a transfert  already done without --useuid
+then, to avoid messages be copied again, first run imapsync with --usecache
+but without --useuid, example scenario:
+
+A] Running with the default options, I began without --useuid 
+
+1) First run with default options
+
+  imapsync ...
+
+Too slow, I want to speed up!
+
+2) Build the cache
+
+ imapsync ... --usecache
+
+3) Speed up now
+
+  imapsync ... --useuid
+
+B] I began with --useuid from the first time
+
+1) First run and next runs with --useuid
+
+  imapsync ... --useuid
+
+
+Inodes number issue
+
+
+The cache is simple, it uses the filsystem natively, 
+it's just an empty file per message transfered.
+When mailboxes are huge the cache can exhaust the number of inodes 
+allowed in the filesystem, that's a limitation like size but less
+often encountered.
+On Unix, to predict whether your tmpdir filesystem used by imapsync 
+will support the whole cache, just run the command "df -i /var/tmp", 
+if /var/tmp is the --tmpdir argument.
+On windows, search and drop me a note about how to count the number 
+of files allowed in the filesystem. 
+It seems FAT32 supports 268 435 445 clusters.
+
+Choosing the number of inodes allowed by a filesystem can be done 
+at the creation of it with "mkfs -N number-of-inodes ..."
+
+imapsync can predict how many messages have to be synced with the 
+option --justfoldersizes (no transfer will be done)
+
+  imapsync ... --justfoldersizes
+
+
 =======================================================================
 Q. I see warning messages like 
 "Host1 Sent/15 size 1428 ignored (no header so we ignore this message)"
@@ -207,15 +262,14 @@ R. - Download latest Mail::IMAPClient 3.xx at
    - run imapsync with perl and -I option tailing to use the perl
      module Mail-IMAPClient-3.xx. Example:
 
-         perl -I./Mail-IMAPClient-3.30/lib  ./imapsync ...
+         perl -I./Mail-IMAPClient-3.31/lib  ./imapsync ...
 
      or if imapsync is in directory /path/
-        perl -I./Mail-IMAPClient-3.30/lib   /path/imapsync ...
+        perl -I./Mail-IMAPClient-3.31/lib   /path/imapsync ...
 
    - Look at the script named i3 in the tarball, it can be used to
-     run imapsync with included Mail-IMAPClient-3.30/ wherever you 
+     run imapsync with included Mail-IMAPClient-3.31/ wherever you 
      unpacked the imapsync tarball
-
 
 =======================================================================
 Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
@@ -442,7 +496,7 @@ Q. How to convert flags with $ to \ character?
 R. $ and \ are special characters we have to "escape" them.
 For example to convert flag $label1 to \label1
 
-  imapsync ... --regexflag 's/\$label1/\\label1/g' --debugflags
+  imapsync ... --regexflag "s/\$label1/\\label1/g" --debugflags
 
 =======================================================================
 Q. I need to keep only a defind list of flags, how can I do?
@@ -622,25 +676,25 @@ want to forward me the output.
 The way to avoid this problem is by using options --skipheader and
 --skipsize, like this (avoid headers beginning whith the string "X-"):
 
- imapsync ... --skipheader '^X-' --skipsize
+ imapsync ... --skipheader "^X-" --skipsize
 
 To skip several headers you can use --skipheader one time
 
- imapsync ... --skipheader '^X-|^Status|^Bcc'
+ imapsync ... --skipheader "^X-|^Status|^Bcc"
 
 If you think you have too many header to avoid just use
 
- imapsync ... --useheader 'Message-ID' --skipsize
+ imapsync ... --useheader "Message-ID" --skipsize
 
 Remark. (Trick found by Tomasz Kaczmarski)
 
-Option --useheader 'Message-ID' asks the server to send only header
-lines begining with 'Message-ID'.  Some (buggy) servers send the whole
-header (all lines) instead of the 'Message-ID' line. In that case, a
+Option --useheader "Message-ID" asks the server to send only header
+lines begining with "Message-ID".  Some (buggy) servers send the whole
+header (all lines) instead of the "Message-ID" line. In that case, a
 trick to keep the --useheader filtering behavior is to use
 --skipheader with a negative lookahead pattern :
 
- imapsync ... --skipheader '^(?!Message-ID)' --skipsize
+ imapsync ... --skipheader "^(?!Message-ID)" --skipsize
 
  Read it as "skip every header except Message-ID".
 
@@ -679,7 +733,7 @@ Q. I want to exclude a folder hierarchy like "public"
 
 R. Use:
 
---exclude '^public\.'
+--exclude "^public\."
 or maybe
 --exclude '^"public\.'
 
@@ -694,26 +748,39 @@ Q. I want to exclude only INBOX
 
 R. Use:
 
-  imapsync ... --exclude '^INBOX$' 
+  imapsync ... --exclude "^INBOX$" 
 
 A good way to see what will be done is to first use:
 
-  imapsync ...  --exclude '^INBOX$' --justfolders --nofoldersizes --dry
+  imapsync ...  --exclude "^INBOX$" --justfolders --nofoldersizes --dry
 
 
 ======================================================================
-Q. I want the --folder 'MyFolder' option be recursive.
+Q. I want the --folder "MyFolder" option be recursive.
 
 Two solutions:
 
 R1. Use
 
---folderrec 'MyFolder'
+--folderrec "MyFolder"
 
-R2. Use --include '^MyFolder'
+R2. Use --include "^MyFolder"
    Then the folder "MyFolder" and all its subfolders will be handled
    and only them.
 
+======================================================================
+Q. Migrating to Exchange 201O, messages get date of the transfer,
+   this is bad for sorting and listing.
+
+R1. Be sure to have at least Exchange 2010 SP2 Rollup 5
+http://www.tribalchicken.com.au/15-technical/29-imapsync-exchange2010
+
+R2. See also the Outlook side (thanks to Martin Hochreiter for this solution)
+http://www.howto-outlook.com/faq/archivenotworking.htm
+by changing Archive to sent/receive date
+
+It's often shorter to change one server than thousands clients
+so R1 might be easier to do.
 
 ======================================================================
 Q. How to migrate from or to Exchange 2003 with an admin/authuser 
@@ -760,15 +827,43 @@ This doesn't work:
   imapsync ... --user2 user2 --authuser2 admin2 --password2 adminpassword2 ...
 
 This might works:
-  imapsync ... --user2 'domain\admin2\user2' --password2 adminpassword2 ...
+  imapsync ... --user2 "domain\admin2\user2" --password2 adminpassword2 ...
 or 
-  imapsync ... --user2 'admin2@domain\user2' --password2 adminpassword2 ...
+  imapsync ... --user2 "admin2@domain\user2" --password2 adminpassword2 ...
 
 where "domain" is set be the user's UPN in Active Directory
 or the NETBIOS or DNS name of the domain.
 
 The exact format might vary depending on local configuration and you
 should experiment with the different formats.
+
+A little note from Michael Scherer. 
+The previous workaround in the FAQ seems to be obsolete.
+I can confirm that
+
+  imapsync ... --host2 exchange_server --authmech2 PLAIN \
+               --authuser2 admin@domain --user2 user_alias
+
+is working without any glitches, running Exchange 2010 SP2 here.
+Explanation, Exchange knows a) about a username 
+and b) about a mailNickname which can be different to the username. 
+As it seems you need to use the mailNickname (e.g. alias) defined 
+for user2, not the username itself.
+http://blogs.technet.com/b/exchange/archive/2004/03/31/105275.aspx
+
+======================================================================
+Q. How to migrate from or to Office 365 with an admin/authuser account?
+
+Note from Yago Torres Fernandez:
+(a working command using admin/authuser on host2 Office 365)
+
+  imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
+               --password2 XXXX --ssl2 --exclude "Shared Folders"     ^
+               --regextrans2 "s#Trash$#Papelera#"  --regextrans2 "s#^Deleted Items$#Papelera#"
+
+but previous in Office365 you must do something like that, using powershell:
+
+  Add-MailboxPermission -identity user_to_be_migrated@domain.com -user user_admin@domain.com -accessrights fullaccess -inheritancetype all
 
 ======================================================================
 Q. How to migrate from uw-imap with an admin/authuser account?
@@ -804,7 +899,7 @@ Here is an example:
 	--host2 server2 \
 	--user2 joe \
 	--password2 joespassonserver2 \
-	--exclude '^user\.'
+	--exclude "^user\."
 
 ======================================================================
 Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
@@ -856,7 +951,7 @@ to folder INBOX only on host2:
 
 imapsync \
  ...
- --regextrans2 's/(.*)/INBOX/' \
+ --regextrans2 "s/(.*)/INBOX/" \
  --dry --justfolders
 
 2) See if the output says everything you want imapsync to do, 
@@ -879,7 +974,7 @@ R.
 
 imapsync \
  ...
- --regextrans2 's/INBOX(.*)/INBOX.Braunschweig$1/' \
+ --regextrans2 "s/INBOX(.*)/INBOX.Braunschweig$1/" \
  --dry --justfolders
 
 2) See if the output says everything you want imapsync to do, 
@@ -1081,12 +1176,12 @@ Maybe --subscribe_all will help you to see all migrated folders.
 
 
 =======================================================================
-Q. Synchronising from SmarterMail to XXX
+Q. Synchronizing from SmarterMail to XXX
 
 imapsync --host1 imap.d1.org --user1 joe --password1 secret1 --sep1 "/" \
          --host2 imap.d2.org --user2 joe --password2 secret2  \
          --noauthmd5 \
-         --prefix1 "Inbox/"  \
+         --prefix1 ""  \
          --regextrans2 's#^Inbox$#INBOX#' \
          --regextrans2 's#Sent Items$#Sent#' \
          --dry --justfolders
@@ -1095,7 +1190,7 @@ Maybe add other --regextrans2 to change folder names and see the result.
 When satisfied, run without --dry --justfolders
 
 =======================================================================
-Q. Synchronising from XXX to Gmail
+Q. Synchronizing from XXX to Gmail
 
 R. There are some details to get the special [Gmail] sub-folders
    right. Here's an example of migrating an old "Sent" folder to
@@ -1107,13 +1202,13 @@ imapsync --host1 mail.oldhost.com \
          --host2 imap.gmail.com --ssl2 \
          --user2 my_email@gmail.com \
          --password2 password \
-         --folder 'INBOX.Sent' \
-         --regextrans2 's/Sent/Sent Mail/'
+         --folder "INBOX.Sent" \
+         --regextrans2 "s/Sent/Sent Mail/"
 
 The same goes for the "All Mail" archive pseudo-folder.
 
 =======================================================================
-Q. Synchronising from Gmail to XXX
+Q. Synchronizing from Gmail to XXX
 
 R. Gmail needs SSL 
 
@@ -1146,7 +1241,7 @@ http://biasecurities.com/blog/2009/migrate-email-from-gmail-to-google-apps/
 http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
 
 =======================================================================
-Q. Synchronising from Yahoo to XXX
+Q. Synchronizing from Yahoo to XXX
 
 R. Use --host1 imap.mail.yahoo.com --sep1 '/'
 
@@ -1271,6 +1366,15 @@ I encounter many errors like this:
 
 R. GroupWise 7 seems buggy. Apply GroupWise 7 support pack 1
 
+=======================================================================
+Q. Migrating from David Tobit V10
+
+R. Use the following options :
+imapsync ... --prefix1 ""    --sep1 /  --idatefromheader    ^
+             --nofoldersizes --useuid
+
+
+=======================================================================
 
 =======================================================================
 Q. Migrating from David Tobit V8

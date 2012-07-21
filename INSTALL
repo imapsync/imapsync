@@ -1,4 +1,4 @@
-# $Id: INSTALL,v 1.24 2012/04/13 09:14:22 gilles Exp gilles $
+# $Id: INSTALL,v 1.25 2012/07/19 05:57:14 gilles Exp gilles $
 # 
 # INSTALL file for imapsync 
 # imapsync : IMAP sync or copy tool.
@@ -71,7 +71,7 @@ Here is some individual module help:
   http://search.cpan.org/dist/Mail-IMAPClient/
 
   In fact I use both Mail-IMAPClient-2.2.9 and latest Mail-IMAPClient-3.xx
-  (xx >= 25) To know the version you have on your system try :
+  (xx >= 31 now) To know the version you have on your system try :
 
   perl -mMail::IMAPClient -e 'print $Mail::IMAPClient::VERSION, "\n"'
 
@@ -80,16 +80,21 @@ Here is some individual module help:
   at least with Mail-IMAPClient-3.25 (previous may bug).
   Don't hesitate to use latest Mail-IMAPClient-3.xx
 
+  Look at the script named i3 in the tarball, it can be used to
+  run imapsync with included Mail-IMAPClient-3.31/ wherever you 
+  unpacked the imapsync tarball.
+
+
 - Perl Digest::MD5 module. 
   try:
 
   perl -mDigest::MD5
 
   http://search.cpan.org/
-  http://search.cpan.org/~gaas/Digest-MD5-2.36/
+  http://search.cpan.org/~gaas/Digest-MD5-2.52/
   To know the version you have on your system try :
   perl -mDigest::MD5 -e 'print $Digest::MD5::VERSION, "\n"'
-  I use 2.36 (debian etch package)
+  I use 2.39 (Ubuntu package)
 
 - Term::ReadKey
   perl -mTerm::ReadKey -e ''
@@ -146,7 +151,7 @@ To see what will be done, just run:
 
   make -n install
 
-To install imapsync, just run (as root):
+To install imapsync in /usr/bin/ and man page in /usr/share/man/man1/, just run (as root):
 
   make install
 
@@ -155,15 +160,19 @@ or copy the file imapsync where you want it to be.
 TESTING on Unix
 ---------------
 
-The test will break as they are home specific.
+Tests will break as they are home specific.
 You need a running imap server on localhost with several accounts
 toto with a password located in the file $HOME/var/pass/secret.toto
 titi with a password located in the file $HOME/var/pass/secret.titi
 tata with a password located in the file $HOME/var/pass/secret.tata
 
-Of course, you can change the file tests.sh and run the tests with :
+Of course, you can change the file tests.sh and run tests with:
 
-sh -x tests.sh
+  sh -x tests.sh
+
+Specific tests can be run by using them as argument to tests.sh:
+
+  sh -x tests.sh ll_ssl_justconnect ll_bad_host ...
 
 The tests.sh script break on first failure ("set -e" directive).
 

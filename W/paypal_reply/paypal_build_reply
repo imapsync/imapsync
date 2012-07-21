@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 
-# $Id: paypal_build_reply,v 1.17 2011/12/07 23:47:03 gilles Exp gilles $
+# $Id: paypal_build_reply,v 1.19 2012/04/30 22:57:04 gilles Exp gilles $
 
 use warnings;
 use strict;
@@ -11,7 +11,7 @@ my ($amount, $name, $email);
 my (
 	$paypal_line, $paypal_info,
 	$buyer, $description, $object, 
-	$url_source, $url_exe, $url, $release, $release_exe, 
+	$url, $release, $release_exe, 
 );
 
 my $help ;
@@ -52,8 +52,6 @@ while(<>) {
 $release      = firstline( '/g/public_html/imapsync/VERSION' ) ;
 $release_exe  = firstline( '/g/public_html/imapsync/VERSION_EXE' ) ;
 my $path_last = firstline( '/g/public_html/imapsync/dist/path_last.txt' ) ;
-$url_source   = firstline( '/g/var/paypal_reply/url_source' ) ;
-$url_exe      = firstline( '/g/var/paypal_reply/url_exe' ) ;
 
 $url = "http://ks.lamiral.info/imapsync/dist/$path_last/" ;
 
@@ -99,7 +97,7 @@ while(<>) {
 
 my $address = 'gilles.lamiral@laposte.net';
 my $address2 = 'gilles@lamiral.info';
-my $rcstag  = '$Id: paypal_build_reply,v 1.17 2011/12/07 23:47:03 gilles Exp gilles $';
+my $rcstag  = '$Id: paypal_build_reply,v 1.19 2012/04/30 22:57:04 gilles Exp gilles $';
 
 my $download_info = "You will find the latest imapsync.exe binary (release $release_exe)
 and the latest imapsync source code (release $release) at the following link:
@@ -147,7 +145,7 @@ my $subject_support = "[imapsync support] imapsync release $release [$email]" ;
 my $subject ;
 
 my $text ;
-if ( 'imapsync support' eq $object ) {
+if ( $object =~ m{imapsync support} ) {
         $text = $text_support ;
         $subject = $subject_support ;
 }else{
@@ -194,7 +192,7 @@ EOM
 
 
 print $message;
-#print "[$amount] [$name] [$email] [$paypal_line] [$object]\n";
+$debug and print "[$amount] [$name] [$email] [$paypal_line] [$object]\n";
 
 
 sub firstline {

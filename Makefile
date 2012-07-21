@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.94 2012/04/15 19:19:14 gilles Exp gilles $	
+# $Id: Makefile,v 1.95 2012/07/19 05:58:22 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -282,11 +282,11 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: index.shtml FAQ
-	validate --verbose index.shtml
-	rcsdiff index.shtml
-	rsync -avH index.shtml FAQ root@ks.lamiral.info:/var/www/imapsync/
-	rsync -avH index.shtml FAQ \
+upload_index: index.shtml FAQ paypal.shtml
+	validate --verbose index.shtml paypal.shtml
+	rcsdiff index.shtml paypal.shtml FAQ
+	rsync -avH index.shtml FAQ paypal.shtml root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH index.shtml FAQ paypal.shtml \
 	../../public_html/www.linux-france.org/html/prj/imapsync/
 	sh $(HOME)/memo/lfo-rsync
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.48 2012/04/15 09:24:49 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.56 2012/07/16 21:57:51 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -12,6 +12,11 @@ use Unicode::MapUTF8 qw(to_utf8 from_utf8 utf8_supported_charset);
 use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
+
+my $rcs = '$Id: paypal_bilan,v 1.56 2012/07/16 21:57:51 gilles Exp gilles $ ' ;
+$rcs =~ m/,v (\d+\.\d+)/ ;
+my $VERSION = ($1) ? $1: "UNKNOWN" ;
+
 
 my $total_usd_received = 0 ;
 my $total_usd_invoice  = 0 ;
@@ -140,7 +145,7 @@ foreach my $invoice ( @invoices_wanted ) {
 	if ( $invoice_sent ) {
 		$invoice_sent{ $invoice }++ ;
                 #build_invoice( $invoice ) ;
-	}else{
+	}elsif( not ( $invoice_canceled{ $invoice }  or  $invoice_refund{ $invoice } ) ) {
 		$invoice_not_sent{ $invoice }++ ;
 		build_invoice( $invoice ) ;
 	}
@@ -153,6 +158,9 @@ my $nb_invoice_sent = scalar( @invoice_sent ) ;
 my @invoice_canceled  = sort { $a <=> $b } keys( %invoice_canceled ) ;
 my @invoice_suspended = sort { $a <=> $b } keys( %invoice_suspended ) ;
 my @invoice_refund    = sort { $a <=> $b } keys( %invoice_refund ) ;
+
+print( "\n", "=" x 60, "\n" ) if $bnc ;
+	
 
 print "USD banque   $total_usd_received\n" ;
 print "USD invoice  $total_usd_invoice\n" ;
@@ -180,9 +188,9 @@ print "EUR total TVA         $total_TVA_EUR\n" ;
 print "EUR total HT  sup     $total_HT_EUR_sup\n" ;
 print "EUR total TVA sup     $total_TVA_EUR_sup\n" ;
 print "Nb invoice            $nb_invoice ( from $first_invoice_paypal to $last_invoice )\n" ;
-print "Nb invoice canceled   $nb_invoice_canceled  @invoice_canceled\n" ;
-print "Nb invoice suspended  $nb_invoice_suspended @invoice_suspended\n" ;
-print "Nb invoice refund     $nb_invoice_refund    @invoice_refund\n" ;
+print "Nb invoice canceled   ($nb_invoice_canceled) @invoice_canceled\n" ;
+print "Nb invoice suspended  ($nb_invoice_suspended) @invoice_suspended\n" ;
+print "Nb invoice refund     ($nb_invoice_refund) @invoice_refund\n" ;
 print "Nb invoice sent       $nb_invoice_sent\n" ;
 print "Have to send invoices @invoice_not_sent\n" if ( @invoice_not_sent ) ;
 
@@ -479,9 +487,10 @@ sub compute_line {
 		$IND_flag = ' IND' if ('imapsync usage' eq $Nom_Option_1 and 'individual' eq $Valeur_Option_1 ) ;
                 my $SUPPORT_flag = '' ;
                 $SUPPORT_flag = ' support' if ( 'imapsync support'    eq $Titre_de_l_objet ) ;
-		print "FE $invoice$FR_flag$IND_flag\n" ;
+		#print "FE $invoice$FR_flag$IND_flag\n" ;
+		#printf( "%.2f [EUR %.2f]\n", $Montant, $MontantEUR ) ;
 		print "FE $invoice$FR_flag$IND_flag imapsync$SUPPORT_flag $Nom\n" ;
-		printf( "%.2f [EUR %.2f]\n", $Montant, $MontantEUR ) ;
+                print "[$Date]$FR_flag$IND_flag $MontantEUR $Devise \n" ;
 	}
 }
 
@@ -589,7 +598,8 @@ sub build_invoice {
 		$priceTTC,
 		$messageTVAFR,
 		$messageTVAEN,
-		$priceTTCusd
+		$priceTTCusd,
+                $HTorTTC
 	) 
 	= tva_stuff( $clientTypeEN, $Pays, $Hors_taxe, $Devise, $Titre_de_l_objet ) ;
 
@@ -600,7 +610,7 @@ sub build_invoice {
         
         my ( $Nom1 ) = cut( $Nom, 42 ) ;
 	my $tex_variables = qq{
-%% Begin input from paypal_bilan
+%% Begin input from paypal_bilan $VERSION
 \\providecommand{\\invoiceNumber}{$invoice}
 \\providecommand{\\clientName}{$Nom1}
 \\providecommand{\\clientEmail}{$De_l_adresse_email}
@@ -610,6 +620,7 @@ sub build_invoice {
 \\providecommand{\\clientAdrD}{$clientAdrD}
 \\providecommand{\\clientAdrE}{$clientAdrE}
 \\providecommand{\\clientAdrF}{$clientAdrF}
+\\providecommand{\\clientVAT}{}
 \\providecommand{\\invoiceDate}{$Date}
 \\providecommand{\\invoiceHour}{$Heure}
 
@@ -623,6 +634,7 @@ sub build_invoice {
 \\providecommand{\\tvaFR}{$tvaFR}
 \\providecommand{\\tvaEN}{$tvaEN}
 \\providecommand{\\priceTVA}{$priceTVA}
+\\providecommand{\\HTorTTC}{$HTorTTC}
 \\providecommand{\\priceTTC}{$priceTTC}
 \\providecommand{\\priceTTCusd}{$priceTTCusd}
 \\providecommand{\\messageTVAFR}{$messageTVAFR}
@@ -995,6 +1007,7 @@ sub tva_stuff {
 		$priceTTC,
 		$messageTVAFR,
 		$messageTVAEN,
+                $HTorTTC
 	) ;
 	
 	if ( ( 'individual' eq $clientTypeEN)
@@ -1008,16 +1021,18 @@ sub tva_stuff {
 		$tvaEN    = '';
 		$priceTVA = sprintf('%2.2f', $Hors_taxe/1.196*0.196) ;
 		$priceTTC = sprintf('%2.2f', $Hors_taxe) ;
-		$messageTVAFR = '';
-		$messageTVAEN = '';
+                $HTorTTC  = 'TTC' ;
+		$messageTVAFR = '' ;
+		$messageTVAEN = '' ;
 	}else{
 		$priceHT  = sprintf('%2.2f', $Hors_taxe) ;
-		$tvaFR    = 'néant';
-		$tvaEN    = '(none)';
-		$priceTVA = 0 ;
-		$priceTTC = $priceHT;
-		$messageTVAFR = 'Exonération de TVA, article 259 B-1 du Code Général des Impôts';
-		$messageTVAEN = '(VAT tax-exempt, article 259 B-1 French General Tax Code)';
+		$tvaFR    = '' ;
+		$tvaEN    = '' ;
+		$priceTVA = 'néant (none)' ;
+		$priceTTC = $priceHT ;
+                $HTorTTC  = 'HT' ;
+		$messageTVAFR = 'Exonération de TVA, articles 262 1-2 du Code Général des Impôts';
+		$messageTVAEN = '(VAT tax-exempt, articles 262 1-2 French General Tax Code)';
 	}
 	foreach my $price ( $priceHT, $priceTVA, $priceTTC, $priceTTCusd ) {
 		#print "[$price]\n" ;
@@ -1031,7 +1046,8 @@ sub tva_stuff {
 		$priceTTC,
 		$messageTVAFR,
 		$messageTVAEN,
-		$priceTTCusd
+		$priceTTCusd,
+                $HTorTTC
 	) ;
 }
 
