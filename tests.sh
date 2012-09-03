@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.195 2012/07/18 11:10:00 gilles Exp gilles $  
+# $Id: tests.sh,v 1.196 2012/08/10 11:29:11 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
@@ -486,7 +486,7 @@ ll_delete2foldersbutnot() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes \
-                --delete2foldersbutnot '/NEW_2|NEW_3|\[abc\]/' \
+                --delete2foldersbutnot 'm{NEW_2|NEW_3|\[abc\]}' \
 		--dry
 }
 
