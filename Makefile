@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.95 2012/07/19 05:58:22 gilles Exp gilles $	
+# $Id: Makefile,v 1.96 2012/07/29 22:03:29 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -284,9 +284,9 @@ upload_lfo:
 
 upload_index: index.shtml FAQ paypal.shtml
 	validate --verbose index.shtml paypal.shtml
-	rcsdiff index.shtml paypal.shtml FAQ
-	rsync -avH index.shtml FAQ paypal.shtml root@ks.lamiral.info:/var/www/imapsync/
-	rsync -avH index.shtml FAQ paypal.shtml \
+	rcsdiff index.shtml paypal.shtml FAQ COPYING
+	rsync -avH index.shtml FAQ paypal.shtml COPYING root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH index.shtml FAQ paypal.shtml COPYING \
 	../../public_html/www.linux-france.org/html/prj/imapsync/
 	sh $(HOME)/memo/lfo-rsync
 

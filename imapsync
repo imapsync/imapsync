@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.498 $
+$Revision: 1.500 $
 
 =head1 SYNOPSIS
 
@@ -515,7 +515,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.498 2012/07/20 14:28:45 gilles Exp gilles $
+$Id: imapsync,v 1.500 2012/08/10 04:58:46 gilles Exp gilles $
 
 =cut
 
@@ -626,13 +626,14 @@ my(
 	$wholeheaderifneeded, %h1_msgs_copy_by_uid, $useuid, $h2_uidguess,
         $addheader,
         %h1, %h2,
+        $checkselectable,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.498 2012/07/20 14:28:45 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.500 2012/08/10 04:58:46 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -711,6 +712,8 @@ if ( $fast ) {
 # Activate --usecache if --useuid is set and no --nousecache
 $usecache = 1 if ( $useuid and ( ! defined( $usecache ) ) ) ;
 $cacheaftercopy = 1 if ( $usecache and ( ! defined( $cacheaftercopy ) ) ) ;
+
+$checkselectable = defined( $checkselectable ) ? $checkselectable : 1 ;
 
 print banner_imapsync(@argv_copy);
 
@@ -882,17 +885,6 @@ $password2 = ( defined( $passfile2 ) ) ? firstline ( $passfile2 ) : $password2 ;
 my $dry_message = '' ;
 $dry_message = "\t(not really since --dry mode)" if $dry ;
 
-if ( ! ( 1
-      or ( $maxsize 
-      or $minsize 
-      or $maxage  
-      or $minage )
-     and $usecache 
-     and ! $delete ) ) {
-        die_clean( 
-"Problem --usecache can not be used safely with options --maxsize --minsize --maxage --minage
-Use --nousecache or suppress the --max* --min* options\n" ) ;    
-}
 
 my $imap1 = ();
 my $imap2 = ();
@@ -999,13 +991,14 @@ if (scalar(@exclude)) {
 
 # Remove no selectable folders
 
-foreach my $folder (keys(%requested_folder)) {
-        if ( not $imap1->selectable($folder)) {
-		print "Warning: ignoring folder $folder because it is not selectable\n";
-                remove_from_requested_folders($folder);
-        }
-}
-
+$checkselectable and do {
+	foreach my $folder (keys(%requested_folder)) {
+        	if ( not $imap1->selectable($folder)) {
+			print "Warning: ignoring folder $folder because it is not selectable\n";
+                	remove_from_requested_folders($folder);
+        	}
+	}
+} ;
 
 my @requested_folder = sort(keys(%requested_folder));
 
@@ -1143,12 +1136,14 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 
 	( $debug or $debugLIST ) and print "Host2 LIST: $h2_msgs_nb messages [@h2_msgs]\n";
         
-	my $cache_base = "$tmpdir/imapsync_cache/$host1/$user1/$host2/$user2";
-	my $cache_dir = cache_folder( $cache_base, $h1_fold, $h2_fold );
-	my ( $cache_1_2_ref, $cache_2_1_ref ) = ( {}, {} );
-	
-        last FOLDER if $imap1->IsUnconnected();
-        last FOLDER if $imap2->IsUnconnected();
+	my $cache_base = "$tmpdir/imapsync_cache/$host1/$user1/$host2/$user2" ;
+	my $cache_dir = cache_folder( $cache_base, $h1_fold, $h2_fold ) ;
+	my ( $cache_1_2_ref, $cache_2_1_ref ) = ( {}, {} ) ;
+	my $h1_uidvalidity = $imap1->uidvalidity(  ) || '' ;
+	my $h2_uidvalidity = $imap2->uidvalidity(  ) || '' ;
+        
+        last FOLDER if $imap1->IsUnconnected() ;
+        last FOLDER if $imap2->IsUnconnected() ;
 
 	if ( $usecache ) {
 		print "cache directory: $cache_dir\n" ;
@@ -1361,8 +1356,11 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 			$debug and print "Host1 found msg $h1_fold/$h1_msg equals Host2 $h2_fold/$h2_msg\n" ;
 			$total_bytes_skipped += $h1_size ;
 			$nb_msg_skipped += 1 ;
-			$debugcache and print "touch $cache_dir/${h1_msg}_$h2_msg\n"  if ( $usecache ) ;
-			touch( "$cache_dir/${h1_msg}_$h2_msg" ) if ( $usecache ) ;
+                        if ( $usecache ) {
+				$debugcache and print "touch $cache_dir/${h1_msg}_$h2_msg\n" ;
+				touch( "$cache_dir/${h1_msg}_$h2_msg" ) 
+                                or die( "Couldn't touch $cache_dir/${h1_msg}_$h2_msg" ) ;
+                        }
 		}
 		
 		#$debug and print "MESSAGE $m_id\n";
@@ -1901,8 +1899,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.498 $ ',
-		  '$Date: 2012/07/20 14:28:45 $ ',
+		  '$Revision: 1.500 $ ',
+		  '$Date: 2012/08/10 04:58:46 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2808,8 +2806,12 @@ sub copy_message {
 			$h2_uidguess += 1 ;
 			$total_bytes_transferred += $h1_size;
 			$nb_msg_transferred += 1;
-			$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n"  if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$} ) ;
-			touch( "$cache_dir/${h1_msg}_$new_id" ) if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$} ) ;
+                        
+                        if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$} ) {
+				$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n" ;
+				touch( "$cache_dir/${h1_msg}_$new_id" ) 
+                        	or die( "Couldn't touch $cache_dir/${h1_msg}_$new_id" ) ;
+                        }
 			if ( $delete ) {
 				print "msg $h1_fold/$h1_msg deleted on host1\n";
 				unless($dry) {
@@ -2906,6 +2908,20 @@ sub tests_cache_map {
 
 }
 
+sub cache_dir_fix {
+	my $cache_dir = shift ;
+        $cache_dir =~ s/([;<>\*\|`&\$!#\(\)\[\]\{\}:'"\\])/\\$1/g ;
+        #print "cache_dir_fix: $cache_dir\n" ;
+	return( $cache_dir ) ;
+}
+
+sub tests_cache_dir_fix {
+	ok( 'lalala' eq  cache_dir_fix('lalala'),  'cache_dir_fix: lalala -> lalala' );
+	ok( 'ii\\\\ii' eq  cache_dir_fix('ii\ii'), 'cache_dir_fix: ii\ii -> ii\\\\ii' );
+	ok( 'ii@ii' eq  cache_dir_fix('ii@ii'),  'cache_dir_fix: ii@ii -> ii@ii' );
+	ok( 'ii@ii\\:ii' eq  cache_dir_fix('ii@ii:ii'), 'cache_dir_fix: ii@ii:ii -> ii@ii\\:ii' );
+
+}
 
 sub get_cache { 
 	$debugcache and print "Entering get_cache\n";
@@ -2915,12 +2931,14 @@ sub get_cache {
 	$debugcache and print "cache_dir    : $cache_dir\n";
 	
 	#$cache_dir =~ s{\\}{\\\\}g;
-        $cache_dir =~ s/([;<>\*\|`&\$!#\(\)\[\]\{\}:'"\\])/\\$1/g ;
+        $cache_dir = cache_dir_fix( $cache_dir ) if ( 'MSWin32' ne $OSNAME ) ;
 
-	$debugcache and print "cache_dir fix: $cache_dir\n";
+	$debugcache and print "cache_dir_fix: $cache_dir\n" ;
         
 	my @cache_files = bsd_glob( "$cache_dir/*" ) ;
-	#$debugcache and print "cache_files: [@cache_files]\n";
+	#$debugcache and print "cache_files: [@cache_files]\n" ;
+        
+	$debugcache and print( "cache_files: ", scalar( @cache_files ), " files found\n" ) ;
 	
 	my( $cache_1_2_ref, $cache_2_1_ref ) 
 	  = cache_map( \@cache_files, $h1_msgs_ref, $h2_msgs_ref ) ;
@@ -3200,16 +3218,6 @@ sub tests_clean_cache_2 {
 }
 
 
-sub tests_touch {
-
-	ok( (-d 'tmp/tests/' or  mkpath( 'tmp/tests/' )), 'tests_touch: mkpath tmp/tests/' ) ;
-	ok( 1 == touch( 'tmp/tests/lala'), 'tests_touch: tmp/tests/lala') ;
-	ok( 1 == touch( 'tmp/tests/\y'), 'tests_touch: tmp/tests/\y') ;
-	ok( 0 == touch( '/aaa'), 'tests_touch: not /aaa') ;
-	ok( 2 == touch( 'tmp/tests/lili', 'tmp/tests/lolo'), 'tests_touch: 2 files') ;
-	ok( 1 == touch( 'tmp/tests/\y', '/aaa'), 'tests_touch: 2 files, 1 fails' ) ;
-
-}
 
 sub tests_mkpath {
 
@@ -3219,18 +3227,32 @@ sub tests_mkpath {
         ok( 1 == 1, 'tests_mkpath: 1 == 1' ) ;
 }
 
+sub tests_touch {
+
+	ok( (-d 'tmp/tests/' or  mkpath( 'tmp/tests/' )), 'tests_touch: mkpath tmp/tests/' ) ;
+	ok( 1 == touch( 'tmp/tests/lala'), 'tests_touch: tmp/tests/lala') ;
+	ok( 1 == touch( 'tmp/tests/\y'), 'tests_touch: tmp/tests/\y') ;
+	ok( 0 == touch( '/aaa'), 'tests_touch: not /aaa') ;
+	ok( 1 == touch( 'tmp/tests/lili', 'tmp/tests/lolo'), 'tests_touch: 2 files') ;
+	ok( 0 == touch( 'tmp/tests/\y', '/aaa'), 'tests_touch: 2 files, 1 fails' ) ;
+
+}
+
+
 sub touch {
 	my @files = @_ ;
-	my @result;
+	my $failures = 0 ;
 	
 	foreach my $file ( @files ) {
 		my  $fh = new IO::File ;
-		if ($fh->open(">> $file")) {
+		if ( $fh->open(">> $file" ) ) {
 			$fh->close ;
-			push(@result, $file) ;
-		}
+		}else{
+                	print "Could not open file $file in write/append mode\n" ;
+                	$failures++ ;
+                }
 	}
-	return(@result);
+	return( ! $failures );
 }
 
 sub cache_folder {
@@ -3545,6 +3567,7 @@ sub get_options {
 				   "useuid!"      => \$useuid,
                                    "addheader!"   => \$addheader,
                                    "exitwhenover=i" => \$exitwhenover,
+                                   "checkselectable!" => \$checkselectable,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -3734,7 +3757,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.498 2012/07/20 14:28:45 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.500 2012/08/10 04:58:46 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3928,6 +3951,7 @@ Several options are mandatory.
 			 --delete2folders --dry --justfolders --nofoldersizes
 --delete2foldersonly   <regex>: delete only folders matching regex.
 --delete2foldersbutnot <regex>: do not delete folders matching regex.
+                         Example: --delete2foldersbutnot "/Tasks|Contacts|Foo/"
 --noexpunge            : Do not expunge messages on host1.
                          Expunge really deletes messages marked deleted.
                          Expunge is made at the beginning, on host1 only. 
@@ -4532,7 +4556,7 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-                tests_add_header(  ) ;
+                tests_cache_dir_fix(  ) ;
 	}
 }
 
@@ -4568,6 +4592,8 @@ sub tests {
                 tests_extract_header(  ) ;
                 tests_decompose_header(  ) ;
                 tests_epoch(  ) ;
+                tests_add_header(  ) ;
+                tests_cache_dir_fix(  ) ;
 	}
 }
 

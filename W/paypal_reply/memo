@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.9 2012/07/05 20:37:53 gilles Exp gilles $
+# $Id: memo,v 1.10 2012/08/10 22:25:31 gilles Exp gilles $
 
 
 echo paypal_bilan_todo
@@ -28,7 +28,28 @@ Europe a un autre assujetti : Article 262 ter => Exoneration
 EOF
 }
 
-echo paypal_bilan_tests_tva
+echo paypal_bilan_tests_tva_2
+paypal_bilan_tests_tva_2() {
+# DID output no diff between paypal_bilan_1.56 and 1.5?
+(
+#set -x
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.56 --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
+
+#echo paypal_bilan_tests_tva
 paypal_bilan_tests_tva() {
 # DID output no diff between paypal_bilan_1.55 and 1.5?
 (
