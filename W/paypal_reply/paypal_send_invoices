@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: paypal_send_invoices,v 1.7 2011/07/14 12:31:44 gilles Exp gilles $
+# $Id: paypal_send_invoices,v 1.8 2012/08/24 14:36:18 gilles Exp gilles $
 
 # usages:
 # sh paypal_send_invoices /g/var/paypal_invoices/147
@@ -26,18 +26,16 @@ send_invoice() {
 	test -f facture_message_body.txt || { echo NO facture_message_body.txt ;  return; }
 	test -f email_address.txt || { echo NO email_address.txt ;  return; }
 
-	email=${2:-`cat email_address_2.txt || cat email_address.txt`}
+	email=${2:-`cat email_address_2.txt 2>/dev/null || cat email_address.txt`}
 	> facture_message_to.txt
 	egrep '^To: ' facture_message_header.txt > /dev/null || echo "To: $email" > facture_message_to.txt
 	cat facture_message_header.txt facture_message_to.txt facture_message_body.txt > facture_message.txt
-	more facture_message.txt
-
-	echo '====== END of message ======'
 	test -f "SENT_TO_$email" && { 
-		echo '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
 		echo "!!! Already SENT_TO_$email"
-		echo '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+		return
 	}
+	more facture_message.txt
+	echo '====== END of message ======'
 	mailq
 	test -f "SENT_TO_$email" || acroread facture_imapsync-${invoice}.pdf&
         echo "Send this invoice ${invoice} to $email?"

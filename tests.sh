@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.196 2012/08/10 11:29:11 gilles Exp gilles $  
+# $Id: tests.sh,v 1.200 2012/08/28 13:11:30 gilles Exp gilles $  
 
 # Example 1:
-# CMD_PERL='perl -I./Mail-IMAPClient-3.25/lib' sh -x tests.sh
+# CMD_PERL='perl -I./Mail-IMAPClient-3.31/lib' sh -x tests.sh
 
 # Example 2:
 # To select which Mail-IMAPClient within arguments:
@@ -22,8 +22,8 @@ echo HOST2=$HOST2
 # most tests use:
 
 # few debugging tests use:
-CMD_PERL_2xx='perl -I./Mail-IMAPClient-2.2.9'
-CMD_PERL_3xx='perl -I./Mail-IMAPClient-3.31/lib'
+CMD_PERL_2xx='perl -I./W/Mail-IMAPClient-2.2.9'
+CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.31/lib'
 
 CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
 
@@ -181,7 +181,7 @@ ll_nofoldersizes()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --nofoldersizes --debug --folder INBOX.yop
+        --nofoldersizes --folder INBOX
 }
 
 
@@ -790,7 +790,7 @@ ll_maxage()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --maxage 1
+        --maxage 1 --folder INBOX
 }
 
 ll_maxage_0() 
@@ -1157,6 +1157,24 @@ ll_regextrans2_remove_space()
 }
 
 
+ll_regextrans2_archive_per_month() 
+{
+# Bad behavior on Courier
+# SENTBEFORE 31-Apr returns nothing
+# SENTBEFORE 30 Apr returns messages
+
+		year=2012
+		month=Apr
+		month_n=04
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --nofoldersize \
+		--search "SENTSINCE 1-$month-$year SENTBEFORE 30-$month-$year" \
+                --regextrans2 "s{.*}{INBOX.Archive.$year.$month_n}" 
+}
 
 
 ll_sep2() 
@@ -1485,7 +1503,7 @@ ll_authmech_PLAIN() {
 }
 
 ll_authmech_NTLM() {
-                $CMD_PERL -I./NTLM-1.09/blib/lib ./imapsync \
+                $CMD_PERL -I./W/NTLM-1.09/blib/lib ./imapsync \
                 --host1 mail.freshgrillfoods.com --user1 ktraster \
                 --passfile1 ../../var/pass/secret.ktraster \
                 --host2 $HOST2 --user2 titi \
@@ -1496,7 +1514,7 @@ ll_authmech_NTLM() {
 }
 
 ll_authmech_NTLM_domain() {
-                $CMD_PERL -I./NTLM-1.09/blib/lib ./imapsync \
+                $CMD_PERL -I./W/NTLM-1.09/blib/lib ./imapsync \
                 --host1 mail.freshgrillfoods.com --user1 ktraster \
                 --passfile1 ../../var/pass/secret.ktraster \
                 --host2 $HOST2 --user2 titi \
@@ -1506,7 +1524,7 @@ ll_authmech_NTLM_domain() {
 }
 
 ll_authmech_NTLM_2() {
-                $CMD_PERL -I./NTLM-1.09/blib/lib ./imapsync \
+                $CMD_PERL -I./W/NTLM-1.09/blib/lib ./imapsync \
                 --host1 mail.freshgrillfoods.com --user1 ktraster \
                 --passfile1 ../../var/pass/secret.ktraster \
                 --host2 $HOST2 --user2 titi \
@@ -2266,6 +2284,47 @@ ll_nofastio()
 ##########################
 # specific tests
 ##########################
+
+
+tobbit_11() {
+	$CMD_PERL ./imapsync \
+	--host1 217.22.84.74  --user1 Test_IMAP \
+	--passfile1 ../../var/pass/secret.tobbit \
+	--host2 localhost --user2 tobbit \
+	--passfile2 ../../var/pass/secret.tobbit \
+	--folder INBOX --sep1 / --prefix1 '' \
+        --nofoldersizes --useuid --idatefromheader
+}
+
+tobbit_12() {
+	$CMD_PERL ./imapsync \
+	--host1 217.22.84.74  --user1 Test_IMAP \
+	--passfile1 ../../var/pass/secret.tobbit \
+	--host2 localhost --user2 tobbit \
+	--passfile2 ../../var/pass/secret.tobbit \
+	--folder INBOX --sep1 / --prefix1 '' \
+        --nofoldersizes --useuid --idatefromheader --nocheckmessageexists
+}
+
+tobbit_21() {
+	$CMD_PERL ./imapsync \
+	--host1 217.22.84.74  --user1 Test_IMAP \
+	--passfile1 ../../var/pass/secret.tobbit \
+	--host2 localhost --user2 tobbit \
+	--passfile2 ../../var/pass/secret.tobbit \
+	--folder toto --sep1 / --prefix1 '' \
+        --nofoldersizes --useuid --idatefromheader
+}
+
+tobbit_22() {
+	$CMD_PERL ./imapsync \
+	--host1 217.22.84.74  --user1 Test_IMAP \
+	--passfile1 ../../var/pass/secret.tobbit \
+	--host2 localhost --user2 tobbit \
+	--passfile2 ../../var/pass/secret.tobbit \
+	--folder toto --sep1 / --prefix1 '' \
+        --nofoldersizes --useuid --idatefromheader --nocheckmessageexists
+}
 
 
 exchange_hoch_1() {

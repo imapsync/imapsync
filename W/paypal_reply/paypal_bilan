@@ -44,6 +44,8 @@ my $debug_invoice_utf8 ;
 my $first_invoice = 1 ;
 my $print_details = '' ;
 my $bnc = '' ;
+my $exportbnc = '' ;
+
 my $usdeur = 1.2981 ;
 my $invoices ;
 my %invoice_refund ;
@@ -65,6 +67,7 @@ my $option_ret = GetOptions (
 	'first_invoice=i'       => \$first_invoice,
 	'print_details|details' => \$print_details,
 	'bnc'                   => \$bnc,
+	'exportbnc=s'           => \$exportbnc,
 	'usdeur=f'              => \$usdeur,
 	'invoices=s'            => \$invoices,
 	'write_invoices!'       => \$write_invoices,
@@ -159,8 +162,10 @@ my @invoice_canceled  = sort { $a <=> $b } keys( %invoice_canceled ) ;
 my @invoice_suspended = sort { $a <=> $b } keys( %invoice_suspended ) ;
 my @invoice_refund    = sort { $a <=> $b } keys( %invoice_refund ) ;
 
+
 print( "\n", "=" x 60, "\n" ) if $bnc ;
-	
+
+
 
 print "USD banque   $total_usd_received\n" ;
 print "USD invoice  $total_usd_invoice\n" ;
