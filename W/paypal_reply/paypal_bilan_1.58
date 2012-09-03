@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.56 2012/07/16 21:57:51 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.58 2012/08/11 00:01:46 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.56 2012/07/16 21:57:51 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.58 2012/08/11 00:01:46 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -103,10 +103,10 @@ foreach my $file ( @files ) {
 		#print $action->{ Nom }, "\n" ;
 		my( $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat,
 		$Devise, $Montant, $Numero_davis_de_reception, $Solde, 
-		$Pays, $Nom_Option_1, $Valeur_Option_1, $Hors_taxe, $Titre_de_l_objet )
+		$Pays, $Nom_Option_1, $Valeur_Option_1, $Hors_taxe, $Titre_de_l_objet, $Nom_Option_2, $Option_2_Valeur )
 		= @action{ ( 'Date', 'Heure', 'Fuseau horaire', 'Nom', 'Type', 'Etat',
 		'Devise', 'Montant', "Numéro d'avis de réception", 'Solde',
-		'Pays', 'Nom Option 1', 'Valeur Option 1', 'Hors taxe', "Titre de l'objet") } ;
+		'Pays', 'Nom Option 1', 'Valeur Option 1', 'Hors taxe', "Titre de l'objet", 'Nom Option 2', 'Option 2 Valeur') } ;
 		#print "$Nom\n" ;
                 ( $Etat ) = @action{ ( 'Etat', ) } || @action{ ( 'État' ) } ;
 		my $invoice = 'NONE' ;
@@ -509,12 +509,14 @@ sub build_invoice {
 	$De_l_adresse_email, $A_l_adresse_email, $N_de_transaction, $Titre_de_l_objet, 
 	$TVA, $Nom_Option_1, $Valeur_Option_1, $N_de_transaction_de_reference, 
 	$Adresse_1, $Adresse_2_district_quartier, $Ville, 
-	$Etat_Province, $Code_postal, $Pays, $line_number, $line_csv, $file_csv )
+	$Etat_Province, $Code_postal, $Pays, $line_number, $line_csv, $file_csv, 
+        $Nom_Option_2, $Option_2_Valeur )
 	= @action{ ( 'Date', 'Heure', 'Nom', 'Type', 'Etat', 'Devise', 'Hors taxe', 'Commission', 'Net', 
 	"De l'adresse email", "A l'adresse email", 'N° de transaction', "Titre de l'objet", 
 	'TVA', 'Nom Option 1', 'Valeur Option 1', 'Nº de transaction de référence',
 	'Adresse 1', 'Adresse 2/district/quartier', 'Ville', 
-	'Etat/Province/Région/Comté/Territoire/Préfecture/République', 'Code postal', 'Pays', 'line_number', 'line_csv', 'file_csv' ) } ;
+	'Etat/Province/Région/Comté/Territoire/Préfecture/République', 'Code postal', 'Pays', 'line_number', 'line_csv', 'file_csv', 
+        'Nom Option 2', 'Option 2 Valeur' ) } ;
 
 	my( $Etat_Province1 ) = @action{ ( 'Etat/Province/Région/Comté/Territoire/Préfecture/République' ) } ;
         my( $Etat_Province2 ) = @action{ ( 'État/Province/Région/Comté/Territoire/Préfecture/République' ) } ;
@@ -609,6 +611,13 @@ sub build_invoice {
         #print "ZZZ $object_type ( $urlSrc, $urlExe )\n" ;
         
         my ( $Nom1 ) = cut( $Nom, 42 ) ;
+        
+        my $clientVAT = '' ;
+        
+        if ( ( 'VAT if professional in Europe' eq $Nom_Option_2 ) and $Option_2_Valeur ) {
+        	$clientVAT = $Option_2_Valeur ;
+        }
+        
 	my $tex_variables = qq{
 %% Begin input from paypal_bilan $VERSION
 \\providecommand{\\invoiceNumber}{$invoice}
@@ -620,7 +629,7 @@ sub build_invoice {
 \\providecommand{\\clientAdrD}{$clientAdrD}
 \\providecommand{\\clientAdrE}{$clientAdrE}
 \\providecommand{\\clientAdrF}{$clientAdrF}
-\\providecommand{\\clientVAT}{}
+\\providecommand{\\clientVAT}{$clientVAT}
 \\providecommand{\\invoiceDate}{$Date}
 \\providecommand{\\invoiceHour}{$Heure}
 
@@ -1031,8 +1040,8 @@ sub tva_stuff {
 		$priceTVA = 'néant (none)' ;
 		$priceTTC = $priceHT ;
                 $HTorTTC  = 'HT' ;
-		$messageTVAFR = 'Exonération de TVA, articles 262 1-2 du Code Général des Impôts';
-		$messageTVAEN = '(VAT tax-exempt, articles 262 1-2 French General Tax Code)';
+		$messageTVAFR = 'Exonération de TVA, articles 262 1-2 et ter du Code Général des Impôts';
+		$messageTVAEN = '(VAT tax-exempt, articles 262 1-2 and ter of French General Tax Code)';
 	}
 	foreach my $price ( $priceHT, $priceTVA, $priceTTC, $priceTTCusd ) {
 		#print "[$price]\n" ;

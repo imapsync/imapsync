@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.500 $
+$Revision: 1.504 $
 
 =head1 SYNOPSIS
 
@@ -515,7 +515,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.500 2012/08/10 04:58:46 gilles Exp gilles $
+$Id: imapsync,v 1.504 2012/08/28 13:10:26 gilles Exp gilles $
 
 =cut
 
@@ -543,7 +543,7 @@ use Errno qw(EAGAIN EPIPE ECONNRESET);
 use File::Glob qw( :glob ) ;
 use IO::File;
 use Time::Local ;
-
+use Time::HiRes qw( time ) ;
 use Test::More 'no_plan';
 
 eval { require 'usr/include/sysexits.ph' };
@@ -604,7 +604,7 @@ my(
 	$h1_nb_msg_deleted,
 	$h2_nb_msg_deleted,
         $timeout,
-	$timestart, $timeend, $timediff,
+	$timestart, $timestart_int, $timeend, $timediff,
         $timesize, $timebefore,
         $ssl1, $ssl2,
 	$tls1, $tls2,
@@ -626,14 +626,14 @@ my(
 	$wholeheaderifneeded, %h1_msgs_copy_by_uid, $useuid, $h2_uidguess,
         $addheader,
         %h1, %h2,
-        $checkselectable,
+        $checkselectable, $checkmessageexists,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.500 2012/08/10 04:58:46 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.504 2012/08/28 13:10:26 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -714,6 +714,7 @@ $usecache = 1 if ( $useuid and ( ! defined( $usecache ) ) ) ;
 $cacheaftercopy = 1 if ( $usecache and ( ! defined( $cacheaftercopy ) ) ) ;
 
 $checkselectable = defined( $checkselectable ) ? $checkselectable : 1 ;
+$checkmessageexists = defined( $checkmessageexists ) ? $checkmessageexists : 1 ;
 
 print banner_imapsync(@argv_copy);
 
@@ -890,6 +891,7 @@ my $imap1 = ();
 my $imap2 = ();
 
 $timestart = time(  );
+$timestart_int = int( $timestart ) ;
 $timebefore = $timestart;
 
 $debugimap1 and print "Host1 connection\n";
@@ -1070,6 +1072,8 @@ delete_folders_in_2_not_in_1() if $delete2folders;
 
 # folder loop
 print "++++ Looping on each folder\n";
+
+my $begin_transfer_time = time ;
 
 FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 
@@ -1899,8 +1903,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.500 $ ',
-		  '$Date: 2012/08/10 04:58:46 $ ',
+		  '$Revision: 1.504 $ ',
+		  '$Date: 2012/08/28 13:10:26 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2307,7 +2311,7 @@ sub foldersizes {
 	my $total_nb = 0 ;
 	my $biggest = 0 ;
 	
-	print "++++ Calculating sizes\n" ;
+	print "++++ Calculating sizes on $side\n" ;
 	foreach my $folder ( @folders )     {
 		my $stot = 0 ;
 		my $nb_msgs = 0 ;
@@ -2348,20 +2352,30 @@ sub foldersizes {
 		$total_size += $stot ;
 		$total_nb += $nb_msgs ;
 	}
-	printf ( "Nb messages:     %11s\n", $total_nb ) ;
-	printf ( "Total size:      %11s bytes\n", $total_size ) ;
-	printf ( "Biggest message: %11s bytes\n", $biggest ) ;
-	printf ( "Time:            %11s seconds\n", timenext(  ) ) ;
+	printf ( "Nb messages:     %11s messages\n", $total_nb ) ;
+	printf ( "Total size:      %11s bytes (%s)\n", $total_size, bytes_display_string( $total_size ) ) ;
+	printf ( "Biggest message: %11s bytes (%s)\n", $biggest, bytes_display_string( $biggest ) ) ;
+	printf ( "Time spent:      %11.1f seconds\n", timenext(  ) ) ;
 }
 
 sub timenext {
-	my ($timenow, $timerel);
+	my ( $timenow, $timediff ) ;
 	# $timebefore is global, beurk !
-	$timenow    = time;
-	$timerel    = $timenow - $timebefore;
-	$timebefore = $timenow;
-	return($timerel);
+	$timenow    = time ;
+	$timediff   = $timenow - $timebefore ;
+	$timebefore = $timenow ;
+	return( $timediff ) ;
 }
+
+sub timesince {
+	my $timeinit = shift ;
+	my ( $timenow, $timediff ) ;
+	$timenow    = time ;
+	$timediff   = $timenow - $timeinit ;
+	return( $timediff ) ;
+}
+
+
 
 
 sub tests_flags_regex {
@@ -2629,10 +2643,10 @@ sub select_msgs {
         }
         
 	if ( defined( $maxage ) ) {
-		@max = $imap->sentsince( $timestart - 86400 * $maxage ) ;
+		@max = $imap->sentsince( $timestart_int - 86400 * $maxage ) ;
 	}
 	if ( defined($minage ) ) {
-		@min = $imap->sentbefore( $timestart - 86400 * $minage ) ;
+		@min = $imap->sentbefore( $timestart_int - 86400 * $minage ) ;
 	}
       SWITCH: {
 		unless( defined( $minage ) ) { @msgs = @max ; last SWITCH } ;
@@ -2727,7 +2741,7 @@ sub copy_message {
 	do { print "SLEEP 5\n" and sleep 5 ; } if ( $debugsleep ) ;
 	print "- msg $h1_fold/$h1_msg S[$h1_size] F[$h1_flags] I[$h1_idate] has RFC822.SIZE null!\n" if ( ! $h1_size ) ;
 
-	return(  ) if not message_exists( $imap1, $h1_msg ) ;
+	return(  ) if ( $checkmessageexists and not message_exists( $imap1, $h1_msg ) ) ;
 	$string = $imap1->message_string($h1_msg);
 	
 	
@@ -2802,10 +2816,15 @@ sub copy_message {
 			if ( $new_id !~ m{^\d+$} ) {
 				$new_id = lastuid( $imap2, $h2_fold, $h2_uidguess ) ;
 			}
-			printf( "msg %s/%-19s copied to %s/%-10s\n", $h1_fold, "$h1_msg {$string_len}", $h2_fold, $new_id );
 			$h2_uidguess += 1 ;
-			$total_bytes_transferred += $h1_size;
-			$nb_msg_transferred += 1;
+			$total_bytes_transferred += $h1_size ;
+			$nb_msg_transferred += 1 ;
+                        
+                        my $time_spent = timesince( $begin_transfer_time ) ;
+                        my $rate = bytes_display_string( $total_bytes_transferred / $time_spent ) ;
+                        
+			printf( "msg %s/%-19s copied to %s/%-10s %.2f msgs/s  %s/s\n", 
+                        $h1_fold, "$h1_msg {$string_len}", $h2_fold, $new_id, $nb_msg_transferred/$time_spent, $rate );
                         
                         if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$} ) {
 				$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n" ;
@@ -2956,21 +2975,21 @@ sub get_cache {
 sub tests_get_cache {
 	
 	ok( ! get_cache('/cache_no_exist'), 'get_cache: /cache_no_exist' );
-	ok( ( ! -d 'tmp/cache/F1/F2' or rmtree( 'tmp/cache/F1/F2' )), 'get_cache: rmtree tmp/cache/F1/F2' ) ;
-	ok( mkpath( 'tmp/cache/F1/F2' ), 'get_cache: mkpath tmp/cache/F1/F2' ) ;
+	ok( ( ! -d 'W/tmp/cache/F1/F2' or rmtree( 'W/tmp/cache/F1/F2' )), 'get_cache: rmtree W/tmp/cache/F1/F2' ) ;
+	ok( mkpath( 'W/tmp/cache/F1/F2' ), 'get_cache: mkpath W/tmp/cache/F1/F2' ) ;
 	
 	my @test_files_cache = ( qw( 
-	tmp/cache/F1/F2/100_200
-	tmp/cache/F1/F2/101_201
-	tmp/cache/F1/F2/120_220
-	tmp/cache/F1/F2/142_242
-	tmp/cache/F1/F2/143_243
-	tmp/cache/F1/F2/177_277
-	tmp/cache/F1/F2/177_377
-	tmp/cache/F1/F2/177_777
-	tmp/cache/F1/F2/155_255
+	W/tmp/cache/F1/F2/100_200
+	W/tmp/cache/F1/F2/101_201
+	W/tmp/cache/F1/F2/120_220
+	W/tmp/cache/F1/F2/142_242
+	W/tmp/cache/F1/F2/143_243
+	W/tmp/cache/F1/F2/177_277
+	W/tmp/cache/F1/F2/177_377
+	W/tmp/cache/F1/F2/177_777
+	W/tmp/cache/F1/F2/155_255
 	) ) ;
-	ok( touch( @test_files_cache ), 'get_cache: touch tmp/cache/F1/F2/...' ) ;
+	ok( touch( @test_files_cache ), 'get_cache: touch W/tmp/cache/F1/F2/...' ) ;
 	
 	
 	# on cache: 100_200 101_201 142_242 143_243 177_277 177_377 177_777 155_255
@@ -2982,44 +3001,44 @@ sub tests_get_cache {
         my $msgs_all_2 = { 242 => '', 243 => '', 299 => '', 377 => '', 777 => '', 255 => '' } ;
 	
 	my( $c12, $c21 ) ;
-	ok( ( $c12, $c21 ) = get_cache( 'tmp/cache/F1/F2', $msgs_1, $msgs_2, $msgs_all_1, $msgs_all_2 ), 'get_cache: 02' );
+	ok( ( $c12, $c21 ) = get_cache( 'W/tmp/cache/F1/F2', $msgs_1, $msgs_2, $msgs_all_1, $msgs_all_2 ), 'get_cache: 02' );
 	my $a1 = [ sort { $a <=> $b } keys %$c12 ] ;
 	my $a2 = [ sort { $a <=> $b } keys %$c21 ] ;
 	ok( 0 == compare_lists( [ 142, 143, 177 ], $a1 ), 'get_cache: 03' );
 	ok( 0 == compare_lists( [ 242, 243, 777 ], $a2 ), 'get_cache: 04' );
-	ok( -f 'tmp/cache/F1/F2/142_242', 'get_cache: file kept 142_242');
-	ok( -f 'tmp/cache/F1/F2/142_242', 'get_cache: file kept 143_243');
-	ok( ! -f 'tmp/cache/F1/F2/100_200', 'get_cache: file removed 100_200');
-	ok( ! -f 'tmp/cache/F1/F2/101_201', 'get_cache: file removed 101_201');
+	ok( -f 'W/tmp/cache/F1/F2/142_242', 'get_cache: file kept 142_242');
+	ok( -f 'W/tmp/cache/F1/F2/142_242', 'get_cache: file kept 143_243');
+	ok( ! -f 'W/tmp/cache/F1/F2/100_200', 'get_cache: file removed 100_200');
+	ok( ! -f 'W/tmp/cache/F1/F2/101_201', 'get_cache: file removed 101_201');
 	
 	# test clean_cache executed
 	$maxage = 2 ;
-	ok( touch(@test_files_cache), 'get_cache: touch tmp/cache/F1/F2/...' ) ;
-	ok( ( $c12, $c21 ) = get_cache('tmp/cache/F1/F2', $msgs_1, $msgs_2, $msgs_all_1, $msgs_all_2 ), 'get_cache: 02' );
-	ok( -f 'tmp/cache/F1/F2/142_242', 'get_cache: file kept 142_242');
-	ok( -f 'tmp/cache/F1/F2/142_242', 'get_cache: file kept 143_243');
-	ok( ! -f 'tmp/cache/F1/F2/100_200', 'get_cache: file NOT removed 100_200');
-	ok( ! -f 'tmp/cache/F1/F2/101_201', 'get_cache: file NOT removed 101_201');
+	ok( touch(@test_files_cache), 'get_cache: touch W/tmp/cache/F1/F2/...' ) ;
+	ok( ( $c12, $c21 ) = get_cache('W/tmp/cache/F1/F2', $msgs_1, $msgs_2, $msgs_all_1, $msgs_all_2 ), 'get_cache: 02' );
+	ok( -f 'W/tmp/cache/F1/F2/142_242', 'get_cache: file kept 142_242');
+	ok( -f 'W/tmp/cache/F1/F2/142_242', 'get_cache: file kept 143_243');
+	ok( ! -f 'W/tmp/cache/F1/F2/100_200', 'get_cache: file NOT removed 100_200');
+	ok( ! -f 'W/tmp/cache/F1/F2/101_201', 'get_cache: file NOT removed 101_201');
 	
 	
 	# strange files
 	#$debugcache = 1 ;
 	$maxage = undef ;
-	ok( ( ! -d 'tmp/cache/rr\uee' or rmtree( 'tmp/cache/rr\uee' )), 'get_cache: rmtree tmp/cache/rr\uee' ) ;
-	ok( mkpath( 'tmp/cache/rr\uee' ), 'get_cache: mkpath tmp/cache/rr\uee' ) ;
+	ok( ( ! -d 'W/tmp/cache/rr\uee' or rmtree( 'W/tmp/cache/rr\uee' )), 'get_cache: rmtree W/tmp/cache/rr\uee' ) ;
+	ok( mkpath( 'W/tmp/cache/rr\uee' ), 'get_cache: mkpath W/tmp/cache/rr\uee' ) ;
 	
 	@test_files_cache = ( qw( 
-	tmp/cache/rr\uee/100_200
-	tmp/cache/rr\uee/101_201
-	tmp/cache/rr\uee/120_220
-	tmp/cache/rr\uee/142_242
-	tmp/cache/rr\uee/143_243
-	tmp/cache/rr\uee/177_277
-	tmp/cache/rr\uee/177_377
-	tmp/cache/rr\uee/177_777
-	tmp/cache/rr\uee/155_255
+	W/tmp/cache/rr\uee/100_200
+	W/tmp/cache/rr\uee/101_201
+	W/tmp/cache/rr\uee/120_220
+	W/tmp/cache/rr\uee/142_242
+	W/tmp/cache/rr\uee/143_243
+	W/tmp/cache/rr\uee/177_277
+	W/tmp/cache/rr\uee/177_377
+	W/tmp/cache/rr\uee/177_777
+	W/tmp/cache/rr\uee/155_255
 	) ) ;
-	ok( touch(@test_files_cache), 'get_cache: touch strange tmp/cache/...' ) ;
+	ok( touch(@test_files_cache), 'get_cache: touch strange W/tmp/cache/...' ) ;
 	
 	# on cache: 100_200 101_201 142_242 143_243 177_277 177_377 177_777 155_255
 	# on live:
@@ -3029,15 +3048,15 @@ sub tests_get_cache {
         $msgs_all_1 = { 120 => '', 142 => '', 143 => '', 144 => '', 177 => '' } ;
         $msgs_all_2 = { 242 => '', 243 => '', 299 => '', 377 => '', 777 => '', 255 => '' } ;
         
-	ok( ( $c12, $c21 ) = get_cache('tmp/cache/rr\uee', $msgs_1, $msgs_2, $msgs_all_1, $msgs_all_2), 'get_cache: strange path 02' );
+	ok( ( $c12, $c21 ) = get_cache('W/tmp/cache/rr\uee', $msgs_1, $msgs_2, $msgs_all_1, $msgs_all_2), 'get_cache: strange path 02' );
 	$a1 = [ sort { $a <=> $b } keys %$c12 ] ;
 	$a2 = [ sort { $a <=> $b } keys %$c21 ] ;
 	ok( 0 == compare_lists( [ 142, 143, 177 ], $a1 ), 'get_cache: strange path 03' );
 	ok( 0 == compare_lists( [ 242, 243, 777 ], $a2 ), 'get_cache: strange path 04' );
-	ok( -f 'tmp/cache/rr\uee/142_242', 'get_cache: strange path file kept 142_242');
-	ok( -f 'tmp/cache/rr\uee/142_242', 'get_cache: strange path file kept 143_243');
-	ok( ! -f 'tmp/cache/rr\uee/100_200', 'get_cache: strange path file removed 100_200');
-	ok( ! -f 'tmp/cache/rr\uee/101_201', 'get_cache: strange path file removed 101_201');
+	ok( -f 'W/tmp/cache/rr\uee/142_242', 'get_cache: strange path file kept 142_242');
+	ok( -f 'W/tmp/cache/rr\uee/142_242', 'get_cache: strange path file kept 143_243');
+	ok( ! -f 'W/tmp/cache/rr\uee/100_200', 'get_cache: strange path file removed 100_200');
+	ok( ! -f 'W/tmp/cache/rr\uee/101_201', 'get_cache: strange path file removed 101_201');
 	
 
 }
@@ -3115,28 +3134,28 @@ sub clean_cache {
 
 sub tests_clean_cache {
 
-	ok( ( ! -d  'tmp/cache/G1/G2' or rmtree( 'tmp/cache/G1/G2' )), 'clean_cache: rmtree tmp/cache/G1/G2' ) ;
-	ok( mkpath( 'tmp/cache/G1/G2' ), 'clean_cache: mkpath tmp/cache/G1/G2' ) ;
+	ok( ( ! -d  'W/tmp/cache/G1/G2' or rmtree( 'W/tmp/cache/G1/G2' )), 'clean_cache: rmtree W/tmp/cache/G1/G2' ) ;
+	ok( mkpath( 'W/tmp/cache/G1/G2' ), 'clean_cache: mkpath W/tmp/cache/G1/G2' ) ;
 	
 	my @test_files_cache = ( qw( 
-	tmp/cache/G1/G2/100_200
-	tmp/cache/G1/G2/101_201
-	tmp/cache/G1/G2/120_220
-	tmp/cache/G1/G2/142_242
-	tmp/cache/G1/G2/143_243
-	tmp/cache/G1/G2/177_277
-	tmp/cache/G1/G2/177_377
-	tmp/cache/G1/G2/177_777
-	tmp/cache/G1/G2/155_255
+	W/tmp/cache/G1/G2/100_200
+	W/tmp/cache/G1/G2/101_201
+	W/tmp/cache/G1/G2/120_220
+	W/tmp/cache/G1/G2/142_242
+	W/tmp/cache/G1/G2/143_243
+	W/tmp/cache/G1/G2/177_277
+	W/tmp/cache/G1/G2/177_377
+	W/tmp/cache/G1/G2/177_777
+	W/tmp/cache/G1/G2/155_255
 	) ) ;
-	ok( touch(@test_files_cache), 'clean_cache: touch tmp/cache/G1/G2/...' ) ;
+	ok( touch(@test_files_cache), 'clean_cache: touch W/tmp/cache/G1/G2/...' ) ;
 	
-	ok( -f 'tmp/cache/G1/G2/100_200', 'clean_cache: 100_200 before' );
-	ok( -f 'tmp/cache/G1/G2/142_242', 'clean_cache: 142_242 before' );
-	ok( -f 'tmp/cache/G1/G2/177_277', 'clean_cache: 177_277 before' );
-	ok( -f 'tmp/cache/G1/G2/177_377', 'clean_cache: 177_377 before' );
-	ok( -f 'tmp/cache/G1/G2/177_777', 'clean_cache: 177_777 before' );
-	ok( -f 'tmp/cache/G1/G2/155_255', 'clean_cache: 155_255 before' );
+	ok( -f 'W/tmp/cache/G1/G2/100_200', 'clean_cache: 100_200 before' );
+	ok( -f 'W/tmp/cache/G1/G2/142_242', 'clean_cache: 142_242 before' );
+	ok( -f 'W/tmp/cache/G1/G2/177_277', 'clean_cache: 177_277 before' );
+	ok( -f 'W/tmp/cache/G1/G2/177_377', 'clean_cache: 177_377 before' );
+	ok( -f 'W/tmp/cache/G1/G2/177_777', 'clean_cache: 177_777 before' );
+	ok( -f 'W/tmp/cache/G1/G2/155_255', 'clean_cache: 155_255 before' );
 	
 	my $cache = {
 		142 => 242,
@@ -3155,38 +3174,38 @@ sub tests_clean_cache {
         } ;
 	ok( clean_cache( \@test_files_cache, $cache, $all_1, $all_2 ), 'clean_cache: ' ) ;
 	
-	ok( ! -f 'tmp/cache/G1/G2/100_200', 'clean_cache: 100_200 after' );
-	ok(   -f 'tmp/cache/G1/G2/142_242', 'clean_cache: 142_242 after' );
-	ok( ! -f 'tmp/cache/G1/G2/177_277', 'clean_cache: 177_277 after' );
-	ok( ! -f 'tmp/cache/G1/G2/177_377', 'clean_cache: 177_377 after' );
-	ok(   -f 'tmp/cache/G1/G2/177_777', 'clean_cache: 177_777 after' );
-	ok( ! -f 'tmp/cache/G1/G2/155_255', 'clean_cache: 155_255 after' );
+	ok( ! -f 'W/tmp/cache/G1/G2/100_200', 'clean_cache: 100_200 after' );
+	ok(   -f 'W/tmp/cache/G1/G2/142_242', 'clean_cache: 142_242 after' );
+	ok( ! -f 'W/tmp/cache/G1/G2/177_277', 'clean_cache: 177_277 after' );
+	ok( ! -f 'W/tmp/cache/G1/G2/177_377', 'clean_cache: 177_377 after' );
+	ok(   -f 'W/tmp/cache/G1/G2/177_777', 'clean_cache: 177_777 after' );
+	ok( ! -f 'W/tmp/cache/G1/G2/155_255', 'clean_cache: 155_255 after' );
 }
 
 sub tests_clean_cache_2 {
 
-	ok( ( ! -d  'tmp/cache/G1/G2' or rmtree( 'tmp/cache/G1/G2' )), 'clean_cache_2: rmtree tmp/cache/G1/G2' ) ;
-	ok( mkpath( 'tmp/cache/G1/G2' ), 'clean_cache_2: mkpath tmp/cache/G1/G2' ) ;
+	ok( ( ! -d  'W/tmp/cache/G1/G2' or rmtree( 'W/tmp/cache/G1/G2' )), 'clean_cache_2: rmtree W/tmp/cache/G1/G2' ) ;
+	ok( mkpath( 'W/tmp/cache/G1/G2' ), 'clean_cache_2: mkpath W/tmp/cache/G1/G2' ) ;
 	
 	my @test_files_cache = ( qw( 
-	tmp/cache/G1/G2/100_200
-	tmp/cache/G1/G2/101_201
-	tmp/cache/G1/G2/120_220
-	tmp/cache/G1/G2/142_242
-	tmp/cache/G1/G2/143_243
-	tmp/cache/G1/G2/177_277
-	tmp/cache/G1/G2/177_377
-	tmp/cache/G1/G2/177_777
-	tmp/cache/G1/G2/155_255
+	W/tmp/cache/G1/G2/100_200
+	W/tmp/cache/G1/G2/101_201
+	W/tmp/cache/G1/G2/120_220
+	W/tmp/cache/G1/G2/142_242
+	W/tmp/cache/G1/G2/143_243
+	W/tmp/cache/G1/G2/177_277
+	W/tmp/cache/G1/G2/177_377
+	W/tmp/cache/G1/G2/177_777
+	W/tmp/cache/G1/G2/155_255
 	) ) ;
-	ok( touch(@test_files_cache), 'clean_cache_2: touch tmp/cache/G1/G2/...' ) ;
+	ok( touch(@test_files_cache), 'clean_cache_2: touch W/tmp/cache/G1/G2/...' ) ;
 	
-	ok( -f 'tmp/cache/G1/G2/100_200', 'clean_cache_2: 100_200 before' );
-	ok( -f 'tmp/cache/G1/G2/142_242', 'clean_cache_2: 142_242 before' );
-	ok( -f 'tmp/cache/G1/G2/177_277', 'clean_cache_2: 177_277 before' );
-	ok( -f 'tmp/cache/G1/G2/177_377', 'clean_cache_2: 177_377 before' );
-	ok( -f 'tmp/cache/G1/G2/177_777', 'clean_cache_2: 177_777 before' );
-	ok( -f 'tmp/cache/G1/G2/155_255', 'clean_cache_2: 155_255 before' );
+	ok( -f 'W/tmp/cache/G1/G2/100_200', 'clean_cache_2: 100_200 before' );
+	ok( -f 'W/tmp/cache/G1/G2/142_242', 'clean_cache_2: 142_242 before' );
+	ok( -f 'W/tmp/cache/G1/G2/177_277', 'clean_cache_2: 177_277 before' );
+	ok( -f 'W/tmp/cache/G1/G2/177_377', 'clean_cache_2: 177_377 before' );
+	ok( -f 'W/tmp/cache/G1/G2/177_777', 'clean_cache_2: 177_777 before' );
+	ok( -f 'W/tmp/cache/G1/G2/155_255', 'clean_cache_2: 155_255 before' );
 	
 	my $cache = {
 		142 => 242,
@@ -3209,12 +3228,12 @@ sub tests_clean_cache_2 {
         
 	ok( clean_cache( \@test_files_cache, $cache, $all_1, $all_2 ), 'clean_cache_2: ' ) ;
 	
-	ok(   -f 'tmp/cache/G1/G2/100_200', 'clean_cache_2: 100_200 after' );
-	ok(   -f 'tmp/cache/G1/G2/142_242', 'clean_cache_2: 142_242 after' );
-	ok( ! -f 'tmp/cache/G1/G2/177_277', 'clean_cache_2: 177_277 after' );
-	ok( ! -f 'tmp/cache/G1/G2/177_377', 'clean_cache_2: 177_377 after' );
-	ok(   -f 'tmp/cache/G1/G2/177_777', 'clean_cache_2: 177_777 after' );
-	ok( ! -f 'tmp/cache/G1/G2/155_255', 'clean_cache_2: 155_255 after' );
+	ok(   -f 'W/tmp/cache/G1/G2/100_200', 'clean_cache_2: 100_200 after' );
+	ok(   -f 'W/tmp/cache/G1/G2/142_242', 'clean_cache_2: 142_242 after' );
+	ok( ! -f 'W/tmp/cache/G1/G2/177_277', 'clean_cache_2: 177_277 after' );
+	ok( ! -f 'W/tmp/cache/G1/G2/177_377', 'clean_cache_2: 177_377 after' );
+	ok(   -f 'W/tmp/cache/G1/G2/177_777', 'clean_cache_2: 177_777 after' );
+	ok( ! -f 'W/tmp/cache/G1/G2/155_255', 'clean_cache_2: 155_255 after' );
 }
 
 
@@ -3222,19 +3241,19 @@ sub tests_clean_cache_2 {
 sub tests_mkpath {
 
         my $long_path = "123456789/" x 30 ;
-	ok( (-d "tmp/tests/long/$long_path" or  mkpath( "tmp/tests/long/$long_path" )), 'tests_mkpath: mkpath > 300 char' ) ;
-	ok( (-d "tmp/tests/long/$long_path" and rmtree( "tmp/tests/long/" )),           'tests_mkpath: rmtree > 300 char' ) ;
+	ok( (-d "W/tmp/tests/long/$long_path" or  mkpath( "W/tmp/tests/long/$long_path" )), 'tests_mkpath: mkpath > 300 char' ) ;
+	ok( (-d "W/tmp/tests/long/$long_path" and rmtree( "W/tmp/tests/long/" )),           'tests_mkpath: rmtree > 300 char' ) ;
         ok( 1 == 1, 'tests_mkpath: 1 == 1' ) ;
 }
 
 sub tests_touch {
 
-	ok( (-d 'tmp/tests/' or  mkpath( 'tmp/tests/' )), 'tests_touch: mkpath tmp/tests/' ) ;
-	ok( 1 == touch( 'tmp/tests/lala'), 'tests_touch: tmp/tests/lala') ;
-	ok( 1 == touch( 'tmp/tests/\y'), 'tests_touch: tmp/tests/\y') ;
+	ok( (-d 'W/tmp/tests/' or  mkpath( 'W/tmp/tests/' )), 'tests_touch: mkpath W/tmp/tests/' ) ;
+	ok( 1 == touch( 'W/tmp/tests/lala'), 'tests_touch: W/tmp/tests/lala') ;
+	ok( 1 == touch( 'W/tmp/tests/\y'), 'tests_touch: W/tmp/tests/\y') ;
 	ok( 0 == touch( '/aaa'), 'tests_touch: not /aaa') ;
-	ok( 1 == touch( 'tmp/tests/lili', 'tmp/tests/lolo'), 'tests_touch: 2 files') ;
-	ok( 0 == touch( 'tmp/tests/\y', '/aaa'), 'tests_touch: 2 files, 1 fails' ) ;
+	ok( 1 == touch( 'W/tmp/tests/lili', 'W/tmp/tests/lolo'), 'tests_touch: 2 files') ;
+	ok( 0 == touch( 'W/tmp/tests/\y', '/aaa'), 'tests_touch: 2 files, 1 fails' ) ;
 
 }
 
@@ -3262,19 +3281,37 @@ sub cache_folder {
 	my $sep1 = $h1_sep || '/';
 	my $sep2 = $h2_sep || '/';
 	
-	my $h1_fold_slash = convert_sep_to_slash( $h1_fold, $sep1 );
-	my $h2_fold_slash = convert_sep_to_slash( $h2_fold, $sep2 );
-	
-	return( "$cache_dir/$h1_fold_slash/$h2_fold_slash" ) ;
+	$h1_fold = convert_sep_to_slash( $h1_fold, $sep1 ) ;
+	$h2_fold = convert_sep_to_slash( $h2_fold, $sep2 ) ;
         
+	$h1_fold = filter_forbidden_characters( $h1_fold ) ;
+	$h2_fold = filter_forbidden_characters( $h2_fold ) ;
         
+	return( "$cache_dir/$h1_fold/$h2_fold" ) ;
+}
+
+sub filter_forbidden_characters {
+	my $string = shift ;
+        
+        $string =~ s{[\Q*|?:"<>\E]}{_}g ;
+	return ( $string ) ;
+}
+
+sub tests_filter_forbidden_characters {
+
+	ok( 'a_b' eq filter_forbidden_characters( 'a_b' ), 'filter_forbidden_characters: a_b -> a_b' ) ;
+	ok( 'a_b' eq filter_forbidden_characters( 'a*b' ), 'filter_forbidden_characters: a*b -> a_b' );
+	ok( 'a_b' eq filter_forbidden_characters( 'a|b' ), 'filter_forbidden_characters: a|b -> a_b' );
+	ok( 'a_b' eq filter_forbidden_characters( 'a?b' ), 'filter_forbidden_characters: a?*b -> a_b' );
+	ok( 'a_______b' eq filter_forbidden_characters( 'a*|?:"<>b' ), 'filter_forbidden_characters: a*|?:"<>b -> a_______b' );
+
 }
 
 sub convert_sep_to_slash {
-	my ($folder, $sep) = @_;
+	my ( $folder, $sep ) = @_ ;
 	
-	$folder =~ s{\Q$sep\E}{/}g;
-	return($folder);
+	$folder =~ s{\Q$sep\E}{/}g ;
+	return( $folder ) ;
 }
 
 sub tests_convert_sep_to_slash {
@@ -3368,15 +3405,15 @@ sub bytes_display_string {
        my ($bytes) = @_;
 
        if ($bytes < (1024 * 1024)) {
-           return sprintf("%.1f KiB", $bytes / 1024);
+           return sprintf("%.2f KiB", $bytes / 1024);
        } elsif ($bytes < (1024 * 1024 * 1024)) {
-           return sprintf("%.1f MiB", $bytes / (1024 * 1024));
+           return sprintf("%.2f MiB", $bytes / (1024 * 1024));
        } elsif ($bytes < (1024 * 1024 * 1024 * 1024)) {
-           return sprintf("%.1f GiB", $bytes / (1024 * 1024 * 1024));
+           return sprintf("%.2f GiB", $bytes / (1024 * 1024 * 1024));
        } elsif ($bytes < (1024 * 1024 * 1024 * 1024 * 1024)) {
-           return sprintf("%.1f TiB", $bytes / (1024 * 1024 * 1024 * 1024));
+           return sprintf("%.2f TiB", $bytes / (1024 * 1024 * 1024 * 1024));
        } else {
-           return sprintf("%.1f PiB", $bytes / (1024 * 1024 * 1024 * 1024 * 1024));
+           return sprintf("%.2f PiB", $bytes / (1024 * 1024 * 1024 * 1024 * 1024));
        }
        # if you have exabytes (EiB) of email to transfer, you have too much email
 }
@@ -3398,7 +3435,7 @@ sub stats {
 	print   "++++ Statistics\n";
 	print   "Transfer started on               : $timestart_str\n";
 	print   "Transfer ended on                 : $timeend_str\n";
-	print   "Transfer time                     : $timediff sec\n";
+	printf( "Transfer time                     : %.1f sec\n", $timediff ) ;
 	print   "Messages transferred              : $nb_msg_transferred ";
 	print   "(could be $nb_msg_skipped_dry_mode without dry mode)" if ($dry);
 	print   "\n";
@@ -3568,6 +3605,7 @@ sub get_options {
                                    "addheader!"   => \$addheader,
                                    "exitwhenover=i" => \$exitwhenover,
                                    "checkselectable!" => \$checkselectable,
+                                   "checkmessageexists!" => \$checkmessageexists,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -3757,7 +3795,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.500 2012/08/10 04:58:46 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.504 2012/08/28 13:10:26 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -4594,6 +4632,7 @@ sub tests {
                 tests_epoch(  ) ;
                 tests_add_header(  ) ;
                 tests_cache_dir_fix(  ) ;
+                tests_filter_forbidden_characters(  ) ;
 	}
 }
 

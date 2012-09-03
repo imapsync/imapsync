@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.96 2012/07/29 22:03:29 gilles Exp gilles $	
+# $Id: Makefile,v 1.103 2012/08/29 10:24:17 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -31,8 +31,8 @@ VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version)
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
-IMAPClient_2xx=./Mail-IMAPClient-2.2.9
-IMAPClient_3xx=./Mail-IMAPClient-3.31/lib
+IMAPClient_2xx=./W/Mail-IMAPClient-2.2.9
+IMAPClient_3xx=./W/Mail-IMAPClient-3.31/lib
 IMAPClient=$(IMAPClient_3xx)
 
 hello:
@@ -41,7 +41,6 @@ hello:
 
 
 all: ChangeLog README VERSION imapsync_elf_x86.bin imapsync.exe
-
 
 testp :
 	perl -c imapsync
@@ -53,7 +52,8 @@ README: imapsync
 	perldoc -t imapsync > README
 
 VERSION: imapsync
-	perl -I./$(IMAPClient) ./imapsync --version > VERSION
+	perl -I./$(IMAPClient) ./imapsync --version > ./VERSION
+	touch -r ./imapsync ./VERSION
 
 
 .PHONY: clean clean_tilde clean_test   
@@ -89,7 +89,9 @@ install: testp imapsync.1
 ci: cidone
 
 cidone:
-	rcsdiff RCS/*
+	rcsdiff RCS/* 
+	cd W && rcsdiff RCS/*
+	cd examples && rcsdiff RCS/*
 
 ###############
 # Local goals
@@ -134,8 +136,8 @@ testf: clean_test test
 
 .PHONY: lfo upload_lfo niouze_lfo niouze_fm public  imapsync_cidone
 
-.dosify_bat: build_exe.bat test_exe.bat test.bat test2.bat imapsync_example.bat.txt
-	unix2dos build_exe.bat test.bat test_exe.bat test2.bat imapsync_example.bat.txt
+.dosify_bat: W/build_exe.bat W/test_exe.bat W/test.bat W/test2.bat examples/imapsync_example.bat.txt
+	unix2dos W/build_exe.bat W/test.bat W/test_exe.bat W/test2.bat examples/imapsync_example.bat.txt examples/file.txt
 	touch .dosify_bat
 
 dosify_bat: .dosify_bat
@@ -144,7 +146,7 @@ copy_win32:
 	scp imapsync Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 
 tests_win32: dosify_bat
-	scp imapsync test.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	scp imapsync W/test.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 #	ssh Admin@c 'perl C:/msys/1.0/home/Admin/imapsync/imapsync --tests_debug'
 	ssh Admin@c 'perl C:/msys/1.0/home/Admin/imapsync/imapsync --tests'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test.bat'
@@ -152,26 +154,26 @@ tests_win32: dosify_bat
 #	ssh Admin@c 'tasklist /NH /FO CSV' 
 
 tests_win32_dev: dosify_bat
-	scp imapsync file.txt test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	scp imapsync examples/file.txt W/test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test2.bat'
 
 test_imapsync_exe: dosify_bat
-	scp test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	scp W/test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
 
-imapsync.exe: imapsync build_exe.bat .dosify_bat
+imapsync.exe: imapsync W/build_exe.bat .dosify_bat
 	rcsdiff imapsync
 	ssh Admin@c 'perl -V'
-	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
-	scp imapsync build_exe.bat test_exe.bat \
+	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
+	scp imapsync W/build_exe.bat W/test_exe.bat \
 	Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
-	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --version' > VERSION_EXE
-	dos2unix VERSION_EXE
-	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> .BUILD_EXE_TIME
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --version' > ./VERSION_EXE
+	dos2unix ./VERSION_EXE
+	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
 
 # vadrouille or petite
@@ -186,7 +188,7 @@ imapsync_elf_x86.bin: imapsync
 	} || :
 	{ test 'petite'     = "`hostname`" && \
 	pp -o imapsync_elf_x86.bin -I $(IMAPClient_3xx) \
-	-I NTLM-1.09/blib/lib \
+	-I W/NTLM-1.09/blib/lib \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
@@ -255,30 +257,49 @@ dist_prepa_exe: imapsync.exe
 .PHONY: publish upload_ks ks
 
 ks:
-	rsync -avz --delete --exclude imapsync.exe \
+	rsync -avHz --delete --exclude imapsync.exe \
+	  . imapsync@ks.lamiral.info:public_html/imapsync/
+
+ksa:
+	rsync -avHz --delete \
 	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
 publish: upload_ks ks
 
 PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
-./index.shtml ./INSTALL ./TIME \
-./logo_imapsync.png ./logo_imapsync_s.png \
-./paypal.shtml ./paypal_return.shtml ./paypal_return_support.shtml \
-./README ./style.css ./TODO ./VERSION ./VERSION_EXE ./memo ./file.txt \
-./imapsync_example.bat.txt
+./index.shtml ./INSTALL \
+./README ./TODO
 
-upload_ks:
+PUBLIC_FILES_W = ./W/style.css \
+./TIME \
+./VERSION ./VERSION_EXE \
+./W/paypal.shtml ./W/paypal_return.shtml ./W/paypal_return_support.shtml
+
+
+PUBLIC_FILES_IMAGES = ./W/images/logo_imapsync.png ./W/images/logo_imapsync_s.png
+
+
+upload_ks: ci
 	rsync -lptvHzP  $(PUBLIC_FILES) \
 	root@ks.lamiral.info:/var/www/imapsync/
+	rsync -lptvHzP  $(PUBLIC_FILES_W) \
+	root@ks.lamiral.info:/var/www/imapsync/W/
+	rsync -lptvHzP  $(PUBLIC_FILES_IMAGES) \
+	root@ks.lamiral.info:/var/www/imapsync/W/images/
+	rsync -lptvHzP ./W/ks.htaccess \
+	root@ks.lamiral.info:/var/www/imapsync/.htaccess
 	rsync -lptvHzrP ./dist/ \
 	root@ks.lamiral.info:/var/www/imapsync/dist/
+	rsync -lptvHzrP ./examples/ \
+	root@ks.lamiral.info:/var/www/imapsync/examples/
 
 upload_lfo:
 	#rm -rf /home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
 	#rm -rf /home/gilles/public_html/www.linux-france.org/ftp/prj/imapsync/
-	rsync -avHz $(PUBLIC_FILES) \
-	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
-	rsync -lptvHzP ./lfo.htaccess \
+	#rsync -avHz $(PUBLIC_FILES) \
+	#/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
+	rsync -lptvHzP ./W/memo glamiral@linux-france.org:imapsync_stats/memo
+	rsync -lptvHzP ./W/lfo.htaccess \
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 

@@ -2,10 +2,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat VERSION"--> )</title>
+<title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2012-08-11T03:39:57+0200"/>
+<meta name="date" content="2012-08-29T12:23:32+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -13,8 +13,8 @@
 <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8"/>
 <meta http-equiv="content-style-type" content="text/css"/>
 <meta http-equiv="expires" content="0"/>
-<link rel="icon" type="image/png" href="logo_imapsync_s.png" />
-<link href="style.css" rel="stylesheet" type="text/css"/>
+<link rel="icon" type="image/png" href="W/images/logo_imapsync_s.png" />
+<link href="W/style.css" rel="stylesheet" type="text/css"/>
 
 <style type="text/css">
 
@@ -36,7 +36,7 @@
 </ul>
 
 <div class="center">
-<a href="http://imapsync.lamiral.info/"><img src="logo_imapsync.png" width="486" height="309"  alt="imapsync logo"/></a>
+<a href="http://imapsync.lamiral.info/"><img src="W/images/logo_imapsync.png" width="486" height="309"  alt="imapsync logo"/></a>
 
 <h1>Welcome to the imapsync web site!</h1>
 </div>
@@ -85,18 +85,44 @@ total is 93 millions for 2011</li>
 
 
 <h2><a id="latest"></a>Latest release is imapsync 
-<!--#exec cmd="cat VERSION" --> 
+<!--#exec cmd="cat ./VERSION" --> 
 </h2>
 
-<p>Written on <!--#flastmod file="VERSION" --></p>
+<p>Written on <!--#flastmod file="./VERSION" --></p>
 
 <p>See <b><a href="ChangeLog">ChangeLog</a></b> to know what's new in details since 2001.</p>
 
 <p>New features or bugfixes since previous releases:</p>
 
+<!-- <ul>
+<li><b>1.504</b></li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+</ul>
+ -->
+
+<ul>
+<li><b>1.504</b></li>
+<li><b>Enhancement</b>: Added option <b>--nocheckmessageexists</b> to <b>speed up</b> with <b>Tobbit imap server</b> as host1.</li>
+<li><b>Usability</b>: Added <b>transfer rate</b> and number of messages rate <b>after each copy</b>.</li>
+<li><b>Usability</b>: Use Time::HiRes time to get time with better precesion than the second.</li>
+<li><b>Bug fix</b>:  Convert characters  <kbd>*|?:"&lt;&gt;</kbd> to <kbd>_</kbd> in cache paths because they are forbidden on Windows paths.</li>
+
+</ul>
+
 <ul>
 <li><b>1.500</b></li>
-<li><b>Enhancement</b>: Added option --nocheckselectable to fix INBOX issue with Jana-server.</li>
+<li><b>Enhancement</b>: Added option <b>--nocheckselectable</b> to fix INBOX issue with Jana-server.</li>
 <li><b>Bug fix</b>: The cache system didn't work in Win32 (problem with \ transformation).</li>
 <li><b>Bug fix</b>: Check the return of touch calls for the cache. </li>
 <li><b>Usability</b>: Example for --delete2foldersbutnot "m/Contacts|Agenda|Trash/"</li>
@@ -104,73 +130,28 @@ total is 93 millions for 2011</li>
 
 
 <ul>
-<li><b>1.498</b></li>
-<li><b>Usability</b>: Use KiB MiB GiB etc in result summary. Patch from Mark Atwood.</li>
-<li><b>Enhancement</b>: Added --authmech PREAUTH capabiliy. (Patch from David Abrahams).</li>
-<li><b>Bug fix</b>: Unsubsribe folder before deleting it (deleting alone could bug sometimes on some servers).</li>
-<li><b>Bug fix</b>: Added several connection ckecks like old good imapsync-1.181 to imapsync-1.398 (Phil idea)</li>
-<li><b>Bug fix</b>: Default port 993 when --ssl and --tls are set together (was 143).</li>
-<li><b>Bug fix</b>: Don't filter flag when --nofilterflags is used during the message copy.</li>
-<li><b>Usability</b>: Print dry mode when expunging in dry mode.</li>
-<li><b>Usability</b>: Added value of internal date in --debug mode.</li>
-</ul>
-
-<ul>
-<li><b>1.488</b></li>
-<li><b>Bug fix</b>: Reverse half of the last patch about --delete2foldersonly since it destroyed 
-a good feature  permitting imapsync variables like ${h2_sep} in --delete2foldersonly, 
-the good escaping has to be done in the parameter value. 
-Example: --delete2foldersbutnot "/\[Gmail\]/"</li>
-
-<li><b>Win32 fix</b>: updated Perl modules to latest, it fixes a compile error that happened sometimes on XP.
-imapsync.exe is smaller now.</li>
-
-<li>Update: tested with Perl Module Mail-IMAPClient-3.31</li>
-</ul>
-
-<ul>
-<li><b>1.487</b></li>
-<li><b>Bug fix</b>: for example the issue was <b>brackets in [Gmail] folder names</b> in the context of cache --useuid. 
-Thanks to Pierre GUILLAUME, applied patch about:
-	<ul>
- 		<li>$cache_dir and bsd_globs() that needs escaped characters.</li>
- 		<li>eval and --delete2foldersonly --delete2foldersbutnot that need also good escaping.</li>
-	</ul>
-</li>
-<li>Bug fix: removed several useless Perl warnings in different contexts.</li> 
-</ul>
-
-<ul>
 <li><b>1.484</b></li>
 <li><b>Bug fix</b>: Back to select() (read-write mode) instead of examine() (read-only mode in 1.468) on host1. <b>Needed with --delete</b></li>
 <li><b>Enhancement</b>: Added option --exitwhenover option <b>to avoid locking</b> when transfers exceed maximum limit.
 See for example <a href="http://support.google.com/a/bin/answer.py?hl=en&amp;answer=1071518">this Gmail constraint</a>
-<ul>
-<li>imapsync ... --exitwhenover 2500000000 # 2.5GB if <b>host1 is Gmail</b></li>
-<li>imapsync ... --exitwhenover  500000000 # 500MB if <b>host2 is Gmail</b></li>
-</ul></li>
+	<ul>
+	<li>imapsync ... --exitwhenover 2500000000 # 2.5GB if <b>host1 is Gmail</b></li>
+	<li>imapsync ... --exitwhenover  500000000 # 500MB if <b>host2 is Gmail</b></li>
+</ul>
+</li>
 
-
-<li><b>Better behavior</b>: Check if a message exists before fetching it (could have been deleted recently)</li>
 <li><b>Usability</b>: Unified outout in --debug mode. Lines start with Host1 or Host2.</li>
 <li><b>Usability</b>: Changed output about messages ignored to better reflect what is going on.</li>
-<li><b>Better behavior</b>: --split down to 100 by default to follow the recommendation of RFC2683 section 3.2.1.5
-Thanks to Phil Pearl for this advice.</li>
-
-
 </ul>
 
 <ul>
 
 <li><b>1.476</b></li>
-<li><b>Usability</b>: Added <b>start</b> and <b>end dates</b> in the final statistics.</li>
-<li><b>Better behavior</b>: Default headers used to identify a message are now "Message-Id" and "Received" (<b>Exchange compatibility</b> bu default).</li>
-<li><b>Cyrus fix</b>: Default value down from --split 1000 to <b>--split1 500</b> (Cyrus bug "<b>Word too long</b>")</li>
+<li><b>Usability</b>: Default headers used to identify a message are now "Message-Id" and "Received" (<b>Exchange compatibility</b> bu default).</li>
 <li><b>Enhancement</b>: Added option --addheader to fix the issue 
     "ignored (no header so we ignore this message)" (on <b>Sent</b> folder usually). 
     Thanks to Ameir Abdeldayem</li>
-<li><b>Similar tools</b>: Checked and updated "Similar softwares" section in the documentation.</li>
-<li><b>Experimental</b>: Added --nofilterflags to check any STORE flags by ignoring PERMANENTFLAGS (Exchange tests)</li>
+<li><b>Enhancement</b>: Added --nofilterflags to check any STORE flags by ignoring PERMANENTFLAGS (Exchange tests)</li>
 </ul>
 
 
@@ -184,7 +165,7 @@ Thanks to Phil Pearl for this advice.</li>
 <h2><a id="DOC_BASIC"></a>Simple transfer on Windows</h2>
 
 <p>
-See <b><a href="./imapsync_example.bat.txt">imapsync_example.bat.txt</a></b> batch file example
+See <b><a href="./examples/imapsync_example.bat.txt">imapsync_example.bat.txt</a></b> batch file example
 that you can easily adapt with your parameters (remove .txt extension in order to run it).
 </p>
 
@@ -192,7 +173,7 @@ that you can easily adapt with your parameters (remove .txt extension in order t
 <h2><a id="DOC_MASS"></a>Massive transfers</h2>
 
 <p>
-See <b><a href="./file.txt">file.txt</a></b> example for <b>batch massive migration</b> 
+See <b><a href="./examples/file.txt">file.txt</a></b> example for <b>batch massive migration</b> 
 (many mailboxes) on Windows or Unix.
 
 </p>
@@ -342,7 +323,7 @@ Enter your <b>VAT</b> <input type="text" name="os1" size="13" maxlength="13"/> <
 	name="submit"
 	alt="PayPal - The safer, easier way to pay online!" />
 <img alt="" src="https://www.paypalobjects.com/WEBSCR-640-20110401-1/fr_FR/i/scr/pixel.gif" width="1" height="1" />
-<input name="return" type="hidden" value="http://imapsync.lamiral.info/paypal_return_support.shtml?utm_nooverride=1" />
+<input name="return" type="hidden" value="http://imapsync.lamiral.info/W/paypal_return_support.shtml?utm_nooverride=1" />
 </p>
 </form>
 
@@ -361,6 +342,8 @@ since reedit is not easy (and forbidden by law).
 
 <p>The <a href="FAQ">FAQ</a> file presents Frequently Asked Questions (and not so frequently asked ones).
 </p>
+
+<p>The <a href="ChangeLog">ChangeLog</a> to read what changed in details since 2001.</p>
 
 <p>The <a href="TODO">TODO</a> file list what may be coded or done in the future.
 </p>
@@ -570,7 +553,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.127 2012/08/11 01:40:17 gilles Exp gilles $)
+($Id: index.shtml,v 1.129 2012/08/29 10:25:29 gilles Exp gilles $)
 </p>
 
 </body>
