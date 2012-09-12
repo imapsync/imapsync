@@ -1,4 +1,4 @@
-# $Id: INSTALL,v 1.25 2012/07/19 05:57:14 gilles Exp gilles $
+# $Id: INSTALL,v 1.26 2012/09/11 21:00:06 gilles Exp gilles $
 # 
 # INSTALL file for imapsync 
 # imapsync : IMAP sync or copy tool.
@@ -76,19 +76,20 @@ Here is some individual module help:
   perl -mMail::IMAPClient -e 'print $Mail::IMAPClient::VERSION, "\n"'
 
   New Mail-IMAPClient-3.xx works now very well with imapsync,
-  better than Mail-IMAPClient-2.2.9 with memory and other things,
-  at least with Mail-IMAPClient-3.25 (previous may bug).
-  Don't hesitate to use latest Mail-IMAPClient-3.xx
+  better than old Mail-IMAPClient-2.2.9, with memory and other things.
+  Use at least Mail-IMAPClient-3.25 (previous may bug).
+  Don't hesitate to use latest Mail-IMAPClient-3.xx (3.xx >= 3.32 at the time
+  of this writing)
 
   Look at the script named i3 in the tarball, it can be used to
-  run imapsync with included Mail-IMAPClient-3.31/ wherever you 
+  run imapsync with included Mail-IMAPClient-3.32/ wherever you 
   unpacked the imapsync tarball.
 
 
 - Perl Digest::MD5 module. 
   try:
 
-  perl -mDigest::MD5
+  perl -mDigest::MD5 -e ""
 
   http://search.cpan.org/
   http://search.cpan.org/~gaas/Digest-MD5-2.52/
@@ -97,27 +98,31 @@ Here is some individual module help:
   I use 2.39 (Ubuntu package)
 
 - Term::ReadKey
-  perl -mTerm::ReadKey -e ''
+  perl -mTerm::ReadKey -e ""
 
 - IO::Socket::SSL
-  perl -mIO::Socket::SSL -e ''
+  perl -mIO::Socket::SSL -e ""
 
 - File::Spec
-  perl -mFile::Spec -e ''
+  perl -mFile::Spec -e ""
 
 - File::Path
-  perl -mFile::Path -e ''
+  perl -mFile::Path -e ""
 
 - Perl Digest::HMAC_MD5 module
   Good for non plain text password over network.
+  perl -mDigest::HMAC_MD5 -e ""
 
 - Perl Authen::NTLM
-  perl -mAuthen::NTLM -e ''
+  perl -mAuthen::NTLM -e ""
+
+- Perl Time::HiRes
+  perl -mTime::HiRes  -e ""
 
 Test everything in one command:
 
   perl -mMail::IMAPClient -mDigest::MD5 -mTerm::ReadKey -mIO::Socket::SSL \
-       -mFile::Spec -mDigest::HMAC_MD5 -mAuthen::NTLM -e ''
+       -mFile::Spec -mDigest::HMAC_MD5 -mAuthen::NTLM -e -mTime::HiRes ''
 
 You can install easily those Perl modules in latest release via the
 following commands (with root permissions)
@@ -129,6 +134,7 @@ following commands (with root permissions)
   perl -MCPAN -e 'install File::Spec' 
   perl -MCPAN -e 'install Digest::HMAC_MD5' 
   perl -MCPAN -e 'install Authen::NTLM' 
+  perl -MCPAN -e 'install Time::HiRes' 
 
 You can install them easily too by using the standard install
 command on your system if the packages have been made on it

@@ -37,6 +37,22 @@ MSG
     sleep 3;
 }
 
+# HACK: die on broken Parse::RecDescent 1.966002 through 1.967009
+# - rt.cpan.org#74593: Recent changes break Module::ExtractUse and ...
+# - rt.cpan.org#74733: Fails with Parse::RecDescent >= 1.966_002
+do {
+    eval { require version; require Parse::RecDescent; };
+    unless ($@) {
+        my $found = version->parse( Parse::RecDescent->VERSION() );
+        my $broke = version->parse("1.966002");
+        my $fixed = version->parse("1.967009");
+        if ( $found < $fixed and $found >= $broke ) {
+            die("Found broken Parse::RecDescent $found in your environment.\n",
+                "Please upgrade to version $fixed or greater.\n");
+        }
+    }
+};
+
 WriteMakefile(
     NAME             => 'Mail::IMAPClient',
     AUTHOR           => 'Phil Pearl (Lobbes) <phil@zimbra.com>',

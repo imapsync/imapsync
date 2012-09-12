@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.504 $
+$Revision: 1.508 $
 
 =head1 SYNOPSIS
 
@@ -515,7 +515,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.504 2012/08/28 13:10:26 gilles Exp gilles $
+$Id: imapsync,v 1.508 2012/09/10 21:10:13 gilles Exp gilles $
 
 =cut
 
@@ -589,6 +589,7 @@ my(
 	$version, $help, 
         $justconnect, $justfolders, $justbanner,
         $fast,
+        
         $total_bytes_transferred,
         $total_bytes_skipped,
         $total_bytes_error,
@@ -603,6 +604,12 @@ my(
 	$h2_total_bytes_duplicate,
 	$h1_nb_msg_deleted,
 	$h2_nb_msg_deleted,
+        
+        $h1_bytes_processed, 
+        $h1_nb_msg_processed,
+        $h1_nb_msg_start, $h1_bytes_start,
+        $h2_nb_msg_start, $h2_bytes_start, 
+        
         $timeout,
 	$timestart, $timestart_int, $timeend, $timediff,
         $timesize, $timebefore,
@@ -627,13 +634,14 @@ my(
         $addheader,
         %h1, %h2,
         $checkselectable, $checkmessageexists,
+        $expungeaftereach,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.504 2012/08/28 13:10:26 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.508 2012/09/10 21:10:13 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -644,6 +652,11 @@ $h1_nb_msg_deleted = $h2_nb_msg_deleted = 0;
 $h1_nb_msg_duplicate = $h2_nb_msg_duplicate = 0;
 $h1_nb_msg_noheader = $h2_nb_msg_noheader = 0;
 $h1_total_bytes_duplicate = $h2_total_bytes_duplicate = 0;
+
+
+$h1_nb_msg_start     = $h1_bytes_start = 0 ;
+$h2_nb_msg_start     = $h2_bytes_start = 0 ;
+$h1_nb_msg_processed = $h1_bytes_processed = 0 ;
 
 $nb_errors = 0;
 $max_msg_size_in_bytes = 0;
@@ -715,6 +728,7 @@ $cacheaftercopy = 1 if ( $usecache and ( ! defined( $cacheaftercopy ) ) ) ;
 
 $checkselectable = defined( $checkselectable ) ? $checkselectable : 1 ;
 $checkmessageexists = defined( $checkmessageexists ) ? $checkmessageexists : 1 ;
+$expungeaftereach = defined( $expungeaftereach ) ? $expungeaftereach : 1 ;
 
 print banner_imapsync(@argv_copy);
 
@@ -1043,9 +1057,9 @@ foreach my $h1_fold (@h1_folders_all) {
 #@h2_folders_from_1_all = sort keys(%h2_folders_from_1_all);
 
 
-if ($foldersizes) {
-	foldersizes( "Host1", $imap1, @h1_folders_wanted ) ;
-	foldersizes( "Host2", $imap2, @h2_folders_from_1_wanted ) ;
+if ( $foldersizes ) {
+	( $h1_nb_msg_start, $h1_bytes_start ) = foldersizes( "Host1", $imap1, @h1_folders_wanted ) ;
+	( $h2_nb_msg_start, $h2_bytes_start ) = foldersizes( "Host2", $imap2, @h2_folders_from_1_wanted ) ;
 	sleep( 2 ) ;
 }
 
@@ -1221,6 +1235,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 			$total_bytes_skipped += $h1_size;
 			$nb_msg_skipped += 1;
 			$h1_nb_msg_noheader +=1;
+                        $h1_nb_msg_processed +=1 ;
 		} elsif(0 == $rc) {
 			# duplicate
 			push(@h1_msgs_duplicate, $m);
@@ -1229,6 +1244,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 			$nb_msg_skipped += 1;
 			$h1_total_bytes_duplicate += $h1_size;
 			$h1_nb_msg_duplicate += 1;
+                        $h1_nb_msg_processed +=1 ;
 		}
 	}
         my $h1_msgs_duplicate_nb = scalar( @h1_msgs_duplicate ) ;
@@ -1281,6 +1297,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	  = sort {$h2_hash{$a}{'m'} <=> $h2_hash{$b}{'m'}} keys(%h2_hash);
 
         if ( 0 ) {
+        # What the hell was this code written for?
         # hashes, keys are uid, values are the internaldates in epoch (best format to compare dates)
         my %h1_epoch ;
         my %h2_epoch ;
@@ -1341,7 +1358,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         $debug and print "Host2 uidnext: $h2_uidnext\n" ;
 	$h2_uidguess = $h2_uidnext ;
 	MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
-
+		#print "h1_nb_msg_processed: $h1_nb_msg_processed\n" ;
 		my $h1_size  = $h1_hash{$m_id}{'s'};
 		my $h1_msg   = $h1_hash{$m_id}{'m'};
 		my $h1_idate = $h1_hash{$m_id}{'D'};
@@ -1360,6 +1377,8 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 			$debug and print "Host1 found msg $h1_fold/$h1_msg equals Host2 $h2_fold/$h2_msg\n" ;
 			$total_bytes_skipped += $h1_size ;
 			$nb_msg_skipped += 1 ;
+                        $h1_nb_msg_processed +=1 ;
+                        
                         if ( $usecache ) {
 				$debugcache and print "touch $cache_dir/${h1_msg}_$h2_msg\n" ;
 				touch( "$cache_dir/${h1_msg}_$h2_msg" ) 
@@ -1378,12 +1397,12 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		"Host1 size  msg $h1_fold/$h1_msg = $h1_size <> $h2_size = Host2 $h2_fold/$h2_msg\n";
 		if( $delete ) {
                         my $expunge_message = '' ;
-                        $expunge_message = "and expunged" if ( $expunge or $expunge1 ) ;
+                        $expunge_message = "and expunged" if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
 			print "Host1 msg $h1_fold/$h1_msg marked deleted $expunge_message $dry_message\n" ;
 			unless( $dry ) {
 				$imap1->delete_message( $h1_msg ) ;
 				$h1_nb_msg_deleted += 1 ;
-				$imap1->expunge() if ( $expunge or $expunge1 ) ;
+				$imap1->expunge() if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
 			}
 		}
 		
@@ -1398,6 +1417,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		my $h1_size = $h1_fir_ref->{ $h1_msg }->{ 'RFC822.SIZE' } || 0 ;
 		$total_bytes_skipped += $h1_size;
 		$nb_msg_skipped += 1;
+                $h1_nb_msg_processed +=1 ;
 	}
 	
 	#print "Messages by uid: ", map { "$_ " } keys %h1_msgs_copy_by_uid, "\n" ;
@@ -1903,8 +1923,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.504 $ ',
-		  '$Date: 2012/08/28 13:10:26 $ ',
+		  '$Revision: 1.508 $ ',
+		  '$Date: 2012/09/10 21:10:13 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2352,10 +2372,11 @@ sub foldersizes {
 		$total_size += $stot ;
 		$total_nb += $nb_msgs ;
 	}
-	printf ( "Nb messages:     %11s messages\n", $total_nb ) ;
-	printf ( "Total size:      %11s bytes (%s)\n", $total_size, bytes_display_string( $total_size ) ) ;
-	printf ( "Biggest message: %11s bytes (%s)\n", $biggest, bytes_display_string( $biggest ) ) ;
-	printf ( "Time spent:      %11.1f seconds\n", timenext(  ) ) ;
+	printf ( "%s Nb messages:     %11s messages\n", $side, $total_nb ) ;
+	printf ( "%s Total size:      %11s bytes (%s)\n", $side, $total_size, bytes_display_string( $total_size ) ) ;
+	printf ( "%s Biggest message: %11s bytes (%s)\n", $side, $biggest, bytes_display_string( $biggest ) ) ;
+	printf ( "%s Time spent:      %11.1f seconds\n", $side, timenext(  ) ) ;
+        return( $total_nb, $total_size ) ;
 }
 
 sub timenext {
@@ -2735,13 +2756,22 @@ sub copy_message {
 	my $h1_flags = $h1_fir_ref->{$h1_msg}->{"FLAGS"} || '' ;
 	my $h1_idate = $h1_fir_ref->{$h1_msg}->{"INTERNALDATE"} || '' ;
 	
-	return() if size_filtered( $h1_size, $h1_msg, $h1_fold, $h2_fold  ) ;
+	
+        if (size_filtered( $h1_size, $h1_msg, $h1_fold, $h2_fold  ) ) {
+        	$h1_nb_msg_processed +=1 ;
+                return(  ) ;
+        }
 	
 	my $string;
 	do { print "SLEEP 5\n" and sleep 5 ; } if ( $debugsleep ) ;
 	print "- msg $h1_fold/$h1_msg S[$h1_size] F[$h1_flags] I[$h1_idate] has RFC822.SIZE null!\n" if ( ! $h1_size ) ;
 
-	return(  ) if ( $checkmessageexists and not message_exists( $imap1, $h1_msg ) ) ;
+	
+        if ( $checkmessageexists and not message_exists( $imap1, $h1_msg ) ) {
+        	$h1_nb_msg_processed +=1 ;
+                return(  ) ;
+        }
+        
 	$string = $imap1->message_string($h1_msg);
 	
 	
@@ -2754,6 +2784,7 @@ sub copy_message {
 		$nb_errors++ ;
 		$total_bytes_error += $h1_size if ( $h1_size ) ;
 		#relogin1(  ) if ( $relogin1 ) ;
+                $h1_nb_msg_processed +=1 ;
 		return(  ) ;
 	}
 	
@@ -2807,6 +2838,7 @@ sub copy_message {
 			  $imap2->LastError, "\n";
 			$nb_errors++;
 			$total_bytes_error += $h1_size;
+                        $h1_nb_msg_processed +=1 ;
 			return(  ) ;
 		}
 		else{
@@ -2819,12 +2851,15 @@ sub copy_message {
 			$h2_uidguess += 1 ;
 			$total_bytes_transferred += $h1_size ;
 			$nb_msg_transferred += 1 ;
+                        $h1_nb_msg_processed +=1 ;
                         
                         my $time_spent = timesince( $begin_transfer_time ) ;
                         my $rate = bytes_display_string( $total_bytes_transferred / $time_spent ) ;
+                        my $eta = eta( $time_spent, $h1_nb_msg_processed, $h1_nb_msg_start, $nb_msg_transferred ) ;
+                        #my $eta = eta( $time_spent, $nb_msg_transferred, $h1_nb_msg_start ) ;
                         
-			printf( "msg %s/%-19s copied to %s/%-10s %.2f msgs/s  %s/s\n", 
-                        $h1_fold, "$h1_msg {$string_len}", $h2_fold, $new_id, $nb_msg_transferred/$time_spent, $rate );
+			printf( "msg %s/%-19s copied to %s/%-10s %.2f msgs/s  %s/s  %s\n", 
+                        $h1_fold, "$h1_msg {$string_len}", $h2_fold, $new_id, $nb_msg_transferred/$time_spent, $rate, $eta );
                         
                         if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$} ) {
 				$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n" ;
@@ -2844,8 +2879,39 @@ sub copy_message {
 	}
 	else{
 		$nb_msg_skipped_dry_mode += 1;
+                $h1_nb_msg_processed +=1 ;
 	}
-	return(  );
+}
+
+sub eta {
+
+	return( '' ) if not $foldersizes ;
+
+	my( $time_spent, $h1_nb_msg_processed, $h1_nb_msg_start, $nb_msg_transferred ) = @_ ;
+	
+        my $time_remaining = time_remaining( @_ ) ;
+        my $nb_msg_remaining = $h1_nb_msg_start - $h1_nb_msg_processed ;
+        my $eta_date = localtime( time + $time_remaining ) ;
+        return( sprintf( "ETA: %s  %1.0f s  %s msgs left", $eta_date, $time_remaining, $nb_msg_remaining ) ) ;
+        
+}
+
+sub time_remaining {
+
+	my( $time_spent, $h1_nb_msg_processed, $h1_nb_msg_start, $nb_msg_transferred ) = @_ ;
+
+	my $time_remaining = ( $time_spent / $nb_msg_transferred ) * ( $h1_nb_msg_start - $h1_nb_msg_processed ) ;
+	return( $time_remaining ) ;
+}
+
+
+sub tests_time_remaining {
+
+
+	ok( 1 == time_remaining( 1, 1, 2, 1 ), "time_remaining: 1, 1, 2, 1 -> 1") ;
+	ok( 1 == time_remaining( 9, 9, 10, 9 ), "time_remaining: 9, 9, 10, 9 -> 1") ;
+	ok( 9 == time_remaining( 1, 1, 10, 1 ), "time_remaining: 1, 1, 10, 1 -> 1") ;
+
 }
 
 
@@ -3274,20 +3340,27 @@ sub touch {
 	return( ! $failures );
 }
 
+sub tests_cache_folder {
+
+	ok( '/path/fold1/fold2' eq cache_folder( '/path', 'fold1', 'fold2'), 'cache_folder: /path, fold1, fold2 -> /path/fold1/fold2' ) ;
+	ok( '/pa_th/fold1/fold2' eq cache_folder( '/pa*th', 'fold1', 'fold2'), 'cache_folder: /pa*th, fold1, fold2 -> /path/fold1/fold2' ) ;
+	ok( '/_p_a__th/fol_d1/fold2' eq cache_folder( '/>p<a|*th', 'fol*d1', 'fold2'), 'cache_folder: />p<a|*th, fol*d1, fold2 -> /path/fol_d1/fold2' ) ;
+}
+
 sub cache_folder {
 	my( $cache_dir, $h1_fold, $h2_fold ) = @_ ;
 	
-	#print "sep1 $h1_sep sep2 $h2_sep\n";
 	my $sep1 = $h1_sep || '/';
 	my $sep2 = $h2_sep || '/';
 	
+	#print "$cache_dir h1_fold $h1_fold sep1 $sep1 h2_fold $h2_fold sep2 $sep2\n";
 	$h1_fold = convert_sep_to_slash( $h1_fold, $sep1 ) ;
 	$h2_fold = convert_sep_to_slash( $h2_fold, $sep2 ) ;
         
-	$h1_fold = filter_forbidden_characters( $h1_fold ) ;
-	$h2_fold = filter_forbidden_characters( $h2_fold ) ;
-        
-	return( "$cache_dir/$h1_fold/$h2_fold" ) ;
+        my $cache_folder = "$cache_dir/$h1_fold/$h2_fold" ;
+        $cache_folder = filter_forbidden_characters( $cache_folder ) ;
+	#print "cache_folder [$cache_folder]\n" ;
+        return( $cache_folder ) ;
 }
 
 sub filter_forbidden_characters {
@@ -3606,6 +3679,7 @@ sub get_options {
                                    "exitwhenover=i" => \$exitwhenover,
                                    "checkselectable!" => \$checkselectable,
                                    "checkmessageexists!" => \$checkmessageexists,
+                                   "expungeaftereach!" => \$expungeaftereach,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -3795,7 +3869,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.504 2012/08/28 13:10:26 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.508 2012/09/10 21:10:13 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -4594,7 +4668,7 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-                tests_cache_dir_fix(  ) ;
+                tests_time_remaining(  ) ;
 	}
 }
 
@@ -4633,6 +4707,7 @@ sub tests {
                 tests_add_header(  ) ;
                 tests_cache_dir_fix(  ) ;
                 tests_filter_forbidden_characters(  ) ;
+                tests_cache_folder(  ) ;
 	}
 }
 
