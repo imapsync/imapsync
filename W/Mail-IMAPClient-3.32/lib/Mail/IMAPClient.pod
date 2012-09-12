@@ -1,11 +1,11 @@
-=head1 NAME 
+=head1 NAME
 
 Mail::IMAPClient - An IMAP Client API
 
 =head1 SYNOPSIS
 
   use Mail::IMAPClient;
-  
+
   my $imap = Mail::IMAPClient->new(
     Server   => 'localhost',
     User     => 'username',
@@ -230,7 +230,7 @@ Example:
 The B<Quote> method accepts a value as an argument and returns its
 argument as a correctly quoted string or a literal string.  Since
 version 3.17 Mail::IMAPClient automatically quotes search arguments we
-use a SCALARREF so search will not modify or re-quite the valaue
+use a SCALARREF so search will not modify or re-quote the value
 returned by B<Quote>.
 
 Note this method should not be used on folder names for
@@ -783,6 +783,18 @@ The B<delete> method accepts a single argument, the name of a folder
 to delete.  It returns a true value on success and C<undef> on
 failure.
 
+=head2 deleteacl
+
+Example:
+
+  $imap->deleteacl( $folder, $userid )
+    or die "Could not delete acl: $@\n";
+
+The B<deleteacl> method accepts two input arguments, a folder name, a
+user id (or authentication identifier, to use the terminology of
+RFC2086).  See RFC2086 for more information.  (This is somewhat
+experimental and its implementation may change.)
+
 =head2 delete_message
 
 Example:
@@ -795,7 +807,7 @@ The above could also be rewritten like this:
 
   # scalar context returns array ref
   my $msgs = scalar($imap->seen);
-  
+
   scalar(@$msgs) and $imap->delete_message($msgs)
     or die "Could not delete_message: $@\n";
 
@@ -945,7 +957,7 @@ server will likely respond with an error like I<* BAD Invalid tag>.
 
 On failure <undef> is returned and L</LastError> is set.
 
-See also L</idle>, L</imap_data> and L</Results>.
+See also L</idle>, L</idle_data> and L</Results>.
 
 =head2 examine
 
@@ -1277,9 +1289,14 @@ has been terminated by calling L</done>.  Failure to do so will result
 in an error and the idle command will typically be terminated by the
 server.
 
-See also L</imap_data> and L</done>.
+See also L</idle_data> and L</done>.
 
 =head2 idle_data
+
+Usage:
+
+  # an optional timeout in seconds may be specified
+  $imap->idle_data( [$timeout] )
 
 Example:
 
@@ -1292,12 +1309,12 @@ Example:
 The B<idle_data> method can be used to accept any unsolicited mailbox
 update messages that have been sent by the server during an L</idle>
 command.  This method does not send any commands to the server, it
-simply waits for data from the server and returns that data to the
-caller.
+simply looks for and optionally waits for data from the server and
+returns that data to the caller.
 
-The B<idle> method accepts an optional $timeout argument and returns
-an array (or an array reference if called in scalar context) with the
-messages from the server.
+The B<idle_data> method accepts an optional $timeout argument and
+returns an array (or an array reference if called in scalar context)
+with the messages from the server.
 
 By default a timeout of 0 seconds is used (do not block).  Internally
 the timeout is passed to L<perlfunc/select>.  The timeout controls how
@@ -1399,6 +1416,87 @@ The B<get_header> method is a short-cut for:
 
   my $messageId = $imap->parse_headers($msg,"Subject")->{"Subject"}[0];
 
+=head2 getquotaroot
+
+Example:
+
+  my $results = $imap->getquotaroot($mailboxname)
+    or die "Could not getquotaroot for $mailboxname: $@\n";
+
+The B<getquotaroot> method implements the RFC2087 GETQUOTAROOT
+command.  The "$mailboxname" defaults to "INBOX" if no argument is
+provided.
+
+On error C<undef> is returned, otherwise L</Results> are returned.
+The results should have the untagged QUOTAROOT response from the
+server along with the QUOTAROOT's resource usage and limits in an
+untagged QUOTA response.
+
+See also B<RFC2087>, L</getquota>, L</setquota>, L</quota> and L</quota_usage>.
+
+=head2 getquota
+
+Example:
+
+  my $results = $imap->getquota($quotaroot)
+    or die "Could not getquota for $quotaroot: $@\n";
+
+The B<getquota> method implements the RFC2087 GETQUOTA command.  The
+"$quotaroot" defaults to "user/I<User>" if no argument is provided.
+
+On error C<undef> is returned, otherwise L</Results> are returned.
+The results from the server should have the untagged QUOTA response
+from the server.
+
+See also B<RFC2087>, L</getquotaroot>, L</quota> and L</quota_usage>.
+
+=head2 quota
+
+Example:
+
+  my $limit = $imap->quota($quotaroot)
+    or die "Could not get quota limit for $quotaroot: $@\n";
+
+The B<quota> method takes the L</Results> from L<getquota> and parses
+out the "STORAGE" limit returned by the server.  The "$quotaroot"
+defaults to "INBOX" if no argument is provided.
+
+On error C<undef> is returned, otherwise the integer "STORAGE" limit
+provided by the server is returned.
+
+See also B<RFC2087>, L</getquotaroot>, L</getquota> and L</quota_usage>.
+
+=head2 quota_usage
+
+Example:
+
+  my $usage = $imap->quota_usage($quotaroot)
+    or die "Could not get quota usage for $quotaroot: $@\n";
+
+The B<quota_usage> method takes the L</Results> from L<getquota> and
+parses out the "STORAGE" usage returned by the server.  The
+"$quotaroot" defaults to "INBOX" if no argument is provided.
+
+On error C<undef> is returned, otherwise the integer "STORAGE" usage
+provided by the server is returned.
+
+See also B<RFC2087>, L</getquotaroot>, L</getquota> and L</quota>.
+
+=head2 setquota
+
+Example:
+
+  my $results = $imap->setquota( $quotaroot, $resource, $limit )
+    or die "Could not setquota for $quotaroot: $@\n";
+
+The B<setquota> method implements the RFC2087 SETQUOTA command.  It
+accepts multiple pairs of $resource and $limit arguments.  The
+"$quotaroot" defaults to "user/I<User>" if not defined.
+
+On error C<undef> is returned, otherwise L</Results> are returned.
+
+See also B<RFC2087>, L</getquotaroot> and L</getquota>.
+
 =head2 is_parent
 
 Example:
@@ -1477,7 +1575,8 @@ and $@ is set.  The methods L</new>, L</connect>, and L</Socket> may
 automatically invoke B<login> see the documentation of each method for
 details.
 
-If the L</Compress> parameter is set, the L</compress> method will automatically be called after successful authentication.
+If the L</Compress> parameter is set, the L</compress> method will
+automatically be called after successful authentication.
 
 See also L</proxyauth> and L</Proxy> for additional information
 regarding ways of authenticating with a server via SASL and/or
@@ -2275,7 +2374,7 @@ contain both subfolders and mail messages; other servers allow this.)
 
 Example:
 
-  $imap->set_flag("Seen",@msgs)
+  $imap->set_flag( "Seen", @msgs )
     or die "Could not set flag: $@\n";
 
 The B<set_flag> method accepts the name of a flag as its first
@@ -2298,7 +2397,7 @@ which is why you don't have to worry about it overly much.)
 
 Example:
 
-  $imap->setacl($folder,$userid,$authstring)
+  $imap->setacl( $folder, $userid, $aclstring )
     or die "Could not set acl: $@\n";
 
 The B<setacl> method accepts three input arguments, a folder name, a
@@ -2429,7 +2528,7 @@ Version note: method added in Mail::IMAPClient 3.22
 
 Example:
 
-  my @rawdata = $imap->status($folder,qw/(Messages)/)
+  my @rawdata = $imap->status( $folder, qw/(Messages)/ )
     or die "Error obtaining status: $@\n";
 
 The B<status> method accepts one argument, the name of a folder (or
@@ -2646,7 +2745,7 @@ messages in the currently selected Folder.
 
 Example:
 
-  $imap->unset_flag("\Seen",@msgs)
+  $imap->unset_flag( "\Seen", @msgs )
     or die "Could not unset_flag: $@\n";
 
 The B<unset_flag> method accepts the name of a flag as its first
@@ -2723,9 +2822,9 @@ obtain the current value of the parameter as follows:
   my $imap = Mail::IMAPClient->new;
      $imap->parameter( "value");
      $imap->parameter2("value");
-  
+
     ...    # A whole bunch of awesome Perl code, omitted for brevity
-  
+
   my $forgot  = $imap->parameter;
   my $forgot2 = $imap->parameter2;
 
@@ -3740,7 +3839,7 @@ exchange.  After the L</authenticate> method sends "<tag> AUTHENTICATE
 challenge.  The L</authenticate> method then invokes the code whose
 reference is stored in the B<Authcallback> parameter as follows:
 
-  $Authcallback->($challenge, $imap)
+  $Authcallback->( $challenge, $imap )
 
 where C<$Authcallback> is the code reference stored in the
 B<Authcallback> parameter, C<$challenge> is the challenge received
@@ -3771,7 +3870,7 @@ http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient
 
   Copyright (C) 1999-2003 The Kernen Group, Inc.
   Copyright (C) 2007-2009 Mark Overmeer
-  Copyright (C) 2010-2011 Phil Pearl (Lobbes)
+  Copyright (C) 2010-2012 Phil Pearl (Lobbes)
   All rights reserved.
 
 This library is free software; you can redistribute it and/or modify

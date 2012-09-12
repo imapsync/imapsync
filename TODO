@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.112 2012/07/19 09:41:54 gilles Exp gilles $
+# $Id: TODO,v 1.113 2012/09/11 20:58:32 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
@@ -31,14 +31,7 @@ Add a FAQ entry about long path over than 260 character on Win32.
 
 Fix long path over than 260 character on Win32. 
 Think about Digest::SHA or Digest::SHA::PurePerl.
-
-Try to use imapsync with cygwin.
-
-Add an option to solve syncing Sent folder when no good header
-are available:
-http://www.linux-france.org/prj/imapsync_list/msg01151.html
-http://www.linux-france.org/prj/imapsync_list/msg01158.html
-
+Think about a file database like DBM instead.
 
 Find a way to avoid passwords in --debugimap unless needed.
 
@@ -101,19 +94,6 @@ Fix bug "not possible to use space in the imap password"
 
 Add kerberos authentification
 
-Add a --skipheaderinfolder option 
-
-Fix this:
-> - Erreur avec la traditionnelle différence entre Windows
-> et Linux sur les retour-chariots : le calcul de la
-> longueur du message ou des entêtes à envoyer au serveur
-> cible n'est pas bon sur une machine Windows.
-> Ci-dessous la modif :
-> 
->         # No NL Count on Windows my $length = ( -s $file ) + $bare_nl_count;
->         my $length = ( -s $file );
-I wonder if it is Windows or the imap server used.
-
 
 Add stdin/stdout filter before transfer:
 "Now i asked me, how to modify your perl program to work with
@@ -152,9 +132,6 @@ Add --verbose from Kjetil jumbo patch.
 
 Read the IMAP RFC http://www.faqs.org/rfcs/rfc3501.html
 
-Add debian packaging in the Makefile.
-Write to the debian maintener about that.
-
 Interface with external software like procmail 
 
 Read:
@@ -164,6 +141,33 @@ Add cyrus link about INBOX. namespace
 http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
 ===========================================================================
+
+
+DONE. Not donse since useless now (--useuid)
+Add a --skipheaderinfolder option 
+
+DONE. Not fixed since only reported once a long time ago.
+Fix this:
+> - Erreur avec la traditionnelle différence entre Windows
+> et Linux sur les retour-chariots : le calcul de la
+> longueur du message ou des entêtes à envoyer au serveur
+> cible n'est pas bon sur une machine Windows.
+> Ci-dessous la modif :
+> 
+>         # No NL Count on Windows my $length = ( -s $file ) + $bare_nl_count;
+>         my $length = ( -s $file );
+I wonder if it is Windows or the imap server used.
+
+
+DONE. No Debian package anymore.
+Add debian packaging in the Makefile.
+Write to the debian maintener about that.
+
+DONE with --addheader
+Add an option to solve syncing Sent folder when no good header
+are available:
+http://www.linux-france.org/prj/imapsync_list/msg01151.html
+http://www.linux-france.org/prj/imapsync_list/msg01158.html
 
 DONE. Add a note about 
 "One other thing: You might want to warn idiots like me, that if your

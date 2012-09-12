@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.200 2012/08/28 13:11:30 gilles Exp gilles $  
+# $Id: tests.sh,v 1.201 2012/09/10 21:12:35 gilles Exp gilles $  
 
 # Example 1:
-# CMD_PERL='perl -I./Mail-IMAPClient-3.31/lib' sh -x tests.sh
+# CMD_PERL='perl -I./Mail-IMAPClient-3.32/lib' sh -x tests.sh
 
 # Example 2:
 # To select which Mail-IMAPClient within arguments:
@@ -23,7 +23,7 @@ echo HOST2=$HOST2
 
 # few debugging tests use:
 CMD_PERL_2xx='perl -I./W/Mail-IMAPClient-2.2.9'
-CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.31/lib'
+CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.32/lib'
 
 CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
 
@@ -1588,8 +1588,30 @@ ll_delete2() {
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX \
+        --delete2 --expunge2
+}
+
+ll_delete2_reverse() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --folder INBOX \
         --delete2 --expunge2 
 }
+
+ll_delete_reverse() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --folder INBOX \
+        --delete --minage 100 --maxage 300 --noexpungeaftereach
+}
+
+
 
 ll_delete2_minage() {
         can_send && sendtestmessage titi

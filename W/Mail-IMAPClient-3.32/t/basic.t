@@ -413,10 +413,13 @@ ok( $imap->reconnect, "reconnect" );
 
 ok_relaxed_logout($imap);
 
-# Test STARTTLS - an optional feature so tests always succeed
-{
-    $imap->connect( Starttls => 1 );
+# STARTTLS - an optional feature
+if ( $imap->_load_module("SSL") ) {
+    $imap->connect( Ssl => 0, Starttls => 1 );
     ok( 1, "OPTIONAL connect(Starttls=>1)" . ( $@ ? ": (error) $@ " : "" ) );
+}
+else {
+    ok( 1, "skipping optional STARTTLS test" );
 }
 
 # LOGOUT

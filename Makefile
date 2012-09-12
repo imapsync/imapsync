@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.103 2012/08/29 10:24:17 gilles Exp gilles $	
+# $Id: Makefile,v 1.107 2012/09/11 21:00:06 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -32,7 +32,7 @@ VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
 IMAPClient_2xx=./W/Mail-IMAPClient-2.2.9
-IMAPClient_3xx=./W/Mail-IMAPClient-3.31/lib
+IMAPClient_3xx=./W/Mail-IMAPClient-3.32/lib
 IMAPClient=$(IMAPClient_3xx)
 
 hello:
@@ -264,19 +264,23 @@ ksa:
 	rsync -avHz --delete \
 	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
-publish: upload_ks ks
+publish: upload_ks ks ml
 
 PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL \
+./VERSION ./VERSION_EXE \
 ./README ./TODO
 
 PUBLIC_FILES_W = ./W/style.css \
-./TIME \
-./VERSION ./VERSION_EXE \
+./W/TIME \
 ./W/paypal.shtml ./W/paypal_return.shtml ./W/paypal_return_support.shtml
 
 
 PUBLIC_FILES_IMAGES = ./W/images/logo_imapsync.png ./W/images/logo_imapsync_s.png
+
+ml:
+	m4 -P W/ml_announce.in | mutt -H-
+	mailq
 
 
 upload_ks: ci
@@ -303,13 +307,10 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: index.shtml FAQ paypal.shtml
-	validate --verbose index.shtml paypal.shtml
-	rcsdiff index.shtml paypal.shtml FAQ COPYING
-	rsync -avH index.shtml FAQ paypal.shtml COPYING root@ks.lamiral.info:/var/www/imapsync/
-	rsync -avH index.shtml FAQ paypal.shtml COPYING \
-	../../public_html/www.linux-france.org/html/prj/imapsync/
-	sh $(HOME)/memo/lfo-rsync
+upload_index: index.shtml FAQ 
+	validate --verbose index.shtml
+	rcsdiff index.shtml FAQ COPYING
+	rsync -avH index.shtml FAQ  COPYING root@ks.lamiral.info:/var/www/imapsync/
 
 niouze_lfo : 
 	echo "CORRECT ME: . ./memo && lfo_announce"
