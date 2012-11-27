@@ -1,5 +1,5 @@
 
-REM $Id: test2.bat,v 1.10 2012/08/29 10:43:25 gilles Exp gilles $
+REM $Id: test2.bat,v 1.11 2012/10/05 09:15:55 gilles Exp gilles $
 
 cd C:\msys\1.0\home\Admin\imapsync
 REM perl ./imapsync --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --user2 titi --passfile2 secret.titi --delete2 --expunge2 --folder INBOX 
@@ -34,6 +34,10 @@ REM               --host2 p --user2 titi --passfile2 secret.titi ^
 REM               --folder INBOX.useuid --useuid --debugcache --delete2
 
 
-perl ./imapsync --host1 p --user1 tata --passfile1 secret.tata ^
-                --host2 imap.gmail.com --ssl2 --user2 gilles.lamiral@gmail.com --passfile2 secret.gilles_gmail ^
-                --usecache --nofoldersizes --folder INBOX --regextrans2 "s(INBOX)([Gmail]/te*st)" 
+REM perl ./imapsync --host1 p --user1 tata --passfile1 secret.tata ^
+REM             --host2 imap.gmail.com --ssl2 --user2 gilles.lamiral@gmail.com --passfile2 secret.gilles_gmail ^
+REM             --usecache --nofoldersizes --folder INBOX --regextrans2 "s(INBOX)([Gmail]/te*st)" 
+
+perl ./imapsync --host1 imap.gmail.com --port1 993  --ssl1 --host2 imap.bigs.dk --justconnect
+
+imapsync.exe --host1 imap.gmail.com --port1 993  --ssl1 --host2 imap.bigs.dk --justconnect
