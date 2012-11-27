@@ -5,7 +5,7 @@
 <title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2012-09-12T00:06:47+0200"/>
+<meta name="date" content="2012-11-02T19:33:22+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -46,7 +46,9 @@
 <p><b>imapsync</b> software is a command line tool allowing incremental and
 recursive <b>IMAP</b> transfers from one mailbox to another, both anywhere on the internet
 or in your local network. "Incremental" means you can stop the transfer at any time
-and restart it later efficiently. "Recursive" means all folders hierarchy can be copied.  
+and restart it later efficiently. "Recursive" means all folders hierarchy can be copied.
+"Command line" means it's not a graphical tool, imapsync on Windows has to be run in a DOS box
+(cmd.exe) or from a <a href="#DOC_BASIC">batch file</a>.
 </p>
 
 <p><b>imapsync</b> is useful for imap account <b>migration</b> or imap account <b>backup</b>.
@@ -95,7 +97,7 @@ total is 93 millions for 2011</li>
 <p>New features or bugfixes since previous releases:</p>
 
 <!-- <ul>
-<li><b>1.508</b></li>
+<li><b>1.515</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -112,11 +114,49 @@ total is 93 millions for 2011</li>
  -->
  
 <ul>
+<li><b>1.516</b></li>
+
+<li><b>Usability</b>: Added <b>host2 minus host1 statistic</b>: number of messages and bytes. 
+One difference at the start and one at the end. 
+Useful to <b>detect quickly a difference between host2 and host1</b>. 
+Need both --foldersizes and --foldersizesatend options (which are on by default).</li>
+
+<li><b>Usability</b>: Added <b>--foldersizesatend</b>. It gets the folders sizes at the end of the whole transfer.
+Turned on by default (use --nofoldersizesatend to turn it off).</li>
+
+<li><b>Enhancement</b>: Added option <b>--delete2duplicates</b>; it deletes messages in host2 that are duplicates.
+--delete2duplicates is on when --delete2 is set unless --nodelete2duplicates is set too.
+</li>
+
+<li><b>Usability</b>: Added <b>current date at the beginning</b> of the run, 
+useful when imapsync doesn't end properly or hasn't finished yet.</li>
+
+<li><b>Enhancement</b>: Added option <b>--pidfilelocking</b>; it aborts imapsync, when just launched, 
+in case another imapsync may be running. 
+Turned off by default</li>
+
+<li><b>Usability</b>: Added option <b>--showpasswords</b>. it shows passwords on output instead of "MASKED".
+Turned off by default. 
+Useful to restart a run by reading the log or to see what happen with special characters.
+</li>
+
+<li><b>Bug fix</b>: Added option <b>--fixslash2</b> to avoid the '<b>Invalid mailbox name</b>' error.
+It acts when --sep2 is not character / and --sep1 is character / and host1 folder name contains --sep2 characters. 
+Turned on by default (--nofixslash2 to unable it).</li>
+
+<li><b>Enhancement</b>: Added option <b>--noabletosearch</b> to allow the listing of messages without the imap "SEARCH ALL" command. 
+It's useful for playing with poor imap servers like <b>Softalk 7.6.4</b> (8.6 is fine with SEARCH ALL).</li>
+
+
+</ul>
+
+
+<ul>
 <li><b>1.508</b></li>
 <li><b>Usability</b>: imapsync guesses and <b>prints when it'll finish</b> the transfer; added <b>ETA</b> after each copy (Estimated Time of Arrival)</li>
 <li><b>Enhancement</b>: Added <b>--noexpungeaftereach</b> to speedup --delete --expunge from Gmail.</li>
 <li><b>Usability</b>: Added Host1 or Host2 before "Nb messages" "Total size" with --foldersiszes (to facilitate parsing)</li>
-<li><b>Bug fix</b>: Previous fix about characters *|?:"<> in cache path was not complete.</li>
+<li><b>Bug fix</b>: Previous fix about characters <kbd>*|?:"&lt;&gt;</kbd> to <kbd>_</kbd> in cache path was not complete.</li>
 </ul>
 
 
@@ -213,7 +253,7 @@ any Unix, Linux, Windows, or Mac OS operating system.
 </p>
 
 <p>
-<b>+ One year</b> of imapsync <b>updates</b> without extra payment.<br/>
+<b>+ Two years</b> of imapsync <b>updates</b> without extra payment.<br/>
 <b>+ 30 days money-back guarantee!</b> (any reason qualifies)<br/>
 </p>
 
@@ -234,7 +274,7 @@ Price <b>42 EUR</b> is equal to around <b>50 USD</b>, no problem to pay in USD (
 </select>
 <br/>
 <input type="hidden" name="on1" value="VAT if professional in Europe"/>
-Enter your <b>VAT</b> <input type="text" name="os1" size="13" maxlength="13"/> <b> if you're a European professional</b> (for accounting). It's 2 letters followed by 11 digits, for example mine is FR74429303332.
+Enter your <b>VAT</b> <input type="text" name="os1" size="17" maxlength="17"/> <b> if you're a European professional</b> (for accounting). It's 2 letters followed by 11 digits, for example mine is FR74429303332.
 <br/>
 <input type="hidden" name="currency_code" value="EUR"/>
 <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" 
@@ -259,7 +299,7 @@ buying the latest win32 <b>standalone imapsync.exe</b> for <b>42 EUR</b>
 </p>
 
 <p>
-<b>+ One year</b> of imapsync <b>updates</b> without extra payment.<br/>
+<b>+ Two years</b> of imapsync <b>updates</b> without extra payment.<br/>
 <b>+ 30 days money-back guarantee!</b> (any reason qualifies)<br/>
 </p>
 
@@ -279,7 +319,7 @@ Price <b>42 EUR</b> is equal to around <b>50 USD</b>, no problem to pay in USD (
 </select>
 <br/>
 <input type="hidden" name="on1" value="VAT if professional in Europe"/>
-Enter your <b>VAT</b> <input type="text" name="os1" size="13" maxlength="13"/> <b> if you're a European professional</b> (for accounting). It's 2 letters followed by 11 digits, for example mine is FR74429303332.
+Enter your <b>VAT</b> <input type="text" name="os1" size="17" maxlength="17"/> <b> if you're a European professional</b> (for accounting). It's 2 letters followed by 11 digits, for example mine is FR74429303332.
 <br/>
 <input type="hidden" name="currency_code" value="EUR"/>
 <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" 
@@ -324,7 +364,7 @@ Payment by Paypal account and credit card accepted. <br/>
 </select>
 <br/>
 <input type="hidden" name="on1" value="VAT if professional in Europe"/>
-Enter your <b>VAT</b> <input type="text" name="os1" size="13" maxlength="13"/> <b> if you're a European professional</b> (for accounting). It's 2 letters followed by 11 digits, for example mine is FR74429303332.
+Enter your <b>VAT</b> <input type="text" name="os1" size="17" maxlength="17"/> <b> if you're a European professional</b> (for accounting). It's 2 letters followed by 11 digits, for example mine is FR74429303332.
 <br/>
 <input type="hidden" name="currency_code" value="EUR"/>
 <input type="image" 
@@ -341,7 +381,7 @@ Please give a <b>delivery postal address where the invoice will be needed</b> (y
 since reedit is not easy (and forbidden by law).
 </p>
 
-<h2>Documentation</h2>
+<h2><a id="doc"></a>Documentation</h2>
 
 <p>Read the <a href="INSTALL">INSTALL</a> file to know how to install imapsync on your system.
 </p>
@@ -497,7 +537,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 	<li>Qualcomm Worldmail (NT)    (<a href="http://www.eudora.com/worldmail/">http://www.eudora.com/worldmail/</a>)   </li>
 	<li>Rockliffe Mailsite 5.3.11, 4.5.6    (<a href="http://www.mailsite.com/">http://www.mailsite.com/</a>)   </li>
 	<li>Samsung Contact IMAP server 8.5.0       </li>
-	<li>Scalix v10.1, 10.0.1.3, 11.0.0.431    (<a href="http://www.scalix.com/">http://www.scalix.com/</a>)   </li>
+	<li>Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6 (<a href="http://www.scalix.com/">http://www.scalix.com/</a>)   </li>
 	<li>SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1].    (<a href="http://www.smartertools.com/">http://www.smartertools.com/</a>)   </li>
 	<li>SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)    (<a href="http://www.oracle.com/">http://www.oracle.com/</a>)   </li>
 	<li>Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05,  6.3    (<a href="http://www.oracle.com/">http://www.oracle.com/</a>)   </li>
@@ -576,7 +616,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.131 2012/09/11 22:07:18 gilles Exp gilles $)
+($Id: index.shtml,v 1.136 2012/11/03 00:46:00 gilles Exp gilles $)
 </p>
 
 </body>

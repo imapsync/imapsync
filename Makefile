@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.107 2012/09/11 21:00:06 gilles Exp gilles $	
+# $Id: Makefile,v 1.110 2012/11/03 01:38:12 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -108,13 +108,15 @@ test_quick_229: imapsync tests.sh
 test_quick_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh -x tests.sh locallocal
 
-testv2: .test_229
-	CMD_PERL='perl -I./$(IMAPClient_2xx) /usr/bin/time sh tests.sh
+testv2: 
+	CMD_PERL='perl -I./$(IMAPClient_2xx)' /usr/bin/time sh tests.sh
 	touch .test_229
 
-testv3:.test_3xx
-	CMD_PERL='perl -I./$(IMAPClient_3xx)' sh -x tests.sh
+testv3:
+	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh
 	touch .test_3xx
+
+testv: testv2 testv3
 
 test: .test_229 .test_3xx
 
@@ -210,7 +212,6 @@ imapsync_elf_x86.bin: imapsync
 
 lfo: cidone  niouze_lfo upload_lfo 
 
-dist: cidone test clean all INSTALL dist_prepa dist_prepa_exe
 
 tarball: cidone all
 	echo making tarball $(DIST_FILE)
@@ -231,6 +232,9 @@ DIST_PATH   := ./dist/$(DIST_SECRET)
 
 lalala:
 	echo $(DIST_SECRET)
+
+dist: cidone test clean all INSTALL dist_prepa dist_prepa_exe
+
 
 dist_prepa: tarball dist_dir
 	ln -f ../prepa_dist/$(DIST_FILE) $(DIST_PATH)/
@@ -261,10 +265,10 @@ ks:
 	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
 ksa:
-	rsync -avHz --delete \
+	rsync -avHz --delete -P \
 	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
-publish: upload_ks ks ml
+publish: upload_ks ksa ml
 
 PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL \
@@ -283,7 +287,7 @@ ml:
 	mailq
 
 
-upload_ks: ci
+upload_ks: ci dist
 	rsync -lptvHzP  $(PUBLIC_FILES) \
 	root@ks.lamiral.info:/var/www/imapsync/
 	rsync -lptvHzP  $(PUBLIC_FILES_W) \
@@ -307,10 +311,10 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: index.shtml FAQ 
+upload_index: index.shtml FAQ COPYING CREDITS
 	validate --verbose index.shtml
-	rcsdiff index.shtml FAQ COPYING
-	rsync -avH index.shtml FAQ  COPYING root@ks.lamiral.info:/var/www/imapsync/
+	rcsdiff index.shtml FAQ COPYING CREDITS
+	rsync -avH index.shtml FAQ  COPYING CREDITS root@ks.lamiral.info:/var/www/imapsync/
 
 niouze_lfo : 
 	echo "CORRECT ME: . ./memo && lfo_announce"

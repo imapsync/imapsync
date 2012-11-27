@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.116 2012/09/11 21:00:06 gilles Exp gilles $
+# $Id: FAQ,v 1.117 2012/11/03 00:44:30 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -1203,9 +1203,14 @@ imapsync --host1 mail.oldhost.com \
          --user2 my_email@gmail.com \
          --password2 password \
          --folder "INBOX.Sent" \
-         --regextrans2 "s/Sent/Sent Mail/"
+         --regextrans2 "s/Sent/Sent Mail/" \
+         --exitwhenover 500000000
 
 The same goes for the "All Mail" archive pseudo-folder.
+
+--exitwhenover option is here to avoid locking when transfers 
+exceed maximum limit. 
+See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 
 =======================================================================
 Q. Synchronizing from Gmail to XXX
@@ -1218,6 +1223,7 @@ R. Gmail needs SSL
            --authmech1 LOGIN \
            --user1 gilles.lamiral@gmail.com \
            --password1 gmailsecret \
+           --exitwhenover 2500000000 \
            --host2 localhost
            --user2 tata \
            --password2 tatasecret \
@@ -1229,7 +1235,12 @@ option:
            --regextrans2 's/\[Gmail\]/Gmail/'
 
 You can select folders exported to imap within the gmail preferences,
-unselect all "System labels"
+unselect all "System labels".
+
+--exitwhenover option is here to avoid locking when transfers 
+exceed maximum limit. 
+See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+
 
 =======================================================================
 Q. migrate email from gmail to google apps

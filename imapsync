@@ -20,7 +20,7 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.508 $
+$Revision: 1.516 $
 
 =head1 SYNOPSIS
 
@@ -106,7 +106,7 @@ The option list:
            [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
 	   [--delete2folders] [--delete2foldersonly] [--delete2foldersbutnot]
            [--subscribed] [--subscribe] [--subscribe_all] 
-           [--nofoldersizes]
+           [--nofoldersizes] [--nofoldersizesatend] 
            [--dry]
            [--debug] [--debugimap][--debugimap1][--debugimap2]
            [--timeout <int>] [--fast]
@@ -403,7 +403,7 @@ Success stories reported with the following 44 imap servers
  - Qualcomm Worldmail (NT)
  - Rockliffe Mailsite 5.3.11, 4.5.6
  - Samsung Contact IMAP server 8.5.0
- - Scalix v10.1, 10.0.1.3, 11.0.0.431
+ - Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6
  - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1].
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05, 6.3
@@ -515,7 +515,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.508 2012/09/10 21:10:13 gilles Exp gilles $
+$Id: imapsync,v 1.516 2012/11/02 22:15:04 gilles Exp gilles $
 
 =cut
 
@@ -559,9 +559,9 @@ use constant {
 # global variables
 
 my(
-        $rcs, $pidfile,
+        $rcs, $pidfile, $pidfilelocking, 
 	$debug, $debugimap, $debugimap1, $debugimap2, $debugcontent, $debugflags,
-	$debugLIST, $debugsleep, 
+	$debugLIST, $debugsleep, $debugdev, 
 	$nb_errors,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $domain1, $domain2, 
@@ -580,8 +580,8 @@ my(
         $exitwhenover,
         $search,
         $skipheader, @useheader,
-        $skipsize, $allowsizemismatch, $foldersizes, $buffersize,
-	$delete, $delete2,
+        $skipsize, $allowsizemismatch, $foldersizes, $foldersizesatend, $buffersize,
+	$delete, $delete2, $delete2duplicates,
         $expunge, $expunge1, $expunge2, $uidexpunge2, $dry,
         $justfoldersizes,
         $authmd5, $authmd51, $authmd52, 
@@ -609,6 +609,8 @@ my(
         $h1_nb_msg_processed,
         $h1_nb_msg_start, $h1_bytes_start,
         $h2_nb_msg_start, $h2_bytes_start, 
+        $h1_nb_msg_end, $h1_bytes_end,
+        $h2_nb_msg_end, $h2_bytes_end, 
         
         $timeout,
 	$timestart, $timestart_int, $timeend, $timediff,
@@ -635,13 +637,16 @@ my(
         %h1, %h2,
         $checkselectable, $checkmessageexists,
         $expungeaftereach,
+        $abletosearch,
+        $showpasswords,
+        $fixslash2,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.508 2012/09/10 21:10:13 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.516 2012/11/02 22:15:04 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -657,6 +662,9 @@ $h1_total_bytes_duplicate = $h2_total_bytes_duplicate = 0;
 $h1_nb_msg_start     = $h1_bytes_start = 0 ;
 $h2_nb_msg_start     = $h2_bytes_start = 0 ;
 $h1_nb_msg_processed = $h1_bytes_processed = 0 ;
+
+$h1_nb_msg_end = $h1_bytes_end = 0 ;
+$h2_nb_msg_end = $h2_bytes_end = 0 ;
 
 $nb_errors = 0;
 $max_msg_size_in_bytes = 0;
@@ -682,25 +690,33 @@ unless(defined(&_SYSEXITS_H)) {
 }
 
 
-
 # @ARGV will be eat by get_options()
 my @argv_copy = @ARGV;
 
 get_options();
 
+# $SIG{ INT } = \&catch_continue ;
+$SIG{ INT } = \&catch_exit ;
+
+$timestart = time(  );
+$timestart_int = int( $timestart ) ;
+$timebefore = $timestart;
+
+my $timestart_str = localtime( $timestart ) ;
+print   "Transfer started at $timestart_str\n";
+
 $modules_version = defined($modules_version) ? $modules_version : 1;
 
-# $SIG{ INT } = \&catch_continue ;
 
 $releasecheck = defined($releasecheck) ? $releasecheck : 1;
 my $warn_release = ($releasecheck) ? check_last_release() : '';
-
-$SIG{ INT } = \&catch_exit ;
 
 # default values
 
 $tmpdir ||= File::Spec->tmpdir();
 $pidfile ||= $tmpdir . '/imapsync.pid';
+
+$pidfilelocking = defined( $pidfilelocking ) ? $pidfilelocking : 0 ;
 
 # allow Mail::IMAPClient 3.0.xx by default
 $allow3xx = defined($allow3xx) ? $allow3xx : 1;
@@ -719,7 +735,8 @@ $relogin2 = defined( $relogin2 ) ? $relogin2 : 5 ;
 
 if ( $fast ) {
 	# $useuid = 1 ;
-	$foldersizes = 0 ;
+	$foldersizes      = 0 ;
+	$foldersizesatend = 0 ;
 }
 
 # Activate --usecache if --useuid is set and no --nousecache
@@ -729,6 +746,11 @@ $cacheaftercopy = 1 if ( $usecache and ( ! defined( $cacheaftercopy ) ) ) ;
 $checkselectable = defined( $checkselectable ) ? $checkselectable : 1 ;
 $checkmessageexists = defined( $checkmessageexists ) ? $checkmessageexists : 1 ;
 $expungeaftereach = defined( $expungeaftereach ) ? $expungeaftereach : 1 ;
+$abletosearch = defined( $abletosearch ) ? $abletosearch : 1 ;
+$showpasswords = defined( $showpasswords ) ? $showpasswords : 0 ;
+$fixslash2 = defined( $fixslash2 ) ? $fixslash2 : 1 ;
+
+$delete2duplicates = 1 if ( $delete2 and ( ! defined( $delete2duplicates ) ) ) ;
 
 print banner_imapsync(@argv_copy);
 
@@ -808,7 +830,7 @@ if ( $delete2 and ! defined( $uidexpunge2 ) ) {
 }
 
 if ( $delete and $delete2 ) {
-	print "Warning: using --delete and --delete2 is almost always a bad idea, exiting imapsync\n" ;
+	print "Warning: using --delete and --delete2 together is almost always a bad idea, exiting imapsync\n" ;
 	exit_clean( 4 ) ;
 }
 
@@ -863,6 +885,7 @@ print "Info: will try to use $authmech2 authentication on host2\n";
 
 $syncacls = (defined($syncacls)) ? $syncacls : 0;
 $foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
+$foldersizesatend = (defined($foldersizesatend)) ? $foldersizesatend : 1;
 
 $fastio1 = (defined($fastio1)) ? $fastio1 : 0;
 $fastio2 = (defined($fastio2)) ? $fastio2 : 0;
@@ -904,9 +927,7 @@ $dry_message = "\t(not really since --dry mode)" if $dry ;
 my $imap1 = ();
 my $imap2 = ();
 
-$timestart = time(  );
-$timestart_int = int( $timestart ) ;
-$timebefore = $timestart;
+
 
 $debugimap1 and print "Host1 connection\n";
 $imap1 = login_imap($host1, $port1, $user1, $domain1, $password1, 
@@ -1041,6 +1062,13 @@ $h2_prefix = get_prefix($imap2, $prefix2, "--prefix2");
 print "Host1 separator and prefix: [$h1_sep][$h1_prefix]\n";
 print "Host2 separator and prefix: [$h2_sep][$h2_prefix]\n";
 
+#my $h1_xlist_folders = $imap1->xlist_folders(  ) ;
+#my $h2_xlist_folders = $imap2->xlist_folders(  ) ;
+#require Data::Dumper ;
+#print "Host1 xlist:\n", Data::Dumper->Dump([$h1_xlist_folders]) ;
+#print "Host2 xlist:\n", Data::Dumper->Dump([$h2_xlist_folders]) ;
+
+#exit ;
 
 foreach my $h1_fold (@h1_folders_wanted) {
 	my $h2_fold;
@@ -1215,8 +1243,13 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 	@$h1_fir_ref{@h1_msgs} = (undef);
         
 	$debug and print "Host1 getting flags idate and sizes of folder [$h1_fold]\n" ;
-	$h1_fir_ref = $imap1->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref)
-	  if (@h1_msgs);
+        if ( $abletosearch ) {
+		$h1_fir_ref = $imap1->fetch_hash( "FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref )
+	  	if ( @h1_msgs ) ;
+        }else{
+		$h1_fir_ref = $imap1->fetch_hash( '1:999999', "FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref )
+		if ( @h1_msgs ) ;
+        }
 	$debug and print "Host1 getting flags idate and sizes of folder [$h1_fold] took ", timenext(), " s\n";
 	unless ($h1_fir_ref) {
 		print
@@ -1282,7 +1315,8 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         my $h2_msgs_duplicate_nb = scalar( @h2_msgs_duplicate ) ;
         $h2{ $h2_fold }{ 'duplicates_nb' } = $h2_msgs_duplicate_nb ;
         
-        $debug and print "Host2 selected: $h2_msgs_nb  duplicates: $h2_msgs_duplicate_nb\n" ;
+        print "Host2 selected: $h2_msgs_nb,  duplicates: $h2_msgs_duplicate_nb\n" 
+        	if ( $debug or $delete2duplicates or $h2_msgs_duplicate_nb ) ;
 	$debug and print "Host2 whole time parsing headers took ", timenext(), " s\n";
 
 	$debug and print "++++ Verifying [$h1_fold] -> [$h2_fold]\n";
@@ -1310,6 +1344,29 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         }
         
         #next FOLDER ;
+        
+	if( $delete2duplicates ) {
+		my @h2_expunge ;
+
+		foreach my $h2_msg ( @h2_msgs_duplicate ) {
+			print "msg $h2_fold/$h2_msg marked \\Deleted [duplicate] on host2 $dry_message\n" ;
+			push( @h2_expunge, $h2_msg ) if $uidexpunge2 ;
+			unless ( $dry ) {
+				$imap2->delete_message( $h2_msg ) ;
+				$h2_nb_msg_deleted += 1 ;
+			}
+		}
+		my $cnt = scalar @h2_expunge ;
+		if( @h2_expunge ) {
+			print "uidexpunge $cnt message(s) $dry_message\n" ;
+			$imap2->uidexpunge( \@h2_expunge ) if ! $dry ;
+		}
+        	if ( $expunge2 ){
+                	print "Expunging host2 folder $h2_fold $dry_message\n" ;
+                	$imap2->expunge(  ) if ! $dry ;
+        	}
+	}
+        
 	if($delete2) {
 		my @h2_expunge;
 		foreach my $m_id (@h2_hash_keys_sorted_by_uid) {
@@ -1318,7 +1375,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 				my $h2_msg  = $h2_hash{$m_id}{'m'};
 				my $h2_flags  = $h2_hash{$m_id}{'F'} || "";
 				my $isdel  = $h2_flags =~ /\B\\Deleted\b/ ? 1 : 0;
-				print "msg $h2_fold/$h2_msg marked \\Deleted on host2 [$m_id]\n"
+				print "msg $h2_fold/$h2_msg marked \\Deleted on host2 [$m_id] $dry_message\n"
 				  if ! $isdel;
 				push(@h2_expunge, $h2_msg) if $uidexpunge2;
 				unless ($dry or $isdel) {
@@ -1327,16 +1384,8 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 				}
 			}
 		}
-		foreach my $h2_msg (@h2_msgs_duplicate) {
-			print "msg $h2_fold/$h2_msg marked \\Deleted [duplicate] on host2\n";
-			push(@h2_expunge, $h2_msg) if $uidexpunge2;
-			unless ($dry) {
-				$imap2->delete_message($h2_msg);
-				$h2_nb_msg_deleted += 1;
-			}
-		}
 		foreach my $h2_msg ( @h2_msgs_delete2_not_in_cache ) {
-			print "msg $h2_fold/$h2_msg marked \\Deleted [not in cache] on host2\n";
+			print "msg $h2_fold/$h2_msg marked \\Deleted [not in cache] on host2 $dry_message\n";
                         push(@h2_expunge, $h2_msg) if $uidexpunge2;
 			unless ($dry) {
 				$imap2->delete_message($h2_msg);
@@ -1345,7 +1394,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		}
 		my $cnt = scalar @h2_expunge ;
 		if( @h2_expunge ) {
-			print "uidexpunge $cnt message(s)\n" ;
+			print "uidexpunge $cnt message(s) $dry_message\n" ;
 			$imap2->uidexpunge( \@h2_expunge ) if ! $dry ;
 		}
         	if ($expunge2){
@@ -1508,14 +1557,17 @@ sub sync_flags {
 print "++++ End looping on each folder\n";
 #print memory_consumption();
 
+if ( $foldersizesatend ) {
+	( $h1_nb_msg_end, $h1_bytes_end ) = foldersizes( "Host1", $imap1, @h1_folders_wanted ) ;
+	( $h2_nb_msg_end, $h2_bytes_end ) = foldersizes( "Host2", $imap2, @h2_folders_from_1_wanted ) ;
+}
 
-$imap1->logout();
-$imap2->logout();
+$imap1->logout(  ) ;
+$imap2->logout(  ) ;
 
-
-stats();
-exit_clean(1) if( $nb_errors );
-exit_clean(0);
+stats(  ) ;
+exit_clean( 1 ) if ( $nb_errors ) ;
+exit_clean( 0 ) ;
 
 # END of main program
 
@@ -1596,6 +1648,8 @@ Authen::NTLM))
 sub command_line_nopassword {
 	my @argv_copy = @_;
 	my @argv_nopassword;
+        
+        return("@argv_copy") if $showpasswords ;
 	while (@argv_copy) {
 		my $arg = shift(@argv_copy); # option name or value
 		if ($arg =~ m/-password[12]/) {
@@ -1616,7 +1670,13 @@ sub tests_command_line_nopassword {
 	ok('--password1 MASKED' eq command_line_nopassword(qw{ --password1 secret1}), 'command_line_nopassword --password1');
 	ok('--blabla --password1 MASKED --blibli' 
 	eq command_line_nopassword(qw{ --blabla --password1 secret1 --blibli }), 'command_line_nopassword --password1 --blibli');
-
+	$showpasswords = 1 ;
+	ok('' eq command_line_nopassword(), 'command_line_nopassword void');
+	ok('--blabla' eq command_line_nopassword('--blabla'), 'command_line_nopassword --blabla');
+	#print command_line_nopassword((qw{ --password1 secret1 })), "\n";
+	ok('--password1 secret1' eq command_line_nopassword(qw{ --password1 secret1}), 'command_line_nopassword --password1');
+	ok('--blabla --password1 secret1 --blibli' 
+	eq command_line_nopassword(qw{ --blabla --password1 secret1 --blibli }), 'command_line_nopassword --password1 --blibli');
 
 }
 
@@ -1635,7 +1695,7 @@ sub catch_exit {
 	my $signame = shift ;
 	print "\nGot a SIG$signame!\n" ;
 	stats(  ) ;
-	exit_clean(  ) ;
+	exit_clean( 6 ) ;
 }
 
 sub catch_continue {
@@ -1877,7 +1937,7 @@ sub login_imap {
                 $imap->Authuser($authuser);
                 $imap->Password($password);
         }
-
+	
 	unless ( $authmech eq 'PREAUTH' or $imap->login( ) ) {
 		my $info  = "Failure: error login on [$host] with user [$user] auth" ;
 		my $einfo = $imap->LastError || @{$imap->History}[-1] ;
@@ -1923,8 +1983,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.508 $ ',
-		  '$Date: 2012/09/10 21:10:13 $ ',
+		  '$Revision: 1.516 $ ',
+		  '$Date: 2012/11/02 22:15:04 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -1941,35 +2001,38 @@ sub is_valid_directory {
 }
 
 
-sub write_pidfile {
-	my $pidfile = shift;
+sub write_pidfile { 
+	my $pidfile = shift ;
 	
-	print "PID file is $pidfile\n";
-	if (-e $pidfile) {
-		print "$pidfile already exists, overwriting it\n";
-	}
-	open(PIDFILE, ">$pidfile") or do {
-		print "Could not open $pidfile for writing";
-		return undef;
-	};
+	print "PID file is $pidfile\n" ;
+	if ( -e $pidfile and $pidfilelocking ) {
+		print "$pidfile already exists, another imapsync may be curently running. Aborting imapsync.\n" ;
+                exit( 8 ) ;
+	} 
+	if ( -e $pidfile ) {
+		print "$pidfile already exists, overwriting it\n" ;
+	} 
+	open( PIDFILE, ">$pidfile" ) or do {
+		print "Could not open $pidfile for writing" ;
+		return undef ;
+	} ;
 	
-	print PIDFILE $PROCESS_ID;
-	close PIDFILE;
-	return($PROCESS_ID);
-}
+	print PIDFILE $PROCESS_ID ;
+	close PIDFILE ;
+	return( $PROCESS_ID ) ;
+} 
 
 sub exit_clean {
-	my $status = shift;
+	my $status = shift ;
 	$status = defined( $status ) ? $status : 1 ;
-	unlink($pidfile);
-	exit($status);
+	unlink( $pidfile ) ;
+	exit( $status ) ;
 }
 
-sub die_clean {
-
-	unlink($pidfile);
-	die @_;
-}
+sub die_clean { 
+	unlink( $pidfile ) ;
+	die @_ ;
+} 
 
 sub missing_option {
 	my ($option) = @_;
@@ -2251,18 +2314,19 @@ sub folders_list_to_help {
 	
 }
 
-sub separator_invert {
-	# The separator we hope we'll never encounter: 00000000
-	my $o_sep="\000";
+sub separator_invert { 
+	# The separator we hope we'll never encounter: 00000000 
+	my $o_sep="\000" ;
 
-	my($h1_fold, $h1_sep, $h2_sep) = @_;
+	my($h1_fold, $h1_sep, $h2_sep) = @_ ;
 
-	my $h2_fold = $h1_fold;
-	$h2_fold =~ s@\Q$h2_sep@$o_sep@g;
-	$h2_fold =~ s@\Q$h1_sep@$h2_sep@g;
-	$h2_fold =~ s@\Q$o_sep@$h1_sep@g;
-	return($h2_fold);
-}
+	my $h2_fold = $h1_fold ;
+	$h2_fold =~ s@\Q$h2_sep@$o_sep@g ;
+	$h2_fold =~ s@\Q$h1_sep@$h2_sep@g ;
+	$h2_fold =~ s@\Q$o_sep@$h1_sep@g ;
+        $h2_fold =~ s,/,_,g if( $fixslash2 and '/' ne $h2_sep and '/' eq $h1_sep ) ;
+	return( $h2_fold ) ;
+} 
 
 
 sub tests_imap2_folder_name {
@@ -2278,6 +2342,7 @@ sep1:[$h1_sep]
 sep2:[$h2_sep]
 ";
 
+$fixslash2 = 0 ;
 ok('' eq imap2_folder_name(''), 'imap2_folder_name: empty string');
 ok('blabla' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla');
 ok('spam.spam' eq imap2_folder_name('spam/spam'), 'imap2_folder_name: spam/spam');
@@ -2296,6 +2361,22 @@ ok('bla_bla' eq imap2_folder_name('bla bla'), 'imap2_folder_name: blabla [s, ,_,
 
 @regextrans2 = ('s,(.*),\U$1,');
 ok('BLABLA' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla [s,\U(.*)\E,$1,]');
+
+$fixslash2 = 1 ;
+@regextrans2 = (  ) ;
+ok('' eq imap2_folder_name(''), 'imap2_folder_name: empty string');
+ok('blabla' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla');
+ok('spam.spam' eq imap2_folder_name('spam/spam'), 'imap2_folder_name: spam/spam -> spam.spam');
+ok('spam_spam' eq imap2_folder_name('spam.spam'), 'imap2_folder_name: spam.spam -> spam_spam');
+ok('spam.spam_spam' eq imap2_folder_name('spam/spam.spam'), 'imap2_folder_name: spam/spam.spam -> spam.spam_spam');
+
+$h1_sep = '.';
+$h2_sep = '/';
+ok('' eq imap2_folder_name(''), 'imap2_folder_name: empty string');
+ok('blabla' eq imap2_folder_name('blabla'), 'imap2_folder_name: blabla');
+ok('spam.spam' eq imap2_folder_name('spam/spam'), 'imap2_folder_name: spam/spam -> spam.spam');
+ok('spam/spam' eq imap2_folder_name('spam.spam'), 'imap2_folder_name: spam.spam -> spam/spam');
+ok('spam.spam/spam' eq imap2_folder_name('spam/spam.spam'), 'imap2_folder_name: spam/spam.spam -> spam.spam/spam');
 
 
 }
@@ -2359,7 +2440,11 @@ sub foldersizes {
 		my $smax = 0 ;
 		@$hash_ref{ @msgs } = ( undef ) if @msgs ;
 		if ( $nb_msgs > 0 and @msgs ) {
-			$imap->fetch_hash("RFC822.SIZE",$hash_ref) or die_clean("$@") ;
+                	if ( $abletosearch ) {
+				$imap->fetch_hash( "RFC822.SIZE", $hash_ref) or die_clean("$@" ) ;
+                        }else{
+                        	$imap->fetch_hash( '1:999999', "RFC822.SIZE", $hash_ref ) or die_clean( "$@" ) ;
+                        }
 			#print map {$hash_ref->{$_}->{"RFC822.SIZE"}, " "} keys %$hash_ref ;
 			map { $stot += $hash_ref->{ $_ }->{ "RFC822.SIZE" } } keys %$hash_ref ;
 			$smax = max( map { $hash_ref->{ $_ }->{ "RFC822.SIZE" } } keys %$hash_ref ) ;
@@ -2647,7 +2732,15 @@ sub select_msgs {
 	if ( defined( $msgs_all_hash_ref ) 
         or ( ! defined( $maxage ) and ! defined( $minage ) and ! defined( $search ) )
         ) {
-		@msgs = $imap->messages() ;
+        	if ( $abletosearch ) {
+        		$debugdev and print "Calling messages()\n" ;
+			@msgs = $imap->messages() ;
+                }else{ 
+                	$debugdev and print "Calling fetch_hash()\n" ;
+                	@msgs = sort { $a <=> $b } keys( %{$imap->fetch_hash( '1:999999', "RFC822.SIZE")} ) ;
+                }
+                $debugdev and print "Done fetch_hash()\n" ;
+                
                 if ( defined( $msgs_all_hash_ref ) ) {
                         @msgs_all = @msgs ;
                         @{ $msgs_all_hash_ref }{ @msgs_all } =  () ;
@@ -3474,38 +3567,37 @@ sub regexmess {
 	return($string);
 }
 
-sub bytes_display_string {
-       my ($bytes) = @_;
+sub bytes_display_string { 
+	my ( $bytes ) = @_ ;
 
-       if ($bytes < (1024 * 1024)) {
-           return sprintf("%.2f KiB", $bytes / 1024);
-       } elsif ($bytes < (1024 * 1024 * 1024)) {
-           return sprintf("%.2f MiB", $bytes / (1024 * 1024));
-       } elsif ($bytes < (1024 * 1024 * 1024 * 1024)) {
-           return sprintf("%.2f GiB", $bytes / (1024 * 1024 * 1024));
-       } elsif ($bytes < (1024 * 1024 * 1024 * 1024 * 1024)) {
-           return sprintf("%.2f TiB", $bytes / (1024 * 1024 * 1024 * 1024));
-       } else {
-           return sprintf("%.2f PiB", $bytes / (1024 * 1024 * 1024 * 1024 * 1024));
-       }
+        if ( abs( $bytes ) < ( 1024 * 1024 ) ) {
+                 return sprintf( "%.2f KiB", $bytes / 1024) ;
+        } elsif ( abs( $bytes ) < ( 1024 * 1024 * 1024 ) ) {
+        	return sprintf( "%.2f MiB", $bytes / (1024 * 1024) ) ;
+        } elsif ( abs( $bytes ) < ( 1024 * 1024 * 1024 * 1024) ) {
+		return sprintf("%.2f GiB", $bytes / (1024 * 1024 * 1024) ) ;
+        } elsif ( abs( $bytes ) < ( 1024 * 1024 * 1024 * 1024 * 1024) ) {
+		return sprintf( "%.2f TiB", $bytes / (1024 * 1024 * 1024 * 1024) ) ;
+        } else {
+		return sprintf( "%.2f PiB", $bytes / (1024 * 1024 * 1024 * 1024 * 1024) ) ;
+        }
        # if you have exabytes (EiB) of email to transfer, you have too much email
 }
 
 sub stats {
-	$timeend = time();
-	$timediff = $timeend - $timestart;
+	$timeend = time(  );
+	$timediff = $timeend - $timestart ;
 
-	my $timestart_str = localtime( $timestart ) ;
 	my $timeend_str   = localtime( $timeend ) ;
         
 	my $memory_consumption = memory_consumption(  ) || 0 ;
 	my $memory_ratio = ($max_msg_size_in_bytes) ?  
-		sprintf('%.1f', $memory_consumption / $max_msg_size_in_bytes) : "NA";
+		sprintf('%.1f', $memory_consumption / $max_msg_size_in_bytes) : "NA" ;
 
-	my $host1_reconnect_count = $imap1->Reconnect_counter() || 0;
-	my $host2_reconnect_count = $imap2->Reconnect_counter() || 0;
+	my $host1_reconnect_count = $imap1->Reconnect_counter() || 0 ;
+	my $host2_reconnect_count = $imap2->Reconnect_counter() || 0 ;
 
-	print   "++++ Statistics\n";
+	print   "++++ Statistics\n" ;
 	print   "Transfer started on               : $timestart_str\n";
 	print   "Transfer ended on                 : $timeend_str\n";
 	printf( "Transfer time                     : %.1f sec\n", $timediff ) ;
@@ -3542,9 +3634,17 @@ sub stats {
 	printf ("Memory consumption                : %.1f MiB\n", $memory_consumption / 1024 / 1024);
 	print   "Biggest message                   : $max_msg_size_in_bytes bytes\n";
 #	print   "Memory/biggest message ratio      : $memory_ratio\n";
-	print   "Detected $nb_errors errors\n\n";
+        if ( $foldersizesatend and $foldersizes ) {
+	printf("Initial difference host2 - host1  : %s messages, %s bytes (%s)\n", $h2_nb_msg_start - $h1_nb_msg_start,
+                                                        $h2_bytes_start  - $h1_bytes_start,
+                                                        bytes_display_string( $h2_bytes_start  - $h1_bytes_start ) ) ;
+	printf("Final   difference host2 - host1  : %s messages, %s bytes (%s)\n", $h2_nb_msg_end   - $h1_nb_msg_end,
+                                                        $h2_bytes_end    - $h1_bytes_end,
+                                                        bytes_display_string( $h2_bytes_end    - $h1_bytes_end ) ) ;
+        }
+	print   "Detected $nb_errors errors\n\n" ;
 
-	print   $warn_release, "\n";
+	print   $warn_release, "\n" ;
 	print   thank_author();
 }
 
@@ -3579,6 +3679,7 @@ sub get_options {
                                    "debugimap!"    => \$debugimap,
                                    "debugimap1!"   => \$debugimap1,
                                    "debugimap2!"   => \$debugimap2,
+                                   "debugdev!"   => \$debugdev,
                                    "host1=s"     => \$host1,
                                    "host2=s"     => \$host2,
                                    "port1=i"     => \$port1,
@@ -3602,6 +3703,7 @@ sub get_options {
 				   "exclude=s"   => \@exclude,
 				   "prefix1=s"   => \$prefix1,
 				   "prefix2=s"   => \$prefix2,
+				   "fixslash2!"  => \$fixslash2,
 				   "regextrans2=s" => \@regextrans2,
 				   "regexmess=s" => \@regexmess,
 				   "regexflag=s" => \@regexflag,
@@ -3609,6 +3711,7 @@ sub get_options {
 				   "flagsCase!"  => \$flagsCase,
                                    "delete!"     => \$delete,
                                    "delete2!"    => \$delete2,
+                                   "delete2duplicates!" => \$delete2duplicates,
 				   "delete2folders!"    => \$delete2folders,
 				   "delete2foldersonly=s" => \$delete2foldersonly,
 				   "delete2foldersbutnot=s" => \$delete2foldersbutnot,
@@ -3621,6 +3724,7 @@ sub get_options {
 				   "minage=i"    => \$minage,
                                    "search=s"    => \$search,
 				   "foldersizes!" => \$foldersizes,
+				   "foldersizesatend!" => \$foldersizesatend,
                                    "dry!"        => \$dry,
                                    "expunge!"    => \$expunge,
                                    "expunge1!"    => \$expunge1,
@@ -3669,6 +3773,7 @@ sub get_options {
                                    "justlogin!"  => \$justlogin,
 				   "tmpdir=s"    => \$tmpdir,
 				   "pidfile=s"    => \$pidfile,
+				   "pidfilelocking!"    => \$pidfilelocking,                                 
 				   "releasecheck!" => \$releasecheck,
 				   "modules_version!" => \$modules_version,
 				   "usecache!"    => \$usecache,
@@ -3680,6 +3785,8 @@ sub get_options {
                                    "checkselectable!" => \$checkselectable,
                                    "checkmessageexists!" => \$checkmessageexists,
                                    "expungeaftereach!" => \$expungeaftereach,
+                                   "abletosearch!" => \$abletosearch,
+                                   "showpasswords!" => \$showpasswords,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -3869,7 +3976,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.508 2012/09/10 21:10:13 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.516 2012/11/02 22:15:04 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -3993,6 +4100,8 @@ Several options are mandatory.
                          Required by Sun/iPlanet/Netscape IMAP servers to
                          be able to use an administrative user
 --password1   <string> : password for the user1. Dangerous, use --passfile1
+--showpasswords        : shows passwords on output instead of "MASKED".
+                         Useful to restart a complete run by just reading a log.
 --passfile1   <string> : password file for the user1. Contains the password.
 --host2       <string> : "destination" imap server. Mandatory.
 --port2       <int>    : port to connect on host2. Default is 143.
@@ -4029,6 +4138,8 @@ Several options are mandatory.
                          Will be created if it doesn't exist.
 			 Default is system specific and should be ok.
 --pidfile     <string> : the file where imapsync pid is written.
+--pidfilelocking       : Abort if pidfile already exists. Usefull to avoid 
+                         concurrent transfers on the same mailbox.
 --prefix1     <string> : remove prefix to all destination folders 
                          (usually INBOX. for cyrus imap servers)
                          you can use --prefix1 if your source imap server 
@@ -4058,6 +4169,9 @@ Several options are mandatory.
                          they are really deleted unless --noexpunge is used.
 --delete2              : delete messages in host2 that are not in
                          host1 server. Useful for backup or pre-sync.
+--delete2duplicates    : delete messages in host2 that are duplicates.
+                         Works only without --useuid since duplicates are 
+                         detected with header part of each message.
 --delete2folders       : Delete folders in host2 that are not in host1 server. 
                          For safety, first try it like this (it is safe):
 			 --delete2folders --dry --justfolders --nofoldersizes
@@ -4105,6 +4219,8 @@ Several options are mandatory.
                          host2 even if they are not subscribed on host1.
 --nofoldersizes        : Do not calculate the size of each folder in bytes
                          and message counts. Default is to calculate them.
+--nofoldersizesatend   : Do not calculate the size of each folder in bytes
+                         and message counts at the end. Default is on.
 --justfoldersizes      : exit after printed the folder sizes.
 --syncacls             : synchronises acls (Access Control Lists).
 --nosyncacls           : does not synchronise acls. This is the default.
@@ -4668,7 +4784,7 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-                tests_time_remaining(  ) ;
+                tests_imap2_folder_name(  ) ;
 	}
 }
 
@@ -4708,6 +4824,7 @@ sub tests {
                 tests_cache_dir_fix(  ) ;
                 tests_filter_forbidden_characters(  ) ;
                 tests_cache_folder(  ) ;
+                tests_time_remaining(  ) ;
 	}
 }
 

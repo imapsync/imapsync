@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.61 2012/11/02 01:31:58 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.60 2012/11/02 01:15:48 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.61 2012/11/02 01:31:58 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.60 2012/11/02 01:15:48 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -111,8 +111,7 @@ foreach my $file ( @files ) {
 		'Devise', 'Montant', "Numéro d'avis de réception", 'Solde',
 		'Pays', 'Nom Option 1', 'Valeur Option 1', 'Hors taxe', "Titre de l'objet", 'Nom Option 2', 'Option 2 Valeur') } ;
 		#print "$Nom\n" ;
-                ( $Etat )      = @action{ ( 'Etat' ) }      || @action{ ( 'État' ) } ;
-                ( $Hors_taxe ) = @action{ ( 'Hors taxe' ) } || @action{ ( 'Avant commission' ) } ;
+                ( $Etat ) = @action{ ( 'Etat', ) } || @action{ ( 'État' ) } ;
 		my $invoice = 'NONE' ;
 		$Montant = $action->{ Net } if not defined $Montant;
 		compute_line($action, $invoice, $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat, 
@@ -525,10 +524,13 @@ sub build_invoice {
 	'Etat/Province/Région/Comté/Territoire/Préfecture/République', 'Code postal', 'Pays', 'line_number', 'line_csv', 'file_csv', 
         'Nom Option 2', 'Option 2 Valeur' ) } ;
 
+	my( $Etat_Province1 ) = @action{ ( 'Etat/Province/Région/Comté/Territoire/Préfecture/République' ) } ;
+        my( $Etat_Province2 ) = @action{ ( 'État/Province/Région/Comté/Territoire/Préfecture/République' ) } ;
+        
         $Etat_Province = @action{ ( 'Etat/Province/Région/Comté/Territoire/Préfecture/République' ) }
                       || @action{ ( 'État/Province/Région/Comté/Territoire/Préfecture/République' ) }
                       || '' ;
-	( $Hors_taxe ) = @action{ ( 'Hors taxe' ) } || @action{ ( 'Avant commission' ) } ;
+
 	#print "$Hors_taxe $Devise\n" ;
 	my $Hors_taxe_num = $Hors_taxe ;
 	$Hors_taxe_num =~ s{,}{.} ;
