@@ -47,8 +47,13 @@ send_invoice() {
 	}
 }
 
-echo $0 '/g/var/paypal_invoices/99?'
+echo $0 '/g/var/paypal_invoices/2???'
 
 for d in "$@"; do 
 	( send_invoice "$d" )
 done
+
+echo ==== Saving to ks
+rsync -avHz -P /g/var/paypal_invoices/ \
+   imapsync@ks.lamiral.info:var/paypal_invoices
+

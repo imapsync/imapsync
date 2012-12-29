@@ -1,5 +1,6 @@
 
-REM $Id: build_exe.bat,v 1.9 2011/05/31 08:28:29 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.11 2012/12/24 02:25:55 gilles Exp gilles $
+REM
 
 echo Building imapsync.exe
 cd C:\msys\1.0\home\Admin\imapsync

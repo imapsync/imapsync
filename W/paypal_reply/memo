@@ -28,18 +28,40 @@ Europe a un autre assujetti : Article 262 ter => Exoneration
 EOF
 }
 
-echo paypal_bilan_Avant_commission
-paypal_bilan_Avant_commission() {
-# DID output diff between paypal_bilan_1.60 and 1.61
+
+echo paypal_bilan_invoice_00000
+paypal_bilan_invoice_00000() {
+# DID output diff between paypal_bilan_1.62 and 1.63
 (
 #set -x
-/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.60 --bnc --debug --debug_invoice --first_in 147 \
-   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.62 --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  --dry --write_invoices --exportbnc paypal_bnc.txt --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
+
+#echo paypal_bilan_Avant_commission
+paypal_bilan_Avant_commission() {
+# DID output diff between paypal_bilan_1.61 and 1.62
+(
+#set -x
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.61 --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132' \
    /g/paypal/paypal_201?_??_complet.csv \
  > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
 
 /g/public_html/imapsync/W/paypal_reply/paypal_bilan   --exportbnc paypal_bnc.txt --bnc --debug --debug_invoice --first_in 147 \
-   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653' \
+   --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132' \
    /g/paypal/paypal_201?_??_complet.csv \
  > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
 
