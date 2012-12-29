@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.62 2012/12/06 18:45:02 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.61 2012/11/02 01:31:58 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.62 2012/12/06 18:45:02 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.61 2012/11/02 01:31:58 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -35,7 +35,6 @@ my $nb_invoice_suspended = 0 ;
 my $nb_invoice_canceled = 0 ;
 
 my ( $tests, $testeur ) ;
-my $dry ;
 my $debug ;
 my $debug_csv ;
 my $debug_dev ;
@@ -59,7 +58,6 @@ my $dir_invoices = '/g/var/paypal_invoices' ;
 
 my $option_ret = GetOptions (
 	'tests'                 => \$tests,
-	'dry'                   => \$dry,
 	'debug'                 => \$debug,
 	'debug_csv'             => \$debug_csv,
 	'debug_dev'             => \$debug_dev,
@@ -344,19 +342,6 @@ sub keyval {
 }
 
 
-sub invoice_00000 {
-	my $invoice = shift ;
-        
-        return( sprintf( "%04d", $invoice ) ) ;
-}
-
-sub tests_invoice_00000 {
-
-	ok(  '0000' eq invoice_00000(     0 ), 'invoice_00000:     0 ->  0000' ) ;
-	ok(  '0147' eq invoice_00000(   147 ), 'invoice_00000:   147 ->  0147' ) ;
-	ok( '99999' eq invoice_00000( 99999 ), 'invoice_00000: 99999 -> 99999' ) ;
-}
-
 sub tests_next_invoice {
         ok( 1 ==  next_invoice(  ), 'next_invoice: 1' ) ;
         ok( 2 ==  next_invoice(  ), 'next_invoice: 2' ) ;
@@ -374,7 +359,6 @@ sub tests {
         tests_next_invoice(  ) ;
         #tests_half(  ) ;
         tests_cut(  ) ;
-        tests_invoice_00000(  ) ;
 }
 
 sub compute_line {
@@ -675,8 +659,8 @@ sub build_invoice {
 
 	my $tex_variables_utf8 = to_utf8( { -string => $tex_variables, -charset => 'ISO-8859-1' } ) ;
 
-	$debug_invoice_utf8 and print $tex_variables_utf8 ;
-	$debug_invoice      and print $tex_variables   ;
+	print $tex_variables_utf8 if $debug_invoice_utf8 ;
+	print $tex_variables      if $debug_invoice ;
 
 	#print "$invoice ", invoice_sent( $dir_invoices, $invoice, $De_l_adresse_email ), "\n" ;
 	if ( $write_invoices and ! invoice_sent( $dir_invoices, $invoice, $De_l_adresse_email ) ) {
@@ -865,11 +849,7 @@ sub write_csv_info {
 
 	my( $dir_invoices, $invoice, $file_csv, $line_number, $line_csv ) = @_ ;
 
-	my $invoice_00000 = invoice_00000( $invoice ) ;
-        $debug and print "Writing $dir_invoices/$invoice_00000/csv_info.txt\n" ;
-	$dry and return(  ) ;
-
-	open( CSVINFO, "> $dir_invoices/$invoice_00000/csv_info.txt") or die ;
+	open( CSVINFO, "> $dir_invoices/$invoice/csv_info.txt") or die ;
 	print CSVINFO join( "\n", $file_csv, $line_number, $line_csv ) ;
 	close( CSVINFO ) ;
 		
@@ -878,8 +858,8 @@ sub write_csv_info {
 sub invoice_sent {
 
 	my ( $dir_invoices, $invoice, $email_address ) = @_ ;
-	my $invoice_00000 = invoice_00000( $invoice ) ;
-	return( 1 ) if ( -f "$dir_invoices/$invoice_00000/SENT_TO_$email_address" ) ;
+	
+	return( 1 ) if ( -f "$dir_invoices/$invoice/SENT_TO_$email_address" ) ;
 	return( 0 ) ;
 
 }
@@ -889,24 +869,17 @@ sub write_email_message {
 	
 	my $message_body_utf8 = to_utf8({ -string => $message_body, -charset => 'ISO-8859-1' });
 
-	my $invoice_00000 = invoice_00000( $invoice ) ;
-	
-        if ( ! -d "$dir_invoices/$invoice_00000" ) {
-        	$debug and print "mkdir $dir_invoices/$invoice_00000\n" ;
-        	$dry or mkdir( "$dir_invoices/$invoice_00000" ) or die ;
-        }
-        
-	$dry and return(  ) ;
-	
-        open( HEADER, "> $dir_invoices/$invoice_00000/facture_message_header.txt") or die ;
+	mkdir( "$dir_invoices/$invoice" ) or die if ! -d "$dir_invoices/$invoice" ;
+
+	open( HEADER, "> $dir_invoices/$invoice/facture_message_header.txt") or die ;
 	print HEADER $message_header ;
 	close( HEADER ) ;
 
-	open( BODY, "> $dir_invoices/$invoice_00000/facture_message_body.txt") or die ;
+	open( BODY, "> $dir_invoices/$invoice/facture_message_body.txt") or die ;
 	print BODY $message_body_utf8 ;
 	close( BODY ) ;
 
-	open( ADDRESS, "> $dir_invoices/$invoice_00000/email_address.txt") or die ;
+	open( ADDRESS, "> $dir_invoices/$invoice/email_address.txt") or die ;
 	print ADDRESS "$email_address\n" ;
 	close( ADDRESS ) ;
 }
@@ -915,23 +888,14 @@ sub write_email_message {
 sub write_tex_variables_file { 
 	my ( $dir_invoices, $invoice, $date_jjSmmSaaaa, $tex_variables_utf8 ) = @_ ;
 	
-	my $invoice_00000 = invoice_00000( $invoice ) ;
-	
-        if ( ! -d "$dir_invoices/$invoice_00000" ) {
-        	$debug and print "mkdir $dir_invoices/$invoice_00000\n" ;
-        	$dry or mkdir( "$dir_invoices/$invoice_00000" ) or die ;
-        }
-        
-        $debug and print "Writing imapsync_var.tex $dir_invoices/$invoice_00000/imapsync_var.tex\n" ;
-        $dry and return(  ) ;
-        
-	open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var.tex") or die ;
+	mkdir( "$dir_invoices/$invoice" ) or die if ! -d "$dir_invoices/$invoice" ;
+	open( FILE, "> $dir_invoices/$invoice/imapsync_var.tex") or die ;
 	print FILE $tex_variables_utf8 ;
 	close( FILE ) ;
         
-        if ( ! -f "$dir_invoices/$invoice_00000/imapsync_var_manual.tex" ) {
-	open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var_manual.tex") or die ;
-        print FILE "%% $0 created this file
+        if ( ! -f "$dir_invoices/$invoice/imapsync_var_manual.tex" ) {
+	open( FILE, "> $dir_invoices/$invoice/imapsync_var_manual.tex") or die ;
+        print FILE "%% $0 created file
 %% Can be used to override imapsync_var.tex definitions\n" ;
 	print FILE $tex_variables_utf8 ;
 	close( FILE ) ;

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.205 2012/11/03 00:38:15 gilles Exp gilles $  
+# $Id: tests.sh,v 1.209 2012/12/24 02:24:09 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.32/lib' sh -x tests.sh
@@ -179,7 +179,6 @@ locallocal() {
 
 ll_nofoldersizes() 
 {
-	can_send && sendtestmessage
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
@@ -188,6 +187,15 @@ ll_nofoldersizes()
         --nofoldersizes --folder INBOX
 }
 
+ll_nofoldersizes_nofoldersizesatend() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --nofoldersizes --nofoldersizesatend --folder INBOX
+}
 
 
 pidfile() {
@@ -259,6 +267,15 @@ ll_authmech_PREAUTH() {
 }
 
 
+
+ll_unknow_option() {
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX --unknow_option
+}
 
 
 
@@ -859,6 +876,18 @@ ll_search_FLAGGED()
         --search 'FLAGGED' --folder INBOX
 }
 
+ll_search_NOT_DELETED() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search 'NOT DELETED' --folder INBOX
+}
+
+
 ll_search_SENTSINCE() 
 {
         can_send && sendtestmessage
@@ -1434,6 +1463,46 @@ ll_regex_flag4()
                 echo 'sudo rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
 
+ll_regex_flag5() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --debugflags --regexflag "s/Answered/Flagged/g"
+                
+                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
+
+ll_regex_flag6_add_SEEN() 
+{
+	$CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.yop.yap \
+        --debugflags --regexflag "s/(.*)/\$1 \\\\Seen/"
+
+        echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
+ll_regex_flag7_add_SEEN() 
+{
+	$CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.yop.yap \
+        --debugflags --regexflag 's/(.*)/$1 \\Seen/'
+
+        echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
 
 ll_regex_flag_keep_only() 
 {
@@ -1845,7 +1914,14 @@ xxxxx_gmail() {
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
 		--nofoldersizes \
-		--justfolders --regextrans2 's/ //g' --exclude 'INBOX.yop.YAP' --exclude Gmail
+		--regextrans2 's/ +$//g' --regextrans2 's# +/#/#g' \
+		--exclude 'INBOX.yop.YAP' \
+		--regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
+		--regextrans2 "s,^Sent$,[Gmail]/Sent Mail," \
+		--folder 'INBOX.Messages envoy&AOk-s' \
+		--folder 'INBOX.Sent' 
+
+# --exclude Gmail
 }
 
 
@@ -1874,9 +1950,23 @@ xxxxx_gmail_3() {
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
 		--nofoldersizes \
-                --folder INBOX.few_emails  --debug \
-                --regextrans2 's,few_emails,Gmail/Messages envoyes,' 
+                --folder INBOX.few_emails  --debug --useheader Message-ID --delete2 --dry
 }
+
+xxxxx_gmail_3_Received() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--nofoldersizes \
+                --folder INBOX.few_emails  --debug --useheader Received --delete2 --dry
+}
+
 
 xxxxx_gmail_4_Sent() {
 
@@ -2969,8 +3059,8 @@ dprof_bigmail()
 
 mandatory_tests='
 no_args
-option_version 
-option_tests 
+option_version
+option_tests
 option_tests_debug
 option_bad_delete2 
 passwords_masked 
@@ -2988,6 +3078,7 @@ gmail
 gmail_gmail 
 gmail_gmail2 
 yahoo_xxxx
+ll_unknow_option 
 ll_ask_password 
 ll_bug_folder_name_with_blank 
 ll_timeout 

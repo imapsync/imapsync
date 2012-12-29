@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.117 2012/11/03 00:44:30 gilles Exp gilles $
+# $Id: FAQ,v 1.120 2012/12/15 00:05:42 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -1190,7 +1190,7 @@ Maybe add other --regextrans2 to change folder names and see the result.
 When satisfied, run without --dry --justfolders
 
 =======================================================================
-Q. Synchronizing from XXX to Gmail
+Q. Synchronizing from XXX to Gmail 
 
 R. There are some details to get the special [Gmail] sub-folders
    right. Here's an example of migrating an old "Sent" folder to
@@ -1202,15 +1202,36 @@ imapsync --host1 mail.oldhost.com \
          --host2 imap.gmail.com --ssl2 \
          --user2 my_email@gmail.com \
          --password2 password \
+         --exitwhenover 500000000 \
          --folder "INBOX.Sent" \
-         --regextrans2 "s/Sent/Sent Mail/" \
-         --exitwhenover 500000000
+         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," \
+         --addheader
 
-The same goes for the "All Mail" archive pseudo-folder.
+
+If you're using a different language in Gmail you might adapt
+this example with the folder name translated, an example in French:
+
+imapsync ...
+	 --folder 'INBOX.Messages envoy&AOk-s' \
+	 --regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
+
+The --addheader option is there because Sent folder messages 
+sometimes lack the "Message-Id" header needed by imapsync 
+when --useuid is not used. So option --addheader adds a "Message-Id" header.
+
+You can remove --folder "INBOX.Sent" in the example in case
+you want to sync all folders, the --regextrans2 option will 
+still apply only on "INBOX.Sent" folder.
+
+The "All Mail" archive pseudo-folder should be updated automaticaly.
 
 --exitwhenover option is here to avoid locking when transfers 
 exceed maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+
+You can select folders exported to imap within the gmail preferences,
+unselect all "System labels".
+
 
 =======================================================================
 Q. Synchronizing from Gmail to XXX
@@ -1473,6 +1494,17 @@ Q. From Microsoft Exchange 2000 IMAP4rev1 server version 6.0.6487.0.
 R. imapsync ... \
    --prefix1 INBOX. 
 
+
+======================================================================
+Q. From Softalk Workgroup Mail 7.6.4 
+
+R. Old Softalk releases don't support the IMAP SEARCH command.
+   Here are the options to get it working.
+
+imapsync ... --sep1 '.' --prefix1 '' \
+             --noabletosearch  --nocheckmessageexists --addheader
+
+(Thanks to Andrew Tucker)
 ======================================================================
 Q: How can I write an .rpm with imapsync
 

@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.110 2012/11/03 01:38:12 gilles Exp gilles $	
+# $Id: Makefile,v 1.113 2012/12/24 02:24:40 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -108,11 +108,11 @@ test_quick_229: imapsync tests.sh
 test_quick_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh -x tests.sh locallocal
 
-testv2: 
+testv2: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_2xx)' /usr/bin/time sh tests.sh
 	touch .test_229
 
-testv3:
+testv3: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh
 	touch .test_3xx
 
@@ -138,8 +138,8 @@ testf: clean_test test
 
 .PHONY: lfo upload_lfo niouze_lfo niouze_fm public  imapsync_cidone
 
-.dosify_bat: W/build_exe.bat W/test_exe.bat W/test.bat W/test2.bat examples/imapsync_example.bat.txt
-	unix2dos W/build_exe.bat W/test.bat W/test_exe.bat W/test2.bat examples/imapsync_example.bat.txt examples/file.txt
+.dosify_bat: W/*.bat examples/*.bat
+	unix2dos W/*.bat examples/*.bat
 	touch .dosify_bat
 
 dosify_bat: .dosify_bat
@@ -213,8 +213,14 @@ imapsync_elf_x86.bin: imapsync
 lfo: cidone  niouze_lfo upload_lfo 
 
 
-tarball: cidone all
+tarball: .tarball
+
+
+.tarball: imapsync
 	echo making tarball $(DIST_FILE)
+	rcsdiff RCS/* 
+	cd W && rcsdiff RCS/*
+	cd examples && rcsdiff RCS/*
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
 	rsync -aCv --delete --omit-dir-times --exclude dist/ --exclude imapsync.exe ./ ../prepa_dist/$(DIST_NAME)/
@@ -224,6 +230,7 @@ tarball: cidone all
 	cd ../prepa_dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	cd ../prepa_dist && md5sum -c $(DIST_FILE).md5.txt
 	ls -l ../prepa_dist/$(DIST_FILE)
+	touch .tarball
 
 
 DO_IT       := $(shell test -f ./dist/path_$(VERSION).txt || makepasswd --chars 4 > ./dist/path_$(VERSION).txt)
@@ -282,7 +289,7 @@ PUBLIC_FILES_W = ./W/style.css \
 
 PUBLIC_FILES_IMAGES = ./W/images/logo_imapsync.png ./W/images/logo_imapsync_s.png
 
-ml:
+ml: dist_dir
 	m4 -P W/ml_announce.in | mutt -H-
 	mailq
 
@@ -311,10 +318,12 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: index.shtml FAQ COPYING CREDITS
+upload_index: FAQ COPYING CREDITS W/*.bat examples/*.bat examples/sync_loop_unix.sh index.shtml 
+	rcsdiff index.shtml FAQ COPYING CREDITS W/*.bat examples/*.bat index.shtml 
 	validate --verbose index.shtml
-	rcsdiff index.shtml FAQ COPYING CREDITS
 	rsync -avH index.shtml FAQ  COPYING CREDITS root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
+	rsync -avH examples/*.bat examples/sync_loop_unix.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 
 niouze_lfo : 
 	echo "CORRECT ME: . ./memo && lfo_announce"

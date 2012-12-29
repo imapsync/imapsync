@@ -1,5 +1,6 @@
 
-REM $Id: test2.bat,v 1.11 2012/10/05 09:15:55 gilles Exp gilles $
+REM $Id: test2.bat,v 1.14 2012/12/24 02:25:34 gilles Exp gilles $
+REM
 
 cd C:\msys\1.0\home\Admin\imapsync
 REM perl ./imapsync --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --user2 titi --passfile2 secret.titi --delete2 --expunge2 --folder INBOX 
@@ -38,6 +39,25 @@ REM perl ./imapsync --host1 p --user1 tata --passfile1 secret.tata ^
 REM             --host2 imap.gmail.com --ssl2 --user2 gilles.lamiral@gmail.com --passfile2 secret.gilles_gmail ^
 REM             --usecache --nofoldersizes --folder INBOX --regextrans2 "s(INBOX)([Gmail]/te*st)" 
 
-perl ./imapsync --host1 imap.gmail.com --port1 993  --ssl1 --host2 imap.bigs.dk --justconnect
+REM perl ./imapsync --host1 imap.gmail.com --port1 993  --ssl1 --host2 imap.bigs.dk --justconnect
 
-imapsync.exe --host1 imap.gmail.com --port1 993  --ssl1 --host2 imap.bigs.dk --justconnect
+REM imapsync.exe --host1 imap.gmail.com --port1 993  --ssl1 --host2 imap.bigs.dk --justconnect
+
+REM @echo off
+
+DATE /t
+TIME /t
+
+FOR /f "tokens=1-4 delims=-/: " %%a IN ('DATE /t') DO (SET mydate=%%c_%%a_%%b_%%d)
+FOR /f "tokens=1-2 delims=-/: " %%a IN ('TIME /t') DO (SET mytime=%%a_%%b)
+ECHO %mydate%_%mytime%
+
+if not exist LOG mkdir LOG
+FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO ECHO syncing to user %%I & imapsync ^
+  --host1 imap.side1.org --user1 %%G --password1 %%H ^
+  --host2 imap.side2.org --user2 %%I --password2 %%J ^
+  > LOG\log_%%I_%mydate%_%mytime%.txt 2>&1
+
+ECHO Loop finished
+ECHO log files are in LOG directory
+PAUSE
