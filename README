@@ -3,10 +3,10 @@ NAME
     Synchronise mailboxes between two imap servers. Good at IMAP migration.
     More than 44 different IMAP server softwares supported with success.
 
-    $Revision: 1.518 $
+    $Revision: 1.525 $
 
 SYNOPSIS
-    To synchronise imap account "foo" on "imap.truc.org" to imap account
+    To synchronize imap account "foo" on "imap.truc.org" to imap account
     "bar" on "imap.trac.org" with foo password "secret1" and bar password
     "secret2":
 
@@ -114,14 +114,17 @@ DESCRIPTION
     later, imapsync works well with bad connections.
 
     You can decide to delete the messages from the source mailbox after a
-    successful transfer (it is a good feature when migrating). In that case,
-    use the --delete option. Option --delete implies also option --expunge
-    so all messages marked deleted on host1 will be really deleted. (you can
-    use --noexpunge to avoid this but I don't see any real world scenario
+    successful transfer, it can be a good feature when migrating live
+    mailboxes since messages will be only one side. In that case, use the
+    --delete option. Option --delete implies also option --expunge so all
+    messages marked deleted on host1 will be really deleted. (you can use
+    --noexpunge to avoid this but I don't see any good real world scenario
     for the combinaison --delete --noexpunge).
 
-    You can also just synchronize a mailbox A from another mailbox B in case
-    you just want to keep a "live" copy of B in A (--delete2 may help)
+    You can also just synchronize a mailbox B from another mailbox A in case
+    you just want to keep a "live" copy of A in B. In that case --delete2
+    can be used, it deletes messages in host2 folder B that are not in host1
+    folder A.
 
     imapsync is not adequate for maintaining two active imap accounts in
     synchronization where the user plays independently on both sides. Use
@@ -194,10 +197,10 @@ EXIT STATUS
             done
 
 LICENSE
-    imapsync is free, open source but not always gratis software cover by
-    the No Limit Public License (NLPL). See COPYING
-    file included in the distribution or the web site
-    http://imapsync.lamiral.info/COPYING
+    imapsync is free, open, public but not always gratis software cover by
+    the NOLIMIT Public License. See the LICENSE file included in the
+    distribution or just read this: No limit to do anything with this work
+    and this license.
 
 MAILING-LIST
     The public mailing-list may be the best way to get support.
@@ -356,7 +359,7 @@ IMAP SERVERS
      - Rockliffe Mailsite 5.3.11, 4.5.6
      - Samsung Contact IMAP server 8.5.0
      - Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6
-     - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1].
+     - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], SmarterMail Professional 10.2 [host1].
      - Softalk Workgroup Mail 7.6.4 [host1].
      - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
      - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05, 6.3
@@ -385,8 +388,8 @@ IMAP SERVERS
 
 HUGE MIGRATION
     Pay special attention to options --subscribed --subscribe --delete
-    --delete2 --delete2folders --expunge --expunge1 --expunge2 --uidexpunge2
-    --maxage --minage --maxsize --useheader --fast --useuid --usecache
+    --delete2 --delete2folders --maxage --minage --maxsize --useuid
+    --usecache
 
     If you have many mailboxes to migrate think about a little shell
     program. Write a file called file.txt (for example) containing users and
@@ -418,7 +421,7 @@ HUGE MIGRATION
     Welcome in shell programming !
 
 Hacking
-    Feel free to hack imapsync as the NLPL Licence permits it.
+    Feel free to hack imapsync as the NOLIMIT license permits it.
 
 Links
     Entries for imapsync: http://www.imap.org/products/showall.php
@@ -442,5 +445,5 @@ SIMILAR SOFTWARES
 
     Feedback (good or bad) will often be welcome.
 
-    $Id: imapsync,v 1.518 2012/12/24 00:27:34 gilles Exp gilles $
+    $Id: imapsync,v 1.525 2013/02/05 12:52:10 gilles Exp gilles $
 

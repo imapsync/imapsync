@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.120 2012/12/15 00:05:42 gilles Exp gilles $
+# $Id: FAQ,v 1.124 2013/02/05 18:40:50 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -177,7 +177,20 @@ R. By using --useuid imapsync avoid getting messages headers and build
 
 R. Add also --nofoldersizes since the default behavior is to compute
    folder sizes. Folder sizes are useless for the transfer, just 
-   useful to see what has to be done on each folder.
+   useful to see what has to be done on each folder and guess when 
+   the transfer will end (ETA).
+
+R. Add also --nocheckmessageexists
+   Since transfer can be long on a huge mailbox imapsync checks
+   a message exist before copying it, but it takes time and 
+   cpu on the host1 server. 
+   --nocheckmessageexists is on by default since release 1.520
+
+R. Add also --noexpungeaftereach if you use --delete but be warn
+   that an interrupted transfer can loose messages on host2 in a 
+   second run if you use a combination like
+
+   imapsync ... --delete --noexpunge --noexpungeaftereach --expunge2
 
 Notes about --useuid
 
@@ -250,7 +263,7 @@ R2. Use --useuid then imapsync will avoid dealing with headers.
    imapsync ... --useuid
 
 =======================================================================
-Q. How can I try imapsync with the new Mail::IMAPClient 3.xx perl library?
+Q. How can I try imapsync with Mail::IMAPClient 3.xx perl module?
 
 R. - Download latest Mail::IMAPClient 3.xx at
    http://search.cpan.org/dist/Mail-IMAPClient/
@@ -299,8 +312,8 @@ You can migrate emails from pop server to imap server with pop2imap:
 http://www.linux-france.org/prj/pop2imap/
 
 R2. Yes 
-Many pop3 servers runs in parallel with an imap server on the
-exactly the same mailboxes. They serve the same INBOX
+Many pop3 servers runs in parallel with an imap server on exactly 
+the same mailboxes. They serve the same INBOX
 (imap serves INBOX and several other folders, pop3 serves only INBOX)
 So have a try with imapsync on the same host1.
 
@@ -321,7 +334,7 @@ designed for this issue, and faster than imapsync.
 
 =======================================================================
 Q. We have found that the sent time and date have been changed to the 
-   time at which the file was synchronised. 
+   time at which the file was synchronized. 
 
 R. This is the case with:
    - Eudora
@@ -367,9 +380,9 @@ Q. imapsync calculates 479 messages in a folder but only transfers 400
 
 R1. Unless --useuid is used, imapsync considers a header part 
    of a message to identify a message on both sides.
-   The header part is whole header with "--useheader ALL" or
-   only specific lines depending on --useheader --skipheader
-   or default values.
+   By default the header part used is lines "Message-Id:" "Message-ID:" 
+   and "Received:" or specific lines depending on --useheader 
+   --skipheader. Whole header can be set by --useheader ALL
 
 Consequences:
 
@@ -466,18 +479,168 @@ R. It depends on the destination server.
 
 a) If the destination server honors the "PERMAENTFLAGS \*" 
 directive (meaning it accepts any flag) or no PERMAENTFLAGS at all 
-then imapsync synchronises all flags except the \Recent flag
+then imapsync synchronizes all flags except the \Recent flag
 (RFC 3501 says about \Recent flag "This flag can not be 
 altered by the client.").
 
 b) If the destination server honors the "PERMAENTFLAGS without the 
-special "\*"  then imapsync synchronises only the flags listed 
+special "\*"  then imapsync synchronizes only the flags listed 
 in PERMANENTFLAGS.
 
 Some imap servers have problems with flags not beginning with
 the backslash character \ 
 (see next question to find a solution to this issue)
 
+
+=======================================================================
+Q. Is there a way to only sync messages with a specific flag set, 
+for example, the \Seen flag? 
+
+R. use --search 
+
+  imapsync ... --search SEEN
+
+or
+
+  imapsync ... --search UNSEEN
+
+or ...
+
+The complete list of search things are listed below
+
+http://www.faqs.org/rfcs/rfc3501.html
+
+6.4.4.  SEARCH Command
+...
+      ALL
+         All messages in the mailbox; the default initial key for
+         ANDing.
+
+      ANSWERED
+         Messages with the \Answered flag set.
+
+      BCC <string>
+         Messages that contain the specified string in the envelope
+         structure's BCC field.
+
+      BEFORE <date>
+         Messages whose internal date (disregarding time and timezone)
+         is earlier than the specified date.
+
+      BODY <string>
+         Messages that contain the specified string in the body of the
+         message.
+
+      CC <string>
+         Messages that contain the specified string in the envelope
+         structure's CC field.
+
+      DELETED
+         Messages with the \Deleted flag set.
+
+      DRAFT
+         Messages with the \Draft flag set.
+
+      FLAGGED
+         Messages with the \Flagged flag set.
+
+      FROM <string>
+         Messages that contain the specified string in the envelope
+         structure's FROM field.
+
+      HEADER <field-name> <string>
+         Messages that have a header with the specified field-name (as
+         defined in [RFC-2822]) and that contains the specified string
+         in the text of the header (what comes after the colon).  If the
+         string to search is zero-length, this matches all messages that
+         have a header line with the specified field-name regardless of
+         the contents.
+
+      KEYWORD <flag>
+         Messages with the specified keyword flag set.
+
+      LARGER <n>
+         Messages with an [RFC-2822] size larger than the specified
+         number of octets.
+
+      NEW
+         Messages that have the \Recent flag set but not the \Seen flag.
+         This is functionally equivalent to "(RECENT UNSEEN)".
+
+      NOT <search-key>
+         Messages that do not match the specified search key.
+
+      OLD
+         Messages that do not have the \Recent flag set.  This is
+         functionally equivalent to "NOT RECENT" (as opposed to "NOT
+         NEW").
+
+      ON <date>
+         Messages whose internal date (disregarding time and timezone)
+         is within the specified date.
+
+      OR <search-key1> <search-key2>
+         Messages that match either search key.
+
+      RECENT
+         Messages that have the \Recent flag set.
+
+      SEEN
+         Messages that have the \Seen flag set.
+
+      SENTBEFORE <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is earlier than the specified date.
+
+      SENTON <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is within the specified date.
+
+      SENTSINCE <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is within or later than the specified date.
+
+      SINCE <date>
+         Messages whose internal date (disregarding time and timezone)
+         is within or later than the specified date.
+
+      SMALLER <n>
+         Messages with an [RFC-2822] size smaller than the specified
+         number of octets.
+
+      SUBJECT <string>
+         Messages that contain the specified string in the envelope
+         structure's SUBJECT field.
+
+      TEXT <string>
+         Messages that contain the specified string in the header or
+         body of the message.
+
+      TO <string>
+         Messages that contain the specified string in the envelope
+         structure's TO field.
+
+      UID <sequence set>
+         Messages with unique identifiers corresponding to the specified
+         unique identifier set.  Sequence set ranges are permitted.
+
+      UNANSWERED
+         Messages that do not have the \Answered flag set.
+
+      UNDELETED
+         Messages that do not have the \Deleted flag set.
+
+      UNDRAFT
+         Messages that do not have the \Draft flag set.
+
+      UNFLAGGED
+         Messages that do not have the \Flagged flag set.
+
+      UNKEYWORD <flag>
+         Messages that do not have the specified keyword flag set.
+
+      UNSEEN
+         Messages that do not have the \Seen flag set. 
 
 =======================================================================
 Q. How to convert flags?
@@ -743,6 +906,7 @@ output line :
 
 From folders list : [INBOX] [public.dreams] [etc.]
 
+
 ======================================================================
 Q. I want to exclude only INBOX
 
@@ -753,6 +917,18 @@ R. Use:
 A good way to see what will be done is to first use:
 
   imapsync ...  --exclude "^INBOX$" --justfolders --nofoldersizes --dry
+
+======================================================================
+Q. I want to exclude folders matching SPAM no matter the case, 
+   aka how to be case insensitive
+
+R. Use:
+
+  imapsync ... --exclude "(?i)spam" 
+
+A good way to see what will be done is to first use:
+
+  imapsync ... --exclude "(?i)spam" --justfolders --nofoldersizes --dry
 
 
 ======================================================================
@@ -816,7 +992,6 @@ In case you are not aware:
   omitted in our case
 - Use --debugimap when testing initial connectivity, if necessary
 
-
 ======================================================================
 Q. How to migrate from or to Exchange 2007/2010 with an 
    admin/authuser account?
@@ -876,9 +1051,11 @@ R. Use
 ======================================================================
 Q. How to migrate from cyrus with an admin account?
 
-R. Use 
---authuser1 admin_user  ----password1 admin_user_password \
- --user1 foo_user --ssl1
+R. Use:
+ 
+ imapsync ... \
+   --authuser1 admin_user  ----password1 admin_user_password \
+   --user1 foo_user --ssl1
 
 In this case, --authmech1 PLAIN will be used by default since it
 is the only way to go for now. So don't use --authmech1 SOMETHING

@@ -20,11 +20,11 @@ Synchronise mailboxes between two imap servers.
 Good at IMAP migration. More than 44 different IMAP server softwares
 supported with success.
 
-$Revision: 1.518 $
+$Revision: 1.525 $
 
 =head1 SYNOPSIS
 
-To synchronise imap account "foo" on "imap.truc.org"
+To synchronize imap account "foo" on "imap.truc.org"
            to  imap account "bar" on "imap.trac.org"
            with foo password "secret1"
            and  bar password "secret2":
@@ -143,16 +143,18 @@ time and restart it later, imapsync works well with bad
 connections.
 
 You can decide to delete the messages from the source mailbox
-after a successful transfer (it is a good feature when migrating).
+after a successful transfer, it can be a good feature when migrating
+live mailboxes since messages will be only one side.
 In that case, use the --delete option. Option --delete implies 
 also option --expunge so all messages marked deleted on host1 
 will be really deleted.
 (you can use --noexpunge to avoid this but I don't see any
-real world scenario for the combinaison --delete --noexpunge).
+good real world scenario for the combinaison --delete --noexpunge).
 
-You can also just synchronize a mailbox A from another mailbox B
-in case you just want to keep a "live" copy of B in A (--delete2
-may help)
+You can also just synchronize a mailbox B from another mailbox A
+in case you just want to keep a "live" copy of A in B. 
+In that case --delete2 can be used, it deletes messages in host2
+folder B that are not in host1 folder A.
 
 imapsync is not adequate for maintaining two active imap accounts 
 in synchronization where the user plays independently on both sides.
@@ -236,10 +238,10 @@ in a Bourne shell:
 
 =head1 LICENSE
 
-imapsync is free, open source but not always gratis software cover by
-the No Limit Public License (NLPL).
-See COPYING file included in the distribution or the web site
-http://imapsync.lamiral.info/COPYING
+imapsync is free, open, public but not always gratis software 
+cover by the NOLIMIT Public License.
+See the LICENSE file included in the distribution or just read this:
+No limit to do anything with this work and this license.
 
 =head1 MAILING-LIST
 
@@ -405,7 +407,7 @@ Success stories reported with the following 48 imap servers
  - Rockliffe Mailsite 5.3.11, 4.5.6
  - Samsung Contact IMAP server 8.5.0
  - Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6
- - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1].
+ - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], SmarterMail Professional 10.2 [host1].
  - Softalk Workgroup Mail 7.6.4 [host1].
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05, 6.3
@@ -443,15 +445,9 @@ Pay special attention to options
 --delete
 --delete2
 --delete2folders
---expunge
---expunge1
---expunge2
---uidexpunge2
 --maxage
 --minage
 --maxsize
---useheader
---fast
 --useuid
 --usecache
 
@@ -488,7 +484,7 @@ Welcome in shell programming !
 
 =head1 Hacking
 
-Feel free to hack imapsync as the NLPL Licence permits it.
+Feel free to hack imapsync as the NOLIMIT license permits it.
 
 =head1 Links
 
@@ -517,7 +513,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.518 2012/12/24 00:27:34 gilles Exp gilles $
+$Id: imapsync,v 1.525 2013/02/05 12:52:10 gilles Exp gilles $
 
 =cut
 
@@ -648,7 +644,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.518 2012/12/24 00:27:34 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.525 2013/02/05 12:52:10 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -746,7 +742,7 @@ $usecache = 1 if ( $useuid and ( ! defined( $usecache ) ) ) ;
 $cacheaftercopy = 1 if ( $usecache and ( ! defined( $cacheaftercopy ) ) ) ;
 
 $checkselectable = defined( $checkselectable ) ? $checkselectable : 1 ;
-$checkmessageexists = defined( $checkmessageexists ) ? $checkmessageexists : 1 ;
+$checkmessageexists = defined( $checkmessageexists ) ? $checkmessageexists : 0 ;
 $expungeaftereach = defined( $expungeaftereach ) ? $expungeaftereach : 1 ;
 $abletosearch = defined( $abletosearch ) ? $abletosearch : 1 ;
 $checkmessageexists = 0 if ( not $abletosearch ) ;
@@ -886,9 +882,11 @@ $authuser2 ||= $user2;
 print "Info: will try to use $authmech1 authentication on host1\n";
 print "Info: will try to use $authmech2 authentication on host2\n";
 
-$syncacls = (defined($syncacls)) ? $syncacls : 0;
-$foldersizes = (defined($foldersizes)) ? $foldersizes : 1;
-$foldersizesatend = (defined($foldersizesatend)) ? $foldersizesatend : 1;
+$syncacls = (defined($syncacls)) ? $syncacls : 0 ;
+$foldersizes = (defined($foldersizes)) ? $foldersizes : 1 ;
+$foldersizesatend = (defined($foldersizesatend)) ? $foldersizesatend : $foldersizes ;
+
+
 
 $fastio1 = (defined($fastio1)) ? $fastio1 : 0;
 $fastio2 = (defined($fastio2)) ? $fastio2 : 0;
@@ -968,7 +966,9 @@ exit_clean(0) if ($justlogin);
 my (
 @h1_folders_all, %h1_folders_all, @h1_folders_wanted, %requested_folder, 
 %h1_subscribed_folder, %h2_subscribed_folder, 
-@h2_folders_all, %h2_folders_all, @h2_folders_from_1_wanted,  %h2_folders_from_1_wanted, 
+@h2_folders_all, %h2_folders_all, 
+@h2_folders_from_1_wanted, %h2_folders_from_1_wanted, 
+%h2_folders_from_1_several, 
 @h2_folders_from_1_all, %h2_folders_from_1_all,
 );
 
@@ -1073,11 +1073,14 @@ print "Host2 separator and prefix: [$h2_sep][$h2_prefix]\n";
 
 #exit ;
 
-foreach my $h1_fold (@h1_folders_wanted) {
-	my $h2_fold;
-	$h2_fold = imap2_folder_name($h1_fold);
-	$h2_folders_from_1_wanted{$h2_fold}++;
-}
+foreach my $h1_fold ( @h1_folders_wanted ) {
+	my $h2_fold ;
+	$h2_fold = imap2_folder_name( $h1_fold ) ;
+	$h2_folders_from_1_wanted{ $h2_fold }++ ;
+        if ( 1 < $h2_folders_from_1_wanted{ $h2_fold } ) {
+        	$h2_folders_from_1_several{ $h2_fold }++ ;
+        }
+} 
 @h2_folders_from_1_wanted = sort keys(%h2_folders_from_1_wanted);
 
 foreach my $h1_fold (@h1_folders_all) {
@@ -1120,7 +1123,11 @@ print "++++ Looping on each folder\n";
 
 my $begin_transfer_time = time ;
 
-FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
+
+my %uid_candidate_for_deletion ;
+my %uid_candidate_no_deletion ;
+
+FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 
         last FOLDER if $imap1->IsUnconnected();
         last FOLDER if $imap2->IsUnconnected();
@@ -1318,7 +1325,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         my $h2_msgs_duplicate_nb = scalar( @h2_msgs_duplicate ) ;
         $h2{ $h2_fold }{ 'duplicates_nb' } = $h2_msgs_duplicate_nb ;
         
-        print "Host2 selected: $h2_msgs_nb,  duplicates: $h2_msgs_duplicate_nb\n" 
+        print "Host2 folder $h2_fold selected: $h2_msgs_nb messages,  duplicates: $h2_msgs_duplicate_nb\n" 
         	if ( $debug or $delete2duplicates or $h2_msgs_duplicate_nb ) ;
 	$debug and print "Host2 whole time parsing headers took ", timenext(), " s\n";
 
@@ -1348,7 +1355,7 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         
         #next FOLDER ;
         
-	if( $delete2duplicates ) {
+	if( $delete2duplicates and not exists( $h2_folders_from_1_several{ $h2_fold } ) ) {
 		my @h2_expunge ;
 
 		foreach my $h2_msg ( @h2_msgs_duplicate ) {
@@ -1370,7 +1377,8 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         	}
 	}
         
-	if($delete2) {
+	if( $delete2 and not exists( $h2_folders_from_1_several{ $h2_fold } ) ) {
+        	# No host1 folders f1a f1b ... going all to same f2 (via --regextrans2)
 		my @h2_expunge;
 		foreach my $m_id (@h2_hash_keys_sorted_by_uid) {
 			#print "$m_id ";
@@ -1406,6 +1414,66 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
         	}
 	}
 
+	if( $delete2 and exists( $h2_folders_from_1_several{ $h2_fold } ) ) {
+        	print "Host2 folder $h2_fold $h2_folders_from_1_several{ $h2_fold } folders left to sync there\n" ;
+		my @h2_expunge;
+		foreach my $m_id ( @h2_hash_keys_sorted_by_uid ) {
+                	my $h2_msg  = $h2_hash{ $m_id }{ 'm' } ;
+			unless ( exists( $h1_hash{ $m_id } ) ) {
+				my $h2_flags  = $h2_hash{ $m_id }{ 'F' } || "" ;
+				my $isdel  = $h2_flags =~ /\B\\Deleted\b/ ? 1 : 0 ;
+				unless ( $isdel ) {
+                                	$debug and print "msg $h2_fold/$h2_msg candidate for deletion on host2 [$m_id]\n" ;
+					$uid_candidate_for_deletion{ $h2_fold }{ $h2_msg }++ ;
+				}
+			}else{
+                        	$debug and print "msg $h2_fold/$h2_msg will cancel deletion on host2 [$m_id]\n" ;
+                        	$uid_candidate_no_deletion{ $h2_fold }{ $h2_msg }++ ;
+                        }
+		}
+		foreach my $h2_msg ( @h2_msgs_delete2_not_in_cache ) {
+			print "msg $h2_fold/$h2_msg candidate for deletion [not in cache] on host2\n";
+                        $uid_candidate_for_deletion{ $h2_fold }{ $h2_msg }++ ;
+		}
+                
+		foreach my $h2_msg ( @h2_msgs_in_cache ) {
+			print "msg $h2_fold/$h2_msg will cancel deletion [in cache] on host2\n";
+                        $uid_candidate_no_deletion{ $h2_fold }{ $h2_msg }++ ;
+		}
+                
+                
+                if ( 0 == $h2_folders_from_1_several{ $h2_fold } ) {
+                	# last host1 folder going to $h2_fold
+                        print "Last host1 folder going to $h2_fold\n" ;
+                        foreach my $h2_msg ( keys %{ $uid_candidate_for_deletion{ $h2_fold } } ) {
+                        	$debug and print "msg $h2_fold/$h2_msg candidate for deletion on host2\n" ;
+                                if ( exists( $uid_candidate_no_deletion{ $h2_fold }{ $h2_msg } ) ) {
+                                	$debug and print "msg $h2_fold/$h2_msg canceled deletion on host2\n" ;
+                                }else{
+                                	print "msg $h2_fold/$h2_msg marked \\Deleted on host2 $dry_message\n";
+                                        push( @h2_expunge, $h2_msg ) if $uidexpunge2 ;
+                                        unless ( $dry ) {
+                                        	$imap2->delete_message( $h2_msg ) ;
+                                        	$h2_nb_msg_deleted += 1 ;
+                                        }
+                                }
+                        }
+                }
+                
+		my $cnt = scalar @h2_expunge ;
+		if( @h2_expunge ) {
+			print "uidexpunge $cnt message(s) $dry_message\n" ;
+			$imap2->uidexpunge( \@h2_expunge ) if ! $dry ;
+		}
+        	if ( $expunge2 ) {
+                	print "Expunging host2 folder $h2_fold $dry_message\n" ;
+                	$imap2->expunge(  ) if ! $dry ;
+        	}
+
+                $h2_folders_from_1_several{ $h2_fold }-- ;                
+	}
+
+
 	my $h2_uidnext = $imap2->uidnext( $h2_fold ) ;
         $debug and print "Host2 uidnext: $h2_uidnext\n" ;
 	$h2_uidguess = $h2_uidnext ;
@@ -1419,7 +1487,11 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 			# copy
                         last FOLDER if $imap1->IsUnconnected();
                         last FOLDER if $imap2->IsUnconnected();
-			copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+			my $h2_msg = copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+                        if( $delete2 and exists( $h2_folders_from_1_several{ $h2_fold } ) and $h2_msg ) {
+                        	print "msg $h2_fold/$h2_msg will cancel deletion [fresh copy] on host2\n" ;
+	                        $uid_candidate_no_deletion{ $h2_fold }{ $h2_msg }++ ;
+                        }
                         last FOLDER if total_bytes_max_reached(  ) ;
 			next MESS;
 		}
@@ -1478,7 +1550,11 @@ FOLDER: foreach my $h1_fold (@h1_folders_wanted) {
 		$debug and print "Copy by uid $h1_fold/$h1_msg\n" ;
                 last FOLDER if $imap1->IsUnconnected();
                 last FOLDER if $imap2->IsUnconnected();
-		copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+		my $h2_msg = copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+                if( $delete2 and exists( $h2_folders_from_1_several{ $h2_fold } ) and $h2_msg ) {
+                	print "msg $h2_fold/$h2_msg will cancel deletion [fresh copy] on host2\n" ;
+	                $uid_candidate_no_deletion{ $h2_fold }{ $h2_msg }++ ;
+                }
 		last FOLDER if total_bytes_max_reached(  ) ;
 	}
 	
@@ -1990,8 +2066,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.518 $ ',
-		  '$Date: 2012/12/24 00:27:34 $ ',
+		  '$Revision: 1.525 $ ',
+		  '$Date: 2013/02/05 12:52:10 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2975,12 +3051,14 @@ sub copy_message {
 				}
 			}
 			#print "PRESS ENTER" and my $a = <> ;
+                        return( $new_id ) ;
 		}
 	}
 	else{
 		$nb_msg_skipped_dry_mode += 1;
                 $h1_nb_msg_processed +=1 ;
 	}
+        return(  ) ;
 }
 
 sub eta {
@@ -3656,14 +3734,7 @@ sub stats {
 }
 
 sub thank_author {
-
 	return("Homepage: http://imapsync.lamiral.info/\n");
-	
-        # used to be
-	return(join("", "Happy with this free, open and gratis NLPL software?\n",
-	  "Encourage the author (Gilles LAMIRAL) by giving him a book\n",
-          "or just money via paypal:\n",
-	  "http://imapsync.lamiral.info/\n"));
 }
 
 sub get_options {
@@ -3986,7 +4057,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.518 2012/12/24 00:27:34 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.525 2013/02/05 12:52:10 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -4100,69 +4171,84 @@ usage: $0 [options]
 
 Several options are mandatory. 
 
---host1       <string> : "from" imap server. Mandatory.
---port1       <int>    : port to connect on host1. Default is 143.
---user1       <string> : user to login on host1. Mandatory.
---domain1     <string> : domain on host1 (NTLM authentication).
---authuser1   <string> : user to auth with on host1 (admin user). 
+--dry                  : Makes imapsync doing nothing, just print what would 
+                         be done without --dry.
+
+--host1       <string> : Source or "from" imap server. Mandatory.
+--port1       <int>    : Port to connect on host1. Default is 143.
+--user1       <string> : User to login on host1. Mandatory.
+--showpasswords        : Shows passwords on output instead of "MASKED".
+                         Useful to restart a complete run by just reading a log.
+--password1   <string> : Password for the user1.
+--host2       <string> : "destination" imap server. Mandatory.
+--port2       <int>    : Port to connect on host2. Default is 143.
+--user2       <string> : User to login on host2. Mandatory.
+--password2   <string> : Password for the user2.
+
+--passfile1   <string> : Password file for the user1. It must contain the 
+                         password on the first line. This option avoids to show 
+                         the password on the command line like --password1 does.
+--passfile2   <string> : Password file for the user2. Contains the password.
+--domain1     <string> : Domain on host1 (NTLM authentication).
+--domain2     <string> : Domain on host2 (NTLM authentication).
+--authuser1   <string> : User to auth with on host1 (admin user). 
                          Avoid using --authmech1 SOMETHING with --authuser1.
+--authuser2   <string> : User to auth with on host2 (admin user).
 --proxyauth1           : Use proxyauth on host1. Requires --authuser1.
                          Required by Sun/iPlanet/Netscape IMAP servers to
-                         be able to use an administrative user
---password1   <string> : password for the user1. Dangerous, use --passfile1
---showpasswords        : shows passwords on output instead of "MASKED".
-                         Useful to restart a complete run by just reading a log.
---passfile1   <string> : password file for the user1. Contains the password.
---host2       <string> : "destination" imap server. Mandatory.
---port2       <int>    : port to connect on host2. Default is 143.
---user2       <string> : user to login on host2. Mandatory.
---domain2     <string> : domain on host2 (NTLM authentication).
---authuser2   <string> : user to auth with on host2 (admin user).
+                         be able to use an administrative user.
 --proxyauth2           : Use proxyauth on host2. Requires --authuser2.
                          Required by Sun/iPlanet/Netscape IMAP servers to
                          be able to use an administrative user
---password2   <string> : password for the user2. Dangerous, use --passfile2
---passfile2   <string> : password file for the user2. Contains the password.
+
 --authmd51             : Use MD5 authentification for host1.
 --authmd52             : Use MD5 authentification for host2.
---authmech1   <string> : auth mechanism to use with host1:
+--authmech1   <string> : Auth mechanism to use with host1:
                          PLAIN, LOGIN, CRAM-MD5 etc. Use UPPERCASE.
---authmech2   <string> : auth mechanism to use with host2. See --authmech1
---ssl1                 : use an SSL connection on host1.
---ssl2                 : use an SSL connection on host2.
---tls1                 : use an TLS connection on host1.
---tls2                 : use an TLS connection on host2.
---folder      <string> : sync this folder.
+--authmech2   <string> : Auth mechanism to use with host2. See --authmech1
+--ssl1                 : Use an SSL connection on host1.
+--ssl2                 : Use an SSL connection on host2.
+--tls1                 : Use an TLS connection on host1.
+--tls2                 : Use an TLS connection on host2.
+
+--folder      <string> : Sync this folder.
 --folder      <string> : and this one, etc.
---folderrec   <string> : sync this folder recursively.
+--folderrec   <string> : Sync this folder recursively.
 --folderrec   <string> : and this one, etc.
---include     <regex>  : sync folders matching this regular expression
+--include     <regex>  : Sync folders matching this regular expression
 --include     <regex>  : or this one, etc.
                          in case both --include --exclude options are
                          use, include is done before.
---exclude     <regex>  : skips folders matching this regular expression
+--exclude     <regex>  : Skips folders matching this regular expression
                          Several folders to avoid:
 			  --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
 --exclude     <regex>  : or this one, etc.
---tmpdir      <string> : where to store temporary files and subdirectories.
-                         Will be created if it doesn't exist.
-			 Default is system specific and should be ok.
---pidfile     <string> : the file where imapsync pid is written.
---pidfilelocking       : Abort if pidfile already exists. Usefull to avoid 
-                         concurrent transfers on the same mailbox.
---prefix1     <string> : remove prefix to all destination folders 
-                         (usually INBOX. for cyrus imap servers)
-                         you can use --prefix1 if your source imap server 
-                         does not have NAMESPACE capability.
---prefix2     <string> : add prefix to all destination folders 
-                         (usually INBOX. for cyrus imap servers)
-                         use --prefix2 if your target imap server does not
-                         have NAMESPACE capability.
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
 --regextrans2 <regex>  : and this one. etc.
                          When you play with the --regextrans2 option, first
                          add also the safe options --dry --justfolders
-                         Then, when happy, remove --dry, remove --justfolders
+                         Then, when happy, remove --dry, remove --justfolders.
+                         Have in mind that --regextrans2 is applied after prefix 
+                         and separator inversion.
+
+--tmpdir      <string> : Where to store temporary files and subdirectories.
+                         Will be created if it doesn't exist.
+			 Default is system specific, Unix is /tmp but
+                         it's often small and deleted at reboot.
+                         --tmpdir /var/tmp should be better.
+--pidfile     <string> : The file where imapsync pid is written.
+--pidfilelocking       : Abort if pidfile already exists. Usefull to avoid 
+                         concurrent transfers on the same mailbox.
+
+--prefix1     <string> : Remove prefix to all destination folders 
+                         (usually INBOX. or INBOX/ or an empty string "")
+                         you have to use --prefix1 if host1 imap server
+                         does not have NAMESPACE capability, all other
+                         cases are bad.
+--prefix2     <string> : Add prefix to all host2 folders. See --prefix1
+--sep1        <string> : Host1 separator in case NAMESPACE is not supported.
+--sep2        <string> : Host2 separator in case NAMESPACE is not supported.
+
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
                          Example: 's/\\000/ /g' # to replace null by space.
 --regexmess   <regex>  : and this one.
@@ -4170,23 +4256,22 @@ Several options are mandatory.
 --regexflag   <regex>  : Apply the whole regex to each flags list.
                          Example: 's/\"Junk"//g' # to remove "Junk" flag.
 --regexflag   <regex>  : and this one, etc.
---sep1        <string> : host1 separator in case namespace is not supported.
---sep2        <string> : idem for host2.
---delete               : Deletes messages on host1 server after
-                         a successful transfer. Useful in case you
-                         want to migrate from one server to another one.
-			 With imapsync, --delete tags messages as deleted and 
-                         they are really deleted unless --noexpunge is used.
---delete2              : delete messages in host2 that are not in
+
+--delete               : Deletes messages on host1 server after a successful 
+                         transfer. Option --delete has the following behavior: 
+                         it marks messages as deleted with the IMAP flag 
+                         \\Deleted, then messages are really deleted with an 
+                         EXPUNGE IMAP command.
+--delete2              : Delete messages in host2 that are not in
                          host1 server. Useful for backup or pre-sync.
---delete2duplicates    : delete messages in host2 that are duplicates.
+--delete2duplicates    : Delete messages in host2 that are duplicates.
                          Works only without --useuid since duplicates are 
                          detected with header part of each message.
 --delete2folders       : Delete folders in host2 that are not in host1 server. 
                          For safety, first try it like this (it is safe):
 			 --delete2folders --dry --justfolders --nofoldersizes
---delete2foldersonly   <regex>: delete only folders matching regex.
---delete2foldersbutnot <regex>: do not delete folders matching regex.
+--delete2foldersonly   <regex>: Deleted only folders matching regex.
+--delete2foldersbutnot <regex>: Do not delete folders matching regex.
                          Example: --delete2foldersbutnot "/Tasks|Contacts|Foo/"
 --noexpunge            : Do not expunge messages on host1.
                          Expunge really deletes messages marked deleted.
@@ -4198,17 +4283,19 @@ Several options are mandatory.
 --expunge2             : Expunge messages on host2 after messages transfer.
 --uidexpunge2          : uidexpunge messages on the host2 account
                          that are not on the host1 account, requires --delete2
---syncinternaldates    : sets the internal dates on host2 same as host1.
+
+--syncinternaldates    : Sets the internal dates on host2 same as host1.
                          Turned on by default. Internal date is the date
 			 a message arrived on a host (mtime).
---idatefromheader      : sets the internal dates on host2 same as the 
+--idatefromheader      : Sets the internal dates on host2 same as the 
                          "Date:" headers.
---maxsize     <int>    : skip messages larger  (or equal) than <int> bytes
---minsize     <int>    : skip messages smaller (or equal) than <int> bytes
---maxage      <int>    : skip messages older than <int> days.
+
+--maxsize     <int>    : Skip messages larger  (or equal) than <int> bytes
+--minsize     <int>    : Skip messages smaller (or equal) than <int> bytes
+--maxage      <int>    : Skip messages older than <int> days.
                          final stats (skipped) don't count older messages
 			 see also --minage
---minage      <int>    : skip messages newer than <int> days.
+--minage      <int>    : Skip messages newer than <int> days.
                          final stats (skipped) don't count newer messages
                          You can do (+ are the messages selected):
                          past|----maxage+++++++++++++++>now
@@ -4216,47 +4303,55 @@ Several options are mandatory.
                          past|----maxage+++++minage---->now (intersection)
                          past|++++minage-----maxage++++>now (union)
 --search      <string> : Select messages returned by this IMAP SEARCH command.
+
 --exitwhenover   <int> : Stop syncing when total bytes transferred reached.
                          Gmail per day allows 2500000000 down 500000000 upload.
+
 --useheader   <string> : Use this header to compare messages on both sides.
                          Ex: Message-ID or Subject or Date.
 --useheader   <string>   and this one, etc.
---dry                  : do nothing, just print what would be done.
---subscribed           : transfers subscribed folders.
---subscribe            : subscribe to the folders transferred on the 
+
+--subscribed           : Transfers subscribed folders.
+--subscribe            : Subscribe to the folders transferred on the 
                          host2 that are subscribed on host1. On by default.
---subscribe_all        : subscribe to the folders transferred on the 
+--subscribe_all        : Subscribe to the folders transferred on the 
                          host2 even if they are not subscribed on host1.
+
 --nofoldersizes        : Do not calculate the size of each folder in bytes
                          and message counts. Default is to calculate them.
 --nofoldersizesatend   : Do not calculate the size of each folder in bytes
                          and message counts at the end. Default is on.
---justfoldersizes      : exit after printed the folder sizes.
---syncacls             : synchronises acls (Access Control Lists).
---nosyncacls           : does not synchronise acls. This is the default.
+--justfoldersizes      : Exit after having printed the folder sizes.
+
+--syncacls             : Synchronises acls (Access Control Lists).
+--nosyncacls           : Does not synchronize acls. This is the default.
+                         Acls in IMAP are not standardized, be careful.
+
 --usecache             : Use cache to speedup.
 --nousecache           : Do not use cache. Caveat: --useuid --nousecache creates
                          duplicates on multiple runs.
---useuid               : Use uid instead of header as a criterium to sync.
-                         --usecache is then implied unless --nousecache is
-                         used.  
---debug                : debug mode.
---debugcontent         : debug content of the messages transfered.
---debugflags           : debug flags.
---debugimap1           : imap debug mode for host1. imap debug is very verbose.
---debugimap2           : imap debug mode for host2.
---debugimap            : imap debug mode for host1 and host2.
---version              : print software version.
---noreleasecheck       : do not check for new imapsync release (a http request).
---justconnect          : just connect to both servers and print useful
+--useuid               : Use uid instead of header as a criterium to recognize 
+                         messages. Option --usecache is then implied unless 
+                         --nousecache is used.  
+
+--debug                : Debug mode.
+--debugcontent         : Debug content of the messages transfered.
+--debugflags           : Debug flags.
+--debugimap1           : IMAP debug mode for host1. imap debug is very verbose.
+--debugimap2           : IMAP debug mode for host2.
+--debugimap            : IMAP debug mode for host1 and host2.
+
+--version              : Print software version.
+--noreleasecheck       : Do not check for new imapsync release (a http request).
+--justconnect          : Just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
---justlogin            : just login to both host1 and host2 with users 
+--justlogin            : Just login to both host1 and host2 with users 
                          credentials, then exit.
---justfolders          : just do things about folders (ignore messages).
---fast                 : be faster, equivalent to --nofoldersizes
+--justfolders          : Do only things about folders (ignore messages).
+
 --help                 : print this help.
 
-Example: to synchronise imap account "foo" on "imap.truc.org"
+Example: to synchronize imap account "foo" on "imap.truc.org"
                     to  imap account "bar" on "imap.trac.org"
                     with foo password "secret1"
                     and  bar password "secret2"

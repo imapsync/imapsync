@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.113 2012/12/24 02:24:40 gilles Exp gilles $	
+# $Id: Makefile,v 1.114 2013/01/29 00:26:51 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -116,9 +116,9 @@ testv3: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh
 	touch .test_3xx
 
-testv: testv2 testv3
+testv: testv3
 
-test: .test_229 .test_3xx
+test: .test_3xx
 
 tests: test
 
@@ -277,7 +277,7 @@ ksa:
 
 publish: upload_ks ksa ml
 
-PUBLIC_FILES = ./ChangeLog ./COPYING ./CREDITS ./FAQ \
+PUBLIC_FILES = ./ChangeLog ./COPYING ./LICENSE ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL \
 ./VERSION ./VERSION_EXE \
 ./README ./TODO
@@ -318,10 +318,10 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: FAQ COPYING CREDITS W/*.bat examples/*.bat examples/sync_loop_unix.sh index.shtml 
-	rcsdiff index.shtml FAQ COPYING CREDITS W/*.bat examples/*.bat index.shtml 
+upload_index: FAQ LICENSE CREDITS W/*.bat examples/*.bat examples/sync_loop_unix.sh index.shtml 
+	rcsdiff index.shtml FAQ LICENSE CREDITS W/*.bat examples/*.bat index.shtml 
 	validate --verbose index.shtml
-	rsync -avH index.shtml FAQ  COPYING CREDITS root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH index.shtml FAQ COPYING LICENSE CREDITS root@ks.lamiral.info:/var/www/imapsync/
 	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
 	rsync -avH examples/*.bat examples/sync_loop_unix.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 

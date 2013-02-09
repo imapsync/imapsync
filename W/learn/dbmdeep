@@ -1,0 +1,39 @@
+#!/usr/bin/perl 
+
+# $Id: dbfile,v 1.1 2013/01/02 16:33:19 gilles Exp gilles $
+
+use strict ;
+use warnings ;
+
+use DBM::Deep ;
+
+my %hash ;
+
+my $db = DBM::Deep->new(
+    file      => "test_dbmdeep.db",
+    locking   => 0,
+    autoflush => 0
+);
+
+print ( scalar keys %$db, "\n" ) ;
+#exit ;
+
+for my $num ( 0 .. 255 ) {
+       	print "$num\n" ;
+
+	my $key = chr $num ;
+        for my $num2 ( 1 .. 500 ) {
+        	my $keylong = "$num2 $key" . ( $key x 1024 ) ;
+        	my $val_1 = "V$key" ;
+		#print "$keylong\n" ;
+                my $val_2 ;
+
+		$db->{ $keylong } = $val_1 ;
+		$val_2 = $db->{ $keylong } ;
+        
+        	my $cmp = $val_1 cmp $val_2 ;
+        	print " $cmp  $val_1 $val_2\n" if $cmp ;
+		#$db->delete( $keylong ) ;
+        }
+}
+

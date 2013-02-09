@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.209 2012/12/24 02:24:09 gilles Exp gilles $  
+# $Id: tests.sh,v 1.212 2013/01/28 02:52:34 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.32/lib' sh -x tests.sh
@@ -307,6 +307,15 @@ ll_folder() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop --folder INBOX.Trash 
+}
+
+ll_star() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder 'INBOX.backstar\*' --dry --justfolders --debugimap1 --regextrans2 's#\\|\*#_#g'
 }
 
 
@@ -1103,15 +1112,15 @@ ll_include()
                 --include '^INBOX.yop' 
 }
 
-ll_exclude() 
-{
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1 --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --exclude '^INBOX.yop' --justfolders --nofoldersizes
-}
+ll_exclude()
+{ 
+ $CMD_PERL ./imapsync \
+ --host1 $HOST1 --user1 tata \
+ --passfile1 ../../var/pass/secret.tata \
+ --host2 $HOST2 --user2 titi \
+ --passfile2 ../../var/pass/secret.titi \
+ --exclude '^(?i)INBOX.YOP' --justfolders --nofoldersizes
+} 
 
 ll_exclude_2() 
 {
@@ -1247,6 +1256,57 @@ ll_regextrans2_archive_per_month()
 		--search "SENTSINCE 1-$month-$year SENTBEFORE 30-$month-$year" \
                 --regextrans2 "s{.*}{INBOX.Archive.$year.$month_n}" 
 }
+
+
+
+ll_regextrans2_ALLIN() 
+{
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --nofoldersizes \
+       --regextrans2 's/.*/INBOX.ALLIN/' \
+       --folderrec 'INBOX.yop' --delete2
+}
+
+ll_regextrans2_ALLIN_usecache() 
+{
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --regextrans2 's/.*/INBOX.ALLIN/' \
+       --folderrec 'INBOX.yop' --delete2 --usecache --nodelete2duplicates
+}
+
+ll_regextrans2_ALLIN_fake() 
+{
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --regextrans2 's/.*/INBOX.ALLIN/' \
+       --foldersizes \
+       --folderrec 'INBOX.yop' --delete2
+}
+
+
+ll_regextrans2_ALLIN_useuid() 
+{
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --foldersizes \
+       --regextrans2 's/.*/INBOX.ALLIN/' \
+       --folderrec 'INBOX.yop' --delete2 --useuid
+}
+
 
 
 ll_sep2() 
