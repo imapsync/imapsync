@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: paypal_build_invoices,v 1.43 2012/12/15 00:15:56 gilles Exp gilles $
+# $Id: paypal_build_invoices,v 1.45 2013/01/10 03:08:23 gilles Exp gilles $
 
 # usage: sh paypal_build_invoices  /g/var/paypal_invoices/????
 
@@ -32,7 +32,8 @@ cp /home/gilles/public_html/AGIL/factures/000/facture_imapsync-000.tex /g/var/pa
 #/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 1963 /g/paypal/paypal_2012_09_complet.csv
 #/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 2047 /g/paypal/paypal_2012_10_complet.csv
 #/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 2133 /g/paypal/paypal_2012_11_complet.csv
-/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 2224 /g/paypal/paypal_2012_12_complet.csv
+#/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 2224 /g/paypal/paypal_2012_12_complet.csv
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan --write_invoices --first_in 2299 /g/paypal/paypal_2013_01_complet.csv
 
 
 : /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 147 /g/paypal/paypal_2010_11_complet.csv
@@ -59,20 +60,23 @@ cp /home/gilles/public_html/AGIL/factures/000/facture_imapsync-000.tex /g/var/pa
 : /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 1891 /g/paypal/paypal_2012_08_complet.csv
 : /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 1963 /g/paypal/paypal_2012_09_complet.csv
 : /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 2047 /g/paypal/paypal_2012_10_complet.csv
-set -x
 : /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 2133 /g/paypal/paypal_2012_11_complet.csv
 : /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 2224 /g/paypal/paypal_2012_12_complet.csv
+set -x
+: /g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 2299 /g/paypal/paypal_2013_01_complet.csv
 set +x
 
 # La totale
 
-: || /g/public_html/imapsync/W/paypal_reply/paypal_bilan --bnc --debug \
-  --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132' \
+: /g/public_html/imapsync/W/paypal_reply/paypal_bilan --bnc --debug \
+  --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132 2295  2296  2297  2298' \
   /g/paypal/paypal_201?_??_complet.csv
 
-: || /g/public_html/imapsync/W/paypal_reply/paypal_bilan \
-  --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132' \
+set -v
+: /g/public_html/imapsync/W/paypal_reply/paypal_bilan \
+  --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093 1330 1331 1332 1333 1334 1652 1653 2131 2132 2295  2296  2297  2298' \
   /g/paypal/paypal_201?_??_complet.csv
+set +v
 
 echo 'sh paypal_build_invoices  /g/var/paypal_invoices/2???'
 

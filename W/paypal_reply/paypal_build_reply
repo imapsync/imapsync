@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 
-# $Id: paypal_build_reply,v 1.19 2012/04/30 22:57:04 gilles Exp gilles $
+# $Id: paypal_build_reply,v 1.20 2013/02/07 17:00:41 gilles Exp gilles $
 
 use warnings;
 use strict;
@@ -40,10 +40,12 @@ while(<>) {
 while(<>) {
 	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/) {
 		($amount, $name, $email) = ($1, $2, $3);
+                $debug and print "1 ($amount, $name, $email)\n" ;
 		last;
 	}
 	if ( /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*)/) {
 		($amount, $name, $email) = ($1, "", $2);
+                $debug and print "2 ($amount, $name, $email)\n" ;
 		last;
 	}
 }
@@ -55,18 +57,20 @@ my $path_last = firstline( '/g/public_html/imapsync/dist/path_last.txt' ) ;
 
 $url = "http://ks.lamiral.info/imapsync/dist/$path_last/" ;
 
-#print "[$amount] [$name] [$email] [$paypal_line]\n";
+$debug and print "[$amount] [$name] [$email] [$paypal_line]\n";
 
 
 while(<>) {
 	if ( /^Acheteur/ ) {
 		$buyer .= "===== Acheteur =====\n";
+                $debug and print "1 $buyer\n" ;
 		last;
 	}
 	if ( /^Informations sur l'acheteur/ ) {
 		$buyer .= "===== Acheteur =====\n";
 		chomp( $name = <> );
 		$buyer .= "$name\n" ;
+                $debug and print "2 $buyer\n" ;
 		last;
 	}
 }
@@ -75,16 +79,17 @@ while(<>) {
       $buyer .= $_ if ( ! /^-----------------------------------/ );
       last if ( /^-----------------------------------/ );
 }
+$debug and print "3 $buyer\n" ;
 
-
-while(<>) { 
-	next if ( ! /^Description :(.*)/ );
+while(<>) {
+	$debug and print "Search Description [$_]\n" ;
+	next if ( ! /Description..?:(.*)/ );
         $object = $1 ;
 	$description  = "===== Details =====\n";
 	$description .= $_;
 	last;
 }
-
+$debug and print "[$object] [$description]\n";
 
 
 while(<>) { 
@@ -97,7 +102,7 @@ while(<>) {
 
 my $address = 'gilles.lamiral@laposte.net';
 my $address2 = 'gilles@lamiral.info';
-my $rcstag  = '$Id: paypal_build_reply,v 1.19 2012/04/30 22:57:04 gilles Exp gilles $';
+my $rcstag  = '$Id: paypal_build_reply,v 1.20 2013/02/07 17:00:41 gilles Exp gilles $';
 
 my $download_info = "You will find the latest imapsync.exe binary (release $release_exe)
 and the latest imapsync source code (release $release) at the following link:
