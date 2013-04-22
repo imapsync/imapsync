@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.212 2013/01/28 02:52:34 gilles Exp gilles $  
+# $Id: tests.sh,v 1.214 2013/04/17 12:49:41 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.32/lib' sh -x tests.sh
@@ -187,14 +187,14 @@ ll_nofoldersizes()
         --nofoldersizes --folder INBOX
 }
 
-ll_nofoldersizes_nofoldersizesatend() 
+ll_nofoldersizes_foldersizesatend() 
 {
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --nofoldersizes --nofoldersizesatend --folder INBOX
+        --nofoldersizes --foldersizesatend --folder INBOX
 }
 
 
@@ -330,7 +330,7 @@ ll_folder_noexist() {
 }
 
 # Way to check it each time:
-# sh -x tests.sh 3 ll_folder_create ll_delete2folders
+# sh -x tests.sh ll_folder_create ll_delete2folders
 ll_folder_create() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
@@ -862,6 +862,30 @@ ll_maxage_0()
         --maxage 0 --folder INBOX
 }
 
+ll_maxage_10000() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 10000 --folder INBOX
+}
+
+
+ll_maxage_0_debugimap2() 
+{
+        #can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 0 --folder INBOX --debugimap2 --nofoldersizes
+}
+
+
 
 ll_search_ALL() 
 {
@@ -927,18 +951,28 @@ ll_search_SENTBEFORE()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --search 'SENTBEFORE 2-Oct-2011' --folder INBOX --delete2
+        --search 'SENTBEFORE 31-Dec-2013' --folder INBOX --delete2
 }
 
 ll_search_SENTSINCE_and_BEFORE() 
 {
-        can_send && sendtestmessage titi
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010' --folder INBOX --delete2 --dry
+        --search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2013' --folder INBOX --delete2 --dry
+}
+
+ll_search_SENTSINCE_and_BEFORE_search2() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2013' \
+	--search2 'ALL' --folder INBOX --delete2
 }
 
 
@@ -2191,7 +2225,7 @@ gmail_gmail() {
 }
 
 
-gmail_gmail2() {
+gmail_gmail_2() {
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
                 --ssl1 \
@@ -2205,7 +2239,7 @@ gmail_gmail2() {
 		#--dry # --debug --debugimap # --authmech1 LOGIN
 }
 
-gmail_gmail3_delete() {
+gmail_gmail_3_delete() {
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
                 --ssl1 \
@@ -2220,7 +2254,7 @@ gmail_gmail3_delete() {
 
 }
 
-gmail_gmail4_tls() {
+gmail_gmail_4_tls() {
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
                 --ssl1  \
@@ -2232,6 +2266,22 @@ gmail_gmail4_tls() {
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --folder INBOX 
 		#--dry # --debug --debugimap # --authmech1 LOGIN
+}
+
+
+gmail_gmail_5_exclude_only_Gmail() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --nofoldersizes --folderrec "[Gmail]" --exclude "\[Gmail\]$"
+
 }
 
 
@@ -2432,7 +2482,7 @@ ll_usecache_noheader() {
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-         --usecache --nofoldersizes \
+         --usecache \
          --folder INBOX --useheader ''
 }
 
@@ -2468,7 +2518,7 @@ ll_usecache_debugcache_useuid() {
          --folder INBOX --useheader '' --debugcache --useuid
 }
 
-ll_useuid_usecache() 
+ll_useuid_INBOX() 
 {
         if can_send; then
                 sendtestmessage
@@ -2481,7 +2531,7 @@ ll_useuid_usecache()
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX \
-        --delete2 --expunge2 \
+        --delete2 \
         --useuid
         echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
@@ -2507,7 +2557,6 @@ ll_useuid_all()
         --passfile2 ../../var/pass/secret.titi \
         --delete2 --useuid --nofoldersizes
 }
-
 
 
 ll_useuid_nousecache() 
@@ -3136,7 +3185,7 @@ xxxxx_gmail
 gmail_xxxxx
 gmail 
 gmail_gmail 
-gmail_gmail2 
+gmail_gmail_2 
 yahoo_xxxx
 ll_unknow_option 
 ll_ask_password 

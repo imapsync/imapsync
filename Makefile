@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.114 2013/01/29 00:26:51 gilles Exp gilles $	
+# $Id: Makefile,v 1.116 2013/04/18 01:24:25 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -11,8 +11,6 @@ usage:
 	@echo "make testf   # run tests"
 	@echo "make testv   # run tests verbosely"
 	@echo "make test_quick # few tests verbosely"
-	@echo "make test3xx # run tests with (last) Mail-IMAPClient-3.xy"
-	@echo "make test229 # run tests with Mail-IMAPClient-2.2.9"
 	@echo "make tests_win32 # run tests on win32"
 	@echo "make tests_win32_dev # run test2.bat on win32"
 	@echo "make all     "
@@ -31,7 +29,6 @@ VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version)
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
-IMAPClient_2xx=./W/Mail-IMAPClient-2.2.9
 IMAPClient_3xx=./W/Mail-IMAPClient-3.32/lib
 IMAPClient=$(IMAPClient_3xx)
 
@@ -61,7 +58,7 @@ VERSION: imapsync
 clean: clean_tilde clean_man
 
 clean_test:
-	rm -f .test_3xx .test_229
+	rm -f .test_3xx
 
 clean_tilde:
 	rm -f *~
@@ -98,19 +95,12 @@ cidone:
 ###############
 
 
-.PHONY: test tests testp testf test3xx testv2 testv3
+.PHONY: test tests testp testf test3xx testv3
 
-test_quick : test_quick_3xx test_quick_229 
-
-test_quick_229: imapsync tests.sh
-	CMD_PERL='perl -I./$(IMAPClient_2xx)' /usr/bin/time sh -x tests.sh locallocal
+test_quick : test_quick_3xx 
 
 test_quick_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh -x tests.sh locallocal
-
-testv2: imapsync tests.sh
-	CMD_PERL='perl -I./$(IMAPClient_2xx)' /usr/bin/time sh tests.sh
-	touch .test_229
 
 testv3: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh
@@ -121,14 +111,6 @@ testv: testv3
 test: .test_3xx
 
 tests: test
-
-test3xx: .test_3xx
-
-test229: .test_229
-
-.test_229: imapsync tests.sh
-	CMD_PERL='perl -I./$(IMAPClient_2xx)' /usr/bin/time sh tests.sh 1>/dev/null
-	touch .test_229
 
 .test_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh 1>/dev/null
@@ -223,7 +205,7 @@ tarball: .tarball
 	cd examples && rcsdiff RCS/*
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
-	rsync -aCv --delete --omit-dir-times --exclude dist/ --exclude imapsync.exe ./ ../prepa_dist/$(DIST_NAME)/
+	rsync -aCvH --delete --omit-dir-times --exclude dist/ --exclude imapsync.exe ./ ../prepa_dist/$(DIST_NAME)/
 	#rsync -av ./imapsync.exe ../prepa_dist/$(DIST_NAME)/
 	cd ../prepa_dist &&  (tar czfv $(DIST_FILE) $(DIST_NAME) || tar czfv  $(DIST_FILE) $(DIST_NAME))
 	#ln -f ../prepa_dist/$(DIST_FILE) dist/
@@ -277,7 +259,7 @@ ksa:
 
 publish: upload_ks ksa ml
 
-PUBLIC_FILES = ./ChangeLog ./COPYING ./LICENSE ./CREDITS ./FAQ \
+PUBLIC_FILES = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL \
 ./VERSION ./VERSION_EXE \
 ./README ./TODO
@@ -321,7 +303,7 @@ upload_lfo:
 upload_index: FAQ LICENSE CREDITS W/*.bat examples/*.bat examples/sync_loop_unix.sh index.shtml 
 	rcsdiff index.shtml FAQ LICENSE CREDITS W/*.bat examples/*.bat index.shtml 
 	validate --verbose index.shtml
-	rsync -avH index.shtml FAQ COPYING LICENSE CREDITS root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH index.shtml FAQ NOLIMIT LICENSE CREDITS root@ks.lamiral.info:/var/www/imapsync/
 	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
 	rsync -avH examples/*.bat examples/sync_loop_unix.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 
