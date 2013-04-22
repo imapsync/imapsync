@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.62 2012/12/06 18:45:02 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.66 2013/03/26 19:50:20 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.62 2012/12/06 18:45:02 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.66 2013/03/26 19:50:20 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -26,6 +26,7 @@ my $total_TVA_EUR      = 0 ;
 
 my $total_HT_EUR_sup   = 0 ;
 my $total_TVA_EUR_sup  = 0 ;
+my $total_HT_EUR_sup_exo = 0 ;
 
 my $total_eur_received = 0 ;
 my $total_eur_invoice  = 0 ;
@@ -86,10 +87,9 @@ if ( $tests ) {
 
 
 my @files = @ARGV ;
-my %action_of_invoice ;
+my %action_invoice ;
 
 my %invoice_paypal ;
-#$invoice_paypal{ $first_invoice } = 1 ;
 
 my @invoices_wanted = split( /\s+/, $invoices ) if $invoices ;
 
@@ -99,33 +99,23 @@ my %avoid_numbers ;
 
 #print "@invoices\n" ;
 
+my @actions ;
+
 foreach my $file ( @files ) {
 
-	my @actions = parse_file( $file ) ;
-	
-	foreach my $action (@actions) {
-		my %action = %$action ;
-		#print $action->{ Nom }, "\n" ;
-		my( $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat,
-		$Devise, $Montant, $Numero_davis_de_reception, $Solde, 
-		$Pays, $Nom_Option_1, $Valeur_Option_1, $Hors_taxe, $Titre_de_l_objet, $Nom_Option_2, $Option_2_Valeur )
-		= @action{ ( 'Date', 'Heure', 'Fuseau horaire', 'Nom', 'Type', 'Etat',
-		'Devise', 'Montant', "Numéro d'avis de réception", 'Solde',
-		'Pays', 'Nom Option 1', 'Valeur Option 1', 'Hors taxe', "Titre de l'objet", 'Nom Option 2', 'Option 2 Valeur') } ;
-		#print "$Nom\n" ;
-                ( $Etat )      = @action{ ( 'Etat' ) }      || @action{ ( 'État' ) } ;
-                ( $Hors_taxe ) = @action{ ( 'Hors taxe' ) } || @action{ ( 'Avant commission' ) } ;
-		my $invoice = 'NONE' ;
-		$Montant = $action->{ Net } if not defined $Montant;
-		compute_line($action, $invoice, $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat, 
-		$Devise, $Montant, $Numero_davis_de_reception, $Solde,
-		$Pays, $Nom_Option_1, $Valeur_Option_1, $Hors_taxe, $Titre_de_l_objet ) ;
-		
-		# index by invoice number
-		$action_of_invoice{ $action->{ 'invoice' } } = $action ;
-	}
-	delete $action_of_invoice{ 'NONE' } ;
+	my @actions_file = parse_file( $file ) ;
+	push( @actions, @actions_file ) ;
 }
+
+foreach my $action (@actions) {
+        # compute_line() adds $action->{ 'invoice' } if needed
+	compute_line( $action ) ;
+	
+	# index by invoice number
+	$action_invoice{ $action->{ 'invoice' } } = $action ;
+}
+delete $action_invoice{ 'NONE' } ;
+
 
 my $last_invoice ;
 my @invoice_paypal = sort { $a <=> $b } keys %invoice_paypal ;
@@ -141,7 +131,7 @@ my %invoice_not_sent ;
 
 foreach my $invoice ( @invoices_wanted ) {
 
-	my $action = $action_of_invoice{ $invoice } ;
+	my $action = $action_invoice{ $invoice } ;
         next if ! $action ;
 	my $email_address = $action->{ "De l'adresse email" } ;
 	
@@ -186,6 +176,7 @@ $total_TVA_EUR    = sprintf('%2.2f', $total_TVA_EUR) ;
 
 $total_HT_EUR_sup    = sprintf('%2.2f', $total_HT_EUR_sup) ;
 $total_TVA_EUR_sup   = sprintf('%2.2f', $total_TVA_EUR_sup) ;
+$total_HT_EUR_sup_exo   = sprintf('%2.2f', $total_HT_EUR_sup_exo) ;
 
 $total_eur    = sprintf('%2.2f', $total_eur) ;
 
@@ -195,6 +186,7 @@ print "EUR total HT assuj    $total_HT_EUR_ass\n" ;
 print "EUR total TVA         $total_TVA_EUR\n" ;
 print "EUR total HT  sup     $total_HT_EUR_sup\n" ;
 print "EUR total TVA sup     $total_TVA_EUR_sup\n" ;
+print "EUR total HT  sup exo $total_HT_EUR_sup_exo\n" ;
 print "Nb invoice            $nb_invoice ( from $first_invoice_paypal to $last_invoice )\n" ;
 print "Nb invoice canceled   ($nb_invoice_canceled) @invoice_canceled\n" ;
 print "Nb invoice suspended  ($nb_invoice_suspended) @invoice_suspended\n" ;
@@ -202,9 +194,9 @@ print "Nb invoice refund     ($nb_invoice_refund) @invoice_refund\n" ;
 print "Nb invoice sent       $nb_invoice_sent\n" ;
 print "Have to send invoices @invoice_not_sent\n" if ( @invoice_not_sent ) ;
 
-my $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup ;
+my $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo ;
 $total_eur2    = sprintf('%2.2f', $total_eur2) ;
-print "$total_eur != $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup\n" 
+print "$total_eur != $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo\n" 
 if ( $total_eur !=  $total_eur2 ) ;
 
 sub parse_one_line_io {
@@ -370,21 +362,45 @@ sub tests_next_invoice {
 }
 
 
+sub tests_exportbnc {
+	ok( 1 == 1, '1 == 1' ) ;
+
+}
+
 sub tests {
         tests_next_invoice(  ) ;
         #tests_half(  ) ;
         tests_cut(  ) ;
         tests_invoice_00000(  ) ;
+        tests_exportbnc(  ) ;
 }
 
 sub compute_line {
-        my( $action, $invoice, $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat,
-	$Devise, $Montant, $Numero_davis_de_reception, $Solde,
-	$Pays, $Nom_Option_1, $Valeur_Option_1, $Hors_taxe_paypal, $Titre_de_l_objet ) = @_ ;
+
+	my $action = shift ;
+	my %action = %$action ;
+
+	my( $Date, $Heure, $Fuseau_horaire, $Nom, $Type, $Etat,
+	$Devise, $Montant, $Numero_davis_de_reception, $Solde, 
+	$Pays, $Nom_Option_1, $Valeur_Option_1, $Hors_taxe_paypal, $Titre_de_l_objet, $Nom_Option_2, $Option_2_Valeur,
+        $Impact_sur_le_solde )
+	= @action{ ( 'Date', 'Heure', 'Fuseau horaire', 'Nom', 'Type', 'Etat',
+	'Devise', 'Montant', "Numéro d'avis de réception", 'Solde',
+	'Pays', 'Nom Option 1', 'Valeur Option 1', 'Hors taxe', "Titre de l'objet", 'Nom Option 2', 'Option 2 Valeur',
+        'Impact sur le solde') } ;
+	#print "[$Option_2_Valeur] [$Impact_sur_le_solde]\n" ;
+        #next;
+        ( $Etat )             = @action{ ( 'Etat' ) }      || @action{ ( 'État' ) } ;
+        ( $Hors_taxe_paypal ) = @action{ ( 'Hors taxe' ) } || @action{ ( 'Avant commission' ) } ;
+        $Impact_sur_le_solde ||= '' ;
+        
+	my $invoice = 'NONE' ;
+	$Montant = $action->{ 'Net' } if not defined $Montant;
+
 	
-	$debug and print( "-" x 60, "\n",
+	$debug and print( "#" x 78, "\n",
         "[$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] ", 
-        "[$Devise] [$Hors_taxe_paypal] [$Montant] [$Numero_davis_de_reception] [$Solde]\n",
+        "[$Devise] [$Hors_taxe_paypal] [$Montant] [$Numero_davis_de_reception] [$Solde] [$Impact_sur_le_solde] ",
 	"[$Pays] [$Nom_Option_1] [$Valeur_Option_1] [$Titre_de_l_objet]\n" ) ;
 
 	$Montant =~ s/[^0-9-,.]//g ;
@@ -394,13 +410,13 @@ sub compute_line {
 	
 	my $MontantEUR;
 	my( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR ) ;
-        my( $montant_HT_EUR_sup, $montant_TVA_EUR_sup ) ;
+        my( $montant_HT_EUR_sup, $montant_TVA_EUR_sup, $montant_HT_EUR_sup_exo ) ;
         
 	if ( $bnc ) {
 		$MontantEUR = $Montant ;
 		$MontantEUR = sprintf( "%.4f", $Montant/$usdeur ) if ($Devise eq 'USD') ;
 		print( "\n", "=" x 60, "\n" ) ;
-		print( "[$Date] [$Nom] [$Type] [$Etat] [$Devise] [$Hors_taxe_paypal] [$Montant] [EUR $MontantEUR]\n", 
+		print( "[$Date] [$Nom] [$Type] [$Etat] [$Devise] [$Hors_taxe_paypal] [$Montant] [EUR $MontantEUR] [$Impact_sur_le_solde]\n", 
 		"[$Pays] [$Nom_Option_1] [$Valeur_Option_1] [$Titre_de_l_objet]\n" ) ;
 	}
 	
@@ -415,15 +431,16 @@ sub compute_line {
 		$Montant2_usd = $Hors_taxe_paypal ;
 		$total_usd_received += $Montant ;
 		$total_usd_invoice  += $Montant2_usd ;
-		( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR, $montant_HT_EUR_sup, $montant_TVA_EUR_sup ) 
-                  = tva_line( $Devise, $Montant2_usd, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet ) ;
+		( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR, 
+                  $montant_HT_EUR_sup, $montant_TVA_EUR_sup, $montant_HT_EUR_sup_exo ) 
+                  = tva_line( $Devise, $Montant2_usd, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet, $Date ) ;
 		$total_HT_EUR_exo += $montant_HT_EUR_exo ;
 		$total_HT_EUR_ass += $montant_HT_EUR_ass ;
 		$total_TVA_EUR    += $montant_TVA_EUR ;
-		#$invoice = $first_invoice + $nb_invoice ;
+		
                 $invoice = next_invoice(  ) ;
 		$nb_invoice++ ;
-		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
+		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde] [$Impact_sur_le_solde]\n" ) ;
 		
 	}
 	
@@ -438,19 +455,19 @@ sub compute_line {
 		$Montant2_eur = $Hors_taxe_paypal ;
 		$total_eur_received += $Montant ;
 		$total_eur_invoice  += $Montant2_eur ;
-		( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR, $montant_HT_EUR_sup, $montant_TVA_EUR_sup ) 
-                  = tva_line( $Devise, $Montant2_eur, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet ) ;
-		$total_HT_EUR_exo += $montant_HT_EUR_exo ;
-		$total_HT_EUR_ass += $montant_HT_EUR_ass ;
-		$total_TVA_EUR    += $montant_TVA_EUR ;
-                $total_HT_EUR_sup += $montant_HT_EUR_sup ;
-                $total_TVA_EUR_sup += $montant_TVA_EUR_sup ;
+		( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR,
+                  $montant_HT_EUR_sup, $montant_TVA_EUR_sup, $montant_HT_EUR_sup_exo ) 
+                  = tva_line( $Devise, $Montant2_eur, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet, $Date ) ;
+		$total_HT_EUR_exo     += $montant_HT_EUR_exo ;
+		$total_HT_EUR_ass     += $montant_HT_EUR_ass ;
+		$total_TVA_EUR        += $montant_TVA_EUR ;
+                $total_HT_EUR_sup     += $montant_HT_EUR_sup ;
+                $total_TVA_EUR_sup    += $montant_TVA_EUR_sup ;
+                $total_HT_EUR_sup_exo += $montant_HT_EUR_sup_exo ;
                 
-                
-		#$invoice = $first_invoice + $nb_invoice ;
                 $invoice = next_invoice(  ) ;
 		$nb_invoice++ ;
-		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
+		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde] [$Impact_sur_le_solde]\n" ) ;
 	}
 	
 	if (
@@ -463,7 +480,7 @@ sub compute_line {
 		$nb_invoice_refund++;
 		$invoice_refund{ $invoice }++ ;
 		
-		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
+		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde] [$Impact_sur_le_solde]\n" ) ;
 	}
 	
 	if (
@@ -476,7 +493,7 @@ sub compute_line {
 		$nb_invoice_canceled++;
 		$invoice_canceled{ $invoice }++ ;
 		
-		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
+		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde] [$Impact_sur_le_solde]\n" ) ;
 	}
 	
 	if (
@@ -489,7 +506,7 @@ sub compute_line {
 		$nb_invoice_suspended++;
 		$invoice_suspended{ $invoice }++ ;
 		
-		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
+		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde] [$Impact_sur_le_solde]\n" ) ;
 	}
 	
 	if (
@@ -499,22 +516,57 @@ sub compute_line {
 	) {
                 $invoice = next_invoice(  ) ;
 		$nb_invoice++ ;
-		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde]\n" ) ;
+		$print_details and print ( "[$invoice] [$Date] [$Heure] [$Fuseau_horaire] [$Nom] [$Type] [$Etat] [$Devise] [$Montant] [$Numero_davis_de_reception] [$Solde] [$Impact_sur_le_solde]\n" ) ;
 	}
 	
 	$action->{ 'invoice' } = $invoice ;
 	if ( $bnc ) {
-		my $FR_flag = '' ;
-		$FR_flag = ' FR' if $Pays eq 'France' ;
-		my $IND_flag = '' ;
-		$IND_flag = ' IND' if ('imapsync usage' eq $Nom_Option_1 and 'individual' eq $Valeur_Option_1 ) ;
-                my $SUPPORT_flag = '' ;
-                $SUPPORT_flag = ' support' if ( 'imapsync support'    eq $Titre_de_l_objet ) ;
-		#print "FE $invoice$FR_flag$IND_flag\n" ;
-		#printf( "%.2f [EUR %.2f]\n", $Montant, $MontantEUR ) ;
-		print "FE $invoice$FR_flag$IND_flag imapsync$SUPPORT_flag $Nom\n" ;
-                print "[$Date]$FR_flag$IND_flag $MontantEUR $Devise \n" ;
+		my $FR_flag      = FR_flag( $Pays ) ;
+		my $IND_flag     = IND_flag( $Nom_Option_1, $Valeur_Option_1 ) ;
+                my $SUPPORT_flag = SUPPORT_flag( $Titre_de_l_objet ) ;
+                my $BNC_output   = BNC_output( $invoice, $FR_flag, $IND_flag, $SUPPORT_flag, 
+                                   $Nom, $Date, $MontantEUR, $Devise, $Titre_de_l_objet, $Impact_sur_le_solde, $Type ) ;
+                print $BNC_output ;
 	}
+}
+
+sub BNC_output {
+# FE 1359 FR IND imapsync Bougon Edouard
+# [12/01/2012] FR IND 28.73 EUR 
+    my( $invoice, $FR_flag, $IND_flag, $SUPPORT_flag, 
+        $Nom, $Date, $MontantEUR, $Devise, $Titre_de_l_objet, $Impact_sur_le_solde, $Type ) = @_ ;
+
+    my $BNC_output ;
+
+    if ( 'NONE' eq $invoice ) {
+        $BNC_output = "[$Date] $MontantEUR $Devise $Nom $Titre_de_l_objet [$Impact_sur_le_solde] [$Type]\n" ;
+    }else{
+        $BNC_output = 
+            "FE $invoice$FR_flag$IND_flag imapsync$SUPPORT_flag $Nom\n"
+            . "[$Date]$FR_flag$IND_flag $MontantEUR $Devise \n" ;
+    }
+    return( $BNC_output ) ;
+}
+
+sub SUPPORT_flag {
+	my $Titre_de_l_objet = shift ;
+        my $SUPPORT_flag = '' ;
+        $SUPPORT_flag = ' support' if ( 'imapsync support'    eq $Titre_de_l_objet ) ;
+}
+
+sub IND_flag {
+	my( $Nom_Option_1, $Valeur_Option_1 ) = @_ ;
+        my $IND_flag = '' ;
+        $IND_flag = ' IND' if ('imapsync usage' eq $Nom_Option_1 and 'individual' eq $Valeur_Option_1 ) ;
+        return( $IND_flag ) ;
+}
+
+sub FR_flag {
+	my $Pays = shift ;
+        my $FR_flag = '' ;
+        
+        $FR_flag = ' FR' if $Pays eq 'France' ;
+        return( $FR_flag ) ;
 }
 
 sub build_invoice {
@@ -522,7 +574,7 @@ sub build_invoice {
 	
 	return if ! $invoice ;
 	
-	my $action = $action_of_invoice{ $invoice } ;
+	my $action = $action_invoice{ $invoice } ;
 	my $refund = '' ;
 	$refund = 'REFUND ' if $invoice_refund{ $invoice } ;
 	my %action = %$action if $action ;
@@ -692,8 +744,8 @@ sub description_stuff {
         
         my ( $descriptionFR, $descriptionEN ) ;
         if ( 'software' eq $object_type ) {
-                $descriptionFR = 'Logiciel imapsync. Tous droits cédés.' ;
-                $descriptionEN = '(Imapsync software. All rights conceded.)' ;
+                $descriptionFR = 'Logiciel imapsync. TOUS droits cédés, autorisés.' ;
+                $descriptionEN = '(Imapsync software. ALL rights conceded, allowed.)' ;
         }
         
         my ( $usageFR, $usageEN ) ;
@@ -999,11 +1051,14 @@ sub date_aaaa_mm_jj {
 
 
 sub tva_line {
-	my( $Devise, $Montant2, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet ) = @_ ;
+	my( $Devise, $Montant2, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet, $Date ) = @_ ;
 	my( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR ) = ( 0, 0, 0 ) ;
 	
-	my( $montant_HT_EUR_sup, $montant_TVA_EUR_sup ) = ( 0, 0 ) ;
+	my( $montant_HT_EUR_sup, $montant_TVA_EUR_sup, $montant_HT_EUR_sup_exo ) = ( 0, 0, 0 ) ;
 
+
+	my $date_aaaa_mm_jj = date_aaaa_mm_jj( $Date ) ;
+	
 	$Montant2 = $Montant2/$usdeur if 'USD' eq $Devise ;
 	
 	if ( 'imapsync'             eq $Titre_de_l_objet 
@@ -1026,13 +1081,21 @@ sub tva_line {
         }
         
 	if ( 'imapsync support'    eq $Titre_de_l_objet ) {
-                #print "ZZZZ $Titre_de_l_objet $Montant2\n" ;
-                $montant_HT_EUR_sup  = $Montant2 / 1.196 ;
-	        $montant_TVA_EUR_sup = $Montant2 / 1.196 * 0.196 ;
+              if (
+	        ( 'imapsync usage' eq $Nom_Option_1 and 'individual' eq $Valeur_Option_1 )
+	        or
+	        ( 'France' eq $Pays )
+                or
+                ( '2013_02_19' gt $date_aaaa_mm_jj )
+	        ) {
+                	$montant_HT_EUR_sup  = $Montant2 / 1.196 ;
+	        	$montant_TVA_EUR_sup = $Montant2 / 1.196 * 0.196 ;
+        	}else{
+                	$montant_HT_EUR_sup_exo = $Montant2 ;
+                }
         }
-        
-        
-	return( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR, $montant_HT_EUR_sup, $montant_TVA_EUR_sup ) ;
+	return( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR, 
+                $montant_HT_EUR_sup, $montant_TVA_EUR_sup, $montant_HT_EUR_sup_exo ) ;
 }
 
 
@@ -1062,8 +1125,6 @@ sub tva_stuff {
 	if ( ( 'individual' eq $clientTypeEN)
 	     or  
 	     ( 'France' eq $Pays )
-             or
-             ( 'imapsync support' eq $Titre_de_l_objet )
 	) {
 		$priceHT  = sprintf('%2.2f', $Hors_taxe/1.196) ;
 		$tvaFR    = '19,60\%';
@@ -1080,8 +1141,8 @@ sub tva_stuff {
 		$priceTVA = 'néant (none)' ;
 		$priceTTC = $priceHT ;
                 $HTorTTC  = 'HT' ;
-		$messageTVAFR = 'Exonération de TVA, articles 262 1-2 et ter du Code Général des Impôts';
-		$messageTVAEN = '(VAT tax-exempt, articles 262 1-2 and ter of French General Tax Code)';
+		$messageTVAFR = 'Exonération de TVA, articles 259 et 262 du Code Général des Impôts';
+		$messageTVAEN = '(VAT tax-exempt, articles 259 and 262 of French General Tax Code)';
 	}
 	foreach my $price ( $priceHT, $priceTVA, $priceTTC, $priceTTCusd ) {
 		#print "[$price]\n" ;

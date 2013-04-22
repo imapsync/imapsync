@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.12 2012/11/02 07:49:37 gilles Exp gilles $
+# $Id: memo,v 1.13 2013/02/08 15:01:18 gilles Exp gilles $
 
 
 echo paypal_bilan_todo
@@ -28,8 +28,107 @@ Europe a un autre assujetti : Article 262 ter => Exoneration
 EOF
 }
 
+echo paypal_bilan_bncexport2
+paypal_bilan_bncexport2() {
+# DID output diff between paypal_bilan_1.66 and 1.67
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.66 --bnc --debug --details --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 
+1093 1330 1331 1332 1333 1334 1652 1653 
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
 
-echo paypal_bilan_invoice_00000
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --details --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732
+1093 1330 1331 1332 1333 1334 1652 1653
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
+
+echo paypal_bilan_bncexport
+paypal_bilan_bncexport() {
+# DID output diff between paypal_bilan_1.66 and 1.67
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.66 --bnc --debug --debug_csv --details --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 
+1093 1330 1331 1332 1333 1334 1652 1653 
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --debug_csv --details --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732
+1093 1330 1331 1332 1333 1334 1652 1653
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
+
+#echo paypal_bilan_tva_prestation_de_service_fix_date
+paypal_bilan_tva_prestation_de_service_fix_date() {
+# DID output diff between paypal_bilan_1.65 and 1.64
+(
+#set -x
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.64 --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 
+1093 1330 1331 1332 1333 1334 1652 1653 
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732
+1093 1330 1331 1332 1333 1334 1652 1653
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
+
+#echo paypal_bilan_tva_prestation_de_service
+paypal_bilan_tva_prestation_de_service() {
+# DID output diff between paypal_bilan_1.63 and 1.64
+(
+#set -x
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.63 --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 
+1093 1330 1331 1332 1333 1334 1652 1653 
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732
+1093 1330 1331 1332 1333 1334 1652 1653
+2131 2132 2295 2296 2297  2298' \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
 paypal_bilan_invoice_00000() {
 # DID output diff between paypal_bilan_1.62 and 1.63
 (

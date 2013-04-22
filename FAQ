@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.124 2013/02/05 18:40:50 gilles Exp gilles $
+# $Id: FAQ,v 1.130 2013/04/17 12:46:10 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -8,6 +8,11 @@
 http://imapsync.lamiral.info/FAQ
 
 Unix versus Windows syntax.
+There are several differences between Unix and Windows
+in the command line syntax. 
+- Character \ versus ^
+- Character ' versus "
+
 
 A) \ versus ^
 
@@ -104,6 +109,34 @@ post to this list if you want to stay private.
 Thank you for your participation.
 
 =======================================================================
+Q. Can I copy or sync Calendar or Contacts with imapsync?
+
+R. No. It's because most IMAP servers don't get contacts and calendar 
+events via IMAP. In other words, messages synced by imapsync from 
+Calendar or Contacts folders are not used by email servers to set 
+or get the contacts or calendars. 
+No way via IMAP, no way via imapsync.
+
+=======================================================================
+Q. How can I copy or synchronize Calendars or Contacts?
+
+R1. It can't be done with imapsync.
+
+R2. It can be done, depending on the email server softwares used.
+
+a) From Exchange to Exchange, export contacts and calendar to
+   PST format files on host1 and import them on host2.
+
+b) From Gmail to Gmail, export and import calandars in ical format, 
+   extension for those files is .ics.
+   Contacts can be copied using a csv file. See the help page
+   http://support.google.com/mail/bin/topic.py?hl=en&topic=1669027
+
+c) Etc. Search the web. There's also specific tools and paid services.
+   There's no silver bullet to migrate Calendars and Contacts,
+   if you find one, tell me!
+
+=======================================================================
 Q. I need to migrate hundred accounts, how can I do?
 
 R. If you have many mailboxes to migrate think about a little
@@ -145,10 +178,10 @@ Q. Where I can find free open and gratis imapsync releases?
 
 R. Search the internet.
 
-Q. Is is legal?
+Q. Is is legal to find imapsync gratis (or not) elsewhere?
 
 R. Yes, the license permits it
-   http://imapsync.lamiral.info/COPYING
+   http://imapsync.lamiral.info/LICENSE
 
 =======================================================================
 Q. I use --useuid which uses a cache in /tmp or --tmpdir, the hostnames
@@ -265,7 +298,13 @@ R2. Use --useuid then imapsync will avoid dealing with headers.
 =======================================================================
 Q. How can I try imapsync with Mail::IMAPClient 3.xx perl module?
 
-R. - Download latest Mail::IMAPClient 3.xx at
+R. The answer R2 deals with any Perl module use.
+
+R1 - Look at the script named i3 in the tarball, it can be used to
+     run imapsync with included Mail-IMAPClient-3.32/ wherever you 
+     unpacked the imapsync tarball
+
+R2 - Download latest Mail::IMAPClient 3.xx at
    http://search.cpan.org/dist/Mail-IMAPClient/
    - untar it anywhere:
         tar xzvf Mail-IMAPClient-3.xx.tar.gz
@@ -280,29 +319,11 @@ R. - Download latest Mail::IMAPClient 3.xx at
      or if imapsync is in directory /path/
         perl -I./Mail-IMAPClient-3.32/lib   /path/imapsync ...
 
-   - Look at the script named i3 in the tarball, it can be used to
-     run imapsync with included Mail-IMAPClient-3.32/ wherever you 
-     unpacked the imapsync tarball
 
 =======================================================================
 Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
 
-R. - Download Mail::IMAPClient 2.2.9 at 
-   http://search.cpan.org/~djkernen/Mail-IMAPClient-2.2.9/
-   http://search.cpan.org/CPAN/authors/id/D/DJ/DJKERNEN/Mail-IMAPClient-2.2.9.tar.gz
-   - untar it anywhere:
-        tar xzvf Mail-IMAPClient-2.2.9.tar.gz
-
-   - run imapsync with perl and -I option tailing to use Mail-IMAPClient-2.2.9:
-        perl -I./Mail-IMAPClient-2.2.9  ./imapsync [...]
-
-     or if imapsync is in directory /path/
-        perl -I./Mail-IMAPClient-2.2.9  /path/imapsync [...]
-
-   - Look at the script named i2 in the tarball, it can be used to
-     run imapsync with included Mail-IMAPClient-2.2.9/ wherever you 
-     unpacked the imapsync tarball
-
+R. Mail::IMAPClient 2.2.9 is no longer supported.
 
 =======================================================================
 Q. Can I use imapsync to migrate emails from pop3 server to imap server?
@@ -408,12 +429,17 @@ R. Use redirections of both standard and error outputs "> log.txt 2>&1"
 
   imapsync ... > log.txt 2>&1
 
+This syntax is available both on Windows and Unix.
+
 =======================================================================
 Q. I need to log every output on a file named log.txt and also to the 
    screen in order to keep seeing what's going on during execution
 
 R. Use the tee program (also available on Windows)
 http://en.wikipedia.org/wiki/Tee_%28command%29
+http://stackoverflow.com/questions/796476/displaying-windows-command-prompt-output-and-redirecting-it-to-a-file
+http://code.google.com/p/wintee/
+
 
   imapsync ...  2>&1 | tee log.txt
 
@@ -1380,25 +1406,24 @@ imapsync --host1 mail.oldhost.com \
          --user2 my_email@gmail.com \
          --password2 password \
          --exitwhenover 500000000 \
-         --folder "INBOX.Sent" \
-         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," \
-         --addheader
+         --exclude "\[Gmail\]$" \
+         --addheader \
+         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail,"
 
 
 If you're using a different language in Gmail you might adapt
 this example with the folder name translated, an example in French:
 
 imapsync ...
-	 --folder 'INBOX.Messages envoy&AOk-s' \
 	 --regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
 
-The --addheader option is there because Sent folder messages 
+The --addheader option is there because "Sent" folder messages 
 sometimes lack the "Message-Id" header needed by imapsync 
-when --useuid is not used. So option --addheader adds a "Message-Id" header.
+to identify messages (only when --useuid is not used). 
+So option --addheader adds a "Message-Id" header.
 
-You can remove --folder "INBOX.Sent" in the example in case
-you want to sync all folders, the --regextrans2 option will 
-still apply only on "INBOX.Sent" folder.
+You can add --folder "INBOX.Sent" in the example in case
+you want to sync only the "Sent" folder.
 
 The "All Mail" archive pseudo-folder should be updated automaticaly.
 
@@ -1406,8 +1431,13 @@ The "All Mail" archive pseudo-folder should be updated automaticaly.
 exceed maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 
+--exclude "\[Gmail\]$" is there to avoid a small examine/select error:
+"Could not examine: 43 NO [NONEXISTENT] Unknown Mailbox: [Gmail] 
+(now in authenticated state) (Failure)".
+
+
 You can select folders exported to imap within the gmail preferences,
-unselect all "System labels".
+unselect all "System labels" depending on your needs.
 
 
 =======================================================================

@@ -16,11 +16,11 @@
 =head1 NAME 
 
 imapsync - IMAP synchronisation, sync, copy or migration tool.
-Synchronise mailboxes between two imap servers.
-Good at IMAP migration. More than 44 different IMAP server softwares
-supported with success.
+Synchronises mailboxes between two imap servers.
+Good at IMAP migration. More than 52 different IMAP server softwares
+supported with success, few failures.
 
-$Revision: 1.525 $
+$Revision: 1.536 $
 
 =head1 SYNOPSIS
 
@@ -36,8 +36,8 @@ To synchronize imap account "foo" on "imap.truc.org"
 =head1 INSTALL
 
  imapsync works fine under any Unix OS with perl.
- imapsync works fine under Windows (2000, XP) 
- with Strawberry Perl 5.10 or 5.12
+ imapsync works fine under Windows (2000, XP, Vista, Seven) 
+ with Strawberry Perl (5.10, 5.12 or higher)
  or as a standalone binary software imapsync.exe
 
 imapsync can be available directly on the following distributions:
@@ -97,6 +97,9 @@ The option list:
 	   [--minsize <int>]
            [--maxage <int>]
            [--minage <int>]
+           [--search <string>]
+           [--search1 <string>]
+           [--search2 <string>]
            [--skipheader <regex>]
            [--useheader <string>] [--useheader <string>]
 	   [--nouid1] [--nouid2] 
@@ -128,14 +131,15 @@ The option list:
 The command imapsync is a tool allowing incremental and
 recursive imap transfer from one mailbox to another. 
 
-By default all folders are transferred, recursively.
+By default all folders are transferred, recursively, all 
+possible flags (\Seen \Answered \Flagged etc.) are synced too.
 
 We sometimes need to transfer mailboxes from one imap server to
 another. This is called migration.
 
 imapsync is a good tool because it reduces the amount
-of data transferred by not transferring a given message if it
-is already on both sides. Same headers
+of data transferred by not transferring a given message 
+if it is already on both sides. Same headers
 and the transfer is done only once. All flags are
 preserved, unread will stay unread, read will stay read,
 deleted will stay deleted. You can stop the transfer at any
@@ -144,7 +148,7 @@ connections.
 
 You can decide to delete the messages from the source mailbox
 after a successful transfer, it can be a good feature when migrating
-live mailboxes since messages will be only one side.
+live mailboxes since messages will be only on one side.
 In that case, use the --delete option. Option --delete implies 
 also option --expunge so all messages marked deleted on host1 
 will be really deleted.
@@ -219,6 +223,8 @@ case, --authmech1 PLAIN will be used by default since it
 is the only way to go for now. So don't use --authmech1 SOMETHING
 with --authuser1 "adminuser", it will not work.
 Same behavior with the --authuser2 option.
+Authenticate with an admin account must be supported by your
+imap server to work with imapsync.
 
 When working on Sun/iPlanet/Netscape IMAP servers you must use 
 --proxyauth1 to enable administrative user to masquerade as another user. 
@@ -240,12 +246,13 @@ in a Bourne shell:
 
 imapsync is free, open, public but not always gratis software 
 cover by the NOLIMIT Public License.
-See the LICENSE file included in the distribution or just read this:
+See the LICENSE file included in the distribution or just read this
+simple sentence as it is the licence text:
 No limit to do anything with this work and this license.
 
 =head1 MAILING-LIST
 
-The public mailing-list may be the best way to get support.
+The public mailing-list may be the best way to get free support.
 
 To write on the mailing-list, the address is:
 <imapsync@linux-france.org>
@@ -260,7 +267,7 @@ To unsubscribe, send a message to:
 To contact the person in charge for the list:
 <imapsync-request@listes.linux-france.org>
 
-The list archives may be available at:
+The list archives are available at:
 http://www.linux-france.org/prj/imapsync_list/
 So consider that the list is public, anyone
 can see your post. Use a pseudonym or do not
@@ -270,18 +277,16 @@ Thank you for your participation.
 
 =head1 AUTHOR
 
-Gilles LAMIRAL <lamiral@linux-france.org>
+Gilles LAMIRAL <gilles.lamiral@laposte.net>
 
-Feedback good or bad is always welcome.
+Feedback good or bad is very often welcome.
 
-The newsgroup comp.mail.imap may be a good place to talk about
-imapsync. I read it when imapsync is concerned.
-A better place is the public imapsync mailing-list
-(see below).
-
-Gilles LAMIRAL earns his living writing, installing,
+Gilles LAMIRAL earns his living by writing, installing,
 configuring and teaching free, open and often gratis
-softwares. Do not hesitate to pay him for that services.
+softwares. It used to be "always gratis" but now it is
+"often" because imapsync is sold by its author, a good
+way to stay maintening and supporting free open public 
+softwares (see the license) over decades.
 
 =head1 BUG REPORT GUIDELINES
 
@@ -304,8 +309,8 @@ Make a good title with word "imapsync" in it (my spam filter won't filter it),
 Don't write an email title with just "imapsync" or "problem",
 a good title is made of keywords summary, not too long (one visible line).
 
-Don't write imapsync in uppercase in the email title, we'll
-know you run Windows and you haven't read this README yet.
+Don't write imapsync in uppercase in the email title, I'll
+then know you run Windows and you haven't read this README yet.
 
 Help us to help you: in your report, please include:
 
@@ -323,7 +328,8 @@ Help us to help you: in your report, please include:
 
  - IMAPClient.pm version.
 
- - the run context. Do you run imapsync.exe, a unix binary or the perl script imapsync.
+ - the run context. Do you run imapsync.exe, a unix binary 
+   or the perl script imapsync.
 
  - operating system running imapsync.
 
@@ -332,7 +338,8 @@ Help us to help you: in your report, please include:
  - operating systems on both sides and the third side in case
    you run imapsync on a foreign host from the both.
 
-Most of those values can be found as a copy/paste at the begining of the output.
+Most of those values can be found as a copy/paste at the begining of the output,
+so a copy of the output is a very easy and very good debug report for me.
 
 One time in your life, read the paper 
 "How To Ask Questions The Smart Way"
@@ -350,13 +357,15 @@ Failure stories reported with the following 3 imap servers:
  - (2011) MDaemon 12.0.3 as host2 but MDaemon is supported as host1.
    MDaemon is simply buggy with the APPEND IMAP command with 
    any IMAP email client.
- 
+ - Hotmail since hotmail.com does not provide IMAP access
+ - Outlook.com since outlook.com does not provide IMAP access
 
-Success stories reported with the following 48 imap servers 
+Success stories reported with the following 52 imap servers 
 (software names are in alphabetic order): 
 
- - 1und1 H mimap1 84498 [host1]
+ - 1und1 H mimap1 84498 [host1] H mibap4 95231 [host1]
  - a1.net imap.a1.net IMAP4 Ready [host1]
+ - Apple Server 10.6 Snow Leopard [host1]
  - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
    (OSL 3.0) http://www.archiveopteryx.org/
  - Axigen Mail Server Version 8.0.0
@@ -388,6 +397,7 @@ Success stories reported with the following 48 imap servers
  - iPlanet Messaging server 4.15, 5.1, 5.2
  - IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]
  - Kerio 7.2.0 Patch 1 [host1] [host2]
+ - Mail2World IMAP4 Server 2.5 [host1] (http://www.mail2world.com/)
  - MailEnable 4.23 [host1] [host2], 4.26 [host1][host2], 5 [host1]
  - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2],
    12.0.3 [host1], 12.5.5 [host1],
@@ -400,6 +410,7 @@ Success stories reported with the following 48 imap servers
  - Mirapoint, 4.1.9-GA [host1]
  - Netscape Mail Server 3.6 (Wintel !)
  - Netscape Messaging Server 4.15 Patch 7
+ - Office 365 [host1] [host2]
  - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
  - OpenWave
  - Oracle Beehive [host1]
@@ -418,6 +429,8 @@ Success stories reported with the following 48 imap servers
  - UW - QMail v2.1
  - VMS, Imap part of TCP/IP suite of VMS 7.3.2
  - Yahoo [host1]
+ - Zarafa 6,40,0,20653 [host1] (http://www.zarafa.com/)
+ - Zarafa ZCP 7.1.4 IMAP Gateway [host2]
  - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 
    Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x
 
@@ -513,7 +526,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.525 2013/02/05 12:52:10 gilles Exp gilles $
+$Id: imapsync,v 1.536 2013/04/17 14:33:12 gilles Exp gilles $
 
 =cut
 
@@ -576,7 +589,7 @@ my(
         $fastio1, $fastio2, 
 	$maxsize, $minsize, $maxage, $minage,
         $exitwhenover,
-        $search,
+        $search, $search1, $search2, 
         $skipheader, @useheader,
         $skipsize, $allowsizemismatch, $foldersizes, $foldersizesatend, $buffersize,
 	$delete, $delete2, $delete2duplicates,
@@ -644,7 +657,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.525 2013/02/05 12:52:10 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.536 2013/04/17 14:33:12 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -924,6 +937,8 @@ $password2 = ( defined( $passfile2 ) ) ? firstline ( $passfile2 ) : $password2 ;
 my $dry_message = '' ;
 $dry_message = "\t(not really since --dry mode)" if $dry ;
 
+$search1 ||= $search if ( $search ) ;
+$search2 ||= $search if ( $search ) ;
 
 my $imap1 = ();
 my $imap2 = ();
@@ -953,8 +968,8 @@ print "Host1: state Authenticated\n";
 die_clean( 'Not authenticated on host2' ) unless   $imap2->IsAuthenticated( ) ;
 print "Host2: state Authenticated\n";
 
-print "Host1 capability: ", join(" ", $imap1->capability_update()), "\n";
-print "Host2 capability: ", join(" ", $imap2->capability_update()), "\n";
+print "Host1 capability: ", join(" ", @{ $imap1->capability_update() || [] }), "\n";
+print "Host2 capability: ", join(" ", @{ $imap2->capability_update() || [] }), "\n";
 
 
 exit_clean(0) if ($justlogin);
@@ -1092,8 +1107,8 @@ foreach my $h1_fold (@h1_folders_all) {
 
 
 if ( $foldersizes ) {
-	( $h1_nb_msg_start, $h1_bytes_start ) = foldersizes( "Host1", $imap1, @h1_folders_wanted ) ;
-	( $h2_nb_msg_start, $h2_bytes_start ) = foldersizes( "Host2", $imap2, @h2_folders_from_1_wanted ) ;
+	( $h1_nb_msg_start, $h1_bytes_start ) = foldersizes( "Host1", $imap1, $search1, @h1_folders_wanted ) ;
+	( $h2_nb_msg_start, $h2_bytes_start ) = foldersizes( "Host2", $imap2, $search2, @h2_folders_from_1_wanted ) ;
 	$fast or sleep( 2 ) ;
 }
 
@@ -1177,27 +1192,32 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
         last FOLDER if $imap2->IsUnconnected();
 
         my $h1_msgs_all_hash_ref = {  } ;
-	my @h1_msgs = select_msgs( $imap1, $h1_msgs_all_hash_ref );
-
+	my @h1_msgs = select_msgs( $imap1, $h1_msgs_all_hash_ref, $search1 );
+	last FOLDER if $imap1->IsUnconnected();
+        
         my $h1_msgs_nb = scalar( @h1_msgs ) ;
         $h1{ $h1_fold }{ 'messages_nb' } = $h1_msgs_nb ;
 
 	( $debug or $debugLIST ) and print "Host1 LIST: $h1_msgs_nb messages [@h1_msgs]\n" ;
+        $debug and print "Host1 selecting messages of folder [$h1_fold] took ", timenext(), " s\n";
         
         my $h2_msgs_all_hash_ref = {  } ;
-	my @h2_msgs = select_msgs( $imap2, $h2_msgs_all_hash_ref ) ;
-	
+	my @h2_msgs = select_msgs( $imap2, $h2_msgs_all_hash_ref, $search2 ) ;
+	last FOLDER if $imap2->IsUnconnected();
+        
         my $h2_msgs_nb = scalar( @h2_msgs ) ;
         $h2{ $h2_fold }{ 'messages_nb' } = $h2_msgs_nb ;
 
 	( $debug or $debugLIST ) and print "Host2 LIST: $h2_msgs_nb messages [@h2_msgs]\n";
+        $debug and print "Host2 selecting messages of folder [$h2_fold] took ", timenext(), " s\n";
         
 	my $cache_base = "$tmpdir/imapsync_cache/$host1/$user1/$host2/$user2" ;
 	my $cache_dir = cache_folder( $cache_base, $h1_fold, $h2_fold ) ;
 	my ( $cache_1_2_ref, $cache_2_1_ref ) = ( {}, {} ) ;
+        
 	my $h1_uidvalidity = $imap1->uidvalidity(  ) || '' ;
 	my $h2_uidvalidity = $imap2->uidvalidity(  ) || '' ;
-        
+
         last FOLDER if $imap1->IsUnconnected() ;
         last FOLDER if $imap2->IsUnconnected() ;
 
@@ -1254,7 +1274,7 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
         
 	$debug and print "Host1 getting flags idate and sizes of folder [$h1_fold]\n" ;
         if ( $abletosearch ) {
-		$h1_fir_ref = $imap1->fetch_hash( "FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref )
+		$h1_fir_ref = $imap1->fetch_hash( \@h1_msgs, "FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref )
 	  	if ( @h1_msgs ) ;
         }else{
 		$h1_fir_ref = $imap1->fetch_hash( '1:999999', "FLAGS", "INTERNALDATE", "RFC822.SIZE", $h1_fir_ref )
@@ -1264,7 +1284,7 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 	unless ($h1_fir_ref) {
 		print
 		"Host1 folder $h1_fold: Could not fetch_hash ",
-		scalar(@h1_msgs), " msgs: ", $imap1->LastError, "\n";
+		scalar(@h1_msgs), " msgs: ", $imap1->LastError || '', "\n";
 		$nb_errors++;
 		next FOLDER;
 	}
@@ -1304,7 +1324,7 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 
 	$debug and print "Host2 getting flags idate and sizes of folder [$h2_fold]\n" ;
 	@$h2_fir_ref{@h2_msgs} = (  ); # fetch_hash can select by uid with last arg as ref
-	$h2_fir_ref   =   $imap2->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE", $h2_fir_ref)
+	$h2_fir_ref   =   $imap2->fetch_hash( \@h2_msgs, "FLAGS", "INTERNALDATE", "RFC822.SIZE", $h2_fir_ref)
 	  if (@h2_msgs);
 	$debug and print "Host2 getting flags idate and sizes of folder [$h2_fold] took ", timenext(), " s\n" ;
 	
@@ -1478,6 +1498,8 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
         $debug and print "Host2 uidnext: $h2_uidnext\n" ;
 	$h2_uidguess = $h2_uidnext ;
 	MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
+        	last FOLDER if $imap1->IsUnconnected();
+                last FOLDER if $imap2->IsUnconnected();
 		#print "h1_nb_msg_processed: $h1_nb_msg_processed\n" ;
 		my $h1_size  = $h1_hash{$m_id}{'s'};
 		my $h1_msg   = $h1_hash{$m_id}{'m'};
@@ -1485,8 +1507,6 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 
 		unless (exists($h2_hash{$m_id})) {
 			# copy
-                        last FOLDER if $imap1->IsUnconnected();
-                        last FOLDER if $imap2->IsUnconnected();
 			my $h2_msg = copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
                         if( $delete2 and exists( $h2_folders_from_1_several{ $h2_fold } ) and $h2_msg ) {
                         	print "msg $h2_fold/$h2_msg will cancel deletion [fresh copy] on host2\n" ;
@@ -1514,7 +1534,7 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 		my $h2_msg  = $h2_hash{$m_id}{'m'};
 
                 sync_flags( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
-
+                last FOLDER if $imap2->IsUnconnected() ;
 	    	# Good
 		my $h2_size = $h2_hash{$m_id}{'s'};
 		$debug and print
@@ -1542,6 +1562,7 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 		$total_bytes_skipped += $h1_size;
 		$nb_msg_skipped += 1;
                 $h1_nb_msg_processed +=1 ;
+                last FOLDER if $imap2->IsUnconnected();                
 	}
 	
 	#print "Messages by uid: ", map { "$_ " } keys %h1_msgs_copy_by_uid, "\n" ;
@@ -1628,7 +1649,7 @@ sub sync_flags {
 	
 	if ( ! $dry and $diff and ! $imap2->store( $h2_msg, "FLAGS.SILENT (@h1_flags)" ) ) {
 		print "Host2 flags msg $h2_fold/$h2_msg could not add flags [@h1_flags]: ",
-		  $imap2->LastError, "\n";
+		  $imap2->LastError || '', "\n";
 		#$nb_errors++;
 	}
 }
@@ -1641,12 +1662,13 @@ $debug and print "Time: ", timenext(), " s\n";
 
 if ( $foldersizesatend ) {
 	timenext() ;
-	( $h1_nb_msg_end, $h1_bytes_end ) = foldersizes( "Host1", $imap1, @h1_folders_wanted ) ;
-	( $h2_nb_msg_end, $h2_bytes_end ) = foldersizes( "Host2", $imap2, @h2_folders_from_1_wanted ) ;
+	( $h1_nb_msg_end, $h1_bytes_end ) = foldersizes( "Host1", $imap1, $search1, @h1_folders_wanted ) ;
+	( $h2_nb_msg_end, $h2_bytes_end ) = foldersizes( "Host2", $imap2, $search2, @h2_folders_from_1_wanted ) ;
 }
 
-$imap1->logout(  ) ;
-$imap2->logout(  ) ;
+$imap1->logout(  ) unless lost_connection($imap1, "for host1 [$host1]");
+$imap2->logout(  ) unless lost_connection($imap2, "for host2 [$host2]");
+
 
 stats(  ) ;
 exit_clean( 1 ) if ( $nb_errors ) ;
@@ -1655,6 +1677,40 @@ exit_clean( 0 ) ;
 # END of main program
 
 # subroutines
+
+sub _filter {
+	my $str = shift or return "";
+        my $sz  = 64;
+        my $len = length($str);
+        if ( ! $debug and $len > $sz*2 ) {
+                my $beg = substr($str, 0, $sz);
+                my $end = substr($str, -$sz, $sz);
+                $str = $beg . "..." . $end;
+        }
+        $str =~ s/\012?\015$//;
+        return "(len=$len) " . $str;
+}
+
+
+
+sub lost_connection {
+	my($imap, $error_message) = @_;
+        if ( $imap->IsUnconnected() ) {
+                $nb_errors++;
+                my $lcomm = $imap->LastIMAPCommand || "";
+                my $einfo = $imap->LastError || @{$imap->History}[-1] || "";
+
+                # if string is long try reduce to a more reasonable size
+                $lcomm = _filter($lcomm);
+                $einfo = _filter($einfo);
+                print("Failure: last command: $lcomm\n") if ($debug && $lcomm);
+                print("Failure: lost connection $error_message: ", $einfo, "\n");
+                return(1);
+        }
+        else{
+        	return(0);
+        }
+}
 
 sub max {
 	return(undef) if (0 == scalar(@_));
@@ -1818,7 +1874,7 @@ sub myconnect {
 	$self->Banner($banner);
 	$self->RawSocket2($sock);
 	$self->State(Connected);
-	if ($banner =~ /\* PREAUTH/)
+        if (defined($banner) and $banner =~ /\* PREAUTH/)
         {
             $self->State(Authenticated);
         }	
@@ -2066,8 +2122,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.525 $ ',
-		  '$Date: 2013/02/05 12:52:10 $ ',
+		  '$Revision: 1.536 $ ',
+		  '$Date: 2013/04/17 14:33:12 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2490,7 +2546,7 @@ sub imap2_folder_name {
 
 sub foldersizes {
 
-	my ( $side, $imap, @folders ) = @_ ;
+	my ( $side, $imap, $search, @folders ) = @_ ;
 	my $total_size = 0 ;
 	my $total_nb = 0 ;
 	my $biggest = 0 ;
@@ -2518,13 +2574,13 @@ sub foldersizes {
 		}
 		
 		my $hash_ref = { } ;
-		my @msgs = select_msgs( $imap ) ;
+		my @msgs = select_msgs( $imap, undef, $search ) ;
 		$nb_msgs = scalar( @msgs ) ;
 		my $smax = 0 ;
 		@$hash_ref{ @msgs } = ( undef ) if @msgs ;
 		if ( $nb_msgs > 0 and @msgs ) {
                 	if ( $abletosearch ) {
-				$imap->fetch_hash( "RFC822.SIZE", $hash_ref) or die_clean("$@" ) ;
+				$imap->fetch_hash( \@msgs, "RFC822.SIZE", $hash_ref) or die_clean("$@" ) ;
                         }else{
                         	$imap->fetch_hash( '1:999999', "RFC822.SIZE", $hash_ref ) or die_clean( "$@" ) ;
                         }
@@ -2807,30 +2863,33 @@ sub tests_ucsecond {
 }
 
 sub select_msgs {
-	my ( $imap, $msgs_all_hash_ref ) = @_ ;
+	my ( $imap, $msgs_all_hash_ref, $search ) = @_ ;
 	my ( @msgs, @msgs_all, @max, @min, @union, @inter ) ;
 	
         # Need to have the whole list in msgs_all_hash_ref
         # without calling messages() several times.
-	if ( defined( $msgs_all_hash_ref ) 
+        # Need all messages list to avoid deleting useful cache part 
+        # in case of --search or --minage or --maxage
+	if ( ( defined( $msgs_all_hash_ref ) and $usecache )
         or ( ! defined( $maxage ) and ! defined( $minage ) and ! defined( $search ) )
         ) {
         	if ( $abletosearch ) {
         		$debugdev and print "Calling messages()\n" ;
-			@msgs = $imap->messages() ;
+			@msgs_all = $imap->messages() ;
                 }else{ 
                 	$debugdev and print "Calling fetch_hash()\n" ;
-                	@msgs = sort { $a <=> $b } keys( %{$imap->fetch_hash( '1:999999', "RFC822.SIZE")} ) ;
+                	@msgs_all = sort { $a <=> $b } keys( %{$imap->fetch_hash( '1:999999', "RFC822.SIZE")} ) ;
+                        $debugdev and print "Done fetch_hash()\n" ;
                 }
-                $debugdev and print "Done fetch_hash()\n" ;
+                
+                return undef if ( $#msgs_all == 0 && !defined( $msgs_all[0] ) ) ;
                 
                 if ( defined( $msgs_all_hash_ref ) ) {
-                        @msgs_all = @msgs ;
                         @{ $msgs_all_hash_ref }{ @msgs_all } =  () ;
                 }
                 # return all messages
                 if ( ! defined( $maxage ) and ! defined( $minage ) and ! defined( $search ) ) {
-                        return( @msgs ) ;
+                        return( @msgs_all ) ;
                 }
 	}
         
@@ -2849,7 +2908,7 @@ sub select_msgs {
 		unless( defined( $minage ) ) { @msgs = @max ; last SWITCH } ;
 		unless( defined( $maxage ) ) { @msgs = @min ; last SWITCH } ;
 		my ( %union, %inter ) ; 
-		foreach my $m ( @min, @max ) { $union{$m}++ && $inter{$m}++ }
+		foreach my $m ( @min, @max ) { $union{ $m }++ && $inter{ $m }++ }
 		@inter = keys( %inter ) ;
 		@union = keys( %union ) ;
 		# normal case
@@ -2858,7 +2917,7 @@ sub select_msgs {
 		if ( $minage > $maxage )  { @msgs = @union ; last SWITCH } ;
 		
 	}
-	return(@msgs);
+	return( @msgs );
 }
 
 
@@ -2951,12 +3010,12 @@ sub copy_message {
 	$string = $imap1->message_string($h1_msg);
 	
 	
-	my $string_len = defined( $string ) ? length( $string ) : '' ; # length or undef
+	my $string_len = defined( $string ) ? length( $string ) : '' ; # length or empty string
 	#print "- msg $h1_fold/$h1_msg {$string_len}\n" ;
 	unless ( defined( $string ) and $string_len ) { # undef or 0 length
 		print
 		"- msg $h1_fold/$h1_msg {$string_len} S[$h1_size] F[$h1_flags] I[$h1_idate] could not be fetched: ",
-		$imap1->LastError, "\n" ;
+		$imap1->LastError || '', "\n" ;
 		$nb_errors++ ;
 		$total_bytes_error += $h1_size if ( $h1_size ) ;
 		#relogin1(  ) if ( $relogin1 ) ;
@@ -3011,7 +3070,7 @@ sub copy_message {
 			no warnings 'uninitialized';
 			print "- msg $h1_fold/$h1_msg {$string_len} couldn't append  (Subject:[".
 			  $imap1->subject($h1_msg)."]) to folder $h2_fold: ",
-			  $imap2->LastError, "\n";
+			  $imap2->LastError || '', "\n";
 			$nb_errors++;
 			$total_bytes_error += $h1_size;
                         $h1_nb_msg_processed +=1 ;
@@ -3787,7 +3846,7 @@ sub get_options {
 				   "regexflag=s" => \@regexflag,
 				   "filterflags!" => \$filterflags,
 				   "flagsCase!"  => \$flagsCase,
-                                   "delete!"     => \$delete,
+                                   "delete|delete1!" => \$delete,
                                    "delete2!"    => \$delete2,
                                    "delete2duplicates!" => \$delete2duplicates,
 				   "delete2folders!"    => \$delete2folders,
@@ -3801,6 +3860,8 @@ sub get_options {
 				   "maxage=i"    => \$maxage,
 				   "minage=i"    => \$minage,
                                    "search=s"    => \$search,
+                                   "search1=s"   => \$search1,
+                                   "search2=s"   => \$search2,
 				   "foldersizes!" => \$foldersizes,
 				   "foldersizesatend!" => \$foldersizesatend,
                                    "dry!"        => \$dry,
@@ -4057,7 +4118,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.525 2013/02/05 12:52:10 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.536 2013/04/17 14:33:12 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -4302,7 +4363,12 @@ Several options are mandatory.
                          past|+++++++++++++++minage---->now
                          past|----maxage+++++minage---->now (intersection)
                          past|++++minage-----maxage++++>now (union)
---search      <string> : Select messages returned by this IMAP SEARCH command.
+
+--search      <string> : Selects only messages returned by this IMAP SEARCH 
+                         command. Applied on both sides.
+--search1     <string> : Same as --search for selecting host1 messages only.
+--search2     <string> : Same as --search for selecting host2 messages only.
+                         --search CRIT equals --search1 CRIT --search2 CRIT
 
 --exitwhenover   <int> : Stop syncing when total bytes transferred reached.
                          Gmail per day allows 2500000000 down 500000000 upload.

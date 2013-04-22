@@ -2,10 +2,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>Imapsync: an IMAP migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
+<title>Imapsync: an IMAP migration and backup tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2013-01-16T11:02:15+0100"/>
+<meta name="date" content="2013-04-17T19:19:25+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -43,6 +43,10 @@
 
 <h2>What is imapsync?</h2>
 
+<p>
+The purpose of imapsync is to <b>migrate</b> imap accounts or to <b>backup</b> imap accounts.
+</p>
+
 <p><b>imapsync</b> software is a command line tool that allows incremental and
 recursive <b>IMAP</b> transfers from one mailbox to another, both anywhere on the internet
 or in your local network. 
@@ -57,9 +61,11 @@ and restart it later efficiently.
 </p>
 
 <p>
-The purpose of imapsync is to <b>migrate</b> imap accounts or to <b>backup</b> imap accounts.
+<b>imapsync can't migrate Contacts and Calendars</b>. 
+Most email systems don't set or get Contacts or Calendars via the IMAP protocol.
+No way via IMAP, no way via imapsync 
+(but it can be done with other tools or via export/import of csv or ics files).
 </p>
-
 
 <p>
 <b>imapsync</b> is not suitable for maintaining a synchronization between two active imap accounts while the user
@@ -76,10 +82,10 @@ for <b>bidirectionnal (2 ways) synchronizations</b>.
 <h2><a id="NUMBERS"></a>Facts and figures for 2011 and 2012</h2>
 
 <ul>
-<li><b>3000 to 4000 </b>users (34000 users a year)</li> 
+<li><b>3000 to 4000 </b>users per month (34000 users a year)</li> 
 
 <li><b>5 to 25 millions mailboxes </b>transfers per month, 
-total is 93 millions for 2011, 90 millions for 2012.</li>
+total is 93 millions for 2011, 91 millions for 2012.</li>
 
 <li><b>Operating systems</b> run by imapsync users:
 <ul>
@@ -89,7 +95,7 @@ total is 93 millions for 2011, 90 millions for 2012.</li>
 <li>FreeBSD: 7%</li>
 <li>Solaris: 0.3%</li>
 <li>OpenBSD: 0.03%</li>
-<li>Other: 0.67%</li>
+<li>Other: 0.69%</li>
 </ul>
 </li>
 <li><b>Highest use rate</b>: about <b>21 millions</b> of IMAP mailbox transfers (in a single month)</li>
@@ -107,8 +113,9 @@ total is 93 millions for 2011, 90 millions for 2012.</li>
 
 <p>New features or bugfixes since previous releases:</p>
 
-<!-- <ul>
-<li><b>1.518</b></li>
+<!-- 
+<ul>
+<li><b>1.536</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -123,7 +130,25 @@ total is 93 millions for 2011, 90 millions for 2012.</li>
 <li><b>Bug fix</b>: </li>
 </ul>
  -->
- 
+
+<ul>
+<li><b>1.536</b></li>
+<li><b>Enhancement</b>: Added <b>--search1</b> and <b>--search2</b> to allow different searches on each host.</li>
+<li><b>Enhancement</b>: Speed up when messages are selected by --minage, --maxage or --search, (used to SEARCH ALL messages) </li>
+<li><b>Usability</b>: Added --delete1 as an alias for --delete</li>
+<li><b>Bug fix</b>: Applied Phil patch to improve the lost connection behavior</li>
+<li><b>Bug fix</b>: Applied Phil patch to remove useless warnings</li>
+</ul>
+
+<ul>
+<li><b>1.525</b></li>
+<li><b>Bug fix</b>: Handles the case where <b>several folders</b> on host1 <b>go to one folder</b> on host2 with <b>--delete2</b> option. The bug was imapsync was copying messages and deleting them on next folder.</li>
+<li><b>Bug fix</b>: Removed reference to DWTFPL since <b>license is <a href="LICENSE">NOLIMIT</a></b> since June 2012.</li>
+<li><b>Speed</b>: Option <b>--nocheckmessageexists is activated by default</b> since --checkmessageexists often slow down transfers too much.</li>
+<li><b>Usability</b>: Reorganized the --help message.</li>
+<li><b>Usability</b>: Option --foldersizesatend is on if --foldersizes is on. Off if --nofoldersizesatend</li>
+</ul>
+  
 <ul>
 <li><b>1.518</b></li>
 
@@ -299,7 +324,7 @@ example.
 
 <h2><a id="buy_source"></a>Buy imapsync source code</h2>
 
-<p>Buy <b>latest</b> imapsync Perl <b>source code</b> for  <b>42 EUR</b>
+<p>Buy <b>latest</b> imapsync Perl <b>source code</b> for  <b>50 EUR</b>
 </p>
 
 <p>
@@ -315,7 +340,7 @@ any Unix, Linux, Windows, or Mac OS operating system.
 
 <p>
 Payment by Paypal account and credit card accepted. <br/>
-Price <b>42 EUR</b> is equal to around <b>55 USD</b>, 
+Price <b>50 EUR</b> is equal to around <b>66 USD</b>, 
 no problem to pay in USD (or any currency) via paypal:
 </p>
 
@@ -354,7 +379,7 @@ Please give a <b>delivery postal address where the invoice will be needed</b>
 
 
 <p>Struggle free from source code and Perl installation by<br/> 
-buying the latest win32 <b>standalone imapsync.exe</b> for <b>42 EUR</b> 
+buying the latest win32 <b>standalone imapsync.exe</b> for <b>50 EUR</b> 
 </p>
 
 <p>
@@ -365,7 +390,7 @@ buying the latest win32 <b>standalone imapsync.exe</b> for <b>42 EUR</b>
 
 <p>
 Payment by Paypal account and credit card accepted. <br/>
-Price <b>42 EUR</b> is equal to around <b>55 USD</b>, 
+Price <b>50 EUR</b> is equal to around <b>66 USD</b>, 
 no problem to pay in USD (or any currency) via paypal:
 </p>
 
@@ -410,12 +435,15 @@ The build system for imapsync.exe is XP Pro SP2 on a Intel Celeron 400 MHz 256 M
 or phone and we'll work together until complete success.
 </p>
 
-<p>For <b>90 EUR</b> buy imapsync <b>full support</b> 
+<p>For <b>100 EUR</b> buy imapsync <b>full support</b> 
 done by the imapsync designer/developper.
 </p>
+
+<p>This support offer <b>doesn't include</b> the imapsync software.</p>
+
 <p>
 Payment by Paypal account and credit card accepted. <br/>
-90 EUR is equal to around <b>120 USD</b>, 
+100 EUR is equal to around <b>133 USD</b>, 
 no problem to pay in USD (or any currency) with paypal:
 </p>
 
@@ -532,7 +560,9 @@ lists what may be coded or done in the future.
 
 <p>Let's start with reported <b>failure stories</b> over the past.<br/>
 Maybe <b>new imapsync releases can run successfully with them</b>.<br/>
-Don't hesitate to have a try, I will help you and make efforts to switch them to the success list.
+Don't hesitate to have a try, It's been a long since last failure occured,
+I will help you and make efforts to switch them to the success list, 
+I like it.
 </p>
 
 <ul>
@@ -547,7 +577,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 </ul>
 
 <p>Now the long reported <b>success stories</b> list: <b>
-48 different imap server softwares supported!</b><br/>
+52 different imap server softwares supported!</b><br/>
 [host1] means "source server" and [host2] means "destination server":
 </p>
 
@@ -556,8 +586,9 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 -->
 
 <ul>
-	<li>1und1 H mimap1 84498 [host1] (<a href="http://www.1und1.de/">http://www.1und1.de/</a>)</li>	
+	<li>1und1 H mimap1 84498 [host1], H mibap4 95231 [host1](<a href="http://www.1und1.de/">http://www.1und1.de/</a>)</li>	
 	<li>a1.net imap.a1.net IMAP4 Ready [host1] </li>
+	<li><b>Apple Server</b> 10.6 Snow Leopard [host1] </li>
 	<li>Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
    (OSL 3.0) (<a href="http://www.archiveopteryx.org/">http://www.archiveopteryx.org/</a>)</li>
    <li>Axigen Mail Server Version 8.0.0 (<a href="http://www.axigen.com/">http://www.axigen.com/</a>)</li>
@@ -595,6 +626,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
 	(<a href="http://en.wikipedia.org/wiki/Oracle_Communications_Messaging_Server">http://en.wikipedia.org/wiki/Oracle_Communications_Messaging_Server</a>)   </li>
 	<li>IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]    (<a href="http://www.imailserver.com/">http://www.imailserver.com/</a>)   </li>
 	<li>Kerio 7.2.0P1 [host1]    (<a href="http://www.kerio.com/">http://www.kerio.com/</a>)   </li>
+	<li>Mail2World IMAP4 Server 2.5 [host1] (<a href="http://www.mail2world.com/">http://www.mail2world.com/</a>)</li>
 	<li><b>MailEnable</b> 4.23 [host1][host2], 4.26 [host1][host2], 5 [host1]    
 	(<a href="http://www.mailenable.com/">http://www.mailenable.com/</a>)   </li>
 	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2], 12.0.3 [host1], 12.5.5 [host1]    
@@ -610,6 +642,7 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
    <li>Mirapoint server 4.1.9-GA [host1]    (<a href="http://www.mirapoint.com/">http://www.mirapoint.com/</a>)   </li>
 	<li>Netscape Mail Server 3.6 (Wintel)       </li>
 	<li>Netscape Messaging Server 4.15 Patch 7       </li>
+	<li><b>Office 365</b> [host1] [host2] (<a href="http://office365.com">http://office365.com</a>)  </li>
 	<li>OpenMail IMAP server B.07.00.k0       </li>
 	<li>OpenWave    (<a href="http://www.openwave.com/">http://www.openwave.com/</a>)   </li>
 	<li>Oracle Beehive [host1]    
@@ -628,6 +661,8 @@ Don't hesitate to have a try, I will help you and make efforts to switch them to
    	(<a href="http://www.washington.edu/imap/">http://www.washington.edu/imap/</a>)   </li>
 	<li>VMS, Imap part of TCP/IP suite of VMS 7.3.2    (<a href="http://h71000.www7.hp.com/openvms/">http://h71000.www7.hp.com/openvms/</a>)   </li>
 	<li><b>Yahoo</b> [host1]    (<a href="http://www.yahoo.com/">http://www.yahoo.com/</a>)   </li>
+	<li>Zarafa 6,40,0,20653 [host1] (<a href="http://www.zarafa.com/">http://www.zarafa.com/</a>)</li>
+	<li>Zarafa ZCP 7.1.4 IMAP Gateway [host2]</li>
 	<li><b>Zimbra-IMAP</b> 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 
        Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x    
        (<a href="http://www.zimbra.com/">http://www.zimbra.com/</a>)   </li>
@@ -696,7 +731,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.148 2013/02/08 06:28:18 gilles Exp gilles $)
+($Id: index.shtml,v 1.160 2013/04/17 17:20:01 gilles Exp gilles $)
 </p>
 
 </body>
