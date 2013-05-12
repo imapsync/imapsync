@@ -20,7 +20,7 @@ usage:
 	@echo "make imapsync_elf_x86.bin"
 	@echo "make publish"
 
-
+DESTDIR ?= /usr
 DIST_NAME=imapsync-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
 DEB_FILE=$(DIST_NAME).deb
@@ -74,12 +74,12 @@ imapsync.1: imapsync
 	pod2man imapsync > imapsync.1
 
 install: testp imapsync.1
-	mkdir -p $(DESTDIR)/usr/bin
-	install imapsync $(DESTDIR)/usr/bin/imapsync
-	chmod 755 $(DESTDIR)/usr/bin/imapsync
-	mkdir -p $(DESTDIR)/usr/share/man/man1
-	install imapsync.1 $(DESTDIR)/usr/share/man/man1/imapsync.1
-	chmod 644 $(DESTDIR)/usr/share/man/man1/imapsync.1
+	mkdir -p $(DESTDIR)/bin
+	install imapsync $(DESTDIR)/bin/imapsync
+	chmod 755 $(DESTDIR)/bin/imapsync
+	mkdir -p $(DESTDIR)/share/man/man1
+	install imapsync.1 $(DESTDIR)/share/man/man1/imapsync.1
+	chmod 644 $(DESTDIR)/share/man/man1/imapsync.1
 
 .PHONY: cidone ci
 
