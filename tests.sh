@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.214 2013/04/17 12:49:41 gilles Exp gilles $  
+# $Id: tests.sh,v 1.218 2013/05/06 08:36:38 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.32/lib' sh -x tests.sh
@@ -55,7 +55,6 @@ run_test() {
 
 run_tests() {
         for t in "$@"; do
-                test X"$t" = X2 && CMD_PERL=$CMD_PERL_2xx && continue
                 test X"$t" = X3 && CMD_PERL=$CMD_PERL_3xx && continue
                 test_count=`expr 1 + $test_count`
                 run_test "$t"
@@ -155,7 +154,7 @@ first_sync_dry() {
             --passfile1 ../../var/pass/secret.toto \
             --host2 $HOST2 --user2 titi \
             --passfile2 ../../var/pass/secret.titi \
-            --noauthmd5 --dry
+            --dry
 }
 
 first_sync() {
@@ -163,8 +162,7 @@ first_sync() {
             --host1 $HOST1 --user1 toto \
             --passfile1 ../../var/pass/secret.toto \
             --host2 $HOST2 --user2 titi \
-            --passfile2 ../../var/pass/secret.titi \
-            --noauthmd5 
+            --passfile2 ../../var/pass/secret.titi
 }
 
 
@@ -607,24 +605,13 @@ ll_prefix12() {
 
 ll_nosyncinternaldates() {
         can_send && sendtestmessage toto
-        $CMD_PERL_2xx ./imapsync \
-         --host1 $HOST1  --user1 toto \
-         --passfile1 ../../var/pass/secret.toto \
-         --host2 $HOST2 --user2 titi \
-         --passfile2 ../../var/pass/secret.titi \
-         --folder INBOX  --noauthmd5 \
-         --nosyncinternaldates  --delete2 --expunge2 
-         #--debugimap2
-
-        can_send && sendtestmessage toto
         $CMD_PERL_3xx ./imapsync \
          --host1 $HOST1  --user1 toto \
          --passfile1 ../../var/pass/secret.toto \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-         --folder INBOX  --noauthmd5 \
+         --folder INBOX  \
          --nosyncinternaldates  --delete2 --expunge2 
-         #--debugimap2
 }
 # bug:
 # $d=""; # no bug with $d=undef
@@ -1187,7 +1174,7 @@ ll_regextrans2()
        --justfolders \
        --nofoldersizes \
        --regextrans2 's/yop/yoX/' \
-       --folder 'INBOX.yop.yap'
+       --folder 'INBOX.yop.yap' --debug
 }
 
 ll_regextrans2_downcase() 
@@ -1637,9 +1624,7 @@ ll_tls_justlogin() {
 
 
 ll_tls_devel() {
-   CMD_PERL=$CMD_PERL_2xx ll_justlogin ll_ssl_justlogin \
-&& CMD_PERL=$CMD_PERL_3xx ll_justlogin ll_ssl_justlogin \
-&& CMD_PERL=$CMD_PERL_2xx ll_tls_justconnect  ll_tls_justlogin \
+   CMD_PERL=$CMD_PERL_3xx ll_justlogin ll_ssl_justlogin \
 && CMD_PERL=$CMD_PERL_3xx ll_tls_justconnect ll_tls_justlogin
 }
 
@@ -1705,8 +1690,20 @@ ll_authmech_PLAIN() {
                 --passfile2 ../../var/pass/secret.titi \
                 --justfoldersizes --nofoldersizes \
                 --authmech1 PLAIN --authmech2 PLAIN 
-
 }
+
+
+ll_authmech_XOAUTH_gmail() {
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com --ssl1 --user1 imapsync@lab3.dedalusprime.com.br \
+                --passfile1 ../../var/pass/secret.xoauth \
+                --host2 imap.gmail.com --ssl2 --user2 imapsync@lab3.dedalusprime.com.br \
+                --passfile2 ../../var/pass/secret.xoauth \
+                --justfoldersizes --nofoldersizes \
+                --authmech1 XOAUTH --authmech2 XOAUTH
+}
+
+
 
 ll_authmech_NTLM() {
                 $CMD_PERL -I./W/NTLM-1.09/blib/lib ./imapsync \
@@ -2325,7 +2322,7 @@ allow3xx() {
 }
 
 noallow3xx() {
-                ! $CMD_PERL_3xx ./imapsync \
+                $CMD_PERL_3xx ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -2356,7 +2353,7 @@ dkimap_1() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX/dkimap --regextrans2 's/INBOX.INBOX./INBOX./'  \
-		--noauthmd5  --foldersize --nouid1
+		--foldersize --nouid1
 }
 
 ll_justlogin() {
@@ -2365,7 +2362,7 @@ ll_justlogin() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-		--justlogin --noauthmd5
+		--justlogin 
 }
 
 ll_justlogin_backslash_char() {
@@ -2376,7 +2373,7 @@ ll_justlogin_backslash_char() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 tptp@est.belle \
                 --passfile2 ../../var/pass/secret.tptp \
-		--justlogin --noauthmd5
+		--justlogin 
 }
 
 ll_justlogin_dollar_char() {
@@ -3109,7 +3106,6 @@ dprof_justfoldersizes()
         --passfile1 ../../var/pass/secret.gilles_mbox \
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
-        --noauthmd5 \
         --justfoldersizes  --folder INBOX.Junk || \
     true
     }
@@ -3129,7 +3125,6 @@ dprof_bigfolder()
         --passfile1 ../../var/pass/secret.gilles_mbox \
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
-        --noauthmd5 \
         --nofoldersizes  --folder INBOX.15_imapsync.imapsync-list || \
     true
     }
@@ -3236,6 +3231,7 @@ ll_tls_justconnect
 ll_tls_justlogin 
 ll_tls 
 ll_authmech_PLAIN 
+ll_authmech_XOAUTH_gmail
 ll_authmech_LOGIN 
 ll_authmech_CRAMMD5 
 ll_authuser 

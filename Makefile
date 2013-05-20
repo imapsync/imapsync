@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.116 2013/04/18 01:24:25 gilles Exp gilles $	
+# $Id: Makefile,v 1.118 2013/05/14 05:59:55 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -13,12 +13,14 @@ usage:
 	@echo "make test_quick # few tests verbosely"
 	@echo "make tests_win32 # run tests on win32"
 	@echo "make tests_win32_dev # run test2.bat on win32"
+	@echo "make prereq_win32 # run W/install_modules.bat on win32"
 	@echo "make all     "
 	@echo "make upload_index"
 	@echo "make upload_ks"
 	@echo "make imapsync.exe"
 	@echo "make imapsync_elf_x86.bin"
 	@echo "make publish"
+
 
 PREFIX ?= /usr
 DIST_NAME=imapsync-$(VERSION)
@@ -145,6 +147,9 @@ test_imapsync_exe: dosify_bat
 	scp W/test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
+prereq_win32: imapsync examples/install_modules.bat .dosify_bat
+	scp examples/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_modules.bat'
 
 imapsync.exe: imapsync W/build_exe.bat .dosify_bat
 	rcsdiff imapsync
@@ -257,7 +262,7 @@ ksa:
 	rsync -avHz --delete -P \
 	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
-publish: upload_ks ksa ml
+publish: ksa upload_ks ml
 
 PUBLIC_FILES = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL \

@@ -20,7 +20,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.536 $
+$Revision: 1.542 $
 
 =head1 SYNOPSIS
 
@@ -230,6 +230,11 @@ When working on Sun/iPlanet/Netscape IMAP servers you must use
 --proxyauth1 to enable administrative user to masquerade as another user. 
 Can also be used on destination server with --proxyauth2 
 
+You can authenticate with OAUTH when transfering from Google Apps.
+The consumer key will be the domain part of the --user, and the
+--password will be used as the consumer secret. It does not work
+with Google Apps free edition. 
+
 =head1 EXIT STATUS
 
 imapsync will exit with a 0 status (return code) if everything went good.
@@ -399,8 +404,8 @@ Success stories reported with the following 52 imap servers
  - Kerio 7.2.0 Patch 1 [host1] [host2]
  - Mail2World IMAP4 Server 2.5 [host1] (http://www.mail2world.com/)
  - MailEnable 4.23 [host1] [host2], 4.26 [host1][host2], 5 [host1]
- - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 12 [host2],
-   12.0.3 [host1], 12.5.5 [host1],
+ - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 
+   9.6.5 [host1], 12 [host2], 12.0.3 [host1], 12.5.5 [host1],
  - Mercury 4.1 (Windows server 2000 platform)
  - Microsoft Exchange Server 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
    6.5.7638.1 [host2], 6.5 [host1], Exchange 2007 SP1 (with Update Rollup 2), 
@@ -422,7 +427,7 @@ Success stories reported with the following 52 imap servers
  - Softalk Workgroup Mail 7.6.4 [host1].
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05, 6.3
- - Surgemail 3.6f5-5
+ - Surgemail 3.6f5-5, 6.3d-72 [host2]
  - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
    (RedHat uses UW like 2003.338rh), v12.264 Solaris 5.7 (OSI Approved) 
    (http://www.washington.edu/imap/)
@@ -526,20 +531,21 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.536 2013/04/17 14:33:12 gilles Exp gilles $
+$Id: imapsync,v 1.542 2013/05/06 08:30:35 gilles Exp gilles $
 
 =cut
 
 
 # pragmas
 
+use strict;
 use warnings;
 ++$|;
-use strict;
 use Carp;
 use Getopt::Long;
 use Mail::IMAPClient;
-use Digest::MD5  qw(md5_base64);
+use Digest::MD5  qw( md5 md5_hex md5_base64 );
+use Digest::HMAC_SHA1 qw( hmac_sha1 ) ;
 #use Term::ReadKey;
 #use IO::Socket::SSL;
 use MIME::Base64;
@@ -556,8 +562,7 @@ use IO::File;
 use Time::Local ;
 use Time::HiRes qw( time ) ;
 use Test::More 'no_plan';
-
-eval { require 'usr/include/sysexits.ph' };
+#use Unix::Sysexits ;
 
 use constant {
     Unconnected   => 0,
@@ -657,7 +662,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.536 2013/04/17 14:33:12 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.542 2013/05/06 08:30:35 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -695,9 +700,10 @@ my %month_abrev = (
    Dec => 11,
 );
 
-unless(defined(&_SYSEXITS_H)) {
+unless( defined( &EX_USAGE ) ) {
 	# 64 on my linux box.
-	eval 'sub EX_USAGE () {64;}' unless defined(&EX_USAGE);
+        # See http://search.cpan.org/~jmates/Unix-Sysexits-0.02/lib/Unix/Sysexits.pm
+	eval { sub EX_USAGE { 64 ; } } ;
 }
 
 
@@ -774,7 +780,7 @@ write_pidfile($pidfile) if ($pidfile);
 $modules_version and print "Modules version list:\n", modules_VERSION(), "\n";
 
 check_lib_version() or 
-  die "imapsync needs perl lib Mail::IMAPClient release 2.2.9, or 3.25 or superior \n";
+  die "imapsync needs perl lib Mail::IMAPClient release 3.25 or superior \n";
 
 exit_clean(0) if ($justbanner);
 
@@ -1741,47 +1747,68 @@ sub keyval {
 sub check_lib_version {
 	$debug and print "IMAPClient $Mail::IMAPClient::VERSION\n";
 	if ($Mail::IMAPClient::VERSION eq '2.2.9') {
-		override_imapclient();
-		return(1);
+		print "imapsync no longer supports Mail::IMAPClient 2.2.9, upgrade it" ;
+		return( 0 ) ;
 	}
 	else{
 		# 3.x.x is no longer buggy with imapsync.
-		if ($allow3xx) {
-			return(1);
-		}else{
-			return(0);
-		}
+		return( 1 ) ;      
 	}
+}
+
+sub module_version_str {
+	my( $module, $version ) = @_ ;
+	my $str = sprintf( "%-20s %s\n", $module, $version ) ;
+        return( $str ) ;
 }
 
 sub modules_VERSION {
 
 	my @list_version;
 
-	foreach my $module (qw(
-Mail::IMAPClient
-IO::Socket      
-IO::Socket::INET
-IO::Socket::SSL 
-Digest::MD5     
-Digest::HMAC_MD5
-Term::ReadKey
-Authen::NTLM))
-	{
-		my $v = "?";
-	
-		if (eval "require $module") {
-			# module is here
-			$v = eval "\$${module}::VERSION";
-		}else{
-			# no module
-			$v = "?";
-		}
-		#print ("$module ", $v, "\n");
-		push (@list_version, sprintf("%-20s %s\n", $module, $v));
-	}
-	return(@list_version);
+	my $v ;
+	eval { require Mail::IMAPClient; $v = $Mail::IMAPClient::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Mail::IMAPClient', $v ) ) ;
+
+	eval { require IO::Socket; $v = $IO::Socket::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'IO::Socket', $v ) ) ;
+
+	eval { require IO::Socket::INET; $v = $IO::Socket::INET::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'IO::Socket::INET', $v ) ) ;
+
+	eval { require IO::Socket::SSL ; $v = $IO::Socket::SSL::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'IO::Socket::SSL ', $v ) ) ;
+
+	eval { require Digest::MD5; $v = $Digest::MD5::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Digest::MD5', $v ) ) ;
+
+	eval { require Digest::HMAC_MD5; $v = $Digest::HMAC_MD5::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Digest::HMAC_MD5', $v ) ) ;
+
+	eval { require Digest::HMAC_SHA1; $v = $Digest::HMAC_SHA1::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Digest::HMAC_SHA1', $v ) ) ;
+
+	eval { require Term::ReadKey; $v = $Term::ReadKey::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Term::ReadKey', $v ) ) ;
+
+	eval { require Authen::NTLM; $v = $Authen::NTLM::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Authen::NTLM', $v ) ) ;
+
+	eval { require File::Spec; $v = $File::Spec::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'File::Spec', $v ) ) ;
+
+	eval { require Time::HiRes; $v = $Time::HiRes::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Time::HiRes', $v ) ) ;
+
+	eval { require URI::Escape; $v = $URI::Escape::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'URI::Escape', $v ) ) ;
+
+	eval { require Data::Uniqid; $v = $Data::Uniqid::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Data::Uniqid', $v ) ) ;
+
+	return( @list_version ) ;
 }
+
 
 # Construct a command line copy with passwords replaced by MASKED.
 sub command_line_nopassword {
@@ -1864,7 +1891,7 @@ sub myconnect {
 		$@ 		= "$@";   
 		carp 		  "$@" 
 				unless defined wantarray;	
-		return undef;
+		return ;
 	}
 	$sock->autoflush(1);
 	
@@ -2061,7 +2088,8 @@ sub login_imap {
         } else {
                 $imap->Authmechanism( $authmech ) unless ( $authmech eq 'LOGIN'  or $authmech eq 'PREAUTH' ) ;
         }
-
+        
+	$imap->Authcallback(\&xoauth) if $authmech eq "XOAUTH";
 	$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
 	
 
@@ -2100,7 +2128,7 @@ sub login_imap {
 }
 
 
-sub plainauth() {
+sub plainauth {
         my $code = shift;
         my $imap = shift;
 
@@ -2109,6 +2137,77 @@ sub plainauth() {
         return encode_base64("$string", "");
 }
 
+# xoauth() thanks to Eduardo Bortoluzzi Junior
+sub xoauth {
+               require URI::Escape  ;
+               require Data::Uniqid ;
+
+        my $code = shift;
+        my $imap = shift;
+               
+        # The base information needed to construct the OAUTH authentication
+        my $method = "GET";
+        my $URL = sprintf("https://mail.google.com/mail/b/%s/imap/", $imap->User);
+        my $URLparm = sprintf("xoauth_requestor_id=%s", URI::Escape::uri_escape($imap->User));
+        
+        # For Google Apps, the consumer key is the primary domain
+        # TODO: create a command line argument to define the consumer key
+        my @user_parts = split(/@/, $imap->User);
+        $debug and print "XOAUTH: consumer key: $user_parts[1]\n";
+        
+        # All the parameters needed to be signed on the XOAUTH
+        my %hash = ();
+        $hash { 'xoauth_requestor_id' } = URI::Escape::uri_escape($imap->User);
+        $hash { 'oauth_consumer_key' } = $user_parts[1];
+        $hash { 'oauth_nonce' } = md5_hex(Data::Uniqid::uniqid(rand(), 1==1));
+        $hash { 'oauth_signature_method' } = 'HMAC-SHA1';
+        $hash { 'oauth_timestamp' } = time();
+        $hash { 'oauth_version' } = '1.0';
+
+        # Base will hold the string to be signed
+        my $base = "$method&" . URI::Escape::uri_escape($URL) . "&";
+        
+        # The parameters must be in dictionary order before signing
+        my $baseparms = "";
+        foreach my $key (sort keys %hash) {
+                if(length($baseparms)>0) {
+                        $baseparms .= "&";
+                }
+                
+                $baseparms .= "$key=$hash{$key}";
+        }
+        
+        $base .= URI::Escape::uri_escape($baseparms);
+        $debug and print "XOAUTH: base request to sign: $base\n";
+        # Sign it with the consumer secret, informed on the command line (password)
+        my $digest = hmac_sha1($base, URI::Escape::uri_escape($imap->Password) . "&");
+        
+        # The parameters signed become a parameter and...
+        $hash { 'oauth_signature' } = URI::Escape::uri_escape(substr(encode_base64($digest),0,-1));
+        
+        # ... we don't need the requestor_id anymore.
+        delete $hash{'xoauth_requestor_id'};
+        
+        # Create the final authentication string
+        my $string = $method . " " . $URL . "?" . $URLparm ." ";
+
+        # All the parameters must be sorted
+        $baseparms = "";
+        foreach my $key (sort keys %hash) {
+                if(length($baseparms)>0) {
+                        $baseparms .= ",";
+                }
+                
+                $baseparms .= "$key=\"$hash{$key}\"";
+        }
+        
+        $string .= $baseparms;
+        
+        $debug and print "XOAUTH: authentication string: $string\n";
+       
+       # It must be base64 encoded     
+        return encode_base64("$string", "");
+}
 
 sub server_banner {
 	my $imap = shift;
@@ -2122,8 +2221,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.536 $ ',
-		  '$Date: 2013/04/17 14:33:12 $ ',
+		  '$Revision: 1.542 $ ',
+		  '$Date: 2013/05/06 08:30:35 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -2150,14 +2249,16 @@ sub write_pidfile {
 	} 
 	if ( -e $pidfile ) {
 		print "$pidfile already exists, overwriting it\n" ;
-	} 
-	open( PIDFILE, ">$pidfile" ) or do {
+	}
+        my $PIDFILE ;
+	open( $PIDFILE, '>', $pidfile ) or do {
 		print "Could not open $pidfile for writing" ;
-		return undef ;
+		return ;
 	} ;
 	
-	print PIDFILE $PROCESS_ID ;
-	close PIDFILE ;
+	print $PIDFILE $PROCESS_ID ;
+	close $PIDFILE ;
+        
 	return( $PROCESS_ID ) ;
 } 
 
@@ -2438,7 +2539,7 @@ sub help_to_guess_prefix {
 	. "the folowing listing of folders may help you to find it:\n"
 	. folders_list_to_help($imap)
 	. "Most of the time it is INBOX. or an empty string\n"
-	. "so try $prefix_opt INBOX. or $prefix_opt ''\n";
+	. "so try $prefix_opt INBOX. or $prefix_opt" . '""' . "\n" ;
 	
 	return($help);
 }
@@ -2542,6 +2643,25 @@ sub imap2_folder_name {
 	}
 	return($h2_fold);
 }
+
+sub tests_decompose_regex {
+	ok( 1, 'decompose_regex 1' ) ;
+        my( $left, $right ) ;
+	ok( 0 == compare_lists( [ '', '' ], [ decompose_regex( '' ) ] ), 'decompose_regex empty string' ) ;
+	ok( 0 == compare_lists( [ '.*', 'lala' ], [ decompose_regex( 's/.*/lala/' ) ] ), 'decompose_regex s/.*/lala/' ) ;
+	
+}
+
+sub decompose_regex {
+	my $regex = shift ;
+	my( $left, $right ) ;
+
+	( $left, $right ) = $regex =~ m#^s/((?:[^/]|\\/)+)/((?:[^/]|\\/)+)/#;
+        return( '', '' ) if not $left ;
+	return( $left, $right ) ;
+}
+
+
 
 
 sub foldersizes {
@@ -2882,7 +3002,7 @@ sub select_msgs {
                         $debugdev and print "Done fetch_hash()\n" ;
                 }
                 
-                return undef if ( $#msgs_all == 0 && !defined( $msgs_all[0] ) ) ;
+                return if ( $#msgs_all == 0 && !defined( $msgs_all[0] ) ) ;
                 
                 if ( defined( $msgs_all_hash_ref ) ) {
                         @{ $msgs_all_hash_ref }{ @msgs_all } =  () ;
@@ -4058,24 +4178,24 @@ sub parse_header_msg {
 sub firstline {
         # extract the first line of a file (without \n)
 
-        my($file) = @_;
-        my $line  = "";
+        my($file) = @_ ;
+        my $line  = "" ;
         
-        open FILE, $file or die_clean("error [$file]: $! ");
-        chomp($line = <FILE>);
-        close FILE;
-        $line = ($line) ? $line: "error !EMPTY! [$file]";
-        return $line;
+        open( my $FILE, '<', $file ) or die_clean( "error [$file]: $! " ) ;
+        chomp( $line = <$FILE> ) ;
+        close $FILE ;
+        $line = ( $line ) ? $line: "error !EMPTY! [$file]" ;
+        return $line ;
 }
 
 
 sub file_to_string {
-	my($file) = @_;
-	my @string;
-	open FILE, $file or die_clean("error [$file]: $! ");
-	@string = <FILE>;
-	close FILE;
-	return join("", @string);
+	my( $file ) = @_ ;
+	my @string ;
+	open( my $FILE, '<', $file )  or die_clean( "error [$file]: $! " ) ;
+	@string = <$FILE> ;
+	close $FILE ;
+	return join('', @string) ;
 }
 
 
@@ -4102,7 +4222,7 @@ sub is_a_release_number {
 
 sub check_last_release {
 
-	my $public_release = not_long('imapsync_version_lfo');
+	my $public_release = not_long_imapsync_version_public(  ) ;
 	#print "check_last_release: [$public_release]\n" ;
 	return('unknown') if ($public_release eq 'unknown');
 	return('timeout') if ($public_release eq 'timeout');
@@ -4118,7 +4238,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.536 2013/04/17 14:33:12 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.542 2013/05/06 08:30:35 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -4136,7 +4256,7 @@ sub imapsync_basename {
 
 }
 
-sub imapsync_version_lfo {
+sub imapsync_version_public {
 	
 	my $local_version = imapsync_version();
 	my $imapsync_basename = imapsync_basename();
@@ -4160,9 +4280,9 @@ sub imapsync_version_lfo {
 	return($last_release);
 }
 
-sub not_long {
-	#print "Entering not_long\n";
-	my ($func) = @_;
+sub not_long_imapsync_version_public {
+	#print "Entering not_long_imapsync_version_public\n";
+
 	my $val;
 	
 	# Doesn't work with gethostbyname (see perlipc)
@@ -4180,11 +4300,9 @@ sub not_long {
 	eval {
 		
 		alarm(3);
-		#print $func, "\n";
 		{
-			no strict "refs";
-			#print "Calling $func\n";
-			$val = &$func();
+			$val = imapsync_version_public(  ) ;
+                        #sleep 4;
 			#print "End of  $func\n";
 		}
 		alarm(0);
@@ -4955,7 +5073,7 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-                tests_imap2_folder_name(  ) ;
+                tests_decompose_regex(  ) ;
 	}
 }
 
@@ -4999,975 +5117,8 @@ sub tests {
 	}
 }
 
-# IMAPClient 2.2.9 overrides
 
-sub override_imapclient {
-no warnings 'redefine';
-no strict 'subs';
-
-use constant Unconnected => 0;
-use constant Connected         => 1;            # connected; not logged in
-use constant Authenticated => 2;                # logged in; no mailbox selected
-use constant Selected => 3;                     # mailbox selected
-use constant INDEX => 0;                        # Array index for output line number
-use constant TYPE => 1;                         # Array index for line type 
-                                                #    (either OUTPUT, INPUT, or LITERAL)
-use constant DATA => 2;                         # Array index for output line data
-use constant NonFolderArg => 1;                 # Value to pass to Massage to 
-                                                # indicate non-folder argument
-
-
-*Mail::IMAPClient::_transaction_literals = sub {
-	my $self = shift;
-	my $string = "";
-
-	foreach my $result  (@{$self->{"History"}{$self->Transaction}}) { 
-	      $string .= $result->[DATA] 
-		if defined($result) and $self->_is_literal($result) ;
-	}      
-	return $string;
-};
-
-# Got from 3.25
-*Mail::IMAPClient::append_string = sub {
-    my $self   = shift;
-    my $folder = $self->Massage(shift);
-    my ( $text, $flags, $date ) = @_;
-    defined $text or $text = '';
-
-    if ( defined $flags ) {
-        $flags =~ s/^\s+//g;
-        $flags =~ s/\s+$//g;
-        $flags = "($flags)" if $flags !~ /^\(.*\)$/;
-    }
-
-    if ( defined $date ) {
-        $date =~ s/^\s+//g;
-        $date =~ s/\s+$//g;
-        $date = qq("$date") if $date !~ /^"/;
-    }
-
-    $text =~ s/\r?\n/$CRLF/og;
-
-    my $command =
-        "APPEND $folder "
-      . ( $flags ? "$flags " : "" )
-      . ( $date  ? "$date "  : "" ) . "{"
-      . length($text)
-      . "}$CRLF";
-
-    $command .= $text . $CRLF;
-    $self->_imap_command( $command ) or return undef;
-
-    my $data = join '', $self->Results;
-    #print "ZZZ|$data|ZZZ\n";
-    # look for something like return size or self if no size found:
-    # <tag> OK [APPENDUID <uid> <size>] APPEND completed
-    # 18 OK [APPENDUID 1286144680 1539] APPEND Ok.
-    my $ret = $data =~ m#^\d+ OK \[APPEND.*\s+(\d+)\].*\Z#m ? $1 : $self;
-
-    return $ret;
-};
-
-
-*Mail::IMAPClient::fetch_hash = sub {
-	# taken from above *Mail::IMAPClient::fetch_hash
-	# if last arg is a ref then the fetch is done only 
-	# on the messages listed as the keys of this hash.
-	# Init an "empty" $hash_ref by value can be done this way:
-	# @$hash_ref{2, 3, 4, 55} = (undef);
-	
-        my $self = shift;
-        my $hash_ref = ref($_[-1]) ? pop @_ : {};
-        my @words = @_;
-        for (@words) { 
-                s/([\( ])FAST([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE$2/i  ;
-                s/([\( ])FULL([\) ])/${1}FLAGS INTERNALDATE RFC822\.SIZE ENVELOPE BODY$2/i  ;
-        }
-	
-	my $msgs_ref_all;
-	if (scalar %$hash_ref) {
-		$msgs_ref_all = [ sort { $a <=> $b } keys (%$hash_ref) ];
-		#print "ZZZZ 1 [@$msgs_ref_all]\n";
-	}else{
-	        $msgs_ref_all = scalar($self->messages);
-		#print "ZZZZ 2 [@$msgs_ref_all]\n";
-	}
-	
-	my $split = $self->Split() || scalar(@$msgs_ref_all);
-	while(my @msgs = splice(@$msgs_ref_all, 0, $split)) {
-	#print "SPLIT: @msgs\n";
-	my $msgs_ref = \@msgs;
-	my $output = scalar($self->fetch($msgs_ref,"(" . join(" ",@_) . ")")) 
-        ; #     unless grep(/\b(?:FAST|FULL)\b/i,@words);
-        my $x;
-        for ($x = 0;  $x <= $#$output ; $x++) {
-                my $entry = {};
-                my $l = $output->[$x];
-                if ($self->Uid) {       
-                        my($uid) = $l =~ /\((?:.* )?UID (\d+).*\)/i;
-                        next unless $uid;
-                        if ( defined $hash_ref->{$uid} ) {
-                                $entry = $hash_ref->{$uid} ;
-                        }
-			else {
-                                $hash_ref->{$uid} ||= $entry;
-                        }
-                }
-		else {
-                        my($mid) = $l =~ /^\* (\d+) FETCH/i;
-                        next unless $mid;
-                        if ( defined $hash_ref->{$mid} ) {
-                                $entry = $hash_ref->{$mid} ;
-                        }
-			else {
-                                $hash_ref->{$mid} ||= $entry;
-                        }
-                }
-                        
-                foreach my $w (@words) {
-                   if ( $l =~ /\Q$w\E\s*$/i ) {
-                        $entry->{$w} = $output->[$x+1];
-                        $entry->{$w} =~ s/(?:\x0a?\x0d)+$//g;
-                        chomp $entry->{$w};
-                   }
-		   else {
-                        $l =~ /\(           # open paren followed by ... 
-                                (?:.*\s)?   # ...optional stuff and a space
-                                \Q$w\E\s    # escaped fetch field<sp>
-                                (?:"        # then: a dbl-quote
-                                  (\\.|   # then bslashed anychar(s) or ...
-                                   [^"]+)   # ... nonquote char(s)
-                                "|          # then closing quote; or ...
-                                \(          # ...an open paren
-                                  (\\.|     # then bslashed anychar or ...
-                                   [^\)]*)  # ... non-close-paren char
-                                \)|         # then closing paren; or ...
-                                (\S+))      # unquoted string
-                                (?:\s.*)?   # possibly followed by space-stuff
-                                \)          # close paren
-                        /xi;
-                        $entry->{$w}=defined($1)?$1:defined($2)?$2:$3;
-                   }
-                }
-        }
-}
-        return wantarray ? %$hash_ref : $hash_ref;
-};
-
-
-
-*Mail::IMAPClient::login = sub {
-        my $self = shift;
-        return $self->authenticate($self->Authmechanism,$self->Authcallback) 
-                if $self->{Authmechanism};
-
-        my $id   = $self->User;
-        my $has_quotes = $id =~ /^".*"$/ ? 1 : 0;
-        my $string =    "Login " . ( $has_quotes ? $id : qq("$id") ) . 
-	                " " . $self->Password . "\r\n";
-        $self->_imap_command($string) 
-                and $self->State(Authenticated);
-        # $self->folders and $self->separator unless $self->NoAutoList;
-        unless ( $self->IsAuthenticated) {
-                my($carp)       =  $self->LastError;
-                $carp           =~ s/^[\S]+ ([^\x0d\x0a]*)\x0d?\x0a/$1/;
-                carp $carp unless defined wantarray;
-                return undef;
-        };
-        return $self;
-};
-
-
-*Mail::IMAPClient::get_header = sub {
-        my($self , $msg, $header ) = @_;
-        my $val;
-        
-	#eval { $val = $self->parse_headers([$msg],$header)->{$header}[0] };
-	my $h = $self->parse_headers([$msg],$header);
-	#require Data::Dumper;
-	#print Data::Dumper->Dump([$h]);
-        #$val = $self->parse_headers([$msg],$header)->{$header}[0];
-	
-	$val = $h->{$msg}{$header}[0];
-        return defined($val)? $val : undef;
-};
-
-
-*Mail::IMAPClient::parse_headers = sub {
-        my($self,$msgspec_all,@fields) = @_;
-        my(%fieldmap) = map { ( lc($_),$_ )  } @fields;
-        my $msg; my $string; my $field;
-	#print ref($msgspec_all), "\n";
-	#if(ref($msgspec_all) eq 'HASH') {
-    #    print ref($msgspec_all), "\n";
-		#$msgspec_all = [$msgspec_all];
-	#}
-
-	unless(ref($msgspec_all) eq 'ARRAY') {
-		print "parse_headers want an ARRAY ref\n";
-		#exit 1;
-		return undef;
-	}
-	
-	my $headers = {};       # hash from message ids to header hash
-	my $split = $self->Split() || scalar(@$msgspec_all);
-	while(my @msgs = splice(@$msgspec_all, 0, $split)) {
-		#$debug and print "SPLIT: @msgs\n";
-		my $msgspec = \@msgs;
-
-        # Make $msg a comma separated list, of messages we want
-        $msg = $self->Range($msgspec);
-		
-        if ($fields[0]  =~      /^[Aa][Ll]{2}$/         ) { 
-
-                $string =       "$msg body" . 
-                # use ".peek" if Peek parameter is a) defined and true, 
-                #       or b) undefined, but not if it's defined and untrue:
-
-                (       defined($self->Peek)            ? 
-                        ( $self->Peek ? ".peek" : "" )  : 
-                        ".peek" 
-                ) .  "[header]"                         ; 
-
-        }else {
-                $string =       "$msg body" .
-                # use ".peek" if Peek parameter is a) defined and true, or 
-                # b) undefined, but not if it's defined and untrue:
-
-                ( defined($self->Peek)                  ? 
-                        ( $self->Peek ? ".peek" : "" )  : 
-                        ".peek" 
-                ) .  "[header.fields (" . join(" ",@fields)     . ')]' ;
-        }
-
-        my @raw=$self->fetch(   $string ) or return undef;
-
-        
-        my $h = 0;              # reference to hash of current msgid, or 0 between msgs
-        
-        for my $header (map { split(/(?:\x0d\x0a)/,$_) } @raw) {
-                
-		no warnings;
-                if ( $header =~ /^\*\s+\d+\s+FETCH\s+\(.*BODY\[HEADER(?:\]|\.FIELDS)/i) {
-                        if ($self->Uid) {
-                                if ( my($msgid) = $header =~ /UID\s+(\d+)/ ) {
-                                        $h = {};
-                                        $headers->{$msgid} = $h;
-                                } 
-				else {
-                                        $h = {};
-                                }
-                        } 
-			else {
-                                if ( my($msgid) = $header =~ /^\*\s+(\d+)/ ) {
-                                        #start of new message header:
-                                        $h = {};
-                                        $headers->{$msgid} = $h;
-                                }
-                        }
-                }
-                next if $header =~ /^\s+$/;
-
-                # ( for vi
-                if ($header =~ /^\)/) {           # end of this message
-                        $h = 0;                   # set to be between messages
-                        next;
-                }
-                # check for '<optional_white_space>UID<white_space><UID_number><optional_white_space>)'
-                # when parsing headers by UID.
-                if ($self->Uid and my($msgid) = $header =~ /^\s*UID\s+(\d+)\s*\)/) {
-                        $headers->{$msgid} = $h;        # store in results against this message
-                        $h = 0;                         # set to be between messages
-                        next;
-                }
-
-                if ($h != 0) {                    # do we expect this to be a header?
-                        my $hdr = $header;
-                        chomp $hdr;
-                        $hdr =~ s/\r$//;
-			#print "W[$hdr]", ref($hdr), "!\n";
-			#next if ( ! defined($hdr));
-			#print "X[$hdr]\n";
-
-                        if (defined($hdr) and ($hdr =~ s/^(\S+):\s*//)) {
-			# if ($hdr =~ s/^(\S+):\s*//) {
-				#print "X1\n";
-				$field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
-                                push @{$h->{$field}} , $hdr ;
-                        } elsif ($hdr =~ s/^.*FETCH\s\(.*BODY\[HEADER\.FIELDS.*\)\]\s(\S+):\s*//) { 
-				#print "X2\n";
-                                $field = exists $fieldmap{lc($1)} ? $fieldmap{lc($1)} : $1 ;
-                                push @{$h->{$field}} , $hdr ;
-                        } elsif ( ref($h->{$field}) eq 'ARRAY') {
-				#print "X3\n";
-                                
-                                        $hdr =~ s/^\s+/ /;
-                                        $h->{$field}[-1] .= $hdr ;
-                        }
-                }
-        }
-	use warnings;
-#       my $candump = 0;
-#       if ($self->Debug) {
-#                eval {
-#                        require Data::Dumper;
-#                        Data::Dumper->import;
-#                };
-#                $candump++ unless $@;
-#        }
-
-	}
-        # if we asked for one message, just return its hash,
-        # otherwise, return hash of numbers => header hash
-        # if (ref($msgspec) eq 'ARRAY') {
-        
-	return $headers;
-        
-};
-
-
-*Mail::IMAPClient::authenticate = sub {
-
-        my $self        = shift;
-        my $scheme      = shift;
-        my $response    = shift;
-
-        $scheme   ||= $self->Authmechanism;
-        $response ||= $self->Authcallback;
-        my $clear = $self->Clear;
-
-        $self->Clear($clear)
-                if $self->Count >= $clear and $clear > 0;
-
-        my $count       = $self->Count($self->Count+1);
-
-
-        my $string = "$count AUTHENTICATE $scheme";
-
-        $self->_record($count,[ $self->_next_index($self->Transaction), 
-                                "INPUT", "$string\x0d\x0a"] );
-
-        my $feedback = $self->_send_line("$string");
-
-        unless ($feedback) {
-                $self->LastError("Error sending '$string' to IMAP: $!\n");
-                return undef;
-        }
-
-        my ($code, $output);
-
-        until ($code) {
-                $output = $self->_read_line or return undef;
-		
-                foreach my $o (@$output) {
-                        $self->_record($count,$o);      # $o is a ref
-                        ($code) = $o->[DATA] =~ /^\+(.*)$/ ;
-                        if ($o->[DATA] =~ /^\*\s+BYE/) {
-                                $self->State(Unconnected);
-                                return undef ;
-                        }
-                        if ($o->[DATA]=~ /^\d+\s+(NO|BAD)/i) {
-                                return undef ;
-			}
-                }
-        }
-
-        if ('CRAM-MD5' eq $scheme && ! $response) {
-          if ($Mail::IMAPClient::_CRAM_MD5_ERR) {
-            $self->LastError($Mail::IMAPClient::_CRAM_MD5_ERR);
-            carp $Mail::IMAPClient::_CRAM_MD5_ERR;
-          } 
-	  else {
-            $response = \&Mail::IMAPClient::_cram_md5;
-          }
-        }
-
-        $feedback = $self->_send_line($response->($code, $self));
-
-        unless ($feedback) {
-                $self->LastError("Error sending append msg text to IMAP: $!\n");
-                return undef;
-        }
-
-        $code = "";     # clear code
-        until ($code) {
-                $output = $self->_read_line or return undef;
-                foreach my $o (@$output) {
-                        $self->_record($count,$o);      # $o is a ref
-                        if ( ($code) = $o->[DATA] =~ /^\+ (.*)$/ ) {
-                                $feedback = $self->_send_line($response->($code,$self));
-                                unless ($feedback) {
-                                        $self->LastError("Error sending append msg text to IMAP: $!\n");
-                                        return undef;
-                                }
-                                $code = "" ;            # Clear code; we're still not finished
-                        } else {
-                                $o->[DATA] =~ /^$count (OK|NO|BAD)/ and $code = $1;
-                                if ($o->[DATA] =~ /^\*\s+BYE/) {
-                                        $self->State(Unconnected);
-                                        return undef ;
-                                }
-                        }
-                }
-        }
-
-        $code =~ /^OK/ and $self->State(Authenticated) ;
-        return $code =~ /^OK/ ? $self : undef ;
-
-};
-
-
-
-*Mail::IMAPClient::_cram_md5 = sub  {
-  my ($code, $client) = @_;
-  my $hmac = Digest::HMAC_MD5::hmac_md5_hex(MIME::Base64::decode($code),
-                                            $client->Password());
-  return MIME::Base64::encode($client->User() . " $hmac", "");
-};
-
-*Mail::IMAPClient::message_string = sub {
-        my $self = shift;
-        my $msg  = shift;
-        my $expected_size = $self->size($msg);
-        return undef unless(defined $expected_size);    # unable to get size
-        my $cmd  =      $self->has_capability('IMAP4REV1')                              ?
-                                "BODY" . ( $self->Peek ? '.PEEK[]' : '[]' )             :
-                                "RFC822" .  ( $self->Peek ? '.PEEK' : ''  )             ;
-
-	#print "Message_string Beg fetch:\n", memory_consumption();
-        $self->fetch($msg,$cmd) or return undef;
-	#print "Message_string End fetch:\n", memory_consumption();
-
-        my $string = "";
-
-
-        foreach my $result  (@{$self->{"History"}{$self->Transaction}}) {
-              $string .= $result->[DATA]
-                if defined($result) and $self->_is_literal($result) ;
-        }
-	#print "Message_string End string:\n", memory_consumption();
-
-        # BUG? should probably return undef if length != expected
-	# No bug, somme servers are buggy.
-
-	if (! $self->Ignoresizeerrors ) {
-        	if ( length($string) != $expected_size ) {
-                	print "message_string: " .
-                        	"expected $expected_size bytes but received " .
-                        	length($string) . "\n";
-			$self->LastError("message_string: expected ".
-                        	"$expected_size bytes but received " .
-                        	length($string)."\n");
-        	}
-	}
-        return $string;
-};
-
-
-
-{
-no warnings 'once';
-
-*Mail::IMAPClient::Ssl = sub {
-	my $self = shift;
-	
-	if (@_) { $self->{SSL} = shift }
-	return $self->{SSL};
-};
-
-*Mail::IMAPClient::Starttls = sub {
-	my $self = shift;
-	
-	if (@_) { $self->{Starttls} = shift }
-	return $self->{Starttls};
-};
-
-
-
-*Mail::IMAPClient::exists = sub  {
-    # Bad implementation STATUS fails and can close the connexion
-    # Exchange does this after 10 failures
-    my ( $self, $folder ) = @_;
-    $self->status($folder) ? $self : undef;
-};
-
-
-
-*Mail::IMAPClient::Authuser = sub {
-	my $self = shift;
-	
-	if (@_) { $self->{AUTHUSER} = shift }
-	return $self->{AUTHUSER};
-};
-
-
-*Mail::IMAPClient::Ignoresizeerrors = sub {
-	my $self = shift;
-	
-	if (@_) { $self->{IGNORESIZEERRORS} = shift }
-	return $self->{IGNORESIZEERRORS};
-};
-
-*Mail::IMAPClient::Reconnectretry = sub {
-	my $self = shift;
-	
-	if (@_) { $self->{RECONNECTRETRY} = shift }
-	return $self->{RECONNECTRETRY};
-};
-
-
-*Mail::IMAPClient::reconnect  = sub {
-    my $self = shift;
-
-    if ( $self->IsAuthenticated ) {
-        $self->_debug("reconnect called but already authenticated");
-        return $self;
-    }
-
-    my $einfo = $self->LastError || "";
-    $self->_debug( "reconnecting to ", $self->Server, ", last error: $einfo" );
-
-    # reconnect and select appropriate folder
-    $self->connect or return undef;
-
-    return ( defined $self->Folder ) ? $self->select( $self->Folder ) : $self;
-};
-
-
-# wrapper for _imap_command_do to enable retrying on lost connections
-*Mail::IMAPClient::_imap_command  = sub {
-    my $self = shift;
-
-    my $tries = 0;
-    my $retry = $self->Reconnectretry || 0;
-    my ( $rc, @err );
-
-    #print "@_ Beg _imap_command:\n", memory_consumption();
-
-    # LastError (if set) will be overwritten masking any earlier errors
-    while ( $tries++ <= $retry ) {
-        # do command on the first try or if Connected (reconnect ongoing)
-        if ( $tries == 1 or $self->IsConnected ) {
-	    #print "call @_\n";
-            $rc = $self->_imap_command_do(@_);
-            push( @err, $self->LastError ) if $self->LastError;
-	    #print "call @_ done [", $rc || '', "] [$tries/$retry][" . $self->IsUnconnected . "]\n";
-        }
-	
-        if ( !defined($rc) 
-	     and $retry and $self->IsUnconnected
-	     and ( $self->LastIMAPCommand !~ /LOGOUT/ )
-	     
-	) {
-	   print "\nWarning: disconnected. ";
-           if ( $self->reconnect ) {
-                print "Reconnect successful on try #$tries\n";
-		$self->Reconnect_counter($self->Reconnect_counter() + 1);
-            }
-            else {
-                print "Reconnect failed on try #$tries\n";
-                push( @err, $self->LastError ) if $self->LastError;
-            }
-        }
-        else {
-            last;
-        }
-    }
-
-    unless ($rc) {
-        my ( %seen, @keep, @info );
-
-        foreach my $str (@err) {
-            my ( $sz, $len ) = ( 96, length($str) );
-            $str =~ s/$CR?$LF$/\\n/omg;
-            if ( !$self->Debug and $len > $sz * 2 ) {
-                my $beg = substr( $str, 0,    $sz );
-                my $end = substr( $str, -$sz, $sz );
-                $str = $beg . "..." . $end;
-            }
-            next if $seen{$str}++;
-            push( @keep, $str );
-        }
-        foreach my $msg (@keep) {
-            push( @info, $msg . ( $seen{$msg} > 1 ? " ($seen{$msg}x)" : "" ) );
-        }
-        $self->LastError( join( "; ", @info ) );
-    }
-    #print "@_ End _imap_command:\n", memory_consumption();
-    return $rc;
-};
-
-
-*Mail::IMAPClient::_imap_command_do = sub {
-	
-	my $self 	= shift;
-	my $string 	= shift 	or return undef;
-	my $good 	= shift 	|| 'GOOD';
-
-	my $qgood = quotemeta($good);
-
-	my $clear = "";
-	$clear = $self->Clear;
-
-	$self->Clear($clear) 
-		if $self->Count >= $clear and $clear > 0;
-
-	my $count 	= $self->Count($self->Count+1);
-
-	$string 	= "$count $string" ;
-
-        #print "$string\n", memory_consumption();
-	$self->_record($count,[ 0, "INPUT", "$string\x0d\x0a"] );
-        #print "\n2 $count\n", memory_consumption();
-	my $feedback = $self->_send_line("$string");
-
-	unless ($feedback) {
-		$self->LastError( "Error sending '$string' to IMAP: $!\n");
-		$@ = "Error sending '$string' to IMAP: $!";
-		carp "Error sending '$string' to IMAP: $!";
-		return undef;
-	}
-
-	my ($code, $output);	
-	$output = "";
-
-	READ: until ( $code)  {
-	    	# escape infinite loop if read_line never returns any data:
-              	$output = $self->_read_line or return undef; 
-
-		for my $o (@$output) { 
-			
-			$self->_record($count,$o);	# $o is a ref
-                      # $self->_debug("Received from readline: ${\($o->[DATA])}<<END OF RESULT>>\n");
-			next unless $self->_is_output($o);
-			if ( $good eq '+' ) {
-                      		$o->[DATA] =~ /^$count (OK|BAD|NO|$qgood)|^($qgood)/mi ;
-				$code = $1||$2 ;
-			} else {
-                      		($code) = $o->[DATA] =~ /^$count (OK|BAD|NO|$qgood)/mi ;
-			}
-                      if ($o->[DATA] =~ /^\*\s+BYE/im) {
-				$self->State(Unconnected);
-				return undef ;
-			}
-		}
-	}	
-	#print "$string: returned $code\n", memory_consumption();
-	# $self->_debug("Command $string: returned $code\n");
-	return $code =~ /^OK|$qgood/im ? $self : undef ;
-
-};
-
-# capability 2.2.9 is stupid: it caches and return first imap CAPABILITY call
-# but call imap CAPABILITY each time.
-# Copy/paste from 3.25
-*Mail::IMAPClient::capability = sub {
-    my $self = shift;
-
-    if ( $self->{CAPABILITY} ) {
-        my @caps = keys %{ $self->{CAPABILITY} };
-        return wantarray ? @caps : \@caps;
-    }
-
-    $self->_imap_command('CAPABILITY')
-      or return undef;
-
-    my @caps = map { split } grep s/^\*\s+CAPABILITY\s+//, $self->History;
-    foreach (@caps) {
-        $self->{CAPABILITY}{ uc $_ }++;
-        $self->{ uc $1 } = uc $2 if /(.*?)\=(.*)/;
-    }
-
-    return wantarray ? @caps : \@caps;
-};
-
-*Mail::IMAPClient::_read_line = sub {
-	my $self 	= shift;	
-	my $sh		= $self->Socket;
-	my $literal_callback    = shift;
-	my $output_callback = shift;
-	
-	unless ($self->IsConnected and $self->Socket) {
-		$self->LastError("NO Not connected.\n");
-		carp "Not connected" if $^W;
-		return undef;
-	}
-
-	my $iBuffer	= ""; 
-	my $oBuffer	= [];
-	my $count	= 0;
-	my $index	= $self->_next_index($self->Transaction);
-	my $rvec 	= my $ready = my $errors = 0; 
-	my $timeout	= $self->Timeout;
-
-	my $readlen 	= 1;
-	my $fast_io	= $self->Fast_io;	# Remember setting to reduce future method calls
-
-	if ( $fast_io ) {
-		
-		# set fcntl if necessary:
-		exists $self->{_fcntl} or $self->Fast_io($fast_io);
-		$readlen = $self->{Buffer}||4096;
-	}
-	until (	
-		# there's stuff in output buffer:
-		scalar(@$oBuffer)	and 			
-
-		# the last thing there has cr-lf:
-                $oBuffer->[-1][DATA] =~ /\x0d\x0a$/  and     
-
-		# that thing is an output line:
-                $oBuffer->[-1][TYPE]    eq "OUTPUT"  and     
-
-		# and the input buffer has been MT'ed:
-		$iBuffer		eq "" 		
-
-	) {
-		#print memory_consumption();
-              my $transno = $self->Transaction;  # used below in several places
-		if ($timeout) {
-			vec($rvec, fileno($self->Socket), 1) = 1;
-			my @ready = $self->{_select}->can_read($timeout) ;
-			unless ( @ready ) {
-				$self->LastError("Tag $transno: " .
-					"Timeout after $timeout seconds " .
-					"waiting for data from server\n");	
-				$self->_record($transno,
-					[	$self->_next_index($transno),
-						"ERROR",
-						"$transno * NO Timeout after ".
-						"$timeout seconds " .
-						"during read from " .
-						"server\x0d\x0a"
-					]
-				);
-				$self->LastError(
-					"Timeout after $timeout seconds " .
-					"during read from server\x0d\x0a"
-				);
-				return undef;
-			}
-		}
-		
-		#local($^W) = undef;	# Now quiet down warnings
-
-		# read "$readlen" bytes (or less):
-              # need to check return code from $self->_sysread 
-  	      #	in case other end has shut down!!!
-              my $ret = $self->_sysread( $sh, \$iBuffer, $readlen, length($iBuffer)) ;
-	      # $self->_debug("Read so far: $iBuffer<<END>>\n");
-	      redo if(! defined($ret)) ;
-              if(($timeout and ! defined($ret))) { # Blocking read error...
-                  my $msg = "Error while reading data from server: $!\x0d\x0a";
-		  $self->LastError('Error while reading data from server');
-		  $self->State(Unconnected);
-		  print $msg;
-                  $self->_record($transno,
-                                 [ $self->_next_index($transno),
-                                   "ERROR", "$transno * NO $msg "
-                                   ]);
-                  $@ = "$msg";
-		  
-                  return undef;
-              }
-              elsif(defined($ret) and $ret == 0) {    # Caught EOF...
-                  my $msg="Socket closed while reading data from server [$!]\x0d\x0a";
-		  print "$msg";
-		  $self->LastError('Socket closed while reading data from server');
-		  $self->State(Unconnected);
-                  $self->_record($transno,
-                                 [ $self->_next_index($transno),
-                                   "ERROR", "$transno * NO $msg "
-                                   ]);
-                  $@ = "$msg";
-                  return undef;
-              }
-	      
-              # successfully wrote to other end, keep going...
-              $count += $ret;
-		LINES: while ( $iBuffer =~ s/^(.*?\x0d?\x0a)// ) {
-		   my $current_line = $1;
-		   #print memory_consumption();
-
-		   # $self->_debug("BUFFER: pulled from buffer: <BEGIN>${current_line}<END>\n" .
-		   # 	"and left with buffer contents of: <BEGIN>${iBuffer}<END>\n");
-
-		   LITERAL: if ($current_line =~ s/\{(\d+)\}\x0d\x0a$//) {
-			# This part handles IMAP "Literals", 
-			# which according to rfc2060 look something like this:
-			# [tag]|* BLAH BLAH {nnn}\r\n
-			# [nnn bytes of literally transmitted stuff]
-			# [part of line that follows literal data]\r\n
-
-			# Set $len to be length of impending literal:
-			my $len = $1 ;
-			
-			$self->_debug("LITERAL: received literal in line ".
-				"$current_line of length $len; ".
-				"attempting to ".
-				"retrieve from the " . length($iBuffer) . 
-				" bytes in: $iBuffer<END_OF_iBuffer>\n");
-
-			# Xfer up to $len bytes from front of $iBuffer to $litstring: 
-			my $litstring = substr($iBuffer, 0, $len);
-			$iBuffer = substr($iBuffer, length($litstring), 
-					length($iBuffer) - length($litstring) ) ;
-
-			# Figure out what's left to read (i.e. what part of 
-			# literal wasn't in buffer):
-			my $remainder_count = $len - length($litstring);
-			my $callback_value = "";
-
-			if ( defined($literal_callback) ) 	{	
-				if 	( $literal_callback =~ /GLOB/) 	{	
-					print $literal_callback $litstring ;
-					$litstring = "";
-				} elsif ($literal_callback =~ /CODE/ ) {
-					# Don't do a thing
-
-				} else 	{
-					$self->LastError(
-						ref($literal_callback) . 
-						" is an invalid callback type; " .
-						"must be a filehandle or coderef\n"
-					); 
-				}
-
-		
-			}
-			if ($remainder_count > 0 and $timeout) {
-				# If we're doing timeouts then here we set up select 
-				# and wait for data from the the IMAP socket.
-				vec($rvec, fileno($self->Socket), 1) = 1;
-				unless ( CORE::select( $ready = $rvec, 
-							undef, 
-							$errors = $rvec, 
-							$timeout) 
-				) {	
-					# Select failed; that means bad news. 
-					# Better tell someone.
-					$self->LastError("Tag " . $transno . 
-						": Timeout waiting for literal data " .
-						"from server\n");	
-					carp "Tag " . $transno . 
-						": Timeout waiting for literal data " .
-						"from server\n"
-						if $self->Debug or $^W;	
-					return undef;
-				}	
-			} 
-			
-			fcntl($sh, F_SETFL, $self->{_fcntl}) 
-				if $fast_io and defined($self->{_fcntl});
-			while ( $remainder_count > 0 ) {	   # As long as not done,
-				$self->_debug("Still need $remainder_count to " .
-					"complete literal string\n");
-				my $ret	= $self->_sysread(   	   # bytes read
-						$sh, 		   # IMAP handle 
-						\$litstring,	   # place to read into
-						$remainder_count,  # bytes left to read
-						length($litstring) # offset to read into
-				) ;
-				$self->_debug("Received ret=$ret and buffer = " .
-				"\n$litstring<END>\nwhile processing LITERAL\n");
-				if ( $timeout and !defined($ret)) { # possible timeout
-					$self->_record($transno, [ 
-						$self->_next_index($transno),
-						"ERROR",
-						"$transno * NO Error reading data " .
-						"from server: $!\n"
-						]
-					);
-					return undef;
-				} elsif ( $ret == 0 and eof($sh) ) {
-					$self->_record($transno, [ 
-						$self->_next_index($transno),
-						"ERROR",
-						"$transno * ".
-						"BYE Server unexpectedly " .
-						"closed connection: $!\n"	
-						]
-					);
-					$self->State(Unconnected);
-					return undef;
-				}
-				# decrement remaining bytes by amt read:
-				$remainder_count -= $ret;	   
-
-				if ( length($litstring) > $len ) {
-                                    # copy the extra struff into the iBuffer:
-                                    $iBuffer = substr(
-                                        $litstring,   
-                                        $len, 
-                                        length($litstring) - $len 
-                                    );
-                                    $litstring = substr($litstring, 0, $len) ;
-                                }
-
-				if ( defined($literal_callback) ) {
-					if ( $literal_callback =~ /GLOB/ ) {
-						print $literal_callback $litstring;
-						$litstring = "";
-					} 
-				}
-
-			}
-			$literal_callback->($litstring) 
-				if defined($litstring) and 
-				defined($literal_callback) and $literal_callback =~ /CODE/;
-
-			$self->Fast_io($fast_io) if $fast_io;
-
-		# Now let's make sure there are no IMAP server output lines 
-		# (i.e. [tag|*] BAD|NO|OK Text) embedded in the literal string
-		# (There shouldn't be but I've seen it done!), but only if
-		# EnableServerResponseInLiteral is set to true
-
-			my $embedded_output = 0;
-			my $lastline = ( split(/\x0d?\x0a/,$litstring))[-1] 
-				if $litstring;
-
-			if ( 	$self->EnableServerResponseInLiteral and
-				$lastline and 
-				$lastline =~ /^(?:\*|(\d+))\s(BAD|NO|OK)/i 
-			) {
-			  $litstring =~ s/\Q$lastline\E\x0d?\x0a//;
-			  $embedded_output++;
-
-			  $self->_debug("Got server output mixed in " .
-					"with literal: $lastline\n"
-			  ) 	if $self->Debug;
-
-			}
-		  	# Finally, we need to stuff the literal onto the 
-			# end of the oBuffer:
-			push @$oBuffer, [ $index++, "OUTPUT" , $current_line],
-					[ $index++, "LITERAL", $litstring   ];
-			push @$oBuffer,	[ $index++, "OUTPUT",  $lastline    ] 
-					if $embedded_output;
-
-		  } else { 
-			push @$oBuffer, [ $index++, "OUTPUT" , $current_line ]; 
-		  }
-		
-		}
-		#$self->_debug("iBuffer is now: $iBuffer<<END OF BUFFER>>\n");
-	}
-	#	_debug $self, "Buffer is now $buffer\n";
-      _debug $self, "Read: " . join("",map {$_->[DATA]} @$oBuffer) ."\n" 
-		if $self->Debug;
-	return scalar(@$oBuffer) ? $oBuffer : undef ;
-};
-
-
-
-}
-
-# End of sub override_imapclient (yes, very bad indentation)
-}
-
-# IMAPClient 2.2.9 3.xx ads
+# IMAPClient 3.xx ads
 
 package Mail::IMAPClient;
 

@@ -1,5 +1,5 @@
 
-REM $Id: test2.bat,v 1.14 2012/12/24 02:25:34 gilles Exp gilles $
+REM $Id: test2.bat,v 1.15 2013/05/06 08:15:39 gilles Exp gilles $
 REM
 
 cd C:\msys\1.0\home\Admin\imapsync
@@ -45,6 +45,8 @@ REM imapsync.exe --host1 imap.gmail.com --port1 993  --ssl1 --host2 imap.bigs.dk
 
 REM @echo off
 
+SET csvfile=file.txt
+
 DATE /t
 TIME /t
 
@@ -53,7 +55,7 @@ FOR /f "tokens=1-2 delims=-/: " %%a IN ('TIME /t') DO (SET mytime=%%a_%%b)
 ECHO %mydate%_%mytime%
 
 if not exist LOG mkdir LOG
-FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO ECHO syncing to user %%I & imapsync ^
+FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (%csvfile%) DO ECHO syncing to user %%I & imapsync ^
   --host1 imap.side1.org --user1 %%G --password1 %%H ^
   --host2 imap.side2.org --user2 %%I --password2 %%J ^
   > LOG\log_%%I_%mydate%_%mytime%.txt 2>&1

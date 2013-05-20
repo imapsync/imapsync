@@ -1,4 +1,4 @@
-# $Id: INSTALL,v 1.27 2013/04/17 12:35:18 gilles Exp gilles $
+# $Id: INSTALL,v 1.28 2013/05/14 08:19:08 gilles Exp gilles $
 # 
 # INSTALL file for imapsync 
 # imapsync : IMAP sync or copy tool.
@@ -30,16 +30,32 @@ WINDOWS
 a) Simplest way:
 
 - Buy imapsync.exe at http://imapsync.lamiral.info/
+
 - Run imapsync.exe in a command prompt (execute cmd.exe).
+
+- Or simpler, look at the batch file at
+  http://imapsync.lamiral.info/examples/imapsync_example.bat
+  and replace the parameters with your values
+  then run the batch file with a double-click.
+  It is simpler to edit a batch file with notepad than 
+  the command line in dos mode.
 
 b) Hard way:
 
 - Get imapsync-x.xx.tgz
 - Install Perl if it isn't already installed.
-  Strawberry Perl is a good candidate
-- Use PPM to install modules listed in the PREREQUISITES section.
-  PPM is Perl Package Manager.
+  Strawberry Perl is a very good candidate
+  http://strawberryperl.com/
 
+- Use the command CPAN to install modules listed in the PREREQUISITES section.
+  There is also a batch file that does this install for you
+  It is called install_modules.bat available at
+  http://imapsync.lamiral.info/examples/install_modules.bat
+
+c) How to build imapsync.exe?
+
+- Do the hard stuff in b)
+- Run W/build_exe.bat (found in the tarball)
 
 PREREQUISITES 
 -------------
@@ -118,36 +134,51 @@ Here is some individual module help:
 - Perl Time::HiRes
   perl -mTime::HiRes  -e ""
 
+- Perl Data::Uniqid
+  perl -mData::Uniqid  -e ""
+
+- Perl URI::Escape
+  perl -mURI::Escape  -e ""
+
+
 Test everything in one command:
 
   perl -mMail::IMAPClient -mDigest::MD5 -mTerm::ReadKey -mIO::Socket::SSL \
-       -mFile::Spec -mDigest::HMAC_MD5 -mAuthen::NTLM -e -mTime::HiRes ''
+       -mFile::Spec -mDigest::HMAC_MD5 -mAuthen::NTLM -e -mTime::HiRes \
+       -mData::Uniqid -mURI::Escape  ""
 
 You can install easily those Perl modules in latest release via the
 following commands (with root permissions)
 
-  perl -MCPAN -e 'install Mail::IMAPClient' 
-  perl -MCPAN -e 'install Digest::MD5' 
-  perl -MCPAN -e 'install Term::ReadKey' 
-  perl -MCPAN -e 'install IO::Socket::SSL' 
-  perl -MCPAN -e 'install File::Spec' 
-  perl -MCPAN -e 'install Digest::HMAC_MD5' 
-  perl -MCPAN -e 'install Authen::NTLM' 
-  perl -MCPAN -e 'install Time::HiRes' 
+  perl -MCPAN -e "install Mail::IMAPClient"
+  perl -MCPAN -e "install Digest::MD5"
+  perl -MCPAN -e "install Term::ReadKey"
+  perl -MCPAN -e "install IO::Socket::SSL"
+  perl -MCPAN -e "install File::Spec"
+  perl -MCPAN -e "install Digest::HMAC_MD5"
+  perl -MCPAN -e "install Authen::NTLM"
+  perl -MCPAN -e "install Time::HiRes"
+  perl -MCPAN -e "install Data::Uniqid"
+  perl -MCPAN -e "install URI::Escape"
+
 
 You can install them easily too by using the standard install
 command on your system if the packages have been made on it
 (so you may not have the latest but most of the time it
-doesn't care).
+doesn't care). 
+
+Modules Authen::NTLM, Data::Uniqid may be not available 
+this way since I haven't find them on Ubuntu.
+
 Example on Debian/Ubuntu:
 
-  aptitude install  libmail-imapclient-perl # Mail::IMAPClient'
-  aptitude install  libdigest-md5-file-perl # Digest::MD5' 
-  aptitude install  libterm-readkey-perl    # Term::ReadKey' 
-  aptitude install  libio-socket-ssl-perl   # IO::Socket::SSL' 
-  aptitude install  libfile-spec-perl       # File::Spec' 
-  aptitude install  libdigest-hmac-perl     # Digest::HMAC_MD5'
-  aptitude install  ?  # (not free?)        # Authen::NTLM
+  aptitude install  libmail-imapclient-perl # Mail::IMAPClient
+  aptitude install  libdigest-md5-file-perl # Digest::MD5
+  aptitude install  libterm-readkey-perl    # Term::ReadKey
+  aptitude install  libio-socket-ssl-perl   # IO::Socket::SSL
+  aptitude install  libfile-spec-perl       # File::Spec
+  aptitude install  libdigest-hmac-perl     # Digest::HMAC_MD5 Digest::HMAC_SHA1
+
 
 INSTALLING on Unix
 ------------------

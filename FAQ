@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.130 2013/04/17 12:46:10 gilles Exp gilles $
+# $Id: FAQ,v 1.133 2013/05/06 08:17:13 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -359,16 +359,18 @@ Q. We have found that the sent time and date have been changed to the
 
 R. This is the case with:
    - Eudora
-   - Zimbra
    - Outlook 2003
-   - Gmail
-   but not with 
+ but not with 
    - Mutt
    - Thunderbird
+ and no longer with
+   - Zimbra
+   - Gmail
+
 
 Eurora shows by default  the time the imap server received the email. I
 think   it is  quite   a  wrong  behavior  since  the messages can have
-travelled some time before the reception.
+traveled some time before the reception.
 
 The sent time and date are given by the "Date:" header and it is set
 most of the time by the MUA (Mail User Agent, Mutt, Eudora,
@@ -1448,7 +1450,6 @@ R. Gmail needs SSL
 ./imapsync \
            --host1 imap.gmail.com \
            --ssl1 \
-           --authmech1 LOGIN \
            --user1 gilles.lamiral@gmail.com \
            --password1 gmailsecret \
            --exitwhenover 2500000000 \
@@ -1468,6 +1469,43 @@ unselect all "System labels".
 --exitwhenover option is here to avoid locking when transfers 
 exceed maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+
+
+=======================================================================
+Q. How to use XOAUTH to globally authenticate gmail users?
+   The XOAUTH code and this FAQ item come from Eduardo Bortoluzzi
+   Thanks Eduardo!
+
+R. The goal of OAUTH is to migrate all users from/to Google Apps 
+   Premier Edition without knowing their passwords.
+
+   The global password is available at the Google Apps control panel, 
+   at Advanced Tools -> Manage OAuth domain key.
+
+./imapsync \
+    --host1 imap.gmail.com --ssl1 \
+    --user1 foo@lab3.dedal.br \
+    --password1 secret1 \
+    --authmech1 XOAUTH \
+    --host2 imap.gmail.com --ssl2 \
+    --user2 bar@lab3.dedal.br \
+    --password2 secret2 \
+    --authmech2 XOAUTH
+
+Google Apps is a paid service, but you can try it for 30 days without any cost.
+
+Some notes about configuring the Google Apps XOAUTH:
+
+ On "Advanced Tools > Manage OAuth domain key > Two-legged OAuth access control" 
+    the "Allow access to all APIs" must be checked 
+    (https://support.google.com/a/bin/answer.py?answer=162105)
+
+ OR
+
+ On "Advanced Tools > Manage third party OAuth client access", 
+    the configured costumer key must have the scope 
+    "https://mail.google.com/" configured 
+    (https://support.google.com/a/bin/answer.py?answer=162106).
 
 
 =======================================================================
