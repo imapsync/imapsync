@@ -11,6 +11,8 @@
 # IMAPClient 2.2.9 overrides
 # IMAPClient 2.2.9 3.xx ads
 
+# pod documentation
+
 =pod
 
 =head1 NAME 
@@ -20,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.542 $
+$Revision: 1.547 $
 
 =head1 SYNOPSIS
 
@@ -365,7 +367,7 @@ Failure stories reported with the following 3 imap servers:
  - Hotmail since hotmail.com does not provide IMAP access
  - Outlook.com since outlook.com does not provide IMAP access
 
-Success stories reported with the following 52 imap servers 
+Success stories reported with the following 53 imap servers 
 (software names are in alphabetic order): 
 
  - 1und1 H mimap1 84498 [host1] H mibap4 95231 [host1]
@@ -388,6 +390,7 @@ Success stories reported with the following 52 imap servers
  - Deerfield VisNetic MailServer 5.8.6 [host1] (http://www.deerfield.net/products/visnetic-mailserver/) 
  - DBMail 1.2.1, 2.0.4, 2.0.9, 2.2rc1 (GPL) (http://www.dbmail.org/).
    2.0.7 seems buggy.
+ - DBOX 2.41 System [host1] (http://www.dbox.handshake.de/).
  - Deerfield VisNetic MailServer 5.8.6 [host1]
  - dkimap4 [host1]
  - Domino (Notes) 4.61[host1], 6.5[host1], 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 
@@ -401,7 +404,7 @@ Success stories reported with the following 52 imap servers
  - hMailServer 5.3.3 [host2], 4.4.1 [host1] (see FAQ)
  - iPlanet Messaging server 4.15, 5.1, 5.2
  - IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]
- - Kerio 7.2.0 Patch 1 [host1] [host2]
+ - Kerio 7.2.0 Patch 1 [host12], Kerio 8 [host1]
  - Mail2World IMAP4 Server 2.5 [host1] (http://www.mail2world.com/)
  - MailEnable 4.23 [host1] [host2], 4.26 [host1][host2], 5 [host1]
  - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 
@@ -531,7 +534,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.542 2013/05/06 08:30:35 gilles Exp gilles $
+$Id: imapsync,v 1.547 2013/07/03 01:24:34 gilles Exp gilles $
 
 =cut
 
@@ -543,7 +546,7 @@ use warnings;
 ++$|;
 use Carp;
 use Getopt::Long;
-use Mail::IMAPClient;
+use Mail::IMAPClient 3.29 ;
 use Digest::MD5  qw( md5 md5_hex md5_base64 );
 use Digest::HMAC_SHA1 qw( hmac_sha1 ) ;
 #use Term::ReadKey;
@@ -662,7 +665,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.542 2013/05/06 08:30:35 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.547 2013/07/03 01:24:34 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -784,7 +787,7 @@ check_lib_version() or
 
 exit_clean(0) if ($justbanner);
 
-# By default, 1000 at a time, not more.
+# By default, 100 at a time, not more.
 $split1 ||= 100;
 $split2 ||= 100;
 
@@ -1773,11 +1776,17 @@ sub modules_VERSION {
 	eval { require IO::Socket; $v = $IO::Socket::VERSION } or $v = "?" ;
 	push ( @list_version, module_version_str( 'IO::Socket', $v ) ) ;
 
+	eval { require IO::Socket::IP; $v = $IO::Socket::IP::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'IO::Socket::IP', $v ) ) ;
+
 	eval { require IO::Socket::INET; $v = $IO::Socket::INET::VERSION } or $v = "?" ;
 	push ( @list_version, module_version_str( 'IO::Socket::INET', $v ) ) ;
 
 	eval { require IO::Socket::SSL ; $v = $IO::Socket::SSL::VERSION } or $v = "?" ;
 	push ( @list_version, module_version_str( 'IO::Socket::SSL ', $v ) ) ;
+
+	eval { require Net::SSLeay ; $v = $Net::SSLeay::VERSION } or $v = "?" ;
+	push ( @list_version, module_version_str( 'Net::SSLeay ', $v ) ) ;
 
 	eval { require Digest::MD5; $v = $Digest::MD5::VERSION } or $v = "?" ;
 	push ( @list_version, module_version_str( 'Digest::MD5', $v ) ) ;
@@ -1869,95 +1878,6 @@ sub catch_continue {
 	print "\nGot a SIG$signame!\n" ;
 }
 
-sub myconnect {
-	my $self = shift;
-	
-	$debug and print "Entering myconnect\n";
-	%$self = (%$self, @_);
-
-        my $sock = (($self->Ssl) ? IO::Socket::SSL->new : IO::Socket::INET->new);
-        my $dp = ($self->Ssl ? 'imaps(993)' : 'imap(143)');
-
-	$debug and print "Calling configure\n";
-	my $ret = $sock->configure({
-		PeerAddr => $self->Server		,
-                PeerPort => $self->Port||$dp	       	,
-                Proto    => 'tcp' 			,
-                Timeout  => $self->Timeout||0		,
-		Debug	=> $self->Debug 		,
-	});
-	unless ( defined($ret) ) {
-		$self->LastError( "$@\n");	  
-		$@ 		= "$@";   
-		carp 		  "$@" 
-				unless defined wantarray;	
-		return ;
-	}
-	$sock->autoflush(1);
-	
-	my $banner = $sock->getline();
-	$debug and print "Read: $banner";
-	
-	$self->Banner($banner);
-	$self->RawSocket2($sock);
-	$self->State(Connected);
-        if (defined($banner) and $banner =~ /\* PREAUTH/)
-        {
-            $self->State(Authenticated);
-        }	
-	if ($self->Tls) {
-	    starttls($self);
-	    $self->Starttls( 1 ) ;
-	}
-	
-	$self->Ignoresizeerrors($allowsizemismatch);
-	
-	if ($self->User and $self->Password) {
-		$debug and print "Calling login\n";
-		return $self->login ;
-	} 
-	else {
-		return $self;
-	}
-}
-
-
-
-
-sub starttls {
-  my $self   = shift;
-  my $socket   = $self->RawSocket2();
-  
-  $debug and print "Entering starttls\n";
-  unless ($self->has_capability("STARTTLS")) {
-    die_clean( "No STARTTLS capability" );
-  }
-  
-  print $socket "z00 STARTTLS\015\012";
-  CORE::select( undef, undef, undef, 0.025 );
-  my $txt = $socket->getline();
-  $debug and print "Read tls: $txt";
-  unless($txt =~ /^z00 OK/){
-    die_clean( "Invalid response for STARTTLS: $txt\n" );
-  }
-  $debug and print "Calling start_SSL\n";
-  unless(IO::Socket::SSL->start_SSL($socket,
-      {
-      SSL_version    =>  "TLSV1",
-      SSL_startHandshake => 1,
-      SSL_verify_depth => 1,
-      }))
-  {
-    die_clean( "Couldn't start TLS: ".IO::Socket::SSL::errstr()."\n");
-  }
-  if (ref($socket) ne "IO::Socket::SSL") {
-    die_clean( "Socket has NOT been converted to SSL");
-  }else{
-     $debug and print "Socket successfuly converted to SSL\n";
-  }
-  $debug and print "Ending starttls\n";
-}
-
 
 
 sub connect_imap {
@@ -1968,9 +1888,14 @@ sub connect_imap {
 	$imap->Server($host);
 	$imap->Port($port);
 	$imap->Debug($debugimap);
-	#$imap->connect()
-	myconnect($imap)
+	$imap->connect()
 	  or die_clean("Can not open imap connection on [$host]: $@\n");	
+	#myconnect($imap)
+	#  or die_clean("Can not open imap connection on [$host]: $@\n");
+        my $banner = $imap->Results()->[0] ;
+        $imap->Banner( $banner ) ;
+        $imap->starttls(  ) if ( $imap->Tls(  ) ) ;
+        return( $imap ) ;
 }
 
 sub justconnect {
@@ -2053,8 +1978,7 @@ sub login_imap {
 
 	$imap->Reconnectretry($reconnectretry) if ($reconnectretry);
 
-	#$imap->connect()
-	myconnect($imap)
+	$imap->connect()
 	  or die_clean("Failure: can not open imap connection on [$host] with user [$user]: $@\n");
 	
 	print "Banner: ", server_banner($imap);
@@ -2067,7 +1991,11 @@ sub login_imap {
                 	die_clean( "Failure: error login on [$host] with user [$user] auth [PREAUTH]" ) ;
                 }
         }
-        
+
+	$imap->starttls(  ) if ( $imap->Tls(  ) ) ;
+	
+	$imap->Ignoresizeerrors( $allowsizemismatch ) ;
+
 	if ($imap->has_capability("AUTH=$authmech")
 	    or $imap->has_capability($authmech)
 	   ) {
@@ -2093,17 +2021,14 @@ sub login_imap {
 	$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
 	
 
-        if ($proxyauth) {
-                $imap->User($authuser);
-		$imap->Domain($domain) if (defined($domain));
-                $imap->Authuser($authuser);
-                $imap->Password($password);
-        } else {
-                $imap->User($user);
-		$imap->Domain($domain) if (defined($domain));
-                $imap->Authuser($authuser);
-                $imap->Password($password);
-        }
+        if ($proxyauth) { 
+                $imap->User($authuser) ;
+	} else { 
+                $imap->User($user) ;
+        } 
+        $imap->Domain($domain) if (defined($domain));
+        $imap->Authuser($authuser);
+        $imap->Password($password);
 	
 	unless ( $authmech eq 'PREAUTH' or $imap->login( ) ) {
 		my $info  = "Failure: error login on [$host] with user [$user] auth" ;
@@ -2120,11 +2045,20 @@ sub login_imap {
 		$imap->login() or
 		  die_clean("$info [LOGIN]: ", $imap->LastError, "\n") ;
 	}
-	$proxyauth && $imap->proxyauth($user);
-	$split and $imap->Split( $split ) ;
+
+        if ( $proxyauth ) {
+                if ( ! $imap->proxyauth( $user ) ) {
+                        my $info  = "Failure: error doing proxyauth as user [$user] on [$host] using proxy-login as [$authuser]" ;
+                        my $einfo = $imap->LastError || @{$imap->History}[-1] ;
+                        chomp( $einfo ) ;
+                        die_clean( "$info: $einfo\n" ) ;
+                }
+        }
+
+	$split and $imap->Maxcommandlength( 10 * $split ) ;
 	
-	print "Info: success login on [$host] with user [$user] auth [$authmech]\n";
-	return($imap);
+	print "Info: success login on [$host] with user [$user] auth [$authmech]\n" ;
+	return( $imap ) ;
 }
 
 
@@ -2221,8 +2155,8 @@ sub banner_imapsync {
 	my @argv_copy = @_;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.542 $ ',
-		  '$Date: 2013/05/06 08:30:35 $ ',
+		  '$Revision: 1.547 $ ',
+		  '$Date: 2013/07/03 01:24:34 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword(@argv_copy), "\n",
@@ -3105,7 +3039,7 @@ sub copy_message {
 	# copy
 	
 	my ( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) = @_ ;
-	$debug and print "msg $h1_fold/$h1_msg copying to $h2_fold\n";
+	( $debug or $dry) and print "msg $h1_fold/$h1_msg copying to $h2_fold $dry_message\n";
 
 	my $h1_size  = $h1_fir_ref->{$h1_msg}->{"RFC822.SIZE"} || '' ;
 	my $h1_flags = $h1_fir_ref->{$h1_msg}->{"FLAGS"} || '' ;
@@ -4078,7 +4012,13 @@ sub get_options {
 
 sub load_modules {
 
-	require IO::Socket::SSL if ($ssl1 or $ssl2 or $tls1 or $tls2);
+	if ( $ssl1 or $ssl2 or $tls1 or $tls2 ) {
+        	require IO::Socket::SSL ;
+                #$IO::Socket::SSL::DEBUG = 3 ;
+                IO::Socket::SSL::set_ctx_defaults( 
+			SSL_verify_mode => 0,
+		);
+        }
 
         require Term::ReadKey if (
 	       ((not($password1 or $passfile1)) 
@@ -4238,7 +4178,7 @@ sub check_last_release {
 }
 
 sub imapsync_version {
-	my $rcs = '$Id: imapsync,v 1.542 2013/05/06 08:30:35 gilles Exp gilles $ ';
+	my $rcs = '$Id: imapsync,v 1.547 2013/07/03 01:24:34 gilles Exp gilles $ ';
 	$rcs =~ m/,v (\d+\.\d+)/;
 	my $VERSION = ($1) ? $1: "UNKNOWN";
 	return($VERSION);
@@ -5122,16 +5062,6 @@ sub tests {
 
 package Mail::IMAPClient;
 
-sub Split {
-	my $self = shift;
-	
-	if (@_) { 
-		$self->{SPLIT} = shift;
-		$self->{Maxcommandlength} = 10 * $self->{SPLIT};
-	}
-	return $self->{SPLIT};
-}
-
 sub Tls {
 	my $self = shift;
 	
@@ -5152,19 +5082,6 @@ sub Banner {
 	
 	if (@_) { $self->{BANNER} = shift }
 	return $self->{BANNER};
-}
-
-
-sub RawSocket2  {
-    my ( $self, $sock ) = @_;
-    defined $sock
-      or return $self->{Socket};
-
-    $self->{Socket}  = $sock;
-    $self->{_select} = IO::Select->new($sock);
-    delete $self->{_fcntl};
-    #$self->Fast_io( $self->Fast_io );
-    $sock;
 }
 
 sub capability_update {

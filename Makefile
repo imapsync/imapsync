@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.118 2013/05/14 05:59:55 gilles Exp gilles $	
+# $Id: Makefile,v 1.121 2013/06/02 23:34:14 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -11,9 +11,10 @@ usage:
 	@echo "make testf   # run tests"
 	@echo "make testv   # run tests verbosely"
 	@echo "make test_quick # few tests verbosely"
-	@echo "make tests_win32 # run tests on win32"
-	@echo "make tests_win32_dev # run test2.bat on win32"
-	@echo "make prereq_win32 # run W/install_modules.bat on win32"
+	@echo "make tests_win32 # run --test and W/test.bat on win32"
+	@echo "make tests_win32_dev # run W/test2.bat on win32"
+	@echo "make tests_win32_dev3 # run W/test3.bat on win32"
+	@echo "make prereq_win32 # run examples/install_modules.bat on win32"
 	@echo "make all     "
 	@echo "make upload_index"
 	@echo "make upload_ks"
@@ -31,7 +32,7 @@ VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version)
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
-IMAPClient_3xx=./W/Mail-IMAPClient-3.32/lib
+IMAPClient_3xx=./W/Mail-IMAPClient-3.33/lib
 IMAPClient=$(IMAPClient_3xx)
 
 hello:
@@ -143,19 +144,25 @@ tests_win32_dev: dosify_bat
 	scp imapsync examples/file.txt W/test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test2.bat'
 
+tests_win32_dev3: dosify_bat
+	scp imapsync W/test3.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test3.bat'
+
+
+
 test_imapsync_exe: dosify_bat
 	scp W/test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
-prereq_win32: imapsync examples/install_modules.bat .dosify_bat
+prereq_win32: examples/install_modules.bat .dosify_bat
 	scp examples/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
-	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_modules.bat'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_modules.bat'
 
-imapsync.exe: imapsync W/build_exe.bat .dosify_bat
+imapsync.exe: imapsync prereq_win32 build_exe.bat .dosify_bat
 	rcsdiff imapsync
 	ssh Admin@c 'perl -V'
 	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
-	scp imapsync W/build_exe.bat W/test_exe.bat \
+	scp imapsync build_exe.bat W/test_exe.bat \
 	Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
@@ -164,6 +171,18 @@ imapsync.exe: imapsync W/build_exe.bat .dosify_bat
 	dos2unix ./VERSION_EXE
 	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
+exe: imapsync build_exe.bat .dosify_bat
+	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
+	scp imapsync build_exe.bat  Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --modules_version'
+	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
+	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
+
+
+
+
+# C:\Users\mansour\Desktop\imapsync
 
 # vadrouille or petite
 imapsync_elf_x86.bin: imapsync

@@ -1,6 +1,31 @@
 #!/bin/sh
 
-# $Id: memo,v 1.43 2012/12/24 02:25:00 gilles Exp gilles $
+# $Id: memo,v 1.44 2013/07/03 04:14:44 gilles Exp gilles $
+
+count_nice() {
+
+        #set -x
+        # count # prints 01 02 03 04 05 06 07 08 09 10
+        # count 2       # prints 2 3 4 5 6 7 8 9 10 11
+        # count 005     # prints 005 006 007 008 009 010 011 012 013 014
+        # count 5 23    # prints 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+        # count 5 23 3  # prints 5 8 11 14 17 20 23
+
+        nb_from=${1:-"01"}
+        nb_from_ln=`expr length $nb_from`
+
+        nb_to=${2:-`expr $nb_from + 9`}
+        nb_incr=${3:-"1"}
+        nb_counter=$nb_from
+        while test $nb_counter -le $nb_to;do
+                nb_list="$nb_list $nb_counter"
+                nb_counter=`expr $nb_counter + $nb_incr`
+                nb_counter=`printf %0${nb_from_ln}d $nb_counter`
+        done
+        echo $nb_list
+        #set +x
+}
+
 
 software_version() {
 
@@ -144,6 +169,14 @@ statistics_VERSION_yearly_ip() {
 	)
 }
 
+statistics_VERSION_yearly_runs() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd /home/lf/glamiral/imapsync_stats
+	test -f stats_imapsync_${year}.ip && cat stats_imapsync_${year}.ip | awk '{ sum+=$1 } END {print sum}'
+	)
+}
+
 
 echo "statistics_VERSION_synthesis 2012 # short"
 statistics_VERSION_synthesis() {
@@ -152,16 +185,19 @@ statistics_VERSION_synthesis() {
 	cd /home/lf/glamiral/imapsync_stats
 	echo Nb users each month
 	wc -l stats_imapsync_${year}_??.ip
-	echo Nb users each year
-	wc -l stats_imapsync_????.ip
 	echo Nb runs each month
 	tail -n 1 stats_imapsync_${year}_??.runs
 	echo % Operating systems
 	statistics_VERSION_yearly_os $year
 	echo Biggest users
 	tail -n 5 stats_imapsync_${year}.ip
-	echo -n "Nb runs each year : "
-	cat stats_imapsync_${year}.ip | awk '{ sum+=$1 } END {print sum}'
+	echo Nb users each year
+	wc -l stats_imapsync_????.ip
+	echo "Nb runs each year : "
+	for yyyy in `count_nice 2011 ${year}`; do
+		echo -n "$yyyy: "
+		statistics_VERSION_yearly_runs $yyyy
+	done
 	)
 }
 
@@ -289,6 +325,16 @@ statistics_VERSION_yearly_ip() {
 	)
 }
 
+statistics_VERSION_yearly_runs() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd /home/imapsync/imapsync_stats
+	test -f stats_imapsync_${year}.ip && cat stats_imapsync_${year}.ip | awk '{ sum+=$1 } END {print sum}'
+	)
+}
+
+
+
 echo "statistics_VERSION_synthesis 2012 # short"
 statistics_VERSION_synthesis() {
 	year=${1:-`date '+%Y'`}
@@ -296,16 +342,19 @@ statistics_VERSION_synthesis() {
 	cd /home/imapsync/imapsync_stats
 	echo Nb users each month
 	wc -l stats_imapsync_${year}_??.ip
-	echo Nb users each year
-	wc -l stats_imapsync_????.ip
 	echo Nb runs each month
 	tail -n 1 stats_imapsync_${year}_??.runs
 	echo % Operating systems
 	statistics_VERSION_yearly_os $year
 	echo Biggest users
 	tail -n 5 stats_imapsync_${year}.ip
-	echo -n "Nb runs each year : "
-	cat stats_imapsync_${year}.ip | awk '{ sum+=$1 } END {print sum}'
+	echo Nb users each year
+	wc -l stats_imapsync_????.ip
+	echo "Nb runs each year : "
+	for yyyy in `count_nice 2011 ${year}`; do
+		echo -n "$yyyy: "
+		statistics_VERSION_yearly_runs $yyyy
+	done
 	)
 }
 

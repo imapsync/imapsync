@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.218 2013/05/06 08:36:38 gilles Exp gilles $  
+# $Id: tests.sh,v 1.219 2013/07/03 04:12:34 gilles Exp gilles $  
 
 # Example 1:
-# CMD_PERL='perl -I./Mail-IMAPClient-3.32/lib' sh -x tests.sh
+# CMD_PERL='perl -I./Mail-IMAPClient-3.33/lib' sh -x tests.sh
 
 # Example 2:
 # To select which Mail-IMAPClient within arguments:
@@ -23,7 +23,7 @@ echo HOST2=$HOST2
 
 # few debugging tests use:
 CMD_PERL_2xx='perl -I./W/Mail-IMAPClient-2.2.9'
-CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.32/lib'
+CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.33/lib'
 
 CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
 
@@ -1608,7 +1608,7 @@ ll_tls_justconnect() {
   --host1 $HOST1 \
   --host2 $HOST2 \
   --tls1 --tls2 \
-  --justconnect  --debug 
+  --justconnect  --debugimap
 }
 
 ll_tls_justlogin() {
@@ -1618,14 +1618,13 @@ ll_tls_justlogin() {
   --host2 $HOST2 --user2 titi \
   --passfile2 ../../var/pass/secret.titi \
   --tls1 --tls2 \
-  --justlogin --debug 
+  --justlogin --debugimap
 }
 
 
-
 ll_tls_devel() {
-   CMD_PERL=$CMD_PERL_3xx ll_justlogin ll_ssl_justlogin \
-&& CMD_PERL=$CMD_PERL_3xx ll_tls_justconnect ll_tls_justlogin
+   ll_justlogin ll_ssl_justlogin \
+&& ll_tls_justconnect ll_tls_justlogin
 }
 
 ll_tls() {
@@ -1634,9 +1633,8 @@ ll_tls() {
   --passfile1 ../../var/pass/secret.tata \
   --host2 $HOST2 --user2 titi \
   --passfile2 ../../var/pass/secret.titi \
-  --tls1 --tls2
+  --tls1 --tls2 
 }
-
 
 
 ll_ssl_justconnect() {
@@ -1646,6 +1644,21 @@ ll_ssl_justconnect() {
                 --ssl1 --ssl2 \
                 --justconnect
 }
+
+ll_ssl_tls_justconnect() {
+        $CMD_PERL ./imapsync \
+	 --host1 $HOST1 \
+         --host2 $HOST2 \
+         --ssl1 --tls1  --ssl2 --tls2  \
+         --justconnect --debugimap
+}
+
+
+ll_justconnect_devel() {
+   ll_justconnect && ll_tls_justconnect && ll_ssl_justconnect && ll_ssl_tls_justconnect
+}
+
+
 
 ll_ssl_justlogin() {
         $CMD_PERL ./imapsync \
@@ -1663,8 +1676,12 @@ ll_ssl_tls_justlogin() {
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-         --tls1  --ssl2 --tls2  \
+         --ssl1 --tls1  --ssl2 --tls2  \
          --justlogin --debug
+}
+
+ll_justlogin_devel() {
+    ll_justlogin && ll_ssl_justlogin && ll_tls_justlogin && ll_ssl_tls_justlogin 
 }
 
 ll_ssl() {

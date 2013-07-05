@@ -1818,7 +1818,7 @@ See also C<Supportedflags>.
 
 Example:
 
-  my $newUid = $imap->move($newFolder, $oldUid)
+  my $newUid = $imap->move( $newFolder, $oldUid )
     or die "Could not move: $@\n";
   $imap->expunge;
 
@@ -1829,15 +1829,15 @@ be either:
 
 =over 4
 
-=item >
+=item a)
 
 a message sequence number,
 
-=item >
+=item b)
 
 a comma-separated list of message sequence numbers, or
 
-=item >
+=item c)
 
 a reference to an array of message sequence numbers.
 
@@ -1847,15 +1847,15 @@ If the L</Uid> parameter is true, then the arguments should be:
 
 =over 4
 
-=item >
+=item a)
 
 a message UID,
 
-=item >
+=item b)
 
 a comma-separated list of message UID's, or
 
-=item >
+=item c)
 
 a reference to an array of message UID's.
 
@@ -1867,8 +1867,8 @@ If move is successful, then it returns a true value.  Furthermore, if
 the Mail::IMAPClient object is connected to a server that has the
 UIDPLUS capability, then the true value will be the comma-separated
 list of UID's for the newly copied messages.  The list will be in the
-order in which the messages were moved.  (Since B<move> uses the copy
-method, the messages will be moved in numerical order.)
+order in which the messages were moved which should correspond to the
+order of the message UID provided by the caller.
 
 If the move is not successful then B<move> returns C<undef>.
 
@@ -3444,11 +3444,13 @@ fancier authentication method, see L</RawSocket>.
 
 If an IMAP connection must start TLS/SSL after connecting to a server
 then set this attribute.  If the value is set to an arrayref then they
-will be used as arguments to IO::Socket::SSL::start_SSL.  By default
+will be used as arguments to IO::Socket::SSL->start_SSL.  By default
 this connection is set to blocking while establishing the connection
 with a timeout of 30 seconds.  The socket will be reset to the
 original blocking/non-blocking value after a successful TLS
-negotiation has occured.
+negotiation has occured.  The arguments used in the call to start_SSL
+can be controlled by setting this attribute to an ARRAY reference
+containing the desired arguments.
 
 Version note: attribute added in Mail::IMAPClient 3.22
 
@@ -3457,7 +3459,9 @@ Version note: attribute added in Mail::IMAPClient 3.22
 If an IMAP connection requires SSL you can set the Ssl attribute to
 '1' and Mail::IMAPClient will automatically use L<IO::Socket::SSL>
 instead of L<IO::Socket::INET> to connect to the server.  This
-attribute is used in the L</connect> method.
+attribute is used in the L</connect> method.  The arguments used in
+the call to IO::Socket::SSL->new can be controlled by setting this
+attribute to an ARRAY reference containing the desired arguments.
 
 See also L</connect> for details on connection initiatiation and
 L</Socket> and L</Rawsocket> if you need to take more control of
@@ -3870,7 +3874,7 @@ http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient
 
   Copyright (C) 1999-2003 The Kernen Group, Inc.
   Copyright (C) 2007-2009 Mark Overmeer
-  Copyright (C) 2010-2012 Phil Pearl (Lobbes)
+  Copyright (C) 2010-2013 Phil Pearl (Lobbes)
   All rights reserved.
 
 This library is free software; you can redistribute it and/or modify

@@ -1,0 +1,44 @@
+#!/usr/bin/perl -w
+
+# $Id: $
+
+use strict ;
+use English ;
+use Mail::IMAPClient ;
+use IO::Socket::SSL ;
+
+$ARGV[3] or die "usage: $0 host user password folder\n" ;
+
+my $host = $ARGV[0] ;
+my $user = $ARGV[1] ;
+my $password = $ARGV[2] ;
+my $folder = $ARGV[3] ;
+
+IO::Socket::SSL::set_ctx_defaults( SSL_verify_mode => 0 ) ;
+$IO::Socket::SSL::DEBUG = 3 ;
+
+printf( "Perl %vd", $PERL_VERSION ) ;
+print "\nMail::IMAPClient  $Mail::IMAPClient::VERSION \n",
+"IO::Socket $IO::Socket::VERSION\n" ,
+"IO::Socket::INET $IO::Socket::INET::VERSION \n",
+"IO::Socket::SSL  $IO::Socket::SSL::VERSION \n",
+"Net::SSLeay $Net::SSLeay::VERSION \n",
+" \n",
+;
+
+my $imap ;
+
+$imap = Mail::IMAPClient->new(
+           Server   => $host,
+           User     => $user,
+           Password => $password,
+           Ssl      => 1,
+           Uid      => 1,
+) or die( "Connect: ", $imap->LastError, "\n" ) ;
+
+$imap->Debug( 1 ) ;
+$imap->Peek( 1 ) ;
+my $folders = $imap->folders ;
+$imap->select( $folder ) or die ;
+$imap->logout(  ) ;
+

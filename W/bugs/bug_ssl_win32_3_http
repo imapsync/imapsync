@@ -1,0 +1,33 @@
+#!/usr/bin/perl
+
+
+use strict ;
+use warnings ;
+use English ;
+use IO::Socket::SSL ;
+
+printf( "Perl %vd", $PERL_VERSION ) ;
+print 
+"\nIO::Socket $IO::Socket::VERSION\n" ,
+"IO::Socket::INET $IO::Socket::INET::VERSION \n",
+"IO::Socket::INET6 $IO::Socket::INET6::VERSION \n",
+"IO::Socket::SSL  $IO::Socket::SSL::VERSION \n",
+"Net::SSLeay $Net::SSLeay::VERSION \n",
+" \n",
+;
+
+
+my $sock = IO::Socket::SSL->new(
+    # where to connect
+    PeerHost => "www.google.com",
+    PeerPort => "https",
+
+    # certificate verification
+    SSL_verify_mode => SSL_VERIFY_NONE,
+    SSL_verifycn_schema => 'http',
+) or die "failed connect or ssl handshake: $!,$SSL_ERROR";
+
+# send and receive over SSL connection
+print $sock "GET / HTTP/1.0\r\n\r\n";
+print <$sock>;
+

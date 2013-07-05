@@ -1,0 +1,30 @@
+#!/usr/bin/perl -w
+
+use Mail::IMAPClient;
+use IO::Socket::SSL;
+
+$ARGV[3] or die "usage: $0 host user password folder\n";
+
+$host = $ARGV[0];
+$user = $ARGV[1];
+$password = $ARGV[2];
+$folder = $ARGV[3];
+
+my $imap = Mail::IMAPClient->new();
+my $ssl  = IO::Socket::SSL->new(
+             Proto    => 'tcp',
+             PeerAddr => $host,
+             PeerPort => 993, # IMAP over SSL standard port
+);
+
+$imap->Debug(1);
+#$imap->Server($host);
+$imap->Socket($ssl);
+#$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+$imap->select($folder) or die;
+$imap->close();

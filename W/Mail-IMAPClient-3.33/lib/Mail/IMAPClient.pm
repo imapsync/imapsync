@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.32';
+our $VERSION = '3.33';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -59,9 +59,13 @@ sub _load_module {
     my $modkey = shift;
     my $module = $Load_Module{$modkey} || $modkey;
 
-    eval "require $module";
-    if ($@) {
-        $self->LastError("Unable to load '$module': $@");
+    my $err = do {
+        local ($@);
+        eval "require $module";
+        $@;
+    };
+    if ($err) {
+        $self->LastError("Unable to load '$module': $err");
         return undef;
     }
     return $module;
@@ -118,6 +122,8 @@ sub LastError {
             Carp::cluck($emsg);
         }
     }
+
+    # 2.x API support requires setting $@
     $@ = $self->{LastError} = $err;
 }
 
@@ -129,7 +135,7 @@ sub Fast_io(;$) {
     my $socket = $self->{Socket}
       or return undef;
 
-    local ($@);    # avoid stomping on global $@
+    local ( $@, $! );    # avoid stomping on globals
     unless ($use) {
         eval { fcntl( $socket, F_SETFL, delete $self->{_fcntl} ) }
           if exists $self->{_fcntl};
@@ -331,7 +337,17 @@ sub connect(@) {
     }
     else {
         my $ioclass = "IO::Socket::INET";
-        $ioclass = $self->_load_module("SSL") if ( $self->Ssl );
+        my @args;
+
+        if ( $self->Ssl ) {
+            $ioclass = $self->_load_module("SSL");
+
+            # give caller control of args to new if desired
+            @args =
+                ( ref( $self->Ssl ) eq "ARRAY" )
+              ? ( @{ $self->Ssl } )
+              : ();
+        }
 
         if ($ioclass) {
             $self->_debug("Connecting via $ioclass to $server:$port @timeout");
@@ -340,7 +356,8 @@ sub connect(@) {
                 PeerPort => $port,
                 Proto    => 'tcp',
                 Debug    => $self->Debug,
-                @timeout
+                @timeout,
+                @args
             );
         }
     }
@@ -350,7 +367,8 @@ sub connect(@) {
         return $self->Socket($sock);
     }
     else {
-        $self->LastError("Unable to connect to $server: $@");
+        my $lasterr = $self->LastError || "";
+        $self->LastError("Unable to connect to $server: $lasterr");
         return undef;
     }
 }
@@ -889,6 +907,7 @@ sub message_to_file {
     }
     else {
         $$file = "" if ( ref $file eq "SCALAR" and !defined $$file );
+        local ($!);
         open( $fh, ">>", $file );
         unless ( defined($fh) ) {
             $self->LastError("Unable to open file '$file': $!");
@@ -1883,7 +1902,7 @@ sub _disconnect {
     delete $self->{_IMAP4REV1};
     $self->State(Unconnected);
     if ( my $sock = delete $self->{Socket} ) {
-        local ($@);    # avoid stomping on global $@
+        local ($@);
         eval { $sock->close };
     }
     return $self;
@@ -1948,32 +1967,34 @@ sub get_bodystructure {
     my $out = $self->fetch( $msg, "BODYSTRUCTURE" ) or return undef;
 
     my $bs = "";
-    my $output = first { /BODYSTRUCTURE\s+\(/i } @$out;    # Wee! ;-)
-    if ( $output =~ /$CRLF$/o ) {
-        $bs = eval { $class->new($output) };    # BUG? localize $@ here?
-    }
-    else {
+    my $output = first { /BODYSTRUCTURE\s+\(/i } @$out;
+
+    unless ( $output =~ /$CRLF$/o ) {
+        $output = '';
         $self->_debug("get_bodystructure: reassembling original response");
         my $started = 0;
-        my $output  = '';
         foreach my $o ( $self->_transaction ) {
             next unless $self->_is_output_or_literal($o);
             $started++ if $o->[DATA] =~ /BODYSTRUCTURE \(/i;
-            ;                                   # Hi, vi! ;-)
             $started or next;
 
-            if ( length $output && $self->_is_literal($o) ) {
+            if ( length($output) && $self->_is_literal($o) ) {
                 my $data = $o->[DATA];
                 $data =~ s/"/\\"/g;
                 $data =~ s/\(/\\\(/g;
                 $data =~ s/\)/\\\)/g;
                 $output .= qq("$data");
             }
-            else { $output .= $o->[DATA] }
-
-            $self->_debug("get_bodystructure: reassembled output=$output<END>");
+            else {
+                $output .= $o->[DATA];
+            }
         }
-        eval { $bs = $class->new($output) };    # BUG? localize $@ here?
+        $self->_debug("get_bodystructure: reassembled output=$output<END>");
+    }
+
+    {
+        local ($@);
+        $bs = eval { $class->new($output) };
     }
 
     $self->_debug(
@@ -1992,25 +2013,15 @@ sub get_envelope {
     my $out = $self->fetch( $msg, 'ENVELOPE' ) or return undef;
 
     my $bs = "";
-    my $output = first { /ENVELOPE \(/i } @$out;    # vi ;-)
+    my $output = first { /ENVELOPE \(/i } @$out;
 
-    unless ($output) {
-        $self->LastError("Unable to use get_envelope: $@");
-        return undef;
-    }
-
-    if ( $output =~ /$CRLF$/o ) {
-        eval { $bs = $class->new($output) };    # BUG? localize $@ here?
-    }
-    else {
+    unless ( $output =~ /$CRLF$/o ) {
+        $output = '';
         $self->_debug("get_envelope: reassembling original response");
         my $started = 0;
-        $output = '';
         foreach my $o ( $self->_transaction ) {
             next unless $self->_is_output_or_literal($o);
-            $self->_debug("o->[DATA] is $o->[DATA]");
-
-            $started++ if $o->[DATA] =~ /ENVELOPE \(/i;    # Hi, vi! ;-)
+            $started++ if $o->[DATA] =~ /ENVELOPE \(/i;
             $started or next;
 
             if ( length($output) && $self->_is_literal($o) ) {
@@ -2018,18 +2029,21 @@ sub get_envelope {
                 $data =~ s/"/\\"/g;
                 $data =~ s/\(/\\\(/g;
                 $data =~ s/\)/\\\)/g;
-                $output .= '"' . $data . '"';
+                $output .= qq("$data");
             }
             else {
                 $output .= $o->[DATA];
             }
-            $self->_debug("get_envelope: reassembled output=$output<END>");
         }
-
-        eval { $bs = $class->new($output) };    # BUG? localize $@ here?
+        $self->_debug("get_envelope: reassembled output=$output<END>");
     }
 
-    $self->_debug( "get_envelope: msg $msg returns ref: " . $bs || "UNDEF" );
+    {
+        local ($@);
+        $bs = eval { $class->new($output) };
+    }
+
+    $self->_debug( "get_envelope: msg $msg returns: " . ( $bs || "UNDEF" ) );
     $bs;
 }
 
@@ -2723,17 +2737,15 @@ sub restore_message {
     scalar grep /^\*\s\d+\sFETCH\s\(.*FLAGS.*(?!\\Deleted)/, $self->Results;
 }
 
-#??? compare to uidnext.  Why is Massage missing?
 sub uidvalidity {
     my ( $self, $folder ) = @_;
     $self->status( $folder, "UIDVALIDITY" ) or return undef;
-    my $vline = first { /UIDVALIDITY/i } $self->History;
-    defined $vline && $vline =~ /\(UIDVALIDITY\s+([^\)]+)/ ? $1 : undef;
+    my $line = first { /UIDVALIDITY/i } $self->History;
+    defined $line && $line =~ /\(UIDVALIDITY\s+([^\)]+)/ ? $1 : undef;
 }
 
 sub uidnext {
-    my $self   = shift;
-    my $folder = $self->Massage(shift);
+    my ( $self, $folder ) = @_;
     $self->status( $folder, "UIDNEXT" ) or return undef;
     my $line = first { /UIDNEXT/i } $self->History;
     defined $line && $line =~ /\(UIDNEXT\s+([^\)]+)/ ? $1 : undef;
@@ -2964,6 +2976,7 @@ sub append_file {
         # $file can be a name or a scalar reference (for in memory file)
         # avoid IO::File bug handling scalar refs in perl <= 5.8.8?
         # - buggy: $fh = IO::File->new( $file, 'r' )
+        local ($!);
         open( $fh, "<", $file )
           or push( @err, "Unable to open file '$file': $!" );
     }
@@ -3214,18 +3227,12 @@ sub authenticate {
 sub copy {
     my ( $self, $target, @msgs ) = @_;
 
-    $target = $self->Massage($target);
-    @msgs =
-        $self->Ranges
-      ? $self->Range(@msgs)
-      : sort { $a <=> $b } map { ref $_ ? @$_ : split( ',', $_ ) } @msgs;
-
     my $msgs =
         $self->Ranges
       ? $self->Range(@msgs)
       : join ',', map { ref $_ ? @$_ : $_ } @msgs;
 
-    $self->_imap_uid_command( COPY => $msgs, $target )
+    $self->_imap_uid_command( COPY => $msgs, $self->Massage($target) )
       or return undef;
 
     my @results = $self->History;

@@ -47,17 +47,35 @@ do {
         my $broke = version->parse("1.966002");
         my $fixed = version->parse("1.967009");
         if ( $found < $fixed and $found >= $broke ) {
-            die("Found broken Parse::RecDescent $found in your environment.\n",
-                "Please upgrade to version $fixed or greater.\n");
+            die(
+                "Found broken Parse::RecDescent $found in your environment.\n",
+                "Please upgrade to version $fixed or greater.\n"
+            );
         }
     }
 };
 
 WriteMakefile(
-    NAME             => 'Mail::IMAPClient',
-    AUTHOR           => 'Phil Pearl (Lobbes) <phil@zimbra.com>',
-    ABSTRACT         => 'IMAP4 client library',
-    VERSION_FROM     => 'lib/Mail/IMAPClient.pm',
+    NAME         => 'Mail::IMAPClient',
+    AUTHOR       => 'Phil Pearl (Lobbes) <phil@zimbra.com>',
+    ABSTRACT     => 'IMAP4 client library',
+    VERSION_FROM => 'lib/Mail/IMAPClient.pm',
+    LICENSE      => 'perl',
+    META_MERGE   => {
+        resources => {
+            bugtracker => {
+                web =>
+'http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient',
+                mailto => 'bug-Mail-IMAPClient@rt.cpan.org',
+            },
+            homepage   => 'http://sourceforge.net/projects/mail-imapclient/',
+            repository => {
+                url  => 'git://git.code.sf.net/p/mail-imapclient/git',
+                web  => 'http://sourceforge.net/p/mail-imapclient/git/',
+                type => 'git',
+            },
+        },
+    },
     MIN_PERL_VERSION => '5.008',
     PREREQ_PM        => {
         'Carp'              => 0,
