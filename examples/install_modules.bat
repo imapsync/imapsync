@@ -1,5 +1,5 @@
 
-REM $Id: install_modules.bat,v 1.5 2013/07/03 12:00:23 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.6 2013/07/23 11:30:58 gilles Exp gilles $
 
 @ECHO OFF 
 
@@ -12,7 +12,7 @@ IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://stra
 
 REM perl is there
 
-FOR %%M in ( IO::Socket ^
+FOR %%M in ( IO::Socket IO::Socket::IP ^
              Net::SSLeay IO::Socket::SSL ^
              Digest::MD5 Digest::HMAC_MD5 ^
              Term::ReadKey File::Spec ^

@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.121 2013/06/02 23:34:14 gilles Exp gilles $	
+# $Id: Makefile,v 1.123 2013/07/23 11:27:18 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -21,6 +21,7 @@ usage:
 	@echo "make imapsync.exe"
 	@echo "make imapsync_elf_x86.bin"
 	@echo "make publish"
+	@echo "make perlcritic"
 
 
 PREFIX ?= /usr
@@ -98,7 +99,18 @@ cidone:
 ###############
 
 
-.PHONY: test tests testp testf test3xx testv3
+.PHONY: test tests testp testf test3xx testv3 perlcritic
+
+perlcritic: perlcritic_3.out perlcritic_2.out perlcritic_1.out 
+
+perlcritic_1.out: imapsync
+	perlcritic -1 imapsync > perlcritic_1.out || :
+
+perlcritic_2.out: imapsync
+	perlcritic -2 imapsync > perlcritic_2.out || :
+
+perlcritic_3.out: imapsync
+	perlcritic -3 imapsync > perlcritic_3.out || :
 
 test_quick : test_quick_3xx 
 
@@ -121,7 +133,7 @@ tests: test
 
 testf: clean_test test
 
-.PHONY: lfo upload_lfo niouze_lfo niouze_fm public  imapsync_cidone
+.PHONY: lfo upload_lfo   public  imapsync_cidone
 
 .dosify_bat: W/*.bat examples/*.bat
 	unix2dos W/*.bat examples/*.bat
@@ -216,7 +228,7 @@ imapsync_elf_x86.bin: imapsync
 	./imapsync_elf_x86.bin
 
 
-lfo: cidone  niouze_lfo upload_lfo 
+lfo: cidone   upload_lfo 
 
 
 tarball: .tarball
@@ -300,7 +312,7 @@ ml: dist_dir
 	mailq
 
 
-upload_ks: ci dist
+upload_ks: ci
 	rsync -lptvHzP  $(PUBLIC_FILES) \
 	root@ks.lamiral.info:/var/www/imapsync/
 	rsync -lptvHzP  $(PUBLIC_FILES_W) \
@@ -331,11 +343,3 @@ upload_index: FAQ LICENSE CREDITS W/*.bat examples/*.bat examples/sync_loop_unix
 	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
 	rsync -avH examples/*.bat examples/sync_loop_unix.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 
-niouze_lfo : 
-	echo "CORRECT ME: . ./memo && lfo_announce"
-
-niouze_fm: VERSION
-	. ./memo && fm_announce
-
-
-public: niouze_fm

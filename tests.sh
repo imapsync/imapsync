@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.219 2013/07/03 04:12:34 gilles Exp gilles $  
+# $Id: tests.sh,v 1.220 2013/07/23 11:22:50 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.33/lib' sh -x tests.sh
@@ -175,6 +175,18 @@ locallocal() {
          --passfile2 ../../var/pass/secret.titi 
 }
 
+ll_debug() {
+        #can_send && sendtestmessage
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+	 --debug --nofoldersizes 
+}
+
+
+
 ll_nofoldersizes() 
 {
         $CMD_PERL ./imapsync \
@@ -263,7 +275,6 @@ ll_authmech_PREAUTH() {
                 --passfile2 ../../var/pass/secret.titi \
                 --justlogin
 }
-
 
 
 ll_unknow_option() {
@@ -849,6 +860,32 @@ ll_maxage_0()
         --maxage 0 --folder INBOX
 }
 
+ll_maxage_10000_minage_9999() 
+{
+	# INTERSECTION: 0 messages
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 10000 --minage 9999 \
+	--folder INBOX --justfoldersizes
+}
+
+ll_maxage_9999_minage_10000() 
+{
+	# UNION: all messages
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 9999 --minage 10000 \
+	--folder INBOX --justfoldersizes
+}
+
+
+
 ll_maxage_10000() 
 {
         can_send && sendtestmessage
@@ -1041,6 +1078,16 @@ ll_maxage_9999()
         --maxage 9999 
 }
 
+ll_maxlinelength() 
+{       
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --maxlinelength 8 --nofoldersizes --folder INBOX
+}
 
 
 ll_maxsize() 
@@ -1432,9 +1479,38 @@ ll_regexmess()
         if can_send; then 	
 		file=`ls -t /home/vmail/titi/.yop.yap/cur/* | tail -1`
                 diff ../../var/imapsync/tests/ll_regexmess/dest_01 $file
-                #echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+                echo 'sudo rm -fv /home/vmail/titi/.yop.yap/cur/*'
 	fi
 }
+
+ll_regexmess_bad_regex() 
+{
+        ! $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.yop.yap \
+        --regexmess 'I am BAD' 
+}
+
+
+ll_regexmess_remove_header_Disposition() 
+{
+#Disposition-Notification-To: Gilles LAMIRAL <gilles.lamiral@laposte.net>
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.regexmess \
+		--nofoldersizes \
+                --regexmess 's{\A(.*?(?! ^$))(^Disposition-Notification-To:.*?\n)}{$1}gxms' \
+                --debugcontent  --debug 
+                echo "sudo sh -c 'rm /home/vmail/titi/.regexmess/cur/*'"
+}
+
+
 
 ll_regexmess_scwchu() 
 {
@@ -1498,10 +1574,26 @@ ll_regex_flag()
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
-                --regexflag 's/\\Answered/\$Forwarded/g'
+                --regexflag 's/\\Answered/\$Forwarded/g' --debugflags
                 
                 echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
+
+ll_regex_flag_bad() 
+{
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --regexflag 'I am bad' --debugflags
+                
+                echo 'sudo rm -fv /home/vmail/titi/.yop.yap/cur/*'
+}
+
+
+
 
 ll_regex_flag2() 
 {
@@ -1513,7 +1605,7 @@ ll_regex_flag2()
                 --folder INBOX.yop.yap \
                 --debug --regexflag s/\\\\Answered/\\\\Flagged/g 
                 
-                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+                echo 'sudo rm -fv /home/vmail/titi/.yop.yap/cur/*'
 }
 
 
@@ -1894,17 +1986,19 @@ ll_delete2_dev() {
 
 
 ll_delete() { 
+	echo 11111111111111111111111
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX.oneemail3
+        --folder INBOX.oneemail3 --delete
 
 	#find /home/vmail/titi/.oneemail3/ || :
 	echo After first sync
 	test -f /home/vmail/titi/.oneemail3/cur/* || return 1
 
+	echo 222222222222222222222222
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
@@ -1913,6 +2007,7 @@ ll_delete() {
         --folder INBOX.oneemail3 \
         --delete
 
+	echo 3333333333333333333333333
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
@@ -2029,9 +2124,22 @@ xxxxx_gmail() {
 		--folder 'INBOX.Messages envoy&AOk-s' \
 		--folder 'INBOX.Sent' 
 
-# --exclude Gmail
 }
 
+xxxxx_gmail_useuid() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--nofoldersizes \
+		--regextrans2 "s,^Sent$,[Gmail]/Sent Mail," \
+		--folder 'INBOX.Sent' --useuid --dry
+}
 
 xxxxx_gmail_2() {
 
@@ -3235,9 +3343,11 @@ ll_bad_host_ssl
 ll_useheader 
 ll_useheader_noheader 
 ll_regexmess 
+ll_regexmess_bad_regex
 ll_regexmess_scwchu 
 ll_flags 
 ll_regex_flag 
+ll_regex_flag_bad
 ll_regex_flag_keep_only 
 ll_justconnect 
 ll_justlogin 

@@ -1,17 +1,59 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.547
+head: 1.555
 branch:
 locks: strict
-	gilles: 1.547
+	gilles: 1.555
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 547;	selected revisions: 547
+total revisions: 555;	selected revisions: 555
 description:
 ----------------------------
-revision 1.547	locked by: gilles;
+revision 1.555	locked by: gilles;
+date: 2013/07/23 11:41:10;  author: gilles;  state: Exp;  lines: +7 -6
+Fix warning for extract_header()
+----------------------------
+revision 1.554
+date: 2013/07/22 01:23:12;  author: gilles;  state: Exp;  lines: +7 -7
+typo - when error printed.
+----------------------------
+revision 1.553
+date: 2013/07/22 01:18:30;  author: gilles;  state: Exp;  lines: +9 -7
+Bug fix. Header lines can contain \r\n.
+----------------------------
+revision 1.552
+date: 2013/07/22 00:51:52;  author: gilles;  state: Exp;  lines: +74 -11
+Added "Subject: lala" when line length exceeds maxlinelength to help ti find what are those messages. Added also size, flags and internal date.
+----------------------------
+revision 1.551
+date: 2013/07/19 14:05:50;  author: gilles;  state: Exp;  lines: +698 -650
+Added option --maxlinelength to skip messages whose max line length is over a number of bytes.
+----------------------------
+revision 1.550
+date: 2013/07/19 00:13:22;  author: gilles;  state: Exp;  lines: +1029 -585
+Added success Domino 8.5.2
+Added option --messageidnodomain to fix Mailenable bug changing the domain part of Message-Id header, and avoid duplicates
+Added option --syncflagsaftercopy to fix Mailenable bug not getting the flags with the APPEND.
+Added back the banner of IMAP servers, ie, the first line given after the connection established.
+Added --fixInboxINBOX, turned on by default, to map automatically Inbox INBOX folder names.
+IMAP server removing consecutive spaces on the header part doesn't generate duplicates (MailEnable does that).
+Better output of mailbox sizes in human style (could be 1024.00 Kib, now it is 1.000 Mib). Changed bytes_display_string().
+Option --debugflags now prints flags on first sync (the copy) and also the PERMANENTFLAGS outpout.
+Fixed nearly 200 perlcritic at level 3, all level 4. Still 5 eval "" at level 5 and 12 critics at level 3.
+----------------------------
+revision 1.549
+date: 2013/07/06 01:09:03;  author: gilles;  state: Exp;  lines: +81 -11
+Fixed two bugs coming from adding return(  ) at the end of functions.
+Added tests to remove Disposition-Notification-To: header with regexmess:.
+----------------------------
+revision 1.548
+date: 2013/07/04 02:25:05;  author: gilles;  state: Exp;  lines: +247 -201
+Removed all perlcritic severity 4. Still 5 critics at severity 5.
+98 critics severity 4 fixed.
+----------------------------
+revision 1.547
 date: 2013/07/03 01:24:34;  author: gilles;  state: Exp;  lines: +11 -8
 DBOX 2.41 success.
 Kerio 8 success.
