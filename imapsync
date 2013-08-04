@@ -22,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.555 $
+$Revision: 1.558 $
 
 =head1 SYNOPSIS
 
@@ -534,7 +534,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.555 2013/07/23 11:41:10 gilles Exp gilles $
+$Id: imapsync,v 1.558 2013/08/03 01:13:37 gilles Exp gilles $
 
 =cut
 
@@ -626,7 +626,8 @@ my(
         $timeout,
 	$timestart, $timestart_int, $timeend,
         $timebefore,
-        $ssl1, $ssl2,
+        $ssl1, $ssl2, 
+        $ssl1_SSL_version, $ssl2_SSL_version,
 	$tls1, $tls2,
 	$uid1, $uid2,
         $authuser1, $authuser2,
@@ -660,7 +661,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.555 2013/07/23 11:41:10 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.558 2013/08/03 01:13:37 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -972,13 +973,13 @@ $debugimap1 and print "Host1 connection\n";
 $imap1 = login_imap($host1, $port1, $user1, $domain1, $password1, 
 		   $debugimap1, $timeout, $fastio1, $ssl1, $tls1,
 		   $authmech1, $authuser1, $reconnectretry1,
-		   $proxyauth1, $uid1, $split1, 'Host1');
+		   $proxyauth1, $uid1, $split1, 'Host1', $ssl1_SSL_version );
 
 $debugimap2 and print "Host2 connection\n";
 $imap2 = login_imap($host2, $port2, $user2, $domain2, $password2, 
 		 $debugimap2, $timeout, $fastio2, $ssl2, $tls2,
 		 $authmech2, $authuser2, $reconnectretry2,
-		 $proxyauth2, $uid2, $split2, 'Host2');
+		 $proxyauth2, $uid2, $split2, 'Host2', $ssl2_SSL_version );
 
 
 $debug and print "Host1 Buffer I/O: ", $imap1->Buffer(), "\n";
@@ -1911,9 +1912,9 @@ sub catch_continue {
 
 
 sub connect_imap {
-	my($host, $port, $mydebugimap, $ssl, $tls) = @_;
+	my( $host, $port, $mydebugimap, $ssl, $tls, $SSL_version ) = @_;
 	my $imap = Mail::IMAPClient->new();
-	$imap->Ssl($ssl) if ($ssl);
+	if ( $ssl ) { set_ssl( $imap, $ssl, $SSL_version ) }
 	$imap->Tls($tls) if ($tls);
 	$imap->Server($host);
 	$imap->Port($port);
@@ -1930,14 +1931,14 @@ sub connect_imap {
 
 sub justconnect {
 
-	$imap1 = connect_imap($host1, $port1, $debugimap1, $ssl1, $tls1);
-	print "Host1 software: ", server_banner($imap1);
-	print "Host1 capability: ", join(" ", $imap1->capability()), "\n";
-	$imap2   = connect_imap($host2, $port2, $debugimap2, $ssl2, $tls2);
-	print "Host2 software: ", server_banner($imap2);
-	print "Host2 capability: ", join(" ", $imap2->capability()), "\n";
-	$imap1->logout();
-	$imap2->logout();
+	$imap1 = connect_imap( $host1, $port1, $debugimap1, $ssl1, $tls1, $ssl1_SSL_version ) ;
+	print "Host1 software: ", server_banner( $imap1 ) ;
+	print "Host1 capability: ", join(" ", $imap1->capability(  ) ), "\n" ;
+	$imap2 = connect_imap( $host2, $port2, $debugimap2, $ssl2, $tls2, $ssl2_SSL_version ) ;
+	print "Host2 software: ", server_banner( $imap2 ) ;
+	print "Host2 capability: ", join(" ", $imap2->capability(  ) ), "\n" ;
+	$imap1->logout() ;
+	$imap2->logout() ;
         return(  ) ;
 }
 
@@ -1991,7 +1992,7 @@ sub login_imap {
 	my($host, $port, $user, $domain, $password, 
 	   $mydebugimap, $mytimeout, $fastio, 
 	   $ssl, $tls, $authmech, $authuser, $reconnectretry,
-	   $proxyauth, $uid, $split, $Side ) = @allargs ;
+	   $proxyauth, $uid, $split, $Side, $SSL_version ) = @allargs ;
 
 	my $side = lc( $Side ) ;
 	my $imap = init_imap( @allargs ) ;
@@ -2096,17 +2097,33 @@ sub check_capability {
 	return(  ) ;
 }
 
+sub set_ssl {
+	my ( $imap, $ssl, $SSL_version ) = @_ ;
+        # SSL_version can be
+        #    SSLv3 SSLv2 SSLv23 SSLv23:!SSLv2 (last one is the default in IO-Socket-SSL-1.953)
+        #
+        $SSL_version = $SSL_version || '' ;
+        #print "[$SSL_version]\n" ;
+        IO::Socket::SSL::set_ctx_defaults( 
+		SSL_verify_mode => 'SSL_VERIFY_PEER',
+        	SSL_verifycn_scheme => 'imap',
+                SSL_version => $SSL_version,
+	) ;
+        $imap->Ssl( $ssl ) ;
+	return(  ) ;
+}
+
 sub init_imap {
 	my($host, $port, $user, $domain, $password, 
 	   $mydebugimap, $mytimeout, $fastio, 
 	   $ssl, $tls, $authmech, $authuser, $reconnectretry,
-	   $proxyauth, $uid, $split ) = @_ ;
+	   $proxyauth, $uid, $split, $Side, $SSL_version ) = @_ ;
 
 	my ( $imap ) ;
 	
 	$imap = Mail::IMAPClient->new() ;
 	
-	$imap->Ssl($ssl) if ($ssl);
+	if ( $ssl ) { set_ssl( $imap, $ssl, $SSL_version ) }
 	$imap->Tls($tls) if ($tls);
 	$imap->Clear(1);
 	$imap->Server($host);
@@ -2117,7 +2134,7 @@ sub init_imap {
 	#$imap->Uid(0);
 	$imap->Peek(1);
 	$imap->Debug($mydebugimap);
-	$mytimeout and $imap->Timeout($mytimeout);
+	defined( $mytimeout ) and $imap->Timeout($mytimeout);
 
 	$imap->Reconnectretry($reconnectretry) if ($reconnectretry);
 	$imap->Ignoresizeerrors( $allowsizemismatch ) ;
@@ -2221,8 +2238,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.555 $ ',
-		  '$Date: 2013/07/23 11:41:10 $ ',
+		  '$Revision: 1.558 $ ',
+		  '$Date: 2013/08/03 01:13:37 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -4323,10 +4340,7 @@ sub load_modules {
 
 	if ( $ssl1 or $ssl2 or $tls1 or $tls2 ) {
         	require IO::Socket::SSL ;
-                #$IO::Socket::SSL::DEBUG = 3 ;
-                IO::Socket::SSL::set_ctx_defaults( 
-			SSL_verify_mode => 0,
-		);
+                #$IO::Socket::SSL::DEBUG = 4 ;
         }
 
         require Term::ReadKey if (
@@ -4530,7 +4544,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.555 2013/07/23 11:41:10 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.558 2013/08/03 01:13:37 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {
@@ -5235,7 +5249,7 @@ sub max_line_length {
 	my $string = shift ;
         my $max = 0 ;
         my $i ;
-        while ( $string =~ m/([^\n]*(?:\n|\E))/msxg ) {
+        while ( $string =~ m/([^\n]*\n?)/msxg ) {
         	$max = max( $max, length( $1 ) ) ;
                 #++$i ;
         	#print "max $max $i\n" ;
@@ -5602,6 +5616,8 @@ sub get_options {
 				   "fastio2!"     => \$fastio2,
 				   "ssl1!"        => \$ssl1,
 				   "ssl2!"        => \$ssl2,
+				   "ssl1_SSL_version=s" => \$ssl1_SSL_version,
+				   "ssl2_SSL_version=s" => \$ssl2_SSL_version,
 				   "tls1!"        => \$tls1,
 				   "tls2!"        => \$tls2,
 				   "uid1!"        => \$uid1,

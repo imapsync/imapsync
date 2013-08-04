@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.220 2013/07/23 11:22:50 gilles Exp gilles $  
+# $Id: tests.sh,v 1.222 2013/08/03 17:26:19 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.33/lib' sh -x tests.sh
@@ -1801,6 +1801,23 @@ ll_authmech_PLAIN() {
                 --authmech1 PLAIN --authmech2 PLAIN 
 }
 
+ll_authmech_PLAIN_ssl() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --ssl1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --ssl2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfoldersizes --nofoldersizes \
+                --authmech1 PLAIN --authmech2 PLAIN 
+}
+
+ll_authmech_ssl_cmich() {
+                $CMD_PERL ./imapsync \
+                --host1 cmail.cmich.edu --ssl1 --ssl1_SSL_version SSLv3 \
+                --host2 imap.gmail.com --ssl2 \
+                --justconnect 
+}
+
 
 ll_authmech_XOAUTH_gmail() {
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -3361,6 +3378,7 @@ ll_authmech_PLAIN
 ll_authmech_XOAUTH_gmail
 ll_authmech_LOGIN 
 ll_authmech_CRAMMD5 
+ll_authmech_PREAUTH
 ll_authuser 
 ll_delete_delete2
 ll_delete2 
@@ -3384,7 +3402,6 @@ ll_useuid
 ll_useuid_nousecache
 ll_noheader_force
 ll_noheader
-ll_authmech_PREAUTH
 '
 
 other_tests='

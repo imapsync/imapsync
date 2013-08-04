@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.135 2013/07/23 11:28:22 gilles Exp gilles $
+# $Id: FAQ,v 1.136 2013/08/03 02:07:30 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -818,6 +818,18 @@ b) Use stunnel
        stunnel -c -d 143 -r imap.foo.org:993
    then use imapsync on localhost (or bar machine) imap (143) port.
 
+=======================================================================
+Q. On windows ssl use to work with imapsync.exe 1.536 or previous then
+   an upgrade to next release makes it fail.
+
+R. The I0::Socket::SSL can have SSL_version set by default to 
+   "SSLv23:!SSLv2" but the auto-negociation can fail with 
+   some ssl servers. Use --ssl1_SSL_version or 
+   --ssl2_SSL_version to change SSL_version.
+
+Try:
+
+   imapsync ... --ssl1 --ssl1_SSL_version "SSLv3"
 
 =======================================================================
 Q: How to have an imaps server?
@@ -839,7 +851,7 @@ Imapsync appears to require IO::Socket::SSL. What can I do?
 R1: use standalone imapsync.exe, it contains IO::Socket::SSL 
 Perl module embeded.
 
-R2: IO::Socket::SSLio-socket-ssl is available on Win32 
+R2: Module IO::Socket::SSL is available on Win32 
 with Strawberry Perl.
 
 =======================================================================

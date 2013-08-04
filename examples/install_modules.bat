@@ -1,5 +1,5 @@
 
-REM $Id: install_modules.bat,v 1.6 2013/07/23 11:30:58 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.7 2013/08/03 02:19:58 gilles Exp gilles $
 
 @ECHO OFF 
 
@@ -12,8 +12,9 @@ IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://stra
 
 REM perl is there
 
-FOR %%M in ( IO::Socket IO::Socket::IP ^
-             Net::SSLeay IO::Socket::SSL ^
+FOR %%M in ( IO::Socket::INET IO::Socket::INET6 IO::Socket::IP ^
+             Net::SSLeay ^
+             Crypt::SSLeay Net::SSL IO::Socket::SSL ^
              Digest::MD5 Digest::HMAC_MD5 ^
              Term::ReadKey File::Spec ^
              Time::HiRes ^
@@ -21,8 +22,11 @@ FOR %%M in ( IO::Socket IO::Socket::IP ^
              Authen::NTLM ^
              Time::Local ^
              Mail::IMAPClient ^
-             PAR::Packer ) DO ECHO Testing %%M ^
-   & perl -m%%M -e "" || perl -MCPAN -e "install %%M"
+             Getopt::ArgvFile Module::ScanDeps ^
+             PAR::Packer ) DO ECHO Updating %%M ^
+   & perl -MCPAN -e "install %%M"
+
+REM   & perl -m%%M -e "" || perl -MCPAN -e "install %%M"
 
 
 ECHO Perl modules for imapsync installed

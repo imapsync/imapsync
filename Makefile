@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.123 2013/07/23 11:27:18 gilles Exp gilles $	
+# $Id: Makefile,v 1.125 2013/08/03 17:25:50 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -14,7 +14,7 @@ usage:
 	@echo "make tests_win32 # run --test and W/test.bat on win32"
 	@echo "make tests_win32_dev # run W/test2.bat on win32"
 	@echo "make tests_win32_dev3 # run W/test3.bat on win32"
-	@echo "make prereq_win32 # run examples/install_modules.bat on win32"
+	@echo "make .prereq_win32 # run examples/install_modules.bat on win32"
 	@echo "make all     "
 	@echo "make upload_index"
 	@echo "make upload_ks"
@@ -166,11 +166,12 @@ test_imapsync_exe: dosify_bat
 	scp W/test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
-prereq_win32: examples/install_modules.bat .dosify_bat
+.prereq_win32: examples/install_modules.bat .dosify_bat
 	scp examples/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_modules.bat'
+	touch .prereq_win32
 
-imapsync.exe: imapsync prereq_win32 build_exe.bat .dosify_bat
+imapsync.exe: imapsync .prereq_win32
 	rcsdiff imapsync
 	ssh Admin@c 'perl -V'
 	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
@@ -293,7 +294,22 @@ ksa:
 	rsync -avHz --delete -P \
 	  . imapsync@ks.lamiral.info:public_html/imapsync/
 
-publish: ksa upload_ks ml
+upload_ks: ci tarball
+	rsync -lptvHzP  $(PUBLIC_FILES) \
+	root@ks.lamiral.info:/var/www/imapsync/
+	rsync -lptvHzP  $(PUBLIC_FILES_W) \
+	root@ks.lamiral.info:/var/www/imapsync/W/
+	rsync -lptvHzP  $(PUBLIC_FILES_IMAGES) \
+	root@ks.lamiral.info:/var/www/imapsync/W/images/
+	rsync -lptvHzP ./W/ks.htaccess \
+	root@ks.lamiral.info:/var/www/imapsync/.htaccess
+	rsync -lptvHzrP ./dist/ \
+	root@ks.lamiral.info:/var/www/imapsync/dist/
+	rsync -lptvHzrP ./examples/ \
+	root@ks.lamiral.info:/var/www/imapsync/examples/
+
+publish: upload_ks ksa
+	echo Now ou can do make ml
 
 PUBLIC_FILES = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL \
@@ -311,20 +327,6 @@ ml: dist_dir
 	m4 -P W/ml_announce.in | mutt -H-
 	mailq
 
-
-upload_ks: ci
-	rsync -lptvHzP  $(PUBLIC_FILES) \
-	root@ks.lamiral.info:/var/www/imapsync/
-	rsync -lptvHzP  $(PUBLIC_FILES_W) \
-	root@ks.lamiral.info:/var/www/imapsync/W/
-	rsync -lptvHzP  $(PUBLIC_FILES_IMAGES) \
-	root@ks.lamiral.info:/var/www/imapsync/W/images/
-	rsync -lptvHzP ./W/ks.htaccess \
-	root@ks.lamiral.info:/var/www/imapsync/.htaccess
-	rsync -lptvHzrP ./dist/ \
-	root@ks.lamiral.info:/var/www/imapsync/dist/
-	rsync -lptvHzrP ./examples/ \
-	root@ks.lamiral.info:/var/www/imapsync/examples/
 
 upload_lfo:
 	#rm -rf /home/gilles/public_html/www.linux-france.org/html/prj/imapsync/
