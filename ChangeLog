@@ -1,17 +1,58 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.555
+head: 1.564
 branch:
 locks: strict
-	gilles: 1.555
+	gilles: 1.564
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 555;	selected revisions: 555
+total revisions: 564;	selected revisions: 564
 description:
 ----------------------------
-revision 1.555	locked by: gilles;
+revision 1.564	locked by: gilles;
+date: 2013/08/18 19:28:47;  author: gilles;  state: Exp;  lines: +114 -22
+Adapted behavior for allowing --maxdate --mindate with --noabletosearch. Use internat date instead of Date: header.
+----------------------------
+revision 1.563
+date: 2013/08/16 00:59:30;  author: gilles;  state: Exp;  lines: +8 -7
+Added QQMail success.
+----------------------------
+revision 1.562
+date: 2013/08/16 00:41:48;  author: gilles;  state: Exp;  lines: +38 -16
+Speed fix. Does not resync the flags when flags on host2 do not respect RFC. \Seen -> \SEEN. imapsync detects this as same flag.
+Atmail 6.x [host1] success.
+Fix for QQMail IMAP4Server. With --noabletosearch the previous fetch with 1:999999 is replaced by an uidnext request.
+----------------------------
+revision 1.561
+date: 2013/08/09 23:49:23;  author: gilles;  state: Exp;  lines: +15 -8
+Added --timeout in the --help output.
+Default timeout is 120 seconds now (was nothing by imapsync, 600 with underlying modules).
+----------------------------
+revision 1.560
+date: 2013/08/09 23:06:04;  author: gilles;  state: Exp;  lines: +7 -7
+Added --addheader suggestion for messages with no header found.
+----------------------------
+revision 1.559
+date: 2013/08/06 11:33:53;  author: gilles;  state: Exp;  lines: +7 -7
+Apply same treatment to --delete2duplicates as --delete2. If --uidexpunge2 can be done, do it, else do --expunge2 (unless --nouidexpunge2 or --noexpunge2).
+----------------------------
+revision 1.558
+date: 2013/08/03 01:13:37;  author: gilles;  state: Exp;  lines: +18 -16
+Bugfix. SSL_version was not well treated.
+----------------------------
+revision 1.557
+date: 2013/08/01 19:28:09;  author: gilles;  state: Exp;  lines: +7 -7
+Bugfix. max_line_length('a') was wrong.
+----------------------------
+revision 1.556
+date: 2013/08/01 00:10:03;  author: gilles;  state: Exp;  lines: +42 -28
+Added --ssl1_SSL_version ssl2_SSL_version option to change default SSL_version.
+For example --ssl2_SSL_version SSLv3 fix connection to cmail.cmich.edu on Windows.
+Fixed a warning about regex with \E on Perl >= 5.16
+----------------------------
+revision 1.555
 date: 2013/07/23 11:41:10;  author: gilles;  state: Exp;  lines: +7 -6
 Fix warning for extract_header()
 ----------------------------

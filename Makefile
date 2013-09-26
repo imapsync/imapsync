@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.125 2013/08/03 17:25:50 gilles Exp gilles $	
+# $Id: Makefile,v 1.129 2013/08/16 01:21:14 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -56,8 +56,15 @@ VERSION: imapsync
 	perl -I./$(IMAPClient) ./imapsync --version > ./VERSION
 	touch -r ./imapsync ./VERSION
 
+GOOD_PRACTICES.html: GOOD_PRACTICES.t2t
+	txt2tags -i GOOD_PRACTICES.t2t  -t html --toc  -o GOOD_PRACTICES.html
 
-.PHONY: clean clean_tilde clean_test   
+TUTORIAL.html: TUTORIAL.t2t
+	txt2tags -i TUTORIAL.t2t -t html --toc  -o TUTORIAL.html
+
+doc:  README ChangeLog TUTORIAL.html GOOD_PRACTICES.html 
+
+.PHONY: clean clean_tilde clean_test doc
 
 clean: clean_tilde clean_man
 
@@ -259,7 +266,7 @@ DIST_PATH   := ./dist/$(DIST_SECRET)
 lalala:
 	echo $(DIST_SECRET)
 
-dist: cidone test clean all INSTALL dist_prepa dist_prepa_exe
+dist: cidone test clean all perlcritic dist_prepa dist_prepa_exe
 
 
 dist_prepa: tarball dist_dir
@@ -299,16 +306,16 @@ upload_ks: ci tarball
 	root@ks.lamiral.info:/var/www/imapsync/
 	rsync -lptvHzP  $(PUBLIC_FILES_W) \
 	root@ks.lamiral.info:/var/www/imapsync/W/
-	rsync -lptvHzP  $(PUBLIC_FILES_IMAGES) \
+	rsync -lptvHzPr  $(PUBLIC_FILES_IMAGES) \
 	root@ks.lamiral.info:/var/www/imapsync/W/images/
 	rsync -lptvHzP ./W/ks.htaccess \
 	root@ks.lamiral.info:/var/www/imapsync/.htaccess
-	rsync -lptvHzrP ./dist/ \
+	rsync -lptvHzPr ./dist/ \
 	root@ks.lamiral.info:/var/www/imapsync/dist/
-	rsync -lptvHzrP ./examples/ \
+	rsync -lptvHzPr ./examples/ \
 	root@ks.lamiral.info:/var/www/imapsync/examples/
 
-publish: upload_ks ksa
+publish: dist upload_ks ksa
 	echo Now ou can do make ml
 
 PUBLIC_FILES = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
@@ -321,7 +328,7 @@ PUBLIC_FILES_W = ./W/style.css \
 ./W/paypal.shtml ./W/paypal_return.shtml ./W/paypal_return_support.shtml
 
 
-PUBLIC_FILES_IMAGES = ./W/images/logo_imapsync.png ./W/images/logo_imapsync_s.png
+PUBLIC_FILES_IMAGES = ./W/images/
 
 ml: dist_dir
 	m4 -P W/ml_announce.in | mutt -H-

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.222 2013/08/03 17:26:19 gilles Exp gilles $  
+# $Id: tests.sh,v 1.224 2013/08/18 19:30:46 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.33/lib' sh -x tests.sh
@@ -557,6 +557,33 @@ ll_delete2foldersbutnot() {
 		--dry
 }
 
+ll_delete2foldersonly_NEW_3() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders  --nofoldersizes \
+		--regextrans2 's,^INBOX.oneemail$,INBOX.NEW_3.oneemail,' \
+		--regextrans2 's,^INBOX.oneemail2$,INBOX.NEW_3.oneemail2,' 
+
+		test -d /home/vmail/titi/.NEW_3.oneemail/  || return 1
+		test -d /home/vmail/titi/.NEW_3.oneemail2/  || return 1
+
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders  --nofoldersizes \
+		--include 'rrrrr' \
+                --delete2foldersonly '/^INBOX.NEW_3.oneemail$/'
+
+		! test -d /home/vmail/titi/.NEW_3.oneemail/ || return 1
+		test -d /home/vmail/titi/.NEW_3.oneemail2/ || return 1
+
+
+}
 
 
 ll_delete2folders() {
@@ -567,6 +594,8 @@ ll_delete2folders() {
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes \
                 --delete2folders 
+
+		! test -d /home/vmail/titi/.NEW_3/ || return 1
 }
 
 
@@ -882,6 +911,30 @@ ll_maxage_9999_minage_10000()
         --passfile2 ../../var/pass/secret.titi \
         --maxage 9999 --minage 10000 \
 	--folder INBOX --justfoldersizes
+}
+
+ll_maxage_10000_minage_9999_noabletosearch() 
+{
+	# INTERSECTION: 0 messages
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 10000 --minage 9999 \
+	--folder INBOX --justfoldersizes --noabletosearch
+}
+
+ll_maxage_9999_minage_10000_noabletosearch() 
+{
+	# UNION: all messages
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 9999 --minage 10000 \
+	--folder INBOX --justfoldersizes --noabletosearch
 }
 
 
@@ -1207,7 +1260,17 @@ ll_exclude_INBOX()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --exclude '^INBOX$' --justfolders --nofoldersizes --dry
+                --exclude '^INBOX' --justfolders --nofoldersizes --dry
+}
+
+ll_exclude_blanc_middle() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --exclude '^INBOX.blanc\smiddle' --justfolders --nofoldersizes --dry
 }
 
 
@@ -3392,6 +3455,7 @@ ll_usecache
 ll_usecache_noheader
 ll_usecache_debugcache
 ll_nousecache
+ll_delete2foldersonly_NEW_3
 ll_delete2foldersonly
 ll_delete2foldersonly_tmp
 ll_delete2foldersbutnot

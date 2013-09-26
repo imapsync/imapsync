@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.136 2013/08/03 02:07:30 gilles Exp gilles $
+# $Id: FAQ,v 1.138 2013/08/16 01:03:32 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -181,7 +181,7 @@ R. Search the internet.
 Q. Is is legal to find imapsync gratis (or not) elsewhere?
 
 R. Yes, the license permits it
-   http://imapsync.lamiral.info/LICENSE
+   http://imapsync.lamiral.info/NOLIMIT
 
 =======================================================================
 Q. I use --useuid which uses a cache in /tmp or --tmpdir, the hostnames
@@ -798,15 +798,24 @@ R. Use imapsync release 1.172 or at least 1.166 with options
    or a old old imapsync (before 1.94)
 
 =======================================================================
-Q. Does imapsync support IMAP over TLS (IMAPS)?
+Q. Does imapsync support IMAP TLS?
+
+R. Use --tls1 and/or --tls2 options
+
+--tls1 tells imapsync to use tls on host1.
+--tls2 tells imapsync to use tls on host2.
+
+
+=======================================================================
+Q. Does imapsync support IMAP over SSL (IMAPS)?
 
 R. Yes natively since release 1.161. 
 still, 2 ways, at least :
 
-a) Use --ssl1 and/or --ssl2 options
+a) Use native --ssl1 and/or --ssl2 options
 
---ssl1 tells imapsync to use ssl on host1
---ssl2 tells imapsync to use ssl on host2
+--ssl1 tells imapsync to use ssl on host1.
+--ssl2 tells imapsync to use ssl on host2.
 
 
 b) Use stunnel
@@ -817,6 +826,8 @@ b) Use stunnel
    or using names instead of numbers 
        stunnel -c -d 143 -r imap.foo.org:993
    then use imapsync on localhost (or bar machine) imap (143) port.
+   If the local port 143 is already taken then use a free one, 10143.
+
 
 =======================================================================
 Q. On windows ssl use to work with imapsync.exe 1.536 or previous then
@@ -1770,6 +1781,12 @@ imapsync ... --sep1 '.' --prefix1 '' \
              --noabletosearch  --nocheckmessageexists --addheader
 
 (Thanks to Andrew Tucker)
+
+======================================================================
+Q. From or to QQMail IMAP4Server
+
+R. imapsync ... --noabletosearch
+
 ======================================================================
 Q: How can I write an .rpm with imapsync
 
