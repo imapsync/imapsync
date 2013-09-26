@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl5.8.8
 
 # structure
 # pod documentation
@@ -22,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.567 $
+$Revision: 1.564 $
 
 =head1 SYNOPSIS
 
@@ -399,7 +399,6 @@ Success stories reported with the following 55 imap servers
  - Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
    1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)
  - Eudora WorldMail v2
- - Fusemail imap.fusemail.net:143 (https://www.fusemail.com/).
  - Gimap (Gmail imap)
  - GMX IMAP4 StreamProxy.
  - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
@@ -426,11 +425,9 @@ Success stories reported with the following 55 imap servers
  - Oracle Beehive [host1]
  - Qualcomm Worldmail (NT)
  - QQMail IMAP4Server [host1] [host2] https://en.mail.qq.com/
- - RackSpace hoster secure.emailsrvr.com:993 http://www.rackspace.com/
  - Rockliffe Mailsite 5.3.11, 4.5.6
  - Samsung Contact IMAP server 8.5.0
  - Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6
- - Sendmail Mail Store IMAP4rev1 (5.5.6/mstore-5-5-build-1874 [host1].
  - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], SmarterMail Professional 10.2 [host1].
  - Softalk Workgroup Mail 7.6.4 [host1].
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
@@ -539,7 +536,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.567 2013/09/18 20:38:10 gilles Exp gilles $
+$Id: imapsync,v 1.564 2013/08/18 19:28:47 gilles Exp gilles $
 
 =cut
 
@@ -667,7 +664,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.567 2013/09/18 20:38:10 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.564 2013/08/18 19:28:47 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -950,13 +947,19 @@ for ( @useheader ) { $useheader{ uc( $_ ) } = undef } ;
 print "Host1: IMAP server [$host1] port [$port1] user [$user1]\n";
 print "Host2: IMAP server [$host2] port [$port2] user [$user2]\n";
 
-$password1 || $passfile1 || 'PREAUTH' eq $authmech1 || 'EXTERNAL' eq $authmech1 || do {
-	$password1 = ask_for_password( $authuser1 || $user1, $host1 ) ;
-} ;
+$password1 || $passfile1 || do {
+        $password1 = ask_for_password($authuser1 || $user1, $host1) unless ($authmech1 eq "EXTERNAL");
+};
 
-$password1 = ( defined( $passfile1 ) ) ? firstline ( $passfile1 ) : $password1 ;
+$password1 = (defined($passfile1)) ? firstline ($passfile1) : $password1;
 
-$password2 || $passfile2 || 'PREAUTH' eq $authmech2 || 'EXTERNAL' eq $authmech2 || do {
+#$password1 || $passfile1 || 'PREAUTH' eq $authmech1 || do {
+#	$password1 = ask_for_password( $authuser1 || $user1, $host1 ) ;
+#} ;
+
+#$password1 = ( defined( $passfile1 ) ) ? firstline ( $passfile1 ) : $password1 ;
+
+$password2 || $passfile2 || 'PREAUTH' eq $authmech2 || do {
 	$password2 = ask_for_password( $authuser2 || $user2, $host2 ) ;
 } ;
 
@@ -2068,12 +2071,28 @@ sub authenticate_imap {
                 $imap->User($user) ;
         }
         
-	$imap->Authcallback(\&xoauth) if ( 'XOAUTH' eq $authmech ) ;
-	$imap->Authcallback(\&plainauth) if ( ( 'PLAIN' eq $authmech ) or ( 'EXTERNAL' eq $authmech )  ) ;
+	$imap->Authcallback(\&xoauth) if $authmech eq "XOAUTH" ;
+	$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN" || ($authmech eq "EXTERNAL") ;
+
+if ($proxyauth) {
+                $imap->User($authuser);
+                $imap->Domain($domain) if (defined($domain));
+                $imap->Authuser($authuser);
+                if ($authmech eq "EXTERNAL") {$password = "NULL"};
+                $imap->Password($password);
+        } else {
+                $imap->User($user);
+                $imap->Domain($domain) if (defined($domain));
+                $imap->Authuser($authuser);
+                if ($authmech eq "EXTERNAL") {$password = "NULL"};
+                $imap->Password($password);
+        }
+
 	
-        $imap->Domain($domain) if (defined($domain)) ;
-        $imap->Authuser($authuser) ;
-        $imap->Password($password) ;
+
+#        $imap->Domain($domain) if (defined($domain)) ;
+#        $imap->Authuser($authuser) ;
+#        $imap->Password($password) ;
 	
 	unless ( $authmech eq 'PREAUTH' or $imap->login( ) ) {
 		my $info  = "Failure: error login on [$host] with user [$user] auth" ;
@@ -2091,14 +2110,14 @@ sub authenticate_imap {
 		  die_clean("$info [LOGIN]: ", $imap->LastError, "\n") ;
 	}
 
-        if ( $proxyauth ) {
-                if ( ! $imap->proxyauth( $user ) ) {
-                        my $info  = "Failure: error doing proxyauth as user [$user] on [$host] using proxy-login as [$authuser]" ;
-                        my $einfo = $imap->LastError || @{$imap->History}[-1] ;
-                        chomp( $einfo ) ;
-                        die_clean( "$info: $einfo\n" ) ;
-                }
-        }
+#        if ( $proxyauth ) {
+#                if ( ! $imap->proxyauth( $user ) ) {
+#                        my $info  = "Failure: error doing proxyauth as user [$user] on [$host] using proxy-login as [$authuser]" ;
+#                        my $einfo = $imap->LastError || @{$imap->History}[-1] ;
+#                        chomp( $einfo ) ;
+#                        die_clean( "$info: $einfo\n" ) ;
+#                }
+#        }
 
 	return(  ) ;
 }
@@ -2265,8 +2284,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.567 $ ',
-		  '$Date: 2013/09/18 20:38:10 $ ',
+		  '$Revision: 1.564 $ ',
+		  '$Date: 2013/08/18 19:28:47 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -2317,7 +2336,7 @@ sub exit_clean {
 sub die_clean {
 	my @messages = @_ ;
 	unlink( $pidfile ) ;
-	croak( @messages ) ;
+	croak @messages ;
 } 
 
 sub missing_option {
@@ -3346,7 +3365,7 @@ sub copy_message {
 	my ( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) = @_ ;
 	( $debug or $dry) and print "msg $h1_fold/$h1_msg copying to $h2_fold $dry_message\n";
 
-	my $h1_size  = $h1_fir_ref->{$h1_msg}->{"RFC822.SIZE"} || 0 ;
+	my $h1_size  = $h1_fir_ref->{$h1_msg}->{"RFC822.SIZE"} || '' ;
 	my $h1_flags = $h1_fir_ref->{$h1_msg}->{"FLAGS"} || '' ;
 	my $h1_idate = $h1_fir_ref->{$h1_msg}->{"INTERNALDATE"} || '' ;
 	
@@ -4659,7 +4678,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.567 2013/09/18 20:38:10 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.564 2013/08/18 19:28:47 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {

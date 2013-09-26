@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.138 2013/08/16 01:03:32 gilles Exp gilles $
+# $Id: FAQ,v 1.145 2013/09/21 21:56:33 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -184,6 +184,21 @@ R. Yes, the license permits it
    http://imapsync.lamiral.info/NOLIMIT
 
 =======================================================================
+Q. How "Facts and figures" are known on http://imapsync.lamiral.info/
+
+R. To know wether a newer imapsync exists or not imapsync does a http 
+   GET to http://imapsync.lamiral.info/VERSION
+   Via the User-agent parameter it also send:
+
+    * imapsync release
+    * Perl version
+    * Mail::IMAPClient version
+    * Operating System
+
+You can remove this behavior by adding option --noreleasecheck on the
+command line (or by setting $releasecheck = 0 in the source code) 
+
+=======================================================================
 Q. I use --useuid which uses a cache in /tmp or --tmpdir, the hostnames
    host1 or host2 has changed but mailboxes are the same. Will imapsync
    generate duplicate messages on next runs?
@@ -296,7 +311,40 @@ R2. Use --useuid then imapsync will avoid dealing with headers.
    imapsync ... --useuid
 
 =======================================================================
-Q. How can I try imapsync with Mail::IMAPClient 3.xx perl module?
+Q. On Windows, with --useuid or --usecache a problem occurs with long
+   nested folder names. The error message is:
+   "No such file or directory; The filename or extension is too long"
+
+R. This comes from a Windows limitation on pathnames.
+No more than 260 characters are allowed for pathnames.
+See more details on page
+http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247.aspx#maxpath
+
+Two workarounds to reduce the cache directory name:
+
+1) Use --tmpdir "D:\\temp" or simply --tmpdir "D:"
+
+2) add two equivalent entries in the etc/hosts for host1 imap.truc.org 
+and host2 imap.trac.org. 
+If you map the ip of imap.truc.org just with the letter a 
+and same thing for imap.trac.org then you gain characters
+
+etc/hosts
+
+192.168.12.1 a
+192.168.55.3 b
+
+Then use:
+
+  imapsync --host1 a --host2 b ...
+
+You can get the ip of a host with the ping command line
+C:\> ping imap.truc.org
+
+Fixing the long path problem directly in imapsync is in the TODO file.
+
+=======================================================================
+Q. How can I try imapsync with latest Mail::IMAPClient 3.xx perl module?
 
 R. The answer R2 deals with any Perl module use.
 
@@ -680,6 +728,13 @@ For example to convert flag IMPORTANT to flag CANWAIT
 
 option --debugflags is usefull to see in details what imapsync
 does with flags.
+
+=======================================================================
+Q. How to fix this error: BAD Invalid system flag \FORWARDED 
+
+R. Filter flag \FORWARDED with
+
+  imapsync ... --regexflag "s/\\FORWARDED//g" 
 
 =======================================================================
 Q. How to convert flags with $ to \ character?
@@ -1202,7 +1257,7 @@ R.
 
 imapsync \
  ...
- --regextrans2 "s/INBOX(.*)/INBOX.Braunschweig$1/" \
+ --regextrans2 "s/INBOX(.*)/INBOX.Braunschweig\$1/" \
  --dry --justfolders
 
 2) See if the output says everything you want imapsync to do, 
@@ -1384,6 +1439,31 @@ format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
               Server specific issues and solutions
 =======================================================================
 
+
+=======================================================================
+Q. From XXX to Exchange 2013 or Office365 I get this error message
+   sometimes: "BAD Command Argument Error 11"
+
+R. This error message comes from Exchange IMAP server when it 
+   encounters any problem. Most of the time it is one of the following:
+
+  * Some messages are bigger than the size limit. 10 MB by default
+    on Exchange. It can be upped by configuration.
+    Or use option --maxsize 10000000 (for 10 MB, change it if needed)
+    to tell imapsync to skip those messages.
+
+  imapsync ... --maxsize 10000000 
+
+  * Quota reached. The whole account is full.
+    It can be upped by configuration.
+
+  * Some messages have some lines too long. Use option --maxlinelength
+    to skip messages whose max line length is over a number of bytes.
+    --maxlinelength 1000 is a RFC2822 must but most server support
+    higher values.
+
+  imapsync ... --maxlinelength 1000 
+
 =======================================================================
 Q. From Zimbra to XXX
 
@@ -1438,7 +1518,10 @@ imapsync --host1 mail.oldhost.com \
          --exitwhenover 500000000 \
          --exclude "\[Gmail\]$" \
          --addheader \
-         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail,"
+         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," \
+         --regextrans2 "s/[ ]+/_/g" \
+         --regextrans2 "s/[\^]/_/g" \
+         --regextrans2 "s/['\"\\\\]/_/g"
 
 
 If you're using a different language in Gmail you might adapt
@@ -1465,6 +1548,15 @@ See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 "Could not examine: 43 NO [NONEXISTENT] Unknown Mailbox: [Gmail] 
 (now in authenticated state) (Failure)".
 
+--regextrans2 "s/[ ]+/_/g" is there to convert blank characters not 
+accepted by gmail to character _ underscore. In fact only leading
+and trailing blank characters are problems with gmail.
+
+--regextrans2 "s/[\^]/_/g" is mandatory.  It converts, since
+not accepted by gmail, character ^ to character _ underscore.
+
+--regextrans2 "s/['\"\\\\]/_/g" is optional. It converts 
+characters ' or " or \ to character _ underscore.
 
 You can select folders exported to imap within the gmail preferences,
 unselect all "System labels" depending on your needs.

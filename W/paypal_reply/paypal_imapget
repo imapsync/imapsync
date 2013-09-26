@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: paypal_imapget,v 1.9 2013/03/20 23:59:41 gilles Exp gilles $
+# $Id: paypal_imapget,v 1.10 2013/08/21 22:19:35 gilles Exp gilles $
 
 use Getopt::Long;
 use Mail::IMAPClient;
@@ -58,7 +58,8 @@ print "@search\n" ;
 @search = ('TEXT', 'PP341') if not @search ;
 my @uids_01 = $imap->search('HEADER', 'Return-Path','<payment@paypal.com>', @search );
 my @uids_02 = $imap->search('HEADER', 'Return-Path','<member@paypal.fr>', @search );
-my @uids = ( @uids_01, @uids_02 ) ;
+my @uids_03 = $imap->search('HEADER', 'Return-Path','<member@paypal.com>', @search );
+my @uids = ( @uids_01, @uids_02, @uids_03 ) ;
 print "Search: [@uids]\n";
 
 foreach $msg (@uids) {

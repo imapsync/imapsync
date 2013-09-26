@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.224 2013/08/18 19:30:46 gilles Exp gilles $  
+# $Id: tests.sh,v 1.225 2013/09/21 21:55:17 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./Mail-IMAPClient-3.33/lib' sh -x tests.sh
@@ -467,6 +467,16 @@ ll_folderrec_star() {
                 --passfile2 ../../var/pass/secret.titi \
                 --folderrec 'INBOX.yop.*'  --justfolders
 }
+
+ll_change_blank() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders --nofoldersizes
+}
+
 
 
 
@@ -2186,6 +2196,19 @@ msw2() {
         ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 }
 
+
+ll_change_characters_gmail() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder "INBOX. f g\h\"i'j " --justfolders \
+                --regextrans2 "s/['\"\\\\]/_/g" --regextrans2 's,(/|^) +,$1,g' --regextrans2 's, +(/|$),$1,g'
+
+}
+
+
 xxxxx_gmail() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -2197,7 +2220,7 @@ xxxxx_gmail() {
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
 		--nofoldersizes \
-		--regextrans2 's/ +$//g' --regextrans2 's# +/#/#g' \
+		--regextrans2 's,(/|^) +,$1,g' --regextrans2 's, +(/|$),$1,g' \
 		--exclude 'INBOX.yop.YAP' \
 		--regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
 		--regextrans2 "s,^Sent$,[Gmail]/Sent Mail," \
@@ -2288,7 +2311,8 @@ xxxxx_gmail_5_justfolders() {
                 --ssl2 \
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
-		--justfolders
+		--justfolders --nofoldersizes \
+                --regextrans2 's,(/|^) +,$1,g' --regextrans2 's, +(/|$),$1,g' 
 }
 
 
