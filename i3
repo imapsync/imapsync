@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# $Id: i3,v 1.12 2013/07/03 04:11:35 gilles Exp gilles $
+# $Id: i3,v 1.13 2013/09/28 11:50:16 gilles Exp gilles $
 
 BASE=`dirname $0`
-perl -I${BASE}/W/Mail-IMAPClient-3.33/lib ${BASE}/imapsync "$@"
+perl -I${BASE}/W/Mail-IMAPClient-3.34/lib ${BASE}/imapsync "$@"
 

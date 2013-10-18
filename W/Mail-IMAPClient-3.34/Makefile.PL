@@ -104,87 +104,35 @@ exit 0;
 
 sub set_test_data {
     unless ( -f "lib/Mail/IMAPClient.pm" ) {
-        warn "ERROR: not in installation directory\n";
+        warn("ERROR: not in installation directory\n");
         return;
     }
 
-    return if -s "./test.txt";
-
-    print <<'__INTRO';
-You have the option of running an extended suite of tests during
-'make test'. This requires an IMAP server name, user account, and
-password to test with.
-
-Note: this prompt will automatically timeout after 60 seconds.
-
-__INTRO
-
-    # HACK: alarm() allows broken interfaces to timeout gracefully...
-    # - rt.cpan.org#57659: install fails when using cPanel GUI
-    my $yes;
-    eval {
-        local $SIG{ALRM} = sub { die "alarm\n" };
-        alarm(60);
-        $yes = prompt "Do you want to run the extended tests? (n/y)";
-        alarm(0);
-    };
-    print "\n" if $@;
-    return unless ( $yes and $yes =~ /^y(?:es)?$/i );
-
-    unless ( open TST, '>', "./test.txt" ) {
-        warn "ERROR: couldn't open ./test.txt: $!\n";
+    if ( -s "./test.txt" ) {
+        print("The file test.txt will be used for extended tests.\n");
         return;
     }
 
-    my $server = "";
-    until ($server) {
-        $server =
-            prompt "\nPlease provide the hostname or IP address of "
-          . "a host running an\nIMAP server (or QUIT to skip "
-          . "the extended tests)";
-        chomp $server;
-        return if $server =~ /^\s*quit\s*$/i;
-    }
+    print <<EOF;
 
-    print TST "server=$server\n";
+(OPTIONAL) For extended tests during 'make test', create a file
+'test.txt' in the top level directory of this distribution (the same
+directory as the Makefile.PL, etc.).  This file must contain an IMAP
+server name or IP (server=...), a user account (user=...), and a
+password (passed=...).  A port (port=....) and an authentication
+mechanism to be used (authmechanism=...) can also be specified.
 
-    my $user = "";
-    until ($user) {
-        $user =
-          prompt "\nProvide the username of an account on $server (or QUIT)";
-        chomp $user;
-        return if $user =~ /^\s*quit\s*$/i;
-    }
-    print TST "user=$user\n";
+Example:
 
-    my $passed = "";
-    until ($passed) {
-        $passed = prompt "\nProvide the password for $user (or QUIT)";
-        chomp $passed;
-        return if $passed =~ /^\s+$|^quit$/i;
-    }
+--- BEGIN: test.txt ---
+server=localhost
+user=mytestuser
+passed=mypassword
+port=143
+--- END: test.txt ---
 
-    print TST "passed=$passed\n";
+NOTE: When testing is completed, be sure to remove test.txt (either by
+hand or by 'make clean').
 
-    my $port = prompt "\nPlease provide the port to connect to on $server "
-      . "to run the test\n(default is 143)";
-    chomp $port;
-    $port ||= 143;
-    print TST "port=$port\n";
-
-    my $authmech = prompt "\nProvide the authentication mechanism to use "
-      . "on $server to\nrun the test (default is LOGIN)";
-
-    chomp $authmech;
-    $authmech ||= 'LOGIN';
-    print TST "authmechanism=$authmech\n";
-    close TST;
-
-    print <<'__THANKS';
-
-The information you provided (including the password!) has been stored
-in test.txt and SHOULD BE REMOVED (either by hand or by 'make clean')
-after testing.
-__THANKS
-
+EOF
 }

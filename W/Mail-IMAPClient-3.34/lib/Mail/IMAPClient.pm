@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.33';
+our $VERSION = '3.34';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -48,7 +48,9 @@ my %SEARCH_KEYS = map { ( $_ => 1 ) } qw(
 # modules require(d) during runtime when applicable
 my %Load_Module = (
     "Compress-Zlib" => "Compress::Zlib",
+    "INET"          => "IO::Socket::INET",
     "SSL"           => "IO::Socket::SSL",
+    "UNIX"          => "IO::Socket::UNIX",
     "BodyStructure" => "Mail::IMAPClient::BodyStructure",
     "Envelope"      => "Mail::IMAPClient::BodyStructure::Envelope",
     "Thread"        => "Mail::IMAPClient::Thread",
@@ -92,8 +94,8 @@ BEGIN {
         Debug Debug_fh Domain Folder Ignoresizeerrors Keepalive
         Maxappendstringlength Maxcommandlength Maxtemperrors
         Password Peek Port Prewritemethod Proxy Ranges Readmethod
-        Readmoremethod Reconnectretry Server Showcredentials Ssl Starttls
-        Supportedflags Timeout Uid User)
+        Readmoremethod Reconnectretry Server Showcredentials
+        Socketargs Ssl Starttls Supportedflags Timeout Uid User)
       )
     {
         no strict 'refs';
@@ -253,7 +255,7 @@ sub Transaction { shift->Count }
 # remove doubles from list
 sub _remove_doubles(@) {
     my %seen;
-    grep { !$seen{$_}++ } @_;
+    grep { !$seen{ $_->{name} }++ } @_;
 }
 
 # the constructor:
@@ -322,44 +324,43 @@ sub connect(@) {
     # BUG? We should restrict which keys can be passed/set here.
     %$self = ( %$self, @_ ) if @_;
 
-    my $server  = $self->Server;
-    my $port    = $self->Port || $self->Port( $self->Ssl ? "993" : "143" );
-    my @timeout = $self->Timeout ? ( Timeout => $self->Timeout ) : ();
-    my $sock;
+    my @sockargs = $self->Timeout ? ( Timeout => $self->Timeout ) : ();
+    push( @sockargs, $self->Debug ? ( Debug => $self->Debug ) : () );
+
+    # give caller control of IO::Socket::... args to new if desired
+    if ( $self->Socketargs and ref $self->Socketargs eq "ARRAY" ) {
+        push( @sockargs, @{ $self->Socketargs } );
+    }
+
+    my $server = $self->Server;
+    my $port = $self->Port || $self->Port( $self->Ssl ? "993" : "143" );
+    my ( $ioclass, $sock );
 
     if ( File::Spec->file_name_is_absolute($server) ) {
-        $self->_debug("Connecting to unix socket $server @timeout");
-        $sock = IO::Socket::UNIX->new(
-            Peer  => $server,
-            Debug => $self->Debug,
-            @timeout
-        );
+        $ioclass = $self->_load_module("UNIX");
+        unshift( @sockargs, Peer => $server );
     }
     else {
-        my $ioclass = "IO::Socket::INET";
-        my @args;
+        unshift(
+            @sockargs,
+            PeerAddr => $server,
+            PeerPort => $port,
+            Proto    => "tcp",
+        );
 
+        # extra control of SSL args is supported
         if ( $self->Ssl ) {
             $ioclass = $self->_load_module("SSL");
-
-            # give caller control of args to new if desired
-            @args =
-                ( ref( $self->Ssl ) eq "ARRAY" )
-              ? ( @{ $self->Ssl } )
-              : ();
+            push( @sockargs, @{ $self->Ssl } ) if ref $self->Ssl eq "ARRAY";
         }
-
-        if ($ioclass) {
-            $self->_debug("Connecting via $ioclass to $server:$port @timeout");
-            $sock = $ioclass->new(
-                PeerAddr => $server,
-                PeerPort => $port,
-                Proto    => 'tcp',
-                Debug    => $self->Debug,
-                @timeout,
-                @args
-            );
+        else {
+            $ioclass = $self->_load_module("INET");
         }
+    }
+
+    if ($ioclass) {
+        $self->_debug("Connecting with $ioclass @sockargs");
+        $sock = $ioclass->new(@sockargs);
     }
 
     if ($sock) {
@@ -668,6 +669,7 @@ sub _list_or_lsub {
 sub list { shift->_list_or_lsub( "LIST", @_ ) }
 sub lsub { shift->_list_or_lsub( "LSUB", @_ ) }
 
+# deprecated 3.34
 sub xlist {
     my ($self) = @_;
     return undef unless $self->has_capability("XLIST");
@@ -710,7 +712,7 @@ sub _folders_or_subscribed {
             foreach my $resp (@list) {
                 my $rec = $self->_list_or_lsub_response_parse($resp);
                 next unless defined $rec->{name};
-                push @folders, $rec->{name};
+                push @folders, $rec;
             }
         }
     };
@@ -722,14 +724,19 @@ sub _folders_or_subscribed {
 sub folders {
     my ( $self, $what ) = @_;
 
-    return wantarray ? @{ $self->{Folders} } : $self->{Folders}
-      if !$what && $self->{Folders};
-
-    my @folders = $self->_folders_or_subscribed( "list", $what );
-    $self->{Folders} = \@folders unless $what;
+    my @folders =
+      map( $_->{name}, $self->_folders_or_subscribed( "list", $what ) );
     return wantarray ? @folders : \@folders;
 }
 
+sub folders_hash {
+    my ( $self, $what ) = @_;
+
+    my @folders_hash = $self->_folders_or_subscribed( "list", $what );
+    return wantarray ? @folders_hash : \@folders_hash;
+}
+
+# deprecated 3.34
 sub xlist_folders {
     my ($self) = @_;
     my $xlist = $self->xlist;
@@ -751,7 +758,8 @@ sub xlist_folders {
 
 sub subscribed {
     my ( $self, $what ) = @_;
-    my @folders = $self->_folders_or_subscribed( "lsub", $what );
+    my @folders =
+      map( $_->{name}, $self->_folders_or_subscribed( "lsub", $what ) );
     return wantarray ? @folders : \@folders;
 }
 
@@ -1328,6 +1336,44 @@ sub _imap_command_do {
     }
 }
 
+sub _response_code_sub {
+    my ( $self, $tag, $good ) = @_;
+
+    # tag/good can be a ref (compiled regex) otherwise quote it
+    my $qtag  = ref($tag)  ? $tag  : defined($tag)  ? quotemeta($tag)  : undef;
+    my $qgood = ref($good) ? $good : defined($good) ? quotemeta($good) : undef;
+
+    # using closure, a variable alias, and sub returns on first match
+    # - $_[0] is $o->[DATA]
+    # - returns list ( $code, $byemsg )
+    my $getcodesub = sub {
+        if ( defined $qgood ) {
+            if ( $good eq '+' and $_[0] =~ /^$qgood/ ) {
+                return ($good);
+            }
+            if ( defined $qtag and $_[0] =~ /^$qtag\s+($qgood)/i ) {
+                return ( ref($qgood) ? $1 : uc($1) );
+            }
+        }
+        if ( defined $qtag ) {
+            if ( $tag eq '+' and $_[0] =~ /^$qtag/ ) {
+                return ($tag);
+            }
+            if ( $_[0] =~ /^$qtag\s+(OK|BAD|NO)\b/i ) {
+                my $code = uc($1);
+                $self->LastError( $_[0] ) unless ( $code eq 'OK' );
+                return ($code);
+            }
+        }
+        if ( $_[0] =~ /^\*\s+(BYE)\b/i ) {
+            return ( uc($1), $_[0] );    # ( 'BYE', $byemsg )
+        }
+        return (undef);
+    };
+
+    return $getcodesub;
+}
+
 # _get_response get IMAP response optionally send data somewhere
 # options:
 #   outref => GLOB|CODE - reference to send output to (see _read_line)
@@ -1337,15 +1383,12 @@ sub _get_response {
     my $tag  = shift;
     my $good = shift;
 
-    # tag can be a ref (compiled regex) or we quote it or default to \S+
-    my $qtag = ref($tag) ? $tag : defined($tag) ? quotemeta($tag) : qr/\S+/;
-    my $qgood = ref($good) ? $good : defined($good) ? quotemeta($good) : undef;
-
-    my $outref = $opt->{outref};
+    my $outref  = $opt->{outref};
     my @readopt = defined($outref) ? ($outref) : ();
+    my $getcode = $self->_response_code_sub( $tag, $good );
 
     my ( $count, $out, $code, $byemsg ) = ( $self->Count, [], undef, undef );
-    until ( defined($code) ) {
+    until ( defined $code ) {
         my $output = $self->_read_line(@readopt) or return undef;
         $out = $output;    # keep last response just in case
 
@@ -1354,30 +1397,13 @@ sub _get_response {
         foreach my $o (@$output) {
             $self->_record( $count, $o );
             $self->_is_output($o) or next;
-
-            my $data = $o->[DATA];
-            if ( $good and $good ne '+' and $data =~ /^$qtag\s+($qgood)/i ) {
-                $code = $1;
-                $code = uc($code) unless ref($good);
-            }
-            elsif ( $good and $good eq '+' and $data =~ /^$qgood/ ) {
-                $code = $good;
-            }
-            elsif ( $tag eq '+' and $data =~ /^$qtag/ ) {
-                $code = $tag;
-            }
-            elsif ( $data =~ /^$qtag\s+(OK|BAD|NO)\b/i ) {
-                $code = uc($1);
-                $self->LastError($data) unless ( $code eq 'OK' );
-            }
-            elsif ( $data =~ /^\*\s+(BYE)\b/i ) {
-                $code   = uc($1);
-                $byemsg = $data;
-            }
+            my ( $tcode, $tbyemsg ) = $getcode->( $o->[DATA] );
+            $code   = $tcode   if ( defined $tcode );
+            $byemsg = $tbyemsg if ( defined $tbyemsg );
         }
     }
 
-    if ( defined($code) ) {
+    if ( defined $code ) {
         $code =~ s/$CR?$LF?$//o;
         $code = uc($code) unless ( $good and $code eq $good );
 
@@ -1452,8 +1478,8 @@ sub _send_line {
         $self->_debug("Sending literal: $first\tthen: $string");
         $self->_send_line($first) or return undef;
 
-        # look for "<anything> OK|NO|BAD" or "+..."
-        my $code = $self->_get_response( qr(\S+), '+' ) or return undef;
+        # look for "+..."
+        my $code = $self->_get_response('+') or return undef;
         return undef unless $code eq '+';
     }
 
@@ -1898,7 +1924,6 @@ sub _disconnect {
     my $self = shift;
 
     delete $self->{CAPABILITY};
-    delete $self->{Folders};
     delete $self->{_IMAP4REV1};
     $self->State(Unconnected);
     if ( my $sock = delete $self->{Socket} ) {
@@ -2270,7 +2295,6 @@ sub fetch_hash {
 
 sub store {
     my ( $self, @a ) = @_;
-    delete $self->{Folders};
     $self->_imap_uid_command( STORE => @a )
       or return undef;
     return wantarray ? $self->History : $self->Results;
@@ -2278,7 +2302,6 @@ sub store {
 
 sub _imap_folder_command($$@) {
     my ( $self, $command ) = ( shift, shift );
-    delete $self->{Folders};
     my $folder = $self->Massage(shift);
 
     $self->_imap_command( join ' ', $command, $folder, @_ )
@@ -2303,7 +2326,6 @@ sub myrights($) { $_[0]->_imap_folder_command( MYRIGHTS => $_[1] ) }
 
 sub close {
     my $self = shift;
-    delete $self->{Folders};
     $self->_imap_command('CLOSE')
       or return undef;
     return wantarray ? $self->History : $self->Results;

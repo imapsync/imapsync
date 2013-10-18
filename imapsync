@@ -22,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.567 $
+$Revision: 1.569 $
 
 =head1 SYNOPSIS
 
@@ -367,7 +367,7 @@ Failure stories reported with the following 3 imap servers:
  - Hotmail since hotmail.com does not provide IMAP access
  - Outlook.com since outlook.com does not provide IMAP access
 
-Success stories reported with the following 55 imap servers 
+Success stories reported with the following 57 imap servers 
 (software names are in alphabetic order): 
 
  - 1und1 H mimap1 84498 [host1] H mibap4 95231 [host1]
@@ -404,6 +404,7 @@ Success stories reported with the following 55 imap servers
  - GMX IMAP4 StreamProxy.
  - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
  - hMailServer 5.3.3 [host2], 4.4.1 [host1] (see FAQ)
+ - IceWarp Server 10.4.5 [host1] (http://www.icewarp.com/)
  - iPlanet Messaging server 4.15, 5.1, 5.2
  - IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]
  - Kerio 7.2.0 Patch 1 [host12], Kerio 8 [host1]
@@ -424,6 +425,7 @@ Success stories reported with the following 55 imap servers
  - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
  - OpenWave
  - Oracle Beehive [host1]
+ - Parallels Plesk Panel 9.x [host2] 11.x [host2] (http://www.parallels.com/)
  - Qualcomm Worldmail (NT)
  - QQMail IMAP4Server [host1] [host2] https://en.mail.qq.com/
  - RackSpace hoster secure.emailsrvr.com:993 http://www.rackspace.com/
@@ -539,34 +541,35 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.567 2013/09/18 20:38:10 gilles Exp gilles $
+$Id: imapsync,v 1.569 2013/10/16 21:58:17 gilles Exp gilles $
 
 =cut
 
 
 # pragmas
 
-use strict;
-use warnings;
-++$|;
-use Carp;
-use Getopt::Long;
+use strict ;
+use warnings ;
+++$| ;
+use Carp ;
+use Getopt::Long ;
 use Mail::IMAPClient 3.29 ;
-use Digest::MD5  qw( md5 md5_hex md5_base64 );
+use Digest::MD5  qw( md5 md5_hex md5_base64 ) ;
 use Digest::HMAC_SHA1 qw( hmac_sha1 ) ;
-#use Term::ReadKey;
-#use IO::Socket::SSL;
-use MIME::Base64;
+#use Term::ReadKey ;
+#use IO::Socket::SSL ;
+use MIME::Base64 ;
 use English '-no_match_vars' ;
-use File::Basename;
-use POSIX qw(uname SIGALRM);
-use Fcntl;
-use File::Spec;
-use File::Path qw(mkpath rmtree);
-use IO::Socket qw(:crlf SOL_SOCKET SO_KEEPALIVE);
-use Errno qw(EAGAIN EPIPE ECONNRESET);
+use File::Basename ;
+use POSIX qw(uname SIGALRM) ;
+use Fcntl ;
+use File::Spec ;
+use File::Path qw( mkpath rmtree ) ;
+use File::Copy::Recursive ;
+use IO::Socket qw(:crlf SOL_SOCKET SO_KEEPALIVE) ;
+use Errno qw(EAGAIN EPIPE ECONNRESET) ;
 use File::Glob qw( :glob ) ;
-use IO::File;
+use IO::File ;
 use Time::Local ;
 use Time::HiRes qw( time ) ;
 use Test::More 'no_plan' ;
@@ -661,13 +664,14 @@ my(
         $fixInboxINBOX,
         $maxlinelength,
 	$uidnext_default,
+        $fixcolonbug,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.567 2013/09/18 20:38:10 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.569 2013/10/16 21:58:17 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -787,15 +791,19 @@ print banner_imapsync(@argv_copy);
 
 print "Temp directory is $tmpdir\n";
 
-is_valid_directory($tmpdir);
-write_pidfile($pidfile) if ($pidfile);
+is_valid_directory( $tmpdir ) ;
+write_pidfile( $pidfile ) if ( $pidfile ) ;
+
+$fixcolonbug = defined( $fixcolonbug ) ? $fixcolonbug : 1 ;
+
+if ( $usecache and $fixcolonbug ) { tmpdir_fix_colon_bug(  ) } ;
 
 $modules_version and print "Modules version list:\n", modules_VERSION(), "\n";
 
 check_lib_version() or 
   croak "imapsync needs perl lib Mail::IMAPClient release 3.25 or superior \n";
 
-exit_clean(0) if ($justbanner);
+exit_clean( 0 ) if ( $justbanner ) ;
 
 # By default, 100 at a time, not more.
 $split1 ||= 100;
@@ -1256,8 +1264,8 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 	( $debug or $debugLIST ) and print "Host2 LIST: $h2_msgs_nb messages [@h2_msgs]\n";
         $debug and print "Host2 selecting messages of folder [$h2_fold] took ", timenext(), " s\n";
         
-	my $cache_base = "$tmpdir/imapsync_cache/$host1/$user1/$host2/$user2" ;
-	my $cache_dir = cache_folder( $cache_base, $h1_fold, $h2_fold ) ;
+	my $cache_base = "$tmpdir/imapsync_cache/" ;
+	my $cache_dir = cache_folder( $cache_base, "$host1/$user1/$host2/$user2", $h1_fold, $h2_fold ) ;
 	my ( $cache_1_2_ref, $cache_2_1_ref ) = ( {}, {} ) ;
         
 	my $h1_uidvalidity = $imap1->uidvalidity(  ) || '' ;
@@ -1700,7 +1708,7 @@ sub sync_flags_after_copy {
         
         my @h2_flags = $imap2->flags( $h2_msg ) ;
         my $h2_flags = "@h2_flags" ;
-        print "FLAGS $h2_msg: $h2_flags\n" ;
+        ( $debug or $debugflags ) and print "Host2 flags before resync by STORE on msg $h2_msg: $h2_flags\n" ;
 	sync_flags( $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $h2_flags, $permanentflags2 ) ;
         return(  ) ;
 }
@@ -2265,8 +2273,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.567 $ ',
-		  '$Date: 2013/09/18 20:38:10 $ ',
+		  '$Revision: 1.569 $ ',
+		  '$Date: 2013/10/16 21:58:17 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -4090,16 +4098,91 @@ sub touch {
 	return( ! $failures );
 }
 
+
+sub tests_tmpdir_has_colon_bug {
+
+	ok( 0 == tmpdir_has_colon_bug( '' ),        'tmpdir_has_colon_bug: ' ) ;
+	ok( 0 == tmpdir_has_colon_bug( '/tmp' ),    'tmpdir_has_colon_bug: /tmp' ) ;
+	ok( 1 == tmpdir_has_colon_bug( 'C:' ),      'tmpdir_has_colon_bug: C:' ) ;
+	ok( 1 == tmpdir_has_colon_bug( 'C:\temp' ), 'tmpdir_has_colon_bug: C:\temp' ) ;
+        
+        return( 0 ) ;
+}
+
+sub tmpdir_has_colon_bug {
+	my $path = shift ;
+
+	my $path_filtered = filter_forbidden_characters( $path ) ;
+	if ( $path_filtered ne $path ) {
+        	( -d $path_filtered ) and print "Path $path was previously mistakely changed to $path_filtered\n" ;
+        	return( 1 ) ;
+        }
+        return( 0 ) ;
+}
+
+sub tmpdir_fix_colon_bug {
+
+	my $err = 0 ;
+	if ( not (-d $tmpdir and -r _ and -w _) ) {
+        	print "tmpdir $tmpdir is not valid\n" ;
+		return( 0 ) ;
+        }
+	my $cachedir_new = "$tmpdir/imapsync_cache" ;
+
+	if ( not tmpdir_has_colon_bug( $cachedir_new ) ) { return( 0 ) } ;
+
+	# check if old cache directory already exists
+        my $cachedir_old = filter_forbidden_characters( $cachedir_new ) ;
+        if ( not ( -d $cachedir_old ) ) {
+        	print "Old cache directory $cachedir_new no exists, nothing to do\n" ;
+                return( 1 ) ;
+        }	
+        
+        # check if new cache directory already exists
+        if ( -d $cachedir_new ) {
+        	print "New fixed cache directory $cachedir_new already exists, not moving the old one $cachedir_old. Fix this manually.\n" ;
+                return( 0 ) ;
+        }else{
+        	# move the old one to the new place
+        
+        	print "Moving $cachedir_old to $cachedir_new Do not interrupt this task.\n" ;
+                File::Copy::Recursive::rmove( $cachedir_old, $cachedir_new ) 
+                or do { 
+                	print "Could not move $cachedir_old to $cachedir_new\n" ;
+                        $err++ ;
+                } ;
+        	# check it succeeded
+        	if ( -d $cachedir_new and -r _ and -w _ ) {
+        		print "New fixed cache directory $cachedir_new ok\n" ;
+		}else{
+        		print "New fixed cache directory $cachedir_new does not exist\n" ;
+                        $err++ ;
+        	}
+        	if ( -d $cachedir_old ) {
+        		print "Old cache directory $cachedir_old still exists\n" ;
+                        $err++ ;
+		}else{
+        		print "Old cache directory $cachedir_old successfuly moved\n" ;
+        	}
+        }
+        return( not $err ) ;
+}
+
+
 sub tests_cache_folder {
 
-	ok( '/path/fold1/fold2' eq cache_folder( '/path', 'fold1', 'fold2'), 'cache_folder: /path, fold1, fold2 -> /path/fold1/fold2' ) ;
-	ok( '/pa_th/fold1/fold2' eq cache_folder( '/pa*th', 'fold1', 'fold2'), 'cache_folder: /pa*th, fold1, fold2 -> /path/fold1/fold2' ) ;
-	ok( '/_p_a__th/fol_d1/fold2' eq cache_folder( '/>p<a|*th', 'fol*d1', 'fold2'), 'cache_folder: />p<a|*th, fol*d1, fold2 -> /path/fol_d1/fold2' ) ;
+	ok( '/path/fold1/fold2' eq cache_folder( '', '/path', 'fold1', 'fold2'), 'cache_folder: /path, fold1, fold2 -> /path/fold1/fold2' ) ;
+	ok( '/pa_th/fold1/fold2' eq cache_folder( '', '/pa*th', 'fold1', 'fold2'), 'cache_folder: /pa*th, fold1, fold2 -> /path/fold1/fold2' ) ;
+	ok( '/_p_a__th/fol_d1/fold2' eq cache_folder( '', '/>p<a|*th', 'fol*d1', 'fold2'), 'cache_folder: />p<a|*th, fol*d1, fold2 -> /path/fol_d1/fold2' ) ;
+
+	ok( 'D:/path/fold1/fold2' eq cache_folder( 'D:', '/path', 'fold1', 'fold2'), 'cache_folder: /path, fold1, fold2 -> /path/fold1/fold2' ) ;
+	ok( 'D:/pa_th/fold1/fold2' eq cache_folder( 'D:', '/pa*th', 'fold1', 'fold2'), 'cache_folder: /pa*th, fold1, fold2 -> /path/fold1/fold2' ) ;
+	ok( 'D:/_p_a__th/fol_d1/fold2' eq cache_folder( 'D:', '/>p<a|*th', 'fol*d1', 'fold2'), 'cache_folder: />p<a|*th, fol*d1, fold2 -> /path/fol_d1/fold2' ) ;
 	return(  ) ;
 }
 
 sub cache_folder {
-	my( $cache_dir, $h1_fold, $h2_fold ) = @_ ;
+	my( $cache_base, $cache_dir, $h1_fold, $h2_fold ) = @_ ;
 	
 	my $sep_1 = $h1_sep || '/';
 	my $sep_2 = $h2_sep || '/';
@@ -4107,27 +4190,37 @@ sub cache_folder {
 	#print "$cache_dir h1_fold $h1_fold sep1 $sep_1 h2_fold $h2_fold sep2 $sep_2\n";
 	$h1_fold = convert_sep_to_slash( $h1_fold, $sep_1 ) ;
 	$h2_fold = convert_sep_to_slash( $h2_fold, $sep_2 ) ;
-        
-        my $cache_folder = "$cache_dir/$h1_fold/$h2_fold" ;
-        $cache_folder = filter_forbidden_characters( $cache_folder ) ;
+                
+        my $cache_folder = "$cache_base" . filter_forbidden_characters( "$cache_dir/$h1_fold/$h2_fold" ) ;
 	#print "cache_folder [$cache_folder]\n" ;
         return( $cache_folder ) ;
 }
 
-sub filter_forbidden_characters {
+sub filter_forbidden_characters  {
 	my $string = shift ;
         
+        if ( 'MSWin32' eq $OSNAME ) {
+        	# Move trailing whitespace to _ " a b /c d " -> " a b_/c d_"
+        	$string =~ s{\ (/|$)}{_$1}xg ;
+        }
         $string =~ s{[\Q*|?:"<>\E]}{_}xg ;
+        #print "[$string]\n" ;
 	return ( $string ) ;
 }
 
-sub tests_filter_forbidden_characters {
+sub tests_filter_forbidden_characters  {
 
 	ok( 'a_b' eq filter_forbidden_characters( 'a_b' ), 'filter_forbidden_characters: a_b -> a_b' ) ;
-	ok( 'a_b' eq filter_forbidden_characters( 'a*b' ), 'filter_forbidden_characters: a*b -> a_b' );
-	ok( 'a_b' eq filter_forbidden_characters( 'a|b' ), 'filter_forbidden_characters: a|b -> a_b' );
-	ok( 'a_b' eq filter_forbidden_characters( 'a?b' ), 'filter_forbidden_characters: a?*b -> a_b' );
-	ok( 'a_______b' eq filter_forbidden_characters( 'a*|?:"<>b' ), 'filter_forbidden_characters: a*|?:"<>b -> a_______b' );
+	ok( 'a_b' eq filter_forbidden_characters( 'a*b' ), 'filter_forbidden_characters: a*b -> a_b' ) ;
+	ok( 'a_b' eq filter_forbidden_characters( 'a|b' ), 'filter_forbidden_characters: a|b -> a_b' ) ;
+	ok( 'a_b' eq filter_forbidden_characters( 'a?b' ), 'filter_forbidden_characters: a?b -> a_b' ) ;
+	ok( 'a_______b' eq filter_forbidden_characters( 'a*|?:"<>b' ), 'filter_forbidden_characters: a*|?:"<>b -> a_______b' ) ;
+
+	( 'MSWin32' ne $OSNAME ) and ok( ( 'a b ' eq filter_forbidden_characters( 'a b ' ) ), 'filter_forbidden_characters: "a b " -> "a b "' ) ;
+
+	( 'MSWin32' eq $OSNAME ) and ok( ( ' a b_' eq filter_forbidden_characters( ' a b ' ) ), 'filter_forbidden_characters: "a b " -> "a b_"' ) ;
+	( 'MSWin32' eq $OSNAME ) and ok( ( ' a b_/ c d_' eq filter_forbidden_characters( ' a b / c d ' ) ), 'filter_forbidden_characters: " a b / c d " -> "a b_/ c d_"' ) ;
+        
 	return(  ) ;
 }
 
@@ -4659,7 +4752,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.567 2013/09/18 20:38:10 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.569 2013/10/16 21:58:17 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {
@@ -5512,8 +5605,9 @@ Several options are mandatory.
                          For safety, first try it like this (it is safe):
 			 --delete2folders --dry --justfolders --nofoldersizes
 --delete2foldersonly   <regex>: Deleted only folders matching regex.
+                         Example: --delete2foldersonly "/Junk$/"
 --delete2foldersbutnot <regex>: Do not delete folders matching regex.
-                         Example: --delete2foldersbutnot "/Tasks|Contacts|Foo/"
+                         Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
 --noexpunge            : Do not expunge messages on host1.
                          Expunge really deletes messages marked deleted.
                          Expunge is made at the beginning, on host1 only. 
@@ -5779,6 +5873,7 @@ sub get_options {
                                    "abletosearch!" => \$abletosearch,
                                    "showpasswords!" => \$showpasswords,
                                    "maxlinelength=i" => \$maxlinelength, 
+                                   "fixcolonbug!" => \$fixcolonbug,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -5813,7 +5908,9 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-                tests_msgs_from_maxmin(  ) ;
+                tests_filter_forbidden_characters(  ) ;
+                tests_cache_folder(  ) ;
+                tests_tmpdir_has_colon_bug(  ) ;
 	}
         return(  ) ;
 }
@@ -5865,6 +5962,7 @@ sub tests {
                 tests_max_line_length(  ) ;
                 tests_subject(  ) ;
 		tests_msgs_from_maxmin(  ) ;
+                tests_tmpdir_has_colon_bug(  ) ;
 	}
         return(  ) ;
 }

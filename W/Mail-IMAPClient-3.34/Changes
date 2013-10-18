@@ -5,6 +5,20 @@ Changes from 2.99_01 to 3.16    made by Mark Overmeer
 Changes from 0.09    to 2.99_01 made by David Kernen
 	- Potential compatibility issues from 3.17+ highlighted with '*'
 
+version 3.34: Fri, Sep 27, 2013 12:50:17 AM
+	- make Makefile.PL use non-interactive and document test.txt usage
+	- new attribute: Socketargs => [ (IO::Socket::.. args) ]
+	  + cleanup connect() to more flexible with IO::Socket::* args
+	- untagged server data during send literal may cause client to hang
+	  [Arthur Wolfe, Josh Hillman]
+	  + _send_line() needs '+' only to know it is OK to send LITERAL data
+	  + created _response_code_sub() to simplify _get_response()
+	- remove internal "Folders" cache
+	- Allow for RFC 6154 "IMAP LIST Extension for Special-Use Mailboxes"
+	  [Mathias Reitinger]
+	  + new method: folders_hash()
+	  + deprecate: xlist_folders(), xlist()
+
 version 3.33: Tue, May 14, 2013 10:12:43 AM
 	- more cleanup on use of $@ and $!
 	- cleanup get_bodystructure / get_envelope

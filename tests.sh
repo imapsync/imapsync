@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.225 2013/09/21 21:55:17 gilles Exp gilles $  
+# $Id: tests.sh,v 1.227 2013/09/28 11:11:16 gilles Exp gilles $  
 
 # Example 1:
-# CMD_PERL='perl -I./Mail-IMAPClient-3.33/lib' sh -x tests.sh
+# CMD_PERL='perl -I./W/Mail-IMAPClient-3.34/lib' sh -x tests.sh
 
 # Example 2:
 # To select which Mail-IMAPClient within arguments:
@@ -23,7 +23,7 @@ echo HOST2=$HOST2
 
 # few debugging tests use:
 CMD_PERL_2xx='perl -I./W/Mail-IMAPClient-2.2.9'
-CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.33/lib'
+CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.34/lib'
 
 CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
 
@@ -2312,7 +2312,8 @@ xxxxx_gmail_5_justfolders() {
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
 		--justfolders --nofoldersizes \
-                --regextrans2 's,(/|^) +,$1,g' --regextrans2 's, +(/|$),$1,g' 
+                --regextrans2 's,(/|^) +,$1,g' --regextrans2 's, +(/|$),$1,g' \
+		--regextrans2 "s/[\^]/_/g" --debug
 }
 
 
@@ -2820,6 +2821,35 @@ ll_nofastio()
 ##########################
 # specific tests
 ##########################
+
+
+courier_45() {
+        $CMD_PERL ./imapsync \
+        --host1 imap.timeweb.ru --user1 imaptest@avanta-consulting.ru  \
+        --passfile1 ../../var/pass/secret.avanta \
+        --host2 $HOST2 --user2 tobbit \
+        --passfile2 ../../var/pass/secret.tobbit \
+        --folder INBOX
+}
+
+courier_45_reverse() {
+        $CMD_PERL ./imapsync \
+        --host2 imap.timeweb.ru --user2 imaptest@avanta-consulting.ru  \
+        --passfile2 ../../var/pass/secret.avanta \
+        --host1 $HOST2 --user1 tobbit \
+        --passfile1 ../../var/pass/secret.tobbit \
+        --folder INBOX
+}
+
+courier_45_reverse_empty() {
+        $CMD_PERL ./imapsync \
+        --host2 imap.timeweb.ru --user2 imaptest@avanta-consulting.ru  \
+        --passfile2 ../../var/pass/secret.avanta \
+        --host1 $HOST2 --user1 empty \
+        --passfile1 ../../var/pass/secret.empty \
+        --folder INBOX --delete2
+}
+
 
 
 tobbit_11() {

@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.129 2013/08/16 01:21:14 gilles Exp gilles $	
+# $Id: Makefile,v 1.132 2013/10/17 00:55:16 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -33,7 +33,7 @@ VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version)
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
-IMAPClient_3xx=./W/Mail-IMAPClient-3.33/lib
+IMAPClient_3xx=./W/Mail-IMAPClient-3.34/lib
 IMAPClient=$(IMAPClient_3xx)
 
 hello:
@@ -108,7 +108,7 @@ cidone:
 
 .PHONY: test tests testp testf test3xx testv3 perlcritic
 
-perlcritic: perlcritic_3.out perlcritic_2.out perlcritic_1.out 
+perlcritic: perlcritic_3.out perlcritic_2.out
 
 perlcritic_1.out: imapsync
 	perlcritic -1 imapsync > perlcritic_1.out || :
@@ -174,8 +174,8 @@ test_imapsync_exe: dosify_bat
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
 .prereq_win32: examples/install_modules.bat .dosify_bat
-	scp examples/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
-	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_modules.bat'
+	scp examples/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/examples/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/examples/install_modules.bat'
 	touch .prereq_win32
 
 imapsync.exe: imapsync .prereq_win32
@@ -321,7 +321,7 @@ publish: dist upload_ks ksa
 PUBLIC_FILES = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL \
 ./VERSION ./VERSION_EXE \
-./README ./TODO
+./README ./TODO ./TUTORIAL.html ./GOOD_PRACTICES.html
 
 PUBLIC_FILES_W = ./W/style.css \
 ./W/TIME \
@@ -345,10 +345,10 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: FAQ LICENSE CREDITS W/*.bat examples/*.bat examples/sync_loop_unix.sh index.shtml 
+upload_index: FAQ LICENSE CREDITS TUTORIAL.html GOOD_PRACTICES.html W/*.bat examples/*.bat examples/sync_loop_unix.sh index.shtml 
 	rcsdiff index.shtml FAQ LICENSE CREDITS W/*.bat examples/*.bat index.shtml 
 	validate --verbose index.shtml
-	rsync -avH index.shtml FAQ NOLIMIT LICENSE CREDITS root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH index.shtml FAQ NOLIMIT LICENSE CREDITS TUTORIAL.html GOOD_PRACTICES.html root@ks.lamiral.info:/var/www/imapsync/
 	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
 	rsync -avH examples/*.bat examples/sync_loop_unix.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 

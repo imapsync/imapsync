@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.145 2013/09/21 21:56:33 gilles Exp gilles $
+# $Id: FAQ,v 1.150 2013/10/17 00:55:53 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -324,6 +324,21 @@ Two workarounds to reduce the cache directory name:
 
 1) Use --tmpdir "D:\\temp" or simply --tmpdir "D:"
 
+Currently (until 1.568) there is a bug with --tmpdir "D:\\temp" or "D:".
+Since character : is forbidden in Windows paths the directory is transform
+to convert those characters and others () to character _
+So "D:\\temp" becomes "D_\\temp". 
+
+A fix is to change to D: before running imapsync and use --tmpdir "." 
+like this in a batch file:
+
+  D:
+  cd \
+  cd .\temp
+  %~dp0\imapsync.exe ... --tmpdir "." 
+
+This bug should be fixed in release 1.569
+
 2) add two equivalent entries in the etc/hosts for host1 imap.truc.org 
 and host2 imap.trac.org. 
 If you map the ip of imap.truc.org just with the letter a 
@@ -510,6 +525,37 @@ This file is removed at the end of a normal run.
 You can safely ignore the warning if you don't use imapsync.pid file.
 
 =======================================================================
+Q. Couldn't create folder [trash] from [INBOX.trash]: 
+   588 NO Mailbox already exists.
+
+R. Some servers take care about character case in folder names, 
+   some servers do not, like Exchange. Since non-respecting case 
+   can merge two different folders into one then imapsync respects case. 
+
+   For example, if a host1 server has a folder name called "trash"
+   and the host2 server already has a folder "Trash" or "TRASH"
+   then imapsync will try to create the folder "trash" on host2,
+   because trash and Trash are different strings. But if host2
+   does not repect character case it will consider folder "trash"
+   already exists and will say it, that's the error message 
+   reported by imapsync: "Mailbox already exists", message coming 
+   from the server.
+
+   The folder creation fails but messages are well transfered in
+   so take a look at this warning, understand why it happens
+   and it should be fine most of the time.
+
+   To avoid this warning use --regextrans2 to map the folder names
+
+   imapsync ...  --regextrans2 "s/^trash$/Trash/"
+
+   If there are two folders Trash and trash on host1 then both
+   will be merge into only one Trash folder on host2. 
+   In case option --delete2 is used the regextans2 above becomes
+   mandatory, otherwise imapsync will sync messages from the
+   first Trash and then delete them when syncing trash.
+
+=======================================================================
 Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
 INBOX.Ops/foo/bar 
 
@@ -547,6 +593,28 @@ R1. Use it with --subscribed
 
 R2. There is also the --subscribe_all option that subscribe
 to all folders on host2.
+
+=======================================================================
+Q. Is there a way we can specify a date range to sync emails? 
+   If yes, can you please share an example?
+
+Yes, with the --search option.
+
+  imapsync ... --search "SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010"
+
+   Jan
+   Feb
+   Mar
+   Apr
+   May 
+   Jun
+   Jul 
+   Aug
+   Sep
+   Oct 
+   Nov
+   Dec
+
 
 =======================================================================
 Q. Does imapsync retain the \Answered and $Forwarded flags?
@@ -792,8 +860,15 @@ Q. Flags are not well synchonized. Is it a bug?
 R. It happens with some servers on the first sync. 
 Also, it was a bug from revision 1.200 to revision 1.207
 
-Solution: run imapsync a second time. imapsync synchronizes flags
-on each run.
+Two solutions: 
+
+* Run imapsync a second time. imapsync synchronizes flags on each run.
+
+* Use option --syncflagsaftercopy. With this option imapsync will 
+  also sync flags after each message transfer. Flags are already 
+  synced during the transfer with the imap APPEND command but 
+  option --syncflagsaftercopy does it again using the imap STORE 
+  command.
 
 =======================================================================
 Q. On Unix, some passwords contain * and " characters. Login fails.
@@ -1561,6 +1636,13 @@ characters ' or " or \ to character _ underscore.
 You can select folders exported to imap within the gmail preferences,
 unselect all "System labels" depending on your needs.
 
+=======================================================================
+Q. Some of the folders are getting created with [IMAP] prefix on Google
+side. How to stop creating folder with this prefix?
+Any switch we can use? e.g. [IMAP]/Archive
+
+R. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
+   it might be configurable with Gmail parameters.
 
 =======================================================================
 Q. Synchronizing from Gmail to XXX
@@ -1682,6 +1764,14 @@ To   Folder [Sonja]                             Size:   1024546 Messages:    96
 
 R. Just run imapsync a time like this :
 imapsync ... --folder Alexander
+
+=======================================================================
+Q. Migrating from or to Parallels Plex Server
+
+R. It depends on the OS
+
+Parallells Plesk Panel for Windows requires --sep2 / --prefix2 ""
+Parallells Plesk Panel for Linux works with default parameters.
 
 =======================================================================
 Q. I'm migrating from WU to Cyrus, and the mail folders are under

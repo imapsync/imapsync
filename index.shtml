@@ -5,7 +5,7 @@
 <title>Official imapsync migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2013-09-22T00:28:13+0200"/>
+<meta name="date" content="2013-10-17T03:39:01+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -135,7 +135,7 @@ Via the <b>User-agent</b> parameter it also send:</p>
 
 <!-- 
 <ul>
-<li><b>1.567</b></li>
+<li><b>1.569</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -156,95 +156,54 @@ Via the <b>User-agent</b> parameter it also send:</p>
  -->
 
 <ul>
+<li><b>1.569</b> Win32 --tmpdir "C:" bugfix</li>
+<li><b>Bug fix</b>: On Win32 trailing blanc in cache dir name raized an error. Blanc is now moved to underscore _</li>
+<li><b>Bug fix</b>: Fixed bug on Windows with for example --tmpdir "E:\TEMP". The colon was badly converted to _, ending with --tmpdir "E_\TEMP".
+This fix also automatically moves the old cache to the new one if the new does not exist yet.</li>
+</ul>
+
+<ul>
 <li><b>1.567</b> imapsync.exe crash fix</li>
 <li><b>Enhancement</b>: Added --authmech EXTERNAL.</li>
 <li><b>Bug fix</b>: Fixed a warning when RFC822.SIZE is null or undef.</li>
 <li><b>Bug fix</b>: Fixed imapsync.exe crash with no error message when it exits on a error. Back to Perl 5.16</li>
 </ul>
 
+
+<p><b>Good changed</b> made before, listed because <b>they can help</b>:
+</p>
+
 <ul>
-<li><b>1.564</b> QQMail support</li>
 <li><b>Enhancement</b>: Adapted behavior for allowing --maxdate --mindate with --noabletosearch. 
 Use internat date instead of Date: header.</li>
+
 <li><b>Enhancement</b>: QQMail IMAP4Server success (with --noabletosearch option) </li>
 <li><b>Usability</b>: Apply same treatment to --delete2duplicates as --delete2. 
 If --uidexpunge2 can be done, do it, else do --expunge2 (unless --nouidexpunge2 or --noexpunge2).</li>
-<li><b>Usability</b>: Added --addheader suggestion in outpout in case messages with no header are found.</li>
+
 <li><b>Usability</b>: Added --timeout in the --help output. Default timeout is 120 seconds now 
 (was nothing by imapsync, 600 with underlying modules).</li>
-</ul>
 
-<ul>
-<li><b>1.558</b> SSL fix.</li>
 <li><b>Enhancement/Bug fix</b>: Added --ssl1_SSL_version and --ssl2_SSL_version to force the SSL_version 
 in case the default auto-negociation does not work. Example: <b>--ssl1 --ssl1_SSL_version SSLv3</b></li> 
-</ul>
 
-<ul>
-<li><b>1.555</b> Better Office365 and Mailenable handling</li>
 <li><b>Enhancement</b>: Added option --messageidnodomain to fix Mailenable bug changing the domain part of Message-Id header, and avoid duplicates</li>
 <li><b>Enhancement</b>: Added option --syncflagsaftercopy to fix Mailenable bug not getting the flags with the APPEND</li>
 <li><b>Enhancement</b>: Added option <b>--maxlinelength</b> to skip messages whose max line length is over a number of bytes. 
                         Exchange 2013 and Office365 need <b>--maxlinelength 1000</b> (which is a RFC2822 must) to avoid disconnections.</li>
                      
-<li><b>Usability</b>: Added back the banner of IMAP servers, ie, the first line given after the connection established.</li>
 <li><b>Usability</b>: Added --fixInboxINBOX, turned on by default, to map automatically Inbox INBOX folder names.</li>
 <li><b>Usability</b>: IMAP server removing consecutive spaces on the header part doesn't generate duplicates (MailEnable does that)</li>
 
-<li><b>Bug fix</b>: Better output of mailbox sizes in human style (could be 1024.00 Kib, now it is 1.000 Mib). Changed bytes_display_string().  </li>
-<li><b>Bug fix</b>: Option --debugflags now prints flags on first sync (the copy) and also the PERMANENTFLAGS outpout.</li>
-<li><b>Refactoring</b>: Fixed nearly 200 perlcritic at level 3, all level 4. Still 5 eval "" at level 5 and 12 critics at level 3. Nobody cares but me.</li>
 
-</ul>
-
-
-<ul>
-<li><b>1.547</b> Nothing important except imapsync.exe supports also XOAUTH.</li>
-<li><b>Enhancement</b>: DBOX 2.41 success</li>
-<li><b>Enhancement</b>: Kerio 8 success</li>
 <li><b>Usability</b>: SSL_verify_mode 0 to avoid warning about Man-In-The-Middle.</li>
-<li><b>Usability</b>: Added message "copying message ..." in dry mode.</li>
-<li><b>Bug fix</b>: Applied patch from Jim Klimov to handle proxyauth failures</li>
-<li><b>Bug fix</b>: Fixed binary previous imapsync.exe 1.542 bug with ssl</li>
-<li><b>Refactoring</b>: Removed sub myconnect() RawSocket2() Split() (Hi Phil!)</li>
-</ul>
-
-<ul>
-<li><b>1.542</b> XOAUTH supported! (Admin Gmail authentication)</li>
 <li><b>Enhancement</b>: Added XOAUTH authentication. Thanks to Eduardo Bortoluzzi Junior.</li>
-<li><b>Refactoring</b>: Removed old 2.2.9 Mail::IMAPClient patch stuff.</li>
-<li><b>Refactoring</b>: Started perlcritic corrections. Left 4 eval at level 5.</li>
-</ul>
-
-<ul>
-<li><b>1.536</b></li>
 <li><b>Enhancement</b>: Added <b>--search1</b> and <b>--search2</b> to allow different searches on each host.</li>
-<li><b>Enhancement</b>: Speed up when messages are selected by --minage, --maxage or --search, (used to SEARCH ALL messages) </li>
 <li><b>Usability</b>: Added --delete1 as an alias for --delete</li>
-<li><b>Bug fix</b>: Applied Phil patch to improve the lost connection behavior</li>
-<li><b>Bug fix</b>: Applied Phil patch to remove useless warnings</li>
-</ul>
-
-<ul>
-<li><b>1.525</b></li>
-<li><b>Bug fix</b>: Handles the case where <b>several folders</b> on host1 <b>go to one folder</b> on host2 with <b>--delete2</b> option. The bug was imapsync was copying messages and deleting them on next folder.</li>
-<li><b>Bug fix</b>: Removed reference to DWTFPL since <b>license is <a href="LICENSE">NOLIMIT</a></b> since June 2012.</li>
 <li><b>Speed</b>: Option <b>--nocheckmessageexists is activated by default</b> since --checkmessageexists often slow down transfers too much.</li>
-<li><b>Usability</b>: Reorganized the --help message.</li>
 <li><b>Usability</b>: Option --foldersizesatend is on if --foldersizes is on. Off if --nofoldersizesatend</li>
-</ul>
-  
-<ul>
-<li><b>1.518</b></li>
 
-<li><b>Bug fix</b>: When identtifying with header, change tabulations to spaces 
-(Gmail bug with "Received:" header on multilines).</li>
-<li><b>Bug fix</b>: Bugfix. Automatic --nocheckmessageexists when --noabletosearch is set.</li>
-</ul> 
- 
- 
-<ul>
-<li><b>1.516</b></li>
+
 
 <li><b>Usability</b>: Added <b>host2 minus host1 statistic</b>: number of messages and bytes. 
 One difference at the start and one at the end. 
@@ -260,8 +219,6 @@ it deletes messages in host2 that are duplicates.
 --delete2duplicates is on when --delete2 is set unless --nodelete2duplicates is set too.
 </li>
 
-<li><b>Usability</b>: Added <b>current date at the beginning</b> of the run, 
-useful when imapsync doesn't end properly or hasn't finished yet.</li>
 
 <li><b>Enhancement</b>: Added option <b>--pidfilelocking</b>; 
 it aborts imapsync, when just launched, 
@@ -286,49 +243,14 @@ to allow the listing of messages without the imap "SEARCH ALL" command.
 It's useful for playing with poor imap servers like <b>Softalk 7.6.4</b> 
 (8.6 is fine with SEARCH ALL).</li>
 
-</ul>
-
-
-<ul>
-<li><b>1.508</b></li>
-<li><b>Usability</b>: imapsync guesses and <b>prints when it'll finish</b> the transfer; 
-added <b>ETA</b> after each copy (Estimated Time of Arrival)</li>
 
 <li><b>Enhancement</b>: Added <b>--noexpungeaftereach</b> 
 to speedup --delete --expunge from Gmail.</li>
 
-<li><b>Usability</b>: Added Host1 or Host2 before "Nb messages" "Total size" 
-with --foldersiszes (to facilitate parsing)</li>
-
-<li><b>Bug fix</b>: Previous fix about characters <kbd>*|?:"&lt;&gt;</kbd> to <kbd>_</kbd> 
-in cache path was not complete.</li>
-</ul>
 
 
-<ul>
-<li><b>1.504</b></li>
 <li><b>Enhancement</b>: Added option <b>--nocheckmessageexists</b> to <b>speed up</b> with <b>Tobit imap server</b> as host1.</li>
-<li><b>Usability</b>: Added <b>transfer rate</b> and number of messages rate <b>after each copy</b>.</li>
-<li><b>Usability</b>: Use Time::HiRes time to get time with better precesion than the second.</li>
-<li><b>Bug fix</b>:  Convert characters  <kbd>*|?:"&lt;&gt;</kbd> to <kbd>_</kbd> in cache paths because they are forbidden on Windows paths.</li>
 
-</ul>
-
-<ul>
-<li><b>1.500</b></li>
-
-<li><b>Enhancement</b>: Added option <b>--nocheckselectable</b> to fix INBOX issue with Jana-server.</li>
-<li><b>Bug fix</b>: The cache system didn't work in Win32 (problem with \ transformation).</li>
-<li><b>Bug fix</b>: Check the return of touch calls for the cache. </li>
-<li><b>Usability</b>: Example for --delete2foldersbutnot "m/Contacts|Agenda|Trash/"</li>
-</ul>
-
-
-<ul>
-<li><b>1.484</b></li>
-
-<li><b>Bug fix</b>: Back to select() (read-write mode) instead of examine() 
-(read-only mode in 1.468) on host1. <b>Needed with --delete</b></li>
 
 <li><b>Enhancement</b>: Added option --exitwhenover option <b>to avoid locking</b> 
 when transfers exceed maximum limit.
@@ -336,16 +258,9 @@ See for example <a href="http://support.google.com/a/bin/answer.py?hl=en&amp;ans
 	<ul>
 	<li>imapsync ... --exitwhenover 2500000000 # 2.5GB if <b>host1 is Gmail</b></li>
 	<li>imapsync ... --exitwhenover  500000000 # 500MB if <b>host2 is Gmail</b></li>
-</ul>
+	</ul>
 </li>
 
-<li><b>Usability</b>: Unified outout in --debug mode. Lines start with Host1 or Host2.</li>
-<li><b>Usability</b>: Changed output about messages ignored to better reflect what is going on.</li>
-</ul>
-
-<ul>
-
-<li><b>1.476</b></li>
 
 <li><b>Usability</b>: Default headers used to identify a message are now "Message-Id" and "Received" 
 (<b>Exchange compatibility</b> bu default).</li>
@@ -662,7 +577,7 @@ I like it.
 </ul>
 
 <p>Now the long reported <b>success stories</b> list: <b>
-55 different imap server softwares supported!</b><br/>
+57 different imap server softwares supported!</b><br/>
 [host1] means "source server" and [host2] means "destination server":
 </p>
 
@@ -710,6 +625,7 @@ I like it.
 	(<a href="http://www.novell.com/products/groupwise/">http://www.novell.com/products/groupwise/</a>)   </li>
 	<li>hMailServer 5.3.3 [host2], 4.4.1 [host1], HMAILSERVER 5.3.2-B1769 on windows 2003 [hsot2]    
 	(<a href="http://www.hmailserver.com/">http://www.hmailserver.com/</a>)   </li>
+	<li>IceWarp Server 10.4.5 [host1] (<a href="http://www.icewarp.com/">http://www.icewarp.com/</a>)</li>
 	<li>iPlanet Messaging server 4.15, 5.1, 5.2    
 	(<a href="http://en.wikipedia.org/wiki/Oracle_Communications_Messaging_Server">http://en.wikipedia.org/wiki/Oracle_Communications_Messaging_Server</a>)   </li>
 	<li>IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]    (<a href="http://www.imailserver.com/">http://www.imailserver.com/</a>)   </li>
@@ -736,6 +652,7 @@ I like it.
 	<li>OpenWave    (<a href="http://www.openwave.com/">http://www.openwave.com/</a>)   </li>
 	<li>Oracle Beehive [host1]    
 	(<a href="http://www.oracle.com/technetwork/middleware/beehive/">http://www.oracle.com/technetwork/middleware/beehive/</a>)   </li>
+ 	<li>Parallels Plesk Panel 9.x [host2] 11.x [host2] (<a href="http://www.parallels.com/">http://www.parallels.com/</a>)</li>	
 	<li>Qualcomm Worldmail (NT)    (<a href="http://www.eudora.com/worldmail/">http://www.eudora.com/worldmail/</a>)   </li>
 	<li>Rockliffe Mailsite 5.3.11, 4.5.6    (<a href="http://www.mailsite.com/">http://www.mailsite.com/</a>)   </li>
    	<li>RackSpace hoster secure.emailsrvr.com:993 <a href="http://www.rackspace.com/">http://www.rackspace.com/</a>)</li>
@@ -825,7 +742,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.185 2013/09/21 22:28:26 gilles Exp gilles $)
+($Id: index.shtml,v 1.186 2013/10/17 01:49:59 gilles Exp gilles $)
 </p>
 
 </body>

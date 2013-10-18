@@ -1154,7 +1154,7 @@ The B<folders> method returns an array listing the available folders.
 It will only be successful if the object is in the I<Authenticated> or
 I<Selected> states.
 
-The B<folders> argument accepts one optional argument, which is a
+The B<folders> method accepts one optional argument, which is a
 prefix.  If a prefix is supplied to the B<folders> method, then only
 folders beginning with the prefix will be returned.
 
@@ -1177,7 +1177,41 @@ the L</separator> method). However, this does not match the behavior
 of the existing implementation, so you will need to manually exclude
 the parent folder from the results.
 
-=head2 xlist_folders
+=head2 folders_hash
+
+  my @fhashes = $imap->folders_hash
+    or die "Could not get list of folder hashes.\n";
+
+The B<folders_hash> method accepts one optional argument, which is a
+prefix.  If a prefix is supplied to the B<folders_hash> method, then
+only folders beginning with the prefix will be returned.
+
+An array(ref) of hashes is returned that contain information about the
+requested folders.  Each hash contains three keys (name, attrs, delim)
+and looks like the following:
+
+  {
+    name  => 'Mail/Box/Name',
+    attrs => '\Marked \HasNoChildren',
+    delim => '/',
+  }
+
+IMAP servers implementing RFC6154 return attributes to be used to
+identify special-use mailboxes (folders).
+
+  my $sattr_re = /\b\\(?:All|Archive|Drafts|Flagged|Junk|Sent|Trash)\b/;
+  foreach my $fhash (@fhashes) {
+      next unless ( $fhash->{attrs} =~ $sattr_re );
+      print("special: $fhash->{name} : $fhash->{attrs}\n");
+  }
+
+Version note: method added in Mail::IMAPClient 3.34
+
+=head2 xlist_folders (DEPRECATED)
+
+This method is deprecated as of version 3.34.  Please use folders_hash
+instead.  See RFC6154 for attributes to be used to identify
+special-use mailboxes (folders).
 
 Example:
 
@@ -3453,6 +3487,23 @@ can be controlled by setting this attribute to an ARRAY reference
 containing the desired arguments.
 
 Version note: attribute added in Mail::IMAPClient 3.22
+
+=head2 Socketargs
+
+The arguments used in the call to IO::Socket::{UNIX|INET|SSL}->new can
+be controlled by setting this attribute to an ARRAY reference
+containing the desired arguments.
+
+For example, to always pass MultiHomed => 1 to IO::Socket::...->new
+the following can be used:
+
+  $imap = Mail::IMAPClient->new(
+    ..., Socketargs => [ MultiHomed => 1 ], ...
+  );
+
+See also L</Ssl> for specific control of the args to IO::Socket::SSL.
+
+Version note: attribute added in Mail::IMAPClient 3.34
 
 =head2 Ssl
 
