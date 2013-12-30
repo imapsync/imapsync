@@ -1,0 +1,37 @@
+#!/usr/bin/perl -w
+
+use Data::Dumper ;
+use strict ;
+
+my %hash_1 = (
+	'abcd' => 'zzz',
+	'efgh' => 'zzz',
+) ;
+
+my %hash_2 = (
+	'2345' => 'zzz',
+	'8888' => 'zzz',
+	'efgh' => 'zzz',
+) ;
+
+
+print Data::Dumper->Dump( [ \%hash_1 ] ) ;
+
+my %hash_X ;
+
+foreach my $k (  keys( %hash_1 ) ) {
+	$hash_X{ $k }->{ 'folder_1' } ++ ;
+}
+
+foreach my $k (  keys( %hash_2 ) ) {
+	$hash_X{ $k }->{ 'folder_2'} ++ ;
+}
+
+foreach my $k (  keys( %hash_1 ) ) {
+	$hash_X{ $k }->{ 'folder_1' } ++ ;
+}
+
+print Data::Dumper->Dump( [ \%hash_X ] ) ;
+
+print keys( %{ $hash_X{ 'efgh' } } ) ;
+

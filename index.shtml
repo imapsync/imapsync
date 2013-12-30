@@ -5,7 +5,7 @@
 <title>Official imapsync migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2013-10-17T03:39:01+0200"/>
+<meta name="date" content="2013-12-25T12:16:53+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -29,10 +29,10 @@
 <body>
 
 <ul class="none">
+	<li>Are your <a href="#imap_server_success">imap servers <b>supported</b></a> by imapsync?</li>
 	<li>Buy <a href="#buy_source"><b>imapsync source code</b></a> (any OS)</li>
 	<li>Buy <a href="#buy_exe"><b>standalone win32</b></a> <b>imapsync.exe</b> (also <b>works on win64</b>)</li>
    <li>Buy <b>full professional</b> <a href="#buy_support">imapsync <b>support</b></a> to successfully perform your migration</li>
-	<li>Are your <a href="#imap_server_success">imap servers <b>supported</b></a> by imapsync?</li>
 </ul>
 
 <div class="center">
@@ -81,13 +81,23 @@ for <b>bidirectionnal (2 ways) synchronizations</b>.
 <p>Alternatives to imapsync are listed in the <a href="#similar"><b>Similar softwares</b></a> section.
 </p>
 
+<p>Imapsync used to be free, open and gratis, before november 2010. 
+Now imapsync is free, open and not gratis from the homepage. 
+It is the best decision I've done about imapsync to continue to maintain it.
+See detailed explanation and motivation here when 
+<a href="http://www.linux-france.org/prj/imapsync_list/msg00459.html">I looked for a business model</a>.
+
+"Download and donate if happy" doesn't work well.
+"Pay for download and I pay back if unhappy" works well.
+</p>
+
 <h2><a id="NUMBERS"></a>Facts and figures for 2011-2013</h2>
 
 <ul>
 <li><b>4000 to 5000 </b>users per month (45000 users a year)</li> 
 
 <li><b>6 to 25 millions mailboxes transfers per month</b>, 
-total is 93 millions for 2011, 91 millions for 2012, should be <b>110 millions for end 2013</b></li>
+total is 93 millions for 2011, 91 millions for 2012, should be <b>140 millions for end 2013</b></li>
 
 <li><b>Operating systems</b> run by imapsync users:
 <ul>
@@ -135,7 +145,7 @@ Via the <b>User-agent</b> parameter it also send:</p>
 
 <!-- 
 <ul>
-<li><b>1.569</b></li>
+<li><b>1.580</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -154,6 +164,20 @@ Via the <b>User-agent</b> parameter it also send:</p>
 <li><b>Refactoring</b>: </li>
 </ul>
  -->
+
+<ul>
+<li><b>1.580</b></li>
+<li><b>Enhancement</b>: Added <b>--maxmessagespersecond</b> to limit messages tranfer rate and fix <b>office365 throttle limitation</b> (use --maxmessagespersecond 4).</li>
+<li><b>Enhancement</b>: Added --maxbytespersecond to limit byte transfer rate.</li>
+<li><b>Enhancement</b>: Added --folderfirst string: Sync this folder first. --folderfirst "Work" --folderfirst "Friends"</li>
+<li><b>Enhancement</b>: Added --folderlast  string: Sync this folder last. --folderlast "[Gmail]/All Mail" etc.</li>
+<li><b>Enhancement</b>: Added <b>--skipcrossduplicates</b> to avoid copying messages that are already copied in another folder, good <b>from Gmail to X</b>.</li>
+<li><b>Enhancement</b>: Added --debugcrossduplicates to print which messages (UIDs) are skipped with --skipcrossduplicates (and in what other folders they are).</li>
+<li><b>Enhancement</b>: Added --debugmemory option that prints memory consumption after each message is copied.</li>
+<li><b>Bug fix</b>: Create nested folders in the sense of their path, parent first. Thanks to Erik Torsner.</li>
+<li><b>Bug fix</b>: Final statistics were avoided for newly created folders.</li>
+<li><b>Bug fix</b>: Do not try to append message if the fetch failed.</li>
+</ul>
 
 <ul>
 <li><b>1.569</b> Win32 --tmpdir "C:" bugfix</li>
@@ -544,7 +568,7 @@ lists what may be coded or done in the future.
 
 <form method="get" action="http://www.google.com/search">
 <p>  <b>Search</b> in the imapsync list <b>archives</b>: 
-      <input type="text" name="q" value="migrate gmail exchange" size="30" />
+      <input type="text" name="q" value="migrate Gmail Exchange" size="30" />
       <input type="hidden" name="as_sitesearch" value="www.linux-france.org/prj/imapsync_list/" />
       (change the keywords with your own request and press <b>Enter</b>)
 </p>
@@ -623,7 +647,7 @@ I like it.
 	<li>Godaddy IMAP (since Godaddy runs Courier)    (<a href="http://www.godaddy.com/">http://www.godaddy.com/</a>)   </li>
 	<li>Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.    
 	(<a href="http://www.novell.com/products/groupwise/">http://www.novell.com/products/groupwise/</a>)   </li>
-	<li>hMailServer 5.3.3 [host2], 4.4.1 [host1], HMAILSERVER 5.3.2-B1769 on windows 2003 [hsot2]    
+	<li>hMailServer 5.40-B1950 [host12], 5.3.3 [host2], 4.4.1 [host1], HMAILSERVER 5.3.2-B1769 on windows 2003 [hsot2]    
 	(<a href="http://www.hmailserver.com/">http://www.hmailserver.com/</a>)   </li>
 	<li>IceWarp Server 10.4.5 [host1] (<a href="http://www.icewarp.com/">http://www.icewarp.com/</a>)</li>
 	<li>iPlanet Messaging server 4.15, 5.1, 5.2    
@@ -742,7 +766,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.186 2013/10/17 01:49:59 gilles Exp gilles $)
+($Id: index.shtml,v 1.189 2013/12/25 11:35:38 gilles Exp gilles $)
 </p>
 
 </body>

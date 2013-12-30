@@ -1,7 +1,7 @@
-# $Id: INSTALL,v 1.31 2013/09/28 11:11:48 gilles Exp gilles $
+# $Id: INSTALL,v 1.33 2013/12/25 03:25:18 gilles Exp gilles $
 # 
 # INSTALL file for imapsync 
-# imapsync : IMAP sync or copy tool.
+# imapsync : IMAP sync and migrate tool.
 
 INTRODUCTION
 ------------
@@ -31,16 +31,22 @@ a) Simplest way:
 
 - Buy imapsync.exe at http://imapsync.lamiral.info/
 
-- Run imapsync.exe in a command prompt (execute cmd.exe).
+- Run imapsync.exe in a command prompt (execute cmd.exe)
+  but I suggest the next process, I use it myself.
 
-- Or simpler, look at the batch file at
-  http://imapsync.lamiral.info/examples/imapsync_example.bat
-  and replace the parameters with your values
-  then run the batch file with a double-click.
-  It is simpler to edit a batch file with notepad than 
-  the command line in dos mode.
+- Since it is simpler to edit a batch file with notepad than 
+  the command line in DOS mode:
 
-b) Hard way:
+  a) Look at the batch file at
+     http://imapsync.lamiral.info/examples/imapsync_example.bat
+  b) Take it and put this batch file in the same directory as imapsync.exe
+  c) Edit this batch file with notepad and replace the parameters 
+     with your own values
+  d) Run the batch file with a double-click.
+
+
+b) Hard way. It is the hard way because it installs all software
+   dependencies. The way for changing imapsync if needed.
 
 - Get imapsync-x.xx.tgz
 - Install Perl if it isn't already installed.
@@ -69,21 +75,28 @@ You need :
   Get Perl here:
   http://www.perl.org/
 
-- Some perl modules. To verify you have
-  all modules in one command, just run:
+- Some perl modules. To verify in one command that you have
+  all needed modules, just run:
 
   perl -c imapsync
 
   The good answer is "imapsync syntax OK".
+  Any other output will list the missing modules in the
+  Perl paths (it then talks about @INC variable).
 
 Here is some individual module help:
 
-- Perl Mail::IMAPClient module 
+- To check if your system has Perl Mail::IMAPClient module 
   try : 
 
   perl -mMail::IMAPClient -e ''
-  
-  Get the latest Mail::IMAPClient module here:
+
+  It should print nothing, nothing printed means Mail::IMAPClient
+  is already installed on your system.
+
+  If the module Mail::IMAPClient is not on the system,
+  you can use a copy included in the imapsync tarball
+  or get the latest Mail::IMAPClient module here:
   http://search.cpan.org/dist/Mail-IMAPClient/
 
   I use always the latest Mail-IMAPClient-3.xx
@@ -92,18 +105,15 @@ Here is some individual module help:
   perl -mMail::IMAPClient -e 'print $Mail::IMAPClient::VERSION, "\n"'
 
   New Mail-IMAPClient-3.xx works very well with imapsync,
-  Use at least Mail-IMAPClient-3.25 (previous may bug).
-  Don't hesitate to use latest Mail-IMAPClient-3.xx 
-  (3.xx >= 3.34 at the time of this writing)
+  Use at least Mail-IMAPClient-3.25 (previous releases may bug).
+  Do not hesitate to use latest Mail-IMAPClient-3.xx 
+  (3.xx >= 3.35 at the time of this writing)
 
-  Look at the script named "i3" in the tarball, it can be used to
-  run imapsync with included Mail-IMAPClient-3.34/ wherever you 
+  Look at the shell script named "i3" in the tarball, it can be used to
+  run imapsync with included Mail-IMAPClient-3.35/ wherever you 
   unpacked the imapsync tarball.
 
-
-- Perl Digest::MD5 module. 
-  try:
-
+- Digest::MD5
   perl -mDigest::MD5 -e ""
 
   http://search.cpan.org/
@@ -118,66 +128,87 @@ Here is some individual module help:
 - IO::Socket::SSL
   perl -mIO::Socket::SSL -e ""
 
-- File::Spec
-  perl -mFile::Spec -e ""
-
-- File::Path
-  perl -mFile::Path -e ""
-
-- Perl Digest::HMAC_MD5 module
+- Digest::HMAC_MD5
   Good for non plain text password over network.
   perl -mDigest::HMAC_MD5 -e ""
 
-- Perl Authen::NTLM
+- Authen::NTLM
   perl -mAuthen::NTLM -e ""
 
-- Perl Time::HiRes
+- Time::HiRes
   perl -mTime::HiRes  -e ""
 
-- Perl Data::Uniqid
+- Data::Uniqid
   perl -mData::Uniqid  -e ""
 
-- Perl URI::Escape
+- URI::Escape
   perl -mURI::Escape  -e ""
 
+- File::Copy::Recursive
+  perl -mFile::Copy::Recursive -e ""
 
 Test everything in one command:
 
   perl -mMail::IMAPClient -mDigest::MD5 -mTerm::ReadKey -mIO::Socket::SSL \
-       -mFile::Spec -mDigest::HMAC_MD5 -mAuthen::NTLM -e -mTime::HiRes \
+       -mDigest::HMAC_MD5 -mAuthen::NTLM -e -mTime::HiRes \
        -mData::Uniqid -mURI::Escape  ""
 
 You can install easily those Perl modules in latest release via the
 following commands (with root permissions)
 
   perl -MCPAN -e "install Mail::IMAPClient"
-  perl -MCPAN -e "install Digest::MD5"
   perl -MCPAN -e "install Term::ReadKey"
   perl -MCPAN -e "install IO::Socket::SSL"
-  perl -MCPAN -e "install File::Spec"
   perl -MCPAN -e "install Digest::HMAC_MD5"
-  perl -MCPAN -e "install Authen::NTLM"
-  perl -MCPAN -e "install Time::HiRes"
-  perl -MCPAN -e "install Data::Uniqid"
   perl -MCPAN -e "install URI::Escape"
+  perl -MCPAN -e "install File::Copy::Recursive"
+
+  perl -MCPAN -e "install Data::Uniqid"
+  perl -MCPAN -e "install Authen::NTLM"
 
 
-You can install them easily too by using the standard install
+You can also install them easily too by using the standard install
 command on your system if the packages have been made on it
 (so you may not have the latest but most of the time it
 doesn't care). 
 
-Modules Authen::NTLM, Data::Uniqid may be not available 
-this way since I haven't find them on Ubuntu.
+Modules 
+ Authen::NTLM
+ Data::Uniqid
+may be not available this distribution way since I haven't find them
+on Ubuntu nor on Mandriva.
 
-Example on Debian/Ubuntu:
+On Debian/Ubuntu:
 
-  aptitude install  libmail-imapclient-perl # Mail::IMAPClient
-  aptitude install  libdigest-md5-file-perl # Digest::MD5
-  aptitude install  libterm-readkey-perl    # Term::ReadKey
-  aptitude install  libio-socket-ssl-perl   # IO::Socket::SSL
-  aptitude install  libfile-spec-perl       # File::Spec
-  aptitude install  libdigest-hmac-perl     # Digest::HMAC_MD5 Digest::HMAC_SHA1
+  aptitude install libmail-imapclient-perl     # Mail::IMAPClient
+  aptitude install libterm-readkey-perl        # Term::ReadKey
+  aptitude install libio-socket-ssl-perl       # IO::Socket::SSL
+  aptitude install libdigest-hmac-perl         # Digest::HMAC_MD5 Digest::HMAC_SHA1
+  aptitude install liburi-perl                 # URI::Escape
+  aptitude install libfile-copy-recursive-perl # File::Copy::Recursive
+
+On Mandriva:
+
+  urpmi perl-Mail-IMAPClient     # Mail::IMAPClient
+  urpmi perl-Term-ReadKey        # Term::ReadKey
+  urpmi perl-IO-Socket-SSL       # IO::Socket::SSL
+  urpmi perl-Digest-HMAC         # Digest::HMAC_MD5 Digest::HMAC_SHA1
+  urpmi perl-URI                 # URI::Escape
+  urpmi perl-File-Copy-Recursive # File::Copy::Recursive
+
+On  CentOS (thanks to Ralf Hauber)
+
+  Install RPM Repository: Fedora Epel
+
+  See http://pkgs.org/centos-6-rhel-6/epel-i386/perl-Data-Uniqid-0.12-2.el6.noarch.rpm.html
+  wget http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+  rpm -Uvh epel-release*rpm
+
+  yum install perl-Mail-IMAPClient
+  yum install "perl(Term::ReadKey)"
+  yum install "perl(Authen::NTLM)"
+  yum install perl-Data-Uniqid
+  yum install perl-File-Copy-Recursive
 
 
 INSTALLING on Unix

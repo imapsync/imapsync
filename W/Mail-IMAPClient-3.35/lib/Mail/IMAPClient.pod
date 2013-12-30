@@ -235,8 +235,7 @@ returned by B<Quote>.
 
 Note this method should not be used on folder names for
 Mail::IMAPClient methods, since methods that accept folder names as an
-argument will quote the folder name arguments appropriately
-automatically.
+argument will quote the folder name arguments automatically.
 
 If you are getting unexpected results when running methods with values
 that have (or might have) embedded spaces, double quotes, braces, or
@@ -680,7 +679,8 @@ Example:
 
 The B<compress> method accepts no arguments.  This method is used to
 instruct the server to use the DEFLATE (RFC1951) compression
-extension.  See the L</Compress> attribute for how to specify arguments for use during the the initialization process.
+extension.  See the L</Compress> attribute for how to specify
+arguments for use during the initialization process.
 
 Version note: method added in Mail::IMAPClient 3.30
 
@@ -1114,7 +1114,7 @@ context) listing the flags that have been set.  Flag names are
 provided with leading backslashes.
 
 As of version 1.11, you can supply either a list of message id's or a
-reference to an array of of message id's (which means either sequence
+reference to an array of message id's (which means either sequence
 number, if the Uid parameter is false, or message UID's, if the Uid
 parameter is true) instead of supplying a single message sequence
 number or UID.  If you do, then the return value will not be an array
@@ -1412,7 +1412,7 @@ which is just a version of the envelope that's been parsed into a Perl
 object.
 
 For more information on how to use this object once you've gotten it,
-see the L<Mail::IMAPClient::BodyStructure> documention.  (As of this
+see the L<Mail::IMAPClient::BodyStructure> documentation.  (As of this
 writing there is no separate pod document for
 B<Mail::IMAPClient::BodyStructure::Envelope>.)
 
@@ -1633,7 +1633,7 @@ Example:
 
   $imap->logout or die "Could not logout: $@\n";
 
-The B<logout> method implements the LOGOUT IMAP client commmand.  This
+The B<logout> method implements the LOGOUT IMAP client command.  This
 method causes the server to end the connection and the IMAPClient
 client enters the I<Unconnected> state.  This method does not, destroy
 the IMAPClient object, thus the L</connect> and L</login> methods can
@@ -1688,20 +1688,23 @@ Example:
 
   $imap->search(HEADER => 'Message-id' => $imap->Massage($msg_id,1));
 
+WARNING: This method may be deprecated in the future, consider using
+L</Quote> instead of this method.
+
 The B<Massage> method accepts a value as an argument and, optionally,
 a second value that, when true, indicates that the first argument is
 not the name of an existing folder.
+
+WARNING: If the first argument has double quotes at the beginning and
+end of its value, those double quote will be stripped unless the
+second argument does not evaluate to true.
 
 It returns its argument as a correctly quoted string or a literal
 string.
 
 Note that you should rarely use this on folder names, since methods
-that accept folder names as an argument will call B<Massage> for
-you. In fact, it was originally developed as an undocumented helper
-method meant for internal Mail::IMAPClient methods only.
-
-You may also want to see the L</Quote> method, which is related to
-this method.
+that accept folder names as an argument will call B<Quote> for
+you.
 
 =head2 message_count
 
@@ -1840,7 +1843,7 @@ The target ($imap_dest) Mail::IMAPClient object must not be the same
 object as the source ($imap_src).
 
 This method does not attempt to minimize memory usage.  In the future
-it could be enhanced to (optionaly) write message data to a temporary
+it could be enhanced to (optionally) write message data to a temporary
 file to avoid storing the entire message in memory.
 
 To work around potential network timeouts on large messages, consider
@@ -2802,8 +2805,8 @@ their private extensions to the protocol implementation.
 
 =head2 copy($msg, $folder)
 
-Copy a message from the currently selected folder in the the folder
-whose name is in C<$folder>
+Copy a message from the currently selected folder in the folder whose
+name is in C<$folder>
 
 =head2 subscribe($folder)
 
@@ -3482,7 +3485,7 @@ will be used as arguments to IO::Socket::SSL->start_SSL.  By default
 this connection is set to blocking while establishing the connection
 with a timeout of 30 seconds.  The socket will be reset to the
 original blocking/non-blocking value after a successful TLS
-negotiation has occured.  The arguments used in the call to start_SSL
+negotiation has occurred.  The arguments used in the call to start_SSL
 can be controlled by setting this attribute to an ARRAY reference
 containing the desired arguments.
 
@@ -3514,7 +3517,7 @@ attribute is used in the L</connect> method.  The arguments used in
 the call to IO::Socket::SSL->new can be controlled by setting this
 attribute to an ARRAY reference containing the desired arguments.
 
-See also L</connect> for details on connection initiatiation and
+See also L</connect> for details on connection initiation and
 L</Socket> and L</Rawsocket> if you need to take more control of
 connection management.
 
@@ -3654,18 +3657,34 @@ object, but are particularly useful for determining the cause of
 failure when a connection and login are attempted as part of a single
 L</new> method invocation.  The status methods are:
 
+=head2 Escaped_history
+
+Example:
+
+  my @history = $imap->Escaped_history;
+
+The B<Escaped_history> method is almost identical to the B<History>
+method.  Unlike the B<History> method, however, server output
+transmitted literally will be wrapped in double quotes, with all
+double quotes, backslashes escaped.  If called in a scalar context,
+B<Escaped_history> returns an array reference rather than an array.
+
+B<Escaped_history> is useful if you are retrieving output and
+processing it manually, and you are depending on the above special
+characters to delimit the data.  It is not useful when retrieving
+message contents; use B<message_string> or B<body_string> for that.
+
 =head2 Escaped_results
 
 Example:
 
   my @results = $imap->Escaped_results;
 
-The B<Escaped_results> method is almost identical to the B<History>
-method.  Unlike the B<History> method, however, server output
-transmitted literally will be wrapped in double quotes, with all of
-the parentheses, double quotes, backslashes, newlines, and carriage
-returns escaped.  If called in a scalar context, B<Escaped_results>
-returns an array reference rather than an array.
+The B<Escaped_results> method is almost identical to the B<Results>
+method.  Unlike the B<Results> method, however, server output
+transmitted literally will be wrapped in double quotes, with all
+double quotes, backslashes escaped.  If called in a scalar context,
+B<Escaped_results> returns an array reference rather than an array.
 
 B<Escaped_results> is useful if you are retrieving output and
 processing it manually, and you are depending on the above special

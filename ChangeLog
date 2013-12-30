@@ -1,17 +1,65 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.569
+head: 1.580
 branch:
 locks: strict
-	gilles: 1.569
+	gilles: 1.580
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 569;	selected revisions: 569
+total revisions: 580;	selected revisions: 580
 description:
 ----------------------------
-revision 1.569	locked by: gilles;
+revision 1.580	locked by: gilles;
+date: 2013/12/25 02:52:36;  author: gilles;  state: Exp;  lines: +51 -27
+Added --skipcrossduplicates to avoid copying messages that are already copied in another folder.
+Added --debugcrossduplicates to print which messages (UIDs) are skipped with --skipcrossduplicates (and in what other folders they are).
+----------------------------
+revision 1.579
+date: 2013/12/18 13:53:19;  author: gilles;  state: Exp;  lines: +9 -8
+--maxmessagespersecond, value can be float like 3.2
+----------------------------
+revision 1.578
+date: 2013/12/17 02:14:09;  author: gilles;  state: Exp;  lines: +73 -9
+Added --maxbytespersecond to limit byte transfer rate.
+Added --maxmessagespersecond to limit messages tranfer rate (office365 throttle limitation).
+----------------------------
+revision 1.577
+date: 2013/12/05 05:57:51;  author: gilles;  state: Exp;  lines: +28 -10
+Added tests to play with win32 \\?\C:\TEMP syntax and try to solve long path bug.
+----------------------------
+revision 1.576
+date: 2013/11/19 14:37:24;  author: gilles;  state: Exp;  lines: +19 -14
+Added --debugmemory option that prints memory consumption after each message is copied.
+----------------------------
+revision 1.575
+date: 2013/11/06 13:55:38;  author: gilles;  state: Exp;  lines: +12 -7
+Do not append message if the fetch failed.
+----------------------------
+revision 1.574
+date: 2013/10/28 16:22:04;  author: gilles;  state: Exp;  lines: +16 -8
+Added --create_folder_old in case users want the old behavior of create_folder().
+----------------------------
+revision 1.573
+date: 2013/10/28 14:44:10;  author: gilles;  state: Exp;  lines: +48 -7
+Bugfix. Applied patch for create_folder() and nested folders. Thanks to Erik Torsner.
+----------------------------
+revision 1.572
+date: 2013/10/27 02:04:01;  author: gilles;  state: Exp;  lines: +13 -8
+Bug fix. Final statistics were avoided for newly created folders.
+----------------------------
+revision 1.571
+date: 2013/10/25 14:34:27;  author: gilles;  state: Exp;  lines: +58 -20
+Added --folderfirst <string> : Sync this folder first. --folderfirst "Work"
+Added --folderlast  <string> : Sync this folder last. --folderlast "[Gmail]/All Mail"
+--folderlast  <string> : then this one, etc.
+----------------------------
+revision 1.570
+date: 2013/10/25 12:52:02;  author: gilles;  state: Exp;  lines: +7 -7
+--delete2foldersonly Junk example.
+----------------------------
+revision 1.569
 date: 2013/10/16 21:58:17;  author: gilles;  state: Exp;  lines: +125 -39
 Fixed bug on Windows with --tmpdir "E:\TEMP". The colon was badly converted to _, ending with "E_\TEMP".
 The fix also automatically moves the old cache to the new one if the new does not exist yet.

@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.132 2013/10/17 00:55:16 gilles Exp gilles $	
+# $Id: Makefile,v 1.139 2013/12/25 11:36:53 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -33,7 +33,7 @@ VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version)
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
-IMAPClient_3xx=./W/Mail-IMAPClient-3.34/lib
+IMAPClient_3xx=./W/Mail-IMAPClient-3.35/lib
 IMAPClient=$(IMAPClient_3xx)
 
 hello:
@@ -126,7 +126,7 @@ test_quick_3xx: imapsync tests.sh
 
 testv3: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh
-	touch .test_3xx
+	./i3 --version >> .test_3xx
 
 testv: testv3
 
@@ -136,7 +136,7 @@ tests: test
 
 .test_3xx: imapsync tests.sh
 	CMD_PERL='perl -I./$(IMAPClient_3xx)' /usr/bin/time sh tests.sh 1>/dev/null
-	touch .test_3xx
+	./i3 --version >> .test_3xx
 
 testf: clean_test test
 
@@ -166,8 +166,6 @@ tests_win32_dev: dosify_bat
 tests_win32_dev3: dosify_bat
 	scp imapsync W/test3.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test3.bat'
-
-
 
 test_imapsync_exe: dosify_bat
 	scp W/test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
@@ -259,8 +257,8 @@ tarball: .tarball
 	touch .tarball
 
 
-DO_IT       := $(shell test -f ./dist/path_$(VERSION).txt || makepasswd --chars 4 > ./dist/path_$(VERSION).txt)
-DIST_SECRET := $(shell cat ./dist/path_$(VERSION).txt)
+DO_IT       := $(shell test -d dist && { test -f ./dist/path_$(VERSION).txt || makepasswd --chars 4 > ./dist/path_$(VERSION).txt ; } )
+DIST_SECRET := $(shell test -d dist && cat ./dist/path_$(VERSION).txt)
 DIST_PATH   := ./dist/$(DIST_SECRET)
 
 lalala:
@@ -295,11 +293,11 @@ dist_prepa_exe: imapsync.exe
 
 ks:
 	rsync -avHz --delete --exclude imapsync.exe \
-	  . imapsync@ks.lamiral.info:public_html/imapsync/
+	  . gilles@ks.lamiral.info:public_html/imapsync/
 
 ksa:
 	rsync -avHz --delete -P \
-	  . imapsync@ks.lamiral.info:public_html/imapsync/
+	  . gilles@ks.lamiral.info:public_html/imapsync/
 
 upload_ks: ci tarball
 	rsync -lptvHzP  $(PUBLIC_FILES) \
@@ -345,10 +343,14 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
-upload_index: FAQ LICENSE CREDITS TUTORIAL.html GOOD_PRACTICES.html W/*.bat examples/*.bat examples/sync_loop_unix.sh index.shtml 
-	rcsdiff index.shtml FAQ LICENSE CREDITS W/*.bat examples/*.bat index.shtml 
+
+.valid.index.shtml: index.shtml
 	validate --verbose index.shtml
+	touch .valid.index.shtml
+
+upload_index: .valid.index.shtml FAQ LICENSE CREDITS TUTORIAL.html GOOD_PRACTICES.html W/*.bat examples/*.bat examples/*.sh
+	rcsdiff index.shtml FAQ LICENSE CREDITS W/*.bat examples/*.bat index.shtml 
 	rsync -avH index.shtml FAQ NOLIMIT LICENSE CREDITS TUTORIAL.html GOOD_PRACTICES.html root@ks.lamiral.info:/var/www/imapsync/
 	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
-	rsync -avH examples/*.bat examples/sync_loop_unix.sh root@ks.lamiral.info:/var/www/imapsync/examples/
+	rsync -avH examples/*.bat examples/*.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 

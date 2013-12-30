@@ -266,7 +266,7 @@ one argument, a string containing a server response to a FETCH
 BODYSTRUCTURE directive.
 
 The module B<Mail::IMAPClient> provides the B<get_bodystructure>
-conveniece method to simplify use of this module when starting with
+convenience method to simplify use of this module when starting with
 just a messages sequence number or unique ID (UID).
 
 =head1 Object Methods
@@ -451,7 +451,7 @@ Returns an array of recipients' address structures.
 
 Each of the methods that returns a list of address structures (i.e. a
 list of B<Mail::IMAPClient::BodyStructure::Address> arrays) also has
-an analagous method that will return a list of E-Mail addresses
+an analogous method that will return a list of E-Mail addresses
 instead.  The addresses are in the format C<personalname
 E<lt>mailboxname@hostnameE<gt>> (see the section on
 B<Mail::IMAPClient::BodyStructure::Address>, below) However, if the

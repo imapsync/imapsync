@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.123 2013/08/16 00:49:52 gilles Exp gilles $
+# $Id: TODO,v 1.124 2013/12/25 03:04:53 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
@@ -17,14 +17,16 @@ http://www.yippiemove.com/
 http://www.migrationwiz.com/
 http://www.microsoft.com/download/en/details.aspx?id=1329 "Microsoft Transporter Suite"
 
+Write --disarm_read_receipts that does:
+  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
+May be apply it only to UNSEEN messages.
+
+Write --max_messages_per_second and  --max_bytes_per_second for staying under Microsoft's throttling policies.
+
+
 Convert folder names to utf-8 and print them next to the uft-7 ones.
 Look at imapsync/W/learn/ 
 ./imap_utf7 data_utf7
-
-DONE. Inform about --addheader when the problem occurs "(no wanted headers so we ignore this message)"
-
-DONE. Print the timeout value. 
-DONE. Inform --timeout is is seconds.
 
 Add an exit value when exiting because of --exitwhenover
 The goal is to know easily why to restart later.
@@ -164,6 +166,12 @@ Add cyrus link about INBOX. namespace
 http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
 ===========================================================================
+
+
+DONE. Inform about --addheader when the problem occurs "(no wanted headers so we ignore this message)"
+
+DONE. Print the timeout value. 
+DONE. Inform --timeout is is seconds.
 
 DONE. Add an entry to http://lsm.qqx.org/lsm/
 See lsm.imapsync

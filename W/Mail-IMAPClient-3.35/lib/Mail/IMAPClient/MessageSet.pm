@@ -5,7 +5,7 @@ package Mail::IMAPClient::MessageSet;
 
 =head1 NAME
 
-Mail::IMAPClient::MessageSet - ranges of message sequence nummers
+Mail::IMAPClient::MessageSet - ranges of message sequence numbers
 
 =cut
 
@@ -129,7 +129,7 @@ commands by separating them with commas. For example, "1,2,3,4,5" would
 specify messages 1, 2, 3, 4, and (you guessed it!) 5. However, if you are
 performing an operation on lots of messages, this string can get quite long.
 So long that it may slow down your transaction, and perhaps even cause the
-server to reject it. So RFC2060 also permits you to specifiy a range of
+server to reject it. So RFC2060 also permits you to specify a range of
 messages, so that messages 1, 2, 3, 4 and 5 can also be specified as
 "1:5".
 
@@ -244,7 +244,7 @@ then your resulting message set will be the same as the original, only more
 expensive. However, if you attempt to remove several messages from the message
 set and some of those messages were in the message set and some were not,
 the additional overhead of checking for the messages that were not there
-is negligable. In either case you get back the message set you want regardless
+is negligible. In either case you get back the message set you want regardless
 of whether it was already like that or not.
 
 =head1 AUTHOR

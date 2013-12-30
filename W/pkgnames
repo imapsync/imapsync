@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# $Id: pkgnames,v 1.2 2013/10/18 03:59:35 gilles Exp gilles $
+
+MODULE_LIST="
+Mail/IMAPClient.pm
+Digest/MD5.pm
+Term/ReadKey.pm
+IO/Socket/SSL.pm
+Digest/HMAC_MD5.pm
+URI/Escape.pm
+File/Copy/Recursive.pm
+Data/Uniqid.pm
+Authen/NTLM.pm
+"
+
+# SEARCH_CMD="urpmf"  # Mandriva
+SEARCH_CMD=${1:-"apt-file search"}
+
+for module in $MODULE_LIST; do
+	echo ==== searching for $module ====
+	echo $SEARCH_CMD $module
+	$SEARCH_CMD $module
+done
+
+# End of pkgnames script.

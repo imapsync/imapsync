@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.34';
+our $VERSION = '3.35';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -35,8 +35,6 @@ use constant {
     TYPE  => 1,    # Array index for line type (OUTPUT, INPUT, or LITERAL)
     DATA  => 2,    # Array index for output line data
 };
-
-use constant NonFolderArg => 1;    # for Massage indicating non-folder arguments
 
 my %SEARCH_KEYS = map { ( $_ => 1 ) } qw(
   ALL ANSWERED BCC BEFORE BODY CC DELETED DRAFT FLAGGED
@@ -535,7 +533,7 @@ sub compress {
             return $ret if ( !$ret && !$lz );    # $ret is undef or 0
         }
 
-        # accummulate inflated data in $Ibuf
+        # accumulate inflated data in $Ibuf
         if ($lz) {
             my ( $tbuf, $rc ) = $io->inflate( \$Zbuf );
             unless ( $rc == $zcl->Z_OK ) {
@@ -649,21 +647,12 @@ sub _list_or_lsub {
     length $target     or $target    = '""';
 
     $target eq '*' || $target eq '""'
-      or $target = $self->Massage($target);
+      or $target = $self->Quote($target);
 
     $self->_imap_command(qq($cmd "$reference" $target))
       or return undef;
 
-    # cleanup any literal data that may be returned
-    my $ret = wantarray ? [ $self->History ] : $self->Results;
-    if ($ret) {
-        my $cmd = wantarray ? undef : shift @$ret;
-        $self->_list_response_preprocess($ret);
-        unshift( @$ret, $cmd ) if defined($cmd);
-    }
-
-    #return wantarray ? $self->History : $self->Results;
-    return wantarray ? @$ret : $ret;
+    return wantarray ? $self->Escaped_history : $self->Escaped_results;
 }
 
 sub list { shift->_list_or_lsub( "LIST", @_ ) }
@@ -765,7 +754,7 @@ sub subscribed {
 
 sub deleteacl {
     my ( $self, $target, $user ) = @_;
-    $target = $self->Massage($target);
+    $target = $self->Quote($target);
     $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
 
     $self->_imap_command(qq(DELETEACL $target $user))
@@ -777,7 +766,7 @@ sub deleteacl {
 sub setacl {
     my ( $self, $target, $user, $acl ) = @_;
     $target ||= $self->Folder;
-    $target = $self->Massage($target);
+    $target = $self->Quote($target);
 
     $user ||= $self->User;
     $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
@@ -792,7 +781,7 @@ sub setacl {
 sub getacl {
     my ( $self, $target ) = @_;
     defined $target or $target = $self->Folder;
-    my $mtarget = $self->Massage($target);
+    my $mtarget = $self->Quote($target);
     $self->_imap_command(qq(GETACL $mtarget))
       or return undef;
 
@@ -822,7 +811,7 @@ sub getacl {
 sub listrights {
     my ( $self, $target, $user ) = @_;
     $target ||= $self->Folder;
-    $target = $self->Massage($target);
+    $target = $self->Quote($target);
 
     $user ||= $self->User;
     $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
@@ -841,7 +830,7 @@ sub select {
     my ( $self, $target ) = @_;
     defined $target or return undef;
 
-    my $qqtarget = $self->Massage($target);
+    my $qqtarget = $self->Quote($target);
     my $old      = $self->Folder;
 
     $self->_imap_command("SELECT $qqtarget")
@@ -1104,7 +1093,7 @@ sub examine {
     my ( $self, $target ) = @_;
     defined $target or return undef;
 
-    $self->_imap_command( 'EXAMINE ' . $self->Massage($target) )
+    $self->_imap_command( 'EXAMINE ' . $self->Quote($target) )
       or return undef;
 
     my $old = $self->Folder;
@@ -1650,7 +1639,7 @@ sub _read_line {
         while ( $iBuffer =~ s/^(.*?$CR?$LF)//o )    # consume line
         {
             my $current_line = $1;
-            if ( $current_line !~ s/\s*\{(\d+)\}$CR?$LF$//o ) {
+            if ( $current_line !~ s/\{(\d+)\}$CR?$LF$//o ) {
                 push @$oBuffer, [ $index++, 'OUTPUT', $current_line ];
                 next;
             }
@@ -1845,6 +1834,35 @@ sub _trans_data(;$) {
     map { $_->[DATA] } $_[0]->_transaction( $_[1] );
 }
 
+sub _escaped_trans_data(;$) {
+    my ( $self, $trans ) = @_;
+    my @a;
+    my $prevwasliteral = 0;
+    foreach my $line ( $self->_transaction($trans) ) {
+        next unless defined $line;
+
+        my $data = $line->[DATA];
+
+        # literal is appended to previous data
+        if ( $self->_is_literal($line) ) {
+            $data = $self->Escape($data);
+            $a[-1] .= qq("$data");
+            $prevwasliteral = 1;
+        }
+        else {
+            if ($prevwasliteral) {
+                $a[-1] .= $data;
+            }
+            else {
+                push( @a, $data );
+            }
+            $prevwasliteral = 0;
+        }
+    }
+
+    return wantarray ? @a : \@a;
+}
+
 sub Report {
     my $self = shift;
     map { $self->_trans_data($_) } $self->_trans_index;
@@ -1874,30 +1892,15 @@ sub _transaction_literals() {
       grep { $self->_is_literal($_) } $self->_transaction;
 }
 
+sub Escaped_history {
+    my ( $self, $trans ) = @_;
+    my ( $cmd,  @a )     = $self->_escaped_trans_data($trans);
+    return wantarray ? @a : \@a;
+}
+
 sub Escaped_results {
     my ( $self, $trans ) = @_;
-    my @a;
-    my $prevwasliteral = 0;
-    foreach my $line ( grep defined, $self->_transaction($trans) ) {
-        my $data = $line->[DATA];
-
-        # literal is appended to previous data
-        if ( $self->_is_literal($line) ) {
-            $data = $self->Escape($data);
-            $a[-1] .= qq( "$data");
-            $prevwasliteral = 1;
-        }
-        else {
-            if ($prevwasliteral) {
-                $a[-1] .= $data;
-            }
-            else {
-                push( @a, $data );
-            }
-            $prevwasliteral = 0;
-        }
-    }
-
+    my @a = $self->_escaped_trans_data($trans);
     return wantarray ? @a : \@a;
 }
 
@@ -1936,8 +1939,7 @@ sub _disconnect {
 # LIST/XLIST/LSUB Response
 #   Contents: name attributes, hierarchy delimiter, name
 #   Example: * LIST (\Noselect) "/" ~/Mail/foo
-# NOTE: in _list_response_preprocess we append literal data so we need
-# to be liberal about our matching of folder name data
+# NOTE: liberal matching as folder name data may be Escape()d
 sub _list_or_lsub_response_parse {
     my ( $self, $resp ) = @_;
 
@@ -1957,25 +1959,6 @@ sub _list_or_lsub_response_parse {
           ( [ split( / /, $1 ) ], $2, defined($3) ? $self->Unescape($3) : $4 );
     }
     return wantarray ? %info : \%info;
-}
-
-# handle listeral data returned in list/lsub responses
-# some example responses:
-# * LIST () "/" "My Folder"    # nothing to do here...
-# * LIST () "/" {9}            # the {9} is already removed by _read_line()
-# Special %                    # we append this to the previous line
-sub _list_response_preprocess {
-    my ( $self, $data ) = @_;
-    return undef unless defined $data;
-
-    for ( my $m = 0 ; $m < @$data ; $m++ ) {
-        if ( $data->[$m] && $data->[$m] !~ /$CR?$LF$/o ) {
-            $self->_debug("concatenating '$data->[$m]' and '$data->[$m+1]'");
-            $data->[$m] .= " " . $data->[ $m + 1 ];
-            splice @$data, $m + 1, 1;
-        }
-    }
-    return $data;
 }
 
 sub exists {
@@ -2302,7 +2285,7 @@ sub store {
 
 sub _imap_folder_command($$@) {
     my ( $self, $command ) = ( shift, shift );
-    my $folder = $self->Massage(shift);
+    my $folder = $self->Quote(shift);
 
     $self->_imap_command( join ' ', $command, $folder, @_ )
       or return undef;
@@ -2380,8 +2363,8 @@ sub uidexpunge {
 sub rename {
     my ( $self, $from, $to ) = @_;
 
-    $from = ( $from eq "" ) ? qq("") : $self->Massage($from);
-    $to   = ( $to   eq "" ) ? qq("") : $self->Massage($to);
+    $from = ( $from eq "" ) ? qq("") : $self->Quote($from);
+    $to   = ( $to   eq "" ) ? qq("") : $self->Quote($to);
 
     $self->_imap_command(qq(RENAME $from $to)) ? $self : undef;
 }
@@ -2392,7 +2375,7 @@ sub status {
 
     my $which = @_ ? join( " ", @_ ) : 'MESSAGES';
 
-    my $box = $self->Massage($folder);
+    my $box = $self->Quote($folder);
     $self->_imap_command("STATUS $box ($which)")
       or return undef;
 
@@ -2621,11 +2604,10 @@ sub or {
         return undef;
     }
 
-    my $or = "OR "
-      . $self->Massage( shift @what ) . " "
-      . $self->Massage( shift @what );
+    my $or =
+      "OR " . $self->Quote( shift @what ) . " " . $self->Quote( shift @what );
 
-    $or = "OR $or " . $self->Massage($_) for @what;
+    $or = "OR $or " . $self->Quote($_) for @what;
 
     $self->_imap_uid_command( SEARCH => $or )
       or return undef;
@@ -2708,7 +2690,7 @@ sub thread {
     my $charset = shift || 'UTF-8';
     my @a = @_ ? @_ : 'ALL';
 
-    $a[-1] = $self->Massage( $a[-1], 1 )
+    $a[-1] = $self->Quote( $a[-1], 1 )
       if @a > 1 && !exists $SEARCH_KEYS{ uc $a[-1] };
 
     $self->_imap_uid_command( THREAD => $algorythm, $charset, @a )
@@ -2955,7 +2937,7 @@ sub append_string($$$;$$) {
 
     my $text = defined( $_[2] ) ? $_[2] : '';
 
-    $folder = $self->Massage($folder);
+    $folder = $self->Quote($folder);
     $flags  = $self->_clean_flags($flags) if ( defined $flags );
     $date   = $self->_clean_date($date) if ( defined $date );
     $text =~ s/\r?\n/$CRLF/og;
@@ -3010,7 +2992,7 @@ sub append_file {
 
     binmode($fh);
 
-    $folder = $self->Massage($folder)     if ( defined $folder );
+    $folder = $self->Quote($folder)       if ( defined $folder );
     $flags  = $self->_clean_flags($flags) if ( defined $flags );
 
     # allow the date to be specified or even use mtime on file
@@ -3254,7 +3236,7 @@ sub copy {
       ? $self->Range(@msgs)
       : join ',', map { ref $_ ? @$_ : $_ } @msgs;
 
-    $self->_imap_uid_command( COPY => $msgs, $self->Massage($target) )
+    $self->_imap_uid_command( COPY => $msgs, $self->Quote($target) )
       or return undef;
 
     my @results = $self->History;
@@ -3358,21 +3340,21 @@ sub size {
 
 sub getquotaroot {
     my ( $self, $what ) = @_;
-    my $who = $what ? $self->Massage($what) : "INBOX";
+    my $who = $what ? $self->Quote($what) : "INBOX";
     return $self->_imap_command("GETQUOTAROOT $who") ? $self->Results : undef;
 }
 
 # BUG? using user/$User here and INBOX in quota/quota_usage
 sub getquota {
     my ( $self, $what ) = @_;
-    my $who = $what ? $self->Massage($what) : "user/" . $self->User;
+    my $who = $what ? $self->Quote($what) : "user/" . $self->User;
     return $self->_imap_command("GETQUOTA $who") ? $self->Results : undef;
 }
 
 # usage: $self->setquota($quotaroot, storage => 512, ...)
 sub setquota(@) {
     my ( $self, $what ) = ( shift, shift );
-    my $who = $what ? $self->Massage($what) : "user/" . $self->User;
+    my $who = $what ? $self->Quote($what) : "user/" . $self->User;
     my @limits;
     while (@_) {
         my ( $k, $v ) = ( $self->Quote( uc( shift @_ ) ), shift @_ );
@@ -3396,8 +3378,6 @@ sub quota_usage {
     return ( map { /.*STORAGE\s+(\d+)\s+\d+.*\n$/ ? $1 : () } @$tref )[0];
 }
 
-sub Quote($) { $_[0]->Massage( $_[1], NonFolderArg ) }
-
 # rfc3501:
 #   atom-specials   = "(" / ")" / "{" / SP / CTL / list-wildcards /
 #                  quoted-specials / resp-specials
@@ -3408,10 +3388,8 @@ sub Quote($) { $_[0]->Massage( $_[1], NonFolderArg ) }
 #   CTL ::= <any ASCII control character and DEL, 0x00 - 0x1f, 0x7f>
 # Paranoia/safety:
 #   encode strings with "}" / "[" / "]" / non-ascii chars
-sub Massage($;$) {
-    my ( $self, $name, $notFolder ) = @_;
-    $name =~ s/^\"(.*)\"$/$1/s unless $notFolder;
-
+sub Quote($) {
+    my ( $self, $name ) = @_;
     if ( $name =~ /["\\[:^ascii:][:cntrl:]]/s ) {
         return "{" . length($name) . "}" . $CRLF . $name;
     }
@@ -3421,6 +3399,13 @@ sub Massage($;$) {
     else {
         return $name;
     }
+}
+
+# legacy behavior: strip double quote around folder name args!
+sub Massage($;$) {
+    my ( $self, $name, $notFolder ) = @_;
+    $name =~ s/^\"(.*)\"$/$1/s unless $notFolder;
+    return $self->Quote($name);
 }
 
 sub unseen_count {

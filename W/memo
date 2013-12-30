@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.44 2013/07/03 04:14:44 gilles Exp gilles $
+# $Id: memo,v 1.45 2013/11/11 19:32:19 gilles Exp gilles $
 
 count_nice() {
 
@@ -212,7 +212,7 @@ export TMPDIR
 echo statistics_VERSION_getstats
 statistics_VERSION_getstats() {
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	for f in /var/log/apache2/access.log_????????.gz ; do 
 		b=`basename "$f" .gz`
 		#echo "$b"
@@ -228,7 +228,7 @@ statistics_VERSION_monthly_ip() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	cut -d ' ' -f 1,12,13,18,19 access.log_${year}${month}??.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
 	)
 }
@@ -238,7 +238,7 @@ statistics_VERSION_monthly_os() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	Linux=`grep -i linux stats_imapsync_${year}_${month}.ip | wc -l`
 	Win32=`grep -i MSWin32 stats_imapsync_${year}_${month}.ip | wc -l`
 	Darwin=`grep -i darwin stats_imapsync_${year}_${month}.ip | wc -l`
@@ -260,7 +260,7 @@ echo "statistics_VERSION_yearly_os 2012 # short"
 statistics_VERSION_yearly_os() {
 	year=${1:-`date '+%Y'`}
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	Linux=`grep -i linux     stats_imapsync_${year}.ip | wc -l`
 	Win32=`grep -i MSWin32   stats_imapsync_${year}.ip | wc -l`
 	Darwin=`grep -i darwin   stats_imapsync_${year}.ip | wc -l`
@@ -284,7 +284,7 @@ statistics_VERSION_monthly_ip_wc() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	test -f stats_imapsync_${year}_${month}.ip || statistics_VERSION_monthly_ip $month ${year}
 	wc -l stats_imapsync_${year}_${month}.ip
 	)
@@ -295,7 +295,7 @@ statistics_VERSION_monthly_runs() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	wc -l access.log_${year}${month}??.imapsync_VERSION > stats_imapsync_${year}_${month}.runs
 	cat stats_imapsync_${year}_${month}.runs
 	)
@@ -320,7 +320,7 @@ statistics_VERSION_yearly_ip() {
 	year=${1:-`date '+%Y'`}
 	(
 	statistics_VERSION_getstats
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	cut -d ' ' -f 1,12,13,18,19 access.log_${year}????.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}.ip
 	)
 }
@@ -328,7 +328,7 @@ statistics_VERSION_yearly_ip() {
 statistics_VERSION_yearly_runs() {
 	year=${1:-`date '+%Y'`}
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	test -f stats_imapsync_${year}.ip && cat stats_imapsync_${year}.ip | awk '{ sum+=$1 } END {print sum}'
 	)
 }
@@ -339,7 +339,7 @@ echo "statistics_VERSION_synthesis 2012 # short"
 statistics_VERSION_synthesis() {
 	year=${1:-`date '+%Y'`}
 	(
-	cd /home/imapsync/imapsync_stats
+	cd $HOME/imapsync_stats
 	echo Nb users each month
 	wc -l stats_imapsync_${year}_??.ip
 	echo Nb runs each month

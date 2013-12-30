@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.150 2013/10/17 00:55:53 gilles Exp gilles $
+# $Id: FAQ,v 1.161 2013/12/25 03:25:18 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -116,6 +116,7 @@ events via IMAP. In other words, messages synced by imapsync from
 Calendar or Contacts folders are not used by email servers to set 
 or get the contacts or calendars. 
 No way via IMAP, no way via imapsync.
+See next question.
 
 =======================================================================
 Q. How can I copy or synchronize Calendars or Contacts?
@@ -361,14 +362,25 @@ Fixing the long path problem directly in imapsync is in the TODO file.
 =======================================================================
 Q. How can I try imapsync with latest Mail::IMAPClient 3.xx perl module?
 
-R. The answer R2 deals with any Perl module use.
+Three solutions at least.
 
-R1 - Look at the script named i3 in the tarball, it can be used to
-     run imapsync with included Mail-IMAPClient-3.33/ wherever you 
+R1 - Look at the script named "i3" in the tarball, it can be used to
+     run imapsync with the included Mail-IMAPClient-3.35/ wherever you 
      unpacked the imapsync tarball
 
-R2 - Download latest Mail::IMAPClient 3.xx at
-   http://search.cpan.org/dist/Mail-IMAPClient/
+R2 Run:
+
+   perl -MCPAN -e "install Mail::IMAPClient"
+
+   or
+
+   cpan -i Mail::IMAPClient
+
+R3 If you want to install the Perl module locally in a directory
+
+   - Download latest Mail::IMAPClient 3.xx at
+     http://search.cpan.org/dist/Mail-IMAPClient/
+
    - untar it anywhere:
         tar xzvf Mail-IMAPClient-3.xx.tar.gz
 
@@ -377,16 +389,24 @@ R2 - Download latest Mail::IMAPClient 3.xx at
    - run imapsync with perl and -I option tailing to use the perl
      module Mail-IMAPClient-3.xx. Example:
 
-         perl -I./Mail-IMAPClient-3.33/lib  ./imapsync ...
+         perl -I./Mail-IMAPClient-3.35/lib  ./imapsync ...
 
      or if imapsync is in directory /path/
-        perl -I./Mail-IMAPClient-3.33/lib   /path/imapsync ...
+        perl -I./Mail-IMAPClient-3.35/lib   /path/imapsync ...
 
 
 =======================================================================
 Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
 
 R. Mail::IMAPClient 2.2.9 is no longer supported.
+
+=======================================================================
+Q. I get "Out of memory" errors. How to fix that?
+
+R. Usually "Out of memory" errors are related to old days,
+to old Mail::IMAPClient module releases, before 3.26.
+Look at imapsync output first lines to get the Mail::IMAPClient release used.
+Then upgrade Mail::IMAPClient Perl module.
 
 =======================================================================
 Q. Can I use imapsync to migrate emails from pop3 server to imap server?
@@ -400,6 +420,13 @@ Many pop3 servers runs in parallel with an imap server on exactly
 the same mailboxes. They serve the same INBOX
 (imap serves INBOX and several other folders, pop3 serves only INBOX)
 So have a try with imapsync on the same host1.
+
+=======================================================================
+Q. Folders are not created on host2. What happens?
+
+R. Do you use IMAP or POP3 with your client software?
+It looks like you use POP3 instead of IMAP, POP3 has only INBOX.
+
 
 =======================================================================
 Q. I am interested in creating  a local clone of the IMAP on a LAN 
@@ -585,6 +612,19 @@ It'll convert / character to X
 Choose X as you wish: _ or SEP or 
 any string (including the empty string).
 
+
+=======================================================================
+Q. Is it possible to sync also the UIDL of the POP3 server?
+
+R. imapsync does not POP3 but I think you mean UID in IMAP.
+   See next question.
+
+=======================================================================
+Q. Is it possible to sync also the UIDs of the IMAP server?
+
+UIDs in IMAP are chosen and created by the servers, not by the clients,
+imapsync is a client. So UIDs can not be synced by any method,
+unless the server is duplicated as is.
 
 =======================================================================
 Q. The option --subscribe does not seem to work
@@ -1516,6 +1556,44 @@ format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
 
 
 =======================================================================
+Q. From XXX to Exchange 2013 or Office365 read receipts are all resent
+   again after a sync. Even for old messages. How can I fix that?
+
+R. imapsync can remove the header containing this read receipt request.
+
+On Unix, add:
+
+  --regexmess 's{\A(.*?(?! ^$))(^Disposition-Notification-To:.*?\n)}{$1}gxms'
+
+On Windows, add:
+
+  --regexmess "s{\A(.*?(?! ^$))(^Disposition-Notification-To:.*?\n)}{$1}gxms"
+
+Since those read receipts should be sent for unseen messages going 
+to a seen state after the migration, you could be strict and apply 
+the regex only to seen messages. 
+Selecting seen message can be done with:
+
+  imapsync ... --search1 "SEEN" --regexmess "..."
+
+Of course a second run has to be run without the --regexmess for 
+unseen messages:
+
+  imapsync ... --search1 "SEEN" 
+
+If you want to keep the header content and still suppress read receipts
+then use the following instead, it adds a prefix "X-" to "Disposition-Notification-To:"
+
+  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
+
+The small regex remove the header Disposition-Notification-To, the long one
+replace it so users can still see messages had a Disposition-Notification-To
+header before.
+
+I will add an option to set this regex.
+Thanks to David Karnowski for pointing and solving this issue.
+
+=======================================================================
 Q. From XXX to Exchange 2013 or Office365 I get this error message
    sometimes: "BAD Command Argument Error 11"
 
@@ -1538,6 +1616,33 @@ R. This error message comes from Exchange IMAP server when it
     higher values.
 
   imapsync ... --maxlinelength 1000 
+
+Have also in mind that Exchange closes the connection after 10 errors
+encountered so you might also see "BYE Connection closed" errors from
+Exchange, which means Exchange leaves the session and say goodbye,
+come back later. Rerun a sync then.
+
+=======================================================================
+Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
+   not seem to be well synced.
+
+R. Use the following trick. Run imapsync twice, one with --regexflag
+   and one without, like this:
+
+1) imapsync ... --regexflag "s/\\Flagged//g"
+2) imapsync ...
+
+You can add --debugflags if you want to see what imapsync gets and 
+does in details with flags.
+
+The magic of this trick is on ignoring the \Flagged flag on the first 
+sync and setting it on the second sync, with STORE instead of APPEND.
+This Exchange bug seems that Exchange gets and sets well the Flagged 
+flag with APPEND in IMAP but then it forgets it with other protocols;
+With STORE it sets and gets the "\Flagged" flag everywhere.
+
+Thanks to Dave Murray and Simon Savva for reporting and solving 
+this issue.
 
 =======================================================================
 Q. From Zimbra to XXX
@@ -1625,7 +1730,9 @@ See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 
 --regextrans2 "s/[ ]+/_/g" is there to convert blank characters not 
 accepted by gmail to character _ underscore. In fact only leading
-and trailing blank characters are problems with gmail.
+and trailing blank characters are problems with gmail, and
+also succesive blank ending whith the IMAP error 
+"NO [CANNOT] Folder contains excess whitespace (Failure)"
 
 --regextrans2 "s/[\^]/_/g" is mandatory.  It converts, since
 not accepted by gmail, character ^ to character _ underscore.

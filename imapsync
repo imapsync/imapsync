@@ -5,11 +5,11 @@
 # pragmas
 # main program
 # global variables initialisation
+# get_options(  ) ;
 # default values
 # folder loop
 # subroutines
-# IMAPClient 2.2.9 overrides
-# IMAPClient 2.2.9 3.xx ads
+# IMAPClient 3.xx ads
 
 # pod documentation
 
@@ -22,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.569 $
+$Revision: 1.580 $
 
 =head1 SYNOPSIS
 
@@ -403,7 +403,7 @@ Success stories reported with the following 57 imap servers
  - Gimap (Gmail imap)
  - GMX IMAP4 StreamProxy.
  - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
- - hMailServer 5.3.3 [host2], 4.4.1 [host1] (see FAQ)
+ - hMailServer 5.40-B1950 [host12], 5.3.3 [host2], 4.4.1 [host1] (see FAQ)
  - IceWarp Server 10.4.5 [host1] (http://www.icewarp.com/)
  - iPlanet Messaging server 4.15, 5.1, 5.2
  - IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]
@@ -541,7 +541,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.569 2013/10/16 21:58:17 gilles Exp gilles $
+$Id: imapsync,v 1.580 2013/12/25 02:52:36 gilles Exp gilles $
 
 =cut
 
@@ -571,7 +571,7 @@ use Errno qw(EAGAIN EPIPE ECONNRESET) ;
 use File::Glob qw( :glob ) ;
 use IO::File ;
 use Time::Local ;
-use Time::HiRes qw( time ) ;
+use Time::HiRes qw( time sleep ) ;
 use Test::More 'no_plan' ;
 use IPC::Open3 'open3' ;
 #use Unix::Sysexits ;
@@ -581,12 +581,13 @@ use IPC::Open3 'open3' ;
 my(
         $rcs, $pidfile, $pidfilelocking, 
 	$debug, $debugimap, $debugimap1, $debugimap2, $debugcontent, $debugflags,
-	$debugLIST, $debugsleep, $debugdev, 
+	$debugLIST, $debugsleep, $debugdev, $debugmemory,
 	$nb_errors,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $domain1, $domain2, 
 	$password1, $password2, $passfile1, $passfile2,
         @folder, @include, @exclude, @folderrec,
+        @folderfirst, @folderlast,
         $prefix1, $prefix2, 
         @regextrans2, @regexmess, @regexflag,
 	$flagsCase, $filterflags, $syncflagsaftercopy,
@@ -665,13 +666,17 @@ my(
         $maxlinelength,
 	$uidnext_default,
         $fixcolonbug,
+        $create_folder_old,
+        $maxmessagespersecond,
+        $maxbytespersecond,
+        $skipcrossduplicates, $debugcrossduplicates, 
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.569 2013/10/16 21:58:17 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.580 2013/12/25 02:52:36 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -719,19 +724,19 @@ sub EX_USAGE {
 # @ARGV will be eat by get_options()
 my @argv_copy = @ARGV;
 
-get_options();
+get_options(  ) ;
 
 # $SIG{ INT } = \&catch_continue ;
 local $SIG{ INT } = local $SIG{ QUIT } = local $SIG{ TERM } = \&catch_exit ;
 
 $timestart = time(  );
 $timestart_int = int( $timestart ) ;
-$timebefore = $timestart;
+$timebefore = $timestart ;
 
 my $timestart_str = localtime( $timestart ) ;
-print   "Transfer started at $timestart_str\n";
-
-$modules_version = defined($modules_version) ? $modules_version : 1;
+print "Transfer started at $timestart_str\n" ;
+print "PID is $PROCESS_ID\n" ;
+$modules_version = defined( $modules_version ) ? $modules_version : 1 ;
 
 
 $releasecheck = defined($releasecheck) ? $releasecheck : 1;
@@ -784,8 +789,12 @@ $checkmessageexists = 0 if ( not $abletosearch ) ;
 $showpasswords = defined( $showpasswords ) ? $showpasswords : 0 ;
 $fixslash2 = defined( $fixslash2 ) ? $fixslash2 : 1 ;
 $fixInboxINBOX = defined( $fixInboxINBOX ) ? $fixInboxINBOX : 1 ;
+$create_folder_old = defined( $create_folder_old ) ? $create_folder_old : 0 ;
 
 $delete2duplicates = 1 if ( $delete2 and ( ! defined( $delete2duplicates ) ) ) ;
+
+$maxmessagespersecond = defined( $maxmessagespersecond ) ? $maxmessagespersecond : 0 ;
+$maxbytespersecond    = defined( $maxbytespersecond )    ? $maxbytespersecond    : 0 ;
 
 print banner_imapsync(@argv_copy);
 
@@ -1084,7 +1093,8 @@ if ( scalar( @include ) ) {
 	foreach my $include ( @include ) {
 		my @included_folders = grep { /$include/x } @h1_folders_all ;
 		add_to_requested_folders( @included_folders ) ;
-		print "Including folders matching pattern '$include': @included_folders\n" ;
+                my $included_folders = join( " ", map( "[$_]", @included_folders ) ) ;
+		print "Including folders matching pattern '$include': " . $included_folders . "\n" ;
 	}
 }
 
@@ -1093,7 +1103,8 @@ if ( scalar( @exclude ) ) {
 		my @requested_folder = sort( keys( %requested_folder ) ) ;
 		my @excluded_folders = grep { /$exclude/x } @requested_folder ;
 		remove_from_requested_folders( @excluded_folders ) ;
-		print "Excluding folders matching pattern '$exclude': @excluded_folders\n" ;
+                my $excluded_folders = join( " ", map( "[$_]", @excluded_folders ) ) ;
+		print "Excluding folders matching pattern '$exclude': " . $excluded_folders . "\n" ;
 	}
 }
 
@@ -1108,9 +1119,7 @@ $checkselectable and do {
 	}
 } ;
 
-my @requested_folder = sort(keys(%requested_folder));
-
-@h1_folders_wanted = @requested_folder;
+@h1_folders_wanted = sort_requested_folders(  ) ;
 
 #my $h1_namespace = $imap1->namespace() ;
 #my $h2_namespace = $imap2->namespace() ;
@@ -1193,6 +1202,8 @@ my $begin_transfer_time = time ;
 
 my %uid_candidate_for_deletion ;
 my %uid_candidate_no_deletion ;
+
+my %h2_folders_of_md5 = (  ) ;
 
 FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 
@@ -1284,8 +1295,8 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 		    map ( { "$_->$cache_1_2_ref->{$_} " } keys %$cache_1_2_ref ), " ]\n";
 	}
 	
-	my %h1_hash = ();
-	my %h2_hash = ();
+	my %h1_hash = () ;
+	my %h2_hash = () ;
 	
 	my ( %h1_msgs, %h2_msgs ) ;
 	@h1_msgs{ @h1_msgs } = ();
@@ -1405,6 +1416,13 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 			push(@h2_msgs_duplicate, $m);
 		}
 	}
+        
+        # %h2_folders_of_md5
+        foreach my $md5 (  keys( %h2_hash ) ) {
+        	$h2_folders_of_md5{ $md5 }->{ $h2_fold } ++ ;
+        }
+
+        
         my $h2_msgs_duplicate_nb = scalar( @h2_msgs_duplicate ) ;
         $h2{ $h2_fold }{ 'duplicates_nb' } = $h2_msgs_duplicate_nb ;
         
@@ -1547,16 +1565,20 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
         $debug and print "Host2 uidnext: $h2_uidnext\n" ;
 	$h2_uidguess = $h2_uidnext ;
 	MESS: foreach my $m_id (@h1_hash_keys_sorted_by_uid) {
-        	last FOLDER if $imap1->IsUnconnected();
-                last FOLDER if $imap2->IsUnconnected();
+        	last FOLDER if $imap1->IsUnconnected() ;
+                last FOLDER if $imap2->IsUnconnected() ;
+
 		#print "h1_nb_msg_processed: $h1_nb_msg_processed\n" ;
 		my $h1_size  = $h1_hash{$m_id}{'s'};
 		my $h1_msg   = $h1_hash{$m_id}{'m'};
 		my $h1_idate = $h1_hash{$m_id}{'D'};
 
-		unless (exists($h2_hash{$m_id})) {
+		if ( ( not exists( $h2_hash{ $m_id } ) ) 
+                	and ( not exists( $h2_folders_of_md5{ $m_id } )
+                              or not $skipcrossduplicates ) ) {
 			# copy
 			my $h2_msg = copy_message( $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+                        $h2_folders_of_md5{ $m_id }->{ $h2_fold } ++ ;
                         if( $delete2 and exists( $h2_folders_from_1_several{ $h2_fold } ) and $h2_msg ) {
                         	print "msg $h2_fold/$h2_msg will cancel deletion [fresh copy] on host2\n" ;
 	                        $uid_candidate_no_deletion{ $h2_fold }{ $h2_msg }++ ;
@@ -1566,28 +1588,35 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 		}
 		else{
 		        # already on host2
-			my $h2_msg   = $h2_hash{$m_id}{'m'} ;
-			$debug and print "Host1 found msg $h1_fold/$h1_msg equals Host2 $h2_fold/$h2_msg\n" ;
+                        if ( exists( $h2_hash{ $m_id } ) ) {
+				my $h2_msg   = $h2_hash{$m_id}{'m'} ;
+				$debug and print "Host1 found msg $h1_fold/$h1_msg equals Host2 $h2_fold/$h2_msg\n" ;
+                                if ( $usecache ) {
+                                	$debugcache and print "touch $cache_dir/${h1_msg}_$h2_msg\n" ;
+                                	touch( "$cache_dir/${h1_msg}_$h2_msg" ) 
+                                        or croak( "Couldn't touch $cache_dir/${h1_msg}_$h2_msg" ) ;
+                                }
+                        }elsif( exists( $h2_folders_of_md5{ $m_id } ) ) {
+                        	my @folders_dup = keys( %{ $h2_folders_of_md5{ $m_id } } ) ;
+                        	( $debug or $debugcrossduplicates ) and print "Host1 found msg $h1_fold/$h1_msg is also in Host2 folders @folders_dup\n" ;
+                        }
 			$total_bytes_skipped += $h1_size ;
 			$nb_msg_skipped += 1 ;
                         $h1_nb_msg_processed +=1 ;
-                        
-                        if ( $usecache ) {
-				$debugcache and print "touch $cache_dir/${h1_msg}_$h2_msg\n" ;
-				touch( "$cache_dir/${h1_msg}_$h2_msg" ) 
-                                or croak( "Couldn't touch $cache_dir/${h1_msg}_$h2_msg" ) ;
-                        }
-		}
+                }
 		
-		#$debug and print "MESSAGE $m_id\n";
-		my $h2_msg  = $h2_hash{$m_id}{'m'};
+                if ( exists( $h2_hash{ $m_id } ) ) {
+			#$debug and print "MESSAGE $m_id\n";
+			my $h2_msg  = $h2_hash{$m_id}{'m'};
 
-                sync_flags_fir( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+                	sync_flags_fir( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+	    		# Good
+			my $h2_size = $h2_hash{$m_id}{'s'};
+			$debug and print
+			"Host1 size  msg $h1_fold/$h1_msg = $h1_size <> $h2_size = Host2 $h2_fold/$h2_msg\n";
+		}
                 last FOLDER if $imap2->IsUnconnected() ;
-	    	# Good
-		my $h2_size = $h2_hash{$m_id}{'s'};
-		$debug and print
-		"Host1 size  msg $h1_fold/$h1_msg = $h1_size <> $h2_size = Host2 $h2_fold/$h2_msg\n";
+                
 		if( $delete ) {
                         my $expunge_message = '' ;
                         $expunge_message = "and expunged" if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
@@ -1598,7 +1627,6 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 				$imap1->expunge() if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
 			}
 		}
-		
 	}
 	# END MESS: loop
         last FOLDER if $imap1->IsUnconnected();
@@ -1659,6 +1687,9 @@ $debug and print "Time: ", timenext(), " s\n";
 
 if ( $foldersizesatend ) {
 	timenext() ;
+	# Get all folders on host2 again since new were created
+	@h2_folders_all = sort $imap2->folders();
+	for ( @h2_folders_all ) { $h2_folders_all{ $_ } = 1 } ;
 	( $h1_nb_msg_end, $h1_bytes_end ) = foldersizes( "Host1", $imap1, $search1, @h1_folders_wanted ) ;
 	( $h2_nb_msg_end, $h2_bytes_end ) = foldersizes( "Host2", $imap2, $search2, @h2_folders_from_1_wanted ) ;
 }
@@ -1691,6 +1722,9 @@ sub size_filtered_flag {
 sub sync_flags_fir {
 	my ( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) = @_ ;
 
+	if ( not defined( $h1_msg ) ) { return(  ) } ;
+	if ( not defined( $h2_msg ) ) { return(  ) } ;
+        
 	my $h1_size = $h1_fir_ref->{$h1_msg}->{"RFC822.SIZE"} ;
 	return(  ) if size_filtered_flag( $h1_size ) ;
 
@@ -2273,8 +2307,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.569 $ ',
-		  '$Date: 2013/10/16 21:58:17 $ ',
+		  '$Revision: 1.580 $ ',
+		  '$Date: 2013/12/25 02:52:36 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -2408,10 +2442,10 @@ sub examine_folder {
 }
 
 
-sub create_folder {
+sub create_folder_old {
 	my( $imap, $h2_fold, $h1_fold ) = @_ ;
 	
-	print "Creating folder [$h2_fold] on host2\n";
+	print "Creating (old way) folder [$h2_fold] on host2\n";
         if ( ( 'INBOX' eq uc( $h2_fold) )
          and ( $imap->exists( $h2_fold ) ) ) {
                 print "Folder [$h2_fold] already exists\n" ;
@@ -2419,7 +2453,7 @@ sub create_folder {
         }
 	if ( ! $dry ){
 		if ( ! $imap->create( $h2_fold ) ) {
-			print( "Couldn't create folder [$h2_fold] from [$h1_fold]: ",
+			print( "Could not create folder [$h2_fold] from [$h1_fold]: ",
 			$imap->LastError(  ), "\n" );
 			$nb_errors++;
                         # success if folder exists ("already exists" error)
@@ -2428,12 +2462,58 @@ sub create_folder {
 			return( 0 );
 		}else{
 			#create succeeded
+                        print "Created  (old way) folder [$h2_fold] on host2\n";
 			return( 1 );
 		}
 	}else{
 		# dry mode, no folder so many imap will fail, assuming failure
+                print "Created  (old way) folder [$h2_fold] on host2 $dry_message\n";
 		return( 0 );
 	}
+}
+
+
+sub create_folder {
+        my( $imap2, $h2_fold, $h1_fold ) = @_ ;
+        my(@parts, $parent);
+
+	if ( $create_folder_old ) {
+        	return( create_folder_old( $imap2, $h2_fold, $h1_fold ) ) ;
+	}
+        print "Creating folder [$h2_fold] on host2\n";
+        if ( ( 'INBOX' eq uc( $h2_fold) )
+         and ( $imap2->exists( $h2_fold ) ) ) {
+                print "Folder [$h2_fold] already exists\n" ;
+                return( 1 ) ;
+        }
+
+        @parts = split($h2_sep, $h2_fold );
+        pop( @parts );
+        $parent = join($h2_sep, @parts );
+        $parent =~ s/^\s+|\s+$//g ;
+        if(($parent ne "") and ! $imap2->exists( $parent )) {
+                create_folder( $imap2 , $parent , $h1_fold);
+        }
+
+        if ( ! $dry ){
+                if ( ! $imap2->create( $h2_fold ) ) {
+                        print( "Could not create folder [$h2_fold] from [$h1_fold]: ",
+                        $imap2->LastError(  ), "\n" );
+                        $nb_errors++;
+                        # success if folder exists ("already exists" error)
+                        return( 1 ) if $imap2->exists( $h2_fold ) ;
+                        # failure since create failed
+                        return( 0 );
+                }else{
+                        #create succeeded
+                        print "Created  folder [$h2_fold] on host2\n";
+                        return( 1 );
+                }
+        }else{
+                # dry mode, no folder so many imap will fail, assuming failure
+                print "Created  folder [$h2_fold] on host2 $dry_message\n";
+                return( 0 );
+        }
 }
 
 
@@ -2449,11 +2529,45 @@ sub tests_folder_routines {
 	ok(  @f = add_to_requested_folders('folder_bar', 'folder_toto'), "add result: @f"        );
 	ok(  is_requested_folder('folder_bar'), 'is_requested_folder 4'                          );
 	ok(  is_requested_folder('folder_toto'), 'is_requested_folder 5'                         );
-	ok(  remove_from_requested_folders('folder_toto'), 'remove_from_requested_folders'       );
+	ok(  remove_from_requested_folders('folder_toto'), 'remove_from_requested_folders: '       );
 	ok( !is_requested_folder('folder_toto'), 'is_requested_folder 6'                         );
+	ok( !remove_from_requested_folders('folder_bar'), "remove_from_requested_folders: empty" ) ;
+
+        ok( 0 == compare_lists( [ sort_requested_folders(  ) ], [] ), 'sort_requested_folders: all empty' ) ;
+	ok(  add_to_requested_folders('M_55'), 'add_to_requested_folders M_55'       );
+        ok( 0 == compare_lists( [ sort_requested_folders(  ) ], [ 'M_55' ] ), 'sort_requested_folders: middle' ) ;
+	@folderfirst = ( 'Z_11' ) ;
+        ok( 0 == compare_lists( [ sort_requested_folders(  ) ], [ 'Z_11', 'M_55' ] ), 'sort_requested_folders: first+middle' ) ;
+	@folderlast = ( 'A_99' ) ;
+        ok( 0 == compare_lists( [ sort_requested_folders(  ) ], [ 'Z_11', 'M_55', 'A_99' ] ), 'sort_requested_folders: first+middle+last 1' ) ;
+
+	ok(  add_to_requested_folders('M_55', 'M_44',), 'add_to_requested_folders M_55 M_44'       );
+        ok( 0 == compare_lists( [ sort_requested_folders(  ) ], [ 'Z_11', 'M_44', 'M_55', 'A_99' ] ), 'sort_requested_folders: first+middle+last 2' ) ;
+	@folderfirst = ( 'Z_22', 'Z_11' ) ;
+	@folderlast  = ( 'A_99', 'A_88' ) ;
+        ok( 0 == compare_lists( [ sort_requested_folders(  ) ], [  'Z_22', 'Z_11', 'M_44', 'M_55', 'A_99', 'A_88' ] ), 'sort_requested_folders: first+middle+last 3' ) ;
+        
 	return(  ) ;
 }
 
+
+sub sort_requested_folders {
+	my @requested_folders_sorted = () ;
+
+	foreach my $folder ( @folderfirst ) {
+        	remove_from_requested_folders( $folder ) ;
+        }
+
+	foreach my $folder ( @folderlast ) {
+        	remove_from_requested_folders( $folder ) ;
+        }
+
+	my @middle = sort( keys( %requested_folder ) ) ;
+
+        @requested_folders_sorted = ( @folderfirst, @middle, @folderlast ) ;
+
+	return( @requested_folders_sorted ) ;
+}
 
 sub is_requested_folder {
 	my ( $folder ) = @_;
@@ -2474,8 +2588,8 @@ sub add_to_requested_folders {
 sub remove_from_requested_folders {
 	my @wanted_folders = @_ ;
 	
-	foreach my $folder (@wanted_folders) {
-	 	delete $requested_folder{$folder} ;
+	foreach my $folder ( @wanted_folders ) {
+	 	delete $requested_folder{ $folder } ;
 	}
 	return( keys( %requested_folder ) ) ;
 }
@@ -3376,6 +3490,11 @@ sub copy_message {
 	my ( $string, $string_len ) ;
         ( $string, $string_len ) = message_for_host2( $h1_msg, $h1_fold, $h1_size, $h1_flags, $h1_idate, $h1_fir_ref ) ;
         
+        if ( not defined( $string ) and not defined( $string_len ) ) {
+		print "- msg $h1_fold/$h1_msg skipped. Could not be fetched\n" ;
+                return(  ) ;
+        }
+        
         # Lines two long => do no copy
         if ( ( defined ( $maxlinelength ) ) 
          and ( max_line_length( $string ) > $maxlinelength ) ) {
@@ -3404,6 +3523,9 @@ sub copy_message {
         	sync_flags_after_copy( $h1_fold, $h1_msg, $h1_flags, $h2_fold, $new_id, $permanentflags2 ) ;
         }
 
+	if ( $debugmemory ) { 
+        	printf ("Memory consumption: %.1f MiB\n", memory_consumption(  ) / 1024 / 1024) ;
+        }
         
         return( $new_id ) ;
 }
@@ -3600,7 +3722,7 @@ sub append_message_on_host2 {
                         
 			printf( "msg %s/%-19s copied to %s/%-10s %.2f msgs/s  %s/s  %s\n", 
                         $h1_fold, "$h1_msg {$string_len}", $h2_fold, $new_id, $nb_msg_transferred/$time_spent, $rate, $eta );
-                        
+                        sleep_if_needed( $time_spent, $total_bytes_transferred, $nb_msg_transferred ) ;
                         if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$}x ) {
 				$debugcache and print "touch $cache_dir/${h1_msg}_$new_id\n" ;
 				touch( "$cache_dir/${h1_msg}_$new_id" ) 
@@ -3620,6 +3742,59 @@ sub append_message_on_host2 {
 
 	return(  ) ;
 }
+
+sub sleep_if_needed {
+	my( $time_spent, $total_bytes_transferred, $nb_msg_transferred ) = @_ ;
+        my $sleep_max_messages = sleep_max_messages( $nb_msg_transferred, $time_spent, $maxmessagespersecond ) ;
+        my $sleep_max_bytes = sleep_max_bytes( $total_bytes_transferred, $time_spent, $maxbytespersecond  ) ;
+        my $sleep_max = max( $sleep_max_messages, $sleep_max_bytes ) ;
+        if ( $sleep_max > 0 ) {
+        	printf( "sleeping %.2f s\n", $sleep_max ) ;
+                sleep( $sleep_max ) ;
+        }
+}
+
+sub sleep_max_messages {
+	# how long we have to sleep to go under max_messages_per_second
+        my( $nb_msg_transferred, $time_spent, $maxmessagespersecond ) = @_ ;
+        if ( ( not defined( $maxmessagespersecond ) ) or $maxmessagespersecond <= 0 ) { return( 0 ) } ;
+        my $sleep = ( $nb_msg_transferred / $maxmessagespersecond ) - $time_spent ;
+        # the sleep must be positive
+        return( max( 0, $sleep ) ) ;
+}
+
+
+sub tests_sleep_max_messages {
+	ok( 0 == sleep_max_messages( 4, 2, undef ),  'sleep_max_messages: maxmessagespersecond = undef') ;
+	ok( 0 == sleep_max_messages( 4, 2, 0 ),  'sleep_max_messages: maxmessagespersecond = 0') ;
+	ok( 0 == sleep_max_messages( 4, 2, -1 ), 'sleep_max_messages: maxmessagespersecond = -1') ;
+	ok( 0 == sleep_max_messages( 4, 2, 2 ),  'sleep_max_messages: maxmessagespersecond = 2 max reached') ;
+	ok( 2 == sleep_max_messages( 8, 2, 2 ),  'sleep_max_messages: maxmessagespersecond = 2 max over') ;
+	ok( 0 == sleep_max_messages( 2, 2, 2 ),  'sleep_max_messages: maxmessagespersecond = 2 max not reached') ;
+	return(  ) ;
+}
+
+
+sub sleep_max_bytes {
+	# how long we have to sleep to go under max_bytes_per_second
+        my( $total_bytes_transferred, $time_spent, $maxbytespersecond ) = @_ ;
+        if ( ( not defined( $maxbytespersecond ) ) or $maxbytespersecond <= 0 ) { return( 0 ) } ;
+        my $sleep = ( $total_bytes_transferred / $maxbytespersecond ) - $time_spent ;
+        # the sleep must be positive
+        return( max( 0, $sleep ) ) ;
+}
+
+
+sub tests_sleep_max_bytes {
+	ok( 0 == sleep_max_bytes( 4000, 2, undef ),  'sleep_max_bytes: maxbytespersecond = undef') ;
+	ok( 0 == sleep_max_bytes( 4000, 2, 0 ),  'sleep_max_bytes: maxbytespersecond = 0') ;
+	ok( 0 == sleep_max_bytes( 4000, 2, -1 ), 'sleep_max_bytes: maxbytespersecond = -1') ;
+	ok( 0 == sleep_max_bytes( 4000, 2, 2000 ),  'sleep_max_bytes: maxbytespersecond = 2 max reached') ;
+	ok( 2 == sleep_max_bytes( 8000, 2, 2000 ),  'sleep_max_bytes: maxbytespersecond = 2 max over') ;
+	ok( 0 == sleep_max_bytes( 2000, 2, 2000 ),  'sleep_max_bytes: maxbytespersecond = 2 max not reached') ;
+	return(  ) ;
+}
+
 
 
 
@@ -4063,10 +4238,28 @@ sub tests_clean_cache_2 {
 
 sub tests_mkpath {
 
-        my $long_path = "123456789/" x 30 ;
-	ok( (-d "W/tmp/tests/long/$long_path" or  mkpath( "W/tmp/tests/long/$long_path" )), 'tests_mkpath: mkpath > 300 char' ) ;
-	ok( (-d "W/tmp/tests/long/$long_path" and rmtree( "W/tmp/tests/long/" )),           'tests_mkpath: rmtree > 300 char' ) ;
+        my $long_path_unix = "123456789/" x 30 ;
+
+
+	# \\?\C:\TEMP
+        my $long_path_2_prefix =  $tmpdir || '\\\?\\E:\\TEMP\\'  ; 
+	print "long_path_2_prefix: $long_path_2_prefix\n" ;
+	
+        my $long_path_2 = $long_path_2_prefix . "\\" . "123456789\\" x 30 . 'END'; 
+
+	( 'MSWin32' ne $OSNAME ) and ok( (-d "W/tmp/tests/long/$long_path_unix" or  mkpath( "W/tmp/tests/long/$long_path_unix" )), 'tests_mkpath: mkpath > 300 char' ) ;
+	( 'MSWin32' ne $OSNAME ) and ok( (-d "W/tmp/tests/long/$long_path_unix" and rmtree( "W/tmp/tests/long/" )),           'tests_mkpath: rmtree > 300 char' ) ;
         ok( 1 == 1, 'tests_mkpath: 1 == 1' ) ;
+
+        ( 'MSWin32' eq $OSNAME ) and print "$long_path_2\n" ;
+	( 'MSWin32' eq $OSNAME ) and ok( ( -d $long_path_2_prefix ), 'tests_mkpath: -d \ small path' ) ;
+	( 'MSWin32' eq $OSNAME ) and ok( ( -d $long_path_2_prefix and rmtree( $long_path_2_prefix ) ), 'tests_mkpath: rmtree \ > 300 char' ) ;
+
+	( 'MSWin32' eq $OSNAME ) and ok( ( -d $long_path_2_prefix or mkpath( "\\\\\?\\E:\\\\TEMP" ) ), 'tests_mkpath: -d \ small path 1' ) ;
+	( 'MSWin32' eq $OSNAME ) and ok( ( -d $long_path_2 ), 'tests_mkpath: -d \ > 300 char' ) ;
+	( 'MSWin32' eq $OSNAME ) and ok( ( -d $long_path_2_prefix or mkpath( $long_path_2_prefix ) ), 'tests_mkpath: -d \ small path' ) ;
+	( 'MSWin32' eq $OSNAME ) and ok( ( -d $long_path_2 or  mkpath( $long_path_2 ) ), 'tests_mkpath: mkpath \ > 300 char' ) ;
+	( 'MSWin32' eq $OSNAME ) and ok( ( -d $long_path_2_prefix and rmtree( $long_path_2_prefix ) ), 'tests_mkpath: rmtree \ > 300 char' ) ;
 	return(  ) ;
 }
 
@@ -4752,7 +4945,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.569 2013/10/16 21:58:17 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.580 2013/12/25 02:52:36 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {
@@ -5548,6 +5741,12 @@ Several options are mandatory.
 --folder      <string> : and this one, etc.
 --folderrec   <string> : Sync this folder recursively.
 --folderrec   <string> : and this one, etc.
+
+--folderfirst <string> : Sync this folder first. --folderfirst "Work"
+--folderfirst <string> : then this one, etc.
+--folderlast  <string> : Sync this folder last. --folderlast "[Gmail]/All Mail"
+--folderlast  <string> : then this one, etc.
+
 --include     <regex>  : Sync folders matching this regular expression
                          Blancs like in "foo bar" have to be written "foo\\ bar"
 --include     <regex>  : or this one, etc.
@@ -5605,9 +5804,9 @@ Several options are mandatory.
                          For safety, first try it like this (it is safe):
 			 --delete2folders --dry --justfolders --nofoldersizes
 --delete2foldersonly   <regex>: Deleted only folders matching regex.
-                         Example: --delete2foldersonly "/Junk$/"
+                         Example: --delete2foldersonly "/^Junk\$|^INBOX.Junk\$/"
 --delete2foldersbutnot <regex>: Do not delete folders matching regex.
-                         Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
+                         Example: --delete2foldersbutnot "/Tasks\$|Contacts\$|Foo\$/"
 --noexpunge            : Do not expunge messages on host1.
                          Expunge really deletes messages marked deleted.
                          Expunge is made at the beginning, on host1 only. 
@@ -5757,7 +5956,8 @@ sub get_options {
                                    "debugimap!"    => \$debugimap,
                                    "debugimap1!"   => \$debugimap1,
                                    "debugimap2!"   => \$debugimap2,
-                                   "debugdev!"   => \$debugdev,
+                                   "debugdev!"     => \$debugdev,
+                                   "debugmemory!" => \$debugmemory,
                                    "host1=s"     => \$host1,
                                    "host2=s"     => \$host2,
                                    "port1=i"     => \$port1,
@@ -5779,6 +5979,8 @@ sub get_options {
 				   "folderrec=s" => \@folderrec,
 				   "include=s"   => \@include,
 				   "exclude=s"   => \@exclude,
+                                   "folderfirst=s" => \@folderfirst,
+                                   "folderlast=s" => \@folderlast,
 				   "prefix1=s"   => \$prefix1,
 				   "prefix2=s"   => \$prefix2,
 				   "fixslash2!"  => \$fixslash2,
@@ -5874,6 +6076,11 @@ sub get_options {
                                    "showpasswords!" => \$showpasswords,
                                    "maxlinelength=i" => \$maxlinelength, 
                                    "fixcolonbug!" => \$fixcolonbug,
+                                   "create_folder_old!" => \$create_folder_old,
+                                   "maxmessagespersecond=f" => \$maxmessagespersecond,
+                                   "maxbytespersecond=i" => \$maxbytespersecond,
+                                   "skipcrossduplicates!" => \$skipcrossduplicates,
+                                   "debugcrossduplicates!" => \$debugcrossduplicates,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -5908,9 +6115,9 @@ sub tests_debug {
 	
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
-                tests_filter_forbidden_characters(  ) ;
-                tests_cache_folder(  ) ;
-                tests_tmpdir_has_colon_bug(  ) ;
+                #tests_mkpath(  ) ;
+                tests_sleep_max_messages(  ) ;
+                tests_sleep_max_bytes(  ) ;
 	}
         return(  ) ;
 }
@@ -5919,7 +6126,7 @@ sub tests {
 	
       SKIP: {
 		skip "No test in normal run" if (not $tests);
-		tests_folder_routines();
+		tests_folder_routines(  ) ;
 		tests_compare_lists();
 		tests_regexmess();
 		tests_flags_regex();
@@ -5963,6 +6170,8 @@ sub tests {
                 tests_subject(  ) ;
 		tests_msgs_from_maxmin(  ) ;
                 tests_tmpdir_has_colon_bug(  ) ;
+                tests_sleep_max_messages(  ) ;
+                tests_sleep_max_bytes(  ) ;
 	}
         return(  ) ;
 }

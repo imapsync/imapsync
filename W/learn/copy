@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use English;
+use Mail::IMAPClient;
+
+my $rcs = '$Id: append,v 1.1 2011/07/14 16:49:02 gilles Exp gilles $ ';
+
+$ARGV[3] or die "usage: $0 host user password folder uid\n";
+
+my $host     = $ARGV[0];
+my $user     = $ARGV[1];
+my $password = $ARGV[2];
+my $folder_1 = $ARGV[3];
+my $folder_2 = $ARGV[4];
+
+my $imap = Mail::IMAPClient->new(  );
+$imap->Debug( 1 );
+$imap->Server( $host );
+$imap->connect(  ) or die;
+$imap->User( $user );
+$imap->Password( $password ) ;
+$imap->login(  ) or die;
+$imap->Uid( 1 ) ;
+$imap->Peek( 1 ) ;
+$imap->Clear( 0 ) ;
+
+#print map {"$_\n"} $imap->folders(  ) ;
+
+$imap->select( $folder_1 ) or die ;
+my @msgs_1 = $imap->messages ;
+print "LIST_1: @msgs_1\n" ;
+my $copy = $imap->copy( $folder_2, $msgs_1[0] ) ;
+print "copy: $copy\n" ;
+$imap->select( $folder_2 ) or die ;
+my @msgs_2 = $imap->messages ;
+print "LIST_2: @msgs_2\n" ;
+
+$imap->close(  ) ;
+
