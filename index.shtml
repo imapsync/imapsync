@@ -5,7 +5,7 @@
 <title>Official imapsync migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2013-12-25T12:16:53+0100"/>
+<meta name="date" content="2014-02-13T03:57:24+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -81,33 +81,36 @@ for <b>bidirectionnal (2 ways) synchronizations</b>.
 <p>Alternatives to imapsync are listed in the <a href="#similar"><b>Similar softwares</b></a> section.
 </p>
 
-<p>Imapsync used to be free, open and gratis, before november 2010. 
+<p>Imapsync used to be free, open and gratis, that was before november 2010. 
 Now imapsync is free, open and not gratis from the homepage. 
-It is the best decision I've done about imapsync to continue to maintain it.
+Imapsync is still under the <a href="./NOLIMIT">NOLIMIT</a> license, 
+claiming no limit to do anything with this work and this license,
+so one of the most open license of the universe.
+
+It is the best decisions I've made about imapsync to continue to maintain it.
 See detailed explanation and motivation here when 
 <a href="http://www.linux-france.org/prj/imapsync_list/msg00459.html">I looked for a business model</a>.
 
 "Download and donate if happy" doesn't work well.
-"Pay for download and I pay back if unhappy" works well.
+"Pay for download and I pay back if unhappy" works well, a 100 times better.
 </p>
 
-<h2><a id="NUMBERS"></a>Facts and figures for 2011-2013</h2>
+<h2><a id="NUMBERS"></a>Facts and figures for 2011-2014</h2>
 
 <ul>
-<li><b>4000 to 5000 </b>users per month (45000 users a year)</li> 
+<li><b>4000 to 5000 </b>users per month (48000 users a year).</li> 
+<li>6 to 25 millions mailboxes transfers per month.</li>
+<li><b>158 millions</b> transfers for 2013, that is five whole mailboxes synced per second.</li>
 
-<li><b>6 to 25 millions mailboxes transfers per month</b>, 
-total is 93 millions for 2011, 91 millions for 2012, should be <b>140 millions for end 2013</b></li>
-
-<li><b>Operating systems</b> run by imapsync users:
+<li><b>Operating systems</b> run by imapsync users (in 2013):
 <ul>
-<li><b>Linux: 72%</b></li>
-<li><b>Win32: 13%</b></li>
+<li><b>Linux: 70%</b></li>
+<li><b>Win32: 14%</b></li>
 <li><b>Darwin: 6%</b></li>
-<li>FreeBSD: 8%</li>
-<li>Solaris: 0.2%</li>
+<li>FreeBSD: 10%</li>
+<li>Solaris: 0.15%</li>
 <li>OpenBSD: 0.02%</li>
-<li>Other: 0.6%</li>
+<li>Other: 0.46%</li>
 </ul>
 </li>
 <li><b>Highest use rate</b>: about <b>21 millions</b> of IMAP mailbox transfers (in a single month)</li>
@@ -115,8 +118,8 @@ total is 93 millions for 2011, 91 millions for 2012, should be <b>140 millions f
 
 <p>
 Where all those numbers come from?
-To know wether a newer imapsync exists or not imapsync does a http GET to <a href="http://imapsync.lamiral.info/VERSION">VERSION</a>.
-Via the <b>User-agent</b> parameter it also send:</p>
+To know wether a newer imapsync exists or not imapsync does a http GET to the file <a href="http://imapsync.lamiral.info/VERSION">VERSION</a>.
+Via the <b>User-agent</b> parameter it also sends:</p>
  
 <ul>
  <li>imapsync release</li>
@@ -145,7 +148,7 @@ Via the <b>User-agent</b> parameter it also send:</p>
 
 <!-- 
 <ul>
-<li><b>1.580</b></li>
+<li><b>1.584</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -166,38 +169,33 @@ Via the <b>User-agent</b> parameter it also send:</p>
  -->
 
 <ul>
-<li><b>1.580</b></li>
-<li><b>Enhancement</b>: Added <b>--maxmessagespersecond</b> to limit messages tranfer rate and fix <b>office365 throttle limitation</b> (use --maxmessagespersecond 4).</li>
-<li><b>Enhancement</b>: Added --maxbytespersecond to limit byte transfer rate.</li>
-<li><b>Enhancement</b>: Added --folderfirst string: Sync this folder first. --folderfirst "Work" --folderfirst "Friends"</li>
-<li><b>Enhancement</b>: Added --folderlast  string: Sync this folder last. --folderlast "[Gmail]/All Mail" etc.</li>
-<li><b>Enhancement</b>: Added <b>--skipcrossduplicates</b> to avoid copying messages that are already copied in another folder, good <b>from Gmail to X</b>.</li>
-<li><b>Enhancement</b>: Added --debugcrossduplicates to print which messages (UIDs) are skipped with --skipcrossduplicates (and in what other folders they are).</li>
-<li><b>Enhancement</b>: Added --debugmemory option that prints memory consumption after each message is copied.</li>
-<li><b>Bug fix</b>: Create nested folders in the sense of their path, parent first. Thanks to Erik Torsner.</li>
-<li><b>Bug fix</b>: Final statistics were avoided for newly created folders.</li>
-<li><b>Bug fix</b>: Do not try to append message if the fetch failed.</li>
-</ul>
-
-<ul>
-<li><b>1.569</b> Win32 --tmpdir "C:" bugfix</li>
-<li><b>Bug fix</b>: On Win32 trailing blanc in cache dir name raized an error. Blanc is now moved to underscore _</li>
-<li><b>Bug fix</b>: Fixed bug on Windows with for example --tmpdir "E:\TEMP". The colon was badly converted to _, ending with --tmpdir "E_\TEMP".
-This fix also automatically moves the old cache to the new one if the new does not exist yet.</li>
-</ul>
-
-<ul>
-<li><b>1.567</b> imapsync.exe crash fix</li>
-<li><b>Enhancement</b>: Added --authmech EXTERNAL.</li>
-<li><b>Bug fix</b>: Fixed a warning when RFC822.SIZE is null or undef.</li>
-<li><b>Bug fix</b>: Fixed imapsync.exe crash with no error message when it exits on a error. Back to Perl 5.16</li>
+<li><b>1.584</b></li>
+<li><b>Enhancement</b>: Added --minmaxlinelength to select messages with long lines only. 
+                        It helps to diagnostic Echange error on messages with lines longer than 9000 characters</li>
+<li><b>Enhancement</b>: Added --debugmaxlinelength</li>
+<li><b>Bug fix</b>: --ssl1 --tls2 was buggy because of default SSL_VERIFY_PEER. 
+                    "Can not go to tls encryption on [localhost]:Unable to start TLS: Cannot determine peer hostname for verification..."</li>
+<li><b>Bug fix</b>: Check if going to tls is ok, exit otherwise with explicit error message.
+Thanks to Dennis Schridde for reporting this ugly bug that deserves a CVE.</li>
+<li><b>Debug</b>: Print separator given by NAMESPACE even when --sep1 oe --sep2 is used.</li>
+<li><b>Debug</b>: Prints prefix given by NAMESPACE even when --prefix1 or --prefix2 is used. 
+It is a preparation for advising not to use --prefix unless suggested.</li>
 </ul>
 
 
-<p><b>Good changed</b> made before, listed because <b>they can help</b>:
+<p><b>Good changes</b> made before, listed because <b>they can help</b>:
 </p>
 
 <ul>
+<li><b>Enhancement</b>: Added <b>--skipcrossduplicates</b> to avoid copying messages that are already copied in another folder, good <b>from Gmail to X</b>.</li>
+<li><b>Enhancement</b>: Added --debugcrossduplicates to print which messages (UIDs) are skipped with --skipcrossduplicates (and in what other folders they are).</li>
+<li><b>Enhancement</b>: Added --folderfirst string: sync this folder first. --folderfirst "Work" --folderfirst "Friends"</li>
+<li><b>Enhancement</b>: Added --folderlast  string: sync this folder last. --folderlast "[Gmail]/All Mail" etc.</li>
+<li><b>Enhancement</b>: Added <b>--maxmessagespersecond</b> to limit messages tranfer rate and fix <b>Office365 throttle limitation</b> (use --maxmessagespersecond 4).</li>
+<li><b>Enhancement</b>: Added --maxbytespersecond to limit byte transfer rate.</li>
+<li><b>Enhancement</b>: Added --debugmemory option that prints memory consumption after each message is copied.</li>
+
+<li><b>Enhancement</b>: Added --authmech EXTERNAL.</li>
 <li><b>Enhancement</b>: Adapted behavior for allowing --maxdate --mindate with --noabletosearch. 
 Use internat date instead of Date: header.</li>
 
@@ -299,13 +297,6 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 </ul>
 
 
-<!-- 
-<p>The next imapsync release should see:</p>
-<ul>
-<li>nothing planned</li>
-</ul>
- -->
- 
 <h2><a id="DOC_BASIC"></a>Simple transfer on Windows</h2>
 
 <p>
@@ -345,6 +336,31 @@ example.
     </p>
 
 
+
+
+<!-- 
+<h2><a id="buy_all"></a>Buy imapsync</h2>
+
+<p>Buy complete and <b>latest imapsync</b> for <b>50 EUR</b> and optionnaly full professional support for <b>100 EUR</b>
+</p>
+
+<p>
+For 50 EUR you will get:
+<ul>
+<li>Standalone <b>imapsync.exe</b> for win32, no installation needed.</li>
+<li>imapsync Perl <b>source code</b>.</li>
+<li><b>Lifetime</b> of imapsync <b>updates</b> without extra payment.</li>
+<li><b>30 days money-back guarantee!</b>, any reason qualifies.</li>
+</ul>
+</p>
+
+<p>
+For 100 EUR more you will get imapsync <b>full support</b> 
+done by the imapsync designer and developper himself. 
+You will be able to expose your issues by email 
+or phone and then we'll work together until complete success.
+</p>
+ -->
 
 <h2><a id="buy_source"></a>Buy imapsync source code</h2>
 
@@ -391,7 +407,7 @@ name="submit" alt="PayPal - The safer, easier way to pay online!"/>
 </p>
 </form>
 
-<p>You will receive a <b>download link just after</b> the payment from gilles.lamiral@laposte.net (can fall in Spam folder sometimes).<br/>
+<p>You will receive a <b>download link just after</b> the payment from <b>gilles.lamiral@laposte.net</b> (can fall in Spam folder sometimes).<br/>
 You will also receive a gpg signed <b>invoice</b> within <b>a few days by email</b>.<br/>
 Please give a <b>delivery postal address where the invoice will be needed</b> 
 (your company for example), since reedit is not easy (and forbidden by law).
@@ -440,7 +456,7 @@ name="submit" alt="PayPal - The safer, easier way to pay online!"/>
 </p>
 </form>
 
-<p>You will receive a download link <b>just after</b> the payment, from gilles.lamiral@laposte.net (can fall in Spam folder sometimes).<br/>
+<p>You will receive a download link <b>just after</b> the payment, from <b>gilles.lamiral@laposte.net</b> (can fall in Spam folder sometimes).<br/>
 You will also receive a gpg signed <b>invoice</b> within <b>a few days by email</b>.<br/>
 Please give a <b>delivery postal address where the invoice will be needed</b> 
 (your company for example), since reedit is not easy (and forbidden by law).
@@ -449,7 +465,7 @@ Please give a <b>delivery postal address where the invoice will be needed</b>
 
 <!-- 
 <p>
-thanks to Strawberry Perl 5.12 and Par::Packer module.<br/>
+thanks to Strawberry Perl 5.16 and Par::Packer module.<br/>
 The build system for imapsync.exe is XP Pro SP2 on a Intel Celeron 400 MHz 256 Mo RAM. </p>
 -->
 
@@ -496,7 +512,7 @@ It's 2 letters followed by 11 digits, for example mine is FR74429303332.
 </p>
 </form>
 
-<p>You will receive instructions to contact me <b>just after</b> the payment, from gilles.lamiral@laposte.net (can fall in Spam folder sometimes).<br/>
+<p>You will receive instructions to contact me <b>just after</b> the payment, from <b>gilles.lamiral@laposte.net</b> (can fall in Spam folder sometimes).<br/>
 You will also receive a gpg signed <b>invoice</b> within <b>a few days by email</b>.<br/>
 Please give a <b>delivery postal address where the invoice will be needed</b> 
 (your company for example), since reedit is not easy (and forbidden by law).
@@ -622,7 +638,7 @@ I like it.
 	(<a href="http://www.communigate.com/">http://www.communigate.com/</a>) </li>
 	<li>Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
    (<a href="http://www.courier-mta.org/imap/">http://www.courier-mta.org/imap/</a>)   </li>
-	<li>Critical Path (7.0.020)    (<a href=""></a>)   </li>
+	<li>Critical Path (7.0.020)       </li>
    <li>Cyrus IMAP 1.5, 1.6, 
    2.1, 2.1.15, 2.1.16, 2.1.18 
    2.2.1, 2.2.2-BETA, 2.2.3, 2.2.6, 2.2.10, 2.2.12, 2.2.13,
@@ -635,7 +651,7 @@ I like it.
    <li>DBOX 2.41 System [host1] (<a href="http://www.dbox.handshake.de/">http://www.dbox.handshake.de/</a>).</li>
 	<li>Deerfield VisNetic MailServer 5.8.6 [host1]    
 	(<a href="http://www.deerfield.net/products/visnetic-mailserver/">http://www.deerfield.net/products/visnetic-mailserver/</a>)   </li>
-	<li>dkimap4 [host1]    (<a href=""></a>)   </li>
+	<li>dkimap4 [host1]       </li>
 	<li>Domino (Notes) 4.61[host1], 6.5, 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 7.0.1[host1], 8.0.1[host1]    
 	(<a href="http://www-01.ibm.com/software/lotus/products/notes/">http://www-01.ibm.com/software/lotus/products/notes/</a>)   </li>
 	<li><b>Dovecot</b> 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
@@ -684,7 +700,9 @@ I like it.
 	<li>Samsung Contact IMAP server 8.5.0       </li>
 	<li>Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6 (<a href="http://www.scalix.com/">http://www.scalix.com/</a>)   </li>
         <li>Sendmail Mail Store IMAP4rev1 (5.5.6/mstore-5-5-build-1874 [host1].</li>
-	<li>SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], SmarterMail Professional 10.2 [host1].    (<a href="http://www.smartertools.com/">http://www.smartertools.com/</a>)   </li>
+	<li>SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], SmarterMail Professional 10.2 [host1],
+	    Smarter Mail 11.7 [host1][host2]. 
+	   (<a href="http://www.smartertools.com/">http://www.smartertools.com/</a>)   </li>
 	<li>Softalk Workgroup Mail 7.6.4 [host1] (<a href="http://www.softalkltd.com/products/download_wm_v7.asp">http://www.softalkltd.com/products/download_wm_v7.asp</a>).</li>
 	<li>SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)    (<a href="http://www.oracle.com/">http://www.oracle.com/</a>)   </li>
 	<li>Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05,  6.3    (<a href="http://www.oracle.com/">http://www.oracle.com/</a>)   </li>
@@ -720,6 +738,8 @@ I like it.
 <li> wonko_imapsync:     <a href="http://wonko.com/article/554">http://wonko.com/article/554</a></li>
 <li> pop2imap:           <a href="http://www.linux-france.org/prj/pop2imap/">http://www.linux-france.org/prj/pop2imap/</a></li>
 <li> exchange-away:      <a href="http://exchange-away.sourceforge.net/">http://exchange-away.sourceforge.net/</a></li>
+<li> SyncBackPro <a href="http://www.2brightsparks.com/syncback/sbpro.html">http://www.2brightsparks.com/syncback/sbpro.html</a></li>
+
 </ul>
 
 <h2>Online IMAP migration services</h2>
@@ -766,7 +786,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.189 2013/12/25 11:35:38 gilles Exp gilles $)
+($Id: index.shtml,v 1.195 2014/02/13 03:17:59 gilles Exp gilles $)
 </p>
 
 </body>

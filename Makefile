@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.139 2013/12/25 11:36:53 gilles Exp gilles $	
+# $Id: Makefile,v 1.141 2014/02/13 03:18:50 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -8,6 +8,10 @@ help: usage
 usage:
 	@echo "      imapsync $(VERSION), You can do :"
 	@echo "make install # as root"
+	@echo "make install_dependencies # it installs needed Perl modules from CPAN"
+	@echo ""
+	@echo "All other goals are for the upstream developper"
+
 	@echo "make testf   # run tests"
 	@echo "make testv   # run tests verbosely"
 	@echo "make test_quick # few tests verbosely"
@@ -91,6 +95,9 @@ install: testp imapsync.1
 	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
 	install imapsync.1 $(DESTDIR)$(PREFIX)/share/man/man1/imapsync.1
 	chmod 644 $(DESTDIR)$(PREFIX)/share/man/man1/imapsync.1
+
+install_dependencies:
+	sh examples/install_modules_linux.sh
 
 .PHONY: cidone ci
 
@@ -345,6 +352,7 @@ upload_lfo:
 
 
 .valid.index.shtml: index.shtml
+	tidy -q  index.shtml> /dev/null
 	validate --verbose index.shtml
 	touch .valid.index.shtml
 

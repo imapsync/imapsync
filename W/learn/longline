@@ -1,0 +1,10 @@
+#!/bin/sh
+
+
+# Generate messages with line lenght of 10000 11000 ... up to 99000 characters
+for M in `count 10 99`; do 
+	echo $M
+	{ echo Hello Guys; echo ; perl -e "print 'L' x ${M}000" ; echo; echo END; }  \
+	| mail.mailutils -s "line of ${M}000 char" tata@localhost.
+done
+

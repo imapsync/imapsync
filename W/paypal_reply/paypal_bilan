@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.68 2013/06/07 06:59:41 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.72 2014/01/18 01:38:35 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.68 2013/06/07 06:59:41 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.72 2014/01/18 01:38:35 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -140,7 +140,7 @@ foreach my $invoice ( @invoices_wanted ) {
 
 	if ( $invoice_sent ) {
 		$invoice_sent{ $invoice }++ ;
-                #build_invoice( $invoice ) ;
+                build_invoice( $invoice ) if ( $debug_invoice or $debug_invoice_utf8 )  ;
 	}elsif( not ( $invoice_canceled{ $invoice }  or  $invoice_refund{ $invoice } ) ) {
 		$invoice_not_sent{ $invoice }++ ;
 		build_invoice( $invoice ) ;
@@ -371,10 +371,11 @@ sub tests_exportbnc {
 
 sub tests {
         tests_next_invoice(  ) ;
-        #tests_half(  ) ;
         tests_cut(  ) ;
         tests_invoice_00000(  ) ;
-        tests_exportbnc(  ) ;
+        #tests_exportbnc(  ) ;
+        tests_tva_rate(  ) ;
+        tests_tva_rate_str(  ) ;
 }
 
 sub compute_line {
@@ -677,7 +678,7 @@ sub build_invoice {
 		$priceTTCusd,
                 $HTorTTC
 	) 
-	= tva_stuff( $clientTypeEN, $Pays, $Hors_taxe, $Devise, $Titre_de_l_objet ) ;
+	= tva_stuff( $clientTypeEN, $Pays, $Hors_taxe, $Devise, $Titre_de_l_objet, $Date ) ;
 
         my $object_type = object_type( $Titre_de_l_objet ) ;
 	
@@ -1058,6 +1059,62 @@ sub date_aaaa_mm_jj {
 }
 
 
+sub tva_rate {
+	my $date_aaaa_mm_jj = shift ;
+        
+	if ( '2014_01_01' gt $date_aaaa_mm_jj ) {
+        	#print "tva_rate 0.196\n" ;
+        	#return( 0 ) ;
+        	return( 0.196 ) ;
+        }
+        
+	if ( '2014_01_01' le $date_aaaa_mm_jj ) {
+        	#print "tva_rate 0.2\n" ;
+        	return( 0.2 ) ;
+        }
+        #print "tva_rate 0\n" ;
+	return( 0 ) ;
+}
+
+sub tests_tva_rate {
+	ok( 0.196 == tva_rate( '2013_01_01' ), 'tva_rate: old 0.196' ) ;
+	ok( 0.196 == tva_rate( '2013_12_31' ), 'tva_rate: old 0.196' ) ;
+	ok( 0.2   == tva_rate( '2014_01_01' ), 'tva_rate: new 0.2' ) ;
+	ok( 0.2   == tva_rate( '2014_12_31' ), 'tva_rate: new 0.2' ) ;
+	ok( 0.2   == tva_rate( '2050_01_01' ), 'tva_rate: new 0.2' ) ;
+	ok( 0.2   == tva_rate( '2050_12_31' ), 'tva_rate: new 0.2' ) ;
+        return( 0 ) ;
+}
+
+
+sub tva_rate_str {
+	my $date_aaaa_mm_jj = shift ;
+        
+	if ( '2014_01_01' gt $date_aaaa_mm_jj ) {
+        	#print "tva_rate 0.196\n" ;
+        	return( '19,60\%' ) ;
+        }
+        
+	if ( '2014_01_01' le $date_aaaa_mm_jj ) {
+        	return( '20\%' ) ;
+        }
+        #print "tva_rate 0\n" ;
+	return( '' ) ;
+}
+
+sub tests_tva_rate_str {
+	ok( '19,60\%' eq tva_rate_str( '2013_01_01' ), 'tva_rate_str: old 0.196' ) ;
+	ok( '19,60\%' eq tva_rate_str( '2013_12_31' ), 'tva_rate_str: old 0.196' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2014_01_01' ), 'tva_rate_str: new 0.2' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2014_12_31' ), 'tva_rate_str: new 0.2' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2050_01_01' ), 'tva_rate_str: new 0.2' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2050_12_31' ), 'tva_rate_str: new 0.2' ) ;
+        return( 0 ) ;
+}
+
+
+
+
 sub tva_line {
 	my( $Devise, $Montant2, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet, $Date ) = @_ ;
 	my( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR ) = ( 0, 0, 0 ) ;
@@ -1080,8 +1137,8 @@ sub tva_line {
 	        or
 	        ( 'France' eq $Pays )
 	        ) {
-		        $montant_HT_EUR_ass  = $Montant2 / 1.196 ;
-		        $montant_TVA_EUR     = $Montant2 / 1.196 * 0.196 ;
+		        $montant_HT_EUR_ass  = $Montant2 / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) ;
+		        $montant_TVA_EUR     = $Montant2 / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) * tva_rate( $date_aaaa_mm_jj ) ;
 		        $debug_dev and print "$Montant2 $Pays $Valeur_Option_1\n" ;
 	        }else{
 		        $montant_HT_EUR_exo = $Montant2 ;
@@ -1096,8 +1153,8 @@ sub tva_line {
                 or
                 ( '2013_02_19' gt $date_aaaa_mm_jj )
 	        ) {
-                	$montant_HT_EUR_sup  = $Montant2 / 1.196 ;
-	        	$montant_TVA_EUR_sup = $Montant2 / 1.196 * 0.196 ;
+                	$montant_HT_EUR_sup  = $Montant2 / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) ;
+	        	$montant_TVA_EUR_sup = $Montant2 / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) * tva_rate( $date_aaaa_mm_jj ) ;
         	}else{
                 	$montant_HT_EUR_sup_exo = $Montant2 ;
                 }
@@ -1109,10 +1166,12 @@ sub tva_line {
 
 
 sub tva_stuff {
-	my( $clientTypeEN, $Pays, $Hors_taxe, $Devise, $Titre_de_l_objet ) = @_ ;
+	my( $clientTypeEN, $Pays, $Hors_taxe, $Devise, $Titre_de_l_objet, $Date ) = @_ ;
 	
 	my $priceTTCusd = '' ;
 	$Hors_taxe =~ s{,}{.} ;
+
+	my $date_aaaa_mm_jj = date_aaaa_mm_jj( $Date ) ;
 	
 	if ( $Devise eq 'USD' ) {
 		$priceTTCusd = "(usd $Hors_taxe)" ;
@@ -1134,10 +1193,10 @@ sub tva_stuff {
 	     or  
 	     ( 'France' eq $Pays )
 	) {
-		$priceHT  = sprintf('%2.2f', $Hors_taxe/1.196) ;
-		$tvaFR    = '19,60\%';
-		$tvaEN    = '';
-		$priceTVA = sprintf('%2.2f', $Hors_taxe/1.196*0.196) ;
+		$priceHT  = sprintf('%2.2f', $Hors_taxe / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) ) ;
+		$tvaFR    = tva_rate_str( $date_aaaa_mm_jj ) ;
+		$tvaEN    = '' ;
+		$priceTVA = sprintf('%2.2f', $Hors_taxe / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) * tva_rate( $date_aaaa_mm_jj ) ) ;
 		$priceTTC = sprintf('%2.2f', $Hors_taxe) ;
                 $HTorTTC  = 'TTC' ;
 		$messageTVAFR = '' ;
@@ -1245,19 +1304,6 @@ $addr = "
 	) ;
 }
 
-
-sub half {
-	my $string = shift ;
-        my $half = int( lenght( $string ) / 2 ) ;
-        # TO BE DONE
-
-}
-
-sub tests_half {
-	my( $aa, $bb ) = half( 'aa bb' ) ;
-	ok( 'aa' eq $aa, 'half: aa' ) ;
-	ok( 'bb' eq $bb, 'half: bb' ) ;
-}
 
 sub cut {
 	my $string = shift ;

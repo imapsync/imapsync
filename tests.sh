@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.233 2013/12/25 03:25:18 gilles Exp gilles $  
+# $Id: tests.sh,v 1.235 2014/01/27 02:22:29 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./W/Mail-IMAPClient-3.35/lib' sh -x tests.sh
@@ -1183,6 +1183,42 @@ ll_maxlinelength()
                 --maxlinelength 8 --nofoldersizes --folder INBOX
 }
 
+ll_minmaxlinelength() 
+{       
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --minmaxlinelength 1000 --nofoldersizes --folder INBOX
+}
+
+
+ll_maxlinelength_prepa_1()
+{
+    $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --folderrec INBOX.Junk --foldersizes --justfolders \
+        --usecache --tmpdir /var/tmp --minmaxlinelength 8000 --debugmaxlinelength
+}
+
+ll_maxlinelength_prepa_2()
+{
+    $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tete@est.belle \
+        --passfile1 ../../var/pass/secret.tete \
+        --host2 ks.lamiral.info --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+	--ssl2 \
+        --include INBOX.Junk.20 --foldersizes --nojustfolders \
+        --useuid --tmpdir /var/tmp --minmaxlinelength 10 --delete2 --nofastio1 --nofastio2
+}
+
+
 
 ll_maxsize() 
 {       
@@ -2045,6 +2081,20 @@ ll_delete_reverse() {
         --folder INBOX \
         --delete --minage 100 --maxage 300 --noexpungeaftereach
 }
+
+ll_delete_reverse_useuid() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --folder INBOX \
+        --delete --minage 100 --maxage 300 --noexpungeaftereach \
+	--useuid
+}
+
+
+
 
 ll_maxmessagespersecond() {
 	ll_delete_reverse
@@ -2964,9 +3014,55 @@ l_office365()
         --passfile1 ../../var/pass/secret.tata \
         --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
-        --folder INBOX --regextrans2 's/INBOX/tata/' --debugflags
+        --folder INBOX --tmpdir /var/tmp --usecache --regextrans2 's/INBOX/tata/' --delete2 --expunge2
 }
 
+l_office365_bigfolders()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --tmpdir /var/tmp --useuid --include Junk.20
+}
+
+
+
+l_office365_maxline()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --tmpdir /var/tmp --usecache --include Junk.2013 --maxlinelength 16000 --debugmaxlinelength
+}
+
+l_office365_maxline_2()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --tmpdir /var/tmp --usecache \
+	--folder INBOX  --regextrans2 's/INBOX/tata/' \
+	--minmaxlinelength 8000 --debugmaxlinelength
+}
+
+# Only available on ks2 (filtered by a firewall)
+l_exchange_maxline() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 correu.quopiam.com --ssl2 --user2 utest@quopiam.com \
+        --passfile2 ../../var/pass/secret.quopiam.com \
+        --tmpdir /var/tmp --usecache \
+	--folder INBOX  --regextrans2 's/INBOX/longlines/' \
+	--minmaxlinelength 10000 --maxlinelength 11000 --debugmaxlinelength 
+}
 
 ##########################
 # specific tests
@@ -3431,8 +3527,8 @@ big_folder()
         --passfile1 ../../var/pass/secret.gilles_mbox \
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
-        --folder INBOX.Junk.2010 \
-        --useheader Message-ID || \
+        --include INBOX.Junk.20 \
+        --usecache --tmpdir /var/tmp || \
     true
     }
     date2=`date`
@@ -3447,8 +3543,8 @@ big_folder_useuid()
         --passfile1 ../../var/pass/secret.gilles_mbox \
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
-        --folder INBOX.Junk.2011 --nofoldersizes \
-        --useuid --tmpdir /var/tmp || \
+        --include INBOX.Junk.20 --foldersizes \
+        --useuid --tmpdir /var/tmp --delete2 || \
     true
     }
     date2=`date`

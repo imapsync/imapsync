@@ -22,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.580 $
+$Revision: 1.584 $
 
 =head1 SYNOPSIS
 
@@ -433,7 +433,8 @@ Success stories reported with the following 57 imap servers
  - Samsung Contact IMAP server 8.5.0
  - Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6
  - Sendmail Mail Store IMAP4rev1 (5.5.6/mstore-5-5-build-1874 [host1].
- - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], SmarterMail Professional 10.2 [host1].
+ - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], 
+   SmarterMail Professional 10.2 [host1], Smarter Mail 11.7 [host1][host2].
  - Softalk Workgroup Mail 7.6.4 [host1].
  - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
  - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05, 6.3
@@ -541,7 +542,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.580 2013/12/25 02:52:36 gilles Exp gilles $
+$Id: imapsync,v 1.584 2014/02/05 00:40:59 gilles Exp gilles $
 
 =cut
 
@@ -581,7 +582,7 @@ use IPC::Open3 'open3' ;
 my(
         $rcs, $pidfile, $pidfilelocking, 
 	$debug, $debugimap, $debugimap1, $debugimap2, $debugcontent, $debugflags,
-	$debugLIST, $debugsleep, $debugdev, $debugmemory,
+	$debugLIST, $debugsleep, $debugdev, $debugmemory, $debugmaxlinelength,
 	$nb_errors,
 	$host1, $host2, $port1, $port2,
 	$user1, $user2, $domain1, $domain2, 
@@ -664,6 +665,7 @@ my(
         $messageidnodomain,
         $fixInboxINBOX,
         $maxlinelength,
+        $minmaxlinelength,
 	$uidnext_default,
         $fixcolonbug,
         $create_folder_old,
@@ -676,7 +678,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.580 2013/12/25 02:52:36 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.584 2014/02/05 00:40:59 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -1029,8 +1031,11 @@ print "Host1 capability: ", join(" ", @{ $imap1->capability_update() || [] }), "
 print "Host2 capability: ", join(" ", @{ $imap2->capability_update() || [] }), "\n";
 
 
-exit_clean(0) if ($justlogin);
-
+if ( $justlogin ) {
+	$imap1->logout(  ) ;
+	$imap2->logout(  ) ;
+	exit_clean( 0 ) ;
+}
 # 
 # Folder stuff
 #
@@ -1130,17 +1135,17 @@ $checkselectable and do {
 my($h1_sep,$h2_sep); 
 # what are the private folders separators for each server ?
 
-$debug and print "Getting separators\n";
-$h1_sep = get_separator($imap1, $sep1, "--sep1");
-$h2_sep = get_separator($imap2, $sep2, "--sep2");
+$debug and print "Getting separators\n" ;
+$h1_sep = get_separator( $imap1, $sep1, "--sep1", "Host1" ) ;
+$h2_sep = get_separator( $imap2, $sep2, "--sep2", "Host2" ) ;
 
-my($h1_prefix,$h2_prefix); 
-$h1_prefix = get_prefix($imap1, $prefix1, "--prefix1");
-$h2_prefix = get_prefix($imap2, $prefix2, "--prefix2");
+my( $h1_prefix, $h2_prefix ) ; 
+$h1_prefix = get_prefix( $imap1, $prefix1, "--prefix1", "Host1" ) ;
+$h2_prefix = get_prefix( $imap2, $prefix2, "--prefix2", "Host2" ) ;
 
 
-print "Host1 separator and prefix: [$h1_sep][$h1_prefix]\n";
-print "Host2 separator and prefix: [$h2_sep][$h2_prefix]\n";
+print "Host1 separator and prefix: [$h1_sep][$h1_prefix]\n" ;
+print "Host2 separator and prefix: [$h2_sep][$h2_prefix]\n" ;
 
 #my $h1_xlist_folders = $imap1->xlist_folders(  ) ;
 #my $h2_xlist_folders = $imap2->xlist_folders(  ) ;
@@ -1991,11 +1996,14 @@ sub connect_imap {
 	$imap->Debug($mydebugimap);
 	$imap->connect()
 	  or die_clean("Can not open imap connection on [$host]: $@\n");
-	#myconnect($imap)
-	#  or die_clean("Can not open imap connection on [$host]: $@\n");
+
         my $banner = $imap->Results()->[0] ;
         $imap->Banner( $banner ) ;
-        $imap->starttls(  ) if ( $imap->Tls(  ) ) ;
+        
+        if ( $imap->Tls(  ) ) {
+        	$imap->starttls(  )
+                or die_clean("Can not go to tls encryption on [$host]:", $imap->LastError, "\n" ) ;
+        }
         return( $imap ) ;
 }
 
@@ -2083,7 +2091,10 @@ sub login_imap {
                 }
         }
 
-	$imap->starttls(  ) if ( $imap->Tls(  ) ) ;
+        if ( $imap->Tls(  ) ) {
+        	$imap->starttls(  )
+                or die_clean("Can not go to tls encryption on [$host]:", $imap->LastError, "\n" ) ;
+        }
 	
         authenticate_imap( $imap, @allargs ) ;
 	
@@ -2173,12 +2184,13 @@ sub set_ssl {
         #
         $SSL_version = $SSL_version || '' ;
         #print "[$SSL_version]\n" ;
-        IO::Socket::SSL::set_ctx_defaults( 
+
+	my $sslargs = [
 		SSL_verify_mode => 'SSL_VERIFY_PEER',
         	SSL_verifycn_scheme => 'imap',
                 SSL_version => $SSL_version,
-	) ;
-        $imap->Ssl( $ssl ) ;
+        ] ;
+        $imap->Ssl( $sslargs ) ;
 	return(  ) ;
 }
 
@@ -2307,8 +2319,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.580 $ ',
-		  '$Date: 2013/12/25 02:52:36 $ ',
+		  '$Revision: 1.584 $ ',
+		  '$Date: 2014/02/05 00:40:59 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -2680,59 +2692,86 @@ sub tests_compare_lists {
 
 
 
-sub get_prefix {
-	my( $imap, $prefix_in, $prefix_opt ) = @_ ;
+sub get_prefix { 
+	my( $imap, $prefix_in, $prefix_opt, $Side ) = @_ ;
 	my( $prefix_out ) ;
 	
-	$debug and print "Getting prefix namespace\n" ;
-	if ( defined( $prefix_in ) ) {
-		print "Using [$prefix_in] given by $prefix_opt\n" ;
-		$prefix_out = $prefix_in ;
-		return( $prefix_out ) ;
-	}
-	$debug and print "Calling namespace capability\n" ;
+	$debug and print "$Side: Getting prefix\n" ;
+
+	$debug and print "$Side: Calling namespace capability\n" ;
 	if ( $imap->has_capability( "namespace" ) ) {
 		my $r_namespace = $imap->namespace(  ) ;
 		$prefix_out = $r_namespace->[0][0][0] ;
-		return($prefix_out) ;
+                print "$Side: prefix given by NAMESPACE: [$prefix_out]\n" ;
+		if ( defined( $prefix_in ) ) {
+                	print "$Side: but using [$prefix_in] given by $prefix_opt\n" ;
+                	$prefix_out = $prefix_in ;
+                	return( $prefix_out ) ;
+                }else{
+                	# all good
+	                return( $prefix_out ) ;
+                }
 	}
 	else{
-		print 
-		  "No NAMESPACE capability in imap server ", 
-		    $imap->Server(  ),"\n",
-		      help_to_guess_prefix( $imap, $prefix_opt ) ;
-		exit_clean( 1 ) ;
+        	if ( defined( $prefix_in ) ) {
+                	print "$Side: using [$prefix_in] given by $prefix_opt\n" ;
+                	$prefix_out = $prefix_in ;
+                	return( $prefix_out ) ;
+                }else{
+			print 
+			  "$Side: No NAMESPACE capability in imap server ", 
+			    $imap->Server(  ),"\n",
+			      help_to_guess_prefix( $imap, $prefix_opt ) ;
+			exit_clean( 1 ) ;
+                }
 	}
         return(  ) ;
 }
 
 
-sub get_separator {
-	my($imap, $sep_in, $sep_opt) = @_;
-	my($sep_out);
+sub get_separator { 
+	my( $imap, $sep_in, $sep_opt, $Side ) = @_ ;
+	my( $sep_out ) ;
 	
 	
-	if ( defined( $sep_in ) ) {
-		print "Using [$sep_in] given by $sep_opt\n" ;
-		$sep_out = $sep_in ;
-		return( $sep_out ) ;
-	}
-	$debug and print "Calling namespace capability\n" ;
-	if ($imap->has_capability( "namespace" ) ) {
+	$debug and print "$Side: calling namespace capability\n" ;
+	if ( $imap->has_capability( "namespace" ) ) {
 		$sep_out = $imap->separator(  ) ;
-		return($sep_out) if defined $sep_out ;
-		print 
-		  "NAMESPACE request failed for ", 
-		  $imap->Server(), ": ", $imap->LastError, "\n",
-                  help_to_guess_sep( $imap, $sep_opt ) ;
-		exit_clean( 1 ) ;
+		if ( defined( $sep_out ) ) {
+                	print "$Side: separator given by NAMESPACE: [$sep_out]\n" ;
+                        if ( defined( $sep_in ) ) {
+                		print "$Side: but using [$sep_in] given by $sep_opt\n" ;
+                        	$sep_out = $sep_in ;
+                        	return( $sep_out ) ;
+                        }else{
+                        	return( $sep_out ) ;
+                        }
+		}else{
+                	if ( defined( $sep_in ) ) {
+                        	print "$Side: NAMESPACE request failed but using [$sep_in] given by $sep_opt\n" ;
+                        	$sep_out = $sep_in ;
+                        	return( $sep_out ) ;
+                        }else{
+				print 
+		  		"$Side: NAMESPACE request failed for ", 
+		  		$imap->Server(), ": ", $imap->LastError, "\n",
+                  		help_to_guess_sep( $imap, $sep_opt ) ;
+				exit_clean( 1 ) ;
+                        }
+                }
 	}
 	else{
-		print
-		  "No NAMESPACE capability in imap server ", 
-		    $imap->Server(),"\n",
-		      help_to_guess_sep( $imap, $sep_opt ) ;
-		exit_clean( 1 ) ;
+        	if ( defined( $sep_in ) ) {
+                	print "$Side: No NAMESPACE capability but using [$sep_in] given by $sep_opt\n" ;
+                	$sep_out = $sep_in ;
+                	return( $sep_out ) ;
+                }else{
+			print
+		  	"$Side: No NAMESPACE capability in imap server ", 
+		    	$imap->Server(),"\n",
+		      	help_to_guess_sep( $imap, $sep_opt ) ;
+			exit_clean( 1 ) ;
+                }
 	}
         return(  ) ;
 }
@@ -2941,7 +2980,8 @@ sub foldersizes {
 			$nb_errors++ ;
 			next ;
 		}
-		
+		last if $imap->IsUnconnected() ;
+
 		my $hash_ref = { } ;
 		my @msgs = select_msgs( $imap, undef, $search_cmd, $folder ) ;
 		$nb_msgs = scalar( @msgs ) ;
@@ -3474,6 +3514,8 @@ sub copy_message {
 	
 	
         if ( size_filtered( $h1_size, $h1_msg, $h1_fold, $h2_fold  ) ) {
+		$total_bytes_skipped += $h1_size;
+		$nb_msg_skipped += 1;
         	$h1_nb_msg_processed +=1 ;
                 return(  ) ;
         }
@@ -3483,6 +3525,8 @@ sub copy_message {
 
 	
         if ( $checkmessageexists and not message_exists( $imap1, $h1_msg ) ) {
+		$total_bytes_skipped += $h1_size;
+		$nb_msg_skipped += 1;
         	$h1_nb_msg_processed +=1 ;
                 return(  ) ;
         }
@@ -3492,17 +3536,34 @@ sub copy_message {
         
         if ( not defined( $string ) and not defined( $string_len ) ) {
 		print "- msg $h1_fold/$h1_msg skipped. Could not be fetched\n" ;
+		$total_bytes_skipped += $h1_size;
+		$nb_msg_skipped += 1;
+                $h1_nb_msg_processed +=1 ;
                 return(  ) ;
         }
         
         # Lines two long => do no copy
-        if ( ( defined ( $maxlinelength ) ) 
-         and ( max_line_length( $string ) > $maxlinelength ) ) {
-         	my $subject = subject( $string ) ;
-                #print "[$subject]\n" ;
-         	print "- msg $h1_fold/$h1_msg skipped S[$h1_size] F[$h1_flags] I[$h1_idate] " 
-                      . "(Subject:[$subject]) (line length exceeds maxlinelength $maxlinelength bytes)\n" ;
-         	return(  ) ;
+        if ( defined ( $maxlinelength ) or defined ( $minmaxlinelength ) ) {
+		my $maxlinelength_string = max_line_length( $string ) ;
+                $debugmaxlinelength and print "msg $h1_fold/$h1_msg maxlinelength: $maxlinelength_string\n" ;
+                if ( defined ( $maxlinelength )  and ( $maxlinelength_string > $maxlinelength ) ) {
+         		my $subject = subject( $string ) ;
+         		print "- msg $h1_fold/$h1_msg skipped S[$h1_size] F[$h1_flags] I[$h1_idate] " 
+                      	. "(Subject:[$subject]) (line length exceeds maxlinelength $maxlinelength bytes)\n" ;
+                        $h1_nb_msg_processed +=1 ;
+			$total_bytes_skipped += $h1_size;
+			$nb_msg_skipped += 1;
+         		return(  ) ;
+                }
+                if ( defined ( $minmaxlinelength )  and ( $maxlinelength_string <= $minmaxlinelength ) ) {
+         		my $subject = subject( $string ) ;
+         		$debugdev and print "- msg $h1_fold/$h1_msg skipped S[$h1_size] F[$h1_flags] I[$h1_idate] " 
+                      	. "(Subject:[$subject]) (max line length under minmaxlinelength $minmaxlinelength bytes)\n" ;
+                        $h1_nb_msg_processed +=1 ;
+			$total_bytes_skipped += $h1_size;
+			$nb_msg_skipped += 1;
+         		return(  ) ;
+                }                
         }
 
 	my $h1_date = date_for_host2( $h1_msg, $h1_idate ) ;
@@ -3529,6 +3590,8 @@ sub copy_message {
         
         return( $new_id ) ;
 }
+
+
 
 sub message_for_host2 {
 	my ( $h1_msg, $h1_fold, $h1_size, $h1_flags, $h1_idate, $h1_fir_ref ) = @_ ;
@@ -4945,7 +5008,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.580 2013/12/25 02:52:36 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.584 2014/02/05 00:40:59 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {
@@ -5846,7 +5909,7 @@ Several options are mandatory.
 --exitwhenover   <int> : Stop syncing when total bytes transferred reached.
                          Gmail per day allows 2500000000 down 500000000 upload.
 
---maxlinelength <int>  : skip messages with line length longer than <int> bytes.
+--maxlinelength <int>  : skip messages with a line length longer than <int> bytes.
                          RFC 2822 says it must be no more than 1000 bytes.
 
 --useheader   <string> : Use this header to compare messages on both sides.
@@ -5958,6 +6021,7 @@ sub get_options {
                                    "debugimap2!"   => \$debugimap2,
                                    "debugdev!"     => \$debugdev,
                                    "debugmemory!" => \$debugmemory,
+                                   "debugmaxlinelength!" => \$debugmaxlinelength,
                                    "host1=s"     => \$host1,
                                    "host2=s"     => \$host2,
                                    "port1=i"     => \$port1,
@@ -6075,6 +6139,7 @@ sub get_options {
                                    "abletosearch!" => \$abletosearch,
                                    "showpasswords!" => \$showpasswords,
                                    "maxlinelength=i" => \$maxlinelength, 
+                                   "minmaxlinelength=i" => \$minmaxlinelength, 
                                    "fixcolonbug!" => \$fixcolonbug,
                                    "create_folder_old!" => \$create_folder_old,
                                    "maxmessagespersecond=f" => \$maxmessagespersecond,

@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.161 2013/12/25 03:25:18 gilles Exp gilles $
+# $Id: FAQ,v 1.166 2014/01/27 02:23:30 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -1601,11 +1601,15 @@ R. This error message comes from Exchange IMAP server when it
    encounters any problem. Most of the time it is one of the following:
 
   * Some messages are bigger than the size limit. 10 MB by default
-    on Exchange. It can be upped by configuration.
-    Or use option --maxsize 10000000 (for 10 MB, change it if needed)
-    to tell imapsync to skip those messages.
+    on Exchange. It can be upped by configuration for Exchange.
+    If you configure this limit then use option --maxsize 10000000
+    for 10 MB, change it if needed) to tell imapsync to skip those messages.
+    This value is 25 MB for Office365 --maxsize 25000000
 
-  imapsync ... --maxsize 10000000 
+  imapsync ... --maxsize 10000000 # 10 MB for Exchange
+
+  imapsync ... --maxsize 25000000 # 25 MB for Office365
+  
 
   * Quota reached. The whole account is full.
     It can be upped by configuration.
@@ -1645,45 +1649,7 @@ Thanks to Dave Murray and Simon Savva for reporting and solving
 this issue.
 
 =======================================================================
-Q. From Zimbra to XXX
-
-imapsync ... \
-	--exclude "Conversation Action Settings" \
-	--exclude "Quick Step Settings" \
-	--exclude "News Feed"
-
-=======================================================================
-Q. From or to HMailServer version 4.4.1.
-
-R. You have to add prefix and separator manually because  4.4.1 doesn't
-honor the NAMESPACE imap command.
-
-Example for host1:
-
-imapsync ... \
-         --prefix1 "" --sep1 .
-
-No specific option for HMailServer 5.3.3 since NAMESPACE is supported.
-
-Maybe --subscribe_all will help you to see all migrated folders.
-
-
-=======================================================================
-Q. Synchronizing from SmarterMail to XXX
-
-imapsync --host1 imap.d1.org --user1 joe --password1 secret1 --sep1 "/" \
-         --host2 imap.d2.org --user2 joe --password2 secret2  \
-         --noauthmd5 \
-         --prefix1 ""  \
-         --regextrans2 's#^Inbox$#INBOX#' \
-         --regextrans2 's#Sent Items$#Sent#' \
-         --dry --justfolders
-
-Maybe add other --regextrans2 to change folder names and see the result.
-When satisfied, run without --dry --justfolders
-
-=======================================================================
-Q. Synchronizing from XXX to Gmail 
+Q. Synchronizing from XXX to Gmail  
 
 R. There are some details to get the special [Gmail] sub-folders
    right. Here's an example of migrating an old "Sent" folder to
@@ -1692,37 +1658,36 @@ R. There are some details to get the special [Gmail] sub-folders
 imapsync --host1 mail.oldhost.com \
          --user1 my_email@oldhost.com \
          --password1 password \
-         --host2 imap.gmail.com --ssl2 \
+         --host2 imap.gmail.com \
          --user2 my_email@gmail.com \
          --password2 password \
+         --ssl2 \
          --exitwhenover 500000000 \
-         --exclude "\[Gmail\]$" \
          --addheader \
-         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," \
-         --regextrans2 "s/[ ]+/_/g" \
-         --regextrans2 "s/[\^]/_/g" \
-         --regextrans2 "s/['\"\\\\]/_/g"
+         --exclude "\[Gmail\]$"           \
+         --regextrans2 "s/[ ]+/_/g"       \
+         --regextrans2 "s/[\^]/_/g"       \
+         --regextrans2 "s/['\"\\\\]/_/g"  \
+         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," 
 
+Explanations:
 
-If you're using a different language in Gmail you might adapt
-this example with the folder name translated, an example in French:
+--ssl2 is mandatory since Gmail only supports imap ssl connections.
 
-imapsync ...
-	 --regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
+--exitwhenover 500000000 option is here to avoid locking when 
+transfers exceed maximum limit. 
+See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+--exitwhenover is not mandatory in the sense you may be able to
+use an upper value than 500 MB without disconnections; I don't
+know the hard value, it seems to vary, so just have some tries
+and report me what you discover in case you detect something.
 
 The --addheader option is there because "Sent" folder messages 
-sometimes lack the "Message-Id" header needed by imapsync 
-to identify messages (only when --useuid is not used). 
-So option --addheader adds a "Message-Id" header.
-
-You can add --folder "INBOX.Sent" in the example in case
-you want to sync only the "Sent" folder.
-
-The "All Mail" archive pseudo-folder should be updated automaticaly.
-
---exitwhenover option is here to avoid locking when transfers 
-exceed maximum limit. 
-See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+sometimes lack the "Message-Id:" and "Received:" headers needed 
+by imapsync to identify messages (only when --useuid is not used). 
+So option --addheader adds a "Message-Id" header consiting fo
+the imap UID of the message on the host1 folder, like
+"Message-Id: 12345@imapsync".
 
 --exclude "\[Gmail\]$" is there to avoid a small examine/select error:
 "Could not examine: 43 NO [NONEXISTENT] Unknown Mailbox: [Gmail] 
@@ -1740,8 +1705,24 @@ not accepted by gmail, character ^ to character _ underscore.
 --regextrans2 "s/['\"\\\\]/_/g" is optional. It converts 
 characters ' or " or \ to character _ underscore.
 
+--regextrans2 "s,^Sent$,[Gmail]/Sent Mail," is to transform the
+folder name "Sent" and adapt it to Gmail "Sent Mail" folder.
+If you're using a different language in Gmail you might adapt
+this example with the folder name translated, an example in French:
+
+imapsync ...
+	 --regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
+
+
+You can add --folder "INBOX.Sent" in the example in case
+you want to sync only the "Sent" folder.
+
 You can select folders exported to imap within the gmail preferences,
 unselect all "System labels" depending on your needs.
+
+The "All Mail" archive pseudo-folder should be updated automaticaly.
+
+
 
 =======================================================================
 Q. Some of the folders are getting created with [IMAP] prefix on Google
@@ -1752,21 +1733,47 @@ R. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
    it might be configurable with Gmail parameters.
 
 =======================================================================
-Q. Synchronizing from Gmail to XXX
+Q. Synchronizing from Gmail to XXX 
 
 R. Gmail needs SSL 
 
 ./imapsync \
            --host1 imap.gmail.com \
-           --ssl1 \
            --user1 gilles.lamiral@gmail.com \
            --password1 gmailsecret \
-           --exitwhenover 2500000000 \
            --host2 localhost
            --user2 tata \
            --password2 tatasecret \
+           --ssl1 \
+           --exitwhenover 2500000000 \
            --useheader="X-Gmail-Received" \
-           --useheader 'Message-Id'
+           --useheader "Message-Id" \
+           --skipcrossduplicates \
+           --folderfirst "Work" \
+           --folderfirst "Friends" \
+           --folderlast  "CanWait" \
+           --folderlast  "[Gmail]/All Mail"
+
+
+Explanations:
+
+--ssl1 is mandatory since Gmail only supports imap ssl connections.
+
+--exitwhenover 2500000000 option is here to avoid locking when 
+transfers exceed maximum limit. 
+See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+--exitwhenover is not mandatory in the sense you may be able to
+use an upper value than 2.5 GB without disconnections; I don't
+know the hard value, it seems to vary, so just have some tries
+and report me what you discover in case you detect something.
+
+--useheader="X-Gmail-Received" --useheader "Message-Id" are not
+mandatory. I use them because I found (several years ago, it may
+have changed) that Gmail always adds a different header 
+"X-Gmail-Received:" to all messages it gets. So the identification
+by imapsync can not fall using this header. "Message-Id" is there
+for safety about this Gmail rule.
+
 
 If your destination imap server doesn't like "[Gmail]" name, just add
 option:
@@ -1778,6 +1785,27 @@ unselect all "System labels".
 --exitwhenover option is here to avoid locking when transfers 
 exceed maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+
+--skipcrossduplicates is optional but it can save Gigabytes of hard
+disk memory. Within imap protocol, Gmail presents Gmail labels as 
+folders so a message labeled "Work" "ProjectX" "Urgent" ends up 
+in three different imap folders "Work" "ProjectX" and "Urgent"
+after an imap sync. --skipcrossduplicates prevent this behavior.
+
+An issue with --skipcrossduplicates is that the first label synced
+by imapsync goes to its corresponding folder and other labels are
+ignored. This way, at least you can choose what labels have the 
+priority by using the --folderfirst option. For example
+--folderfirst "Work" will sync messages labeled "Work" before
+messages labeled "CanWait" or "Urgent". By default imapsync 
+syncs folders (Gmail labels) using the classical alphanumeric order.
+
+--folderlast "CanWait" will sync only messages that have the
+label CanWait and only it.
+
+--folderlast "[Gmail]/All Mail", in conjonction with option 
+--skipcrossduplicates, will only put in "[Gmail]/All Mail"
+the messages that are not labeled at all.
 
 
 =======================================================================
@@ -1825,6 +1853,43 @@ http://www.linux-france.org/prj/imapsync_list/msg00639.html
 
 http://biasecurities.com/blog/2009/migrate-email-from-gmail-to-google-apps/
 http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
+
+=======================================================================
+Q. From Zimbra to XXX
+
+imapsync ... \
+	--exclude "Conversation Action Settings" \
+	--exclude "Quick Step Settings" \
+	--exclude "News Feed"
+
+=======================================================================
+Q. From or to HMailServer version 4.4.1.
+
+R. You have to add prefix and separator manually because  4.4.1 doesn't
+honor the NAMESPACE imap command.
+
+Example for host1:
+
+imapsync ... \
+         --prefix1 "" --sep1 .
+
+No specific option for HMailServer 5.3.3 since NAMESPACE is supported.
+
+Maybe --subscribe_all will help you to see all migrated folders.
+
+
+=======================================================================
+Q. Synchronizing from SmarterMail to XXX
+
+imapsync --host1 imap.d1.org --user1 joe --password1 secret1 --sep1 "/" \
+         --host2 imap.d2.org --user2 joe --password2 secret2  \
+         --prefix1 ""  \
+         --regextrans2 "s#Sent Items$#Sent#" \
+         --dry --justfolders
+
+Maybe add other --regextrans2 to change folder names and see the result.
+When satisfied, run without --dry --justfolders
+
 
 =======================================================================
 Q. Synchronizing from Yahoo to XXX

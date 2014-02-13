@@ -28,7 +28,35 @@ Europe a un autre assujetti : Article 262 ter => Exoneration
 EOF
 }
 
-echo paypal_bilan_bncexport2
+
+echo paypal_bilan_tva_taux_20
+paypal_bilan_tva_taux_20() {
+# DID output diff between paypal_bilan_1.70 and 1.71
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.70 --bnc --debug --details --debug_invoice --first_in 147 \
+   --avoid_numbers '292 293  643 644 731 732 1093  
+1330 1331 1332 1333 1334  1652 1653 2131 2132  2295 2296 2297 2298  
+2625 2626 2970 2971 2972  3093' \
+   /g/paypal/paypal_201[01234]_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out1 2>&1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --bnc --debug --details --debug_invoice --first_in 147 \
+  --avoid_numbers '292 293  643 644 731 732 1093  
+1330 1331 1332 1333 1334  1652 1653 2131 2132  2295 2296 2297 2298  
+2625 2626 2970 2971 2972  3093' \
+   /g/paypal/paypal_201[01234]_??_complet.csv \
+ > /g/var/paypal_bilan/tests/paypal_invoice.out2 2>&1
+
+echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+     diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/tests/paypal_invoice.out2
+)
+}
+
+
+
+#echo paypal_bilan_bncexport2
 paypal_bilan_bncexport2() {
 # DID output diff between paypal_bilan_1.66 and 1.67
 (
@@ -54,7 +82,7 @@ echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/test
 }
 
 
-echo paypal_bilan_bncexport
+#echo paypal_bilan_bncexport
 paypal_bilan_bncexport() {
 # DID output diff between paypal_bilan_1.66 and 1.67
 (
