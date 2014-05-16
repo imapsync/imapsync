@@ -26,6 +26,7 @@ usage:
 	@echo "make imapsync_elf_x86.bin"
 	@echo "make publish"
 	@echo "make perlcritic"
+	@echo "make install_dependencies"
 
 
 PREFIX ?= /usr
@@ -362,3 +363,12 @@ upload_index: .valid.index.shtml FAQ LICENSE CREDITS TUTORIAL.html GOOD_PRACTICE
 	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
 	rsync -avH examples/*.bat examples/*.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 
+install_dependencies:
+	cpan install Mail::IMAPClient
+	cpan install Term::ReadKey
+	cpan install IO::Socket::SSL
+	cpan install Digest::HMAC_MD5
+	cpan install URI::Escape
+	cpan install File::Copy::Recursive
+	cpan install Data::Uniqid
+	cpan install Authen::NTLM
