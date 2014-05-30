@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.141 2014/02/13 03:18:50 gilles Exp gilles $	
+# $Id: Makefile,v 1.149 2014/05/29 23:41:53 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -33,7 +33,7 @@ DIST_NAME=imapsync-$(VERSION)
 DIST_FILE=$(DIST_NAME).tgz
 DEB_FILE=$(DIST_NAME).deb
 
-VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version)
+VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version 2>/dev/null || cat VERSION)
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
@@ -48,7 +48,7 @@ hello:
 all: ChangeLog README VERSION imapsync_elf_x86.bin imapsync.exe
 
 testp :
-	perl -c imapsync
+	perl -c imapsync || { echo; echo "Read the INSTALL file to solve Perl module dependencies!"; exit 1; }
 
 ChangeLog: imapsync
 	rlog imapsync > ChangeLog
@@ -68,15 +68,19 @@ TUTORIAL.html: TUTORIAL.t2t
 
 doc:  README ChangeLog TUTORIAL.html GOOD_PRACTICES.html 
 
-.PHONY: clean clean_tilde clean_test doc
+.PHONY: clean clean_tilde clean_test doc clean_log
 
-clean: clean_tilde clean_man
+clean: clean_tilde clean_man clean_log
 
 clean_test:
 	rm -f .test_3xx
 
 clean_tilde:
 	rm -f *~
+
+clean_log:
+	rm -f LOG_imapsync/*.txt
+	rm -f examples/LOG_imapsync/*.txt
 
 .PHONY: install dist man
 
@@ -149,8 +153,8 @@ testf: clean_test test
 
 .PHONY: lfo upload_lfo   public  imapsync_cidone
 
-.dosify_bat: W/*.bat examples/*.bat
-	unix2dos W/*.bat examples/*.bat
+.dosify_bat: W/*.bat examples/*.bat build_exe.bat
+	unix2dos W/*.bat examples/*.bat build_exe.bat
 	touch .dosify_bat
 
 dosify_bat: .dosify_bat
@@ -204,6 +208,15 @@ exe: imapsync build_exe.bat .dosify_bat
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
 	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
+zip: dosify_bat
+	rm -rfv ../prepa_zip/imapsync_$(VERSION_EXE)/
+	mkdir -p ../prepa_zip/imapsync_$(VERSION_EXE)/
+	cp -av examples/imapsync_example.bat examples/sync_loop_windows.bat examples/file.txt ../prepa_zip/imapsync_$(VERSION_EXE)/
+	for f in FAQ README ; do cp -av $$f ../prepa_zip/imapsync_$(VERSION_EXE)/$$f.txt ; done
+	cp -av imapsync.exe README_Windows.txt ../prepa_zip/imapsync_$(VERSION_EXE)/
+	unix2dos ../prepa_zip/imapsync_$(VERSION_EXE)/*.txt
+	cd ../prepa_zip/ && rm -f ./imapsync_$(VERSION_EXE).zip && zip -r ./imapsync_$(VERSION_EXE).zip ./imapsync_$(VERSION_EXE)/
+	scp ../prepa_zip/imapsync_$(VERSION_EXE).zip Admin@c:'C:/msys/1.0/home/Admin/'
 
 
 
@@ -256,7 +269,7 @@ tarball: .tarball
 	mkdir -p ../prepa_dist/$(DIST_NAME)
 	rsync -aCvH --delete --omit-dir-times --exclude dist/ --exclude imapsync.exe ./ ../prepa_dist/$(DIST_NAME)/
 	#rsync -av ./imapsync.exe ../prepa_dist/$(DIST_NAME)/
-	cd ../prepa_dist &&  (tar czfv $(DIST_FILE) $(DIST_NAME) || tar czfv  $(DIST_FILE) $(DIST_NAME))
+	cd ../prepa_dist && tar czfv $(DIST_FILE) $(DIST_NAME)
 	#ln -f ../prepa_dist/$(DIST_FILE) dist/
 	cd ../prepa_dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	cd ../prepa_dist && md5sum -c $(DIST_FILE).md5.txt
@@ -271,7 +284,13 @@ DIST_PATH   := ./dist/$(DIST_SECRET)
 lalala:
 	echo $(DIST_SECRET)
 
-dist: cidone test clean all perlcritic dist_prepa dist_prepa_exe
+dist: cidone test clean all perlcritic dist_prepa dist_zip README_dist.txt
+
+md5:
+	cd $(DIST_PATH)/ && md5sum *
+
+sha:
+	cd $(DIST_PATH)/ && sha512sum *
 
 
 dist_prepa: tarball dist_dir
@@ -289,12 +308,17 @@ dist_dir:
 	ln -f ./dist/path_$(VERSION).txt ./dist/path_last.txt 
 
 
-dist_prepa_exe: imapsync.exe
-	mkdir -p $(DIST_PATH)
+dist_exe: imapsync.exe
 	cp -a ./imapsync.exe $(DIST_PATH)/
 	#cd $(DIST_PATH)/ && md5sum ./imapsync.exe > ./imapsync.exe.md5.txt
 	#cd $(DIST_PATH)/ && md5sum -c ./imapsync.exe.md5.txt
 
+dist_zip: zip 
+	cp -a ../prepa_zip/imapsync_$(VERSION_EXE).zip $(DIST_PATH)/
+
+README_dist.txt: dist_dir
+	sh W/tools/gen_README_dist > $(DIST_PATH)/README_dist.txt
+	unix2dos $(DIST_PATH)/README_dist.txt
 
 .PHONY: publish upload_ks ks
 
@@ -324,7 +348,7 @@ publish: dist upload_ks ksa
 	echo Now ou can do make ml
 
 PUBLIC_FILES = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
-./index.shtml ./INSTALL \
+./index.shtml ./INSTALL ./README_Windows.txt \
 ./VERSION ./VERSION_EXE \
 ./README ./TODO ./TUTORIAL.html ./GOOD_PRACTICES.html
 

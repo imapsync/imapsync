@@ -1,5 +1,5 @@
 
-REM $Id: install_modules.bat,v 1.9 2013/10/17 01:50:42 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.12 2014/05/22 10:16:12 gilles Exp gilles $
 
 @ECHO OFF 
 
@@ -16,22 +16,19 @@ FOR %%M in ( Mail::IMAPClient ^
              File::Copy::Recursive ^
              PAR::Packer ^
              Test::Pod ^
+             IO::Socket::IP ^
              IO::Socket::INET ^
              IO::Socket::INET6 ^
-             IO::Socket::IP ^
              Net::SSLeay ^
              Crypt::SSLeay ^
              Net::SSL IO::Socket::SSL ^
              Digest::MD5 ^
              Digest::HMAC_MD5 ^
-             Term::ReadKey ^
-             File::Spec ^
-             Time::HiRes ^
              Data::Uniqid URI::Escape ^
              Authen::NTLM ^
-             Time::Local ^
              Getopt::ArgvFile ^
              Module::ScanDeps ^
+             IO::Tee ^
              ) DO ECHO Updating %%M ^
    & perl -MCPAN -e "install %%M"
 

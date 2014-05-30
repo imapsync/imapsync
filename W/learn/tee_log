@@ -1,0 +1,25 @@
+#!/usr/bin/perl 
+
+
+use warnings ;
+use strict ;
+
+use IO::Tee;
+my $log_filename = "log.txt";
+my $log_filehandle;
+open( $log_filehandle, '>>', $log_filename )
+  or die("Can't open $log_filename for append: $!");
+my $tee = IO::Tee->new( $log_filehandle, \*STDOUT );
+*STDERR = *$tee{IO};
+select $tee;
+
+print "print 01\n" ;
+warn "warn  02\n" ;
+print "print 03\n" ;
+warn "warn  04\n" ;
+warn "warn  05\n" ;
+print "print 06\n" ;
+print "print 07\n" ;
+warn "warn  08\n" ;
+
+exit ;

@@ -1,17 +1,58 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.584
+head: 1.592
 branch:
 locks: strict
-	gilles: 1.584
+	gilles: 1.592
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 584;	selected revisions: 584
+total revisions: 592;	selected revisions: 592
 description:
 ----------------------------
-revision 1.584	locked by: gilles;
+revision 1.592	locked by: gilles;
+date: 2014/05/22 10:03:17;  author: gilles;  state: Exp;  lines: +23 -12
+Bugfix. Make TLS works with last IO::Socket::SSL default value (SSL_verify_mode => 'SSL_VERIFY_NONE') in tls.
+----------------------------
+revision 1.591
+date: 2014/05/22 01:32:52;  author: gilles;  state: Exp;  lines: +30 -19
+Bugfix. IO::Tee and Open3 in backstic() were incompatible.
+FailedBugFix. Tried to fix Tls issue "ERROR: Unable to start TLS: SSL connect attempt failed with unknown error error:14090086:SSL routines:SSL3_GET_SERVER_CERTIFICATE:certificate verify failed at c:/strawberry/perl/site/lib/Mail/IMAPClient.pm line 455." No success.
+----------------------------
+revision 1.590
+date: 2014/05/20 23:07:14;  author: gilles;  state: Exp;  lines: +12 -6
+Added option --disarmreadreceipts to fix resending read receipts with Exchange as host2.
+----------------------------
+revision 1.589
+date: 2014/05/20 21:35:16;  author: gilles;  state: Exp;  lines: +93 -37
+Added logging by default in subdirectory LOG_imapsync/.
+Added option --log. --log is on by default. --nolog to disable logging.
+Added option --logfile. Default is like LOG_imapsync/YYYY_MM_DD_HH_MM_SS_user2.txt
+where YYYY_MM_DD_HH_MM_SS is the current date and time like 2014_05_20_23_45_10
+Use IO::Tee Perl module for logging.
+Fixed bug when creating folders on host2 with sep2 to \\ (Lotus Notes).
+Updated the code to easily switch on --noreleasecheck by default.
+----------------------------
+revision 1.588
+date: 2014/05/15 10:36:10;  author: gilles;  state: Exp;  lines: +18 -11
+Added FTGate support (no EXAMINE).
+----------------------------
+revision 1.587
+date: 2014/05/09 17:03:27;  author: gilles;  state: Exp;  lines: +14 -7
+Typo when advising about prefix.
+Easy way to switch releasecheck of by default.
+----------------------------
+revision 1.586
+date: 2014/04/10 16:02:39;  author: gilles;  state: Exp;  lines: +9 -7
+Just a test for good_date and pop2imap
+----------------------------
+revision 1.585
+date: 2014/02/17 15:24:34;  author: gilles;  state: Exp;  lines: +39 -34
+Warn syncing messges will not be simulated when --dry mode is on and folder  on host2 does not exist yet.
+Try to get folder size when a folder on host2 has the same name but with a different case like OLD_MAIL -> old_mail. Avoid "does not exist" output.
+----------------------------
+revision 1.584
 date: 2014/02/05 00:40:59;  author: gilles;  state: Exp;  lines: +77 -50
 Debug. Print separator given by NAMESPACE even when --sep1 oe --sep2 is used.
 Debug. Prints prefix given by NAMESPACE even when --prefix1 or --prefix2 is used.

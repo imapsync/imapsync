@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.124 2013/12/25 03:04:53 gilles Exp gilles $
+# $Id: TODO,v 1.126 2014/05/21 01:15:47 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
@@ -17,12 +17,9 @@ http://www.yippiemove.com/
 http://www.migrationwiz.com/
 http://www.microsoft.com/download/en/details.aspx?id=1329 "Microsoft Transporter Suite"
 
-Write --disarm_read_receipts that does:
-  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
-May be apply it only to UNSEEN messages.
+Add an option to remove empty folders on host1, except INBOX.
 
-Write --max_messages_per_second and  --max_bytes_per_second for staying under Microsoft's throttling policies.
-
+Apply --disarmreadreceipts only to UNSEEN messages.
 
 Convert folder names to utf-8 and print them next to the uft-7 ones.
 Look at imapsync/W/learn/ 
@@ -76,9 +73,6 @@ Does \lalala can be forbidden (courier does a
 with 
 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
 
-Add an option to log both on screen and append to a file.
-At least document the tee command solution (Unix and Windows)
-
 Suggestion: it's very difficult to track down messages which are behaving
 funny during the sync. It would be great - and presumably easy to code -
 to have an option to have imapsync display e.g. the subject of an
@@ -117,8 +111,6 @@ Take a look at Mail::IMAPTalk
 Simon Bertrang said "way better performance, less problems, easier to use and no
 issues so far". Sounds good! 
 
-Add an option to implement the faq entry about copying a contact folder.
-
 imapsync doesn't report well. It should says "I had
 to sync 123 messages but I could transfer only 99 messages"
 Maybe count messages not transfered because they're dupplicate.
@@ -150,9 +142,6 @@ is changing and have it replace the domain in all user names that are
 related to ACLs.
 See patches/imapsync-acls-users
 
-Use examine() instead of select() in --dry mode.
-Add a method doing the switch automagicaly.
-
 Add --verbose from Kjetil jumbo patch.
 
 Read the IMAP RFC http://www.faqs.org/rfcs/rfc3501.html
@@ -167,6 +156,22 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
 ===========================================================================
 
+DONE. Add options --log and --logfile to log both on screen and to a file.
+DONE. Document the tee command solution (Unix and Windows) in the FAQ.
+
+NEVER. Add an option to implement the faq entry about copying a contact folder.
+(write an dedicated software instead!)
+
+NEVER. Use examine() instead of select() in --dry mode.
+Add a method doing the switch automagicaly.
+
+DONE. Write --disarmreadreceipts that does:
+  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
+
+DONE. With --foldersizes make the listing on host2 independent of case 
+(avoid "not yet created" if the folder exists in another case string)
+
+DONE. Write --maxmessagespersecond and  --maxbytespersecond for staying under Microsoft's throttling policies.
 
 DONE. Inform about --addheader when the problem occurs "(no wanted headers so we ignore this message)"
 

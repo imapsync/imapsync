@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.70 2014/01/17 15:27:11 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.73 2014/04/26 16:59:32 gilles Exp $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.70 2014/01/17 15:27:11 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.73 2014/04/26 16:59:32 gilles Exp $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -156,37 +156,63 @@ my @invoice_suspended = sort { $a <=> $b } keys( %invoice_suspended ) ;
 my @invoice_refund    = sort { $a <=> $b } keys( %invoice_refund ) ;
 
 
-print( "\n", "=" x 60, "\n" ) if $bnc ;
+print( "\n", "=" x 60, "\n" ) ;
 
-
-
-print "USD banque   $total_usd_received\n" ;
+my $total_usd_paypal_cost ;
+$total_usd_paypal_cost = sprintf('%2.2f', $total_usd_invoice - $total_usd_received ) ;
+print "USD received $total_usd_received\n" ;
 print "USD invoice  $total_usd_invoice\n" ;
-my $total_eur_from_usd ;
-$total_eur_from_usd  = sprintf('%2.2f', $total_usd_invoice / $usdeur ) ; # au 30 nov 2010 http://fr.finance.yahoo.com/devises/convertisseur/#from=EUR;to=USD;amt=1
-print "EUR from USD $total_eur_from_usd\n" ;
-print "EUR banque   $total_eur_received\n" ;
-print "EUR invoice  $total_eur_invoice\n" ;
+print "USD costs    $total_usd_paypal_cost\n" ;
 
-my $total_eur = $total_eur_from_usd + $total_eur_invoice ;
+my $total_eur_invoice_from_usd ;
+my $total_eur_received_from_usd ;
+my $total_eur_paypal_cost_from_usd ;
+
+# au 30 nov 2010 http://fr.finance.yahoo.com/devises/convertisseur/#from=EUR;to=USD;amt=1
+$total_eur_invoice_from_usd  = sprintf('%2.2f', $total_usd_invoice / $usdeur ) ; 
+$total_eur_received_from_usd = sprintf('%2.2f', $total_usd_received / $usdeur ) ; 
+$total_eur_paypal_cost_from_usd    = sprintf('%2.2f', $total_usd_paypal_cost / $usdeur ) ;
+
+# EUR
+$total_eur_received = sprintf('%2.2f', $total_eur_received) ;
+$total_eur_invoice  = sprintf('%2.2f', $total_eur_invoice) ;
+print "EUR invoice  from USD $total_eur_invoice_from_usd\n" ;
+print "EUR received from EUR $total_eur_received\n" ;
+print "EUR invoice  from EUR $total_eur_invoice\n" ;
+
+my $total_eur_invoice_from_eur_usd = $total_eur_invoice_from_usd + $total_eur_invoice ;
+my $total_eur_received_from_eur_usd = $total_eur_received_from_usd + $total_eur_received ;
+my $total_eur_paypal_cost = $total_eur_invoice - $total_eur_received + $total_eur_paypal_cost_from_usd ;
+
 
 $total_HT_EUR_exo = sprintf('%2.2f', $total_HT_EUR_exo) ;
 $total_HT_EUR_ass = sprintf('%2.2f', $total_HT_EUR_ass) ;
 $total_TVA_EUR    = sprintf('%2.2f', $total_TVA_EUR) ;
 
-$total_HT_EUR_sup    = sprintf('%2.2f', $total_HT_EUR_sup) ;
-$total_TVA_EUR_sup   = sprintf('%2.2f', $total_TVA_EUR_sup) ;
-$total_HT_EUR_sup_exo   = sprintf('%2.2f', $total_HT_EUR_sup_exo) ;
+$total_HT_EUR_sup     = sprintf('%2.2f', $total_HT_EUR_sup) ;
+$total_TVA_EUR_sup    = sprintf('%2.2f', $total_TVA_EUR_sup) ;
+$total_HT_EUR_sup_exo = sprintf('%2.2f', $total_HT_EUR_sup_exo) ;
 
-$total_eur    = sprintf('%2.2f', $total_eur) ;
+$total_eur_invoice_from_eur_usd    = sprintf('%2.2f', $total_eur_invoice_from_eur_usd) ;
+$total_eur_paypal_cost    = sprintf('%2.2f', $total_eur_paypal_cost) ;
 
-print "EUR total             $total_eur\n" ;
-print "EUR total HT exo      $total_HT_EUR_exo\n" ;
-print "EUR total HT assuj    $total_HT_EUR_ass\n" ;
-print "EUR total TVA         $total_TVA_EUR\n" ;
-print "EUR total HT  sup     $total_HT_EUR_sup\n" ;
-print "EUR total TVA sup     $total_TVA_EUR_sup\n" ;
-print "EUR total HT  sup exo $total_HT_EUR_sup_exo\n" ;
+print( "---- USD + EUR ----\n" ) ;
+print "EUR total invoice     $total_eur_invoice_from_eur_usd\n" ;
+print "EUR total received    $total_eur_received_from_eur_usd\n" ;
+print "EUR total paypal cost $total_eur_paypal_cost\n" ;
+print ;
+print( "---- Assujeti TVA ----\n" ) ;
+print "EUR total HT licen assuj $total_HT_EUR_ass (autres operations imposables)\n" ;
+#print "EUR total TVA licen assuj $total_TVA_EUR\n" ;
+print "EUR total HT supp  assuj $total_HT_EUR_sup (ventes, prestations)\n" ;
+#print "EUR total TVA supp  assuj $total_TVA_EUR_sup\n" ;
+
+print( "---- Exonere  TVA ----\n" ) ;
+print "EUR total HT licen exo $total_HT_EUR_exo (autres operations NON imposables)\n" ;
+print "EUR total HT suppo exo $total_HT_EUR_sup_exo (autres operations NON imposables)\n" ;
+
+print( "---- Invoices ----\n" ) ;
+
 print "Nb invoice            $nb_invoice ( from $first_invoice_paypal to $last_invoice )\n" ;
 print "Nb invoice canceled   ($nb_invoice_canceled) @invoice_canceled\n" ;
 print "Nb invoice suspended  ($nb_invoice_suspended) @invoice_suspended\n" ;
@@ -196,8 +222,8 @@ print "Have to send invoices @invoice_not_sent\n" if ( @invoice_not_sent ) ;
 
 my $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo ;
 $total_eur2    = sprintf('%2.2f', $total_eur2) ;
-print "$total_eur != $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo\n" 
-if ( $total_eur !=  $total_eur2 ) ;
+print "$total_eur_invoice_from_eur_usd != $total_eur2 = $total_HT_EUR_exo + $total_HT_EUR_ass + $total_TVA_EUR + $total_HT_EUR_sup + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo\n" 
+if ( $total_eur_invoice_from_eur_usd !=  $total_eur2 ) ;
 
 sub parse_one_line_io {
 	my $csv = shift ;
@@ -375,6 +401,7 @@ sub tests {
         tests_invoice_00000(  ) ;
         #tests_exportbnc(  ) ;
         tests_tva_rate(  ) ;
+        tests_tva_rate_str(  ) ;
 }
 
 sub compute_line {
@@ -1086,6 +1113,34 @@ sub tests_tva_rate {
 }
 
 
+sub tva_rate_str {
+	my $date_aaaa_mm_jj = shift ;
+        
+	if ( '2014_01_01' gt $date_aaaa_mm_jj ) {
+        	#print "tva_rate 0.196\n" ;
+        	return( '19,60\%' ) ;
+        }
+        
+	if ( '2014_01_01' le $date_aaaa_mm_jj ) {
+        	return( '20\%' ) ;
+        }
+        #print "tva_rate 0\n" ;
+	return( '' ) ;
+}
+
+sub tests_tva_rate_str {
+	ok( '19,60\%' eq tva_rate_str( '2013_01_01' ), 'tva_rate_str: old 0.196' ) ;
+	ok( '19,60\%' eq tva_rate_str( '2013_12_31' ), 'tva_rate_str: old 0.196' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2014_01_01' ), 'tva_rate_str: new 0.2' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2014_12_31' ), 'tva_rate_str: new 0.2' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2050_01_01' ), 'tva_rate_str: new 0.2' ) ;
+	ok( '20,00\%' eq tva_rate_str( '2050_12_31' ), 'tva_rate_str: new 0.2' ) ;
+        return( 0 ) ;
+}
+
+
+
+
 sub tva_line {
 	my( $Devise, $Montant2, $Pays, $Nom_Option_1, $Valeur_Option_1, $Titre_de_l_objet, $Date ) = @_ ;
 	my( $montant_HT_EUR_exo, $montant_HT_EUR_ass, $montant_TVA_EUR ) = ( 0, 0, 0 ) ;
@@ -1165,8 +1220,8 @@ sub tva_stuff {
 	     ( 'France' eq $Pays )
 	) {
 		$priceHT  = sprintf('%2.2f', $Hors_taxe / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) ) ;
-		$tvaFR    = '19,60\%';
-		$tvaEN    = '';
+		$tvaFR    = tva_rate_str( $date_aaaa_mm_jj ) ;
+		$tvaEN    = '' ;
 		$priceTVA = sprintf('%2.2f', $Hors_taxe / ( 1 + tva_rate( $date_aaaa_mm_jj ) ) * tva_rate( $date_aaaa_mm_jj ) ) ;
 		$priceTTC = sprintf('%2.2f', $Hors_taxe) ;
                 $HTorTTC  = 'TTC' ;

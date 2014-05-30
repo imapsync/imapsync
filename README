@@ -4,7 +4,7 @@ NAME
     More than 52 different IMAP server softwares supported with success, few
     failures.
 
-    $Revision: 1.584 $
+    $Revision: 1.592 $
 
 SYNOPSIS
     To synchronize imap account "foo" on "imap.truc.org" to imap account
@@ -96,6 +96,7 @@ USAGE
                [--split1] [--split2] 
                [--reconnectretry1 <int>] [--reconnectretry2 <int>]
                [--noreleasecheck]
+               [--releasecheck]
                [--pidfile <filepath>]
                [--tmpdir  <dirpath>]
                [--version] [--help]
@@ -248,7 +249,7 @@ AUTHOR
     (see the license) over decades.
 
 BUG REPORT GUIDELINES
-    Help us to help you: follow the following guidelines.
+    Help me to help you: follow the following guidelines.
 
     Report any bugs or feature requests to the public mailing-list or to the
     author.
@@ -260,26 +261,28 @@ BUG REPORT GUIDELINES
 
     Upgrade to last Mail-IMAPClient Perl module.
     http://search.cpan.org/dist/Mail-IMAPClient/ maybe the bug is already
-    fixed.
+    fixed there.
 
     Make a good title with word "imapsync" in it (my spam filter won't
-    filter it), Don't write an email title with just "imapsync" or
-    "problem", a good title is made of keywords summary, not too long (one
-    visible line).
-
-    Don't write imapsync in uppercase in the email title, I'll then know you
-    run Windows and you haven't read this README yet.
+    filter it), Try to write an email title with more words than just
+    "imapsync" or "problem", a good title is made of keywords summary, but
+    not too long (one visible line).
 
     Help us to help you: in your report, please include:
 
      - imapsync version.
 
-     - output given with --debug --debugimap near the failure point.
-       Isolate a message or two in a folder 'BUG' and use 
+     - output near the first failures, a few lines before is good to get the context
+       of the issue. First failures messages are often more significant than 
+       the last ones. 
+ 
+     - if the issue is always related to the same messages, include the output 
+       with --debug --debugimap, near the failure point. For example,
+       Isolate a buggy message or two in a folder 'BUG' and use 
 
          imapsync ... --folder 'BUG' --debug --debugimap 
 
-     - imap server software on both side and their version number.
+     - imap server softwares on both sides and their version number.
 
      - imapsync with all the options you use,  the full command line
        you use (except the passwords of course). 
@@ -297,15 +300,19 @@ BUG REPORT GUIDELINES
        you run imapsync on a foreign host from the both.
 
     Most of those values can be found as a copy/paste at the begining of the
-    output, so a copy of the output is a very easy and very good debug
-    report for me.
+    output, so a carbon copy of the output is a very easy and very good
+    debug report for me.
 
     One time in your life, read the paper "How To Ask Questions The Smart
     Way" http://www.catb.org/~esr/faqs/smart-questions.html and then forget
     it.
 
 IMAP SERVERS
-    Failure stories reported with the following 3 imap servers:
+    Failure stories reported in the past with the following 6 imap servers.
+    Maybe last imapsync release can run successfully with them. Don't
+    hesitate to have a try, It's been a long time since last failure
+    occured, I will help you and make efforts to switch them to the success
+    list, that's my job.
 
      - MailEnable 1.54 (Proprietary) but MailEnable 4.23 is supported. 
      - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 is supported.
@@ -317,7 +324,7 @@ IMAP SERVERS
      - Hotmail since hotmail.com does not provide IMAP access
      - Outlook.com since outlook.com does not provide IMAP access
 
-    Success stories reported with the following 57 imap servers (software
+    Success stories reported with the following 62 imap servers (software
     names are in alphabetic order):
 
      - 1und1 H mimap1 84498 [host1] H mibap4 95231 [host1]
@@ -349,6 +356,8 @@ IMAP SERVERS
      - Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
        1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)
      - Eudora WorldMail v2
+     - FirtClass 9 [host1] Read the FAQ! (http://www.firstclass.com/)
+     - FTGate (http://www.ftgate.com/)
      - Fusemail imap.fusemail.net:143 (https://www.fusemail.com/).
      - Gimap (Gmail imap)
      - GMX IMAP4 StreamProxy.
@@ -443,9 +452,11 @@ HUGE MIGRATION
       --host1 imap.side1.org --user1 %%G --password1 %%H ^
       --host2 imap.side2.org --user2 %%I --password2 %%J ...
 
-    The ... have to be replaced by nothing or any imapsync option.
+    The ... have to be replaced by nothing or any imapsync option. Welcome
+    in shell programming !
 
-    Welcome in shell programming !
+    You will find already written scripts at
+    http://imapsync.lamiral.info/examples/
 
 Hacking
     Feel free to hack imapsync as the NOLIMIT license permits it.
@@ -472,5 +483,5 @@ SIMILAR SOFTWARES
 
     Feedback (good or bad) will often be welcome.
 
-    $Id: imapsync,v 1.584 2014/02/05 00:40:59 gilles Exp gilles $
+    $Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $
 

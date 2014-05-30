@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.235 2014/01/27 02:22:29 gilles Exp gilles $  
+# $Id: tests.sh,v 1.238 2014/05/22 10:02:14 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./W/Mail-IMAPClient-3.35/lib' sh -x tests.sh
@@ -379,6 +379,18 @@ ll_folder_create_INBOX_Inbox() {
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX --regextrans2 's/INBOX/Inbox/' \
 		--justfolders --nofoldersizes
+}
+
+ll_folder_create_backslash_backslash() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap.yip --regextrans2 's/yop/newyop/' \
+                --sep2 '\\' \
+		--justfolders --nofoldersizes --dry 
+#--create_folder_old
 }
 
 
@@ -764,6 +776,28 @@ ll_justfoldersizes()
                 --passfile2 ../../var/pass/secret.titi \
                 --justfoldersizes
 }
+
+ll_justfoldersizes_case_different() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfoldersizes --folder INBOX --regextrans2 's,^INBOX$,iNbOx,'
+}
+
+ll_justfoldersizes_case_different_2() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfoldersizes --folder INBOX.yop --regextrans2 's,yop,YoP,'
+}
+
+
 
 ll_justfoldersizes_noexist() 
 {
@@ -1158,6 +1192,17 @@ ll_folder_INBOX()
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX  --noreleasecheck --usecache --delete2 --expunge2
 }
+
+ll_dry_folder_missing()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX  --dry --regextrans2 "s,^INBOX$,noexit,"
+}
+
 
 
 ll_maxage_9999() 
@@ -1650,6 +1695,21 @@ ll_regexmess_remove_header_Disposition()
                 echo "sudo sh -c 'rm /home/vmail/titi/.regexmess/cur/*'"
 }
 
+ll_disarmreadreceipts() 
+{
+#Disposition-Notification-To: Gilles LAMIRAL <gilles.lamiral@laposte.net>
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.regexmess \
+		--nofoldersizes \
+                --disarmreadreceipts \
+                --debugcontent  --debug 
+                echo "sudo sh -c 'rm /home/vmail/titi/.regexmess/cur/*'"
+}
+
 
 
 ll_regexmess_scwchu() 
@@ -1877,17 +1937,34 @@ ll_ssl_justconnect() {
                 --justconnect
 }
 
-ll_ssl_tls_justconnect() {
+ll_ssl1_tls2_justconnect() {
         $CMD_PERL ./imapsync \
 	 --host1 $HOST1 \
          --host2 $HOST2 \
-         --ssl1 --tls1  --ssl2 --tls2  \
+         --ssl1 --tls2  \
+         --justconnect --debugimap
+}
+
+ll_tls1_ssl2_justconnect() {
+        $CMD_PERL ./imapsync \
+	 --host1 $HOST1 \
+         --host2 $HOST2 \
+         --tls1 --ssl2 \
+         --justconnect --debugimap
+}
+
+ll_ssl1_tls1_justconnect() {
+        $CMD_PERL ./imapsync \
+	 --host1 $HOST1 \
+         --host2 $HOST2 \
+         --ssl1 --tls1   \
          --justconnect --debugimap
 }
 
 
+
 ll_justconnect_devel() {
-   ll_justconnect && ll_tls_justconnect && ll_ssl_justconnect && ll_ssl_tls_justconnect
+   ll_justconnect && ll_tls_justconnect && ll_ssl_justconnect && ll_ssl1_tls2_justconnect && ll_tls1_ssl2_justconnect && ! ll_ssl1_tls1_justconnect
 }
 
 
@@ -1913,7 +1990,7 @@ ll_ssl_tls_justlogin() {
 }
 
 ll_justlogin_devel() {
-    ll_justlogin && ll_ssl_justlogin && ll_tls_justlogin && ll_ssl_tls_justlogin 
+    ll_justlogin && ll_ssl_justlogin && ll_tls_justlogin && ! ll_ssl_tls_justlogin 
 }
 
 ll_ssl() {
@@ -2459,6 +2536,61 @@ xxxxx_gmail_5_justlogin() {
 		--justlogin
 }
 
+xxxxx_gmail_5_justlogin_exe() {
+
+                ! ping -c1 imap.gmail.com || ./imapsync_elf_x86.bin \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--justlogin
+}
+
+xxxxx_gmail_5_justlogin_SSLv3() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--justlogin --ssl2_SSL_version SSLv3 --justconnect
+}
+
+xxxxx_gmail_5_justlogin_SSLv2() {
+
+                ! ping -c1 imap.gmail.com || ! $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--justlogin --ssl2_SSL_version SSLv2
+}
+
+xxxxx_gmail_5_justlogin_SSLv23() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--justlogin --ssl2_SSL_version SSLv23
+}
+
+
+
+
 xxxxx_gmail_6() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -2594,6 +2726,21 @@ gmail_gmail() {
 
 }
 
+gmail_gmail_justconnect() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --justconnect
+
+}
+
 gmail_gl_gl2() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -2607,6 +2754,23 @@ gmail_gl_gl2() {
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --justfolders --exclude Gmail  --exclude "blanc\ $" --dry
 }
+
+
+gmail_gl_gl2_SUB() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --ssl1 \
+                --user1 imapsync.gl@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl_gmail \
+                --host2 imap.gmail.com \
+                --ssl2 \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --justfolders --nofoldersizes --exclude Gmail --regextrans2 "s,(.*),SUB/\$1,"
+}
+
+
 
 gmail_gl_gl2_create_folder_old() {
 
@@ -3528,7 +3692,7 @@ big_folder()
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
         --include INBOX.Junk.20 \
-        --usecache --tmpdir /var/tmp || \
+        --usecache --tmpdir /var/tmp --debugmemory  || \
     true
     }
     date2=`date`
@@ -3732,6 +3896,7 @@ ll_regex_flag_bad
 ll_regex_flag_keep_only 
 ll_justconnect 
 ll_justlogin 
+ll_justconnect_devel
 ll_ssl 
 ll_ssl_justconnect 
 ll_ssl_justlogin 

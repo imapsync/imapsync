@@ -1,17 +1,23 @@
-# $Id: INSTALL,v 1.33 2013/12/25 03:25:18 gilles Exp gilles $
+# $Id: INSTALL,v 1.38 2014/05/29 23:42:11 gilles Exp gilles $
 # 
 # INSTALL file for imapsync 
 # imapsync : IMAP sync and migrate tool.
 
 INTRODUCTION
-------------
+============
 
  imapsync works fine under any operating system with Perl and Perl modules (listed below).
  imapsync.exe works fine standalone under Windows XP, Vista, Seven, 20XX, either 32 or 64bit.
 
+WINDOWS
+=======
+
+Read the file README_Windows.txt
 
 UNIX
-----
+====
+
+This section doesn't concern Windows imapsync.exe users.
 
  Purchase imapsync at
  http://imapsync.lamiral.info/
@@ -24,49 +30,6 @@ UNIX
  Go into the directory imapsync-x.xx and read the INSTALL file.
  You're already reading the INSTALL file.
 
-WINDOWS
--------
-
-a) Simplest way:
-
-- Buy imapsync.exe at http://imapsync.lamiral.info/
-
-- Run imapsync.exe in a command prompt (execute cmd.exe)
-  but I suggest the next process, I use it myself.
-
-- Since it is simpler to edit a batch file with notepad than 
-  the command line in DOS mode:
-
-  a) Look at the batch file at
-     http://imapsync.lamiral.info/examples/imapsync_example.bat
-  b) Take it and put this batch file in the same directory as imapsync.exe
-  c) Edit this batch file with notepad and replace the parameters 
-     with your own values
-  d) Run the batch file with a double-click.
-
-
-b) Hard way. It is the hard way because it installs all software
-   dependencies. The way for changing imapsync if needed.
-
-- Get imapsync-x.xx.tgz
-- Install Perl if it isn't already installed.
-  Strawberry Perl is a very good candidate
-  http://strawberryperl.com/
-
-- Use the command CPAN to install modules listed in the PREREQUISITES section.
-  There is also a batch file that does this install for you
-  It is called install_modules.bat available at
-  http://imapsync.lamiral.info/examples/install_modules.bat
-
-c) How to build imapsync.exe?
-
-- Do the hard stuff in b)
-- Run build_exe.bat (found in the tarball)
-
-PREREQUISITES 
--------------
-
-This section doesn't concern Windows imapsync.exe users.
 
 You need : 
 - Perl 
@@ -113,45 +76,11 @@ Here is some individual module help:
   run imapsync with included Mail-IMAPClient-3.35/ wherever you 
   unpacked the imapsync tarball.
 
-- Digest::MD5
-  perl -mDigest::MD5 -e ""
-
-  http://search.cpan.org/
-  http://search.cpan.org/~gaas/Digest-MD5-2.52/
-  To know the version you have on your system try :
-  perl -mDigest::MD5 -e 'print $Digest::MD5::VERSION, "\n"'
-  I use 2.39 (Ubuntu package)
-
-- Term::ReadKey
-  perl -mTerm::ReadKey -e ""
-
-- IO::Socket::SSL
-  perl -mIO::Socket::SSL -e ""
-
-- Digest::HMAC_MD5
-  Good for non plain text password over network.
-  perl -mDigest::HMAC_MD5 -e ""
-
-- Authen::NTLM
-  perl -mAuthen::NTLM -e ""
-
-- Time::HiRes
-  perl -mTime::HiRes  -e ""
-
-- Data::Uniqid
-  perl -mData::Uniqid  -e ""
-
-- URI::Escape
-  perl -mURI::Escape  -e ""
-
-- File::Copy::Recursive
-  perl -mFile::Copy::Recursive -e ""
-
-Test everything in one command:
+Test all Perl modules dependency in one command:
 
   perl -mMail::IMAPClient -mDigest::MD5 -mTerm::ReadKey -mIO::Socket::SSL \
        -mDigest::HMAC_MD5 -mAuthen::NTLM -e -mTime::HiRes \
-       -mData::Uniqid -mURI::Escape  ""
+       -mData::Uniqid -mURI::Escape -mFile::Copy::Recursive -mIO::Tee ""
 
 You can install easily those Perl modules in latest release via the
 following commands (with root permissions)
@@ -162,21 +91,22 @@ following commands (with root permissions)
   perl -MCPAN -e "install Digest::HMAC_MD5"
   perl -MCPAN -e "install URI::Escape"
   perl -MCPAN -e "install File::Copy::Recursive"
+  perl -MCPAN -e "install IO::Tee"
 
   perl -MCPAN -e "install Data::Uniqid"
   perl -MCPAN -e "install Authen::NTLM"
 
 
-You can also install them easily too by using the standard install
-command on your system if the packages have been made on it
-(so you may not have the latest but most of the time it
-doesn't care). 
+You can also install them easily by using the standard install
+command on your system if the packages have been made on it.
+Doing so you may not have the latest release but most of the time 
+it doesn't care. 
 
 Modules 
  Authen::NTLM
  Data::Uniqid
-may be not available this distribution way since I haven't find them
-on Ubuntu nor on Mandriva.
+may be not available in the distribution way since I haven't find them
+on Ubuntu nor on Mandriva but Centos supports them.
 
 On Debian/Ubuntu:
 
@@ -186,6 +116,7 @@ On Debian/Ubuntu:
   aptitude install libdigest-hmac-perl         # Digest::HMAC_MD5 Digest::HMAC_SHA1
   aptitude install liburi-perl                 # URI::Escape
   aptitude install libfile-copy-recursive-perl # File::Copy::Recursive
+  aptitude install libio-tee-perl              # IO::Tee
 
 On Mandriva:
 
@@ -195,6 +126,8 @@ On Mandriva:
   urpmi perl-Digest-HMAC         # Digest::HMAC_MD5 Digest::HMAC_SHA1
   urpmi perl-URI                 # URI::Escape
   urpmi perl-File-Copy-Recursive # File::Copy::Recursive
+  urpmi perl-IO-Tee              # IO::Tee
+  
 
 On  CentOS (thanks to Ralf Hauber)
 
@@ -204,17 +137,18 @@ On  CentOS (thanks to Ralf Hauber)
   wget http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
   rpm -Uvh epel-release*rpm
 
-  yum install perl-Mail-IMAPClient
-  yum install "perl(Term::ReadKey)"
-  yum install "perl(Authen::NTLM)"
-  yum install perl-Data-Uniqid
-  yum install perl-File-Copy-Recursive
+  yum install perl-Mail-IMAPClient       # Mail::IMAPClient
+  yum install "perl(Term::ReadKey)"      # Term::ReadKey
+  yum install "perl(Authen::NTLM)"       # Authen::NTLM
+  yum install perl-Data-Uniqid           # Data::Uniqid
+  yum install perl-File-Copy-Recursive   # File::Copy::Recursive
+  yum install perl-IO-Tee                # IO::Tee
 
 
 INSTALLING on Unix
 ------------------
 
-To see what will be done, just run:
+To see what will be done, just run (you need the make command):
 
   make -n install
 
@@ -223,6 +157,9 @@ To install imapsync in /usr/bin/ and man page in /usr/share/man/man1/, just run 
   make install
 
 or copy the file imapsync where you want it to be.
+For example:
+
+  cp imapsync /usr/bin/
 
 TESTING on Unix
 ---------------

@@ -22,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.584 $
+$Revision: 1.592 $
 
 =head1 SYNOPSIS
 
@@ -117,6 +117,8 @@ The option list:
            [--timeout <int>] 
            [--split1] [--split2] 
            [--reconnectretry1 <int>] [--reconnectretry2 <int>]
+	   [--noreleasecheck]
+           [--releasecheck]
 	   [--pidfile <filepath>]
 	   [--tmpdir  <dirpath>]
            [--version] [--help]
@@ -296,7 +298,7 @@ softwares (see the license) over decades.
 
 =head1 BUG REPORT GUIDELINES
 
-Help us to help you: follow the following guidelines.
+Help me to help you: follow the following guidelines.
 
 Report any bugs or feature requests to the public mailing-list 
 or to the author.
@@ -309,25 +311,27 @@ is already fixed.
 
 Upgrade to last Mail-IMAPClient Perl module.
 http://search.cpan.org/dist/Mail-IMAPClient/
-maybe the bug is already fixed.
+maybe the bug is already fixed there.
 
 Make a good title with word "imapsync" in it (my spam filter won't filter it), 
-Don't write an email title with just "imapsync" or "problem",
-a good title is made of keywords summary, not too long (one visible line).
-
-Don't write imapsync in uppercase in the email title, I'll
-then know you run Windows and you haven't read this README yet.
+Try to write an email title with more words than just "imapsync" or "problem",
+a good title is made of keywords summary, but not too long (one visible line).
 
 Help us to help you: in your report, please include:
 
  - imapsync version.
 
- - output given with --debug --debugimap near the failure point.
-   Isolate a message or two in a folder 'BUG' and use 
+ - output near the first failures, a few lines before is good to get the context
+   of the issue. First failures messages are often more significant than 
+   the last ones. 
+ 
+ - if the issue is always related to the same messages, include the output 
+   with --debug --debugimap, near the failure point. For example,
+   Isolate a buggy message or two in a folder 'BUG' and use 
 
      imapsync ... --folder 'BUG' --debug --debugimap 
 
- - imap server software on both side and their version number.
+ - imap server softwares on both sides and their version number.
 
  - imapsync with all the options you use,  the full command line
    you use (except the passwords of course). 
@@ -345,7 +349,7 @@ Help us to help you: in your report, please include:
    you run imapsync on a foreign host from the both.
 
 Most of those values can be found as a copy/paste at the begining of the output,
-so a copy of the output is a very easy and very good debug report for me.
+so a carbon copy of the output is a very easy and very good debug report for me.
 
 One time in your life, read the paper 
 "How To Ask Questions The Smart Way"
@@ -354,7 +358,11 @@ and then forget it.
 
 =head1 IMAP SERVERS 
 
-Failure stories reported with the following 3 imap servers:
+Failure stories reported in the past with the following 6 imap servers.
+Maybe last imapsync release can run successfully with them.
+Don't hesitate to have a try, It's been a long time since last failure occured,
+I will help you and make efforts to switch them to the success list, 
+that's my job.
 
  - MailEnable 1.54 (Proprietary) but MailEnable 4.23 is supported. 
  - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 is supported.
@@ -366,7 +374,7 @@ Failure stories reported with the following 3 imap servers:
  - Hotmail since hotmail.com does not provide IMAP access
  - Outlook.com since outlook.com does not provide IMAP access
 
-Success stories reported with the following 57 imap servers 
+Success stories reported with the following 62 imap servers 
 (software names are in alphabetic order): 
 
  - 1und1 H mimap1 84498 [host1] H mibap4 95231 [host1]
@@ -398,6 +406,8 @@ Success stories reported with the following 57 imap servers
  - Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
    1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)
  - Eudora WorldMail v2
+ - FirtClass 9 [host1] Read the FAQ! (http://www.firstclass.com/)
+ - FTGate (http://www.ftgate.com/)
  - Fusemail imap.fusemail.net:143 (https://www.fusemail.com/).
  - Gimap (Gmail imap)
  - GMX IMAP4 StreamProxy.
@@ -507,8 +517,12 @@ On Windows the batch program can be:
   --host2 imap.side2.org --user2 %%I --password2 %%J ...
 
 The ... have to be replaced by nothing or any imapsync option.
-
 Welcome in shell programming !
+
+You will find already written scripts at 
+http://imapsync.lamiral.info/examples/
+
+
 
 =head1 Hacking
 
@@ -541,7 +555,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.584 2014/02/05 00:40:59 gilles Exp gilles $
+$Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $
 
 =cut
 
@@ -574,6 +588,7 @@ use Time::Local ;
 use Time::HiRes qw( time sleep ) ;
 use Test::More 'no_plan' ;
 use IPC::Open3 'open3' ;
+use IO::Tee ;
 #use Unix::Sysexits ;
 
 # global variables
@@ -670,14 +685,16 @@ my(
         $create_folder_old,
         $maxmessagespersecond,
         $maxbytespersecond,
-        $skipcrossduplicates, $debugcrossduplicates, 
+        $skipcrossduplicates, $debugcrossduplicates,
+        $log, $logfile,
+	$disarmreadreceipts,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.584 2014/02/05 00:40:59 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -699,8 +716,6 @@ $h2_nb_msg_end = $h2_bytes_end = 0 ;
 
 $nb_errors = 0;
 $max_msg_size_in_bytes = 0;
-
-$releasecheck = 0;
 
 my %month_abrev = (
    Jan => 0,
@@ -733,17 +748,30 @@ get_options(  ) ;
 local $SIG{ INT } = local $SIG{ QUIT } = local $SIG{ TERM } = \&catch_exit ;
 
 $timestart = time(  );
+
+$log       = defined($log)     ? $log : 1 ;
+$logfile   = defined($logfile) ? $logfile : logfile( $timestart, $user2 ) ;
+
+teelaunch( $logfile ) if ( $log ) ;
+
 $timestart_int = int( $timestart ) ;
 $timebefore = $timestart ;
 
 my $timestart_str = localtime( $timestart ) ;
 print "Transfer started at $timestart_str\n" ;
 print "PID is $PROCESS_ID\n" ;
+print "Log file is $logfile\n" if ( $log ) ;
 $modules_version = defined( $modules_version ) ? $modules_version : 1 ;
 
+# If you want releasecheck not to be done by default (like the github maintainer),
+# then uncomment the first "$releasecheck =" line, the line ending with "0 ;".
+# The second line (ending with "1 ;") can stay active or be commented, 
+# the result will be the same: no releasecheck by default.
 
-$releasecheck = defined($releasecheck) ? $releasecheck : 1;
-my $warn_release = ($releasecheck) ? check_last_release() : '';
+#$releasecheck = defined($releasecheck) ? $releasecheck : 0 ;
+$releasecheck = defined($releasecheck) ? $releasecheck : 1 ;
+
+my $warn_release = ($releasecheck) ? check_last_release() : '' ;
 
 # default values
 
@@ -803,7 +831,7 @@ print banner_imapsync(@argv_copy);
 
 print "Temp directory is $tmpdir\n";
 
-is_valid_directory( $tmpdir ) ;
+is_valid_directory( $tmpdir ) || croak "Error creating tmpdir $tmpdir : $!" ;
 write_pidfile( $pidfile ) if ( $pidfile ) ;
 
 $fixcolonbug = defined( $fixcolonbug ) ? $fixcolonbug : 1 ;
@@ -989,6 +1017,9 @@ $dry_message = "\t(not really since --dry mode)" if $dry ;
 $search1 ||= $search if ( $search ) ;
 $search2 ||= $search if ( $search ) ;
 
+if ( $disarmreadreceipts ) {
+	push( @regexmess, 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' ) ;
+}
 
 if ( @regexmess ) {
 	my $string = regexmess( '' ) ;
@@ -1042,13 +1073,13 @@ if ( $justlogin ) {
 #
 
 my (
-@h1_folders_all, %h1_folders_all, @h1_folders_wanted, %requested_folder, 
-%h1_subscribed_folder, %h2_subscribed_folder, 
-@h2_folders_all, %h2_folders_all, 
-@h2_folders_from_1_wanted, %h2_folders_from_1_wanted, 
-%h2_folders_from_1_several, 
-%h2_folders_from_1_all,
-);
+@h1_folders_all , %h1_folders_all , @h1_folders_wanted , %requested_folder , 
+%h1_subscribed_folder , %h2_subscribed_folder , 
+@h2_folders_all , %h2_folders_all , %h2_folders_all_UPPER , 
+@h2_folders_from_1_wanted , %h2_folders_from_1_wanted , 
+%h2_folders_from_1_several , 
+%h2_folders_from_1_all ,
+) ;
 
 
 # Make a hash of subscribed folders in both servers.
@@ -1061,7 +1092,10 @@ for ( $imap2->subscribed(  ) ) { $h2_subscribed_folder{ $_ } = 1 } ;
 @h2_folders_all = sort $imap2->folders();
 
 for ( @h1_folders_all ) { $h1_folders_all{ $_ } = 1 } ;
-for ( @h2_folders_all ) { $h2_folders_all{ $_ } = 1 } ;
+for ( @h2_folders_all ) { 
+	$h2_folders_all{ $_ } = 1 ;
+	$h2_folders_all_UPPER{ uc( $_ ) } = 1 ;
+} ;
 
 if ( $fixInboxINBOX and ( my $reg = fix_Inbox_INBOX_mapping( \%h1_folders_all, \%h2_folders_all ) ) ) {
 	#print "RRRRRR $reg\n" ;
@@ -1222,7 +1256,6 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 
 	# host1 can not be fetched read only, select is needed because of expunge.
 	select_folder( $imap1, $h1_fold, 'Host1' ) or next FOLDER ;
-	#examine_folder( $imap1, $h1_fold, 'Host1' ) or next FOLDER ;
 	
 	
 	if ( ! exists( $h2_folders_all{ $h2_fold } ) ) {
@@ -1705,6 +1738,7 @@ $imap2->logout(  ) unless lost_connection($imap2, "for host2 [$host2]");
 
 
 stats(  ) ;
+print "Log file is $logfile\n" if ( $log ) ;
 exit_clean( 1 ) if ( $nb_errors ) ;
 exit_clean( 0 ) ;
 
@@ -1988,20 +2022,23 @@ sub catch_continue {
 
 
 sub connect_imap {
-	my( $host, $port, $mydebugimap, $ssl, $tls, $SSL_version ) = @_;
-	my $imap = Mail::IMAPClient->new();
-	if ( $ssl ) { set_ssl( $imap, $ssl, $SSL_version ) }
-	$imap->Tls($tls) if ($tls);
-	$imap->Server($host);
-	$imap->Port($port);
-	$imap->Debug($mydebugimap);
+	my( $host, $port, $mydebugimap, $ssl, $tls, $SSL_version ) = @_ ;
+	my $imap = Mail::IMAPClient->new() ;
+	if ( $ssl ) { set_ssl( $imap, $SSL_version ) }
+	if ( $tls ) { 
+        	$imap->Tls( $tls ) ;
+        }
+	$imap->Server($host) ;
+	$imap->Port($port) ;
+	$imap->Debug($mydebugimap) ;
 	$imap->connect()
-	  or die_clean("Can not open imap connection on [$host]: $@\n");
+	  or die_clean("Can not open imap connection on [$host]: $@\n") ;
 
         my $banner = $imap->Results()->[0] ;
         $imap->Banner( $banner ) ;
         
         if ( $imap->Tls(  ) ) {
+        	set_tls( $imap ) ;
         	$imap->starttls(  )
                 or die_clean("Can not go to tls encryption on [$host]:", $imap->LastError, "\n" ) ;
         }
@@ -2093,6 +2130,7 @@ sub login_imap {
         }
 
         if ( $imap->Tls(  ) ) {
+        	set_tls( $imap ) ;
         	$imap->starttls(  )
                 or die_clean("Can not go to tls encryption on [$host]:", $imap->LastError, "\n" ) ;
         }
@@ -2179,7 +2217,7 @@ sub check_capability {
 }
 
 sub set_ssl {
-	my ( $imap, $ssl, $SSL_version ) = @_ ;
+	my ( $imap, $SSL_version ) = @_ ;
         # SSL_version can be
         #    SSLv3 SSLv2 SSLv23 SSLv23:!SSLv2 (last one is the default in IO-Socket-SSL-1.953)
         #
@@ -2195,6 +2233,18 @@ sub set_ssl {
 	return(  ) ;
 }
 
+sub set_tls {
+	my ( $imap ) = @_ ;
+	my $tlsargs = [
+		SSL_verify_mode => 'SSL_VERIFY_NONE',
+        ] ;
+        $imap->Starttls( $tlsargs ) ;
+	return(  ) ;
+}
+
+
+
+
 sub init_imap {
 	my($host, $port, $user, $domain, $password, 
 	   $mydebugimap, $mytimeout, $fastio, 
@@ -2205,8 +2255,10 @@ sub init_imap {
 	
 	$imap = Mail::IMAPClient->new() ;
 	
-	if ( $ssl ) { set_ssl( $imap, $ssl, $SSL_version ) }
-	$imap->Tls($tls) if ($tls);
+	if ( $ssl ) { set_ssl( $imap, $SSL_version ) }
+	if ( $tls ) { 
+        	$imap->Tls( $tls ) ;
+        }
 	$imap->Clear(1);
 	$imap->Server($host);
 	$imap->Port($port);
@@ -2320,8 +2372,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.584 $ ',
-		  '$Date: 2014/02/05 00:40:59 $ ',
+		  '$Revision: 1.592 $ ',
+		  '$Date: 2014/05/22 10:03:17 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -2331,11 +2383,9 @@ sub banner_imapsync {
 
 sub is_valid_directory {
 	my $dir = shift;
-	return(1) if (-d $dir and -r _ and -w _) ;
+	return( 1 ) if (-d $dir and -r _ and -w _) ;
 	# Trying to create it
-	mkpath( $dir ) or croak "Error creating tmpdir $tmpdir : $!" ;
-	croak "Error with tmpdir $tmpdir : $!" if not (-d $dir and -r _ and -w _) ;
-	return( 1 ) ;
+	eval { mkpath( $dir ) } or return( 0 ) ;
 }
 
 
@@ -2372,12 +2422,12 @@ sub exit_clean {
 sub die_clean {
 	my @messages = @_ ;
 	unlink( $pidfile ) ;
-	croak( @messages ) ;
+	die( @messages ) ;
 } 
 
 sub missing_option {
 	my ($option) = @_;
-	die_clean("$option option must be used, run $0 --help for help\n");
+	die_clean("$option option is mandatory, for help run $0 --help\n");
 	return(  ) ;
 }
 
@@ -2487,45 +2537,47 @@ sub create_folder_old {
 
 
 sub create_folder {
-        my( $imap2, $h2_fold, $h1_fold ) = @_ ;
-        my(@parts, $parent);
+        my( $imap2 , $h2_fold , $h1_fold ) = @_ ;
+        my( @parts , $parent ) ;
 
 	if ( $create_folder_old ) {
-        	return( create_folder_old( $imap2, $h2_fold, $h1_fold ) ) ;
+        	return( create_folder_old( $imap2 , $h2_fold , $h1_fold ) ) ;
 	}
-        print "Creating folder [$h2_fold] on host2\n";
-        if ( ( 'INBOX' eq uc( $h2_fold) )
+        print "Creating folder [$h2_fold] on host2\n" ;
+        if ( ( 'INBOX' eq uc( $h2_fold ) )
          and ( $imap2->exists( $h2_fold ) ) ) {
                 print "Folder [$h2_fold] already exists\n" ;
                 return( 1 ) ;
         }
 
-        @parts = split($h2_sep, $h2_fold );
-        pop( @parts );
-        $parent = join($h2_sep, @parts );
+        @parts = split( /\Q$h2_sep\E/ , $h2_fold ) ;
+        pop( @parts ) ;
+        $parent = join( $h2_sep , @parts ) ;
         $parent =~ s/^\s+|\s+$//g ;
-        if(($parent ne "") and ! $imap2->exists( $parent )) {
-                create_folder( $imap2 , $parent , $h1_fold);
+        if ( ($parent ne "") and ! $imap2->exists( $parent ) ) {
+                create_folder( $imap2 , $parent , $h1_fold ) ;
         }
 
-        if ( ! $dry ){
+        if ( ! $dry ) {
                 if ( ! $imap2->create( $h2_fold ) ) {
-                        print( "Could not create folder [$h2_fold] from [$h1_fold]: ",
-                        $imap2->LastError(  ), "\n" );
-                        $nb_errors++;
+                        print( "Could not create folder [$h2_fold] from [$h1_fold]: " ,
+                        $imap2->LastError(  ), "\n" ) ;
+                        $nb_errors++ ;
                         # success if folder exists ("already exists" error)
                         return( 1 ) if $imap2->exists( $h2_fold ) ;
                         # failure since create failed
-                        return( 0 );
+                        return( 0 ) ;
                 }else{
                         #create succeeded
-                        print "Created  folder [$h2_fold] on host2\n";
-                        return( 1 );
+                        print "Created  folder [$h2_fold] on host2\n" ;
+                        return( 1 ) ;
                 }
         }else{
                 # dry mode, no folder so many imap will fail, assuming failure
-                print "Created  folder [$h2_fold] on host2 $dry_message\n";
-                return( 0 );
+                print "Created  folder [$h2_fold] on host2 $dry_message\n" ;
+                print "Since --dry mode is on and folder [$h2_fold] on host2 does not exist yet, syncing messges will not be simulated.\n"
+                . "To simulate message syncing, use --justfolders without --dry to first create the missing folders then rerun the --dry sync.\n" ;
+                return( 0 ) ;
         }
 }
 
@@ -2796,7 +2848,7 @@ sub help_to_guess_prefix {
 	. "the folowing listing of folders may help you to find it:\n"
 	. folders_list_to_help( $imap )
 	. "Most of the time it is INBOX. or an empty string\n"
-	. "so try $prefix_opt INBOX. or $prefix_opt" . '""' . "\n" ;
+	. "so try $prefix_opt INBOX. or $prefix_opt " . '""' . "\n" ;
 	
 	return( $help_to_guess_prefix ) ;
 }
@@ -2965,7 +3017,7 @@ sub foldersizes {
 		my $stot = 0 ;
 		my $nb_msgs = 0 ;
 		printf( "$side folder %-35s", "[$folder]" ) ;
-                if ( 'Host2' eq $side and not exists( $h2_folders_all{ $folder } ) ) {
+                if ( 'Host2' eq $side and not exists( $h2_folders_all_UPPER{ uc( $folder ) } ) ) {
 		        print(" does not exist yet\n") ;
 			next ;
 		}
@@ -2974,7 +3026,9 @@ sub foldersizes {
 			next ;
 		}
                 
-		unless ( $imap->examine( $folder ) ) {
+		# FTGate is RFC buggy with EXAMINE it does not act as SELECT
+		#unless ( $imap->examine( $folder ) ) {
+		unless ( $imap->select( $folder ) ) {
 			print 
 			  "$side Folder $folder: Could not examine: ",
 			    $imap->LastError,  "\n" ;
@@ -3348,7 +3402,7 @@ sub select_msgs_by_fetch {
 
 
 	$debugdev and print "Calling fetch_hash()\n" ;
-	my $uidnext = $imap->uidnext( $folder ) or return(  ) ;
+	my $uidnext = $imap->uidnext( $folder ) || $uidnext_default ;
 	%fetch = %{$imap->fetch_hash( "1:$uidnext", "INTERNALDATE") } ;
         @msgs_all = sort { $a <=> $b } keys( %fetch ) ;
         $debugdev and print "Done fetch_hash()\n" ;
@@ -4737,7 +4791,8 @@ sub stats {
 
 	my $timeend_str   = localtime( $timeend ) ;
         
-	my $memory_consumption = memory_consumption(  ) || 0 ;
+	my $memory_consumption = 0 ;
+        $memory_consumption = memory_consumption(  ) || 0 ;
 	my $memory_ratio = ($max_msg_size_in_bytes) ?  
 		sprintf('%.1f', $memory_consumption / $max_msg_size_in_bytes) : "NA" ;
 
@@ -5009,7 +5064,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.584 2014/02/05 00:40:59 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {
@@ -5132,8 +5187,8 @@ sub memory_consumption_of_pids {
 		@val = memory_consumption_of_pids_win32(@pid);
 	}else{
 		# Unix
-		#my @ps = qx{ ps -o vsz -p @pid };
-                my @ps = backtick( "ps -o vsz -p @pid" ) ;
+		my @ps = qx{ ps -o vsz -p @pid };
+                #my @ps = backtick( "ps -o vsz -p @pid" ) ;
 		shift @ps; # First line is column name "VSZ"
 		chomp @ps; 
 		# convert to 
@@ -5152,8 +5207,8 @@ sub memory_consumption_of_pids_win32 {
 	# Does not work but should reading the tasklist documentation
 	#@ps = qx{ tasklist /FI "PID eq @PID" };
 	
-	#my @ps = qx{ tasklist /NH /FO CSV } ;
-        my @ps = backtick( 'tasklist /NH /FO CSV' ) ;
+	my @ps = qx{ tasklist /NH /FO CSV } ;
+        #my @ps = backtick( 'tasklist /NH /FO CSV' ) ;
 	#print "-" x 80, "\n", @ps, "-" x 80, "\n";
 	my @val;
 	foreach my $line (@ps) {
@@ -5175,9 +5230,10 @@ sub memory_consumption_of_pids_win32 {
 
 sub backtick {
 	my $command = shift ;
-	my ($writer, $reader, $err);
+	my ( $writer, $reader, $err ) ;
+        my @output ;
         open3( $writer, $reader, $err, $command ) ;
-        my @output = <$reader>;  #Output here
+        @output = <$reader>;  #Output here
         #my @errors = <$err>;    #Errors here, instead of the console
         $debugdev and print @output ;
         return( @output ) ;
@@ -5405,6 +5461,7 @@ sub tests_good_date {
         ok('"18-Dec-2002 15:07:00 +0000"' eq good_date('Wednesday, December 18, 2002 03:07 PM'), 'good_date kbtoys.com orders');
         ok('"16-Dec-2004 02:01:49 -0500"' eq good_date('Dec 16 2004 02:01:49 -0500'), 'good_date jr.com orders');
         ok('"21-Jun-2001 11:11:11 +0000"' eq good_date('21-Jun-2001'), 'good_date register.com domain transfer');
+        ok('"18-Nov-2012 18:34:38 +0100"' eq good_date('Sun, 18 Nov 2012 18:34:38 +0100'), 'good_date pop2imap bug (Westeuropäische Normalzeit)');
 
 	return(  ) ;
 }
@@ -5747,6 +5804,48 @@ sub tests_max_line_length {
 	return(  ) ;
 }
 
+sub logfile {
+	my ( $time, $suffix) = @_ ;
+	
+	$time   ||= 0 ;
+	$suffix ||= '' ;
+	my $sep = ( $suffix ) ? '_' : '' ;
+	
+	my $date_str = POSIX::strftime( "%Y_%m_%d_%H_%M_%S", localtime( $time ) ) ;
+	#print "date_str: $date_str\n" ;
+	return( "LOG_imapsync/${date_str}${sep}${suffix}.txt" ) ;
+}
+
+sub tests_logfile {
+	ok( 'LOG_imapsync/1970_01_01_01_00_00.txt' eq logfile(  ), 'logfile: no args => LOG_imapsync/1970_01_01_01_00_00.txt' ) ;
+	ok( 'LOG_imapsync/1970_01_01_01_00_00.txt' eq logfile( 0 ), 'logfile: 0 => LOG_imapsync/1970_01_01_01_00_00.txt' ) ;
+	ok( 'LOG_imapsync/1970_01_01_01_01_01.txt' eq logfile( 61 ), 'logfile: 0 => LOG_imapsync/1970_01_01_01_01_01.txt' ) ;
+	ok( 'LOG_imapsync/2010_08_24_16_00_00.txt' eq logfile( 1282658400 ), 'logfile: 1282658400 => LOG_imapsync/2010_08_24_16_00_00.txt' ) ;
+	ok( 'LOG_imapsync/2010_08_24_16_01_01.txt' eq logfile( 1282658461 ), 'logfile: 1282658461 => LOG_imapsync/2010_08_24_16_01_01.txt' ) ;
+	ok( 'LOG_imapsync/2010_08_24_16_01_01_poupinette.txt' eq logfile( 1282658461, "poupinette" ), 'logfile: 1282658461 poupinette => LOG_imapsync/2010_08_24_16_01_01_poupinette.txt' ) ;
+	
+	return(  ) ;
+}
+
+sub logfileprepa {
+	my $logfile = shift ;
+	
+	my $dirname = dirname( $logfile ) ;
+	is_valid_directory( $dirname ) || return( 0 ) ;
+	return( 1 ) ;
+}
+
+sub teelaunch {
+	my $logfile = shift ;
+	logfileprepa( $logfile ) || croak "Error creating directory for $logfile : $!" ;
+	my $logfile_handle ;
+	open( $logfile_handle, '>', $logfile )
+	  or die( "Can not open $logfile for write: $!" ) ;
+	my $tee = IO::Tee->new( $logfile_handle, \*STDOUT ) ;
+	*STDERR = *$tee{IO} ;
+	select $tee ;
+}
+
 sub usage {
 	my $localhost_info = localhost_info();
 	my $thank = thank_author();
@@ -5846,6 +5945,7 @@ Several options are mandatory.
 --sep1        <string> : Host1 separator in case NAMESPACE is not supported.
 --sep2        <string> : Host2 separator in case NAMESPACE is not supported.
 
+--disarmreadreceipts   : Disarms read receipts (host2 Exchange issue)
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
                          Example: 's/\\000/ /g' # to replace null by space.
 --regexmess   <regex>  : and this one.
@@ -5948,6 +6048,8 @@ Several options are mandatory.
 --debugimap            : IMAP debug mode for host1 and host2.
 
 --version              : Print software version.
+--noreleasecheck       : Do not check for new imapsync release (a http request).
+--releasecheck         : Check for new imapsync release (a http request).
 --justconnect          : Just connect to both servers and print useful
                          information. Need only --host1 and --host2 options.
 --justlogin            : Just login to both host1 and host2 with users 
@@ -6051,6 +6153,7 @@ sub get_options {
                                    "fixInboxINBOX!" => \$fixInboxINBOX,
 				   "regextrans2=s" => \@regextrans2,
 				   "regexmess=s" => \@regexmess,
+                                   "disarmreadreceipts!" => \$disarmreadreceipts,
 				   "regexflag=s" => \@regexflag,
 				   "filterflags!" => \$filterflags,
 				   "flagsCase!"  => \$flagsCase,
@@ -6146,6 +6249,8 @@ sub get_options {
                                    "maxbytespersecond=i" => \$maxbytespersecond,
                                    "skipcrossduplicates!" => \$skipcrossduplicates,
                                    "debugcrossduplicates!" => \$debugcrossduplicates,
+                                   "log!" => \$log,
+                                   "logfile=s" => \$logfile,
                                   );
 	
         $debug and print "get options: [$opt_ret]\n";
@@ -6181,8 +6286,7 @@ sub tests_debug {
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
                 #tests_mkpath(  ) ;
-                tests_sleep_max_messages(  ) ;
-                tests_sleep_max_bytes(  ) ;
+		tests_logfile(  ) ;
 	}
         return(  ) ;
 }
@@ -6200,7 +6304,7 @@ sub tests {
                 tests_separator_invert(  ) ;
 		tests_imap2_folder_name();
 		tests_command_line_nopassword();
-		tests_good_date();
+		tests_good_date(  ) ;
 		tests_max();
 		tests_remove_not_num();
 		tests_memory_consumption();
@@ -6237,6 +6341,7 @@ sub tests {
                 tests_tmpdir_has_colon_bug(  ) ;
                 tests_sleep_max_messages(  ) ;
                 tests_sleep_max_bytes(  ) ;
+		tests_logfile(  ) ;
 	}
         return(  ) ;
 }

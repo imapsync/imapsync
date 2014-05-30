@@ -5,7 +5,7 @@
 <title>Official imapsync migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2014-02-13T03:57:24+0100"/>
+<meta name="date" content="2014-05-30T01:37:14+0200"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -30,9 +30,12 @@
 
 <ul class="none">
 	<li>Are your <a href="#imap_server_success">imap servers <b>supported</b></a> by imapsync?</li>
-	<li>Buy <a href="#buy_source"><b>imapsync source code</b></a> (any OS)</li>
+  <!-- 	
+  <li>Buy <a href="#buy_source"><b>imapsync source code</b></a> (any OS)</li>
 	<li>Buy <a href="#buy_exe"><b>standalone win32</b></a> <b>imapsync.exe</b> (also <b>works on win64</b>)</li>
    <li>Buy <b>full professional</b> <a href="#buy_support">imapsync <b>support</b></a> to successfully perform your migration</li>
+  -->	
+ <li>Buy <a href="#buy_all"><b>imapsync</b></a> ( imapsync.exe + source code )</li>
 </ul>
 
 <div class="center">
@@ -58,8 +61,8 @@ and restart it later efficiently.
 
 "Recursive" means the complete folders hierarchy can be copied.
 
-"Command line" means it's not a graphical tool, on Windows you have to run imapsync in a DOS box
-(cmd.exe) or from a <a href="#DOC_BASIC">batch file</a>.
+"Command line" means it's not a graphical tool, on Windows you have to run imapsync 
+from a <a href="#DOC_BASIC">batch file</a>.
 </p>
 
 <p>
@@ -81,6 +84,7 @@ for <b>bidirectionnal (2 ways) synchronizations</b>.
 <p>Alternatives to imapsync are listed in the <a href="#similar"><b>Similar softwares</b></a> section.
 </p>
 
+<!--
 <p>Imapsync used to be free, open and gratis, that was before november 2010. 
 Now imapsync is free, open and not gratis from the homepage. 
 Imapsync is still under the <a href="./NOLIMIT">NOLIMIT</a> license, 
@@ -94,12 +98,13 @@ See detailed explanation and motivation here when
 "Download and donate if happy" doesn't work well.
 "Pay for download and I pay back if unhappy" works well, a 100 times better.
 </p>
+-->
 
 <h2><a id="NUMBERS"></a>Facts and figures for 2011-2014</h2>
 
 <ul>
 <li><b>4000 to 5000 </b>users per month (48000 users a year).</li> 
-<li>6 to 25 millions mailboxes transfers per month.</li>
+<li>6 to 39 millions mailboxes transfers per month.</li>
 <li><b>158 millions</b> transfers for 2013, that is five whole mailboxes synced per second.</li>
 
 <li><b>Operating systems</b> run by imapsync users (in 2013):
@@ -113,7 +118,7 @@ See detailed explanation and motivation here when
 <li>Other: 0.46%</li>
 </ul>
 </li>
-<li><b>Highest use rate</b>: about <b>21 millions</b> of IMAP mailbox transfers (in a single month)</li>
+<li><b>Highest use rate</b>: about <b>56 millions</b> of IMAP mailbox transfers by just one user</li>
 </ul>
 
 <p>
@@ -128,7 +133,9 @@ Via the <b>User-agent</b> parameter it also sends:</p>
   <li>Operating System</li>
 </ul>
 
-<p>You can <b>remove this behavior</b> by adding option <b>--noreleasecheck</b> on the command line (or by setting $releasecheck = 0 in the source code)
+<p>You can <b>remove this behavior</b> by adding option <b>--noreleasecheck</b> on the command line 
+(or by setting $releasecheck = 0 in the source code). 
+Check <a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2013-4279">CVE-2013-4279</a>.
 </p> 
 
 <h2><a id="latest"></a>Latest release is imapsync 
@@ -169,6 +176,29 @@ Via the <b>User-agent</b> parameter it also sends:</p>
  -->
 
 <ul>
+<li><b>1.592</b> Logging by default! (internal feature)</li>
+
+<li><b>Caveat to upgrade</b>: New <b>IO::Tee</b> Perl module dependency, for logging. See the <a href="INSTALL">INSTALL</a> file.</li>
+<li><b>Windows upgrade</b>: Win32 binary is now distributed in a zip file with two batches scripts ready to use it.</li>
+
+
+<li><b>Enhancement</b>: Added logging by default in subdirectory <b>LOG_imapsync/</b></li>
+<li><b>Enhancement</b>: <b>Added option --log turned on by default</b>. Use --nolog to disable logging.</li>
+<li><b>Enhancement</b>: Added option --logfile. Default is like LOG_imapsync/YYYY_MM_DD_HH_MM_SS_user2.txt
+                        where YYYY_MM_DD_HH_MM_SS is the launching date and time like 2014_05_20_23_45_10</li>
+<li><b>Enhancement</b>: Added option <b>--disarmreadreceipts</b> to fix resending read receipts on host2. A must with Exchange as host2.</li>
+<li><b>Enhancement</b>: Added FTGate support (no EXAMINE imap command used anymore).</li>
+
+<li><b>Usability</b>: Updated the code to easily switch on --noreleasecheck by default but allowing --releasecheck (some users want this feature).</li>
+<li><b>Usability</b>: Warn syncing messges will not be simulated when --dry mode is on and folder  on host2 does not exist yet.</li>
+
+<li><b>Bug fix</b>: Make TLS works with last IO::Socket::SSL default value (Added SSL_verify_mode => 'SSL_VERIFY_NONE') in --tls mode.</li>
+<li><b>Bug fix</b>: Fixed bug when creating folders on host2 with --sep2=\\ (Lotus Notes).</li>
+<li><b>Bug fix</b>: Try to get folder size when a folder on host2 has the same name but with a different case 
+                    like OLD_MAIL -> old_mail. Avoid "does not exist" output.</li>
+</ul>
+
+<ul>
 <li><b>1.584</b></li>
 <li><b>Enhancement</b>: Added --minmaxlinelength to select messages with long lines only. 
                         It helps to diagnostic Echange error on messages with lines longer than 9000 characters</li>
@@ -176,7 +206,7 @@ Via the <b>User-agent</b> parameter it also sends:</p>
 <li><b>Bug fix</b>: --ssl1 --tls2 was buggy because of default SSL_VERIFY_PEER. 
                     "Can not go to tls encryption on [localhost]:Unable to start TLS: Cannot determine peer hostname for verification..."</li>
 <li><b>Bug fix</b>: Check if going to tls is ok, exit otherwise with explicit error message.
-Thanks to Dennis Schridde for reporting this ugly bug that deserves a CVE.</li>
+Thanks to Dennis Schridde for reporting this ugly bug that deserves this <a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2014-2014">CVE-2014-2014</a>.</li>
 <li><b>Debug</b>: Print separator given by NAMESPACE even when --sep1 oe --sep2 is used.</li>
 <li><b>Debug</b>: Prints prefix given by NAMESPACE even when --prefix1 or --prefix2 is used. 
 It is a preparation for advising not to use --prefix unless suggested.</li>
@@ -304,6 +334,14 @@ Batch file example <b><a href="./examples/imapsync_example.bat">imapsync_example
 that you can easily adapt with your parameters.
 </p>
 
+<h2><a id="DOC_BASIC_UNIX"></a>Simple transfer on Linux</h2>
+
+<p>
+Bourne shell script example <b><a href="./examples/imapsync_example.sh">imapsync_example.sh</a></b> 
+that you can easily adapt with your parameters.
+</p>
+
+
 
 <h2><a id="DOC_MASS"></a>Massive transfers (many mailboxes)</h2>
 
@@ -324,7 +362,14 @@ example.
 
 <h2><a id="AUTHOR"></a>Who is the author?</h2>
 
-    <p>Gilles LAMIRAL<br/>
+    <p>
+    <a href="http://fr.linkedin.com/in/gilleslamiral">
+    <img src="http://s.c.lnkd.licdn.com/scds/common/u/img/webpromo/btn_myprofile_160x33.png" 
+         width="160" height="33" alt="View Gilles Lamiral's profile on LinkedIn"/>
+    </a>
+    <br/>
+    Gilles LAMIRAL
+    <br/>
     Email: <b>gilles.lamiral@laposte.net</b></p>
 
     <p>Good feedback is always welcome, bad feedback is often welcome.</p>
@@ -336,70 +381,66 @@ example.
     </p>
 
 
-
-
-<!-- 
 <h2><a id="buy_all"></a>Buy imapsync</h2>
 
-<p>Buy complete and <b>latest imapsync</b> for <b>50 EUR</b> and optionnaly full professional support for <b>100 EUR</b>
+<p>Buy complete and <b>latest imapsync</b> for <b>50 EUR</b>. 
+There is no trial version but I offer 30-day money back guarantee.
 </p>
 
 <p>
-For 50 EUR you will get:
+For <b>50 EUR</b> you will get:
+</p>
 <ul>
-<li>Standalone <b>imapsync.exe</b> for win32, no installation needed.</li>
-<li>imapsync Perl <b>source code</b>.</li>
+<li>Standalone <b>imapsync.exe</b> for win32, easy installation done by a zip extraction anywhere. 
+    See <a href="README_Windows.txt">README_Windows.txt</a> for details.</li>
+<li>Imapsync Perl <b>source code</b> for any operating system, Unix, Windows, Macintosh.</li>
 <li><b>Lifetime</b> of imapsync <b>updates</b> without extra payment.</li>
-<li><b>30 days money-back guarantee!</b>, any reason qualifies.</li>
+<li><b>30-day money back guarantee!</b> No question asked nor condition to get a refund, really.</li>
+<li><a href="NOLIMIT">No limit</a> to do anything with imapsync and its license.</li>
 </ul>
-</p>
 
 <p>
-For 100 EUR more you will get imapsync <b>full support</b> 
-done by the imapsync designer and developper himself. 
-You will be able to expose your issues by email 
-or phone and then we'll work together until complete success.
-</p>
- -->
-
-<h2><a id="buy_source"></a>Buy imapsync source code</h2>
-
-<p>Buy <b>latest</b> imapsync Perl <b>source code</b> for  <b>50 EUR</b>
+For <b>100 EUR more</b> you can get imapsync <b>full professional support</b>,
+provided by the imapsync designer and developper, Gilles LAMIRAL the name.
 </p>
 
-<p>
-The Perl <b>imapsync</b> source code will run anywhere a <b>Perl interpreter can run</b>: 
-any Unix, Linux, Windows, or Mac OS operating system.
+<p>The support is done in English, <b>mostly by email</b> or eventually phone/skype 
+(office hours from 12:00 to 22:00 UTC). 
+
+<b>My English level has always been efficient to solve any technical issue</b>, 
+I like watching American movies with the original soundtrack.
 </p>
 
-<p>
-<b>+ Lifetime</b> of imapsync <b>updates</b> without extra payment.<br/>
-<b>+ 30 days money-back guarantee!</b> (any reason qualifies)<br/>
-<b>+</b> Standalone <b>imapsync.exe</b>.<br/>
+<p><b>I've been supporting imap migrations since 2001</b>.
 </p>
 
-<p>
-Payment by Paypal account and credit card accepted. <br/>
-Price <b>50 EUR</b> is equal to around <b>66 USD</b>, 
-no problem to pay in USD (or any currency) via paypal:
+<p>The <b>support features helping you to get your imap migration job done</b>, quickly if possible.
+Support includes things like how to deal with special imap server softwares, 
+choosing and explaining options, explaining error messages, 
+solving authentication issues, 
+dealing with speed, quotas, 
+running in parallel, etc.
 </p>
 
 
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
 <p>
 <input type="hidden" name="cmd" value="_s-xclick"/>
-<input type="hidden" name="hosted_button_id" value="GD9PKVDZ53AKW"/>
-<input type="hidden" name="on0" value="imapsync usage"/>imapsync usage
+<input type="hidden" name="hosted_button_id" value="H2YTURNFT4XT4"/>
+<input type="hidden" name="on0" value="imapsync choice"/>imapsync choice
 <select name="os0">
-	<option value="professional">professional </option>
-	<option value="individual">individual </option>
+	<option value="Software only. For professional use.">Software only. For professional use. &euro;50,00 EUR</option>
+	<option value="Software + Support. For professional use.">Software + Support. For professional use. &euro;150,00 EUR</option>
+	<option value="Software only. For individual use.">Software only. For individual use. &euro;50,00 EUR</option>
 </select>
 <br/>
 <input type="hidden" name="on1" value="VAT if professional in Europe"/>
-Enter your <b>VAT</b> <input type="text" name="os1" size="17" maxlength="17"/> <b> 
-if you're a European professional</b> (for accounting). 
+Enter your <b>VAT</b> 
+<input type="text" name="os1" size="17" maxlength="17" />
+<b> if you're a European professional</b> (for accounting). 
 It's 2 letters followed by 11 digits, for example mine is FR74429303332.
 <br/>
+
 <input type="hidden" name="currency_code" value="EUR"/>
 <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" 
 name="submit" alt="PayPal - The safer, easier way to pay online!"/>
@@ -407,121 +448,30 @@ name="submit" alt="PayPal - The safer, easier way to pay online!"/>
 </p>
 </form>
 
-<p>You will receive a <b>download link just after</b> the payment from <b>gilles.lamiral@laposte.net</b> (can fall in Spam folder sometimes).<br/>
-You will also receive a gpg signed <b>invoice</b> within <b>a few days by email</b>.<br/>
-Please give a <b>delivery postal address where the invoice will be needed</b> 
-(your company for example), since reedit is not easy (and forbidden by law).
-</p>
-
-
-<h2><a id="buy_exe"></a>Buy standalone imapsync.exe for win32</h2>
-
-
-
-<p>Struggle free from source code and Perl installation by<br/> 
-buying the latest win32 <b>standalone imapsync.exe</b> for <b>50 EUR</b> 
-</p>
 
 <p>
-<b>+ Lifetime</b> of imapsync <b>updates</b> without extra payment.<br/>
-<b>+ 30 days money-back guarantee!</b> (any reason qualifies)<br/>
-<b>+</b> Source code of <b>imapsync</b>.<br/>
+You will be redirected to a <b>download link just after</b> the payment.<br/>
+You will also receive an email from <b>gilles.lamiral@laposte.net</b> a few minutes later 
+(can fall in Spam folder sometimes).<br/>
+Please make sure the delivery postal address you enter for the invoice is your accounting department's,
+since revised editing is not easy and prohibited by law.<br/>
+The gpg signed <b>invoice</b> will be sent within <b>a few days by email</b>.
 </p>
 
-<p>
-Payment by Paypal account and credit card accepted. <br/>
-Price <b>50 EUR</b> is equal to around <b>66 USD</b>, 
-no problem to pay in USD (or any currency) via paypal:
-</p>
-
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-<p>
-<input type="hidden" name="cmd" value="_s-xclick"/>
-<input type="hidden" name="hosted_button_id" value="6ZFX739JYCCUU"/>
-<input type="hidden" name="on0" value="imapsync usage"/>imapsync usage
-<select name="os0">
-	<option value="professional">professional </option>
-	<option value="individual">individual </option>
-</select>
-<br/>
-<input type="hidden" name="on1" value="VAT if professional in Europe"/>
-Enter your <b>VAT</b> <input type="text" name="os1" size="17" maxlength="17"/> <b> 
-if you're a European professional</b> (for accounting). 
-It's 2 letters followed by 11 digits, for example mine is FR74429303332.
-<br/>
-<input type="hidden" name="currency_code" value="EUR"/>
-<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" 
-name="submit" alt="PayPal - The safer, easier way to pay online!"/>
-<img alt="" src="https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif" width="1" height="1"/>
-</p>
-</form>
-
-<p>You will receive a download link <b>just after</b> the payment, from <b>gilles.lamiral@laposte.net</b> (can fall in Spam folder sometimes).<br/>
-You will also receive a gpg signed <b>invoice</b> within <b>a few days by email</b>.<br/>
-Please give a <b>delivery postal address where the invoice will be needed</b> 
-(your company for example), since reedit is not easy (and forbidden by law).
-</p>
+<p>For those of you who buy support <b>contact me</b> (Gilles LAMIRAL) by email or phone:</p>
+<ul>
+<li>Email address: <b>gilles.lamiral@laposte.net</b>.</li>
+<li>Professional phone number: <b>+33 951 84 42 42</b> (France) I can <b>call you back</b> toll-free in many countries.</li>
+<li>Mobile phone number: <b>+33 620 79 76 06</b> (France).</li>
+</ul>
 
 
-<!-- 
-<p>
-thanks to Strawberry Perl 5.16 and Par::Packer module.<br/>
-The build system for imapsync.exe is XP Pro SP2 on a Intel Celeron 400 MHz 256 Mo RAM. </p>
--->
-
-<h2><a id="buy_support"></a>Buy full professional support for imapsync</h2>
-
-<p>You will be able to expose your issues by email 
-or phone and we'll work together until complete success.
-</p>
-
-<p>For <b>100 EUR</b> buy imapsync <b>full support</b> 
-done by the imapsync designer/developper.
-</p>
-
-<p>This support offer <b>doesn't include</b> the imapsync software.</p>
-
-<p>
-Payment by Paypal account and credit card accepted. <br/>
-100 EUR is equal to around <b>133 USD</b>, 
-no problem to pay in USD (or any currency) with paypal:
-</p>
-
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-<p>
-<input type="hidden" name="cmd" value="_s-xclick" />
-<input type="hidden" name="hosted_button_id" value="E25UVGFNDJWW8" />
-<input type="hidden" name="on0" value="imapsync usage"/>imapsync usage
-<select name="os0">
-	<option value="professional">professional </option>
-	<option value="individual">individual </option>
-</select>
-<br/>
-<input type="hidden" name="on1" value="VAT if professional in Europe"/>
-Enter your <b>VAT</b> <input type="text" name="os1" size="17" maxlength="17"/> <b> 
-if you're a European professional</b> (for accounting). 
-It's 2 letters followed by 11 digits, for example mine is FR74429303332.
-<br/>
-<input type="hidden" name="currency_code" value="EUR"/>
-<input type="image" 
-	src="https://www.paypalobjects.com/WEBSCR-640-20110401-1/en_US/i/btn/btn_buynowCC_LG.gif"
-	name="submit"
-	alt="PayPal - The safer, easier way to pay online!" />
-<img alt="" src="https://www.paypalobjects.com/WEBSCR-640-20110401-1/fr_FR/i/scr/pixel.gif" width="1" height="1" />
-<input name="return" type="hidden" value="http://imapsync.lamiral.info/W/paypal_return_support.shtml?utm_nooverride=1" />
-</p>
-</form>
-
-<p>You will receive instructions to contact me <b>just after</b> the payment, from <b>gilles.lamiral@laposte.net</b> (can fall in Spam folder sometimes).<br/>
-You will also receive a gpg signed <b>invoice</b> within <b>a few days by email</b>.<br/>
-Please give a <b>delivery postal address where the invoice will be needed</b> 
-(your company for example), since reedit is not easy (and forbidden by law).
-</p>
-
+ 
 <h2><a id="doc"></a>Documentation</h2>
 
 <p>Read the <a href="INSTALL">INSTALL</a> file 
-to know how to install imapsync on your system.
+to know how to install imapsync on your system.<br/>
+Windows users should read directly <a href="README_Windows.txt">README_Windows.txt</a>. 
 </p>
 
 <p>The <a href="README">README</a> file has many tips 
@@ -600,14 +550,14 @@ lists what may be coded or done in the future.
 
 <p>Let's start with reported <b>failure stories</b> over the past.<br/>
 Maybe <b>new imapsync releases can run successfully with them</b>.<br/>
-Don't hesitate to have a try, It's been a long since last failure occured,
+Don't hesitate to have a try, It's been a long time since last failure occured,
 I will help you and make efforts to switch them to the success list, 
-I like it.
+that's my job.
 </p>
 
 <ul>
-	<li>DBMail 0.9, 2.0.7 (GPL). But most other DBMail releases are supported (see below)</li>
-	<li><b>Hotmail</b> since hotmail.com does not provide IMAP access</li>
+	<li>DBMail 0.9, 2.0.7 (GPL). But most other DBMail releases are supported (see below).</li>
+	<li><b>Hotmail</b> since hotmail.com does not provide IMAP access.</li>
 	<li>Imail 7.04 (maybe).</li>
 	<li>MailEnable 1.54 (Proprietary) but MailEnable 4.23 is supported. </li>
 	<li>(2011) <b>MDaemon 12.0.3</b> as <b>host2</b> 
@@ -617,7 +567,7 @@ I like it.
 </ul>
 
 <p>Now the long reported <b>success stories</b> list: <b>
-57 different imap server softwares supported!</b><br/>
+62 different imap server softwares supported!</b><br/>
 [host1] means "source server" and [host2] means "destination server":
 </p>
 
@@ -657,6 +607,8 @@ I like it.
 	<li><b>Dovecot</b> 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
    1.0.0 [dest/source] (LGPL) (http://www.dovecot.org/)    (<a href="http://www.dovecot.org/">http://www.dovecot.org/</a>)   </li>
 	<li>Eudora WorldMail v2    (<a href="http://www.eudora.com/worldmail/">http://www.eudora.com/worldmail/</a>)   </li>
+	<li>FirtClass 12 [host1] hard so read the FAQ! (<a href="http://www.firstclass.com/">http://www.firstclass.com/</a>)</li>
+	<li>FTGate [host1][host2] (<a href="http://www.ftgate.com/">http://www.ftgate.com/</a>)</li>
         <li>Fusemail imap.fusemail.net:143 (<a href="https://www.fusemail.com/">https://www.fusemail.com/</a>).</li>
 	<li><b>Gimap</b> (<b>Gmail</b> imap) [host1] [host2]    (<a href="http://mail.google.com/">http://mail.google.com/</a>)   </li>
 	<li>GMX IMAP4 StreamProxy.    (<a href="http://www.gmx.com/">http://www.gmx.com/</a>)   </li>
@@ -786,7 +738,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.195 2014/02/13 03:17:59 gilles Exp gilles $)
+($Id: index.shtml,v 1.206 2014/05/29 23:41:08 gilles Exp gilles $)
 </p>
 
 </body>
