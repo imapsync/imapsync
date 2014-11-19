@@ -1,5 +1,5 @@
 
-REM $Id: build_exe.bat,v 1.22 2014/05/21 01:15:28 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.23 2014/11/14 17:05:08 gilles Exp gilles $
 @ECHO OFF
 
 ECHO Building imapsync.exe
@@ -14,13 +14,15 @@ perl -mMail::IMAPClient ^
      -mTerm::ReadKey  -mFile::Spec -mAuthen::NTLM ^
      -mTime::Local -mURI::Escape -mData::Uniqid ^
      -mFile::Copy::Recursive  ^
-     -mIO::Tee  ^
+     -mIO::Tee ^
+     -mUnicode::String ^
      -e ''
 
 cd
 @ECHO ON
+@REM --link libssl32_.dll 
 pp -o imapsync.exe  ^
-      --link libeay32_.dll --link libssl32_.dll ^
+      --link libeay32_.dll ^
       --link zlib1_.dll --link ssleay32_.dll ^
       -M Mail::IMAPClient ^
       -M IO::Socket -M IO::Socket::IP -M IO::Socket::SSL -M IO::Socket::INET ^
@@ -29,7 +31,8 @@ pp -o imapsync.exe  ^
       -M Time::Local -M URI::Escape -M Data::Uniqid ^
       -M File::Copy::Recursive ^
       -M IO::Tee ^
+      -M Unicode::String ^
       imapsync
 
 echo Done building imapsync.exe 
-pause
+

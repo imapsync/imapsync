@@ -7,7 +7,7 @@
 <title>Official imapsync migration tool ( release <!--#exec cmd="cat ./VERSION"--> )</title>
 <meta name="generator" content="Bluefish 1.0.7"/>
 <meta name="author" content="Gilles LAMIRAL"/>
-<meta name="date" content="2014-09-16T00:19:01+0200"/>
+<meta name="date" content="2014-11-14T18:01:28+0100"/>
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfert, migration"/>
 <meta name="description" content="imap migration tool"/>
@@ -23,9 +23,10 @@
 
 <body>
 
+<!-- 
 <div id="fb-root"></div>
 <script type="text/javascript" src="W/fb-root.js"></script>
-
+ -->
 <ul class="none">
 	<li>Are your <a href="#imap_server_success">imap servers <b>supported</b></a> by imapsync?</li>
    <li>Buy <a href="#buy_all"><b>imapsync</b></a> ( imapsync.exe + source code for any OS )</li>
@@ -112,7 +113,8 @@ See detailed explanation and motivation here when
 <ul>
 <li><b>4000 to 5000 </b>users per month (48000 users a year).</li> 
 <li>6 to 39 millions mailboxes transfers per month.</li>
-<li><b>158 millions</b> transfers for 2013, that is five whole mailboxes synced per second. 2014 should reach more than 300 millions transfers.</li>
+<li><b>158 millions</b> transfers for 2013, that is five whole mailboxes synced per second. 
+2014 should reach more than 220 millions transfers.</li>
 
 <li><b>Operating systems</b> run by imapsync users (in 2013):
 <ul>
@@ -162,7 +164,7 @@ Check <a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2013-4279">CV
 
 <!-- 
 <ul>
-<li><b>1.584</b></li>
+<li><b>1.604</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -181,6 +183,30 @@ Check <a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2013-4279">CV
 <li><b>Refactoring</b>: </li>
 </ul>
  -->
+
+<ul>
+<li><b>1.607</b> Folders showed also in utf8.</li>
+<li><b>Caveat to upgrade on Unix!</b>: New <b>Unicode::String</b> Perl module dependency, for utf8 output. See the <a href="INSTALL">INSTALL</a> file.</li>
+<li><b>Enhancement</b>: Added --skipemptyfolders to skip empty host1 folders. They are not created on host2.</li>
+<li><b>Enhancement</b>: Windows exe now uses IO::SSL 2.002 instead of 1.98 (is it an really an enhancement?).</li>
+<li><b>Usability</b>: Remove /x from regexes applied with --include and --exclude. Blanks no longer have to be explicit with \ or [ ].</li>
+<li><b>Usability</b>: Added utf8 output for folder names,  utf7imap special characters are not user friendly readable</li>
+<li><b>Usability</b>: Moved foldersizes output after folders lists output.</li>
+<li><b>Usability</b>: Added total size transferred after each message copied.</li>
+<li><b>Usability</b>: After ETA added number of total to be synced, as a denominator dddd after each message copied, nnn/dddd,
+                      where nnn is the number of messages copied. Before there was only nnn without /dddd.</li>
+<li><b>Bug fix</b>: Cache fix on Windows. File paths with brackets [] are special, they have to be escaped with glob. 
+                    For example, [Gmail] must be written [[]Gmail[]].</li>
+<li><b>Bug fix</b>: Added several checks if IsUnconnected. Goal avoid imap commands while disconnected. 
+                    Reconnexion would be better anyway.</li>
+</ul>
+
+<ul>
+<li><b>1.597</b> Small things</li>
+<li><b>Enhancement</b>: Added --nomixfolders to avoid merging folders that are considered different on host1 but the same on destination host2
+because of case sensitivities and insensitivities.</li>
+<li><b>Bug fix</b>: Fixed "imapsync doesn't see created folders in the listing of folder sizes at the end". (second time this bug shows up)</li>
+</ul>
 
 <ul>
 <li><b>1.592</b> Logging by default! (an internal feature now)</li>
@@ -640,7 +666,7 @@ that's my job.
 	<li><b>MailEnable</b> 4.23 [host1][host2], 4.26 [host1][host2], 5 [host1]    
 	(<a href="http://www.mailenable.com/">http://www.mailenable.com/</a>)   </li>
 	<li>MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 9.6.5 [host1],
-	12 [host2], 12.0.3 [host1], 12.5.5 [host1]    
+	12 [host2], 12.0.3 [host1], 12.5.5 [host1], 13.5 [host2], 14.5 [host2]
 	   (<a href="http://www.altn.com/">http://www.altn.com/</a>)   </li>
 	<li>Mercury 4.1 (Windows server 2000 platform)    (<a href="http://www.pmail.com/">http://www.pmail.com/</a>)   </li>
 	<li><b>Microsoft Exchange Server</b> 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
@@ -688,6 +714,7 @@ that's my job.
 <h2><a id="similar"></a>Similar softwares</h2>
 
 <ul>
+<li> <b>imapsync</b>:    <a href="https://github.com/imapsync/imapsync">https://github.com/imapsync/imapsync</a> (imapsync copy, sometimes delayed)</li>
 <li> imap_tools:         <a href="http://www.athensfbc.com/imap_tools">http://www.athensfbc.com/imap_tools</a></li>
 <li> imaputils: <a href="http://code.google.com/p/imaputils/">http://code.google.com/p/imaputils/</a> (imap_tools fork)</li>
 <li> <b>offlineimap</b>: <a href="http://offlineimap.org/">http://offlineimap.org/</a></li>
@@ -701,8 +728,8 @@ that's my job.
 <li> imapcopy (Java):    <a href="https://code.google.com/p/imapcopy/">https://code.google.com/p/imapcopy/</a></li>
 <li> migrationtool:      <a href="http://sourceforge.net/projects/migrationtool/">http://sourceforge.net/projects/migrationtool/</a></li>
 <li> imapmigrate:        <a href="http://sourceforge.net/projects/cyrus-utils/">http://sourceforge.net/projects/cyrus-utils/</a></li>
-<li> larch:              <a href="https://github.com/rgrove/larch">https://github.com/rgrove/larch</a> (derived from wonko_imapsync)</li>
-<li> wonko_imapsync:     <a href="http://wonko.com/article/554">http://wonko.com/article/554</a></li>
+<li> larch:              <a href="https://github.com/rgrove/larch">https://github.com/rgrove/larch</a> (derived from wonko_imapsync, good at Gmail)</li>
+<li> wonko_imapsync:     <a href="http://web.archive.org/web/20130807173030/http://wonko.com/post/ruby_script_to_sync_email_from_any_imap_server_to_gmail">http://wonko.com/article/554</a> (superseded by larch)</li>
 <li> pop2imap:           <a href="http://www.linux-france.org/prj/pop2imap/">http://www.linux-france.org/prj/pop2imap/</a></li>
 <li> exchange-away:      <a href="http://exchange-away.sourceforge.net/">http://exchange-away.sourceforge.net/</a></li>
 <li> SyncBackPro <a href="http://www.2brightsparks.com/syncback/sbpro.html">http://www.2brightsparks.com/syncback/sbpro.html</a></li>
@@ -753,7 +780,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: index.shtml,v 1.220 2014/09/15 22:21:05 gilles Exp gilles $)
+($Id: index.shtml,v 1.227 2014/11/14 23:43:32 gilles Exp gilles $)
 </p>
 
 </body>

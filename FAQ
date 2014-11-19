@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.186 2014/09/06 07:39:40 gilles Exp gilles $
+# $Id: FAQ,v 1.190 2014/11/14 17:08:02 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -1241,7 +1241,7 @@ the flow to go the other way):
     --proxyauth1 --password1 '$pass_with_dollars$' \
     --host2 cyrusimapbackend.mycompany.com \
     --user2 SameOrDiffererentUser@mycompany.com \
-    --authuser2 CyrusAdminAccount --proxyauth2
+    --authuser2 CyrusAdminAccount --password2 CyrusAdminPassword
 
 We also needed to:
 
@@ -1279,6 +1279,11 @@ or the NETBIOS or DNS name of the domain.
 
 The exact format might vary depending on local configuration and you
 should experiment with the different formats.
+
+PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
+Same behavior with the --authuser2 option.
 
 A little note from Michael Scherer. 
 The previous workaround in the FAQ seems to be obsolete.
@@ -1320,6 +1325,12 @@ but previous in Office365 you must do something like that, using powershell:
 
   Add-MailboxPermission -identity user_to_be_migrated@domain.com -user user_admin@domain.com -accessrights fullaccess -inheritancetype all
 
+PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
+Same behavior with the --authuser2 option.
+
+
 ======================================================================
 Q. How to migrate from uw-imap with an admin/authuser account?
 
@@ -1347,14 +1358,19 @@ R. Use:
    --authuser1 admin_user  ----password1 admin_user_password \
    --user1 foo_user --ssl1
 
-In this case, --authmech1 PLAIN will be used by default since it
-is the only way to go for now. So don't use --authmech1 SOMETHING
-with --authuser1 admin_user, it will not work.
+Instead of --ssl1 the alternative --tls1 can be used.
+With --authuser1, the option --authmech1 PLAIN is set
+automatically, you don't have to add it.
+
+PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
 Same behavior with the --authuser2 option.
 
-Do not forget the option --ssl1 since PLAIN auth is only
+Do not forget the option --ssl1 or --tls1 since PLAIN auth is only
 supported with ssl encryption most of the time. But it can
-work without --ssl1 if PLAIN is permitted in normal use.
+work without --ssl1 nor --tls1 if PLAIN is permitted in clear text
+transmissions (the normal mode).
 
 Add the AdminAccount to admins line in /etc/imapd.conf
 Give AdminAccount lrswipkxtecda to the Cyrus Imap account 
@@ -1770,6 +1786,7 @@ imapsync --host1 mail.oldhost.com \
          --ssl2 \
          --exitwhenover 500000000 \
          --maxsize 25000000 \
+         --expunge1 \
          --addheader \
          --exclude "\[Gmail\]$"           \
          --regextrans2 "s/[ ]+/_/g"       \
@@ -1793,6 +1810,13 @@ and report me what you discover in case you detect something.
 up to 25 MB. This value increases over time, it was 10 MB some 
 years ago so you can try higher values. The Gmail page about
 this limit is https://support.google.com/mail/answer/6584
+
+--expunge1 is optional. It deletes messages marked \Deleted on host1.
+Imapsync syncs messages with all their flags, Gmail takes the messages
+marked \Deleted but deletes or moves them just after.
+Option --expunge1 really removes messages marked \Deleted on host1 
+so they are not synced at all.
+
 
 The --addheader option is there because "Sent" folder messages 
 sometimes lack the "Message-Id:" and "Received:" headers needed 
@@ -2003,6 +2027,16 @@ imapsync ... \
 No specific option for HMailServer 5.3.3 since NAMESPACE is supported.
 
 Maybe --subscribe_all will help you to see all migrated folders.
+
+
+=======================================================================
+Q. Synchronizing from Kerio Connect to XXX
+
+R. No special options required. 
+See also:
+http://www.linux-france.org/prj/imapsync_list/msg01756.html
+http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-1/
+http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-2/
 
 
 =======================================================================

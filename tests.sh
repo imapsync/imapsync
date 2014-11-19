@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.240 2014/09/19 19:36:25 gilles Exp gilles $  
+# $Id: tests.sh,v 1.245 2014/11/14 23:43:08 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./W/Mail-IMAPClient-3.35/lib' sh -x tests.sh
@@ -167,6 +167,18 @@ locallocal() {
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi 
 }
+
+ll_eta() {
+        can_send && sendtestmessage
+        can_send && sendtestmessage
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+	 --foldersizes --folder INBOX
+}
+
 
 ll_debug() {
         #can_send && sendtestmessage
@@ -358,6 +370,18 @@ ll_folder_noexist() {
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.noexist --folder INBOX.noexist2
 }
+
+
+ll_folder_mixfolders() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --mixfolders --justfolders --nofoldersizes
+}
+
+
 
 # Way to check it each time:
 # sh -x tests.sh ll_folder_create ll_delete2folders
@@ -561,6 +585,18 @@ ll_justfolders() {
                 --justfolders  --nofoldersizes
                 echo "sudo rm -rf /home/vmail/titi/.new_folder/"
 }
+
+ll_justfolders_skipemptyfolders() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders  --nofoldersizes --skipemptyfolders
+                echo "sudo rm -rf /home/vmail/titi/.new_folder/"
+}
+
+
 
 ll_justfolders_foldersizes() {
                 $CMD_PERL ./imapsync \
@@ -2504,7 +2540,8 @@ xxxxx_gmail_4_Sent() {
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
                 --folder INBOX.Sent  \
-                --regextrans2 's{Sent}{[Gmail]/Messages envoy&AOk-s}' 
+                --regextrans2 's{Sent}{[Gmail]/Messages envoy&AOk-s}' \
+		--debugflags 
 }
 
 xxxxx_gmail_5_justfolders() {
@@ -3027,6 +3064,14 @@ ll_usecache_all() {
          --usecache --nofoldersizes
 }
 
+ll_usecache_bracket() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --usecache --nofoldersizes --debugcache --folder "INBOX.[bracket]" 
+}
 
 
 
@@ -3247,6 +3292,49 @@ l_exchange_maxline()
 ##########################
 # specific tests
 ##########################
+
+
+xgenplus() {
+        $CMD_PERL ./imapsync \
+        --host1 imap.dataone.in --user1 imapsynctest@dataone.in  \
+        --passfile1 ../../var/pass/secret.xgenplus \
+        --host2 imap.dataone.in --user2 imapsynctest@dataone.in \
+        --passfile2 ../../var/pass/secret.xgenplus \
+        --sep1 / --sep2 / --prefix1 "" --prefix2 "" --debugimap
+}
+
+
+xgenplus_feed() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 imap.dataone.in --user2 imapsynctest@dataone.in \
+        --passfile2 ../../var/pass/secret.xgenplus \
+        --sep2 / --prefix2 "" \
+        --include "Junk.2013" --regextrans2 "s,Junk.2013,Junk,"
+}
+
+xgenplus_few() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 imap.dataone.in --user2 imapsynctest@dataone.in \
+        --passfile2 ../../var/pass/secret.xgenplus \
+        --sep2 / --prefix2 "" \
+        --include "few_emails" 
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 courier_45() {
@@ -3874,9 +3962,11 @@ ll_bug_folder_name_with_blank
 ll_timeout 
 ll_folder
 ll_folder_noexist
+ll_folder_mixfolders
 ll_oneemail
 ll_buffersize 
 ll_justfolders 
+ll_justfolders_skipemptyfolders 
 ll_prefix12 
 ll_nosyncinternaldates 
 ll_idatefromheader 
@@ -3970,7 +4060,7 @@ run_tests perl_syntax
 
 # All tests
 
-test $# -eq 0 && run_tests $mandatory_tests
+test $# -eq 0 && run_tests $mandatory_tests && ./i3 --version >> .test_3xx
 
 
 # selective tests
