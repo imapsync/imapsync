@@ -1,0 +1,68 @@
+--- imapsync	2014-08-12 15:23:24.000000000 +0000
++++ imapsync.kerio	2014-09-02 08:47:07.560989980 +0000
+@@ -1053,8 +1053,8 @@
+ $debug and print "Host2 Buffer I/O: ", $imap2->Buffer(), "\n";
+ 
+ 
+-
+-die_clean( 'Not authenticated on host1' ) unless $imap1->IsAuthenticated( ) ;
++# FIXME no time for a proper change, but just assume, that the imapsync is correctly corrected to Kerio
++#die_clean( 'Not authenticated on host1' ) unless $imap1->IsAuthenticated( ) ;
+ print "Host1: state Authenticated\n";
+ die_clean( 'Not authenticated on host2' ) unless   $imap2->IsAuthenticated( ) ;
+ print "Host2: state Authenticated\n";
+@@ -2129,6 +2129,36 @@
+                 }
+         }
+ 
++	if ( $authmech eq 'KERIO' ) {
++		# send the string 'X-MASTERAUTH'
++		my @return = $imap->tag_and_run("X-MASTERAUTH", "+") ;
++		# receive a challenge
++		my $challenge ;
++		foreach my $line ( @return ) {
++			if ($line =~ /^\+\ .*/) {
++				$challenge = $line ;
++			}
++		}
++		# strip carriage return and newline characters
++		$/ = "\r\n" ;
++		chomp($challenge) ;
++		$/ = "\n" ;
++		# strip the challenge and return it for debuging
++		$challenge = substr($challenge, 2) ;
++		printf("%s: Challenge is '%s'\n", $Side, $challenge ) ;
++		# of the masterpassword, Kerio accepts only the first 24 characters
++		$challenge .= substr($password,0,24) ;
++		# create an md5sum of the master password
++		my $md5pass = md5_hex($challenge) ;
++		# show the challenge response and send it to the server
++		printf("%s: MD5 of Challenge Response is '%s'\n", $Side, $md5pass ) ;
++		my $sock = $imap->Socket() ;
++		printf("%s", $sock );
++		print $sock "$md5pass\r\n" ;
++		# now change the user to the final one
++		$imap->tag_and_run("X-SETUSER $user", "OK") ;
++	}
++
+         if ( $imap->Tls(  ) ) {
+         	set_tls( $imap ) ;
+         	$imap->starttls(  )
+@@ -2156,7 +2186,7 @@
+                 $imap->Authmechanism("") ;
+                 $imap->User($authuser) ;
+         } else {
+-                $imap->Authmechanism( $authmech ) unless ( $authmech eq 'LOGIN'  or $authmech eq 'PREAUTH' ) ;
++                $imap->Authmechanism( $authmech ) unless ( $authmech eq 'LOGIN'  or $authmech eq 'PREAUTH' or $authmech eq 'KERIO' ) ;
+                 $imap->User($user) ;
+         }
+         
+@@ -2167,7 +2197,7 @@
+         $imap->Authuser($authuser) ;
+         $imap->Password($password) ;
+ 	
+-	unless ( $authmech eq 'PREAUTH' or $imap->login( ) ) {
++	unless ( $authmech eq 'PREAUTH' or $authmech eq 'KERIO' or $imap->login( ) ) {
+ 		my $info  = "Failure: error login on [$host] with user [$user] auth" ;
+ 		my $einfo = $imap->LastError || @{$imap->History}[-1] ;
+ 		chomp( $einfo ) ;

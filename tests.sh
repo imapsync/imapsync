@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.238 2014/05/22 10:02:14 gilles Exp gilles $  
+# $Id: tests.sh,v 1.240 2014/09/19 19:36:25 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./W/Mail-IMAPClient-3.35/lib' sh -x tests.sh
@@ -507,7 +507,7 @@ ll_change_blank() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --justfolders --nofoldersizes
+                --justfolders --nofoldersizes --folder "INBOX. blanc_begin" --regextrans2 "s,(\.|^) +,\$1,g"
 }
 
 
@@ -2637,6 +2637,22 @@ xxxxx_gmail_8_xlist() {
 		--foldersizes \
                 --folder INBOX 
 }
+
+
+xxxxx_gmail_9_via_stunnel() {
+
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 $HOST2 \
+                --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 localhost \
+                --port2 9993 \
+                --user2 gilles.lamiral@gmail.com \
+                --passfile2 ../../var/pass/secret.gilles_gmail \
+		--foldersizes \
+                --folder INBOX 
+}
+
 
 
 

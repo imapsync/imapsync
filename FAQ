@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.175 2014/05/21 01:20:20 gilles Exp gilles $
+# $Id: FAQ,v 1.186 2014/09/06 07:39:40 gilles Exp gilles $
 
 +------------------+
 | FAQ for imapsync |
@@ -47,6 +47,9 @@ On Windows the single quote character ' doesn't work
 like on Unix so in the examples of this FAQ the 
 command containing single quotes ' will fail on Windows.
 To fix it just replace single quotes ' by double quotes "
+
+Also on Windows, in examples with \$1 replace 
+any \$1 by $1 (remove the \ before $).
 
 =======================================================================
 Q. How to verify imapsync.exe I got is the right file bit per bit?
@@ -320,25 +323,23 @@ R. This comes from a Windows limitation on pathnames.
 No more than 260 characters are allowed for pathnames.
 See more details on page
 http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247.aspx#maxpath
+The workaround solution given at the previous link, 
+ie using \\?\D:", does not work for imapsync. 
+So this imapsync Windows bug is still pending and needs a fix using 
+a different technic to cache, like a database file for example.
 
-Two workarounds to reduce the cache directory name:
+A solution to fix the issue is to use a Linux virtual host on a 
+Windows box, with VirtualBox or VmWare etc. There is no bug this way,
+pathnames can be several thousands charaters long.
+Better said that done but not so difficult nor expensive these days,
+VirtualBox is free and VmWare Player is free for personal or test use.
 
-1) Use --tmpdir "D:\\temp" or simply --tmpdir "D:"
+If you have to stick on Windows, there are two good workarounds 
+to reduce the cache directory name:
 
-Currently (until 1.568) there is a bug with --tmpdir "D:\\temp" or "D:".
-Since character : is forbidden in Windows paths the directory is transform
-to convert those characters and others () to character _
-So "D:\\temp" becomes "D_\\temp". 
-
-A fix is to change to D: before running imapsync and use --tmpdir "." 
-like this in a batch file:
-
-  D:
-  cd \
-  cd .\temp
-  %~dp0\imapsync.exe ... --tmpdir "." 
-
-This bug should be fixed in release 1.569
+1) Use --tmpdir "D:\\temp" or simply --tmpdir "D:" and imapsync
+will build and use the cache in the sub directory 
+D:\imapsync_cache\
 
 2) add two equivalent entries in the etc/hosts for host1 imap.truc.org 
 and host2 imap.trac.org. 
@@ -406,7 +407,7 @@ Q. I get "Out of memory" errors. How to fix that?
 R. Usually "Out of memory" errors are related to old days,
 to old Mail::IMAPClient module releases, before 3.26.
 Look at imapsync output first lines to get the Mail::IMAPClient release used.
-Then upgrade Mail::IMAPClient Perl module.
+Then upgrade Mail::IMAPClient Perl module if needed.
 
 =======================================================================
 Q. Can I use imapsync to migrate emails from pop3 server to imap server?
@@ -547,7 +548,7 @@ have a uniq numeric criteria.
 There is always a limit, depending on remote imap servers 
 and the one running imapsync;
 CPU, memory, Inputs/Outputs are the classical bottlenecks, 
-the worst is the winner that sets the limit.
+the worst bottleneck is the winner that sets the limit.
 
 examples/sync_loop_windows.bat says
 ...
@@ -640,6 +641,8 @@ It'll convert / character to X
 Choose X as you wish: _ or SEP or 
 any string (including the empty string).
 
+This issue is automatically fixed by default since imapsync 
+release 1.513, use --nofixslash2 to suppress the fix.
 
 =======================================================================
 Q. Is it possible to sync also the UIDL of the POP3 server?
@@ -868,9 +871,20 @@ does with flags.
 =======================================================================
 Q. How to fix this error: BAD Invalid system flag \FORWARDED 
 
-R. Filter flag \FORWARDED with
+R. Filter flag \FORWARDED with --regexflag like this:
+
+On Windows:
 
   imapsync ... --regexflag "s/\\FORWARDED//g" 
+
+On Unix:
+
+  imapsync ... --regexflag 's/\\FORWARDED//g' 
+
+or
+
+  imapsync ... --regexflag "s/\\\\FORWARDED//g" 
+
 
 =======================================================================
 Q. How to convert flags with $ to \ character?
@@ -986,15 +1000,6 @@ R. May be spending too much time on the source server, the connection
 timed out on the destination server.
 Try options --nofoldersizes 
 
-
-=======================================================================
-Q. imapsync failed with a "word too long" error from the imap server,
-   What can I do?
-
-R. Use imapsync release 1.172 or at least 1.166 with options
-   --split1 500 --split2 500
-   or a old old imapsync (before 1.94)
-
 =======================================================================
 Q. Does imapsync support IMAP TLS?
 
@@ -1026,6 +1031,30 @@ b) Use stunnel
    then use imapsync on localhost (or bar machine) imap (143) port.
    If the local port 143 is already taken then use a free one, 10143.
 
+c) Other example for gmail with no root access to open port 143
+
+   stunnel -f -P '' -c -d 9993 -r imap.gmail.com:993
+
+Then, to access gmail as host2 use:
+
+  imapsync ... --host2 localhost --port2 9993 --nossl2 
+
+=======================================================================
+Q. How can I manually test a login via ssl?
+
+R. Use ncat or telnet-ssl like in this example:
+
+ncat --ssl -C  imap.gmail.com 993
+* OK Gimap ready for requests from 78.196.254.58 q1mb175739668wix
+a LOGIN "gilles.lamiral@gmail.com" "secret" 
+* CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE ... ESEARCH
+a OK gilles.lamiral@gmail.com Gilles Lamiral authenticated (Success)
+b LOGOUT
+* BYE LOGOUT Requested
+b OK 73 good day (Success)
+
+The client part to type is "a LOGIN ..." and "b LOGOUT" without
+the double-quotes. 
 
 =======================================================================
 Q. On windows ssl use to work with imapsync.exe 1.536 or previous then
@@ -1052,16 +1081,6 @@ b) or use stunnel :
 
 c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
-
-=======================================================================
-Q: I'm trying to use imapsync on win32 for gmail and it requires ssl.
-Imapsync appears to require IO::Socket::SSL. What can I do?
-
-R1: use standalone imapsync.exe, it contains IO::Socket::SSL 
-Perl module embedded.
-
-R2: Module IO::Socket::SSL is available on Win32 
-with Strawberry Perl.
 
 =======================================================================
 Q: Multiple copies when I run imapsync twice ore more.
@@ -1294,7 +1313,7 @@ Note from Yago Torres Fernandez:
 (a working command using admin/authuser on host2 Office 365)
 
   imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
-               --password2 XXXX --ssl2 --exclude "Shared Folders"     ^
+               --password2 XXXX --ssl2 --ssl2_SSL_version SSLv3 --exclude "Shared Folders"     ^
                --regextrans2 "s#Trash$#Papelera#"  --regextrans2 "s#^Deleted Items$#Papelera#"
 
 but previous in Office365 you must do something like that, using powershell:
@@ -1304,10 +1323,20 @@ but previous in Office365 you must do something like that, using powershell:
 ======================================================================
 Q. How to migrate from uw-imap with an admin/authuser account?
 
-R. Use 
+R. Use the following syntax:
 
---user1="user*admin_user" --password1 "admin_user_password"
+  imapsync ... --user1="loginuser*admin_user" --password1 "admin_user_password"
 
+
+======================================================================
+Q. How to migrate to Dovecot with an admin/MasterUser account?
+
+R. Dovecot uses the same syntax as uw-imap
+
+  imapsync ... --user2="loginuser*admin_user" --password2 "admin_user_password"
+
+To setup a Dovecot MasterUser see 
+http://wiki2.dovecot.org/Authentication/MasterUsers
 
 ======================================================================
 Q. How to migrate from cyrus with an admin account?
@@ -1326,6 +1355,11 @@ Same behavior with the --authuser2 option.
 Do not forget the option --ssl1 since PLAIN auth is only
 supported with ssl encryption most of the time. But it can
 work without --ssl1 if PLAIN is permitted in normal use.
+
+Add the AdminAccount to admins line in /etc/imapd.conf
+Give AdminAccount lrswipkxtecda to the Cyrus Imap account 
+being migrated from, "joe" here.
+
 
 Here is an example:
  imapsync \
@@ -1414,6 +1448,10 @@ imapsync \
  ...
  --regextrans2 "s/INBOX(.*)/INBOX.Braunschweig\$1/" \
  --dry --justfolders
+
+On Windows, in the previous example containing \$1 you have to 
+replace the two \$1 by $1 (remove the \ before $).
+
 
 2) See if the output says everything you want imapsync to do, 
    --dry option is safe and does nothing real.
@@ -1601,6 +1639,16 @@ R. Here is a command line resume that solves most encountered issues when
    migrating to Exchange or Office365. To understand or change the
    details you have to read next Q/R sections.
 
+For Office365 you also have to add --ssl2  --ssl2_SSL_version SSLv3 
+if Office365 is host2 (or --ssl1 if Office365 is host1)
+
+  imapsync ... --ssl2  --ssl2_SSL_version SSLv3
+
+or 
+
+  imapsync ... --ssl1  --ssl1_SSL_version SSLv3
+
+
 On Windows:
 
   imapsync ... ^
@@ -1721,6 +1769,7 @@ imapsync --host1 mail.oldhost.com \
          --password2 password \
          --ssl2 \
          --exitwhenover 500000000 \
+         --maxsize 25000000 \
          --addheader \
          --exclude "\[Gmail\]$"           \
          --regextrans2 "s/[ ]+/_/g"       \
@@ -1739,6 +1788,11 @@ See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 use an upper value than 500 MB without disconnections; I don't
 know the hard value, it seems to vary, so just have some tries
 and report me what you discover in case you detect something.
+
+--maxsize 25000000 is mandatory since Gmail limits messages size
+up to 25 MB. This value increases over time, it was 10 MB some 
+years ago so you can try higher values. The Gmail page about
+this limit is https://support.google.com/mail/answer/6584
 
 The --addheader option is there because "Sent" folder messages 
 sometimes lack the "Message-Id:" and "Received:" headers needed 
@@ -1759,6 +1813,9 @@ also successive blanks ending with the IMAP error
 If you want to change only leading and trailing blank characters
 then use instead:
 --regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g"
+
+On Windows, in the previous example containing \$1 you have to 
+replace the two \$1 by $1 (remove the \ before $1).
 
 --regextrans2 "s/[\^]/_/g" is mandatory.  It converts, since
 not accepted by gmail, character ^ to character _ underscore.
@@ -1832,7 +1889,7 @@ and report me what you discover in case you detect something.
 mandatory. I use them because I found (several years ago, it may
 have changed) that Gmail always adds a different header 
 "X-Gmail-Received:" to all messages it gets. So the identification
-by imapsync can not fall using this header. "Message-Id" is there
+by imapsync can not fail using this header. "Message-Id" is there
 for safety about this Gmail rule.
 
 
@@ -1841,7 +1898,7 @@ option:
            --regextrans2 's/\[Gmail\]/Gmail/'
 
 You can select folders exported to imap within the gmail preferences,
-unselect all "System labels".
+for example you may unselect all "System labels".
 
 --exitwhenover option is here to avoid locking when transfers 
 exceed maximum limit. 
@@ -1849,7 +1906,7 @@ See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 
 --skipcrossduplicates is optional but it can save Gigabytes of hard
 disk memory. Within imap protocol, Gmail presents Gmail labels as 
-folders so a message labeled "Work" "ProjectX" "Urgent" ends up 
+folders, so a message labeled "Work" "ProjectX" "Urgent" ends up 
 in three different imap folders "Work" "ProjectX" and "Urgent"
 after an imap sync. --skipcrossduplicates prevent this behavior.
 
@@ -1868,6 +1925,15 @@ label CanWait and only it.
 --skipcrossduplicates, will only put in "[Gmail]/All Mail"
 the messages that are not labeled at all.
 
+=======================================================================
+Q. Does imapsync have the capability to do 2 stage authentication for google. 
+
+No, imapsync doesn't support 2 stage authentication. 
+Reading https://support.google.com/mail/answer/1173270?hl=en
+it looks like it can't because imapsync uses imap protocol.
+
+So you have to follow the Google recommendation and generate an 
+application-specific password or normal authentication or XOAUTH.
 
 =======================================================================
 Q. How to use XOAUTH to globally authenticate gmail users?
@@ -2087,7 +2153,7 @@ I encounter many errors like this:
 R. GroupWise 7 seems buggy. Apply GroupWise 7 support pack 1
 
 =======================================================================
-Q. Migrating from David Tobit V10
+Q. Migrating from David Tobit V10 (DvISE Mail Access Server MA-...)
 
 R. Use the following options:
 
@@ -2096,6 +2162,7 @@ imapsync ... --prefix1 ""    --sep1 /  --idatefromheader ^
 
 =======================================================================
 Q. Migrating from David Tobit V8
+   ("* OK IMAP4rev1 DvISE Mail Access Server MA-8.10a (0126)")
 
 First try above V10 solution since improvments have been made
 to support Tobit.
@@ -2114,7 +2181,6 @@ R. Look at the discussion:
 http://www.linux-france.org/prj/imapsync_list/msg00582.html
 http://www.linux-france.org/prj/imapsync_list/threads.html#00582
 patch saved in ./patches/imapsync-1.337_tobit_V6.patch
-
 
 =======================================================================
 Q. I need to migrate 1250 mailboxes, passwords are in a MySQL Database.
@@ -2227,10 +2293,13 @@ Here is a command line used to migrate from FirtClass release 12:
     --regextrans2 "s/[\^]/_/g"       \
     --regextrans2 "s/['\"\\\\]/_/g"  \
     --regextrans2 "s,&AC8-,-,g" \
-    --regextrans2 "s,&APg-,oe,g" \
-    --noabletosearch 
+    --regextrans2 "s,&APg-,oe,g" 
 
-Special thanks to Kristian Wind for helping me to write this FAQ item. 
+On Windows, in the previous example containing \$1 you have to 
+replace the two \$1 by $1 (remove the \ before $).
+
+Special thanks to Kristian Wind and Joey Alexander for helping me
+writing this FAQ item. 
 See also this worth reading discussion in a Zimbra forum:
 http://www.zimbra.com/forums/migration/20349-help-needed-migrating-firstclass.html
 

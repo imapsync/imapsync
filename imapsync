@@ -22,7 +22,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 52 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.592 $
+$Revision: 1.596 $
 
 =head1 SYNOPSIS
 
@@ -121,6 +121,9 @@ The option list:
            [--releasecheck]
 	   [--pidfile <filepath>]
 	   [--tmpdir  <dirpath>]
+           [--nolog] 
+           [--log] 
+           [--logfile <filepath>]
            [--version] [--help]
 	   [--tests] [--tests_debug]
   
@@ -555,7 +558,7 @@ Entries for imapsync:
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $
+$Id: imapsync,v 1.596 2014/09/04 17:17:36 gilles Exp gilles $
 
 =cut
 
@@ -688,13 +691,14 @@ my(
         $skipcrossduplicates, $debugcrossduplicates,
         $log, $logfile,
 	$disarmreadreceipts,
+        $mixdiffcasefolders,
 );
 
 # main program
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.596 2014/09/04 17:17:36 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -768,8 +772,8 @@ $modules_version = defined( $modules_version ) ? $modules_version : 1 ;
 # The second line (ending with "1 ;") can stay active or be commented, 
 # the result will be the same: no releasecheck by default.
 
-$releasecheck = defined($releasecheck) ? $releasecheck : 0 ;
-#$releasecheck = defined($releasecheck) ? $releasecheck : 1 ;
+#$releasecheck = defined($releasecheck) ? $releasecheck : 0 ;
+$releasecheck = defined($releasecheck) ? $releasecheck : 1 ;
 
 my $warn_release = ($releasecheck) ? check_last_release() : '' ;
 
@@ -821,6 +825,8 @@ $showpasswords = defined( $showpasswords ) ? $showpasswords : 0 ;
 $fixslash2 = defined( $fixslash2 ) ? $fixslash2 : 1 ;
 $fixInboxINBOX = defined( $fixInboxINBOX ) ? $fixInboxINBOX : 1 ;
 $create_folder_old = defined( $create_folder_old ) ? $create_folder_old : 0 ;
+$mixdiffcasefolders = defined( $mixdiffcasefolders ) ? $mixdiffcasefolders : 1 ;
+
 
 $delete2duplicates = 1 if ( $delete2 and ( ! defined( $delete2duplicates ) ) ) ;
 
@@ -1256,7 +1262,6 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 
 	# host1 can not be fetched read only, select is needed because of expunge.
 	select_folder( $imap1, $h1_fold, 'Host1' ) or next FOLDER ;
-	
 	
 	if ( ! exists( $h2_folders_all{ $h2_fold } ) ) {
 		create_folder( $imap2, $h2_fold, $h1_fold ) or next FOLDER ;
@@ -1728,7 +1733,10 @@ if ( $foldersizesatend ) {
 	timenext() ;
 	# Get all folders on host2 again since new were created
 	@h2_folders_all = sort $imap2->folders();
-	for ( @h2_folders_all ) { $h2_folders_all{ $_ } = 1 } ;
+	for ( @h2_folders_all ) { 
+        	$h2_folders_all{ $_ } = 1 ;
+        	$h2_folders_all_UPPER{ uc( $_ ) } = 1 ;
+        } ;
 	( $h1_nb_msg_end, $h1_bytes_end ) = foldersizes( "Host1", $imap1, $search1, @h1_folders_wanted ) ;
 	( $h2_nb_msg_end, $h2_bytes_end ) = foldersizes( "Host2", $imap2, $search2, @h2_folders_from_1_wanted ) ;
 }
@@ -2372,8 +2380,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.592 $ ',
-		  '$Date: 2014/05/22 10:03:17 $ ',
+		  '$Revision: 1.596 $ ',
+		  '$Date: 2014/09/04 17:17:36 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -2548,6 +2556,12 @@ sub create_folder {
          and ( $imap2->exists( $h2_fold ) ) ) {
                 print "Folder [$h2_fold] already exists\n" ;
                 return( 1 ) ;
+        }
+        
+        if ( ( not $mixdiffcasefolders )
+         and ( $imap2->exists( $h2_fold ) ) ) {
+                print "Folder [$h2_fold] already exists and --nomixdiffcasefolders is set\n" ;
+                return( 0 ) ;
         }
 
         @parts = split( /\Q$h2_sep\E/ , $h2_fold ) ;
@@ -3030,7 +3044,7 @@ sub foldersizes {
 		#unless ( $imap->examine( $folder ) ) {
 		unless ( $imap->select( $folder ) ) {
 			print 
-			  "$side Folder $folder: Could not examine: ",
+			  "$side Folder $folder: Could not select: ",
 			    $imap->LastError,  "\n" ;
 			$nb_errors++ ;
 			next ;
@@ -4708,7 +4722,8 @@ EOM
 ),
 	'regexmess: 4 Delete header Disposition-Notification-To:');
 
-
+# regex to play with Date: from the FAQ
+#@regexmess = 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nX-Date:$2}gxms'
 
 return(  ) ;
 
@@ -5064,7 +5079,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.596 2014/09/04 17:17:36 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {
@@ -5935,6 +5950,8 @@ Several options are mandatory.
 --pidfile     <string> : The file where imapsync pid is written.
 --pidfilelocking       : Abort if pidfile already exists. Usefull to avoid 
                          concurrent transfers on the same mailbox.
+--nolog                : Turn off logging on file
+--logfile     <string> : Change the default logfile pathname and filename.
 
 --prefix1     <string> : Remove prefix to all destination folders 
                          (usually INBOX. or INBOX/ or an empty string "")
@@ -5981,6 +5998,9 @@ Several options are mandatory.
 --expunge2             : Expunge messages on host2 after messages transfer.
 --uidexpunge2          : uidexpunge messages on the host2 account
                          that are not on the host1 account, requires --delete2
+--nomixdiffcasefolders : Avoid merging folders that are considered different on
+                         host1 but the same on destination host2 because of 
+                         case sensitivities and insensitivities.
 
 --syncinternaldates    : Sets the internal dates on host2 same as host1.
                          Turned on by default. Internal date is the date
@@ -6286,7 +6306,8 @@ sub tests_debug {
       SKIP: {
 		skip "No test in normal run" if ( not $tests_debug );
                 #tests_mkpath(  ) ;
-		tests_logfile(  ) ;
+		#tests_logfile(  ) ;
+		tests_regexmess();
 	}
         return(  ) ;
 }

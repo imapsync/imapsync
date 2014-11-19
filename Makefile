@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.149 2014/05/29 23:41:53 gilles Exp gilles $	
+# $Id: Makefile,v 1.151 2014/09/21 08:35:07 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -21,6 +21,7 @@ usage:
 	@echo "make .prereq_win32 # run examples/install_modules.bat on win32"
 	@echo "make all     "
 	@echo "make upload_index"
+	@echo "make valid_index # check index.shtml for good syntax"
 	@echo "make upload_ks"
 	@echo "make imapsync.exe"
 	@echo "make imapsync_elf_x86.bin"
@@ -60,11 +61,11 @@ VERSION: imapsync
 	perl -I./$(IMAPClient) ./imapsync --version > ./VERSION
 	touch -r ./imapsync ./VERSION
 
-GOOD_PRACTICES.html: GOOD_PRACTICES.t2t
-	txt2tags -i GOOD_PRACTICES.t2t  -t html --toc  -o GOOD_PRACTICES.html
+GOOD_PRACTICES.html: W/GOOD_PRACTICES.t2t
+	txt2tags -i W/GOOD_PRACTICES.t2t  -t html --toc  -o GOOD_PRACTICES.html
 
-TUTORIAL.html: TUTORIAL.t2t
-	txt2tags -i TUTORIAL.t2t -t html --toc  -o TUTORIAL.html
+TUTORIAL.html: W/TUTORIAL.t2t
+	txt2tags -i W/TUTORIAL.t2t -t html --toc  -o TUTORIAL.html
 
 doc:  README ChangeLog TUTORIAL.html GOOD_PRACTICES.html 
 
@@ -119,16 +120,16 @@ cidone:
 
 .PHONY: test tests testp testf test3xx testv3 perlcritic
 
-perlcritic: perlcritic_3.out perlcritic_2.out
+perlcritic: W/perlcritic_3.out W/perlcritic_2.out
 
-perlcritic_1.out: imapsync
-	perlcritic -1 imapsync > perlcritic_1.out || :
+W/perlcritic_1.out: imapsync
+	perlcritic -1 imapsync > W/perlcritic_1.out || :
 
-perlcritic_2.out: imapsync
-	perlcritic -2 imapsync > perlcritic_2.out || :
+W/perlcritic_2.out: imapsync
+	perlcritic -2 imapsync > W/perlcritic_2.out || :
 
-perlcritic_3.out: imapsync
-	perlcritic -3 imapsync > perlcritic_3.out || :
+W/perlcritic_3.out: imapsync
+	perlcritic -3 imapsync > W/perlcritic_3.out || :
 
 test_quick : test_quick_3xx 
 
@@ -320,7 +321,7 @@ README_dist.txt: dist_dir
 	sh W/tools/gen_README_dist > $(DIST_PATH)/README_dist.txt
 	unix2dos $(DIST_PATH)/README_dist.txt
 
-.PHONY: publish upload_ks ks
+.PHONY: publish upload_ks ks valid_index 
 
 ks:
 	rsync -avHz --delete --exclude imapsync.exe \
@@ -374,6 +375,8 @@ upload_lfo:
 	/home/gilles/public_html/www.linux-france.org/html/prj/imapsync/.htaccess
 	sh ~/memo/lfo-rsync
 
+valid_index: .valid.index.shtml
+
 
 .valid.index.shtml: index.shtml
 	tidy -q  index.shtml> /dev/null
@@ -383,6 +386,6 @@ upload_lfo:
 upload_index: .valid.index.shtml FAQ LICENSE CREDITS TUTORIAL.html GOOD_PRACTICES.html W/*.bat examples/*.bat examples/*.sh
 	rcsdiff index.shtml FAQ LICENSE CREDITS W/*.bat examples/*.bat index.shtml 
 	rsync -avH index.shtml FAQ NOLIMIT LICENSE CREDITS TUTORIAL.html GOOD_PRACTICES.html root@ks.lamiral.info:/var/www/imapsync/
-	rsync -avH W/*.bat root@ks.lamiral.info:/var/www/imapsync/W/
+	rsync -avH W/*.bat ./W/style.css W/fb-like.html ./W/fb-root.js W/tw-hash.html root@ks.lamiral.info:/var/www/imapsync/W/
 	rsync -avH examples/*.bat examples/*.sh root@ks.lamiral.info:/var/www/imapsync/examples/
 
