@@ -2186,6 +2186,7 @@ sub authenticate_imap {
         }
         
 	$imap->Authcallback(\&xoauth) if ( 'XOAUTH' eq $authmech ) ;
+	$imap->Authcallback(\&xoauth2) if ( 'XOAUTH2' eq $authmech ) ;
 	$imap->Authcallback(\&plainauth) if ( ( 'PLAIN' eq $authmech ) or ( 'EXTERNAL' eq $authmech )  ) ;
 	
         $imap->Domain($domain) if (defined($domain)) ;
@@ -2311,6 +2312,74 @@ sub plainauth {
         my $string = sprintf("%s\x00%s\x00%s", $imap->User,
                             $imap->Authuser, $imap->Password);
         return encode_base64("$string", "");
+}
+
+# Used this as an example: https://gist.github.com/gsainio/6322375
+#
+# And this as a reference: https://developers.google.com/accounts/docs/OAuth2ServiceAccount
+# (note there is an http/rest tab, where the real info is hidden away... went on a witch hunt
+# until I noticed that...)
+#
+# This is targeted at gmail to maintain compatibility after google's oauth1 service is deactivated
+# on May 5th, 2015: https://developers.google.com/gmail/oauth_protocol
+# If there are other oauth2 implementations out there, this would need to be modified to be
+# compatible
+#
+# This is a good guide on setting up the google api/apps side of the equation:
+# http://www.limilabs.com/blog/oauth2-gmail-imap-service-account
+sub xoauth2 {
+        use JSON::WebToken;
+        use LWP::UserAgent;
+        use HTML::Entities;
+        use JSON;
+        use MIME::Base64 qw(encode_base64);
+
+        my $code = shift;
+        my $imap = shift;
+
+        # Get iss (service account address), keyfile name, and keypassword if necessary
+        my ($iss,$keyfile,$keypass) = $imap->Password =~ /([\-\d\w\@\.]+);([a-zA-Z0-9\_\-\.\/]+);?(.*)?/;
+
+        # Assume key password is google default if not provided
+        $keypass = 'notasecret' if not $keypass;
+
+        $debug and print("Service account: $iss\nKey file: $keyfile\nKey password: $keypass\n");
+
+        # Get private key from p12 file (would be better in perl...)
+        my $key = `openssl pkcs12 -in $keyfile -nodes -nocerts -passin pass:$keypass -nomacver`;
+
+        $debug and print("Private key:\n$key\n");
+
+        # Create jwt of oauth2 request
+        my $time = time();
+        my $jwt = JSON::WebToken->encode( {
+                                            'iss'   => $iss, # service account
+                                            'scope' => 'https://mail.google.com/',
+                                            'aud'   => 'https://www.googleapis.com/oauth2/v3/token',
+                                            'exp'   => $time + 3600,
+                                            'iat'   => $time,
+                                            'prn'   => $imap->User # user to auth as
+                                          },
+                                          $key, 'RS256', {'typ' => 'JWT'} );
+
+        # Post oauth2 request
+        my $ua = LWP::UserAgent->new();
+        my $response = $ua->post('https://www.googleapis.com/oauth2/v3/token',
+                                 { grant_type => encode_entities('urn:ietf:params:oauth:grant-type:jwt-bearer'),
+                                   assertion => $jwt } );
+
+        unless($response->is_success()) {
+            die($response->code, "\n", $response->content, "\n");
+        }
+
+        # access_token in response is what we need
+        my $data = decode_json($response->content);
+
+        # format as oauth2 auth data
+        my $xoauth2_string = encode_base64("user=" . $imap->User . "\1auth=Bearer " . $data->{access_token} . "\1\1", "");
+
+        $debug and print("XOAUTH2 String: $xoauth2_string\n");
+        return($xoauth2_string);
 }
 
 # xoauth() thanks to Eduardo Bortoluzzi Junior
