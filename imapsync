@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # structure
 # pod documentation
@@ -2515,7 +2515,7 @@ sub tests_jux_utf8_list {
 	ok( '' eq jux_utf8_list(  ), 'jux_utf8_list: void' ) ;
 	ok( "[]\n" eq jux_utf8_list( '' ), 'jux_utf8_list: empty string' ) ;
 	ok( "[INBOX]\n" eq jux_utf8_list( 'INBOX' ), 'jux_utf8_list: INBOX' ) ;
-	ok( "[&ANY-] = [Ö]\n" eq jux_utf8_list( '&ANY-' ), 'jux_utf8_list: &ANY-' ) ;
+	ok( "[&ANY-] = [Ã]\n" eq jux_utf8_list( '&ANY-' ), 'jux_utf8_list: &ANY-' ) ;
 	return( 0 ) ;
 }
 
@@ -2534,8 +2534,8 @@ sub jux_utf8 {
 
 sub tests_jux_utf8 {
 	ok( '[INBOX]' eq jux_utf8( 'INBOX'), 'jux_utf8: INBOX => [INBOX]' ) ;
-	ok( '[&ZTZO9nux-] = [收件箱]' eq jux_utf8( '&ZTZO9nux-'), 'jux_utf8: &ZTZO9nux- => [&ZTZO9nux-] = [收件箱]' ) ;
-	ok( '[&ANY-] = [Ö]' eq jux_utf8( '&ANY-'), 'jux_utf8: &ANY- => [&ANY-] = [Ö]' ) ;
+	ok( '[&ZTZO9nux-] = [æ¶ä»¶ç®±]' eq jux_utf8( '&ZTZO9nux-'), 'jux_utf8: &ZTZO9nux- => [&ZTZO9nux-] = [æ¶ä»¶ç®±]' ) ;
+	ok( '[&ANY-] = [Ã]' eq jux_utf8( '&ANY-'), 'jux_utf8: &ANY- => [&ANY-] = [Ã]' ) ;
 
 	return( 0 ) ;
 }
@@ -5606,7 +5606,7 @@ sub tests_good_date {
         ok('"18-Dec-2002 15:07:00 +0000"' eq good_date('Wednesday, December 18, 2002 03:07 PM'), 'good_date kbtoys.com orders');
         ok('"16-Dec-2004 02:01:49 -0500"' eq good_date('Dec 16 2004 02:01:49 -0500'), 'good_date jr.com orders');
         ok('"21-Jun-2001 11:11:11 +0000"' eq good_date('21-Jun-2001'), 'good_date register.com domain transfer');
-        ok('"18-Nov-2012 18:34:38 +0100"' eq good_date('Sun, 18 Nov 2012 18:34:38 +0100'), 'good_date pop2imap bug (Westeuropäische Normalzeit)');
+        ok('"18-Nov-2012 18:34:38 +0100"' eq good_date('Sun, 18 Nov 2012 18:34:38 +0100'), 'good_date pop2imap bug (WesteuropÃ¤ische Normalzeit)');
 
 	return(  ) ;
 }
@@ -6259,12 +6259,12 @@ EOF
 
 sub get_options {
 	my $numopt = scalar( @ARGV ) ;
-	my $argv   = join( "�", @ARGV ) ;
+	my $argv   = join( "¤", @ARGV ) ;
 	
 	$test_builder = Test::More->builder ;
 	$test_builder->no_ending( 1 ) ;
 
-	if ( $argv =~ m/-delete�2/x ) {
+	if ( $argv =~ m/-delete¤2/x ) {
 		print "May be you mean --delete2 instead of --delete 2\n" ;
 		exit( 1 ) ;
 	}
