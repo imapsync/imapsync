@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.245 2014/11/14 23:43:08 gilles Exp gilles $  
+# $Id: tests.sh,v 1.255 2015/03/31 14:52:51 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./W/Mail-IMAPClient-3.35/lib' sh -x tests.sh
@@ -57,8 +57,10 @@ run_tests() {
         for t in "$@"; do
                 test X"$t" = X3 && CMD_PERL=$CMD_PERL_3xx && continue
                 test_count=`expr 1 + $test_count`
+		#
                 run_test "$t"
-                #sleep 1
+		
+                sleep 1
         done
 }
 
@@ -86,8 +88,8 @@ no_args() {
 # mailboxes tata -> titi on most ll_*() tests
 
 # mailbox tete@est.belle used on big size tests:
-#                      big_folder()
-#                      big_folder_sizes_only()
+#                      huge_folder()
+#                      huge_folder_sizes_only()
 #                      dprof()
 
 # mailbox big1 big2 used on bigmail tests
@@ -96,9 +98,9 @@ no_args() {
 
 sendtestmessage() {
     email=${1:-"tata"}
-    rand=`pwgen 16 1`
-    mess='test:'$rand
-    cmd="echo $mess""| mail -s ""$mess"" $email"
+    rand=${2:-"`pwgen 16 1`"}
+    mess='test: '"$rand"
+    cmd="echo $mess""| mail -s '""$mess""' $email"
     echo $cmd
     eval "$cmd"
 }
@@ -180,8 +182,17 @@ ll_eta() {
 }
 
 
+ll_errors() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+	 --nofoldersizes --folder INBOX.errors --regexflag 's/.*/PasGlop \\PasGlopRe/' --errorsmax 500 --delete2 
+	 #--pipemess 'grep lalalala' --nopipemesscheck --dry  --debugcontent --debugflags
+}
+
 ll_debug() {
-        #can_send && sendtestmessage
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -273,11 +284,13 @@ nomodules_version() {
 
 
 ll_ask_password() {
-                { sleep 2; cat ../../var/pass/secret.tata; } | \
+                { 
+		sleep 2; cat ../../var/pass/secret.tata; 
+		sleep 2; cat ../../var/pass/secret.titi; 
+		} | \
                 $CMD_PERL ./imapsync \
-                --host1 $HOST1  --user1 tata \
+                --host1 $HOST1 --user1 tata \
                 --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
                 --justlogin
 }
 
@@ -363,7 +376,7 @@ ll_doublequote_rev() {
 
 
 ll_folder_noexist() {
-                ! $CMD_PERL ./imapsync \
+                $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -455,6 +468,29 @@ ll_few_emails_dev() {
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.few_emails --nofoldersizes
 }
+
+ll_pipemess() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails --pipemess 'cat' --pipemess 'reformime -r7' 
+		echo "sudo rm -rf /home/vmail/titi/.few_emails/"
+}
+
+ll_pipemess_nocmd() {
+		
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails --pipemess 'nocat'
+		
+		echo "sudo rm -rf /home/vmail/titi/.few_emails/"
+}
+
 
 ll_size_null() {
                 $CMD_PERL ./imapsync \
@@ -594,6 +630,15 @@ ll_justfolders_skipemptyfolders() {
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes --skipemptyfolders
                 echo "sudo rm -rf /home/vmail/titi/.new_folder/"
+}
+
+ll_justfolders_folderfirst_noexist() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --nofoldersizes --justfolders --folderfirst noexist --debug
 }
 
 
@@ -1264,6 +1309,19 @@ ll_maxlinelength()
                 --maxlinelength 8 --nofoldersizes --folder INBOX
 }
 
+ll_maxlinelengthcmd() 
+{       
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --maxlinelength 8 --maxlinelengthcmd cat --nofoldersizes --folder INBOX 
+}
+
+
+
 ll_minmaxlinelength() 
 {       
         can_send && sendtestmessage
@@ -1390,6 +1448,42 @@ ll_include()
                 --passfile2 ../../var/pass/secret.titi \
                 --include '^INBOX.yop' 
 }
+
+ll_include_include() 
+{
+        if can_send; then
+                #echo3 Here is plume
+	        sendtestmessage
+        else
+                :
+        fi
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+		--nofoldersizes \
+                --include '^INBOX.yop' --include '^INBOX.' 
+}
+
+ll_include_exclude() 
+{
+        if can_send; then
+                #echo3 Here is plume
+	        sendtestmessage
+        else
+                :
+        fi
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+		--nofoldersizes \
+                --include '^INBOX.yop' --exclude '^INBOX.' 
+}
+
+
 
 ll_exclude()
 { 
@@ -1682,6 +1776,56 @@ ll_useheader_noheader()
 
 
 
+ll_skipmess() 
+{
+        if can_send; then
+                #echo3 Here is plume
+		sendtestmessage tata 
+        fi
+	$CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --nofoldersizes --noreleasecheck \
+        --skipmess 'm{.*}ism' 
+}
+
+ll_skipmess_8bits() 
+{
+        if can_send; then
+                #echo3 Here is plume
+		SUBJ="`echo -e 'xFF:\0277'`"
+		sendtestmessage tata "$SUBJ"
+        fi
+	#return
+	$CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --nofoldersizes --noreleasecheck \
+        --skipmess 'm/[\x80-\xff]/' 
+}
+
+ll_skipmess_Content_Type_Message_partial() 
+{
+	$CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.partial --nofoldersizes --noreleasecheck \
+        --skipmess 'm{\A((?:[^\n]+\r\n)+|)^Content-Type: Message/Partial;[^\n]*\n(?:\r\n|.*\r\n\r\n)}ism'  --dry --addheader 
+	echo "sudo rm -rf /home/vmail/titi/.partial/cur/*"
+
+#        --skipmess 'm{\A((?:[^\n]+\n)+|)^Content-Type: Message/Partial;[^\n]*\n(?:\r?\n|.*\r?\n\r?\n)}ism'  --dry --addheader 
+
+
+}
+
+
+
 ll_regexmess() 
 {
         if can_send; then
@@ -1695,7 +1839,7 @@ ll_regexmess()
                 --folder INBOX.yop.yap \
                 --regexmess 's/\157/O/g' \
                 --regexmess 's/p/Z/g' \
-                 --debug 
+                --debug 
                 
         if can_send; then 	
 		file=`ls -t /home/vmail/titi/.yop.yap/cur/* | tail -1`
@@ -1703,6 +1847,29 @@ ll_regexmess()
                 echo 'sudo rm -fv /home/vmail/titi/.yop.yap/cur/*'
 	fi
 }
+
+ll_regexmess_trailing_NUL() 
+{
+        if can_send; then 	
+                rm -fv /home/vmail/titi/.NUL_char/cur/*
+		echo /home/vmail/tata/.NUL_char/cur/*
+	fi
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.NUL_char \
+                --debugcontent \
+                --regexmess 's/(\x00)+\Z//g' 
+                
+        if can_send; then 	
+		file=`ls -t /home/vmail/titi/.NUL_char/cur/* | tail -1`
+                diff ../../var/imapsync/tests/ll_regexmess/dest_02_null_removed $file
+                #echo 'sudo rm -fv /home/vmail/titi/.NUL_char/cur/*'
+	fi
+}
+
 
 ll_regexmess_bad_regex() 
 {
@@ -1739,10 +1906,10 @@ ll_disarmreadreceipts()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.regexmess \
+                --folder INBOX.disarm \
 		--nofoldersizes \
                 --disarmreadreceipts \
-                --debugcontent  --debug 
+                --debugcontent  --debug --dry
                 echo "sudo sh -c 'rm /home/vmail/titi/.regexmess/cur/*'"
 }
 
@@ -2033,8 +2200,6 @@ ll_ssl() {
         if can_send; then
                 #echo3 Here is plume
 		sendtestmessage
-        else
-                :
         fi
         $CMD_PERL ./imapsync \
 	 --host1 $HOST1 --user1 tata \
@@ -2163,14 +2328,14 @@ ll_authmech_CRAMMD5() {
 }
 
 ll_delete2() {
-        can_send && sendtestmessage titi
+        #can_send && sendtestmessage titi
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX \
-        --delete2 --expunge2
+        --delete2 --expunge2 --expunge1 
 }
 
 ll_delete2_reverse() {
@@ -2841,6 +3006,8 @@ gmail_gl_gl2_create_folder_old() {
 }
 
 
+
+
 gmail_gmail_folderfirst() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -2853,7 +3020,7 @@ gmail_gmail_folderfirst() {
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
 		--exclude "blanc\ $" --exclude Gmail \
-                --justfolders --folderfirst INBOX --folderfirst zz  --folderlast "[Gmail]/All Mail"
+                --justfolders --folderfirst INBOX --folderfirst zz  --folderlast "[Gmail]/All Mail" --debug
 
 }
 
@@ -3241,6 +3408,18 @@ l_office365()
         --passfile2 ../../var/pass/secret.outlook.com \
         --folder INBOX --tmpdir /var/tmp --usecache --regextrans2 's/INBOX/tata/' --delete2 --expunge2
 }
+
+l_office365_justlogin()
+{
+        $CMD_PERL ./imapsync \
+        --host1 imap-mail.outlook.com     --ssl1 --user1 gilles.lamiral@outlook.com \
+        --passfile1 ../../var/pass/secret.outlook.com \
+        --host2 imap.outlook.com   --ssl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --justlogin 
+}
+
+
 
 l_office365_bigfolders()
 {
@@ -3787,7 +3966,7 @@ sunone_gmail_2()
     echo3 "[$date1] [$date2]"
 }
 
-big_folder()
+huge_folder()
 {
     date1=`date`
     { $CMD_PERL ./imapsync \
@@ -3803,7 +3982,24 @@ big_folder()
     echo3 "[$date1] [$date2]"
 }
 
-big_folder_useuid()
+huge_folder_ks()
+{
+    date1=`date`
+    { $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 tete \
+        --passfile2 ../../var/pass/secret.tete \
+        --include Junk.2010 \
+        --tmpdir /var/tmp 
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+    echo3 'rm -f /home/tete/Maildir/.Junk.2009/cur/*'
+}
+
+
+huge_folder_useuid()
 {
     date1=`date`
     { $CMD_PERL ./imapsync \
@@ -3822,7 +4018,7 @@ big_folder_useuid()
 
 
 
-big_folder_sizes_only()
+huge_folder_sizes_only()
 {
     date1=`date`
     { $CMD_PERL ./imapsync \
@@ -3837,7 +4033,7 @@ big_folder_sizes_only()
     echo3 "[$date1] [$date2]"
 }
 
-big_folder_fast()
+huge_folder_fast()
 {
     date1=`date`
     { $CMD_PERL ./imapsync \
@@ -3853,7 +4049,7 @@ big_folder_fast()
     echo3 "[$date1] [$date2]"
 }
 
-big_folder_fast2()
+huge_folder_fast2()
 {
     date1=`date`
     { $CMD_PERL ./imapsync \
@@ -3867,7 +4063,7 @@ big_folder_fast2()
     }
     date2=`date`
     echo3 "[$date1] [$date2]"
-    echo2 'rm -f /home/vmail/tete/.Junk/cur/*'
+    echo3 'rm -f /home/vmail/tete/.Junk/cur/*'
 }
 
 
@@ -3935,7 +4131,7 @@ dprof_bigmail()
 # Tests list
 
 mandatory_tests='
-no_args
+no_args 
 option_version
 option_tests
 option_tests_debug
@@ -3996,6 +4192,11 @@ ll_useheader_noheader
 ll_regexmess 
 ll_regexmess_bad_regex
 ll_regexmess_scwchu 
+ll_skipmess 
+ll_skipmess_8bits
+ll_skipmess_Content_Type_Message_partial
+ll_pipemess_nocmd  
+ll_pipemess 
 ll_flags 
 ll_regex_flag 
 ll_regex_flag_bad
@@ -4060,7 +4261,9 @@ run_tests perl_syntax
 
 # All tests
 
-test $# -eq 0 && run_tests $mandatory_tests && ./i3 --version >> .test_3xx
+test $# -eq 0 && run_tests $mandatory_tests 
+# here only if previous line all pass (set -e)
+test $# -eq 0 && ./i3 --version >> .test_3xx
 
 
 # selective tests

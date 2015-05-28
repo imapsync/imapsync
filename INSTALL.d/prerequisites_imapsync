@@ -1,0 +1,146 @@
+#!/bin/sh
+
+# $Id: prerequisites_imapsync,v 1.10 2015/03/14 23:46:59 gilles Exp gilles $
+
+MODULES_MANDATORY='
+Digest::HMAC_MD5
+Authen::NTLM
+Compress::Zlib
+Data::Dumper
+Data::Uniqid
+Digest::HMAC
+Digest::MD5
+File::Copy::Recursive
+IO::Socket::INET
+IO::Socket::INET6
+IO::Socket::SSL
+IO::Tee
+Mail::IMAPClient
+Parse::RecDescent
+Term::ReadKey
+Test::More
+Test::Pod
+Unicode::String
+URI::Escape
+'
+
+MODULES_DEVEL='
+Module::ScanDeps
+PAR::Packer
+'
+
+test_perl() {
+# First we need perl
+
+	if perl -v > /dev/null 2>&1 ; then
+		perl_version=`perl -e 'printf "%vd\n", $^V;'`
+		echo Ok: Found Perl $perl_version
+		return 0
+	else
+		echo Failure: Perl is not here. You have to install Perl first.
+		return 1
+	fi
+}
+
+
+test_module() {
+	test -n $1 || return
+	M_tested=$1
+	shift
+	if perl -m"$M_tested" -e '' >/dev/null 2>&1 ; then
+		echo "Ok: Found Perl module $M_tested"
+	else
+		echo "Failure: Not found Perl module $M_tested $@"
+		LIST_TO_INSTALL="$LIST_TO_INSTALL $M_tested"
+	fi
+}
+
+test_mandatory_modules() {
+	for M in $MODULES_MANDATORY
+	do
+		test_module $M
+	done
+}
+
+
+search_modules_any() {
+	test -n "$*" || {
+		echo "All needed modules are already installed"
+		return
+	}
+	apt-get -h > /dev/null 2>&1 && {
+		search_modules_apt "$@"
+		return
+	}
+	yum -h > /dev/null 2>&1 && {
+		search_modules_yum  "$@"
+		return
+	}
+	
+	# no yum, no apt-get
+	{
+		search_modules_cpan "$@"
+		return
+	}
+}
+
+search_modules_cpan() {
+		cat <<EOD
+Here is a cpan command to install missing Perl modules:
+cpan -i $@
+EOD
+}
+
+
+search_modules_yum() {
+	echo 
+	echo Searching rpm packages names
+	for M in "$@" ; do
+		echo "==== Searching rpm package name for $M"
+		F=`echo $M|tr -s ":" "/"`.pm
+		#echo yum -q whatprovides "*/$F"
+		echo
+		yum -q whatprovides "*/$F"
+		echo
+	done
+}
+
+search_modules_apt() {
+	echo 
+	echo Searching deb packages names
+	for M in "$@" ; do
+		echo "==== Searching deb package name for $M"
+		F=`echo $M|tr -s ":" "/"`.pm
+		#echo apt-file search /$F
+		echo
+		apt-file search /$F
+		echo
+	done
+}
+
+
+list_to_install() {
+	test -n "$LIST_TO_INSTALL" || return
+	echo
+	echo 'What you have to do before using imapsync:'
+	for M in $LIST_TO_INSTALL ; do
+		echo "Install Perl module $M"
+	done
+}
+
+test_unix() {
+	echo '$SHELL says ' $SHELL
+	echo '$0 gives ' $0 
+	echo -n "ps -ef gives " ; ps -ef | grep $$ | grep -v grep| grep -v 'ps -ef'
+	sw_vers > /dev/null 2>&1 && sw_vers # Darwin
+	lsb_release -dirc > /dev/null 2>&1 && lsb_release -dirc # Linux
+	uname -a
+}
+
+test_unix
+#exit
+test_perl || exit
+test_mandatory_modules
+list_to_install
+#search_modules_cpan $MODULES_MANDATORY
+search_modules_any $LIST_TO_INSTALL

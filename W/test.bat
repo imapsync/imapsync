@@ -1,5 +1,5 @@
 
-REM $Id: test.bat,v 1.11 2014/05/22 10:15:45 gilles Exp gilles $
+REM $Id: test.bat,v 1.12 2015/03/15 04:04:11 gilles Exp gilles $
 
 cd /D %~dp0
 
@@ -9,6 +9,7 @@ perl -mMail::IMAPClient -mDigest::MD5 -mTerm::ReadKey -mIO::Socket::SSL ^
        -mData::Uniqid -mURI::Escape  -mIO::Tee ""
 
 perl ./imapsync 
+@REM perl ./imapsync --tests 
 
 @ECHO ==== All 8 combinaisons between ssl1/tls1 ssl2/tls2 justconnect/justlogin
 

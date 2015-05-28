@@ -1,0 +1,21 @@
+#!/usr/bin/perl -w
+
+
+
+use strict ;
+use IO::Handle ;
+use IPC::Open2 ;
+
+my( $chld_out, $chld_in ) = ( IO::Handle->new, IO::Handle->new ) ;
+my $pid = open2( $chld_out, $chld_in, 'cat -n' ) ;
+print $chld_in "LALALA\n" x 50000 ;
+print $chld_in "LALALA\n" ;
+print $chld_in "LALALA\n" ;
+
+$chld_in->close ;
+my @out = <$chld_out> ;
+
+waitpid( $pid, 0 );
+my $child_exit_status = $? >> 8;
+
+print @out ;

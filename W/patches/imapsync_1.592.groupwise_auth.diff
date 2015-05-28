@@ -1,0 +1,145 @@
+--- imapsync-master/imapsync    2014-08-08 01:10:54.000000000 -0600
++++ imapsync-gw/imapsync    2014-11-12 20:21:33.727746150 -0700
+@@ -601,6 +601,7 @@
+    $host1, $host2, $port1, $port2,
+    $user1, $user2, $domain1, $domain2, 
+    $password1, $password2, $passfile1, $passfile2,
++   $gwtapp1, $gwtappkey1, $gwtapp2, $gwtappkey2,
+         @folder, @include, @exclude, @folderrec,
+         @folderfirst, @folderlast,
+         $prefix1, $prefix2, 
+@@ -1038,13 +1039,13 @@
+
+ $debugimap1 and print "Host1 connection\n";
+ $imap1 = login_imap($host1, $port1, $user1, $domain1, $password1, 
+-          $debugimap1, $timeout, $fastio1, $ssl1, $tls1,
++          $debugimap1, $timeout, $fastio1, $gwtapp1, $gwtappkey1, $ssl1, $tls1,
+           $authmech1, $authuser1, $reconnectretry1,
+           $proxyauth1, $uid1, $split1, 'Host1', $ssl1_SSL_version );
+
+ $debugimap2 and print "Host2 connection\n";
+ $imap2 = login_imap($host2, $port2, $user2, $domain2, $password2, 
+-        $debugimap2, $timeout, $fastio2, $ssl2, $tls2,
++        $debugimap2, $timeout, $fastio2, $gwtapp2, $gwtappkey2, $ssl2, $tls2,
+         $authmech2, $authuser2, $reconnectretry2,
+         $proxyauth2, $uid2, $split2, 'Host2', $ssl2_SSL_version );
+
+@@ -2062,7 +2063,7 @@
+    $imap1 = relogin_imap(
+        $imap1,
+        $host1, $port1, $user1, $domain1, $password1, 
+-       $debugimap1, $timeout, $fastio1, $ssl1, $tls1,
++       $debugimap1, $timeout, $fastio1, $gwtapp1, $gwtappkey1, $ssl1, $tls1,
+        $authmech1, $authuser1, $reconnectretry1,
+        $proxyauth1, $uid1, $split1) ;
+
+@@ -2074,7 +2075,7 @@
+    $imap2 = relogin_imap(
+        $imap2,
+        $host2, $port2, $user2, $domain2, $password2, 
+-       $debugimap2, $timeout, $fastio2, $ssl2, $tls2,
++       $debugimap2, $timeout, $fastio2, $gwtapp2, $gwtappkey2, $ssl2, $tls2,
+        $authmech2, $authuser2, $reconnectretry2,
+        $proxyauth2, $uid2, $split2) ;
+
+@@ -2085,7 +2086,7 @@
+ sub relogin_imap {
+    my($imap,
+       $host, $port, $user, $domain, $password, 
+-      $mydebugimap, $mytimeout, $fastio, 
++      $mydebugimap, $mytimeout, $fastio, $gwtapp, $gwtappkey, 
+       $ssl, $tls, $authmech, $authuser, $reconnectretry,
+       $proxyauth, $uid, $split) = @_;
+
+@@ -2093,7 +2094,7 @@
+    $imap->logout(  ) ;
+    $imap = login_imap(
+        $host, $port, $user, $domain, $password, 
+-       $mydebugimap, $mytimeout, $fastio, 
++       $mydebugimap, $mytimeout, $fastio, $gwtapp, $gwtappkey,
+        $ssl, $tls, $authmech, $authuser, $reconnectretry,
+        $proxyauth, $uid, $split
+    ) ;
+@@ -2101,17 +2102,17 @@
+    return( $imap ) ;
+ }
+
+-
+ sub login_imap {
+
+    my @allargs = @_ ;
+    my($host, $port, $user, $domain, $password, 
+-      $mydebugimap, $mytimeout, $fastio, 
++      $mydebugimap, $mytimeout, $fastio, $gwtapp, $gwtappkey,
+       $ssl, $tls, $authmech, $authuser, $reconnectretry,
+       $proxyauth, $uid, $split, $Side, $SSL_version ) = @allargs ;
+
+    my $side = lc( $Side ) ;
+    my $imap = init_imap( @allargs ) ;
++   my $gwtapp_encoded = "";
+
+    $imap->connect()
+      or die_clean("Failure: can not open imap connection on $side [$host] with user [$user]: $@\n");
+@@ -2120,6 +2121,7 @@
+         $imap->Banner( $banner ) ;
+    print "$Side: ", server_banner($imap);
+
++
+         if ( $authmech eq 'PREAUTH' ) {
+            if ( $imap->IsAuthenticated( ) ) {
+                $imap->Socket ;
+@@ -2135,6 +2137,13 @@
+                 or die_clean("Can not go to tls encryption on [$host]:", $imap->LastError, "\n" ) ;
+         }
+
++   if ( defined($gwtapp) && !($gwtapp eq '') && defined($gwtappkey) && !($gwtappkey eq '')) {
++       $gwtapp_encoded = encode_base64(qq/$gwtapp\x00$gwtappkey/,"");
++       $imap->tag_and_run("AUTHENTICATE XGWTRUSTEDAPP\nXGWTRUSTEDAPP $gwtapp_encoded\n")
++           or die_clean("Failed to log in with GroupWise Trust App.");
++       @allargs[4] = "";
++   }
++
+         authenticate_imap( $imap, @allargs ) ;
+
+    print "$Side: success login on [$host] with user [$user] auth [$authmech]\n" ;
+@@ -2146,7 +2155,7 @@
+
+    my($imap,
+            $host, $port, $user, $domain, $password, 
+-      $mydebugimap, $mytimeout, $fastio, 
++      $mydebugimap, $mytimeout, $fastio, $gwtapp, $gwtappkey,
+       $ssl, $tls, $authmech, $authuser, $reconnectretry,
+       $proxyauth, $uid, $split, $Side ) = @_ ;
+
+@@ -2247,7 +2256,7 @@
+
+ sub init_imap {
+    my($host, $port, $user, $domain, $password, 
+-      $mydebugimap, $mytimeout, $fastio, 
++      $mydebugimap, $mytimeout, $fastio, $gwtapp, $gwtappkey,
+       $ssl, $tls, $authmech, $authuser, $reconnectretry,
+       $proxyauth, $uid, $split, $Side, $SSL_version ) = @_ ;
+
+@@ -5860,7 +5869,10 @@
+
+ --dry                  : Makes imapsync doing nothing, just print what would 
+                          be done without --dry.
+-
++--gwtapp1     <string> : GroupWise Trusted App Name for Source
++--gwtappkey1  <string> : GroupWise Trusted App Key for Source
++--gwtapp2     <string> : GroupWise Trusted App Key for Destination
++--gwtappkey2  <string> : GroupWise Trusted App Key for Destination
+ --host1       <string> : Source or "from" imap server. Mandatory.
+ --port1       <int>    : Port to connect on host1. Default is 143.
+ --user1       <string> : User to login on host1. Mandatory.
+@@ -6251,6 +6263,10 @@
+                                    "debugcrossduplicates!" => \$debugcrossduplicates,
+                                    "log!" => \$log,
+                                    "logfile=s" => \$logfile,
++                  "gwtapp1=s" => \$gwtapp1,
++                  "gwtappkey1=s" => \$gwtappkey1,
++                  "gwtapp2=s" => \$gwtapp2,
++                  "gwtappkey2=s" => \$gwtappkey2,
+                                   );
+
+         $debug and print "get options: [$opt_ret]\n";

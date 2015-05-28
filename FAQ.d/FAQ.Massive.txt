@@ -1,0 +1,98 @@
+#!/bin/cat
+$Id: FAQ.Massive.txt,v 1.1 2015/03/26 05:06:27 gilles Exp gilles $
+
+======================================================================
+      Imapsync for massive migrations
+======================================================================
+
+Questions answered here are:
+
+Q. I need to migrate hundred accounts, how can I do?
+Q. I have to migrate 500k users using 400 TB of disk space. 
+   How do I proceed?
+
+   
+=======================================================================
+Q. I need to migrate hundred accounts, how can I do?
+
+R. If you have many mailboxes to migrate think about a little
+shell program. Write a file called file.txt (for example)
+containing users and passwords.
+The separator used in this example is ";"
+
+The file.txt file contains:
+
+user001_1;password001_1;user001_2;password001_2
+user002_1;password002_1;user002_2;password002_2
+user003_1;password003_1;user003_2;password003_2
+user004_1;password004_1;user004_2;password004_2
+user005_1;password005_1;user005_2;password005_2
+...
+
+On Unix the shell program can be:
+
+ { while IFS=';' read  u1 p1 u2 p2; do 
+	imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
+                 --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
+ done ; } < file.txt
+
+Here is a complete Unix example nearly ready to use: 
+http://imapsync.lamiral.info/examples/sync_loop_unix.sh
+
+
+On Windows the batch program can be:
+
+  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO imapsync ^
+  --host1 imap.side1.org --user1 %%G --password1 %%H ^
+  --host2 imap.side2.org --user2 %%I --password2 %%J ...
+
+The ... can be replaced by nothing or any supplementary imapsync option.
+
+Here is a complete Windows example nearly ready to use: 
+http://imapsync.lamiral.info/examples/sync_loop_windows.bat
+
+
+
+=======================================================================
+Q. I have to migrate 500k users using 400 TB of disk space. 
+   How do I proceed?
+
+R. Solution to this issue is two words: parallelism and measurements.  
+Since all 500k mailboxes are independent against each other, 
+they can be processed independently.
+
+500k on 400TB is 800 MB per account on average.
+
+No one knows in advance what is the first bottleneck.  The first
+bottleneck has to be determined, by measurements, not by guesses.
+Once this first bottleneck is known and overcome then the next
+bottleneck has to be determined and overcome too, if needed. Repeat
+the process of looking for the next bottleneck and its resolution
+until you estimate the transfer rates, money costs and final dates are
+good enough to proceed the whole 500k/400TB migration.
+
+Possible bottlenecks: 
+
+- IMAP servers have artificial limits. For example Gmail and Office365
+  have throttle limits.
+
+- Bandwidth, on any side, especially on small Internet connexions. But
+  usually bandwidth is not a bottleneck. 
+
+- Memory, on any side. Monitor your system doesn't swap on disk.
+
+- CPU, on any side. When measuring that CPU is always 100% during a 
+  transfer then it's useless to add imapsync processus on that host.
+
+- I/O on disks. A classical one always forgotten. Unlike CPU and RAM
+  Input/Output performances don't improve very much as time goes on.
+
+- Number of hosts available to run imapsync processes.
+- Imapsync itself.
+- Errors management.
+- MX domains, DNS.
+- Money.
+- Time.
+- Bad luck.
+- ...
+

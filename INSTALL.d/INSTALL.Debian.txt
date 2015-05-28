@@ -1,0 +1,121 @@
+
+========================================
+= Installing imapsync on Debian 6 or 7 =
+========================================
+
+There is one section for Debian 7 and one for Debian 6.
+
+== Debian 7 wheezy or higher ==
+
+Here are the two commands to install imapsync dependencies.
+The first command installs standard packages:
+
+  apt-get install   \
+libauthen-ntlm-perl \
+libcrypt-ssleay-perl \
+libdigest-hmac-perl  \
+libfile-copy-recursive-perl \
+libio-compress-perl \
+libio-socket-inet6-perl \
+libio-socket-ssl-perl   \
+libio-tee-perl          \
+libmail-imapclient-perl \
+libmodule-scandeps-perl \
+libnet-ssleay-perl      \
+libpar-packer-perl      \
+libterm-readkey-perl    \
+libtest-pod-perl        \
+libtest-simple-perl     \
+libunicode-string-perl  \
+liburi-perl             
+
+
+The second command installs "manually" the Perl module Data::Uniqid
+because Debian hasn't made it available via a package yet:
+
+  cpan Data::Uniqid
+
+After installing the dependencies, imapsync should be working.
+A good dependencies test that shows also the basic example:
+
+  ./imapsync
+
+Now the install command:
+
+  cp imapsync /usr/bin/
+
+That's finished for the installation part.
+You can use imapsync.
+
+
+== Debian 6 Squeeze ==
+
+apt-get install   \
+libcrypt-ssleay-perl \
+libdigest-hmac-perl  \
+libfile-copy-recursive-perl \
+libio-compress-perl \
+libio-socket-inet6-perl \
+libio-socket-ssl-perl   \
+libio-tee-perl          \
+libmail-imapclient-perl \
+libmodule-scandeps-perl \
+libnet-ssleay-perl      \
+libpar-packer-perl      \
+libterm-readkey-perl    \
+libtest-pod-perl        \
+libtest-simple-perl     \
+libunicode-string-perl  \
+liburi-perl
+
+
+  perl -MCPAN -e "install Data::Uniqid"
+  perl -MCPAN -e "install Authen::NTLM"
+
+Now a good dependencies test that shows also the basic example:
+
+  ./imapsync
+
+Now the install command:
+
+  cp imapsync /usr/bin/
+
+That's finished for the installation part.
+You can use imapsync.
+
+
+== Appendix ==
+
+Here are some explanations about what is really needed in case
+you want to avoid installing some packages.
+
+=== Mandatory packages ===
+
+Digest::HMAC_MD5        libdigest-hmac-perl
+Digest::HMAC_SHA1       libdigest-hmac-perl
+File::Copy::Recursive   libfile-copy-recursive-perl
+IO::Socket::INET6       libio-socket-inet6-perl
+IO::Socket::SSL         libio-socket-ssl-perl
+IO::Tee                 libio-tee-perl
+Mail::IMAPClient        libmail-imapclient-perl
+Unicode::String         libunicode-string-perl
+
+=== Optional packages ===
+
+Authen::NTLM		libauthen-ntlm-perl # NTLM authentication
+URI::Escape		liburi-perl # XOAUTH authentication
+Data::Uniqid		# XOAUTH authentication
+
+Since Perl module Data::Uniqid is not packaged in Ubuntu you have to install
+it "manually" from CPAN. 
+
+=== Developper packages ===
+
+Module::ScanDeps        libmodule-scandeps-perl
+PAR::Packer		libpar-packer-perl
+Test::Pod		libtest-pod-perl
+
+You may need to have also those packages:
+
+sudo apt-get install makepasswd rcs perl-doc  git
+

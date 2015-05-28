@@ -1,0 +1,92 @@
+
+# $Id: INSTALL.Darwin.txt,v 1.6 2015/03/16 16:29:27 gilles Exp gilles $
+
+============================================
+= Installing imapsync on Darwin / Mac OS X =
+============================================
+
+First let's configure the cpan command in order it modify only a
+very local installation, local to a user, the user you're logged in.
+
+Open a terminal: /Applications/Utilities/Terminal double-click on Terminal.
+In order to do a local install, we have to take a fresh start.
+In this terminal, type the following (or better copy-paste this line and press RETURN):
+
+  rm -f .cpan/CPAN/MyConfig.pm
+  cpan
+
+cpan should ask for an automatic configuration, say yes.
+Example of output:
+
+------------------------------------------------------------------------------
+Would you like to configure as much as possible automatically? [yes] 
+...
+What approach do you want?  (Choose 'local::lib', 'sudo' or 'manual')
+ [local::lib] 
+------------------------------------------------------------------------------
+ 
+
+At the end of the run, cpan might propose to add some lines in your .bashrc file.
+Say yes. The output on the screen is something like the following:
+
+------------------------------------------------------------------------------ 
+...
+local::lib is installed. You must now add the following environment variables
+to your shell configuration files (or registry, if you are on Windows) and
+then restart your command line shell and CPAN before installing modules:
+
+PERL_MB_OPT="--install_base \"/Users/gilles/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=/Users/gilles/perl5"; export PERL_MM_OPT;
+
+Would you like me to append that to /home/Users/.bashrc now? [yes] 
+commit: wrote '/Users/gilles/.cpan/CPAN/MyConfig.pm'
+...
+------------------------------------------------------------------------------
+
+You have to source (the command to source is "." ) your .bashrc and run the "cpan -i" command:
+
+  .  .bashrc 
+
+The next time you use cpan command, it will install Perl modules locally,
+where you have permission to create files and directories, something like
+the path /Users/gilles/perl5/ (where gilles is replaced by your login name).
+
+Next, let's get a script that will check your Perl installation.
+Open a terminal: /Applications/Utilities/Terminal double-click on Terminal.
+In this terminal, type the following (or better copy-paste this line and press RETURN):
+
+  curl -L http://imapsync.lamiral.info/INSTALL.d/prerequisites_imapsync > prerequisites_imapsync 
+
+Now you should have a script named "prerequisites_imapsync" in the current directory.
+Let's execute it with a shell, type:
+
+  sh prerequisites_imapsync 
+
+When "sh prerequisites_imapsync" command is ended it will propose you
+to execute a "cpan -i ..." command to install the missing Perl modules.
+The "..." in "cpan -i ..." have to be replaced by the list proposed 
+in the last output line of a "sh prerequisites_imapsync" run.
+For example it can be:
+
+  cpan -i Authen::NTLM Data::Uniqid File::Copy::Recursive IO::Tee Mail::IMAPClient Unicode::String
+
+Once you've run the "cpan -i" command, you can rerun "sh prerequisites_imapsync" 
+to verify everything is ok:
+
+  sh prerequisites_imapsync 
+
+When everything is ok the script execution ends with this sentence
+"All needed modules are already installed"
+
+Now imapsync should work on your system.
+
+
+
+  
+==========================================
+== Installing imapsync Mac OS X Leopard ==
+==========================================
+
+Mac OS X Leopard has perl 5.8.8 and an old openssl version.
+
+

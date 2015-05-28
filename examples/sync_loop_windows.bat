@@ -1,10 +1,13 @@
 @REM
-@REM $Id: sync_loop_windows.bat,v 1.7 2014/06/24 08:40:46 gilles Exp gilles $
+@REM $Id: sync_loop_windows.bat,v 1.9 2015/03/26 04:34:44 gilles Exp gilles $
 @REM
 @REM imapsync massive sync example batch for Windows users
-@REM lines beginning with REM are just comments 
+@REM lines beginning with @REM are just comments 
 @REM
-@REM Replace "imap.side1.org" and "imap.side2.org" with your own values
+@REM Replace "test1.lamiral.info" and "test2.lamiral.info" with your own values
+@REM
+@REM You should get familiar with a simple and single imapsync transfer before
+@REM playing with this loop batch file. See and play with imapsync_example.bat
 @REM
 @REM ==== Credentials file ====
 
@@ -20,7 +23,7 @@
 
 @REM ==== Log files ====
 
-@REM Log files are in the LOG_imapsync subfolder
+@REM Log files are in the LOG_imapsync sub-folder
 
 @REM ==== Parallel executions ====
 
@@ -43,6 +46,10 @@
 @REM    Note N as the number of parallel runs you got until then.
 @REM 4) Only keep N-2 parallel runs for the future.
 
+@REM For Parallel executions there is also a PowerShell script written by 
+@REM CARTER Alex explained and located on the imapsync archive list:
+@REM http://www.linux-france.org/prj/imapsync_list/msg02137.html
+
 @REM ==== The real stuff ====
 
 @REM @echo off
@@ -54,8 +61,8 @@ FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (%csvfile%) DO (
 @ECHO.
 
 imapsync ^
-  --host1 imap.side1.org --user1 %%G --password1 %%H ^
-  --host2 imap.side2.org --user2 %%I --password2 %%J 
+  --host1 test1.lamiral.info --user1 %%G --password1 %%H ^
+  --host2 test2.lamiral.info --user2 %%I --password2 %%J 
 
 @ECHO.==== End syncing from account %%G to account %%I ====
 @ECHO.

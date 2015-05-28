@@ -1,0 +1,261 @@
+#!/bin/cat
+$Id: FAQ.Gmail.txt,v 1.1 2015/03/26 08:12:20 gilles Exp gilles $
+
+======================================================================
+                    Imapsync with Gmail
+======================================================================
+
+
+=======================================================================
+Q. Synchronizing from XXX to Gmail  
+
+R. There are some details to get the special [Gmail] sub-folders
+   right. Here's an example of migrating an old "Sent" folder to
+   Gmail's structure:
+
+imapsync --host1 mail.oldhost.com \
+         --user1 my_email@oldhost.com \
+         --password1 password \
+         --host2 imap.gmail.com \
+         --user2 my_email@gmail.com \
+         --password2 password \
+         --ssl2 \
+         --exitwhenover 500000000 \
+         --maxsize 25000000 \
+         --expunge1 \
+         --addheader \
+         --exclude "\[Gmail\]$"           \
+         --regextrans2 "s/[ ]+/_/g"       \
+         --regextrans2 "s/[\^]/_/g"       \
+         --regextrans2 "s/['\"\\\\]/_/g"  \
+         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," 
+
+Explanations:
+
+--ssl2 is mandatory since Gmail only supports imap ssl connections.
+
+--exitwhenover 500000000 option is here to avoid locking when 
+transfers exceed maximum limit. 
+See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+--exitwhenover is not mandatory in the sense you may be able to
+use an upper value than 500 MB without disconnections; I don't
+know the hard value, it seems to vary, so just have some tries
+and report me what you discover in case you detect something.
+
+--maxsize 25000000 is mandatory since Gmail limits messages size
+up to 25 MB. This value increases over time, it was 10 MB some 
+years ago so you can try higher values. The Gmail page about
+this limit is https://support.google.com/mail/answer/6584
+
+--expunge1 is optional. It deletes messages marked \Deleted on host1.
+Imapsync syncs messages with all their flags, Gmail takes the messages
+marked \Deleted but deletes or moves them just after.
+Option --expunge1 really removes messages marked \Deleted on host1 
+so they are not synced at all.
+
+
+The --addheader option is there because "Sent" folder messages 
+sometimes lack the "Message-Id:" and "Received:" headers needed 
+by imapsync to identify messages (only when --useuid is not used). 
+So option --addheader adds a "Message-Id" header consisting of
+the imap UID of the message on the host1 folder, like
+"Message-Id: 12345@imapsync".
+
+--exclude "\[Gmail\]$" is there to avoid a small examine/select error:
+"Could not examine: 43 NO [NONEXISTENT] Unknown Mailbox: [Gmail] 
+(now in authenticated state) (Failure)".
+
+--regextrans2 "s/[ ]+/_/g" is there to convert blank characters not 
+accepted by gmail to character _ underscore. In fact only leading
+and trailing blank characters are problems with gmail, and
+also successive blanks ending with the IMAP error 
+"NO [CANNOT] Folder contains excess whitespace (Failure)"
+If you want to change only leading and trailing blank characters
+then use instead:
+--regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g"
+
+On Windows, in the previous example containing \$1 you have to 
+replace the two \$1 by $1 (remove the \ before $1).
+
+--regextrans2 "s/[\^]/_/g" is mandatory.  It converts, since
+not accepted by gmail, character ^ to character _ underscore.
+
+--regextrans2 "s/['\"\\\\]/_/g" is optional. It converts 
+characters ' or " or \ to character _ underscore.
+
+--regextrans2 "s,^Sent$,[Gmail]/Sent Mail," is to transform the
+folder name "Sent" and adapt it to Gmail "Sent Mail" folder.
+If you're using a different language in Gmail you might adapt
+this example with the folder name translated, an example in French:
+
+imapsync ...
+	 --regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
+
+
+You can add --folder "INBOX.Sent" in the example in case
+you want to sync only the "Sent" folder.
+
+You can select folders exported to imap within the gmail preferences,
+unselect some  "System labels", depending on your needs.
+
+The "All Mail" archive pseudo-folder should be updated automatically.
+
+
+
+=======================================================================
+Q. Some of the folders are getting created with [IMAP] prefix on Google
+side. How to stop creating folder with this prefix?
+Any switch we can use? e.g. [IMAP]/Archive
+
+R. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
+   it might be configurable with Gmail parameters.
+
+=======================================================================
+Q. Synchronizing from Gmail to XXX 
+
+R. Gmail needs SSL 
+
+./imapsync \
+           --host1 imap.gmail.com \
+           --user1 gilles.lamiral@gmail.com \
+           --password1 gmailsecret \
+           --host2 localhost
+           --user2 tata \
+           --password2 tatasecret \
+           --ssl1 \
+           --exitwhenover 2500000000 \
+           --useheader="X-Gmail-Received" \
+           --useheader "Message-Id" \
+           --skipcrossduplicates \
+           --folderfirst "Work" \
+           --folderfirst "Friends" \
+           --folderlast  "CanWait" \
+           --folderlast  "[Gmail]/All Mail"
+
+
+Explanations:
+
+--ssl1 is mandatory since Gmail only supports imap ssl connections.
+
+--exitwhenover 2500000000 option is here to avoid locking when 
+transfers exceed maximum limit. 
+See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+--exitwhenover is not mandatory in the sense you may be able to
+use an upper value than 2.5 GB without disconnections; I don't
+know the hard value, it seems to vary, so just have some tries
+and report me what you discover in case you detect something.
+
+--useheader="X-Gmail-Received" --useheader "Message-Id" are not
+mandatory. I use them because I found (several years ago, it may
+have changed) that Gmail always adds a different header 
+"X-Gmail-Received:" to all messages it gets. So the identification
+by imapsync can not fail using this header. "Message-Id" is there
+for safety about this Gmail rule.
+
+
+If your destination imap server doesn't like "[Gmail]" name, just add
+option:
+           --regextrans2 's/\[Gmail\]/Gmail/'
+
+You can select folders exported to imap within the gmail preferences,
+for example you may unselect all "System labels".
+
+--exitwhenover option is here to avoid locking when transfers 
+exceed maximum limit. 
+See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+
+--skipcrossduplicates is optional but it can save Gigabytes of hard
+disk memory. Within imap protocol, Gmail presents Gmail labels as 
+folders, so a message labeled "Work" "ProjectX" "Urgent" ends up 
+in three different imap folders "Work" "ProjectX" and "Urgent"
+after an imap sync. --skipcrossduplicates prevent this behavior.
+
+An issue with --skipcrossduplicates is that the first label synced
+by imapsync goes to its corresponding folder and other labels are
+ignored. This way, at least you can choose what labels have the 
+priority by using the --folderfirst option. For example
+--folderfirst "Work" will sync messages labeled "Work" before
+messages labeled "CanWait" or "Urgent". By default imapsync 
+syncs folders (Gmail labels) using the classical alphanumeric order.
+
+--folderlast "CanWait" will sync only messages that have the
+label CanWait and only it.
+
+--folderlast "[Gmail]/All Mail", in conjunction with option 
+--skipcrossduplicates, will only put in "[Gmail]/All Mail"
+the messages that are not labeled at all.
+
+=======================================================================
+Q. Gmail does not really delete messages in folder [Gmail]/All Mail 
+   What happens? What can I do?
+
+R. It's true and explained in Gmail documentation at
+https://support.google.com/mail/answer/78755?hl=en
+
+To really remove messages in folder "[Gmail]/All Mail", they have to
+be moved to the "Trash" folder and be deleted from "Trash".
+   
+
+=======================================================================
+Q. Does imapsync have the capability to do 2 stage authentication for google. 
+
+R. No, imapsync doesn't support 2 stage authentication. 
+Reading https://support.google.com/mail/answer/1173270?hl=en
+it looks like it can't because imapsync uses imap protocol.
+
+So you have to follow the Google recommendation and generate an 
+application-specific password or normal authentication or XOAUTH.
+
+=======================================================================
+Q. Is XOAUTH2 authentication available with imapsync?
+
+R. Yes but only on Unix systems and not really well documented. See
+* http://www.linux-france.org/prj/imapsync_list/msg02129.html
+* https://github.com/imapsync/imapsync/pull/25/files
+
+=======================================================================
+Q. How to use XOAUTH to globally authenticate gmail users?
+   The XOAUTH code and this FAQ item come from Eduardo Bortoluzzi
+   Thanks Eduardo!
+
+R. The goal of OAUTH is to migrate all users from/to Google Apps 
+   Premier Edition without knowing their passwords.
+
+   The global password is available at the Google Apps control panel, 
+   at Advanced Tools -> Manage OAuth domain key.
+
+./imapsync \
+    --host1 imap.gmail.com --ssl1 \
+    --user1 foo@lab3.dedal.br \
+    --password1 secret1 \
+    --authmech1 XOAUTH \
+    --host2 imap.gmail.com --ssl2 \
+    --user2 bar@lab3.dedal.br \
+    --password2 secret2 \
+    --authmech2 XOAUTH
+
+Google Apps is a paid service, but you can try it for 30 days without any cost.
+
+Some notes about configuring the Google Apps XOAUTH:
+
+ On "Advanced Tools > Manage OAuth domain key > Two-legged OAuth access control" 
+    the "Allow access to all APIs" must be checked 
+    (https://support.google.com/a/bin/answer.py?answer=162105)
+
+ OR
+
+ On "Advanced Tools > Manage third party OAuth client access", 
+    the configured costumer key must have the scope 
+    "https://mail.google.com/" configured 
+    (https://support.google.com/a/bin/answer.py?answer=162106).
+
+
+=======================================================================
+Q. migrate email from gmail to google apps
+
+R. Take a look at:
+http://www.linux-france.org/prj/imapsync_list/msg00639.html
+
+http://biasecurities.com/blog/2009/migrate-email-from-gmail-to-google-apps/
+http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
+

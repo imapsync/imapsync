@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.45 2013/11/11 19:32:19 gilles Exp gilles $
+# $Id: memo,v 1.51 2015/01/19 01:26:51 gilles Exp gilles $
 
 count_nice() {
 
@@ -102,10 +102,43 @@ statistics_VERSION_getstats() {
 
 echo "statistics_VERSION_monthly_ip 02 2012 # long"
 statistics_VERSION_monthly_ip() {
+	statistics_VERSION_getstats
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
+	ls linux-france.org.??-${month}-${year}.imapsync_VERSION || return 1
 	cut -d ' ' -f 1,12,13,18,19 linux-france.org.??-${month}-${year}.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
 }
+
+echo "verify_month_year 02 2015"
+verify_month_year() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	fmy="stats_imapsync_${year}_${month}.ip"
+	test -f "$fmy" || { echo "No $fmy" ; statistics_VERSION_monthly_ip ${month} ${year} ; }
+	test -f "$fmy" || { echo "No $fmy" ; return 1 ; }
+	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
+	diff_month=`expr $fmy_YYYYmm - ${year}${month}`
+	echo -n $diff_month
+	test "$diff_month" -ge 1 && echo " is enough" && return 0
+	echo " is not enough"
+	statistics_VERSION_monthly_ip $month $year
+	)
+}
+
+echo "verify_year 2015"
+verify_year() {
+	year=${1:-`date '+%Y'`}
+	now_yearmonth=`date '+%Y%m'`
+	for month in `count_nice 01 12`; do
+		test "$now_yearmonth" -ge "$year$month" && \
+		verify_month_year $month $year
+	done
+	statistics_VERSION_yearly_ip $year
+	statistics_VERSION_synthesis
+}
+
 
 echo "statistics_VERSION_monthly_ip_wc 02 2012 # short"
 statistics_VERSION_monthly_ip_wc() {
@@ -177,7 +210,6 @@ statistics_VERSION_yearly_runs() {
 	)
 }
 
-
 echo "statistics_VERSION_synthesis 2012 # short"
 statistics_VERSION_synthesis() {
 	year=${1:-`date '+%Y'`}
@@ -225,12 +257,44 @@ statistics_VERSION_getstats() {
 
 echo "statistics_VERSION_monthly_ip 02 2012 # long"
 statistics_VERSION_monthly_ip() {
+	statistics_VERSION_getstats
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
+	ls access.log_${year}${month}??.imapsync_VERSION || return 1
 	cut -d ' ' -f 1,12,13,18,19 access.log_${year}${month}??.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
 	)
+}
+
+echo "verify_month_year 02 2015"
+verify_month_year() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	fmy="stats_imapsync_${year}_${month}.ip"
+	test -f "$fmy" || { echo "No $fmy" ; statistics_VERSION_monthly_ip ${month} ${year} ; }
+	test -f "$fmy" || { echo "No $fmy" ; return 1 ; }
+	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
+	diff_month=`expr $fmy_YYYYmm - ${year}${month}`
+	echo -n $diff_month
+	test "$diff_month" -ge 1 && echo " is enough" && return 0
+	echo " is not enough"
+	statistics_VERSION_monthly $month $year
+	)
+}
+
+echo "verify_year 2015"
+verify_year() {
+	year=${1:-`date '+%Y'`}
+	now_yearmonth=`date '+%Y%m'`
+	for month in `count_nice 01 12`; do
+		test "$now_yearmonth" -ge "$year$month" && \
+		verify_month_year $month $year
+	done
+	statistics_VERSION_yearly_ip $year
+	statistics_VERSION_synthesis
 }
 
 echo "statistics_VERSION_monthly_os 08 2012 # short"
@@ -245,8 +309,8 @@ statistics_VERSION_monthly_os() {
 	FreeBSD=`grep -i freebsd stats_imapsync_${year}_${month}.ip | wc -l`
 	Solaris=`grep -i solaris stats_imapsync_${year}_${month}.ip | wc -l`
 	OpenBSD=`grep -i openbsd stats_imapsync_${year}_${month}.ip | wc -l`
-	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd'    stats_imapsync_${year}.ip |wc -l`
-	Nb_All=`cat           stats_imapsync_${year}.ip | wc -l`
+	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd'    stats_imapsync_${year}_${month}.ip |wc -l`
+	Nb_All=`cat           stats_imapsync_${year}_${month}.ip | wc -l`
 	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD Other; do
 		#echo $OS `eval "echo \\$$OS"` / $Nb_All
 		Nb_OS=`eval "echo \\$$OS"`
@@ -334,34 +398,71 @@ statistics_VERSION_yearly_runs() {
 }
 
 
+statistics_releases_monthly() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}_${month}.ip \
+	&& grep -o -P imapsync/'1\.\d{3}' stats_imapsync_${year}_${month}.ip \
+	| grep -o   -P '1\.\d{3}'   | sort -n | uniq -c | sort -n
+	)
+}
 
-echo "statistics_VERSION_synthesis 2012 # short"
-statistics_VERSION_synthesis() {
+statistics_releases_yearly() {
 	year=${1:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
-	echo Nb users each month
-	wc -l stats_imapsync_${year}_??.ip
-	echo Nb runs each month
-	tail -n 1 stats_imapsync_${year}_??.runs
-	echo % Operating systems
-	statistics_VERSION_yearly_os $year
-	echo Biggest users
-	tail -n 5 stats_imapsync_${year}.ip
-	echo Nb users each year
-	wc -l stats_imapsync_????.ip
-	echo "Nb runs each year : "
-	for yyyy in `count_nice 2011 ${year}`; do
-		echo -n "$yyyy: "
-		statistics_VERSION_yearly_runs $yyyy
-	done
+	test -f stats_imapsync_${year}.ip && grep -o -P imapsync/'1\.\d{3}' stats_imapsync_${year}.ip   | grep -o   -P '1\.\d{3}'   | sort -n | uniq -c | sort -n
+	)
+}
+
+# Disable releasecheck started on 1.584 on github Mar 5, 2014 
+# https://github.com/imapsync/imapsync/commits/master/imapsync
+statistics_releases_all_times() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	grep -o -P imapsync/'1\.\d{3}' stats_imapsync_20??.ip   | grep -o   -P '1\.\d{3}'   | sort -n | uniq -c | sort -n
 	)
 }
 
 
 
 
+
+echo "statistics_VERSION_synthesis 2012 # short"
+statistics_VERSION_synthesis() {
+	year=${1:-`date '+%Y'`}
+	year_now=`date '+%Y'`
+	(
+	cd $HOME/imapsync_stats
+	echo && echo "==== Nb users each month in ${year} "
+	wc -l stats_imapsync_${year}_??.ip
+	echo && echo "==== Nb runs each month in ${year} "
+	for f in stats_imapsync_${year}_??.runs; do
+		test -f $f && echo -n "$f : " && tail -n 1 $f
+	done
+	echo && echo "==== % Operating systems in ${year} "
+	statistics_VERSION_yearly_os $year
+	echo && echo "==== Biggest users in ${year} "
+	tail -n 9 stats_imapsync_${year}.ip
+	echo && echo "==== Most releases used in ${year} "
+	statistics_releases_yearly ${year} | tail -9
+	echo && echo "==== Nb users each year "
+	wc -l stats_imapsync_????.ip
+	echo && echo "==== Nb runs each year : "
+	for yyyy in `count_nice 2011 ${year_now}`; do
+		echo -n "$yyyy: "
+		statistics_VERSION_yearly_runs $yyyy
+	done
+	)
 }
+
+}
+
+test X"`hostname`" = Xks2 && statistics_VERSION_ks
+test X"`hostname`" = Xtuxinette && statistics_VERSION_lfo
 
 
 niouzes_compil() {

@@ -1,0 +1,312 @@
+#!/bin/cat
+$Id: FAQ.Exchange.txt,v 1.2 2015/03/16 15:11:32 gilles Exp gilles $
+
+=======================================================================
+      Exchange 20xx and Office365 specific issues and solutions
+=======================================================================
+
+
+=======================================================================
+Q. From XXX to Exchange 2010/2013 or Office365
+
+R. Here is a command line resume that solves most encountered issues when 
+   migrating to Exchange or Office365. To understand or change the
+   details you have to read next Q/R sections.
+
+
+On Windows:
+
+  imapsync ... ^
+    --maxsize 10000000 ^
+    --maxlinelength 9900 ^
+    --regexflag "s/\\Flagged//g" ^
+    --disarmreadreceipts
+
+
+On Unix:
+
+  imapsync ... \
+    --maxsize 10000000 \
+    --maxlinelength 9900 \
+    --regexflag "s/\\Flagged//g" \
+    --disarmreadreceipts
+
+
+=======================================================================
+Q. From XXX to Exchange 2013 or Office365 read receipts are all
+  resent again after a sync. Even for old messages. How can I fix that?
+
+R. imapsync can remove the header containing this read receipt request.
+
+On Unix or Windows use:
+
+  imapsync ... --disarmreadreceipts
+
+Since read receipts should be sent for unseen messages that will go 
+to a seen state after the migration, you could be strict and apply 
+the regex only to seen messages. 
+Selecting seen message can be done with:
+
+  imapsync ... --search1 "SEEN" --disarmreadreceipts
+
+Of course a second run has to be run without the --disarmreadreceipts
+for unseen messages:
+
+  imapsync ... --search1 "UNSEEN" 
+
+If fact --disarmreadreceipts is just an option equivalent to:
+
+  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
+
+That regex changes the header Disposition-Notification-To. It prefixes
+it with an X- so that it becomes inactive.
+Disposition-Notification-To: blabla
+becomes
+X-Disposition-Notification-To: blabla
+
+Thanks to David Karnowski for pointing and solving this issue.
+
+=======================================================================
+Q. From XXX to Exchange 2010/2013 or Office365 I get this error message
+   sometimes: "BAD Command Argument Error 11"
+
+R. This error message comes from Exchange IMAP server when it 
+   encounters any problem. Most of the time it is one of the following:
+
+  * Some messages are bigger than the size limit. 10 MB by default
+    on Exchange. It can be upped by configuration for Exchange.
+    If you can't configure this limit then use option
+    --maxsize 10000000 for 10 MB, change it if needed) to tell
+    imapsync to skip those messages.
+    This value is 25 MB by default for Office365 --maxsize 25000000
+
+  imapsync ... --maxsize 10000000 # 10 MB for Exchange
+
+  imapsync ... --maxsize 25000000 # 25 MB for Office365
+  
+
+  * Quota reached. The whole account is full.
+    It can be upped by configuration.
+
+  * Some messages have some lines too long. Use option --maxlinelength
+    to skip messages whose max line length is over a number of bytes.
+    --maxlinelength 1000 is a RFC2822 must but most server support
+    higher values. Exchange supports 9900:
+
+  imapsync ... --maxlinelength 9900 
+
+Have also in mind that Exchange closes the connection after 10 errors
+encountered so you might also see "BYE Connection closed" errors from
+Exchange, which means Exchange leaves the session and say goodbye,
+come back later. Rerun a sync then.
+
+=======================================================================
+Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
+   not seem to be well synced.
+
+R. Use the following trick. Run imapsync twice, one with --regexflag
+   and one without, like this:
+
+1) imapsync ... --regexflag "s/\\Flagged//g"
+2) imapsync ...
+
+You can add --debugflags if you want to see what imapsync gets and 
+does in details with flags.
+
+The magic of this trick is on ignoring the \Flagged flag on the first 
+sync and setting it on the second sync, with STORE instead of APPEND.
+This Exchange bug seems that Exchange gets and sets well the Flagged 
+flag with APPEND in IMAP but then it forgets it with other protocols;
+With STORE it sets and gets the "\Flagged" flag everywhere.
+
+Thanks to Dave Murray and Simon Savva for reporting and solving 
+this issue.
+
+
+
+======================================================================
+Q. How to migrate from or to Exchange 2007/2010 with an 
+   admin/authuser account?
+   
+R. The tricks comes from Michele Marcionelli and Benjamin Priestman:
+
+This doesn't work:
+  imapsync ... --user2 user2 --authuser2 admin2 --password2 adminpassword2 ...
+
+This might works:
+  imapsync ... --user2 "domain\admin2\user2" --password2 adminpassword2 ...
+or 
+  imapsync ... --user2 "admin2@domain\user2" --password2 adminpassword2 ...
+
+where "domain" is set be the user's UPN in Active Directory
+or the NETBIOS or DNS name of the domain.
+
+The exact format might vary depending on local configuration and you
+should experiment with the different formats.
+
+PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
+Same behavior with the --authuser2 option.
+
+A little note from Michael Scherer. 
+The previous workaround in the FAQ seems to be obsolete.
+I can confirm that
+
+  imapsync ... --host2 exchange_server \
+               --authuser2 admin@domain --user2 user_alias
+
+is working without any glitches, running Exchange 2010 SP2 here.
+Explanation, Exchange knows a) about a username 
+and b) about a mailNickname which can be different to the username. 
+As it seems you need to use the mailNickname (e.g. alias) defined 
+for user2, not the username itself.
+http://blogs.technet.com/b/exchange/archive/2004/03/31/105275.aspx
+
+
+A little note from John Becker.
+After you pointed out that I had issues with authorization, I realized that
+as an admin user I don't have all the rights on the mailboxes.
+So I added myself to the user mailbox with full rights.
+I also changed the login type on the Exchange CAS to type 1, plain text.
+The command that I used for imapsync is:
+   imapsync ... ^
+       --host2 exchange-server ^
+       --user2 "windows-domain\admin-user\aaaa" ^
+       --password2 admin-password ...
+
+
+
+
+======================================================================
+Q. How to migrate from or to Office 365 with an admin/authuser account?
+
+Note from Yago Torres Fernandez:
+(a working command using admin/authuser on host2 Office 365)
+
+  imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
+               --password2 XXXX --ssl2 --exclude "Shared Folders"     ^
+               --regextrans2 "s#Trash$#Papelera#"  --regextrans2 "s#^Deleted Items$#Papelera#"
+
+but previous in Office365 you must do something like that, using powershell:
+
+  Add-MailboxPermission -identity user_to_be_migrated@domain.com -user user_admin@domain.com -accessrights fullaccess -inheritancetype all
+
+PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
+Same behavior with the --authuser2 option.
+
+
+
+
+
+======================================================================
+Q. How to migrate from or to Exchange 2003 with an admin/authuser 
+   account?
+
+R. Thomas Edgar wrote the following
+
+In case you can glean something from this snippet which allowed us 
+to migrate from Exchange 2003 t0 Cyrus Imap 2.4 (you would reverse 
+the flow to go the other way):
+
+  imapsync --dry --host1 ExchangeServer.mycompany.com \
+    --user1 Some.User@mycompany.com --authuser1 ExchangeAdminAccount \
+    --proxyauth1 --password1 '$pass_with_dollars$' \
+    --host2 cyrusimapbackend.mycompany.com \
+    --user2 SameOrDiffererentUser@mycompany.com \
+    --authuser2 CyrusAdminAccount --password2 CyrusAdminPassword
+
+We also needed to:
+
+- Ensure the Exchange Admin Acct had IMAP4 enabled in it's 
+  profile (it initially didn't!)
+- Ensure the Some.User Exchange Acct had IMAP4 enabled 
+  in it's profile (it initially didn't!)
+- Add the CyrusAdminAccount to admins line in /etc/imapd.conf
+- Give CyrusAdminAccount lrswipkxtecda to the Cyrus Imap account 
+  being migrated to (- or in your case, from)
+
+In case you are not aware:
+
+- It will prompt for a password if you don't supply it
+- the domain part of the fully-qualified email could be 
+  omitted in our case
+- Use --debugimap when testing initial connectivity, if necessary
+
+
+
+=======================================================================
+Q. Couldn't create folder [trash] from [INBOX.trash]: 
+   588 NO Mailbox already exists.
+
+R. Some servers take care about character case in folder names, 
+   some servers do not, like Exchange. Since non-respecting case 
+   can merge two different folders into one then imapsync respects case. 
+
+   For example, if a host1 server has a folder name called "trash"
+   and the host2 server already has a folder "Trash" or "TRASH"
+   then imapsync will try to create the folder "trash" on host2,
+   because trash and Trash are different strings. But if host2
+   does not respect character case it will consider folder "trash"
+   already exists and will say it, that's the error message 
+   reported by imapsync: "Mailbox already exists", message coming 
+   from the server.
+
+   The folder creation fails but messages are well transferred in
+   so take a look at this warning, understand why it happens
+   and it should be fine most of the time.
+
+   To avoid this warning use --regextrans2 to map the folder names
+
+   imapsync ...  --regextrans2 "s/^trash$/Trash/"
+
+   If there are two folders Trash and trash on host1 then both
+   will be merge into only one Trash folder on host2. 
+   In case option --delete2 is used the regextans2 above becomes
+   mandatory, otherwise imapsync will sync messages from the
+   first Trash and then delete them when syncing trash.
+
+
+======================================================================
+Q. Migrating to Exchange 201O, messages get date of the transfer,
+   this is bad for sorting and listing.
+
+R1. Be sure to have at least Exchange 2010 SP2 Rollup 5
+http://www.tribalchicken.com.au/15-technical/29-imapsync-exchange2010
+
+R2. See also the Outlook side (thanks to Martin Hochreiter for this solution)
+http://www.howto-outlook.com/faq/archivenotworking.htm
+by changing Archive to sent/receive date
+
+It's often shorter to change one server than thousands clients
+so R1 might be easier to do.
+
+======================================================================
+Q. From any to Exchange2007 
+
+Several problems:
+- Big messages: increase the "send- and receive-connector" 
+  in exchange2007 to 40 MB.
+
+R. 2 solutions
+
+R1. With imapsync (only partial success)
+--skipheader 'Received' \
+--regexmess 's{\A(.*?(?!^$))^Date:(.*?)$}{$1Date:$2\nReceived: From; $2}gxms'
+Any user having time to spend to debug Exchange2007 with imapsync
+is welcome.
+
+R2. Other solution
+Two users succeeded by using "MS Transporter Suite" (which is closed
+expensive non-free software).
+
+======================================================================
+Q. From Microsoft Exchange 2000 IMAP4rev1 server version 6.0.6487.0.
+
+R. imapsync ... \
+   --prefix1 INBOX. 
+
+
+=======================================================================

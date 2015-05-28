@@ -1,17 +1,154 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.607
+head: 1.637
 branch:
 locks: strict
-	gilles: 1.607
+	gilles: 1.637
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 607;	selected revisions: 607
+total revisions: 637;	selected revisions: 637
 description:
 ----------------------------
-revision 1.607	locked by: gilles;
+revision 1.637	locked by: gilles;
+date: 2015/04/01 01:36:37;  author: gilles;  state: Exp;  lines: +9 -9
+Bugfix. Win32 regression with long_path_2_prefix test. Was too long.
+----------------------------
+revision 1.636
+date: 2015/03/31 14:54:41;  author: gilles;  state: Exp;  lines: +107 -65
+Added errors dump. By default. Use --noerrorsdump to avoid it.
+Added --errorsmax switch. Default is like --errorsmax 50. Exit after 50 errors encountered.
+----------------------------
+revision 1.635
+date: 2015/03/30 07:36:08;  author: gilles;  state: Exp;  lines: +19 -15
+Changed basic example to a working one with test1.lamiral.info
+----------------------------
+revision 1.634
+date: 2015/03/25 02:10:56;  author: gilles;  state: Exp;  lines: +10 -7
+Bugfix. Remove tmp files upon failure as well.
+----------------------------
+revision 1.633
+date: 2015/03/25 01:14:36;  author: gilles;  state: Exp;  lines: +96 -73
+IO::Socket::SSL not mandatory. (Sometimes hard to install).
+Bugfix. SKIP sections for Unix or Windows tests. Removed no_plan. 561 non-regression tests.
+----------------------------
+revision 1.632
+date: 2015/03/23 23:29:16;  author: gilles;  state: Exp;  lines: +16 -6
+Added tests_live_result() call at the end of --livetests
+----------------------------
+revision 1.631
+date: 2015/03/23 00:04:04;  author: gilles;  state: Exp;  lines: +52 -41
+README part review.
+----------------------------
+revision 1.630
+date: 2015/03/20 03:07:59;  author: gilles;  state: Exp;  lines: +93 -52
+Bugfix. Made --tests succeed on Windows. At least at home.
+----------------------------
+revision 1.629
+date: 2015/03/19 03:43:24;  author: gilles;  state: Exp;  lines: +10 -16
+Usability. Better output of folders excluded by --exclude and folders included by --include
+----------------------------
+revision 1.628
+date: 2015/03/19 03:03:28;  author: gilles;  state: Exp;  lines: +80 -38
+Bugfix. tests_imapsync_basename only check substring imapsync in the command name used.
+Feature. Added --maxlinelengthcmd that will be called upon when a line over --maxlinelength is detected. --maxlinelengthcmd 'reformime -r7' on Linux.
+----------------------------
+revision 1.627
+date: 2015/03/16 15:55:57;  author: gilles;  state: Exp;  lines: +34 -21
+Added --testslive
+----------------------------
+revision 1.626
+date: 2015/03/15 02:52:43;  author: gilles;  state: Exp;  lines: +20 -20
+Update tests_skipmess()
+----------------------------
+revision 1.625
+date: 2015/03/14 00:32:41;  author: gilles;  state: Exp;  lines: +31 -15
+Bugfix. New disarmreadreceipts was buggy in IMAP. Fixed. \r in the beginning.
+----------------------------
+revision 1.624
+date: 2015/03/13 02:05:12;  author: gilles;  state: Exp;  lines: +41 -18
+Searching for "deep recursion" with skipmess on "Partial" messages. Not found.
+----------------------------
+revision 1.623
+date: 2015/03/12 16:33:59;  author: gilles;  state: Exp;  lines: +21 -6
+Made check folders exist on host1 independent of checkselectable.
+----------------------------
+revision 1.622
+date: 2015/03/12 16:28:38;  author: gilles;  state: Exp;  lines: +24 -11
+Bugfix. --folderfirst and --folderlast generated an error when their value folder does not exist. Existence is checked.
+----------------------------
+revision 1.621
+date: 2015/03/12 10:40:11;  author: gilles;  state: Exp;  lines: +86 -21
+Bugfix --disarmreadreceipts last fix was a bad one. In IMAP \n is \r\n.
+Added error handling for --pipemess
+Adapted tests for "Content-Type: Message/Partial" --slipmess
+----------------------------
+revision 1.620
+date: 2015/03/10 04:07:33;  author: gilles;  state: Exp;  lines: +141 -10
+Bugfix. --disarmreadreceipts used to change Disposition-Notification-To in the body when not available in the header. Now never changed in the body in all cases.
+----------------------------
+revision 1.619
+date: 2015/03/10 03:13:30;  author: gilles;  state: Exp;  lines: +301 -22
+Use \x00 as a separator to detect --delete 2, instead of ¤.
+Added tests for --skipmess, especially for header "Content-Type: Message/Partial"
+Bug detected --disarmreadreceipts isn't correct. Added tests and fix in tests.
+Added tests in tests_regexmess(). Disposition-Notification-To: better handled.
+----------------------------
+revision 1.618
+date: 2015/03/07 04:38:59;  author: gilles;  state: Exp;  lines: +261 -205
+Added --pipemess in order to pass all message to an external filter tool like "reformime -r7".
+----------------------------
+revision 1.617
+date: 2015/03/04 01:09:50;  author: gilles;  state: Exp;  lines: +18 -19
+Link to http://www.imap.org/ changed to archive.org.
+----------------------------
+revision 1.616
+date: 2015/03/02 23:14:42;  author: gilles;  state: Exp;  lines: +86 -10
+Added xoauth2 support. Thanks to Joaquin Lopez.
+----------------------------
+revision 1.615
+date: 2015/03/01 23:26:10;  author: gilles;  state: Exp;  lines: +76 -46
+Fixed tests with "header_line_normalize: remove last blanks".
+Remove the last blanks ( Gmail bug ) to identify message with headers.
+Term::ReadKey and IO::Socket::SSL now in use statements instead of require (so they became mandatory).
+Change list of use pragmas order to facilitate reading.
+----------------------------
+revision 1.614
+date: 2015/02/22 22:43:16;  author: gilles;  state: Exp;  lines: +90 -46
+Added inline help.
+About --nofoldersizes, foldernames listings, --passfile1 --passfile2.
+Change usage order.
+----------------------------
+revision 1.613
+date: 2015/02/22 01:08:51;  author: gilles;  state: Exp;  lines: +23 -10
+Fixed issue with 1282658400 and logfile() by and system upgrade. Looks like Ubuntu 10.4 was buggy.
+----------------------------
+revision 1.612
+date: 2015/02/03 23:20:51;  author: gilles;  state: Exp;  lines: +17 -13
+Fixed tests_logfile() when TZ is not mine.
+  Works for epoch 0 but found a difference for 1282658400
+----------------------------
+revision 1.611
+date: 2015/02/02 16:14:43;  author: gilles;  state: Exp;  lines: +18 -18
+Started inline help; talk about options everywhere it means and help to lean imapsync.
+Change default useheader. Now it is really like  --useheader "Message-Id" --useheader "Received"
+HMailServer replies two lines with --useheader "Message-Id" --useheader "Message-ID" in older releases.
+----------------------------
+revision 1.610
+date: 2015/01/20 12:07:30;  author: gilles;  state: Exp;  lines: +21 -15
+Bugfix in imap_utf7_decode() + must not be escaped.
+----------------------------
+revision 1.609
+date: 2014/11/28 17:06:53;  author: gilles;  state: Exp;  lines: +14 -8
+Bugfix. --skipmess was not skipping.
+----------------------------
+revision 1.608
+date: 2014/11/28 16:47:29;  author: gilles;  state: Exp;  lines: +95 -12
+Added --skipmess to skip messages matching a regex.
+Example --skipmess 'm/[\x80-ff]/'
+----------------------------
+revision 1.607
 date: 2014/11/14 16:25:06;  author: gilles;  state: Exp;  lines: +46 -40
 Added several checks if IsUnconnected. Goal avoid imap commands while disconnected.
 ----------------------------

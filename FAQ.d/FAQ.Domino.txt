@@ -1,0 +1,62 @@
+#!/bin/cat
+$Id: FAQ.Domino.txt,v 1.2 2015/03/26 04:24:17 gilles Exp gilles $
+
+======================================================================
+      Domino specific issues and solutions
+======================================================================
+
+======================================================================
+Q. From Domino Notes to xxx
+
+On Windows use:
+
+  imapsync.exe ... --sep2 "\\" --prefix2 ""
+
+
+On Unix use:
+
+  imapsync ... --sep2 '\\' --prefix2 ''
+
+======================================================================
+Q. From xxx to Domino Notes
+
+For Domino anywhere with imapsync.exe on Windows use:
+
+  imapsync.exe ... ^
+    --sep2 "\\" --prefix2 "" ^
+    --regextrans2 "s,^INBOX\\(.*),$1," 
+
+Explanation: Domino doesn't accept INBOX subfolders. 
+
+If you want to sync the complete host1 mailbox in a subfolder called OLDBOX use:
+
+  imapsync.exe ... ^
+    --sep2 "\\" --prefix2 "" ^
+    --regextrans2 "s,(.*),OLDBOX\\$1," --justfolders --dry
+
+If the output is correct for you then remove --dry and have a run.
+Verify the folder hierarchy is good on host2 then remove --justfolders to
+sync the messages.
+
+For Domino with imapsync and Domino on Linux:
+(Thanks to Zafer)
+
+R. We've migrated about 5000 users from cyrus to lotus domino 853! 
+Mails are being copied into the new created lotus domino mailbox 
+retaining the existing folder structure from the old mail database.
+This means that sent mails can be found in the sent folder and 
+mails from the old inbox are copied into the new inbox
+We also marked migrated mails with the header Migratedbyus
+
+For Domino 853FP6 on Linux, we used this command on Unix:
+
+  imapsync \
+  --host1 hhh1  --user1 uuu1  --password1 ppp1 \
+  --host2 hhh2  --user2 uuu2  --password2 ppp2 \
+  --exclude "^INBOX/Trash"  --exclude 'Junk|Drafts' \
+  --regextrans2 's#^INBOX/Sent$#^Sent#' \
+  --prefix2 ""  --sep2 "\/" \
+  --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Migratedbyus:$2\nx-MailDate:$2}gxms'
+
+
+======================================================================

@@ -4,7 +4,7 @@ NAME
     More than 52 different IMAP server softwares supported with success, few
     failures.
 
-    $Revision: 1.607 $
+    $Revision: 1.637 $
 
 SYNOPSIS
     To synchronize imap account "foo" on "imap.truc.org" to imap account
@@ -23,7 +23,7 @@ INSTALL
 
     imapsync can be available directly on the following distributions:
     FreeBSD, Debian, Ubuntu, Gentoo, Fedora, NetBSD, Darwin, Mandriva and
-    OpenBSD.
+    OpenBSD. See http://oswatershed.org/pkg/imapsync
 
      Purchase latest imapsync at
      http://imapsync.lamiral.info/
@@ -35,10 +35,12 @@ INSTALL
      tar xzvf  imapsync-x.xx.tgz
 
      Go into the directory imapsync-x.xx and read the INSTALL file.
-     The INSTALL file is also at 
+     The INSTALL file can be found at 
      http://imapsync.lamiral.info/INSTALL
+     It is now split in several files for each system
+     http://imapsync.lamiral.info/INSTALL.d/
 
-     The freecode (was freshmeat) record is at 
+     The frozen freecode (was freshmeat) record is at 
      http://freecode.com/projects/imapsync
 
 USAGE
@@ -47,7 +49,13 @@ USAGE
     To get a description of each option just run imapsync like this:
 
       imapsync --help
+
+    or simply
+
       imapsync
+
+    This description of all options is available at
+    http://imapsync.lamiral.info/OPTIONS
 
     The option list:
 
@@ -73,6 +81,7 @@ USAGE
                [--idatefromheader]
                [--syncacls]
                [--regexmess <regex>] [--regexmess <regex>]
+               [--skipmess <regex>] [--skipmess <regex>]
                [--maxsize <int>]
                [--minsize <int>]
                [--maxage <int>]
@@ -80,34 +89,31 @@ USAGE
                [--search <string>]
                [--search1 <string>]
                [--search2 <string>]
-               [--skipheader <regex>]
                [--useheader <string>] [--useheader <string>]
                [--nouid1] [--nouid2] 
                [--usecache]
-               [--skipsize] [--allowsizemismatch]
-               [--delete] [--delete2]
+               [--noskipsize]
+               [--delete] 
+               [--delete2] [--delete2duplicates] 
                [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
                [--delete2folders] [--delete2foldersonly] [--delete2foldersbutnot]
-               [--subscribed] [--subscribe] [--subscribe_all] 
+               [--subscribed] [--subscribe] [--subscribeall] 
                [--nofoldersizes] [--nofoldersizesatend] 
                [--dry]
-               [--debug] [--debugimap][--debugimap1][--debugimap2]
-               [--timeout <int>] 
-               [--split1] [--split2] 
-               [--reconnectretry1 <int>] [--reconnectretry2 <int>]
+               [--debug] [--debugimap][--debugimap1][--debugimap2] [--debugcontent]
+               [--timeout <int>]  
                [--noreleasecheck]
                [--releasecheck]
-               [--pidfile <filepath>]
+               [--pidfile <filepath>] [--pidfilelocking]
                [--tmpdir  <dirpath>]
                [--nolog] 
-               [--log] 
                [--logfile <filepath>]
                [--version] [--help]
-               [--tests] [--tests_debug]
+               [--tests] [--testsdebug] [--testslive]
 
 DESCRIPTION
-    The command imapsync is a tool allowing incremental and recursive imap
-    transfer from one mailbox to another.
+    Imapsync command is a tool allowing incremental and recursive imap
+    transfers from one mailbox to another.
 
     By default all folders are transferred, recursively, all possible flags
     (\Seen \Answered \Flagged etc.) are synced too.
@@ -115,12 +121,13 @@ DESCRIPTION
     We sometimes need to transfer mailboxes from one imap server to another.
     This is called migration.
 
-    imapsync is a good tool because it reduces the amount of data
-    transferred by not transferring a given message if it is already on both
-    sides. Same headers and the transfer is done only once. All flags are
-    preserved, unread will stay unread, read will stay read, deleted will
-    stay deleted. You can stop the transfer at any time and restart it
-    later, imapsync works well with bad connections.
+    Imapsync reduces the amount of data transferred by not transferring a
+    given message if it resides already on both sides. Same specific headers
+    and the transfer is done only once; taken into account are by default
+    Message-Id and Received header lines. All flags are preserved, unread
+    will stay unread, read will stay read, deleted will stay deleted. You
+    can stop the transfer at any time and restart it later, imapsync works
+    well with bad connections and interruptions.
 
     You can decide to delete the messages from the source mailbox after a
     successful transfer, it can be a good feature when migrating live
@@ -128,22 +135,26 @@ DESCRIPTION
     --delete option. Option --delete implies also option --expunge so all
     messages marked deleted on host1 will be really deleted. (you can use
     --noexpunge to avoid this but I don't see any good real world scenario
-    for the combinaison --delete --noexpunge).
+    for the combination --delete --noexpunge).
 
-    You can also just synchronize a mailbox B from another mailbox A in case
-    you just want to keep a "live" copy of A in B. In that case --delete2
-    can be used, it deletes messages in host2 folder B that are not in host1
-    folder A.
+    A different scenario is synchronizing a mailbox B from another mailbox A
+    in case you just want to keep a "live" copy of A in B. In that case
+    --delete2 has to be used, it deletes messages in host2 folder B that are
+    not in host1 folder A. If you also need to destroy host2 folders that
+    are not in host1 then use --delete2folders (see also
+    --delete2foldersonly and --delete2foldersbutnot).
 
-    imapsync is not adequate for maintaining two active imap accounts in
-    synchronization where the user plays independently on both sides. Use
+    Imapsync is not adequate for maintaining two active imap accounts in
+    synchronization when the user plays independently on both sides. Use
     offlineimap (written by John Goerzen) or mbsync (written by Michael R.
     Elkins) for 2 ways synchronizations.
 
 OPTIONS
     To get a description of each option just invoke:
 
-    imapsync --help
+      imapsync
+
+    or read http://imapsync.lamiral.info/OPTIONS
 
 HISTORY
     I wrote imapsync because an enterprise (basystemes) paid me to install a
@@ -151,9 +162,9 @@ HISTORY
     remote imap server accessible by a low bandwidth link. The tool imapcp
     (written in python) could not help me because I had to verify every
     mailbox was well transferred and delete it after a good transfer.
-    imapsync started life as a copy_folder.pl patch. The tool copy_folder.pl
-    comes from the Mail-IMAPClient-2.1.3 perl module tarball source (in the
-    examples/ directory of the tarball).
+    imapsync started its life as a copy_folder.pl patch. The tool
+    copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl module tarball
+    source (in the examples/ directory of the tarball).
 
 EXAMPLE
     While working on imapsync parameters please run imapsync in dry mode (no
@@ -266,7 +277,7 @@ BUG REPORT GUIDELINES
     http://search.cpan.org/dist/Mail-IMAPClient/ maybe the bug is already
     fixed there.
 
-    Make a good title with word "imapsync" in it (my spam filter won't
+    Make a good title with word "imapsync" in it (my spam filters won't
     filter it), Try to write an email title with more words than just
     "imapsync" or "problem", a good title is made of keywords summary, but
     not too long (one visible line).
@@ -466,7 +477,9 @@ Hacking
     Feel free to hack imapsync as the NOLIMIT license permits it.
 
 Links
-    Entries for imapsync: http://www.imap.org/products/showall.php
+    Entries for imapsync:
+    https://web.archive.org/web/20070202005121/http://www.imap.org/products/
+    showall.php
 
 SIMILAR SOFTWARES
       imap_tools    : http://www.athensfbc.com/imap_tools
@@ -487,5 +500,5 @@ SIMILAR SOFTWARES
 
     Feedback (good or bad) will often be welcome.
 
-    $Id: imapsync,v 1.607 2014/11/14 16:25:06 gilles Exp gilles $
+    $Id: imapsync,v 1.637 2015/04/01 01:36:37 gilles Exp gilles $
 
