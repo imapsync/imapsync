@@ -1,11 +1,12 @@
 #!/bin/cat
-# $Id: FAQ,v 1.205 2015/03/26 08:13:29 gilles Exp gilles $
+# $Id: FAQ,v 1.209 2015/05/09 20:53:23 gilles Exp gilles $
 
-+------------------+
-| FAQ for imapsync |
-+------------------+
++-------------------+
+| FAQs for imapsync |
++-------------------+
 
 http://imapsync.lamiral.info/FAQ
+http://imapsync.lamiral.info/FAQ.d/
 
 Unix versus Windows syntax.
 There are several differences between Unix and Windows
@@ -180,10 +181,11 @@ R. Yes
 
 Q. How can I fix this?
 
-R. The cache path reflects hostnames or ip addresses, just change the
-   directory names of host1 or host2. Use --dry to see if next runs
-   will generate duplicates.
-   By default the cache is like 
+R. The cache path reflects exactly hostnames or ip addresses given via
+   --host1 and --host2 values. So just change the directory names 
+   of host1 or host2. Use --dry to see if next runs will generate 
+   duplicates.
+   By default on Unix the cache is like 
 
    /tmp/imapsync_cache/host1/user1/host2/user2/...
 
@@ -414,7 +416,8 @@ synchronization of mailboxes? Is there a better solution?
 R. If messages are delivered remotely and you play locally with the
 copy, in order to have fast access, then the synchronization can't
 be one way. You may change flags, you may move messages in 
-different folders etc.
+different folders etc. The issue described is clearly 
+two-ways sync.
 
 A better tool with this scenario is offlineimap, 
 designed for this issue, and faster than imapsync.
@@ -500,22 +503,19 @@ The result is that you can have more messages on host1 than on host2.
 
 R2. With option --useuid imapsync doesn't use headers to identify
 messages on both sides but it uses their imap uid. In that case
-duplicates on host1 are transfered on host2.
-
-=======================================================================
-Q. How can I remove duplicates on a unique host
-
-R. Just run imapsync on the same account with option --delete2,
-   ie with host1 == host2 and user1 == user2
+duplicates on host1 are transferred on host2.
 
 =======================================================================
 Q. I need to log every output on a file named log.txt
 
-R. Use redirections of both standard and error outputs "> log.txt 2>&1"
+R1. imapsync logs on a file by default, its name is given at the 
+    beginning and the end of each run. This name is unique since
+    it is compound of the current date and time and user2 value. 
 
-  imapsync ... > log.txt 2>&1
+R2. To change this default name, use --logfile log.txt
 
-This syntax is available both on Windows and Unix.
+  imapsync ... --logfile log.txt
+
 
 =======================================================================
 Q. I need to log every output on a file named log.txt and also to the 
@@ -617,8 +617,8 @@ R. imapsync does not POP3 but I think you mean UID in IMAP.
 Q. Is it possible to sync also the UIDs of the IMAP server?
 
 UIDs in IMAP are chosen and created by the servers, not by the clients,
-imapsync is a client. So UIDs can not be synced by any method,
-unless the server is duplicated as is.
+imapsync is a client. So UIDs cannot be synced by any imap method.
+UIDs might be synced via a rsync command on the server part.
 
 =======================================================================
 Q. The option --subscribe does not seem to work
@@ -684,270 +684,6 @@ Full explanation:
                          past|----maxage+++++minage---->now (intersection)
                          past|++++minage-----maxage++++>now (union)
 
-=======================================================================
-Q. Does imapsync retain the \Answered and $Forwarded flags?
-
-R. It depends on the destination server.
-
-a) If the destination server honors the "PERMAENTFLAGS \*" 
-directive (meaning it accepts any flag) or no PERMAENTFLAGS at all 
-then imapsync synchronizes all flags except the \Recent flag
-(RFC 3501 says about \Recent flag "This flag can not be 
-altered by the client.").
-
-b) If the destination server honors the "PERMAENTFLAGS without the 
-special "\*"  then imapsync synchronizes only the flags listed 
-in PERMANENTFLAGS.
-
-Some imap servers have problems with flags not beginning with
-the backslash character \ 
-(see next question to find a solution to this issue)
-
-
-=======================================================================
-Q. Is there a way to only sync messages with a specific flag set, 
-for example, the \Seen flag? 
-
-R. use --search 
-
-  imapsync ... --search SEEN
-
-or
-
-  imapsync ... --search UNSEEN
-
-or ...
-
-The complete list of search things are listed below
-
-http://www.faqs.org/rfcs/rfc3501.html
-
-6.4.4.  SEARCH Command
-...
-      ALL
-         All messages in the mailbox; the default initial key for
-         ANDing.
-
-      ANSWERED
-         Messages with the \Answered flag set.
-
-      BCC <string>
-         Messages that contain the specified string in the envelope
-         structure's BCC field.
-
-      BEFORE <date>
-         Messages whose internal date (disregarding time and timezone)
-         is earlier than the specified date.
-
-      BODY <string>
-         Messages that contain the specified string in the body of the
-         message.
-
-      CC <string>
-         Messages that contain the specified string in the envelope
-         structure's CC field.
-
-      DELETED
-         Messages with the \Deleted flag set.
-
-      DRAFT
-         Messages with the \Draft flag set.
-
-      FLAGGED
-         Messages with the \Flagged flag set.
-
-      FROM <string>
-         Messages that contain the specified string in the envelope
-         structure's FROM field.
-
-      HEADER <field-name> <string>
-         Messages that have a header with the specified field-name (as
-         defined in [RFC-2822]) and that contains the specified string
-         in the text of the header (what comes after the colon).  If the
-         string to search is zero-length, this matches all messages that
-         have a header line with the specified field-name regardless of
-         the contents.
-
-      KEYWORD <flag>
-         Messages with the specified keyword flag set.
-
-      LARGER <n>
-         Messages with an [RFC-2822] size larger than the specified
-         number of octets.
-
-      NEW
-         Messages that have the \Recent flag set but not the \Seen flag.
-         This is functionally equivalent to "(RECENT UNSEEN)".
-
-      NOT <search-key>
-         Messages that do not match the specified search key.
-
-      OLD
-         Messages that do not have the \Recent flag set.  This is
-         functionally equivalent to "NOT RECENT" (as opposed to "NOT
-         NEW").
-
-      ON <date>
-         Messages whose internal date (disregarding time and timezone)
-         is within the specified date.
-
-      OR <search-key1> <search-key2>
-         Messages that match either search key.
-
-      RECENT
-         Messages that have the \Recent flag set.
-
-      SEEN
-         Messages that have the \Seen flag set.
-
-      SENTBEFORE <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is earlier than the specified date.
-
-      SENTON <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is within the specified date.
-
-      SENTSINCE <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is within or later than the specified date.
-
-      SINCE <date>
-         Messages whose internal date (disregarding time and timezone)
-         is within or later than the specified date.
-
-      SMALLER <n>
-         Messages with an [RFC-2822] size smaller than the specified
-         number of octets.
-
-      SUBJECT <string>
-         Messages that contain the specified string in the envelope
-         structure's SUBJECT field.
-
-      TEXT <string>
-         Messages that contain the specified string in the header or
-         body of the message.
-
-      TO <string>
-         Messages that contain the specified string in the envelope
-         structure's TO field.
-
-      UID <sequence set>
-         Messages with unique identifiers corresponding to the specified
-         unique identifier set.  Sequence set ranges are permitted.
-
-      UNANSWERED
-         Messages that do not have the \Answered flag set.
-
-      UNDELETED
-         Messages that do not have the \Deleted flag set.
-
-      UNDRAFT
-         Messages that do not have the \Draft flag set.
-
-      UNFLAGGED
-         Messages that do not have the \Flagged flag set.
-
-      UNKEYWORD <flag>
-         Messages that do not have the specified keyword flag set.
-
-      UNSEEN
-         Messages that do not have the \Seen flag set. 
-
-=======================================================================
-Q. How to convert flags?
-
-R. use --regexflag
-For example to convert flag IMPORTANT to flag CANWAIT
-
-  imapsync ... --regexflag "s/IMPORTANT/CANWAIT/g" --debugflags
-
-option --debugflags is usefull to see in details what imapsync
-does with flags.
-
-=======================================================================
-Q. How to fix this error: BAD Invalid system flag \FORWARDED 
-
-R. Filter flag \FORWARDED with --regexflag like this:
-
-On Windows:
-
-  imapsync ... --regexflag "s/\\FORWARDED//g" 
-
-On Unix:
-
-  imapsync ... --regexflag 's/\\FORWARDED//g' 
-
-or
-
-  imapsync ... --regexflag "s/\\\\FORWARDED//g" 
-
-
-=======================================================================
-Q. How to convert flags with $ to \ character?
-
-R. $ and \ are special characters we have to "escape" them.
-For example to convert flag $label1 to \label1
-
-  imapsync ... --regexflag "s/\$label1/\\label1/g" --debugflags
-
-=======================================================================
-Q. I need to keep only a defined list of flags, how can I do?
-The destination imap server complains about bad flags (Exchange).
-
-R1. Recent imapsync deals with this issue by filter with PERMANENTFLAGS
-automatically.
-
-R2. For example if you want to keep only the following flags
-\Seen \Answered \Flagged \Deleted \Draft
-then use these magic --regexflag options (thanks to Phil):
-
- --regexflag 's/.*?(?:(\\(?:Answered|Flagged|Deleted|Seen|Draft)\s?)|$)/defined($1)?$1:q()/eg'
-
-Analysis is left to the reader.
-
-This one is longer and may be use with old perl (no /e regex extension):
- --regexflag 's/(.*)/$1 jrdH8u/' \
- --regexflag 's/.*?(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u)/$1 /g' \
- --regexflag 's/(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u) (?!(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u)).*/$1 /g' \
- --regexflag 's/jrdH8u *//'
-
-
-======================================================================
-Q. imapsync fails with the following error:
-flags from : [\Seen NonJunk]["10-Aug-2006 13:00:30 -0400"]
-Error trying to append string: 58 NO APPEND Invalid flag list
-
-R. For some servers, flags have to begin with a \ character.
-The flag "NonJunk" may be a invalid flag for your server 
-so use for example:
-
-imapsync ...    --regexflag "s/NonJunk//g"
-
-Remark (thanks to Arnt Gulbrandsen): 
-IMAP system flags have to begin with \ character.
-Any other flag must begin with another character.
-System flags are just flags defined by an RFC instead of by users.
-Conclusion, some imap server coders don't read the RFCs (so do I).
-
-Recent imapsync deals with this issue by filter with PERMANENTFLAGS
-automatically.
-
-=======================================================================
-Q. Flags are not well synchronized. Is it a bug?
-
-R. It happens with some servers on the first sync. 
-Also, it was a bug from revision 1.200 to revision 1.207
-
-Two solutions: 
-
-* Run imapsync a second time. imapsync synchronizes flags on each run.
-
-* Use option --syncflagsaftercopy. With this option imapsync will 
-  also sync flags after each message transfer. Flags are already 
-  synced during the transfer with the imap APPEND command but 
-  option --syncflagsaftercopy does it again using the imap STORE 
-  command.
 
 =======================================================================
 Q. On Unix, some passwords contain * and " characters. Login fails.
@@ -1066,61 +802,6 @@ b) or use stunnel :
 
 c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
-
-=======================================================================
-Q: Multiple copies, duplicates, when I run imapsync twice ore more. 
-
-R1. You can use option --useuid, imapsync then won't use header lines to
-compare messages in folders. Keep in ming it uses a local cache.
-
-  imapsync ... --useuid
-
-R2. Multiple copies of the emails on the destination server. Some IMAP
-servers (Domino for example) change some headers for each message
-transferred. All messages are transferred again and again each time you
-run imapsync. This is bad of course. The explanation is that imapsync
-considers messages are not the same on each side, default headers used
-to identify the messages have changed.
-
-You can look at the headers found by imapsync by using the --debug
-option (and search for the message on both part), Header lines from
-the source server begin with a "FH:" prefix, Header lines from the
-destination server begin with a "TH:" prefix. Since --debug is very
-verbose I suggest to isolate a email in a specific folder in case you
-want to forward me the output.
-
-A way to avoid this problem is by using option --useheader with
-a different set than the default ones used by imapsync.
-
-The default set is like:
-
-  imapsync ... --useheader "Message-ID" --useheader "Received"
-
-The big problem is that what can be used instead of Message-ID
-and Received lines? Sometimes standalone Message-ID works:
-
-  imapsync ... --useheader "Message-ID"
-
-Another good way to the solution is to isolate two or three messages
-in a BUG folder and send the --debug output to the author
-gilles.lamiral@laposte.net
-
-  imapsync ... --debug  --folder BUG
-
-I will take a close look at the log and modify imapsync to fix
-this faulty duplicate behaviour.
-
-Remark. (Trick found by Tomasz Kaczmarski)
-
-Option --useheader "Message-ID" asks the server to send only header
-lines beginning with "Message-ID".  Some (buggy) servers send the whole
-header (all lines) instead of the "Message-ID" line. In that case, a
-trick to keep the --useheader filtering behaviour is to use
---skipheader with a negative lookahead pattern :
-
- imapsync ... --skipheader "^(?!Message-ID)"
-
- Read it as "skip every header except Message-ID".
 
 ======================================================================
 Q. I am transferring mails from one IMAP server to another. I am using
@@ -1311,148 +992,20 @@ In imapsync, you can achieve this by using the following options:
 Q. Is there anyway of making imapsync purge the destination folder
    when the source folder is deleted?
 
-R. No, that's too dangerous. May be coded in future release.
+R. Yes, use --delete2folders
 
-But if the source folder is empty (not deleted) and options --delete2
---expunge2 are used then the destination folder will be empty.
+--delete2folders       : Delete folders in host2 that are not in host1 server. 
+                         For safety, first try it like this (it is safe):
+			 --delete2folders --dry --justfolders --nofoldersizes
+--delete2foldersonly   <regex>: Deleted only folders matching regex.
+                         Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+--delete2foldersbutnot <regex>: Do not delete folders matching regex.
+                         Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
 
-======================================================================
-Q. Is it possible to synchronize all messages from one server to 
-another without recreating the folder structure and the target server.
-
-R. Yes.
-
-For example, to synchronize all messages in all folders on host1
-to folder INBOX only on host2:
-
-1) First try (safe mode):
-
-imapsync \
- ...
- --regextrans2 "s/(.*)/INBOX/" \
- --dry --justfolders
-
-2) See if the output says everything you want imapsync to do, 
-   --dry option is safe and does nothing real.
-   
-3) Remove --dry 
-   Check the imap folder tree on the target side, you should
-   only have one: the classical INBOX.
-
-4) Remove --justfolders
-
-
-======================================================================
-Q. I have moved from Braunschweig to Graz, so I would like to have my
-   whole Braunschweig mail sorted into a sub-folder INBOX.Braunschweig 
-   of my new mail account.
-
-R.
-1) First try (safe mode):
-
-imapsync \
- ...
- --regextrans2 "s/INBOX(.*)/INBOX.Braunschweig\$1/" \
- --dry --justfolders
-
-On Windows, in the previous example containing \$1 you have to 
-replace the two \$1 by $1 (remove the \ before $).
-
-
-2) See if the output says everything you want imapsync to do, 
-   --dry option is safe and does nothing real.
-   
-3) Remove --dry 
-   Check the imap folder tree on the target side
-
-4) Remove --justfolders
-
-=======================================================================
-Q. Give examples about --regextrans2
-
-R. --regextrans2 is used to transform folder names
-
-Remember that --regextrans2 applies after the default 
-inversion prefix1 <-> prefix2 and sep1 <-> sep2
-
-Examples: 
-
-0) First try with --dry --justfolders options since imapsync shows the
-   transformations it will do without really doing them. Then when
-   happy with the output remove the --dry --justfolders options.
-
-1) To remove INBOX. in the name of destination folders:
-
-    --regextrans2 's/^INBOX\.(.+)/$1/'
-
-2a) To sync all folders to INBOX:
-
-  imapsync ... --regextrans2 "s/.*/INBOX/"
-
-
-2b) To sync a complete account in a subfolder called FOO:
-  
-  a) Seperator is dot character "." and "INBOX" prefixes every folder
-  
-    --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
-
-  or:
-  
-  b) Seperator is slash character "/" and there is no prefix 
-  
-   --regextrans2 's#(.*)#FOO/$1#'
-   
-   or:
-
-  c) Any separator, any prefix solution, FOO is the subfolder:
-
-  It is a complicated line because every case is taken into account.
-  Type it in one line (or with the \ at the end of first line on Unix shells.
-   
-   --regextrans2 's,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
-   --regextrans2 's,^INBOX$,${h2_prefix}FOO{h2_sep}INBOX,'
-
-
-3) to substitute all characters dot "." by underscores "_"
-    --regextrans2 's/\./_/g'
-
-4) to change folder names like this:
-[mail/Sent Items] -> [Sent]
-[mail/Test]       -> [INBOX/Test]
-[mail/Test2]      -> [INBOX/Test2]
-
-    --regextrans2 's#^mail/Sent Items$#Sent#' \
-    --regextrans2 's#^mail/#INBOX/#'
-
-=======================================================================
-Q. I would like to move emails from InBox to a sub-folder called,
-   say "2010-INBOX" based on the date (Like all emails received in the
-   Year 2010 should be moved to the folder called "2010-INBOX").
-
-R. 2 ways :
-
-a) Manually:
-------------
-
-1) You create a folder INBOX.2010-INBOX
-
-2) Mostly every email software allow sorting by date. In INBOX, you
-   select from 1 January to 31 December 2010 messages with the shift key.
-   (in mutt, use ~d)
-
-3) Cut/paste in INBOX.2010-INBOX
-
-b) With imapsync:
------------------
-
-imapsync ... \
---search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010'
---regextrans2 's/^INBOX$/INBOX.2010-INBOX/' \
---folder INBOX
 
 =======================================================================
 Q. I want to play with headers line and --regexmess but I want to leave
-   the body as is
+   the body as is.
 
 R. The header/body separation is a blank line so an example:
    --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nX-Date:$2}gxms'

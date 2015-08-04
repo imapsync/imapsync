@@ -72,12 +72,17 @@ Several options are mandatory.
 			  --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
 --exclude     <regex>  : or this one, etc.
 
+--subfolder2  <string> : Move whole host1 folders hierarchy under this 
+			 host2 folder <string>.
+			It does it by adding two --regextrans2 options before
+			 all others. Add --debug to see what's really going on.
+
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
 --regextrans2 <regex>  : and this one. etc.
                          When you play with the --regextrans2 option, first
                          add also the safe options --dry --justfolders
                          Then, when happy, remove --dry, remove --justfolders.
-                         Have in mind that --regextrans2 is applied after prefix 
+                         Have in mind that --regextrans2 is applied after prefix
                          and separator inversion.
 
 --tmpdir      <string> : Where to store temporary files and subdirectories.
@@ -95,8 +100,8 @@ Several options are mandatory.
 --prefix1     <string> : Remove prefix to all destination folders 
                          (usually INBOX. or INBOX/ or an empty string "")
                          you have to use --prefix1 if host1 imap server
-                         does not have NAMESPACE capability, all other
-                         cases are bad.
+                         does not have NAMESPACE capability, so imapsync
+			 suggests to use it. All other cases are bad.
 --prefix2     <string> : Add prefix to all host2 folders. See --prefix1
 --sep1        <string> : Host1 separator in case NAMESPACE is not supported.
 --sep2        <string> : Host2 separator in case NAMESPACE is not supported.
@@ -106,6 +111,10 @@ Several options are mandatory.
                          --skipmess is applied before --regexmess
 --skipmess    <regex>  : or this one, etc.
 
+--pipemess   <command> : Apply this command to each message content before
+                         the copy.
+--pipemess   <command> : and this one, etc.
+			 
 --disarmreadreceipts   : Disarms read receipts (host2 Exchange issue)
 
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
@@ -213,6 +222,7 @@ Several options are mandatory.
 --debugimap1           : IMAP debug mode for host1. imap debug is very verbose.
 --debugimap2           : IMAP debug mode for host2.
 --debugimap            : IMAP debug mode for host1 and host2.
+--debugmemory          : Debug mode showing memory consumption after each copy.
 
 --tests                : Run non-regression tests.
 --testslive            : Run a live test with test1.lamiral.info imap server. 
@@ -238,20 +248,23 @@ imapsync \
    --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
    --host2 test2.lamiral.info --user2 test2 --password2 secret2
 
-Here is a [linux] system (Linux petite 3.2.0-77-generic #114-Ubuntu SMP Tue Mar 10 17:25:28 UTC 2015 i686)
+Here is a [linux] system (Linux petite 3.2.0-84-generic #121-Ubuntu SMP Tue May 5 18:55:46 UTC 2015 i686)
 With perl 5.14.2 Mail::IMAPClient  3.30
-$Id: imapsync,v 1.637 2015/04/01 01:36:37 gilles Exp gilles $ 
+$Id: imapsync,v 1.644 2015/07/17 01:22:52 gilles Exp gilles $ 
 This current imapsync is up to date
 
 Homepage: http://imapsync.lamiral.info/
 
+[MSG] No '/home/gilles/.cpanplus/custom-sources' dir, skipping custom sources
+[MSG] No '/home/gilles/.cpanplus/custom-sources' dir, skipping custom sources
+[MSG] No '/home/gilles/.cpanplus/custom-sources' dir, skipping custom sources
 'Tie::Hash::NamedCapture'          => '0.08',
 'Authen::NTLM::DES'                => '1.02',
 'Authen::NTLM::MD4'                => '1.02',
 'IO::Compress::Gzip'               => '2.048',
-'IO::Uncompress::Gunzip'           => '2.048',
 'IO::Compress::Gzip::Constants'    => '2.048',
 'IO::Compress::Base::Common'       => '2.048',
+'IO::Uncompress::Gunzip'           => '2.048',
 'Compress::Raw::Zlib'              => '2.048',
 'Convert::ASN1::IO'                => 'undef',
 'Convert::ASN1::_decode'           => 'undef',
@@ -260,6 +273,7 @@ Homepage: http://imapsync.lamiral.info/
 'Crypt::SSLeay::X509'              => 'undef',
 'Crypt::SSLeay::CTX'               => 'undef',
 'Digest::HMAC'                     => '1.03',
+'Encode::HanExtra'                 => '0.23',
 'Cwd'                              => '3.33',
 'HTML::Parser'                     => '3.69',
 'HTTP::Cookies::Netscape'          => '6.00',
@@ -270,7 +284,6 @@ Homepage: http://imapsync.lamiral.info/
 'IO::Uncompress::Inflate'          => '2.048',
 'IO::Uncompress::RawInflate'       => '2.048',
 'HTTP::Message'                    => '6.01',
-'Compress::Raw::Bzip2'             => '2.048',
 'File::GlobMapper'                 => '1.000',
 'IO::Compress::Base'               => '2.048',
 'IO::Compress::Adapter::Bzip2'     => '2.048',
@@ -280,6 +293,7 @@ Homepage: http://imapsync.lamiral.info/
 'Socket6'                          => '0.23',
 'IO::Socket::INET6'                => '2.69',
 'Net::SSLeay'                      => '1.42',
+'Compress::Raw::Bzip2'             => '2.048',
 'IO::Uncompress::Adapter::Bunzip2' => '2.048',
 'IO::Uncompress::Base'             => '2.048',
 'IO::Compress::Zlib::Constants'    => '2.048',
@@ -287,10 +301,11 @@ Homepage: http://imapsync.lamiral.info/
 'common::sense'                    => '3.4',
 'Authen::NTLM'                     => '1.09',
 'CPAN::Config'                     => 'undef',
-'URI::data'                        => 'undef',
-'URI::_idna'                       => 'undef',
+'URI'                              => '1.59',
 'URI::mailto'                      => 'undef',
+'URI::_userpass'                   => 'undef',
 'URI::_query'                      => 'undef',
+'URI::data'                        => 'undef',
 'URI::QueryParam'                  => 'undef',
 'URI::Split'                       => 'undef',
 'URI::_foreign'                    => 'undef',
@@ -318,6 +333,8 @@ Homepage: http://imapsync.lamiral.info/
 'URI::file::Win32'                 => 'undef',
 'URI::file::Unix'                  => 'undef',
 'URI::file::Base'                  => 'undef',
+'URI::sip'                         => '0.11',
+'URI::_login'                      => 'undef',
 'URI::_punycode'                   => '0.04',
 'URI::IRI'                         => 'undef',
 'URI::_ldap'                       => '1.12',
@@ -325,19 +342,19 @@ Homepage: http://imapsync.lamiral.info/
 'URI::news'                        => 'undef',
 'URI::rtsp'                        => 'undef',
 'URI::Heuristic'                   => '4.20',
-'URI::_userpass'                   => 'undef',
-'URI::sip'                         => '0.11',
-'URI::_login'                      => 'undef',
+'URI::_idna'                       => 'undef',
 'URI::_generic'                    => 'undef',
-'URI'                              => '1.59',
-'URI::_server'                     => 'undef',
-'File::Listing'                    => '6.03',
-'HTTP::Status'                     => '6.00',
 'LWP::MediaTypes'                  => '6.01',
-'HTTP::Negotiate'                  => '6.00',
+'HTTP::Date'                       => '6.00',
+'HTTP::Request'                    => '6.00',
+'File::Listing'                    => '6.03',
 'Net::HTTP'                        => '6.02',
+'HTTP::Status'                     => '6.00',
+'LWP::Protocol'                    => '6.00',
+'HTTP::Response'                   => '6.01',
 'Net::HTTPS'                       => '6.02',
 'LWP::Debug'                       => 'undef',
+'HTTP::Negotiate'                  => '6.00',
 'Net::LDAP'                        => '0.43',
 'Net::LDAP::LDIF'                  => '0.18',
 'Mail::Internet'                   => '2.08',
@@ -345,16 +362,12 @@ Homepage: http://imapsync.lamiral.info/
 'HTTP::Config'                     => '6.00',
 'HTTP::Request::Common'            => '6.00',
 'LWP::ConnCache'                   => '6.02',
-'HTTP::Headers'                    => '6.00',
 'HTTP::Cookies'                    => '6.00',
+'HTTP::Headers'                    => '6.00',
 'Encode::Locale'                   => '1.02',
 'HTTP::Headers::Util'              => '6.00',
 'LWP::MemberMixin'                 => 'undef',
 'LWP'                              => '6.03',
-'HTTP::Date'                       => '6.00',
-'HTTP::Request'                    => '6.00',
-'LWP::Protocol'                    => '6.00',
-'HTTP::Response'                   => '6.01',
 'Compress::Zlib'                   => '2.048',
 'Mail::IMAPClient::MessageSet'     => 'undef',
 'Digest::HMAC_MD5'                 => '1.01',
@@ -389,20 +402,23 @@ Homepage: http://imapsync.lamiral.info/
 'Test::Builder::Module'            => '0.98',
 'URI::WithBase'                    => '2.20',
 'URI::file'                        => '4.21',
+'URI::_server'                     => 'undef',
 'Unicode::CharName'                => '1.07',
 'Data::Uniqid'                     => '0.12',
 'Digest::HMAC_SHA1'                => '1.03',
 'File::Copy::Recursive'            => '0.38',
 'IO::Tee'                          => '0.64',
-'JSON::XS::Boolean'                => 'undef',
+'JSON'                             => '2.53',
 'Term::ReadKey'                    => '2.30',
 'Test::More'                       => '0.98',
 'Unicode::String'                  => '2.09',
 'File::Spec::Unix'                 => '3.33',
 'File::Spec'                       => '3.33',
+'JSON::XS::Boolean'                => 'undef',
 'JSON::XS'                         => '2.32',
 'LWP::UserAgent'                   => '6.03',
 'HTML::Entities'                   => '3.69',
+'URI::Escape'                      => '3.31',
 'LWP::Authen::Digest'              => 'undef',
 'LWP::Authen::Ntlm'                => '6.00',
 'LWP::Protocol::GHTTP'             => 'undef',
@@ -418,9 +434,8 @@ Homepage: http://imapsync.lamiral.info/
 'LWP::Protocol::nntp'              => 'undef',
 'LWP::Protocol::nogo'              => 'undef',
 'LWP::Authen::Basic'               => 'undef',
-'URI::http'                        => 'undef',
 'URI::URL'                         => '5.04',
+'URI::http'                        => 'undef',
 'LWP::Protocol::http'              => 'undef',
 'LWP::Protocol::ldap'              => '1.11',
 'IO::Socket::SSL'                  => '1.53',
-'URI::Escape'                      => '3.31',

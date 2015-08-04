@@ -1,5 +1,5 @@
 
-REM $Id: install_modules.bat,v 1.15 2015/03/03 11:23:12 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.17 2015/05/23 09:40:38 gilles Exp gilles $
 
 @ECHO OFF 
 
@@ -33,6 +33,10 @@ FOR %%M in ( ^
              Test::Pod ^
              Unicode::String ^
              URI::Escape ^
+	JSON::WebToken ^
+	LWP ^
+	HTML::Entities ^
+	JSON ^
              ) DO ECHO Updating %%M ^
    & perl -MCPAN -e "install %%M"
 

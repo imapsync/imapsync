@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.179 2015/04/01 03:00:13 gilles Exp gilles $	
+# $Id: Makefile,v 1.189 2015/07/17 17:36:56 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -19,6 +19,7 @@ usage:
 	@echo "make W/test_tests.bat # run --tests on win32"
 	@echo "make W/test2.bat # run W/test2.bat on win32"
 	@echo "make W/test3.bat # run W/test3.bat on win32"
+	@echo "make W/test_reg.bat # run W/test_reg.bat on win32"
 	@echo "make W/test_exe_2.bat # run W/test_exe_2.bat on win32"
 	@echo "make prereq_win32 # run W/install_modules.bat on win32"
 	@echo "make all     "
@@ -27,7 +28,7 @@ usage:
 	@echo "make valid_index # check index.shtml for good syntax"
 	@echo "make upload_ks"
 	@echo "make imapsync.exe"
-	@echo "make imapsync_elf_x86.bin"
+	@echo "make bin"
 	@echo "make publish"
 	@echo "make perlcritic"
 	@echo "make prereq # Generates W/prereq.*"
@@ -47,12 +48,21 @@ HELLO=$(shell date;uname -a)
 IMAPClient_3xx=./W/Mail-IMAPClient-3.35/lib
 IMAPClient=$(IMAPClient_3xx)
 
+HOSTNAME = $(shell hostname -s)
+ARCH     = $(shell uname -m)
+KERNEL   = $(shell uname -s)
+BIN_NAME = imapsync_bin_$(KERNEL)_$(ARCH)
+
 hello:
-	echo "$(VERSION)"
-	echo "$(IMAPClient)"
+	@echo "$(VERSION)"
+	@echo "$(IMAPClient)"
+	@echo "$(HOSTNAME)"
+	@echo "$(ARCH)"
+	@echo "$(KERNEL)"
+	@echo "$(BIN_NAME)"
 
 
-all: ChangeLog README VERSION OPTIONS W/imapsync.1 prereq perlcritic imapsync_elf_x86.bin imapsync.exe VERSION_EXE 
+all: ChangeLog README VERSION OPTIONS W/imapsync.1 prereq perlcritic bin mac imapsync.exe VERSION_EXE 
 
 testp :
 	sh INSTALL.d/prerequisites_imapsync
@@ -107,7 +117,7 @@ clean_man:
 	rm -f imapsync.1
 
 W/imapsync.1: imapsync
-	pod2man < /dev/null 
+#	pod2man < /dev/null 
 	pod2man imapsync > W/imapsync.1
 
 install: testp W/imapsync.1
@@ -207,10 +217,15 @@ W/test2.bat:
 	scp imapsync examples/file.txt W/test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test2.bat'
 
-W/test3.bat: 
+W/test3.bat:
 	unix2dos W/test3.bat
 	scp imapsync W/test3.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test3.bat'
+
+W/test_reg.bat:
+	unix2dos W/test_reg.bat
+	scp imapsync W/test_reg.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_reg.bat'
 
 W/test_exe_2.bat: 
 	unix2dos W/test_exe_2.bat
@@ -228,8 +243,8 @@ test_imapsync_exe:
 	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
 prereq_win32:
-	unix2dos W/*.bat examples/*.bat 
-	scp W/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/examples/'
+	unix2dos W/install_modules.bat
+	scp W/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 
 
 imapsync.exe: imapsync
@@ -271,30 +286,22 @@ zip: dosify_bat
 # C:\Users\mansour\Desktop\imapsync
 
 # vadrouille or petite
-imapsync_elf_x86.bin: imapsync
+
+mac: imapsync
 	rcsdiff imapsync
-	{ test 'vadrouille' = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I $(IMAPClient_3xx) \
+	rsync -p -e 'ssh -p 995' imapsync W/build_mac.sh gilleslamira@gate.polarhome.com:
+	ssh -p 995 gilleslamira@gate.polarhome.com 'sh build_mac.sh'
+	rsync -P -e 'ssh -p 995' gilleslamira@gate.polarhome.com:imapsync_bin_Darwin .
+
+bin: imapsync
+	rcsdiff imapsync
+	{ pp -o $(BIN_NAME) -I $(IMAPClient_3xx) \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	-M Authen::NTLM \
 	imapsync ; \
 	} || :
-	{ test 'petite'     = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I $(IMAPClient_3xx) \
-	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
-	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
-	-M Authen::NTLM \
-	imapsync ; \
-	} || :
-	{ test 'ks200821.kimsufi.com'     = "`hostname`" && \
-	pp -o imapsync_elf_x86.bin -I $(IMAPClient_3xx) \
-	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
-	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
-	-M Authen::NTLM \
-	imapsync ; \
-	} || :
-	./imapsync_elf_x86.bin
+	./$(BIN_NAME)
 
 
 lfo: upload_lfo 
@@ -405,7 +412,8 @@ PUBLIC_W = ./W/style.css ./W/tw-hash.html \
 ./W/paypal.shtml ./W/paypal_return.shtml
 
 
-ml: dist_dir
+ml: dist_dir 
+	rcsdiff W/ml_announce.in
 	m4 -P W/ml_announce.in | mutt -H-
 	mailq
 
@@ -441,7 +449,7 @@ checklinkext: S/news.shtml S/external.shtml  S/imapservers.shtml S/template.shtm
 
 upload_index: .valid.index.shtml 
 	rcsdiff index.shtml S/*.shtml FAQ FAQ.d/*.txt INSTALL LICENSE CREDITS TODO W/*.bat examples/*.bat index.shtml INSTALL.d/prerequisites_imapsync imapsync 
-	rsync -avH index.shtml FAQ INSTALL OPTIONS NOLIMIT LICENSE CREDITS TODO TUTORIAL.html GOOD_PRACTICES.html imapsync ../imapsync_website/
+	rsync -avH index.shtml FAQ INSTALL OPTIONS NOLIMIT LICENSE CREDITS TODO TUTORIAL.html GOOD_PRACTICES.html imapsync imapsync.exe $(BIN_NAME) imapsync_Darwin_$(VERSION) ../imapsync_website/
 	rsync -avH $(PUBLIC_W) ../imapsync_website/W/
 	rsync -avH S/ ../imapsync_website/S/
 	rsync -avH W/images/ ../imapsync_website/W/images/

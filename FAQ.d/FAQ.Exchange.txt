@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Exchange.txt,v 1.2 2015/03/16 15:11:32 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.4 2015/06/03 15:33:48 gilles Exp gilles $
 
 =======================================================================
       Exchange 20xx and Office365 specific issues and solutions
@@ -16,11 +16,12 @@ R. Here is a command line resume that solves most encountered issues when
 
 On Windows:
 
-  imapsync ... ^
+  imapsync.exe ... ^
     --maxsize 10000000 ^
     --maxlinelength 9900 ^
     --regexflag "s/\\Flagged//g" ^
-    --disarmreadreceipts
+    --disarmreadreceipts ^
+    --maxlinelength 9000
 
 
 On Unix:
@@ -29,7 +30,12 @@ On Unix:
     --maxsize 10000000 \
     --maxlinelength 9900 \
     --regexflag "s/\\Flagged//g" \
-    --disarmreadreceipts
+    --disarmreadreceipts \
+    --maxlinelengthcmd 'reformime -r7' 
+    
+To get the "reformime" command on Linux install the "maildrop" package 
+No "reformime" on Windows so for now messages with too long line length
+can't be synced to Exchange or Office365.
 
 
 =======================================================================
@@ -197,7 +203,8 @@ So don't use --authmech1 SOMETHING with --authuser1 admin_user,
 it will not work.
 Same behavior with the --authuser2 option.
 
-
+See also:
+http://www.linux-france.org/prj/imapsync_list/msg02203.html
 
 
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.255 2015/03/31 14:52:51 gilles Exp gilles $  
+# $Id: tests.sh,v 1.258 2015/06/27 20:00:36 gilles Exp gilles $  
 
 # Example 1:
 # CMD_PERL='perl -I./W/Mail-IMAPClient-3.35/lib' sh -x tests.sh
@@ -355,7 +355,17 @@ ll_star() {
                 --folder 'INBOX.backstar\*' --dry --justfolders --debugimap1 --regextrans2 's#\\|\*#_#g'
 }
 
-ll_doublequote() {
+lks_trailing_space() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 ks.lamiral.info --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --justfolders --ssl1 --ssl2
+}
+
+
+lks_doublequote() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -364,7 +374,7 @@ ll_doublequote() {
                 --folder 'INBOX."uni"' --debugimap2 --nofoldersizes --justfolders --ssl1 --ssl2
 }
 
-ll_doublequote_rev() {
+lks_doublequote_rev() {
                 $CMD_PERL ./imapsync \
                 --host1 ks.lamiral.info  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -807,6 +817,20 @@ ll_idatefromheader() {
          --folder INBOX.oneemail2  \
          --idatefromheader  --debug --dry 
 }
+
+ll_idatefromheader_barker() {
+
+        # can_send && sendtestmessage
+
+        $CMD_PERL ./imapsync \
+         --host1 $HOST1  --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 imap.europe.secureserver.net --user2 test@alicebarkertest.com \
+         --passfile2 ../../var/pass/secret.barker \
+         --folder INBOX.oneemail2 --nofoldersizes \
+         --debug  --useheader ALL
+}
+
 
 
 
@@ -1589,6 +1613,20 @@ ll_regextrans2_slash()
 
 }
 
+
+ll_regextrans2_dot() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders \
+                --folder 'INBOX.yop.yap' \
+                --regextrans2 "s,\.,_,g" --dry
+}
+
+
 ll_regextrans2_subfolder() 
 {
                 $CMD_PERL ./imapsync \
@@ -1600,8 +1638,50 @@ ll_regextrans2_subfolder()
                 --nofoldersizes \
                 --folder 'INBOX.yop.yap' \
 		--prefix1 'INBOX.yop.' \
-                --regextrans2 's,^${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' --dry
+		--regextrans2 's,^${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
+		--regextrans2 's,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,' --dry
 }
+
+ll_regextrans2_subfolder_02() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders \
+                --nofoldersizes \
+		--regextrans2 's,^${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
+		--regextrans2 's,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,' --dry
+}
+
+
+
+ll_subfolder2() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders \
+                --subfolder2 SUB
+}
+
+
+
+ll_nochildren() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 w00d0310.kasserver.com --user2 m0331832  \
+                --passfile2 ../../var/pass/secret.kasserver \
+                --justfolders \
+                --debugimap
+}
+
+
 
 
 
@@ -2593,6 +2673,18 @@ msw2() {
         ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 }
 
+ll_change_characters_doublequotes() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders --dry --nofoldersizes \
+                --regextrans2 's,\",_,g' 
+
+}
+
+
 
 ll_change_characters_gmail() {
                 $CMD_PERL ./imapsync \
@@ -3419,6 +3511,16 @@ l_office365_justlogin()
         --justlogin 
 }
 
+l_office365_justlogin_2()
+{
+        $CMD_PERL ./imapsync \
+        --host1 imap-mail.outlook.com   --port1 993  --ssl1 --user1 gilles.lamiral@outlook.com \
+        --passfile1 ../../var/pass/secret.outlook.com \
+        --host2 outlook.office365.com  --tls2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --justlogin 
+}
+
 
 
 l_office365_bigfolders()
@@ -3472,6 +3574,15 @@ l_exchange_maxline()
 # specific tests
 ##########################
 
+mail2World() {
+	$CMD_PERL ./imapsync \
+	--host1 mail2.name-services.com  --user1 jessica@champlaindoor.com \
+	--passfile1 ../../var/pass/secret.mail2World \
+	--host2 mail.emailsrvr.com  --user2 jessica@champlaindoor.com \
+	--passfile2 ../../var/pass/secret.mail2World \
+	--sep1 / --prefix1 "" \
+	--noabletosearch --fetch_hash_set "1:*" --delete2 --expunge2 --expunge1 --useuid
+}
 
 xgenplus() {
         $CMD_PERL ./imapsync \

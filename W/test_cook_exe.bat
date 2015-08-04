@@ -1,4 +1,4 @@
-REM $Id: test_exe.bat,v 1.11 2014/05/22 10:13:34 gilles Exp gilles $
+REM $Id: test_cook_exe.bat,v 1.1 2015/04/02 23:38:23 gilles Exp gilles $
 
 cd /D %~dp0
 

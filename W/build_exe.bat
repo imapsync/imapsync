@@ -1,5 +1,5 @@
 
-REM $Id: build_exe.bat,v 1.27 2015/03/27 23:35:13 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.28 2015/05/11 01:09:57 gilles Exp gilles $
 @ECHO OFF
 
 ECHO Building imapsync.exe
@@ -29,6 +29,10 @@ perl ^
      -mTime::Local ^
      -mUnicode::String ^
      -mURI::Escape ^
+     -mJSON::WebToken ^
+     -mLWP::UserAgent ^
+     -mHTML::Entities ^
+     -mJSON ^
      -e ''
 
 cd
@@ -55,6 +59,10 @@ pp -o imapsync.exe  ^
       -M File::Copy::Recursive ^
       -M IO::Tee ^
       -M Unicode::String ^
+      -M JSON::WebToken ^
+      -M LWP::UserAgent ^
+      -M HTML::Entities ^
+      -M JSON ^
       .\imapsync
 
 echo Done building imapsync.exe 

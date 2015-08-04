@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.135 2015/03/31 14:56:25 gilles Exp gilles $
+# $Id: TODO,v 1.140 2015/07/17 17:36:22 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
@@ -19,11 +19,47 @@ MB
 GB
 TB
 
+
+2015_06_02 Karen F Bath. 
+Add skipped messages in the final dump.
+I would like to request if you could add additional errors to the bottom, as we find that things like “MaxLineLength” and “maxsize limit” are classed as skipped messages and in my opinion are errors; as the email message is not transferred but this is not logged at the bottom.
+We have our own scan script which we run on all log files at the end and copy the users logs into subfolders that have issues. I’ve attached a list of things we search for.
+
+"Error", "Output"
+NO Mailbox already exists, "Folder"
+NO LOGIN failed, "NoLogin"
+Could not create folder, "Linux"
+Error sending, "Linux"
+Write failed 'no error caught', "Linux"
+line length exceeds maxlinelength, "Linux"
+BAD Command Argument Error. 11, "Linux"
+Failure: can not open, "Linux"
+No not connected, "Linux"
+Write failed 'Connection reset by peer', "Linux"
+could not be fetched:, "Linux"
+NO Mailbox does not exist,"Error"
+exceeds maxsize limit 20971520 bytes,"Error"
+error while reading data from server: Connection reset by peer (4x),"Error"
+Folder [Inbox] already exists,"Error"
+
+
+2015_05_18
+I'd like to be able to print the messages subjects, on some logs:
+For instance:
+    msg INBOX.Archived/95551 marked \Deleted on host2 [GyDD6WpsFEtyBzNFnv]
+    msg [Gmail]/All Mail/281079 copying to INBOX.Archived
+It would be great to be able to print the email subject, in order to debug or to get more useful information.
+
+
+2015_04_25
+Add duplicates test option.
+    
 2015_03_24
 Add --sslargs with usage like:
 imapsync ...  --sslargs 'SSL_version=' --sslargs 'SSL_use_cert=1' \
               --sslargs 'SSL_verify_mode=SSL_VERIFY_PEER'
 See perldoc IO::Socket::SSL for all possibilities.
+
 
 
 
@@ -164,6 +200,20 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 ===========================================================================
 Now the TODO done! (or not)
 ===========================================================================
+
+DONE. Build and distribute a standalone Darwin Mac OS X binary.
+It's called imapsync_bin_Darwin
+
+
+DONE. Add a NOP for host2 for each fake copy in --dry mode. 
+Goal is to avoid timeouts happening only because of --dry
+
+DONE 2015_05_09 WANTED 2015_04_25
+Add an option "--subfolder2 FOO" to move all folders to a subfolder FOO:
+On Windows:
+    --regextrans2 "s,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1," \
+    --regextrans2 "s,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,"
+
 
 WON'T DO. Not enough examples.
 Can you setup an option to make it stop if the destination mailbox reports 
@@ -363,9 +413,9 @@ DONE. Write option --delete2foldersonly regex.
 Example: to permit a sync in a subfolder with --delete2folder
 --regextrans2 's#(.*)#NEW/$1#'  --delete2foldersonly /^NEW/ 
 
-DONE. Write option --delete2foldersnot regex.
+DONE. Write option --delete2foldersbutnot regex.
 Example: to permit a sync but not deleting folder OLD
---delete2foldersnot /^OLD/ 
+--delete2foldersbutnot /^OLD/ 
 
 DONE. Add cache to speed up transfer. Option --usecache 
 

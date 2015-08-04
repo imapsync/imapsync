@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.1 2015/03/26 08:12:20 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.2 2015/05/11 01:11:40 gilles Exp gilles $
 
 ======================================================================
                     Imapsync with Gmail
@@ -71,11 +71,12 @@ and trailing blank characters are problems with gmail, and
 also successive blanks ending with the IMAP error 
 "NO [CANNOT] Folder contains excess whitespace (Failure)"
 If you want to change only leading and trailing blank characters
-then use instead:
---regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g"
+then use the following instead
+On Linux/Unix:
+  --regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g"
+On Windows:
+  --regextrans2 "s,(/|^) +,$1,g" --regextrans2 "s, +(/|$),$1,g"
 
-On Windows, in the previous example containing \$1 you have to 
-replace the two \$1 by $1 (remove the \ before $1).
 
 --regextrans2 "s/[\^]/_/g" is mandatory.  It converts, since
 not accepted by gmail, character ^ to character _ underscore.
@@ -184,6 +185,20 @@ label CanWait and only it.
 --folderlast "[Gmail]/All Mail", in conjunction with option 
 --skipcrossduplicates, will only put in "[Gmail]/All Mail"
 the messages that are not labeled at all.
+
+=======================================================================
+Q. I can't authenticate with Gmail via IMAP
+   Gmail says "Please log in via your web browser"
+
+R1. See Coert Grobbelaar solution:
+https://security.stackexchange.com/questions/86404/how-do-i-interact-with-google-to-import-email-via-imapsync
+
+R2. I had the same issue one time (mars 2015) logging to Gmail 
+with imapsync.
+The Gmail imap message error said "Please log in via your web browser"
+so I logged for this account via a web browser,
+it asked me to receive a code via a mobile, I said yes,
+I entered the code and everything went ok. 
 
 =======================================================================
 Q. Gmail does not really delete messages in folder [Gmail]/All Mail 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.51 2015/01/19 01:26:51 gilles Exp gilles $
+# $Id: memo,v 1.52 2015/04/25 01:27:47 gilles Exp gilles $
 
 count_nice() {
 
@@ -231,6 +231,7 @@ statistics_VERSION_synthesis() {
 		statistics_VERSION_yearly_runs $yyyy
 	done
 	)
+	
 }
 
 
@@ -456,6 +457,10 @@ statistics_VERSION_synthesis() {
 		echo -n "$yyyy: "
 		statistics_VERSION_yearly_runs $yyyy
 	done
+	nb_runs_current_year=`statistics_VERSION_yearly_runs $year_now`
+	current_day_of_year=`date +%j`
+	echo; echo -n "$year_now~~"
+	echo "$nb_runs_current_year/$current_day_of_year*365" | bc 
 	)
 }
 

@@ -1,0 +1,282 @@
+#!/bin/cat
+$Id: FAQ.Flags.txt,v 1.3 2015/04/03 21:05:11 gilles Exp gilles $
+
+======================================================================
+      Imapsync and flags
+======================================================================
+
+Questions answered here are:
+
+Q. How to debug flag issues?
+
+Q. Is there a way to only sync messages with a specific flag set,
+   for example, the \Seen flag?
+
+Q. How to convert flags?
+   
+Q. Does imapsync retain the \Answered and $Forwarded flags?
+
+Q. How to fix this error: BAD Invalid system flag \FORWARDED
+   
+Q. How to convert flags with $ to \ character?
+
+Q. imapsync fails with the following error:
+flags from : [\Seen NonJunk]
+Error trying to append string: 58 NO APPEND Invalid flag list   
+   
+Q. Flags are not well synchronized. Is it a bug?
+
+=======================================================================
+Q. How to debug flag issues?
+
+R. Use --debugflags
+
+  imapsync ... --debugflags
+
+
+=======================================================================
+Q. Is there a way to only sync messages with a specific flag set,
+   for example, the \Seen flag?
+
+R. use --search 
+
+  imapsync ... --search SEEN
+
+or
+
+  imapsync ... --search UNSEEN
+
+or ...
+
+The complete list of search things are listed below
+
+http://www.faqs.org/rfcs/rfc3501.html
+
+6.4.4.  SEARCH Command
+...
+      ALL
+         All messages in the mailbox; the default initial key for
+         ANDing.
+
+      ANSWERED
+         Messages with the \Answered flag set.
+
+      BCC <string>
+         Messages that contain the specified string in the envelope
+         structure's BCC field.
+
+      BEFORE <date>
+         Messages whose internal date (disregarding time and timezone)
+         is earlier than the specified date.
+
+      BODY <string>
+         Messages that contain the specified string in the body of the
+         message.
+
+      CC <string>
+         Messages that contain the specified string in the envelope
+         structure's CC field.
+
+      DELETED
+         Messages with the \Deleted flag set.
+
+      DRAFT
+         Messages with the \Draft flag set.
+
+      FLAGGED
+         Messages with the \Flagged flag set.
+
+      FROM <string>
+         Messages that contain the specified string in the envelope
+         structure's FROM field.
+
+      HEADER <field-name> <string>
+         Messages that have a header with the specified field-name (as
+         defined in [RFC-2822]) and that contains the specified string
+         in the text of the header (what comes after the colon).  If the
+         string to search is zero-length, this matches all messages that
+         have a header line with the specified field-name regardless of
+         the contents.
+
+      KEYWORD <flag>
+         Messages with the specified keyword flag set.
+
+      LARGER <n>
+         Messages with an [RFC-2822] size larger than the specified
+         number of octets.
+
+      NEW
+         Messages that have the \Recent flag set but not the \Seen flag.
+         This is functionally equivalent to "(RECENT UNSEEN)".
+
+      NOT <search-key>
+         Messages that do not match the specified search key.
+
+      OLD
+         Messages that do not have the \Recent flag set.  This is
+         functionally equivalent to "NOT RECENT" (as opposed to "NOT
+         NEW").
+
+      ON <date>
+         Messages whose internal date (disregarding time and timezone)
+         is within the specified date.
+
+      OR <search-key1> <search-key2>
+         Messages that match either search key.
+
+      RECENT
+         Messages that have the \Recent flag set.
+
+      SEEN
+         Messages that have the \Seen flag set.
+
+      SENTBEFORE <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is earlier than the specified date.
+
+      SENTON <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is within the specified date.
+
+      SENTSINCE <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is within or later than the specified date.
+
+      SINCE <date>
+         Messages whose internal date (disregarding time and timezone)
+         is within or later than the specified date.
+
+      SMALLER <n>
+         Messages with an [RFC-2822] size smaller than the specified
+         number of octets.
+
+      SUBJECT <string>
+         Messages that contain the specified string in the envelope
+         structure's SUBJECT field.
+
+      TEXT <string>
+         Messages that contain the specified string in the header or
+         body of the message.
+
+      TO <string>
+         Messages that contain the specified string in the envelope
+         structure's TO field.
+
+      UID <sequence set>
+         Messages with unique identifiers corresponding to the specified
+         unique identifier set.  Sequence set ranges are permitted.
+
+      UNANSWERED
+         Messages that do not have the \Answered flag set.
+
+      UNDELETED
+         Messages that do not have the \Deleted flag set.
+
+      UNDRAFT
+         Messages that do not have the \Draft flag set.
+
+      UNFLAGGED
+         Messages that do not have the \Flagged flag set.
+
+      UNKEYWORD <flag>
+         Messages that do not have the specified keyword flag set.
+
+      UNSEEN
+         Messages that do not have the \Seen flag set. 
+
+=======================================================================
+Q. How to convert flags?
+
+R. use --regexflag
+For example to convert flag IMPORTANT to flag CANWAIT
+
+  imapsync ... --regexflag "s/IMPORTANT/CANWAIT/g" --debugflags
+
+option --debugflags is usefull to see in details what imapsync
+does with flags.
+
+=======================================================================
+Q. Does imapsync retain the \Answered and $Forwarded flags?
+
+R. It depends on the destination server.
+
+a) If the destination server honours the "PERMAENTFLAGS \*" 
+directive (meaning it accepts any flag) or no PERMAENTFLAGS at all 
+then imapsync synchronizes all flags except the \Recent flag
+(RFC 3501 says about \Recent flag "This flag can not be 
+altered by the client.").
+
+b) If the destination server honours the "PERMAENTFLAGS without the 
+special "\*"  then imapsync synchronizes only the flags listed 
+in PERMANENTFLAGS.
+
+Some imap servers have problems with flags not beginning with
+the backslash character \ 
+(see next question to find a solution to this issue)
+
+
+=======================================================================
+Q. How to fix this error: BAD Invalid system flag \FORWARDED
+
+R. Filter flag \FORWARDED with --regexflag like this:
+
+On Windows:
+
+  imapsync ... --regexflag "s/\\FORWARDED//g" 
+
+On Unix:
+
+  imapsync ... --regexflag 's/\\FORWARDED//g' 
+
+or
+
+  imapsync ... --regexflag "s/\\\\FORWARDED//g" 
+
+
+=======================================================================
+Q. How to convert flags with $ to \ character?
+
+R. $ and \ are special characters we have to "escape" them.
+For example to convert flag $label1 to \label1
+
+  imapsync ... --regexflag "s/\$label1/\\label1/g" --debugflags
+
+
+======================================================================
+Q. imapsync fails with the following error:
+flags from : [\Seen NonJunk]
+Error trying to append string: 58 NO APPEND Invalid flag list
+
+R. For some servers, flags have to begin with a \ character.
+The flag "NonJunk" may be a invalid flag for your server 
+so use for example:
+
+imapsync ...    --regexflag "s/NonJunk//g"
+
+Remark (thanks to Arnt Gulbrandsen): 
+IMAP system flags have to begin with \ character.
+Any other flag must begin with another character.
+System flags are just flags defined by an RFC instead of by users.
+Conclusion, some imap server coders don't read the RFCs (so do I).
+
+Recent imapsync deals with this issue by filter with PERMANENTFLAGS
+automatically.
+
+=======================================================================
+Q. Flags are not well synchronized. Is it a bug?
+
+R. It happens with some servers on the first sync. 
+Also, it was a bug from revision 1.200 to revision 1.207
+
+Two solutions: 
+
+* Run imapsync a second time. imapsync synchronizes flags on each run.
+
+* Use option --syncflagsaftercopy. With this option imapsync will 
+  also sync flags after each message transfer. Flags are already 
+  synced during the transfer with the imap APPEND command but 
+  option --syncflagsaftercopy does it again using the imap STORE 
+  command.
+
+
+=======================================================================

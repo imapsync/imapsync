@@ -72,12 +72,17 @@ Several options are mandatory.
 			  --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
 --exclude     <regex>  : or this one, etc.
 
+--subfolder2  <string> : Move whole host1 folders hierarchy under this 
+			 host2 folder <string>.
+			It does it by adding two --regextrans2 options before
+			 all others. Add --debug to see what's really going on.
+
 --regextrans2 <regex>  : Apply the whole regex to each destination folders.
 --regextrans2 <regex>  : and this one. etc.
                          When you play with the --regextrans2 option, first
                          add also the safe options --dry --justfolders
                          Then, when happy, remove --dry, remove --justfolders.
-                         Have in mind that --regextrans2 is applied after prefix 
+                         Have in mind that --regextrans2 is applied after prefix
                          and separator inversion.
 
 --tmpdir      <string> : Where to store temporary files and subdirectories.
@@ -95,8 +100,8 @@ Several options are mandatory.
 --prefix1     <string> : Remove prefix to all destination folders 
                          (usually INBOX. or INBOX/ or an empty string "")
                          you have to use --prefix1 if host1 imap server
-                         does not have NAMESPACE capability, all other
-                         cases are bad.
+                         does not have NAMESPACE capability, so imapsync
+			 suggests to use it. All other cases are bad.
 --prefix2     <string> : Add prefix to all host2 folders. See --prefix1
 --sep1        <string> : Host1 separator in case NAMESPACE is not supported.
 --sep2        <string> : Host2 separator in case NAMESPACE is not supported.
@@ -106,6 +111,10 @@ Several options are mandatory.
                          --skipmess is applied before --regexmess
 --skipmess    <regex>  : or this one, etc.
 
+--pipemess   <command> : Apply this command to each message content before
+                         the copy.
+--pipemess   <command> : and this one, etc.
+			 
 --disarmreadreceipts   : Disarms read receipts (host2 Exchange issue)
 
 --regexmess   <regex>  : Apply the whole regex to each message before transfer.
@@ -213,6 +222,7 @@ Several options are mandatory.
 --debugimap1           : IMAP debug mode for host1. imap debug is very verbose.
 --debugimap2           : IMAP debug mode for host2.
 --debugimap            : IMAP debug mode for host1 and host2.
+--debugmemory          : Debug mode showing memory consumption after each copy.
 
 --tests                : Run non-regression tests.
 --testslive            : Run a live test with test1.lamiral.info imap server. 
@@ -238,9 +248,9 @@ Example: to synchronize imap account "test1" on "test1.lamiral.info"
    --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
    --host2 test2.lamiral.info --user2 test2 --password2 secret2
 
-Here is a [linux] system (Linux petite 3.2.0-77-generic #114-Ubuntu SMP Tue Mar 10 17:25:28 UTC 2015 i686)
+Here is a [linux] system (Linux petite 3.2.0-84-generic #121-Ubuntu SMP Tue May 5 18:55:46 UTC 2015 i686)
 With perl 5.14.2 Mail::IMAPClient  3.35
-$Id: imapsync,v 1.637 2015/04/01 01:36:37 gilles Exp gilles $ 
+$Id: imapsync,v 1.644 2015/07/17 01:22:52 gilles Exp gilles $ 
 This current imapsync is up to date
 
 Homepage: http://imapsync.lamiral.info/
