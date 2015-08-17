@@ -2444,7 +2444,7 @@ sub xoauth2 {
  # Post oauth2 request
  my $ua = LWP::UserAgent->new();
  my $response = $ua->post('https://www.googleapis.com/oauth2/v3/token',
- { grant_type => encode_entities('urn:ietf:params:oauth:grant-type:jwt-bearer'),
+ { grant_type => HTML::Entities::encode_entities('urn:ietf:params:oauth:grant-type:jwt-bearer'),
  assertion => $jwt } );
 
  unless($response->is_success()) {
@@ -2452,7 +2452,7 @@ sub xoauth2 {
  }
 
  # access_token in response is what we need
- my $data = decode_json($response->content);
+ my $data = JSON::decode_json($response->content);
 
  # format as oauth2 auth data
  my $xoauth2_string = encode_base64("user=" . $imap->User . "\1auth=Bearer " . $data->{access_token} . "\1\1", "");
