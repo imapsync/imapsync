@@ -493,6 +493,7 @@ use Test::More ;
 use Time::HiRes qw( time sleep ) ;
 use Time::Local ;
 use Unicode::String ;
+use IO::Socket::SSL qw( SSL_VERIFY_NONE SSL_VERIFY_PEER );
 
 
 # global variables
@@ -2324,7 +2325,7 @@ sub set_ssl {
         #print "[$SSL_version]\n" ;
 
 	my $sslargs = [
-		SSL_verify_mode => 'SSL_VERIFY_PEER',
+		SSL_verify_mode => SSL_VERIFY_PEER,
         	SSL_verifycn_scheme => 'imap',
                 SSL_version => $SSL_version,
         ] ;
@@ -2335,7 +2336,7 @@ sub set_ssl {
 sub set_tls {
 	my ( $imap ) = @_ ;
 	my $tlsargs = [
-		SSL_verify_mode => 'SSL_VERIFY_NONE',
+		SSL_verify_mode => SSL_VERIFY_NONE,
         ] ;
         $imap->Starttls( $tlsargs ) ;
 	return(  ) ;
