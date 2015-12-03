@@ -7,17 +7,16 @@
 <title>Imapsync News</title>
 <meta name="generator" content="Bluefish 2.2.2" />
 <meta name="author" content="Gilles LAMIRAL" />
-<meta name="date" content="2015-03-29T15:09:06+0200" />
+<meta name="date" content="2015-12-03T03:55:04+0100" />
 <meta name="copyright" content="None"/>
-<meta name="keywords" content="imap, transfer, migration"/>
+<meta name="keywords" content="imap, transfer, migration, synchronization"/>
 <meta name="description" content="imap migration tool"/>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
 <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8"/>
 <meta http-equiv="content-style-type" content="text/css"/>
-<meta http-equiv="expires" content="0"/>
+ <meta http-equiv="expires" content="0"/>
 <link rel="icon" type="image/png" href="../W/images/logo_imapsync_s.png" />
 <link href="../W/style.css" rel="stylesheet" type="text/css"/>
-
 
 </head>
 
@@ -41,7 +40,7 @@
 
 <!-- 
 <ul>
-<li><b>1.636</b></li>
+<li><b>1.667</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -61,29 +60,104 @@
  -->
 
 
+<ul>
+<li><b>1.670</b> Folders mapping made easy with --automap</li>
+<li><b>Enhancement</b>: Added option <b><tt>--automap</tt></b> that guesses folders mapping, 
+                        for folders like "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
+                        <ul> 
+                        <li>IMAP Special-Use folders described in <a href="https://tools.ietf.org/html/rfc6154">rfc6154</a> 
+                        are supported and also well known names for Exchange and common clients. </li>
+                        <li>Automap is turned off by default, 
+                        to try it a safe method is to use <tt>--automap --justautomap</tt>, it will exit early</li>
+                        </ul> 
+ </li>
+<li><b>Enhancement</b>: Added <tt>--f1f2 str1=str2</tt> : Force folder str1 to be synced to str2. 
+                        <ul> 
+                        <li>Option --f1f2 overrides any automap mapping and any regextrans2. </li>
+                        <li>Example <tt>--f1f2 Spam=Junk</tt> to map Spam folder to Junk.</li>
+                        </ul>
+</li>
+<li><b>Enhancement</b>: Added --justautomap to exit after seeing what will happen with --automap and --f1f2 options.</li>
+<li><b>Enhancement</b>: Added IMAP4 QUOTA values when they're available and a warning when it's time to find space.  
+                        See RFC 2087 <a href="https://tools.ietf.org/html/rfc2087">IMAP4 QUOTA extension</a>
+</li>
+
+<li><b>Enhancement</b>: Added <a href="http://tools.ietf.org/html/rfc2971.html">IMAP4 ID extension</a>.
+                        <ul>
+                        <li>ID feature is on  by default if supported by the IMAP servers, 
+                        use <tt>--noid</tt> to turn it off.</li>
+                        <li>ID Infos returned by the imap servers are shown.</li>
+                        <li>Infos sent to the servers are name=imapsync, version=`imapsync --version`, os=$OSNAME`, 
+                        vendor='Gilles LAMIRAL' and date=`rcs date of release`.</li>
+                        <li>For github or other distributors you can hack this part 
+                        by searching <tt>$imapsync_id_github</tt></li>
+                        </ul>
+</li>
+
+<li><b>Enhancement</b>: Added <tt>--logdir path</tt> to change the default log directory. 
+                        Default is <tt>LOG_imapsync/</tt> 
+</li>
+
+
+
+<li><b>Usability</b>: Added folders counting in outputs.</li>
+<li><b>Usability</b>: Better output in the login part</li>
+<li><b>Usability</b>: Guess prefixes and separators instead of forcing the user to find them.</li>
+<li><b>Usability</b>: Output, added <tt>Host1:</tt> or <tt>Host2</tt> at the beginning of lines.</li>
+
+
+<li><b>Bug fix</b>: SSL_VERIFY_NONE in --ssl and --tls modes</li>
+<li><b>Bug fix</b>: Fixed xoauth2 calls. Now XOAUTH2 Works on Windows <tt>--authmech1 XOAUTH2</tt> 
+                    with openssl installed.
+                    See <a href="http://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt">FAQ.d/FAQ.XOAUTH2.txt</a>.</li>
+<li><b>Bug fix</b>: Fixed IO::Socket::SSL constants issue with latest releases</li>
+<li><b>Bug fix</b>: Changed "Host1: checking all wanted folders exist" not efficient algorithm  in order
+  to allow efficiently a 2.4 million folders account. Yes, some accounts have this.</li>
+
+<li><b>Refactoring</b>: Started to use global $sync-> in order to reduce number of parameters in routines.</li>
+<li><b>Refactoring</b>: Some perlcritic fixes.</li>
+</ul>
+
+<ul>
+<li><b>1.644</b> Mac OS X standalone binary provided!</li>
+<li><b>Enhancement</b>: Mac OS X standalone binary called <tt>imapsync_bin_Darwin</tt></li>
+
+<li><b>Enhancement</b>: Added option <tt>--subfolder2 SUB</tt> Move whole host1 folders hierarchy under folder SUB.</li>
+<li><b>Enhancement</b>: Added <tt>--fetch_hash_set "1:*"</tt> to permit Mail2World success.
+Need a patched Mail::IMAPClient 3.35 in <tt>sub fetch_hash()</tt></li>
+
+<li><b>Usability</b>: No folders sizes if --justfolders, unless really wanted.</li>
+<li><b>Usability</b>: No warning about messages when <tt>--dry --justfolders</tt> are used together.</li>
+
+<li><b>Bug fix</b>: Added NOOP in --dry mode during fake APPEND in order to avoid timeouts</li>
+
+
+</ul>
 
 <ul>
 <li><b>1.636</b></li>
-<li><b>Enhancement</b>: Added errors dump listing at the end, before last folder sizes or the statistics. Turned on by default. Use --noerrorsdump to avoid it.</li>
-<li><b>Enhancement</b>: Added --maxlinelengthcmd that will be called upon when a line over --maxlinelength is detected. </li>
-<li><b>Enhancement</b>: Exchange maxlinelength issue fixed with --maxlinelengthcmd 'reformime -r7' on Linux. Install maildrop package to get reformime command</li>
-<li><b>Enhancement</b>: Added --testslive. "imapsync --testslive" performs a live test on real accounts (I own).</li>
-<li><b>Enhancement</b>: Added --pipemess in order to pass all message to an external filter tool like "reformime -r7".</li>
+<li><b>Enhancement</b>: Added errors dump listing at the end, before last folder sizes or the statistics. Turned on by default. Use <tt>--noerrorsdump</tt> to avoid it.</li>
+<li><b>Enhancement</b>: Added <tt>--maxlinelengthcmd</tt> that will be called upon when a line over <tt>--maxlinelength</tt> value is detected. </li>
+<li><b>Enhancement</b>: Exchange maxlinelength issue fixed with <tt>--maxlinelengthcmd 'reformime -r7'</tt> on Linux. 
+                        Install maildrop package to get reformime command</li>
+<li><b>Enhancement</b>: Added <tt>--testslive</tt>. Running <tt>imapsync --testslive</tt> performs a live test on real accounts (I own).</li>
+<li><b>Enhancement</b>: Added <tt>--pipemess</tt> in order to pass all message to an external filter tool like <tt>reformime -r7</tt>.</li>
 <li><b>Enhancement</b>: Added xoauth2 support, available on Unix with underlying openssl. Thanks to Joaquin Lopez.</li>
-<li><b>Enhancement</b>: Added --skipmess to skip messages matching a regex.
-Example --skipmess 'm/[\x80-ff]/' to slip messages with non-7bit characters ( ie a byte somewhere begins with 1 )</li>
+<li><b>Enhancement</b>: Added <tt>--skipmess regex</tt> to skip messages matching a regex.
+Example <tt>--skipmess 'm/[\x80-ff]/'</tt> to slip messages with non-7bit characters ( ie a byte somewhere begins with 1 )</li>
 
 
 <li><b>Usability</b>: Better output of folders excluded by --exclude and folders included by --include</li>
 <li><b>Usability</b>: Added inline help in many places. What you can do with switches to change imapsync behaviour, contextually. Learn imapsync the easy way.</li>
 
-<li><b>Bug fix</b>: imapsync --tests should work under any circumstance now, any Unix, Windows, exe or bin or script. 561 non-regression tests</li>
-<li><b>Bug fix</b>: --folderfirst and --folderlast generated an error when their value folder does not exist. Existence is checked.</li>
-<li><b>Bug fix</b>: --disarmreadreceipts used to change Disposition-Notification-To in the body when not available in the header. Now never changes the body in all cases.</li>
-<li><b>Bug fix</b>: Change default useheader values. Now it is really like  --useheader "Message-Id" --useheader "Received".
-HMailServer replies two lines with --useheader "Message-Id" --useheader "Message-ID" in older releases.
+<li><b>Bug fix</b>: <tt>imapsync --tests</tt> should work under any circumstance now, any Unix, Windows, exe or bin or script. 561 non-regression tests</li>
+<li><b>Bug fix</b>: Options <tt>--folderfirst</tt> and <tt>--folderlast</tt> generated an error when their value folder does not exist. Existence is checked.</li>
+<li><b>Bug fix</b>: Option <tt>--disarmreadreceipts</tt> used to change Disposition-Notification-To in the body when not available in the header. 
+                    Now never changes the body in all cases.</li>
+<li><b>Bug fix</b>: Change default useheader values. Now it is really like  <tt>--useheader "Message-Id" --useheader "Received"</tt>.
+HMailServer replies two lines with <tt>--useheader "Message-Id" --useheader "Message-ID"</tt> in older imapsync releases.
 </li>
-<li><b>Bug fix</b>: in imap_utf7_decode() + must not be escaped. Was a bug with Cyrillic characters</li>
+<li><b>Bug fix</b>: in <tt>imap_utf7_decode()</tt> + character must not be escaped. Was a bug with Cyrillic characters</li>
 
 <li><b>Refactoring</b>: Started to split the <a href="../FAQ">FAQ</a> file in several parts in <a href="../FAQ.d/">FAQ.d/*</a></li>
 <li><b>Refactoring</b>: Split the <a href="../INSTALL">INSTALL</a> file in several parts in <a href="../INSTALL.d/">INSTALL.d/*</a></li>
@@ -296,7 +370,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.2 2015/03/31 23:59:58 gilles Exp gilles $)<br/>
+($Id: news.shtml,v 1.7 2015/12/03 02:55:37 gilles Exp gilles $)<br/>
 <a href="#TOP">Top of the page</a>
 </p>
 

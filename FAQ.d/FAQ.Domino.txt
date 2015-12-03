@@ -1,39 +1,51 @@
 #!/bin/cat
-$Id: FAQ.Domino.txt,v 1.2 2015/03/26 04:24:17 gilles Exp gilles $
+# $Id: FAQ.Domino.txt,v 1.4 2015/09/19 08:58:34 gilles Exp gilles $
 
 ======================================================================
-      Domino specific issues and solutions
+         Imapsync. Domino specific issues and solutions
 ======================================================================
+
 
 ======================================================================
 Q. From Domino Notes to xxx
 
 On Windows use:
 
-  imapsync.exe ... --sep2 "\\" --prefix2 ""
-
+  imapsync.exe ... --sep1 "\\" --prefix1 ""
 
 On Unix use:
 
-  imapsync ... --sep2 '\\' --prefix2 ''
+  imapsync ... --sep1 '\' --prefix1 '' 
 
 ======================================================================
 Q. From xxx to Domino Notes
 
-For Domino anywhere with imapsync.exe on Windows use:
+Domino doesn't accept INBOX subfolders. 
+
+On Windows:
 
   imapsync.exe ... ^
     --sep2 "\\" --prefix2 "" ^
-    --regextrans2 "s,^INBOX\\(.*),$1," 
+    --regextrans2 "s,^Inbox\\(.*),$1,i"  
 
-Explanation: Domino doesn't accept INBOX subfolders. 
+On Unix:
+
+  imapsync ... \
+    --sep2 '\' --prefix2 '' \
+    --regextrans2 's,^Inbox\\(.*),$1,i'
 
 If you want to sync the complete host1 mailbox in a subfolder called OLDBOX use:
 
+On Windows:
   imapsync.exe ... ^
     --sep2 "\\" --prefix2 "" ^
-    --regextrans2 "s,(.*),OLDBOX\\$1," --justfolders --dry
+    --subfolder2 "OLDBOX" --justfolders --dry
 
+On Unix:
+  imapsync ... \
+  --sep2 '\' --prefix2 '' \
+  --subfolder2 'OLDBOX' --justfolders --dry
+    
 If the output is correct for you then remove --dry and have a run.
 Verify the folder hierarchy is good on host2 then remove --justfolders to
 sync the messages.

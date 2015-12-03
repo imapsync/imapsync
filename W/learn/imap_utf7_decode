@@ -19,11 +19,9 @@ sub imap_utf7_decode {
         # On remplace , par / dans les BASE 64 (, entre & et -)
         # On remplace les &, non suivi d'un - par +
         # On remplace les &- par &
-        $s =~ s/\+/PLUSPLACEHOLDER/g;
         $s =~ s/&([^,&\-]*),([^,\-&]*)\-/&$1\/$2\-/g;
         $s =~ s/&(?!\-)/\+/g;
         $s =~ s/&\-/&/g;
-        $s =~ s/PLUSPLACEHOLDER/+-/g;
 
         return( Unicode::String::utf7( $s )->utf8 ) ;
 }

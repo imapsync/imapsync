@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+use Unicode::String ;
+
+while (<>) {
+        chomp ;
+        push( @result, sprintf( "%s\n", imap_utf7_encode( $_ ) ) ) ;
+}
+
+print @result ;
+
+# http://cpansearch.perl.org/src/FABPOT/Unicode-IMAPUtf7-2.01/lib/Unicode/IMAPUtf7.pm
+
+sub imap_utf7_encode {
+        my ( $s ) = @_ ;
+
+	$s = Unicode::String::utf8( $s )->utf7 ;
+	
+	$s =~ s/\+([^\/&\-]*)\/([^\/\-&]*)\-/\+$1,$2\-/g ;
+	$s =~ s/&/&\-/g ;
+	$s =~ s/\+([^+\-]+)?\-/&$1\-/g ;
+        return( $s ) ;
+}

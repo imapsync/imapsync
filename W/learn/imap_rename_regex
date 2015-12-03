@@ -1,0 +1,46 @@
+#!/usr/bin/perl -w
+
+# $Id: imap_rename_regex,v 1.5 2015/08/15 03:42:01 gilles Exp gilles $
+
+use Mail::IMAPClient;
+
+++$| ;
+
+$ARGV[3] or die "usage: $0 host user password regex do_it\n";
+
+my $host = $ARGV[0] ;
+my $user = $ARGV[1] ;
+my $password = $ARGV[2] ;
+my $regex = $ARGV[3] ;
+my $doit = $ARGV[4] || 0 ;
+
+my $imap = Mail::IMAPClient->new(  ) ;
+$imap->Debug( 1 ) ;
+$imap->Server( $host ) ;
+$imap->Ssl( 1 ) ;
+$imap->connect(  ) or die ;
+$imap->IsUnconnected(  ) ;
+$imap->User( $user ) ;
+$imap->Password( $password ) ;
+$imap->login(  ) or die ;
+$imap->Uid( 1 ) ;
+$imap->Peek( 1 ) ;
+
+my @folders = $imap->folders(  ) ;
+
+foreach my $folder ( @folders ) {
+	print "$folder\n" ;
+        my $folder_new = $folder ;
+        if ( eval( "\$folder_new =~ $regex" ) 
+	     and ( $folder_new ne $folder ) ) {
+        	print "Renaming [$folder] -> [$folder_new]\n" ;
+		$imap->noop(  ) ;
+                if ( $doit and $imap->rename( $folder, $folder_new ) ) {
+                	print "renamed ok [$folder] -> [$folder_new]\n" ;
+                }else{
+                	print "KO renamed [$folder] -> [$folder_new]\n" ;
+                }
+        } 
+}
+
+$imap->logout();

@@ -1,0 +1,283 @@
+#!/bin/cat
+$Id: FAQ.Various_Server_Softwares.txt,v 1.2 2015/10/21 15:41:41 gilles Exp gilles $
+
+=======================================================================
+        Imapsync. Server software specific issues and solutions
+=======================================================================
+
+
+
+=======================================================================
+Q. From Zimbra to XXX
+
+imapsync ... \
+	--exclude "Conversation Action Settings" \
+	--exclude "Quick Step Settings" \
+	--exclude "News Feed"
+
+=======================================================================
+Q. From or to HMailServer version 4.4.1.
+
+R. You have to add prefix and separator manually because  4.4.1 doesn't
+honor the NAMESPACE imap command.
+
+Example for host1:
+
+imapsync ... \
+         --prefix1 "" --sep1 .
+
+No specific option for HMailServer 5.3.3 since NAMESPACE is supported.
+
+Maybe --subscribe_all will help you to see all migrated folders.
+
+
+=======================================================================
+Q. Synchronizing from Kerio Connect to XXX
+
+R. No special options required. 
+See also:
+http://www.linux-france.org/prj/imapsync_list/msg01756.html
+http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-1/
+http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-2/
+
+
+=======================================================================
+Q. Synchronizing from Yahoo to XXX
+
+R. Use --host1 imap.mail.yahoo.com --ssl1
+
+./imapsync \
+	--host1 imap.mail.yahoo.com \
+        --user1 billy \
+        --password1 secret \
+	--ssl1 \
+        --host2 XXX \
+        --user2 billy \
+        --password2 secret
+
+SSL is mandatory for yahoo since november 2011.
+
+=======================================================================
+Q. from Microsoft's Exchange 2007 to Google Apps for your Domain 
+   (GAFYD)
+
+R. Take a look at:
+http://mark.ossdl.de/2009/02/migrating-from-exchange-2007-to-google-apps-mail/
+
+
+=======================================================================
+Q. Migrating from or to Parallels Plex Server
+
+R. It depends on the OS
+
+Parallells Plesk Panel for Windows requires --sep2 / --prefix2 ""
+Parallells Plesk Panel for Linux works with default parameters.
+
+=======================================================================
+Q. I'm migrating from WU to Cyrus, and the mail folders are under
+   /home/user/mail but the tool copies everything in /home/user, how
+   can i avoid that?
+
+Two solutions:
+
+R. Use
+   imapsync ... --include '^mail'
+
+R. or (better)
+   imapsync ... --subscribed --subscribe
+
+
+=======================================================================
+Q. I'm migrating from WU to Cyrus, and the mail folders are under
+   /home/user/mail directory.  When imapsync creates the folders in
+   the new cyrus imap server, it makes a folder "mail" and below that
+   folder puts all the mail folders the user have in /home/user/mail,
+   i would like to have all those folders directly under INBOX.
+
+R. Use 
+   imapsync ... --regextrans2 's/^mail/INBOX/' --dry
+   look at the simulation and if all transformations seem
+   good then remove the --dry option.
+
+
+=======================================================================
+Q. Migrating from Groupwise to Cyrus
+
+R. By Jamie Neil:
+
+I eventually managed to get the mail to migrate without errors using the 
+following options:
+
+--sep1 /
+  - doesn't report separator so has to be set explicitly.
+
+--nosyncacls
+  - doesn't support ACLs.
+
+--skipheader '^Content-Type'
+  - MIME separator IDs seem to change every time a mail is accessed so 
+    this is required to stop duplicates.
+
+--maxage 3650
+  - some messages just don't seem to want to transfer and produce the 
+    perl errors I mentioned before. This prevents the errors, but the
+    bad messages don't transfer.
+
+Even though the mail migrated OK, there are a couple of gotchas with 
+Groupwise IMAP:
+
+1) Some of the GW folders are not real folders and are not available
+to IMAP, the main problem one being "Sent Items". I could find no way
+of coping the contents of these folders. The nearest I got was to
+create a "real" folder and copy/move the sent items into it, but
+imapsync still didn't see the messages (I think because there is
+something funny about the reported dates/sizes).
+
+It think this problem has been rectified in GW6.5.
+
+2) The "skipheader '^Content-Type'" directive is required to stop 
+duplicate messages being created. GW seems to generate this field on
+the fly for messages that have MIME separators and so it's different
+every time.
+
+3) Version 6.0.1 of the Groupwise Internet Connector sucks. I was 
+getting server aborts when I pushed it a bit hard! I eventually had to
+upgrade to 6.0.4 which seems to be a lot more stable.
+
+
+=======================================================================
+Q. Migrating from iPlanet Messaging Server
+5.2 Patch 2 (built Jul 14 2004)) to Groupwise 7.0
+I encounter many errors like this:
+"Error trying to append string: 17847 BAD APPEND"
+
+R. GroupWise 7 seems buggy. Apply GroupWise 7 support pack 1
+
+=======================================================================
+Q. Migrating from David Tobit V10 (DvISE Mail Access Server MA-...)
+
+R. Use the following options:
+
+imapsync ... --prefix1 ""    --sep1 /  --idatefromheader ^
+             --nofoldersizes --useuid --nocheckmessageexists
+
+=======================================================================
+Q. Migrating from David Tobit V8
+   ("* OK IMAP4rev1 DvISE Mail Access Server MA-8.10a (0126)")
+
+First try above V10 solution since improvments have been made
+to support Tobit.
+
+R. Use the following options :
+imapsync ... --prefix1 INBOX. --sep1 / --subscribe --subscribed 
+
+=======================================================================
+Q. Migrating from Tobit David Server 6 
+   ("DvISE Mail Access Server MA-6.60a (0118)")
+
+First try above V10 solution since improvments have been made
+to support Tobit.
+
+R. Look at the discussion:
+http://www.linux-france.org/prj/imapsync_list/msg00582.html
+http://www.linux-france.org/prj/imapsync_list/threads.html#00582
+patch saved in ./patches/imapsync-1.337_tobit_V6.patch
+
+=======================================================================
+Q. I need to migrate 1250 mailboxes, passwords are in a MySQL Database.
+Can you tell me if your script suits my needs?
+
+R. Mailboxes must exist before running imapsync.
+You have to extract users logins and passwords in a csv file.
+See the "HUGE MIGRATION" section in the README file.
+
+
+======================================================================
+Q: From MailEnable 1.75
+R: --sep1 "/" --prefix1 ""
+
+Q: From MailEnable 2.2
+R: --sep1 "." --prefix1 ""
+
+Q: To MailEnable
+R: --sep2 / --prefix2 "" --addheader --messageidnodomain --syncflagsaftercopy
+
+======================================================================
+Q. From GMX IMAP4 StreamProxy
+R. Use:
+   --prefix1 INBOX and --sep1 .
+
+======================================================================
+Q. From Courier to Archiveopteryx
+R. You can read http://www.archiveopteryx.org/migration/imapsync
+   Default values might be fine now with latest imapsync.
+
+======================================================================
+Q. To Sun Java(tm) System Messaging Server 6.2-7.05
+Q. To Communigate Pro - Solaris version
+
+R. See and run patches/imapsync_1.267_jari
+
+
+======================================================================
+Q. From Softalk Workgroup Mail 7.6.4 
+
+R. Old Softalk releases don't support the IMAP SEARCH command.
+   Here are the options to get it working.
+
+imapsync ... --sep1 '.' --prefix1 '' \
+             --noabletosearch  --nocheckmessageexists --addheader
+
+(Thanks to Andrew Tucker)
+
+======================================================================
+Q. From or to QQMail IMAP4Server
+
+R. imapsync ... --noabletosearch
+
+======================================================================
+Q. From FirstClass to XXX
+   http://www.firstclass.com/
+
+R. Migrating from FirstClass is not easy because FirstClass, strangely, 
+   does not show all messages via IMAP. To make it show all messages,
+   a trick, painful to follow by hand, is moving emails 
+   out and back in, for each folder. May be it can be done by a script.
+
+  FirstClass releases prior to release 12 do not shows the "Sent" 
+  folder in IMAP but FirstClass release 12 shows it.
+  I advice you to upgrade to FirstClass release 12 before leaving it
+  with imapsync or another imap tool.
+
+Here is a command line used to migrate from FirtClass release 12:
+
+  imapsync ... \
+    --tmpdir /var/tmp --usecache \
+    --useheader Message-ID \
+    --idatefromheader \
+    --addheader \
+    --regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g" \
+    --regextrans2 "s/[\^]/_/g"       \
+    --regextrans2 "s/['\"\\\\]/_/g"  \
+    --regextrans2 "s,&AC8-,-,g" \
+    --regextrans2 "s,&APg-,oe,g" 
+
+On Windows, in the previous example containing \$1 you have to 
+replace the two \$1 by $1 (remove the \ before $).
+
+Special thanks to Kristian Wind and Joey Alexander for helping me
+writing this FAQ item. 
+See also this worth reading discussion in a Zimbra forum:
+http://www.zimbra.com/forums/migration/20349-help-needed-migrating-firstclass.html
+
+======================================================================
+Q. From XXX to FTGate
+
+R. Do NOT use --usecache since new UIDs are not given by FTGate and also
+   badly guessed by imapsync. UIDEXPUNGE does not work so use also
+   --expunge2 when using --delete2
+  
+  imapsync ... \
+     --sep2 / --prefix2 "" \
+     --useheader Message-Id \
+

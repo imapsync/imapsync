@@ -1,9 +1,9 @@
 #!/bin/cat
-$Id: FAQ.Folders_Mapping.txt,v 1.5 2015/05/11 10:36:33 gilles Exp gilles $
+$Id: FAQ.Folders_Mapping.txt,v 1.8 2015/12/03 02:37:45 gilles Exp gilles $
 
-===========================================
-      Imapsync changing folders names 
-===========================================
+======================================================================
+               Imapsync. Changing folders names 
+======================================================================
 
 Things to know and understand before playing with --regextrans2
 
@@ -61,18 +61,23 @@ Q. Give examples about --regextrans2
 
 Examples: 
 
-1) To remove INBOX. in the name of destination folders:
+1) To remove INBOX. in the name of destination folders
 
-    --regextrans2 's/^INBOX\.(.+)/$1/'
+  imapsync ... --regextrans2 's/^INBOX\.(.+)/$1/'
 
-2a) To sync all folders to INBOX:
+2) To change only INBOX to Inbox_Migrated
+
+   imapsync ... --regextrans2 's{^INBOX$}{Inbox_Migrated}'
+
+
+2a) To sync all folders to INBOX
 
   imapsync ... --regextrans2 "s/.*/INBOX/"
 
 
-2b) To sync a complete account in a subfolder called FOO:
+2b) To sync a complete account in a subfolder called FOO
 
-Since imapsync release 1.641 simply use:
+Since imapsync release 1.641 simply use
 
   imapsync ... --subfolder2 FOO
   
@@ -129,6 +134,21 @@ On Linux/Unix:
 On Windows:
 
   --regextrans2 s,\^",_,g
+
+3c) to substitute all characters *%. by underscores _
+You can increase the *%. list by any unwanted character.
+
+On Linux/Unix:
+
+  --regextrans2 'tr,*%.#,_,'
+
+On Windows:
+
+  --regextrans2 "tr,*%.#,_,"
+
+3d) It is a bad idea to substitute & characters since &
+is a character to encode non-ascii characters in IMAP folder names.
+
 
 
 4) to change folder names like this:

@@ -1,0 +1,31 @@
+#!/usr/bin/perl -w
+
+use lib '/g/public_html/imapsync/W/Mail-IMAPClient-3.37/lib/' ;
+use Mail::IMAPClient;
+
+$ARGV[3] or die "usage: $0 host user password quotaroot\n";
+
+$host = $ARGV[0];
+$user = $ARGV[1];
+$password = $ARGV[2];
+$quotaroot = $ARGV[3];
+
+print "Mail::IMAPClient::VERSION $Mail::IMAPClient::VERSION\n" ;
+
+my $imap = Mail::IMAPClient->new(  ) ;
+$imap->Debug( 1 ) ;
+$imap->Server( $host ) ;
+$imap->Ssl( 1 ) ;
+$imap->Showcredentials( 0 ) ;
+$imap->connect(  ) or die ;
+$imap->IsUnconnected(  ) ;
+$imap->User( $user ) ;
+$imap->Password( $password ) ;
+$imap->login(  ) or die ;
+$imap->Uid( 1 ) ;
+$imap->Peek( 1 ) ;
+
+$imap->getquotaroot( $quotaroot ) ;
+$imap->getquota( '""' ) ;
+
+$imap->logout(  ) ;

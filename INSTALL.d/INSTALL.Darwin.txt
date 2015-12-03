@@ -1,76 +1,73 @@
+#!/bin/cat
+# $Id: INSTALL.Darwin.txt,v 1.10 2015/09/19 08:55:25 gilles Exp gilles $
 
-# $Id: INSTALL.Darwin.txt,v 1.6 2015/03/16 16:29:27 gilles Exp gilles $
+===================================================
+= Installing imapsync binary on Darwin / Mac OS X =
+===================================================
 
-============================================
-= Installing imapsync on Darwin / Mac OS X =
-============================================
-
-First let's configure the cpan command in order it modify only a
-very local installation, local to a user, the user you're logged in.
+There is a standalone imapsync binary for Mac OS X called imapsync_bin_Darwin,
+available in the compressed tarball called imapsync-1.xxx.tgz
+where 1.xxx is the version number. I suppose this tarball is put
+under your $HOME directory, let say /Users/gilles/, but you can
+put it anywhere.
 
 Open a terminal: /Applications/Utilities/Terminal double-click on Terminal.
-In order to do a local install, we have to take a fresh start.
-In this terminal, type the following (or better copy-paste this line and press RETURN):
 
-  rm -f .cpan/CPAN/MyConfig.pm
-  cpan
+Untar the tarball where you want:
 
-cpan should ask for an automatic configuration, say yes.
-Example of output:
+  cd
+  tar xzvf  /Users/gilles/imapsync-1.xxx.tgz
 
-------------------------------------------------------------------------------
-Would you like to configure as much as possible automatically? [yes] 
-...
-What approach do you want?  (Choose 'local::lib', 'sudo' or 'manual')
- [local::lib] 
-------------------------------------------------------------------------------
- 
+Go into the directory imapsync-1.xxx
 
-At the end of the run, cpan might propose to add some lines in your .bashrc file.
-Say yes. The output on the screen is something like the following:
+  cd imapsync-1.xxx
 
------------------------------------------------------------------------------- 
-...
-local::lib is installed. You must now add the following environment variables
-to your shell configuration files (or registry, if you are on Windows) and
-then restart your command line shell and CPAN before installing modules:
 
-PERL_MB_OPT="--install_base \"/Users/gilles/perl5\""; export PERL_MB_OPT;
-PERL_MM_OPT="INSTALL_BASE=/Users/gilles/perl5"; export PERL_MM_OPT;
+First let's have a simple run to see if imapsync_bin_Darwin works. 
+You should see some help about options and an example at the end 
+of this run:
 
-Would you like me to append that to /home/Users/.bashrc now? [yes] 
-commit: wrote '/Users/gilles/.cpan/CPAN/MyConfig.pm'
-...
-------------------------------------------------------------------------------
+  ./imapsync_bin_Darwin
 
-You have to source (the command to source is "." ) your .bashrc and run the "cpan -i" command:
+To go further, perform a complete test with two
+real IMAP server accounts:  
+  
+  ./imapsync_bin_Darwin --testslive
 
-  .  .bashrc 
+If this sync works fine then imapsync_bin_Darwin is ready for any 
+imap account synchronization.
 
-The next time you use cpan command, it will install Perl modules locally,
-where you have permission to create files and directories, something like
-the path /Users/gilles/perl5/ (where gilles is replaced by your login name).
 
-Next, let's get a script that will check your Perl installation.
-Open a terminal: /Applications/Utilities/Terminal double-click on Terminal.
-In this terminal, type the following (or better copy-paste this line and press RETURN):
+===================================================
+= Installing imapsync script on Darwin / Mac OS X =
+===================================================
 
-  curl -L http://imapsync.lamiral.info/INSTALL.d/prerequisites_imapsync > prerequisites_imapsync 
 
-Now you should have a script named "prerequisites_imapsync" in the current directory.
-Let's execute it with a shell, type:
+wget --no-check-certificate -O- http://cpanmin.us | perl - -l ~/perl5 App::cpanminus local::lib
+eval `perl -I ~/perl5/lib/perl5 -Mlocal::lib`
+perl -I ~/perl5/lib/perl5 -Mlocal::lib
 
-  sh prerequisites_imapsync 
+echo 'eval `perl -I ~/perl5/lib/perl5 -Mlocal::lib`' >> ~/.profile
+echo 'export MANPATH=$HOME/perl5/man:$MANPATH' >> ~/.profile
+cat ~/.profile 
+cpanm CPAN
 
-When "sh prerequisites_imapsync" command is ended it will propose you
-to execute a "cpan -i ..." command to install the missing Perl modules.
-The "..." in "cpan -i ..." have to be replaced by the list proposed 
-in the last output line of a "sh prerequisites_imapsync" run.
-For example it can be:
+curl -L http://imapsync.lamiral.info/INSTALL.d/prerequisites_imapsync > prerequisites_imapsync 
+sh prerequisites_imapsync
 
-  cpan -i Authen::NTLM Data::Uniqid File::Copy::Recursive IO::Tee Mail::IMAPClient Unicode::String
+cpanm Authen::NTLM
+cpanm File::Copy::Recursive IO::Tee
+cpanm Mail::IMAPClient
+cpanm Unicode::String
 
-Once you've run the "cpan -i" command, you can rerun "sh prerequisites_imapsync" 
+wget -c http://imapsync.lamiral.info/imapsync
+./imapsync
+perl ./imapsync
+perl ./imapsync --modules
+cpanm Data::Uniqid
+cpanm JSON::WebToken
+
+You can rerun "sh prerequisites_imapsync" 
 to verify everything is ok:
 
   sh prerequisites_imapsync 
@@ -80,6 +77,20 @@ When everything is ok the script execution ends with this sentence
 
 Now imapsync should work on your system.
 
+=================================================
+= Building imapsync binary on Darwin / Mac OS X =
+=================================================
+
+cpanm Module::ScanDeps
+cpanm Module::ScanDeps
+cpanm PAR::Packer
+
+pp -o imapsync.bin imapsync 
+
+./imapsync.bin 
+./imapsync.bin  --testslive
+./imapsync.bin  --tests
+./imapsync.bin  --module
 
 
   

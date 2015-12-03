@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: archive_per_month,v 1.6 2013/04/18 15:08:18 gilles Exp gilles $
+# $Id: archive_per_month.sh,v 1.7 2015/11/05 17:31:33 gilles Exp gilles $
 
 # Translate Jan to 01, Feb to 02 etc.
 month_number() {
@@ -57,5 +57,5 @@ for year_archive in 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 
 done
 
 
-# End of $Id: archive_per_month,v 1.6 2013/04/18 15:08:18 gilles Exp gilles $
+# End of $Id: archive_per_month.sh,v 1.7 2015/11/05 17:31:33 gilles Exp gilles $
 

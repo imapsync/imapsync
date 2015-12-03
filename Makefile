@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.189 2015/07/17 17:36:56 gilles Exp gilles $	
+# $Id: Makefile,v 1.209 2015/12/03 03:25:22 gilles Exp gilles $	
 
 .PHONY: help usage all
 
@@ -21,10 +21,14 @@ usage:
 	@echo "make W/test3.bat # run W/test3.bat on win32"
 	@echo "make W/test_reg.bat # run W/test_reg.bat on win32"
 	@echo "make W/test_exe_2.bat # run W/test_exe_2.bat on win32"
-	@echo "make prereq_win32 # run W/install_modules.bat on win32"
+	@echo "make examples/sync_loop_windows.bat # run examples/sync_loop_windows.bat on win32"
+        
+	@echo "make win32_prereq # run W/install_modules.bat on win32"
+	@echo "make win32_update_ssl # run W/install_module_ssl.bat on win32"
 	@echo "make all     "
 	@echo "make upload_tests # upload tests.sh"
 	@echo "make upload_index"
+	@echo "make upload_FAQ   # upload FAQs and documentation"
 	@echo "make valid_index # check index.shtml for good syntax"
 	@echo "make upload_ks"
 	@echo "make imapsync.exe"
@@ -45,7 +49,7 @@ VERSION=$(shell perl -I$(IMAPClient) ./imapsync --version 2>/dev/null || cat VER
 VERSION_EXE=$(shell cat ./VERSION_EXE)
 
 HELLO=$(shell date;uname -a)
-IMAPClient_3xx=./W/Mail-IMAPClient-3.35/lib
+IMAPClient_3xx=./W/Mail-IMAPClient-3.37/lib
 IMAPClient=$(IMAPClient_3xx)
 
 HOSTNAME = $(shell hostname -s)
@@ -62,7 +66,7 @@ hello:
 	@echo "$(BIN_NAME)"
 
 
-all: ChangeLog README VERSION OPTIONS W/imapsync.1 prereq perlcritic bin mac imapsync.exe VERSION_EXE 
+all: ChangeLog README VERSION OPTIONS W/imapsync.1 biz prereq allcritic bin mac imapsync.exe VERSION_EXE 
 
 testp :
 	sh INSTALL.d/prerequisites_imapsync
@@ -135,16 +139,18 @@ install: testp W/imapsync.1
 ci: cidone
 
 cidone:
-	rcsdiff RCS/* 
-	cd W && rcsdiff RCS/*
-	cd S && rcsdiff RCS/*
-	cd examples && rcsdiff RCS/*
+	rcsdiff RCS/*
+	rcsdiff W/*.bat W/*.out W/*.txt W/*.htaccess W/*.shtml W/*.t2t
+	rcsdiff S/*.txt S/*.shtml
+	rcsdiff INSTALL.d/*.txt INSTALL.d/prerequisites_imapsync
+	rcsdiff FAQ.d/*txt
+	rcsdiff examples/*.sh examples/*.bat examples/*.txt 
 
 ###############
 # Local goals
 ###############
 
-.PHONY: prereq test tests testp testf test3xx testv3 perlcritic 
+.PHONY: prereq test tests testp testf test3xx testv3 perlcritic allcritic
 
 prereq: W/prereq.scandeps
 
@@ -154,16 +160,26 @@ W/prereq.scandeps: INSTALL.d/prerequisites_imapsync imapsync
 
 
 
-perlcritic: W/perlcritic_3.out W/perlcritic_2.out
+perlcritic: W/perlcritic_3.out W/perlcritic_2.out 
+
+allcritic: W/perlcritic_4.out W/perlcritic_3.out W/perlcritic_2.out W/perlcritic_1.out
 
 W/perlcritic_1.out: imapsync
 	perlcritic -1 imapsync > W/perlcritic_1.out || :
+	echo | ci -l W/perlcritic_1.out
 
 W/perlcritic_2.out: imapsync
 	perlcritic -2 imapsync > W/perlcritic_2.out || :
+	echo | ci -l W/perlcritic_2.out
 
 W/perlcritic_3.out: imapsync
 	perlcritic -3 imapsync > W/perlcritic_3.out || :
+	echo | ci -l W/perlcritic_3.out
+
+W/perlcritic_4.out: imapsync
+	perlcritic -4 imapsync > W/perlcritic_4.out || :
+	echo | ci -l W/perlcritic_4.out
+
 
 test_quick : test_quick_3xx 
 
@@ -208,13 +224,18 @@ W/test_tests.bat:
 	scp imapsync W/test_tests.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_tests.bat'
 
-.PHONY: W/*.bat
+.PHONY: W/*.bat examples/*
 
 
+examples/sync_loop_windows.bat: 
+	unix2dos examples/sync_loop_windows.bat
+	scp imapsync examples/file.txt examples/sync_loop_windows.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/sync_loop_windows.bat --nodry --dry --nodry'
+#	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/sync_loop_windows.bat '
 
 W/test2.bat: 
 	unix2dos W/test2.bat
-	scp imapsync examples/file.txt W/test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	scp imapsync W/test2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test2.bat'
 
 W/test3.bat:
@@ -240,23 +261,32 @@ W/test3_gmail.bat:
 test_imapsync_exe: 
 	unix2dos W/test_exe.bat
 	scp W/test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
-	time ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
 
-prereq_win32:
+win32_prereq:
 	unix2dos W/install_modules.bat
 	scp W/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_modules.bat'
 
+win32_update_ssl:
+	scp W/install_module_ssl.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_module_ssl.bat'
+
+W/install_module_one.bat:
+	unix2dos W/install_module_one.bat
+	scp W/install_module_one.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_module_one.bat'
 
 imapsync.exe: imapsync
 	rcsdiff imapsync
 	ssh Admin@c 'perl -V'
 	(date "+%s"| tr "\n" " "; echo -n "BEGIN " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
-	unix2dos W/*.bat examples/*.bat 
+	unix2dos W/build_exe.bat W/test_exe.bat W/install_modules.bat
 	scp W/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
-	# ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_modules.bat'
 	scp imapsync W/build_exe.bat W/test_exe.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_exe.bat'
+	rm -f imapsync.exe
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
 	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
@@ -265,6 +295,7 @@ exe: imapsync W/build_exe.bat dosify_bat
 	scp imapsync W/build_exe.bat  Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/build_exe.bat'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --modules_version'
+	rm -f imapsync.exe
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
 	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
@@ -370,7 +401,13 @@ README_dist.txt: dist_dir
 	sh W/tools/gen_README_dist > $(DIST_PATH)/README_dist.txt
 	unix2dos $(DIST_PATH)/README_dist.txt
 
-.PHONY: publish upload_ks ks valid_index 
+.PHONY: publish upload_ks ks valid_index biz
+
+biz: S/imapsync_sold_by_country.txt
+
+S/imapsync_sold_by_country.txt: imapsync
+	cd S/ && /g/bin/imapsync_by_country && echo | ci -l imapsync_sold_by_country.txt
+	
 
 ks:
 	rsync -avHz --delete --exclude imapsync.exe \
@@ -387,19 +424,9 @@ upload_tests: tests.sh
 	  gilles@ks.lamiral.info:public_html/imapsync/
 
 
-#upload_ks: ci tarball
-upload_ks: ci tarball
-	rsync -aHv           $(PUBLIC)       ../imapsync_website/
-	rsync -aHv           $(PUBLIC_W)     ../imapsync_website/W/
-	rsync -aHv  --delete ./W/images/     ../imapsync_website/W/images/
-	rsync -aHv  --delete ./W/ks.htaccess ../imapsync_website/.htaccess
-	rsync -aHv  --delete ./dist/         ../imapsync_website/dist/
-	rsync -aHv  --delete ./examples/     ../imapsync_website/examples/
-	rsync -aHv  --delete ./INSTALL.d/     ../imapsync_website/INSTALL.d/
-	rsync -aHvz --delete ../imapsync_website/ root@ks.lamiral.info:/var/www/imapsync/
 
 
-publish: dist upload_ks ksa
+publish: dist upload_ks ksa 
 	echo Now ou can do make ml
 
 PUBLIC = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
@@ -408,7 +435,7 @@ PUBLIC = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
 ./README ./OPTIONS ./TODO ./TUTORIAL.html ./GOOD_PRACTICES.html
 
 PUBLIC_W = ./W/style.css ./W/tw-hash.html \
-./W/TIME \
+./W/TIME.txt \
 ./W/paypal.shtml ./W/paypal_return.shtml
 
 
@@ -445,11 +472,11 @@ checklinkext: S/news.shtml S/external.shtml  S/imapservers.shtml S/template.shtm
 	validate --verbose index.shtml S/*.shtml
 	touch .valid.index.shtml
 
-.PHONY: upload_index
+.PHONY: upload_index upload_FAQ
 
 upload_index: .valid.index.shtml 
-	rcsdiff index.shtml S/*.shtml FAQ FAQ.d/*.txt INSTALL LICENSE CREDITS TODO W/*.bat examples/*.bat index.shtml INSTALL.d/prerequisites_imapsync imapsync 
-	rsync -avH index.shtml FAQ INSTALL OPTIONS NOLIMIT LICENSE CREDITS TODO TUTORIAL.html GOOD_PRACTICES.html imapsync imapsync.exe $(BIN_NAME) imapsync_Darwin_$(VERSION) ../imapsync_website/
+	rcsdiff index.shtml S/*.shtml FAQ FAQ.d/*.txt INSTALL LICENSE CREDITS TODO W/*.bat examples/*.bat index.shtml INSTALL.d/*.txt imapsync 
+	rsync -avH index.shtml FAQ INSTALL OPTIONS NOLIMIT LICENSE CREDITS TODO TUTORIAL.html GOOD_PRACTICES.html imapsync imapsync.exe $(BIN_NAME) imapsync_bin_Darwin ../imapsync_website/
 	rsync -avH $(PUBLIC_W) ../imapsync_website/W/
 	rsync -avH S/ ../imapsync_website/S/
 	rsync -avH W/images/ ../imapsync_website/W/images/
@@ -458,3 +485,23 @@ upload_index: .valid.index.shtml
 	rsync -aHv  --delete ./FAQ.d/     ../imapsync_website/FAQ.d/
 	rsync -aHvz --delete ../imapsync_website/ root@ks.lamiral.info:/var/www/imapsync/
 
+
+upload_FAQ:
+	rcsdiff FAQ FAQ.d/*.txt INSTALL LICENSE CREDITS TODO INSTALL.d/*.txt 
+	rsync -avH FAQ INSTALL OPTIONS CREDITS TODO TUTORIAL.html GOOD_PRACTICES.html ../imapsync_website/
+	rsync -aHv  --delete  ./INSTALL.d/         ../imapsync_website/INSTALL.d/
+	rsync -aHv  --delete  ./FAQ.d/             ../imapsync_website/FAQ.d/
+	rsync -aHvz --delete ../imapsync_website/  root@ks.lamiral.info:/var/www/imapsync/
+
+
+upload_ks: ci tarball
+	rsync -aHv           $(PUBLIC)       ../imapsync_website/
+	rsync -aHv           $(PUBLIC_W)     ../imapsync_website/W/
+	rsync -aHv  --delete ./W/images/     ../imapsync_website/W/images/
+	rsync -aHv  --delete ./W/ks.htaccess ../imapsync_website/.htaccess
+	rsync -avH           ./S/            ../imapsync_website/S/
+	rsync -aHv  --delete ./dist/         ../imapsync_website/dist/
+	rsync -aHv  --delete ./examples/     ../imapsync_website/examples/
+	rsync -aHv  --delete ./INSTALL.d/     ../imapsync_website/INSTALL.d/
+	rsync -aHv  --delete ./FAQ.d/     ../imapsync_website/FAQ.d/
+	rsync -aHvz --delete ../imapsync_website/ root@ks.lamiral.info:/var/www/imapsync/

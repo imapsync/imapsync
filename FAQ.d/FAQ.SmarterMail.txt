@@ -1,0 +1,46 @@
+#!/bin/cat
+$Id: FAQ.SmarterMail.txt,v 1.6 2015/11/30 02:58:25 gilles Exp gilles $
+
+=======================================================================
+  Imapsync. SmarterMail specific issues and solutions
+=======================================================================
+
+
+=======================================================================
+Q. Synchronizing from SmarterMail to XXX
+
+On Unix:
+imapsync --host1 imap.d1.org --user1 joe --password1 secret1 \
+         --host2 imap.d2.org --user2 joe --password2 secret2 \
+         --sep1 "/" --prefix1 "" --useheader Message-Id \
+	 --regextrans2 "s,Deleted Items,Trash," \
+	 --regextrans2 "s,Junk E-Mail,Junk," \
+         --regextrans2 "s,Sent Items,Sent," 
+
+On Windows:
+imapsync.exe --host1 imap.d1.org --user1 joe --password1 secret1 ^
+         --host2 imap.d2.org --user2 joe --password2 secret2  ^
+         --sep1 "/" --prefix1 "" --useheader Message-Id ^
+         --regextrans2 "s,Deleted Items,Trash,"  ^
+	 --regextrans2 "s,Junk E-Mail,Junk,"    ^
+	 --regextrans2 "s,Sent Items,Sent,"
+
+Maybe add other --regextrans2 to change folder names, for this
+see also http://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
+
+=======================================================================
+Q. Synchronizing from XXX to SmarterMail
+
+On Unix:
+imapsync --host1 imap.d1.org --user1 joe --password1 secret1  \
+         --host2 imap.d2.org --user2 joe --password2 secret2  \
+         --sep2 "/" --prefix2 "" --useheader Message-Id 
+
+On Windows:
+imapsync.exe --host1 imap.d1.org --user1 joe --password1 secret1 ^
+             --host2 imap.d2.org --user2 joe --password2 secret2 ^
+             --sep2 "/" --prefix2 "" --useheader Message-Id
+
+
+=======================================================================
+

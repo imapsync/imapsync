@@ -1,8 +1,8 @@
 #!/bin/cat
-$Id: FAQ.Massive.txt,v 1.1 2015/03/26 05:06:27 gilles Exp gilles $
+$Id: FAQ.Massive.txt,v 1.5 2015/11/05 14:46:20 gilles Exp gilles $
 
 ======================================================================
-      Imapsync for massive migrations
+                  Imapsync for massive migrations
 ======================================================================
 
 Questions answered here are:
@@ -10,47 +10,53 @@ Questions answered here are:
 Q. I need to migrate hundred accounts, how can I do?
 Q. I have to migrate 500k users using 400 TB of disk space. 
    How do I proceed?
+Q. How to determine what is the bottleneck in my current imapsync process?
 
-   
 =======================================================================
 Q. I need to migrate hundred accounts, how can I do?
 
 R. If you have many mailboxes to migrate think about a little
-shell program. Write a file called file.txt (for example)
-containing users and passwords.
+script program. Write a file called file.txt (for example)
+containing hosts users and passwords on both sides.
 The separator used in this example is ";"
 
-The file.txt file contains:
+The file.txt file contains for example:
 
-user001_1;password001_1;user001_2;password001_2
-user002_1;password002_1;user002_2;password002_2
-user003_1;password003_1;user003_2;password003_2
-user004_1;password004_1;user004_2;password004_2
-user005_1;password005_1;user005_2;password005_2
-...
+host001_1;user001_1;password001_1;host001_2;user001_2;password001_2;
+host002_1;user002_1;password002_1;host002_2;user002_2;password002_2;
+host003_1;user003_1;password003_1;host003_2;user003_2;password003_2;
+host004_1;user004_1;password004_1;host004_2;user004_2;password004_2;
+etc.
 
-On Unix the shell program can be:
+On Unix the shell script can be:
 
- { while IFS=';' read  u1 p1 u2 p2; do 
-	imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
-                 --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
- done ; } < file.txt
+#!/bin/sh
+{ while IFS=';' read  h1 u1 p1 h2 u2 p2 fake
+    do 
+        imapsync --host1 "$h1" --user1 "$u1" --password1 "$p1" \
+                 --host2 "$h2" --user2 "$u2" --password2 "$p2" 
+    done 
+} < file.txt
 
-Here is a complete Unix example nearly ready to use: 
+
+Here is a complete Unix example ready to use: 
 http://imapsync.lamiral.info/examples/sync_loop_unix.sh
 
 
-On Windows the batch program can be:
+On Windows the batch script can be:
 
-  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO imapsync ^
-  --host1 imap.side1.org --user1 %%G --password1 %%H ^
-  --host2 imap.side2.org --user2 %%I --password2 %%J ...
+CD /D %~dp0
+SET csvfile=file.txt
+FOR /F "tokens=1,2,3,4,5,6 delims=; eol=#" %%G IN (%csvfile%) DO (
+imapsync ^
+  --host1 %%G --user1 %%H --password1 %%I ^
+  --host2 %%J --user2 %%K --password2 %%L ...
+)
 
-The ... can be replaced by nothing or any supplementary imapsync option.
+The final ... can be replaced by nothing or any supplementary imapsync option.
 
 Here is a complete Windows example nearly ready to use: 
 http://imapsync.lamiral.info/examples/sync_loop_windows.bat
-
 
 
 =======================================================================
@@ -63,13 +69,15 @@ they can be processed independently.
 
 500k on 400TB is 800 MB per account on average.
 
-No one knows in advance what is the first bottleneck.  The first
-bottleneck has to be determined, by measurements, not by guesses.
-Once this first bottleneck is known and overcome then the next
-bottleneck has to be determined and overcome too, if needed. Repeat
-the process of looking for the next bottleneck and its resolution
-until you estimate the transfer rates, money costs and final dates are
-good enough to proceed the whole 500k/400TB migration.
+On any process involving several mechanisms there is always a
+bottleneck among all elements taking part on the process. No one knows
+in advance what is the first bottleneck.  The first bottleneck has to
+be determined, by measurements, not by guesses.  Once this first
+bottleneck is known and overcome then the next bottleneck has to be
+determined and overcome too, if needed. Repeat the process of looking
+for the next bottleneck and its resolution until you estimate the
+transfer rates, money costs and final dates are good enough to proceed
+the whole 500k/400TB migration.
 
 Possible bottlenecks: 
 
@@ -95,4 +103,23 @@ Possible bottlenecks:
 - Time.
 - Bad luck.
 - ...
+
+=======================================================================
+Q. How to determine what is the bottleneck in my current imapsync process?
+
+R. Divide and conquer.
+
+In order to detect whether host1/link1 is the bottleneck or
+host2/link2, we have several tests to explore:
+
+1) run a sync from host1 to host1, with a host1 test account as destination.
+This way, only host1+link1 are tested. host2 is not concerned.
+If performances increase a lot then host2/link2 is the bottleneck.
+
+2) run a sync from host2 to host2, with a host2 test account as destination.
+This way, only host2+link2 are tested. host1 is not concerned.
+If performances increase a lot then host1/link1 is the bottleneck.
+
+If performances increase on both tests 1) and 2), I have no clue to explain that.
+Same thing if they both decrease! 
 

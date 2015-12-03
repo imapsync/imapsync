@@ -1,0 +1,21 @@
+#!/bin/cat
+# $Id: FAQ.Security.txt,v 1.1 2015/10/21 14:18:27 gilles Exp gilles $
+
+======================================================================
+         Imapsync. Security issues and solutions
+======================================================================
+
+
+======================================================================
+Q. Imapsync used to use SSL_VERIFY_PEER now it uses SSL_VERIFY_NONE.
+   How can I change this back to the more secure SSL_VERIFY_PEER?
+
+
+R1. In function "sub set_ssl", replace 
+  IO::Socket::SSL::SSL_VERIFY_NONE()
+by
+  IO::Socket::SSL::SSL_VERIFY_PEER()
+
+
+C1. Don't do this in function "sub set_tls" since it won't work by principle,
+    tls is done AFTER the application level connexion is established

@@ -1,13 +1,60 @@
 #!/bin/cat
-$Id: FAQ.Exchange.txt,v 1.4 2015/06/03 15:33:48 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.14 2015/11/30 16:12:18 gilles Exp gilles $
 
 =======================================================================
-      Exchange 20xx and Office365 specific issues and solutions
+  Imapsync. Exchange 20xx and Office365 specific issues and solutions
 =======================================================================
 
+Questions anwswered in this FAQ are:
+
+Q. Can I use imapsync to transfer from or to Exchange or Office365 accounts?
+
+Q. How to sync from XXX to Exchange 2010/2013 or Office365
+
+Q. For Office365 I have double and triple checked the username and 
+   password spelling but I still get a "LOGIN failed". Any clue?
+
+Q. Exchange fails with "User is authenticated but not connected".
+
+Q. From XXX to Exchange 2013 or Office365, read receipts are all
+   resent again after a sync. Even for old messages. How can I fix that?
+
+Q. From XXX to Exchange 2010/2013 or Office365 I get this error message
+   sometimes: "BAD Command Argument Error 11". What does it mean?
+
+Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
+   not seem to be well synced. What can I do?
+
+Q. Exchange and Office365 have throttle mechanisms to limit any huge 
+   usage. Sometimes imapsync transfers are too stressful for servers. 
+   How to deal with that?
+
+Q. How to migrate from or to Exchange 2007/2010 with an 
+   admin/authuser account?
+
+Q. How to migrate from or to Office 365 with an admin/authuser account?
+
+Q. How to migrate from or to Exchange 2003 with an admin/authuser 
+   account?
+
+Q. Couldn't create folder [trash] "Mailbox already exists".
+
+Q. Migrating to Exchange 201O, messages get date of the transfer,
+   this is bad for sorting and listing. What can I do?
+
+Q. How to sync from any to Exchange2007?
+
+Q. How to sync from Microsoft Exchange 2000 IMAP4rev1 server?
 
 =======================================================================
-Q. From XXX to Exchange 2010/2013 or Office365
+Q. Can I use imapsync to transfer from or to Exchange or Office365 accounts?
+
+R. Yes. But IMAP access to a Exchange or Office365 account is not always 
+   allowed by default so it has to be allowed in the server configuration 
+   part:
+
+=======================================================================
+Q. How to sync from XXX to Exchange 2010/2013 or Office365
 
 R. Here is a command line resume that solves most encountered issues when 
    migrating to Exchange or Office365. To understand or change the
@@ -19,9 +66,13 @@ On Windows:
   imapsync.exe ... ^
     --maxsize 10000000 ^
     --maxlinelength 9900 ^
+    --maxmessagespersecond 4 ^
     --regexflag "s/\\Flagged//g" ^
     --disarmreadreceipts ^
-    --maxlinelength 9000
+    --regexmess "s,(.{9900}),$1\r\n,g"
+
+  On Unix
+  imapsync ... --regexmess 's,(.{9900}),$1\r\n,g'
 
 
 On Unix:
@@ -29,18 +80,50 @@ On Unix:
   imapsync ... \
     --maxsize 10000000 \
     --maxlinelength 9900 \
-    --regexflag "s/\\Flagged//g" \
+    --maxmessagespersecond 4 \
+    --regexflag 's/\\Flagged//g' \
     --disarmreadreceipts \
     --maxlinelengthcmd 'reformime -r7' 
     
-To get the "reformime" command on Linux install the "maildrop" package 
-No "reformime" on Windows so for now messages with too long line length
-can't be synced to Exchange or Office365.
+On Linux, to get the "reformime" command, install the "maildrop" package.
+In case you don't have it you can use 
+  --regexmess 's,(.{9900}),$1\r\n,g'
+instead of --maxlinelengthcmd 'reformime -r7' 
 
+On Windows, no "reformime" is available so messages with too long line length
+can be synced to Exchange or Office365 by inserting a CRLF every 9900
+characters on long lines, using --regexmess "s,(.{9900}),$1\r\n,g"
 
 =======================================================================
-Q. From XXX to Exchange 2013 or Office365 read receipts are all
-  resent again after a sync. Even for old messages. How can I fix that?
+Q. For Office365 I have double and triple checked the username and 
+   password spelling but I still get a "LOGIN failed". Any clue?
+
+R1. Triple check the hostname then. Try all of these:
+ * imap-mail.outlook.com
+ * imap.outlook.com
+ * outlook.office365.com
+
+R2. Also triple check a license is assigned to that account 
+    in Office365.
+
+R3. Try with a classic email client like Thunderbird and the same
+    parameters.   
+
+=======================================================================
+Q. Exchange fails with "User is authenticated but not connected".
+
+R. "The message “User is authenticated but not connected” is due to a 
+   bug in the Exchange server's IMAP implementation. If the client 
+   presents a valid user name but an invalid password, the server 
+   accepts the login, but subsequent commands fail with the 
+   aforementioned error message." Source:
+http://unix.stackexchange.com/questions/164823/user-is-authenticated-but-not-connected-after-changing-my-exchange-password
+Thanks to James Abbottsmith for this link and explanation at
+https://github.com/imapsync/imapsync/issues/32#issuecomment-153561647
+
+=======================================================================
+Q. From XXX to Exchange 2013 or Office365, read receipts are all
+   resent again after a sync. Even for old messages. How can I fix that?
 
 R. imapsync can remove the header containing this read receipt request.
 
@@ -74,7 +157,7 @@ Thanks to David Karnowski for pointing and solving this issue.
 
 =======================================================================
 Q. From XXX to Exchange 2010/2013 or Office365 I get this error message
-   sometimes: "BAD Command Argument Error 11"
+   sometimes: "BAD Command Argument Error 11". What does it mean?
 
 R. This error message comes from Exchange IMAP server when it 
    encounters any problem. Most of the time it is one of the following:
@@ -101,6 +184,15 @@ R. This error message comes from Exchange IMAP server when it
 
   imapsync ... --maxlinelength 9900 
 
+  In case you prefer fixing messages with long lines the hard way,
+  instead of skipping them with --maxlinelength 9900, just use:
+
+  On Windows
+  imapsync ... --regexmess "s,(.{9900}),$1\r\n,g"
+
+  On Unix
+  imapsync ... --regexmess 's,(.{9900}),$1\r\n,g'
+  
 Have also in mind that Exchange closes the connection after 10 errors
 encountered so you might also see "BYE Connection closed" errors from
 Exchange, which means Exchange leaves the session and say goodbye,
@@ -108,7 +200,7 @@ come back later. Rerun a sync then.
 
 =======================================================================
 Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
-   not seem to be well synced.
+   not seem to be well synced. What can I do?
 
 R. Use the following trick. Run imapsync twice, one with --regexflag
    and one without, like this:
@@ -128,7 +220,15 @@ With STORE it sets and gets the "\Flagged" flag everywhere.
 Thanks to Dave Murray and Simon Savva for reporting and solving 
 this issue.
 
+======================================================================
+Q. Exchange and Office365 have throttle mechanisms to limit any huge 
+   usage. Sometimes imapsync transfers are too stressful for servers. 
+   How to deal with that?
 
+R. It looks like limiting 4 messages per second is enough to never 
+   reach any throttle limit.
+
+  imapsync ... --maxmessagespersecond 4
 
 ======================================================================
 Q. How to migrate from or to Exchange 2007/2010 with an 
@@ -245,8 +345,7 @@ In case you are not aware:
 
 
 =======================================================================
-Q. Couldn't create folder [trash] from [INBOX.trash]: 
-   588 NO Mailbox already exists.
+Q. Couldn't create folder [trash] "Mailbox already exists".
 
 R. Some servers take care about character case in folder names, 
    some servers do not, like Exchange. Since non-respecting case 
@@ -275,10 +374,13 @@ R. Some servers take care about character case in folder names,
    mandatory, otherwise imapsync will sync messages from the
    first Trash and then delete them when syncing trash.
 
+   In order to avoid merging folders that are considered different 
+   on host1 but the same on destination host2 because of case 
+   sensitivities and insensitivities, use  --nomixfolders
 
 ======================================================================
 Q. Migrating to Exchange 201O, messages get date of the transfer,
-   this is bad for sorting and listing.
+   this is bad for sorting and listing. What can I do?
 
 R1. Be sure to have at least Exchange 2010 SP2 Rollup 5
 http://www.tribalchicken.com.au/15-technical/29-imapsync-exchange2010
@@ -291,7 +393,7 @@ It's often shorter to change one server than thousands clients
 so R1 might be easier to do.
 
 ======================================================================
-Q. From any to Exchange2007 
+Q. How to sync from any to Exchange2007?
 
 Several problems:
 - Big messages: increase the "send- and receive-connector" 
@@ -310,10 +412,9 @@ Two users succeeded by using "MS Transporter Suite" (which is closed
 expensive non-free software).
 
 ======================================================================
-Q. From Microsoft Exchange 2000 IMAP4rev1 server version 6.0.6487.0.
+Q. How to sync from Microsoft Exchange 2000 IMAP4rev1 server?
 
-R. imapsync ... \
-   --prefix1 INBOX. 
+R. imapsync ...  --prefix1 "INBOX."
 
 
 =======================================================================

@@ -1,10 +1,13 @@
 
-REM $Id: install_modules.bat,v 1.17 2015/05/23 09:40:38 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.18 2015/11/04 18:15:11 gilles Exp gilles $
 
-@ECHO OFF 
-
+@ECHO OFF
+@REM Needed with remote ssh
+SET SHELL=
+SET
 ECHO Installing Perl modules for imapsync
-REM CD /D %~dp0
+
+CD /D %~dp0
 
 perl -v
 IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://strawberryperl.com/ ^
@@ -21,6 +24,7 @@ FOR %%M in ( ^
              Digest::MD5 ^
              File::Copy::Recursive ^
              Getopt::ArgvFile ^
+             Socket6 ^
              IO::Socket::INET ^
              IO::Socket::INET6 ^
              IO::Socket::SSL ^
@@ -33,16 +37,15 @@ FOR %%M in ( ^
              Test::Pod ^
              Unicode::String ^
              URI::Escape ^
+	Crypt::OpenSSL::RSA ^
+	JSON ^
 	JSON::WebToken ^
 	LWP ^
 	HTML::Entities ^
-	JSON ^
-             ) DO ECHO Updating %%M ^
-   & perl -MCPAN -e "install %%M"
+             ) DO @perl -m%%M -e "print qq{Updating %%M $%%M::VERSION \n}" ^
+   & cpanm %%M
 
-REM   & perl -m%%M -e "" || perl -MCPAN -e "install %%M"
-
-ECHO Perl modules for imapsync installed
+ECHO Perl modules for imapsync updated
 REM PAUSE
 
 

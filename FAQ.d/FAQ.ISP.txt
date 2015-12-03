@@ -1,0 +1,72 @@
+#!/bin/cat
+$Id: FAQ.ISP.txt,v 1.2 2015/10/21 15:23:07 gilles Exp gilles $
+
+=================================================
+  Imapsync. ISP specific issues and solutions
+=================================================
+
+* IMAP Sync - usage scenario with ISP - by Flávio Zarur Lucarelli.
+
+I thought Id write a quick step by step on my attempts to learn the
+imapsync features that matter the most, so it works as we expected in
+the cenario in which we use it, which is to migrate customers from
+their old ISP to our ISP/email hosting. Thanks to the master Gilles
+Lamiral for all his help and hard work.
+
+First of all, remember to use --dry to test things first always and
+check the log file to see what would actually happen.
+
+My first goal is to have an exact sync of an account from
+current/source host to the new/destination host and be able to sync
+several times. The --useuid parameter is very important for that
+purpose. This is what I use:
+
+  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl1 --host2 imap.myisp.com --user2 user@domain.com --password2 pwd --ssl2 --useuid --delete2 --delete2folders 
+
+This makes it so imap.myisp.com (destination) is an exact copy of the
+account at imap.gmail.com (source). This is not a problem, since the
+user is not using the new host yet. ]You can check Imapsync log files
+and surely you will see the final difference should be 0. Check also
+for any possible errors in the log (search for "error").
+
+The second goal is to lower the TTL (ex: 5 min) for the host
+associated with the MX record, in the domain's DNS server. Let's say
+customer has a host mail which his MX points to, with a high TTL
+(usually 1 hour). Lower it to 5 min so that, when you change the MX,
+it propagates faster.
+
+When comes time to switch over to the new host, do a final sync with
+above syntax, before changing the MX. Then, change the MX and tell
+your users to start using exclusively the new host.
+
+A few hours after the MX change, we will run Imapsync again. We have
+to start preserving emails users move or flag in the new host, which
+they started using, so we can't do an exact sync anymore.
+
+The best solution for me was to Sync any new emails (maxage:1) from
+source (that could arrive in source even after MX change, due to
+cache) and delete such emails from source server. This way, customer's
+mailbox is still intact on the source server, except new emails, which
+get synced to new server and deleted from source.
+
+  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl2 --folder INBOX --useuid --noexpungeaftereach --skipemptyfolders --maxage 1 --delete1
+
+I personally prefer to keep a copy of users box intact in source, but
+if that's not an issue for you, you can remove --folder INBOX and even
+--maxage, but then, all emails in source will be deleted. You can use
+--maxage 1 with --delete1, however, for all folder (without specifying
+--folder INBOX), so only any new email that arrives at source is
+copied to destination and deleted from source.
+
+My next goal was to automate the process, so I followed this advice:
+http://imapsync.lamiral.info/examples/sync_loop_unix.sh
+
+I also ended up requiring a regex to translate folder names. On the
+old server (Gmail), Sent items were in a folder called [Gmail]/E-mails
+enviados and on the new server, its simply called SENT. Same with
+lixeira (trash) and rascunhos (drafts).
+
+So this was added:
+
+  --regextrans2 "s,\[Gmail\].,," --regextrans2 "s,E-mails enviados,Sent," --regextrans2 "s,/Lixeira,Trash," --regextrans2 "s,/Rascunhos,Drafts,"
+

@@ -1,0 +1,93 @@
+#!/bin/cat
+$Id: FAQ.Messages_selection.txt,v 1.2 2015/10/21 15:39:57 gilles Exp gilles $
+
+====================================
+  Imapsync. How to select messages
+====================================
+
+=======================================================================
+Q. Is there a way we can specify a date range to sync emails? 
+   If yes, can you please share an example?
+
+R. Yes, with the --search option.
+
+  imapsync ... --search "SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010"
+
+   Jan
+   Feb
+   Mar
+   Apr
+   May 
+   Jun
+   Jul 
+   Aug
+   Sep
+   Oct 
+   Nov
+   Dec
+
+=======================================================================
+Q. Is there a way we can specify an age to sync emails? 
+   If yes, can you please share some examples?
+
+R. Yes, with the --maxage or the --minage option.
+
+E.1 Sync only messages less than 2 days old:
+
+  imapsync ... --maxage 2
+
+E.2 Sync only messages more than 2 days old:
+
+  imapsync ... --minage 2
+
+E.3 Sync only messages more than 30 days old and less than 365 days old:
+
+  imapsync ... --minage 30 --maxage 365
+
+E.4 Sync only messages less than 30 days old or more than 365 days old:
+
+  imapsync ... --maxage 30 --minage 365
+
+Full explanation:
+
+--maxage      <int>    : Skip messages older than <int> days.
+                         final stats (skipped) don't count older messages
+                         see also --minage
+--minage      <int>    : Skip messages newer than <int> days.
+                         final stats (skipped) don't count newer messages
+                         You can do (+ are the messages selected):
+                         past|----maxage+++++++++++++++>now
+                         past|+++++++++++++++minage---->now
+                         past|----maxage+++++minage---->now (intersection)
+                         past|++++minage-----maxage++++>now (union)
+
+
+
+=======================================================================
+Q. I want to sync messages based on their UID.
+
+R. First have in mind that UIDs are uniq only per folder, so work this
+   way only with one folder at a time, with --folder option.
+
+To show UIDs, there is the --debugLIST parameter.
+
+  imapsync ...  --debugLIST
+
+To sync only a part of all messages, selected by UIDs 
+from 10000 to 11000:
+
+  imapsync ... --search1 "UID 10000:11000" 
+
+To sync from INBOX only 3 messages UIDs 20000 20002 20004:
+
+  imapsync ... --search1 'OR OR UID 20000 UID 20002 UID 20004' --folder INBOX
+
+To sync all messages from INBOX except 3 messages 
+UIDs 20000 20002 20004:
+
+  imapsync ... --search1 'NOT OR OR UID 20000 UID 20002 UID 20004' --folder INBOX
+
+If you search n UIDs then you have to put n-1 OR in the search line. 
+That's IMAP.
+
+
