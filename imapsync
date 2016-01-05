@@ -2676,14 +2676,28 @@ sub authenticate_imap {
 	   $ssl, $tls, $authmech, $authuser, $reconnectretry,
 	   $proxyauth, $uid, $split, $Side ) = @_ ;
 
-	check_capability( $imap, $authmech, $Side ) ;
+	unless ( $authmech eq 'X-MASTERAUTH' ) {
+		check_capability( $imap, $authmech, $Side ) ;
+	}
 
         if ( $proxyauth ) {
                 $imap->Authmechanism("") ;
                 $imap->User($authuser) ;
         } else {
-                $imap->Authmechanism( $authmech ) unless ( $authmech eq 'LOGIN'  or $authmech eq 'PREAUTH' ) ;
-                $imap->User($user) ;
+        	if ( $authmech eq 'X-MASTERAUTH' ) {
+			my @challenge = $imap->tag_and_run( $authmech, "+" ) ;
+			$challenge[1] =~ s/^\+ |^\s+|\s+$//g ;
+			$imap->_imap_command( { addcrlf => 1, addtag => 0, tag => $imap->Count }, md5_hex( $challenge[1] . $password ) ) or
+		        	die_clean("[$authmech]: ", $imap->LastError, "\n") ;
+			$imap->State(2) ;
+			$imap->tag_and_run( 'X-SETUSER ' . $user ) or
+				die_clean("[X-SETUSER]: ", $imap->LastError, "\n") ;
+			$imap->State(3) ;
+			$imap->User($user) ;
+		} else {
+                	$imap->Authmechanism( $authmech ) unless ( $authmech eq 'LOGIN'  or $authmech eq 'PREAUTH' ) ;
+                	$imap->User($user) ;
+        	}
         }
         
 	$imap->Authcallback(\&xoauth)  if ( 'XOAUTH'  eq $authmech ) ;
@@ -2694,7 +2708,7 @@ sub authenticate_imap {
         $imap->Authuser($authuser) ;
         $imap->Password($password) ;
 	
-	unless ( $authmech eq 'PREAUTH' or $imap->login( ) ) {
+	unless ( $authmech eq 'PREAUTH' or $authmech eq 'X-MASTERAUTH' or $imap->login( ) ) {
 		my $info  = "$Side failure: Error login on [$host] with user [$user] auth" ;
 		my $einfo = $imap->LastError || @{$imap->History}[-1] ;
 		chomp( $einfo ) ;
