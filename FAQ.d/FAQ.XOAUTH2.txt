@@ -1,9 +1,9 @@
 #!/bin/cat
-$Id: FAQ.XOAUTH2.txt,v 1.6 2015/11/30 23:40:10 gilles Exp gilles $
+$Id: FAQ.XOAUTH2.txt,v 1.8 2016/01/18 18:14:12 gilles Exp gilles $
 
-=======================================================================
-    Imapsync. Using XOAUTH2 and XOAUTH authentication (Gmail)
-=======================================================================
+======================================================================
+  Imapsync tips to use XOAUTH2 authentication (Gmail) and old XOAUTH 
+======================================================================
 
 
 =======================================================================
@@ -12,7 +12,10 @@ Q. Is XOAUTH2 authentication available with imapsync?
 R. Yes, but XOAUTH2 has been really tested on Unix systems, 
    less profund on Windows but it should work.
 
-First, consider the XOAUTH2 feature at a prototype level.
+=======================================================================
+Q. How to use XOAUTH2 to globally authenticate gmail users?
+
+R. First, consider the XOAUTH2 feature at a prototype level.
 
 Perl modules needed for xoauth2 are:
   Crypt::OpenSSL::RSA
@@ -20,11 +23,12 @@ Perl modules needed for xoauth2 are:
   JSON::WebToken
   LWP
   HTML::Entities
+  Encode::Byte
 
 A easy way to install or upgrade Perl modules is to use cpanm command,
 also called cpanminus.
 
-  sudo cpanm  JSON::WebToken JSON Crypt::OpenSSL::RSA LWP HTML::Entities 
+  sudo cpanm  JSON::WebToken JSON Crypt::OpenSSL::RSA LWP HTML::Entities Encode::Byte
 
 The code and first explanation comes from Joaquin Lopez at
 https://github.com/imapsync/imapsync/pull/25
@@ -35,12 +39,13 @@ convert the pk12 file.
 On Windows I've tried xoauth2 with openssl from
 https://slproweb.com/download/Win32OpenSSL-1_0_2d.exe at
 https://slproweb.com/products/Win32OpenSSL.html
-
+It works.
 
 Here is a complete example for Gmail. It is a little stupid
-since it is the same account as source and destination.
+since it is the same account as source and destination but
+it's just to get the picture for xoauth2 authentication.
 
-All xoauth2 is given via the --password1 parameter. 
+All xoauth2 config is given via the --password1 parameter. 
 It has the form:
 
   --password1 "A;B;C"
@@ -64,6 +69,22 @@ imapsync \
         --authmech1 XOAUTH2 --authmech2 XOAUTH2 --debug
 
 Use your own xoauth2 values.
+
+
+
+=======================================================================
+Q. How to use a proxy with XOAUTH2 authentication?
+
+With imapsync 1.670, you have to set two environment variables
+PERL_LWP_ENV_PROXY and https_proxy. Example:
+
+  PERL_LWP_ENV_PROXY=1 https_proxy=http://myproxy:8080/ imapsync --host1 ...
+
+With later release than 1.670, you have to set only the https_proxy
+environment variable, if it isn't already set. Example:
+
+  https_proxy=http://myproxy:8080/ imapsync --host1 ...
+
 
 =======================================================================
 Q. How to use XOAUTH to globally authenticate gmail users?

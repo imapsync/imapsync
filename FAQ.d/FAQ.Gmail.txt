@@ -1,25 +1,40 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.13 2015/11/05 21:01:12 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.18 2016/01/18 18:14:12 gilles Exp gilles $
 
-======================================================================
-                      Imapsync with Gmail
-======================================================================
+=====================================
+  Imapsync tips for Gmail accounts.
+=====================================
 
 Questions anwswered in this FAQ are:
 
 Q. Can I use imapsync to transfer from or to Gmail accounts?
+
 Q. How to synchronize from Gmail to Gmail?
+
 Q. How to synchronize from XXX to Gmail?
+
 Q. How to synchronize from Gmail to XXX?
+
+Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
+   https://support.google.com/mail/answer/7190?hl=en
+
 Q. How to avoid the [IMAP] prefix on Gmail side?
+
 Q. I can't authenticate with Gmail via IMAP
    and Gmail says "Please log in via your web browser"
+
 Q. Can not open imap connection on [imap.gmail.com]
+
 Q. Gmail does not really delete messages in folder [Gmail]/All Mail
+
 Q. Does imapsync have the capability to do 2 stage authentication?
+
 Q. How to use XOAUTH2 to globally authenticate gmail users?
+
 Q. How to use XOAUTH to globally authenticate gmail users?
+
 Q. How to use a Gmail account to backup several different imap accounts?
+
 Q. How to migrate email from gmail to google apps?
 
 =======================================================================
@@ -48,6 +63,7 @@ R. Use the following example:
            --user2 account2@gmail.com \
            --password2 gmailsecret2 \
            --exitwhenover 500000000 \
+           --automap \
            --exclude "\[Gmail\]$"   
 
 
@@ -57,13 +73,31 @@ Explanations:
 imap ssl connections.
 
 --exitwhenover 500000000 ( ~500 MB ) option is here to avoid 
-locking or errors when transfers exceed maximum limit. 
+locking or errors when imap transfers exceed maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---exitwhenover is not mandatory in the sense you may be able to
-use an upper value than 500 MB without disconnections; I don't
+--exitwhenover is not mandatory in the sense Gmail may allow you 
+to use an upper value than 500 MB without disconnections; I don't
 know the hard value, it seems to vary, so just have some tries
 and report me what you discover in case you detect something
 reliable.
+
+--automap is not mandatory but it's a feature to automatically
+map folder names based on the Gmail user configuration itself, par account.
+For example, imap folder "[Gmail]/Sent Mail" may be mapped as one of
+E-mails enviados
+Enviada
+Enviado
+Gesendet
+Gönderildi
+Inviati
+Sendt
+Skickat
+Verzonden
+etc.
+on both sides, host1 or host2, maybe differently, sometimes in 
+incomprehensible alphabets, a headache for imap sysadmins. 
+See a listing here:
+http://stackoverflow.com/questions/2185391/localized-gmail-imap-folders/2185548#2185548
 
 --exclude "\[Gmail\]$"   is just there to avoid a warning error
 when selecting this not used folder.
@@ -87,13 +121,13 @@ imapsync --host1 mail.oldhost.com \
          --ssl2 \
          --exitwhenover 500000000 \
          --maxsize 25000000 \
+         --automap \
          --expunge1 \
          --addheader \
          --exclude "\[Gmail\]$"           \
          --regextrans2 "s/[ ]+/_/g"       \
          --regextrans2 "s/[\^]/_/g"       \
-         --regextrans2 "s/['\"\\\\]/_/g"  \
-         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," 
+         --regextrans2 "s/['\"\\\\]/_/g"  
 
 Explanations:
 
@@ -111,6 +145,9 @@ and report me what you discover in case you detect something.
 up to 25 MB. This value increases over time, it was 10 MB some 
 years ago so you can try higher values. The Gmail page about
 this limit is https://support.google.com/mail/answer/6584
+
+--automap is optional but it will save manual folder names
+changes or the use of --regextrans2 to map folder names.
 
 --expunge1 is optional. It deletes messages marked \Deleted on host1.
 Imapsync syncs messages with all their flags, Gmail takes the messages
@@ -149,22 +186,14 @@ not accepted by gmail, character ^ to character _ underscore.
 --regextrans2 "s/['\"\\\\]/_/g" is optional. It converts 
 characters ' or " or \ to character _ underscore.
 
---regextrans2 "s,^Sent$,[Gmail]/Sent Mail," is to transform the
-folder name "Sent" and adapt it to Gmail "Sent Mail" folder.
-If you're using a different language in Gmail you might adapt
-this example with the folder name translated, an example in French:
 
-imapsync ...
-	 --regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
 
 
 You can add --folder "INBOX.Sent" in the example in case
 you want to sync only the "Sent" folder.
 
-You can select folders exported to imap within the gmail preferences,
-unselect some  "System labels", depending on your needs.
-
-The "All Mail" archive pseudo-folder should be updated automatically.
+You can select folders exported to imap within the gmail preferences.
+Select or unselect some "System labels", depending on your needs.
 
 
 =======================================================================
@@ -183,7 +212,8 @@ R. Use this example:
            --exitwhenover 2500000000 \
            --useheader="X-Gmail-Received" \
            --useheader "Message-Id" \
-	   --regextrans2 "s,\[Gmail\].,," \
+           --automap \
+           --regextrans2 "s,\[Gmail\].,," \
            --skipcrossduplicates \
            --folderfirst "Work" \
            --folderfirst "Friends" \
@@ -211,6 +241,8 @@ have changed) that Gmail always adds a different header
 by imapsync can not fail using this header. "Message-Id" is there
 for safety about this Gmail rule.
 
+--automap is optional but it will save manual folder names
+changes or the use of --regextrans2 to map folder names.
 
 --regextrans2 "s,\[Gmail\].,,"
 If your destination imap server doesn't like "[Gmail]" name, 
@@ -245,6 +277,23 @@ label CanWait and only it.
 the messages that are not labeled at all.
 
 =======================================================================
+Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
+   https://support.google.com/mail/answer/7190?hl=en
+   https://developers.google.com/gmail/imap_extensions#extension_of_the_search_command_x-gm-raw
+
+R. Sure. Example, to search only emails with attachment and in unread state:
+
+On Unix:
+
+  imapsync ... --search 'X-GM-RAW "has:attachment in:unread"'
+
+On Windows:
+
+  imapsync.exe ... --search "X-GM-RAW ""has:attachment in:unread"""
+
+
+
+=======================================================================
 Q. How to avoid the [IMAP] prefix on Gmail side?
 How to stop creating folder with this prefix?
 Any switch we can use? e.g. [IMAP]/Archive
@@ -277,19 +326,21 @@ Q. Can not open imap connection on [imap.gmail.com]:
 R0. It looks like this issue is related to ipv6. Both ipv4 and ipv6 
 protocols should work with gmail and imapsync, I test that regurlarly, 
 imapsync works fine for both ipv4 and ipv6. 
-If you disable ipv6 then disable also ipv6 resolution or at least 
-make ipv4 answers be taken before ipv6 since default resolution 
-order is to take ipv6 resolution if any.
+If you disable ipv6 then disable also ipv6 resolution! 
+Or at least, make ipv4 answers be taken before ipv6 since the default 
+names resolution order is to present ipv6 name resolutions first.
 
 R1. A first simple solution is to use directly gmail ipv4 ip address:
 
   imapsync ... --host1 74.125.133.108 
 
-In case it changes, get with any command showing the imap.gmail.com resolution
+In case it changes, get with any command showing the imap.gmail.com 
+name resolution:
 
   nslookup imap.gmail.com
   host     imap.gmail.com
   ping     imap.gmail.com
+
 Or go to http://ping.eu/nslookup/ to get the resolution.
 
 R2. Fix imapsync with the line:

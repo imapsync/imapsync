@@ -1,7 +1,7 @@
 
-# $Id: Makefile,v 1.209 2015/12/03 03:25:22 gilles Exp gilles $	
+# $Id: Makefile,v 1.216 2016/01/22 01:03:46 gilles Exp gilles $	
 
-.PHONY: help usage all
+.PHONY: help usage all doc
 
 help: usage
 
@@ -66,7 +66,7 @@ hello:
 	@echo "$(BIN_NAME)"
 
 
-all: ChangeLog README VERSION OPTIONS W/imapsync.1 biz prereq allcritic bin mac imapsync.exe VERSION_EXE 
+all: doc VERSION biz prereq allcritic bin mac imapsync.exe VERSION_EXE 
 
 testp :
 	sh INSTALL.d/prerequisites_imapsync
@@ -91,27 +91,30 @@ VERSION_EXE: imapsync
 	touch -r ./imapsync ./VERSION_EXE
 
 
-GOOD_PRACTICES.html: W/GOOD_PRACTICES.t2t
-	txt2tags -i W/GOOD_PRACTICES.t2t  -t html --toc  -o GOOD_PRACTICES.html
+doc/GOOD_PRACTICES.html: doc/GOOD_PRACTICES.t2t
+	txt2tags -i doc/GOOD_PRACTICES.t2t  -t html --toc  -o doc/GOOD_PRACTICES.html
 
-TUTORIAL.html: W/TUTORIAL.t2t
-	txt2tags -i W/TUTORIAL.t2t -t html --toc  -o TUTORIAL.html
+doc/TUTORIAL_Unix.html: doc/TUTORIAL_Unix.t2t
+	txt2tags -i doc/TUTORIAL_Unix.t2t -t html --toc  -o doc/TUTORIAL_Unix.html
 
-doc:  README OPTIONS ChangeLog TUTORIAL.html GOOD_PRACTICES.html 
+doc:  README OPTIONS ChangeLog doc/TUTORIAL_Unix.html doc/GOOD_PRACTICES.html W/imapsync.1 
 
-.PHONY: clean clean_tilde clean_test doc clean_log
+.PHONY: clean clean_tilde clean_test doc clean_log clean_bak
 
-clean: clean_tilde clean_man clean_log
+clean: clean_tilde clean_man clean_log clean_bak
 
 clean_test:
 	rm -f .test_3xx
 
 clean_tilde:
-	rm -f *~
+	rm -f *~ W/*~ FAQ.d/*~
 
 clean_log:
 	rm -f LOG_imapsync/*.txt
 	rm -f examples/LOG_imapsync/*.txt
+
+clean_bak:
+	rm -f index.shtml.bak ./W/style.css.bak
 
 .PHONY: install dist man
 
@@ -139,12 +142,13 @@ install: testp W/imapsync.1
 ci: cidone
 
 cidone:
-	rcsdiff RCS/*
-	rcsdiff W/*.bat W/*.out W/*.txt W/*.htaccess W/*.shtml W/*.t2t
+	rcsdiff W/*.bat W/*.out W/*.txt W/*.htaccess W/*.shtml 
 	rcsdiff S/*.txt S/*.shtml
+	rcsdiff doc/*.t2t
 	rcsdiff INSTALL.d/*.txt INSTALL.d/prerequisites_imapsync
 	rcsdiff FAQ.d/*txt
 	rcsdiff examples/*.sh examples/*.bat examples/*.txt 
+	rcsdiff RCS/*
 
 ###############
 # Local goals
@@ -248,6 +252,13 @@ W/test_reg.bat:
 	scp imapsync W/test_reg.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_reg.bat'
 
+
+W/test_xoauth2.bat:
+	unix2dos W/test_xoauth2.bat
+	scp imapsync W/test_xoauth2.bat /g/var/pass/imapsync-xoauth2-15f8456ad5b7_notasecret.p12 /fb/i/secret.xoauth2 Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
+	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_xoauth2.bat'
+
+
 W/test_exe_2.bat: 
 	unix2dos W/test_exe_2.bat
 	scp imapsync W/test_exe_2.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
@@ -316,15 +327,19 @@ zip: dosify_bat
 
 # C:\Users\mansour\Desktop\imapsync
 
-# vadrouille or petite
+.PHONY: mac bin 
 
-mac: imapsync
+mac: imapsync_bin_Darwin
+
+imapsync_bin_Darwin: imapsync
 	rcsdiff imapsync
 	rsync -p -e 'ssh -p 995' imapsync W/build_mac.sh gilleslamira@gate.polarhome.com:
 	ssh -p 995 gilleslamira@gate.polarhome.com 'sh build_mac.sh'
 	rsync -P -e 'ssh -p 995' gilleslamira@gate.polarhome.com:imapsync_bin_Darwin .
 
-bin: imapsync
+bin: $(BIN_NAME)
+
+$(BIN_NAME): imapsync
 	rcsdiff imapsync
 	{ pp -o $(BIN_NAME) -I $(IMAPClient_3xx) \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
@@ -337,25 +352,23 @@ bin: imapsync
 
 lfo: upload_lfo 
 
+.PHONY: tarball
 
-tarball: .tarball
+tarball: ../prepa_dist/$(DIST_FILE)
 
 
-.tarball: imapsync
-	echo making tarball $(DIST_FILE)
+../prepa_dist/$(DIST_FILE): imapsync
+	echo making tarball ../prepa_dist/$(DIST_FILE)
 	rcsdiff RCS/* 
 	cd W && rcsdiff RCS/*
 	cd examples && rcsdiff RCS/*
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
 	rsync -aCvH --delete --omit-dir-times --exclude dist/ --exclude imapsync.exe ./ ../prepa_dist/$(DIST_NAME)/
-	#rsync -av ./imapsync.exe ../prepa_dist/$(DIST_NAME)/
 	cd ../prepa_dist && tar czfv $(DIST_FILE) $(DIST_NAME)
-	#ln -f ../prepa_dist/$(DIST_FILE) dist/
 	cd ../prepa_dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	cd ../prepa_dist && md5sum -c $(DIST_FILE).md5.txt
 	ls -l ../prepa_dist/$(DIST_FILE)
-	touch .tarball
 
 
 DO_IT       := $(shell test -d dist && { test -f ./dist/path_$(VERSION).txt || makepasswd --chars 4 > ./dist/path_$(VERSION).txt ; } )
@@ -420,7 +433,7 @@ ksa:
 
 upload_tests: tests.sh
 	rsync -avHz --delete -P \
-          tests.sh \
+	  tests.sh \
 	  gilles@ks.lamiral.info:public_html/imapsync/
 
 
@@ -432,12 +445,13 @@ publish: dist upload_ks ksa
 PUBLIC = ./ChangeLog ./NOLIMIT ./LICENSE ./CREDITS ./FAQ \
 ./index.shtml ./INSTALL ./README_Windows.txt \
 ./VERSION ./VERSION_EXE ./imapsync \
-./README ./OPTIONS ./TODO ./TUTORIAL.html ./GOOD_PRACTICES.html
+./README ./OPTIONS ./TODO 
 
 PUBLIC_W = ./W/style.css ./W/tw-hash.html \
 ./W/TIME.txt \
 ./W/paypal.shtml ./W/paypal_return.shtml
 
+PUBLIC_doc = ./doc/TUTORIAL_Unix.html ./doc/GOOD_PRACTICES.html
 
 ml: dist_dir 
 	rcsdiff W/ml_announce.in
@@ -468,7 +482,7 @@ checklinkext: S/news.shtml S/external.shtml  S/imapservers.shtml S/template.shtm
 	http://lamiral.info/~gilles/imapsync/S/imapservers.shtml
 	
 .valid.index.shtml: index.shtml S/*.shtml
-	tidy -q  index.shtml S/*.shtml > /dev/null
+	for f in index.shtml S/*.shtml; do echo tidy -q $$f; tidy -q  $$f > /dev/null; done
 	validate --verbose index.shtml S/*.shtml
 	touch .valid.index.shtml
 
@@ -476,22 +490,24 @@ checklinkext: S/news.shtml S/external.shtml  S/imapservers.shtml S/template.shtm
 
 upload_index: .valid.index.shtml 
 	rcsdiff index.shtml S/*.shtml FAQ FAQ.d/*.txt INSTALL LICENSE CREDITS TODO W/*.bat examples/*.bat index.shtml INSTALL.d/*.txt imapsync 
-	rsync -avH index.shtml FAQ INSTALL OPTIONS NOLIMIT LICENSE CREDITS TODO TUTORIAL.html GOOD_PRACTICES.html imapsync imapsync.exe $(BIN_NAME) imapsync_bin_Darwin ../imapsync_website/
+	rsync -avH index.shtml FAQ INSTALL OPTIONS NOLIMIT LICENSE CREDITS TODO imapsync imapsync.exe $(BIN_NAME) imapsync_bin_Darwin ../imapsync_website/
 	rsync -avH $(PUBLIC_W) ../imapsync_website/W/
 	rsync -avH S/ ../imapsync_website/S/
 	rsync -avH W/images/ ../imapsync_website/W/images/
-	rsync -aHv  --delete ./examples/     ../imapsync_website/examples/
-	rsync -aHv  --delete ./INSTALL.d/     ../imapsync_website/INSTALL.d/
+	rsync -aHv  --delete ./examples/  ../imapsync_website/examples/
+	rsync -aHv  --delete ./INSTALL.d/ ../imapsync_website/INSTALL.d/
 	rsync -aHv  --delete ./FAQ.d/     ../imapsync_website/FAQ.d/
+	rsync -avH  --delete ./doc/       ../imapsync_website/doc/
 	rsync -aHvz --delete ../imapsync_website/ root@ks.lamiral.info:/var/www/imapsync/
 
 
 upload_FAQ:
 	rcsdiff FAQ FAQ.d/*.txt INSTALL LICENSE CREDITS TODO INSTALL.d/*.txt 
-	rsync -avH FAQ INSTALL OPTIONS CREDITS TODO TUTORIAL.html GOOD_PRACTICES.html ../imapsync_website/
-	rsync -aHv  --delete  ./INSTALL.d/         ../imapsync_website/INSTALL.d/
-	rsync -aHv  --delete  ./FAQ.d/             ../imapsync_website/FAQ.d/
-	rsync -aHvz --delete ../imapsync_website/  root@ks.lamiral.info:/var/www/imapsync/
+	rsync -avH FAQ INSTALL OPTIONS CREDITS TODO ../imapsync_website/
+	rsync -aHv  --delete  ./INSTALL.d/          ../imapsync_website/INSTALL.d/
+	rsync -aHv  --delete  ./FAQ.d/              ../imapsync_website/FAQ.d/
+	rsync -avH  --delete  ./doc/                ../imapsync_website/doc/
+	rsync -aHvz --delete ../imapsync_website/   root@ks.lamiral.info:/var/www/imapsync/
 
 
 upload_ks: ci tarball

@@ -1,266 +1,276 @@
 
-usage: ./imapsync [options]
+ usage: ./imapsync [options]
 
-Several options are mandatory. 
-str means string
-int means integer
-reg means regular expression
-cmd means command
+ Several options are mandatory.
+ str means string
+ int means integer
+ reg means regular expression
+ cmd means command
 
---dry               : Makes imapsync doing nothing, just print what would 
-                      be done without --dry.
+ --dry               : Makes imapsync doing nothing, just print what would
+                       be done without --dry.
 
---host1        str  : Source or "from" imap server. Mandatory.
---port1        int  : Port to connect on host1. Default is 143, 993 if --ssl1
---user1        str  : User to login on host1. Mandatory.
---showpasswords     : Shows passwords on output instead of "MASKED".
-                      Useful to restart a complete run by just reading the log.
---password1    str  : Password for the user1.
---host2        str  : "destination" imap server. Mandatory.
---port2        int  : Port to connect on host2. Default is 143, 993 if --ssl2
---user2        str  : User to login on host2. Mandatory.
---password2    str  : Password for the user2.
+ --host1        str  : Source or "from" imap server. Mandatory.
+ --port1        int  : Port to connect on host1. Default is 143, 993 if --ssl1
+ --user1        str  : User to login on host1. Mandatory.
+ --showpasswords     : Shows passwords on output instead of "MASKED".
+                       Useful to restart a complete run by just reading the log.
+ --password1    str  : Password for the user1.
+ --host2        str  : "destination" imap server. Mandatory.
+ --port2        int  : Port to connect on host2. Default is 143, 993 if --ssl2
+ --user2        str  : User to login on host2. Mandatory.
+ --password2    str  : Password for the user2.
 
---passfile1    str  : Password file for the user1. It must contain the 
-                      password on the first line. This option avoids to show
-                      the password on the command line like --password1 does.
---passfile2    str  : Password file for the user2. Contains the password.
+ --passfile1    str  : Password file for the user1. It must contain the
+                       password on the first line. This option avoids to show
+                       the password on the command line like --password1 does.
+ --passfile2    str  : Password file for the user2. Contains the password.
 
---ssl1              : Use a SSL connection on host1.
---ssl2              : Use a SSL connection on host2.
---tls1              : Use a TLS connection on host1.
---tls2              : Use a TLS connection on host2.
---timeout      int  : Connections timeout in seconds. Default is 120.
-                      0 means no timeout.
+ --ssl1              : Use a SSL connection on host1.
+ --ssl2              : Use a SSL connection on host2.
+ --tls1              : Use a TLS connection on host1.
+ --tls2              : Use a TLS connection on host2.
+ --debugssl     int  : SSL debug mode from 0 to 4.
 
---authmech1    str  : Auth mechanism to use with host1:
-                      PLAIN, LOGIN, CRAM-MD5 etc. Use UPPERCASE.
---authmech2    str  : Auth mechanism to use with host2. See --authmech1
+ --timeout1     int  : Connection timeout in seconds for host1.
+                       Default is 120 and 0 means no timeout at all.
+ --timeout2     int  : Connection timeout in seconds for host2.
+                       Default is 120 and 0 means no timeout at all.
 
---authuser1    str  : User to auth with on host1 (admin user). 
-                      Avoid using --authmech1 SOMETHING with --authuser1.
---authuser2    str  : User to auth with on host2 (admin user).
---proxyauth1        : Use proxyauth on host1. Requires --authuser1.
-                      Required by Sun/iPlanet/Netscape IMAP servers to
-                      be able to use an administrative user.
---proxyauth2        : Use proxyauth on host2. Requires --authuser2.
+ --authmech1    str  : Auth mechanism to use with host1:
+                       PLAIN, LOGIN, CRAM-MD5 etc. Use UPPERCASE.
+ --authmech2    str  : Auth mechanism to use with host2. See --authmech1
 
---authmd51          : Use MD5 authentification for host1.
---authmd52          : Use MD5 authentification for host2.
---domain1      str  : Domain on host1 (NTLM authentication).
---domain2      str  : Domain on host2 (NTLM authentication).
+ --authuser1    str  : User to auth with on host1 (admin user).
+                       Avoid using --authmech1 SOMETHING with --authuser1.
+ --authuser2    str  : User to auth with on host2 (admin user).
+ --proxyauth1        : Use proxyauth on host1. Requires --authuser1.
+                       Required by Sun/iPlanet/Netscape IMAP servers to
+                       be able to use an administrative user.
+ --proxyauth2        : Use proxyauth on host2. Requires --authuser2.
+
+ --authmd51          : Use MD5 authentification for host1.
+ --authmd52          : Use MD5 authentification for host2.
+ --domain1      str  : Domain on host1 (NTLM authentication).
+ --domain2      str  : Domain on host2 (NTLM authentication).
 
 
---folder       str  : Sync this folder.
---folder       str  : and this one, etc.
---folderrec    str  : Sync this folder recursively.
---folderrec    str  : and this one, etc.
+ --folder       str  : Sync this folder.
+ --folder       str  : and this one, etc.
+ --folderrec    str  : Sync this folder recursively.
+ --folderrec    str  : and this one, etc.
 
---folderfirst  str  : Sync this folder first. --folderfirst "Work"
---folderfirst  str  : then this one, etc.
---folderlast   str  : Sync this folder last. --folderlast "[Gmail]/All Mail"
---folderlast   str  : then this one, etc.
+ --folderfirst  str  : Sync this folder first. --folderfirst "Work"
+ --folderfirst  str  : then this one, etc.
+ --folderlast   str  : Sync this folder last. --folderlast "[Gmail]/All Mail"
+ --folderlast   str  : then this one, etc.
 
---nomixfolders      : Do not merge folders when host1 is case sensitive
-                      while host2 is not (like Exchange). Only the first
-                      similar folder is synced (ex: Sent SENT sent -> Sent).
+ --nomixfolders      : Do not merge folders when host1 is case sensitive
+                       while host2 is not (like Exchange). Only the first
+                       similar folder is synced (ex: Sent SENT sent -> Sent).
 
---skipemptyfolders  : Empty host1 folders are not created on host2.
+ --skipemptyfolders  : Empty host1 folders are not created on host2.
 
---f1f2    str1=str2 : Force folder str1 to be synced to str2.
---include      reg  : Sync folders matching this regular expression
---include      reg  : or this one, etc.
-                      in case both --include --exclude options are
-                      use, include is done before.
---exclude      reg  : Skips folders matching this regular expression
-                      Several folders to avoid:
-		       --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
---exclude      reg  : or this one, etc.
+ --include      reg  : Sync folders matching this regular expression
+ --include      reg  : or this one, etc.
+                       in case both --include --exclude options are
+                       use, include is done before.
+ --exclude      reg  : Skips folders matching this regular expression
+                       Several folders to avoid:
+                        --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
+ --exclude      reg  : or this one, etc.
 
---subfolder2   str  : Move whole host1 folders hierarchy under this 
-                      host2 folder  str    .
-                      It does it by adding two --regextrans2 options before
-                      all others. Add --debug to see what's really going on.
+ --subfolder2   str  : Move whole host1 folders hierarchy under this
+                       host2 folder  str    .
+                       It does it by adding two --regextrans2 options before
+                       all others. Add --debug to see what's really going on.
 
---regextrans2  reg  : Apply the whole regex to each destination folders.
---regextrans2  reg  : and this one. etc.
-                      When you play with the --regextrans2 option, first
-                      add also the safe options --dry --justfolders
-                      Then, when happy, remove --dry, remove --justfolders.
-                      Have in mind that --regextrans2 is applied after prefix
-                      and separator inversion.
+ --automap           : guesses folders mapping, for folders like 
+                       "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
+ --f1f2    str1=str2 : Force folder str1 to be synced to str2, 
+                       --f1f2 overrides --automap and --regextrans2.
+ --regextrans2  reg  : Apply the whole regex to each destination folders.
+ --regextrans2  reg  : and this one. etc.
+                       When you play with the --regextrans2 option, first
+                       add also the safe options --dry --justfolders
+                       Then, when happy, remove --dry, remove --justfolders.
+                       Have in mind that --regextrans2 is applied after prefix
+                       and separator inversion. For examples see
+                       http://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
 
---tmpdir       str  : Where to store temporary files and subdirectories.
-                      Will be created if it doesn't exist.
-		      Default is system specific, Unix is /tmp but
-                      it's often small and deleted at reboot.
-                      --tmpdir /var/tmp should be better.
---pidfile      str  : The file where imapsync pid is written.
---pidfilelocking    : Abort if pidfile already exists. Usefull to avoid 
-                      concurrent transfers on the same mailbox.
+ --tmpdir       str  : Where to store temporary files and subdirectories.
+                       Will be created if it doesn't exist.
+                       Default is system specific, Unix is /tmp but
+                       it's often small and deleted at reboot.
+                       --tmpdir /var/tmp should be better.
+ --pidfile      str  : The file where imapsync pid is written.
+ --pidfilelocking    : Abort if pidfile already exists. Usefull to avoid
+                       concurrent transfers on the same mailbox.
 
---nolog             : Turn off logging on file
---logfile      str  : Change the default log filename (can be dirname/filename).
---logdir       str  : Change the default log directory. Default is LOG_imapsync
+ --nolog             : Turn off logging on file
+ --logfile      str  : Change the default log filename (can be dirname/filename).
+ --logdir       str  : Change the default log directory. Default is LOG_imapsync
 
---prefix1      str  : Remove prefix to all destination folders 
-                      (usually INBOX. or INBOX/ or an empty string "")
-                      you have to use --prefix1 if host1 imap server
-                      does not have NAMESPACE capability, so imapsync
-		      suggests to use it. All other cases are bad.
---prefix2      str  : Add prefix to all host2 folders. See --prefix1
---sep1         str  : Host1 separator in case NAMESPACE is not supported.
---sep2         str  : Host2 separator in case NAMESPACE is not supported.
+ --prefix1      str  : Remove prefix to all destination folders
+                       (usually INBOX. or INBOX/ or an empty string "")
+                       you have to use --prefix1 if host1 imap server
+                       does not have NAMESPACE capability, so imapsync
+                       suggests to use it. All other cases are bad.
+ --prefix2      str  : Add prefix to all host2 folders. See --prefix1
+ --sep1         str  : Host1 separator in case NAMESPACE is not supported.
+ --sep2         str  : Host2 separator in case NAMESPACE is not supported.
 
---skipmess     reg  : Skips messages maching the regex.
-                      Example: 'm/[\x80-ff]/' # to avoid 8bits messages.
-                      --skipmess is applied before --regexmess
---skipmess     reg  : or this one, etc.
+ --skipmess     reg  : Skips messages maching the regex.
+                       Example: 'm/[\x80-ff]/' # to avoid 8bits messages.
+                       --skipmess is applied before --regexmess
+ --skipmess     reg  : or this one, etc.
 
---pipemess     cmd  : Apply this cmd command to each message content 
-                      before the copy.
---pipemess     cmd  : and this one, etc.
-			 
---disarmreadreceipts : Disarms read receipts (host2 Exchange issue)
+ --pipemess     cmd  : Apply this cmd command to each message content
+                       before the copy.
+ --pipemess     cmd  : and this one, etc.
+ 
+ --disarmreadreceipts : Disarms read receipts (host2 Exchange issue)
 
---regexmess    reg  : Apply the whole regex to each message before transfer.
-                      Example: 's/\000/ /g' # to replace null by space.
---regexmess    reg  : and this one, etc.
+ --regexmess    reg  : Apply the whole regex to each message before transfer.
+                       Example: 's/\000/ /g' # to replace null by space.
+ --regexmess    reg  : and this one, etc.
 
---regexflag    reg  : Apply the whole regex to each flags list.
-                      Example: 's/"Junk"//g' # to remove "Junk" flag.
---regexflag    reg  : and this one, etc.
+ --regexflag    reg  : Apply the whole regex to each flags list.
+                       Example: 's/"Junk"//g' # to remove "Junk" flag.
+ --regexflag    reg  : and this one, etc.
 
---delete            : Deletes messages on host1 server after a successful 
-                      transfer. Option --delete has the following behavior: 
-                      it marks messages as deleted with the IMAP flag 
-                      \Deleted, then messages are really deleted with an 
-                      EXPUNGE IMAP command.
+ --delete            : Deletes messages on host1 server after a successful
+                       transfer. Option --delete has the following behavior:
+                       it marks messages as deleted with the IMAP flag
+                       \Deleted, then messages are really deleted with an
+                       EXPUNGE IMAP command.
 
---delete2           : Delete messages in host2 that are not in
-                      host1 server. Useful for backup or pre-sync.
---delete2duplicates : Delete messages in host2 that are duplicates.
-                      Works only without --useuid since duplicates are 
-                      detected with an header part of each message.
+ --delete2           : Delete messages in host2 that are not in
+                       host1 server. Useful for backup or pre-sync.
+ --delete2duplicates : Delete messages in host2 that are duplicates.
+                       Works only without --useuid since duplicates are
+                       detected with an header part of each message.
 
---delete2folders    : Delete folders in host2 that are not in host1 server. 
-                      For safety, first try it like this (it is safe):
-		      --delete2folders --dry --justfolders --nofoldersizes
---delete2foldersonly   reg : Deleted only folders matching regex.
-                             Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
---delete2foldersbutnot reg : Do not delete folders matching regex.
-                             Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
---noexpunge         : Do not expunge messages on host1.
-                      Expunge really deletes messages marked deleted.
-                      Expunge is made at the beginning, on host1 only. 
-                      Newly transferred messages are also expunged if 
-		      option --delete is given.
-                      No expunge is done on host2 account (unless --expunge2)
---expunge1          : Expunge messages on host1 after messages transfer.
---expunge2          : Expunge messages on host2 after messages transfer.
---uidexpunge2       : uidexpunge messages on the host2 account
-                      that are not on the host1 account, requires --delete2
---nomixfolders      : Avoid merging folders that are considered different on
-                      host1 but the same on destination host2 because of 
-                      case sensitivities and insensitivities.
+ --delete2folders    : Delete folders in host2 that are not in host1 server.
+                       For safety, first try it like this (it is safe):
+                       --delete2folders --dry --justfolders --nofoldersizes
+ --delete2foldersonly   reg : Deleted only folders matching regex.
+                              Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+ --delete2foldersbutnot reg : Do not delete folders matching regex.
+                              Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
+ --noexpunge         : Do not expunge messages on host1.
+                       Expunge really deletes messages marked deleted.
+                       Expunge is made at the beginning, on host1 only.
+                       Newly transferred messages are also expunged if
+                       option --delete is given.
+                       No expunge is done on host2 account (unless --expunge2)
+ --expunge1          : Expunge messages on host1 after messages transfer.
+ --expunge2          : Expunge messages on host2 after messages transfer.
+ --uidexpunge2       : uidexpunge messages on the host2 account
+                       that are not on the host1 account, requires --delete2
+ --nomixfolders      : Avoid merging folders that are considered different on
+                       host1 but the same on destination host2 because of
+                       case sensitivities and insensitivities.
 
---syncinternaldates : Sets the internal dates on host2 same as host1.
-                      Turned on by default. Internal date is the date
-		      a message arrived on a host (mtime).
---idatefromheader   : Sets the internal dates on host2 same as the 
-                      "Date:" headers.
+ --syncinternaldates : Sets the internal dates on host2 same as host1.
+                       Turned on by default. Internal date is the date
+                       a message arrived on a host (mtime).
+ --idatefromheader   : Sets the internal dates on host2 same as the
+                       "Date:" headers.
 
---maxsize      int  : Skip messages larger  (or equal) than  int  bytes
---minsize      int  : Skip messages smaller (or equal) than  int  bytes
---maxage       int  : Skip messages older than  int  days.
-                      final stats (skipped) don't count older messages
-		      see also --minage
---minage       int  : Skip messages newer than  int  days.
-                      final stats (skipped) don't count newer messages
-                      You can do (+ are the messages selected):
-                      past|----maxage+++++++++++++++>now
-                      past|+++++++++++++++minage---->now
-                      past|----maxage+++++minage---->now (intersection)
-                      past|++++minage-----maxage++++>now (union)
+ --maxsize      int  : Skip messages larger  (or equal) than  int  bytes
+ --minsize      int  : Skip messages smaller (or equal) than  int  bytes
+ --maxage       int  : Skip messages older than  int  days.
+                       final stats (skipped) don't count older messages
+                       see also --minage
+ --minage       int  : Skip messages newer than  int  days.
+                       final stats (skipped) don't count newer messages
+                       You can do (+ are the messages selected):
+                       past|----maxage+++++++++++++++>now
+                       past|+++++++++++++++minage---->now
+                       past|----maxage+++++minage---->now (intersection)
+                       past|++++minage-----maxage++++>now (union)
 
---search       str  : Selects only messages returned by this IMAP SEARCH 
-                      command. Applied on both sides.
---search1      str  : Same as --search for selecting host1 messages only.
---search2      str  : Same as --search for selecting host2 messages only.
-                      --search CRIT equals --search1 CRIT --search2 CRIT
+ --search       str  : Selects only messages returned by this IMAP SEARCH
+                       command. Applied on both sides.
+ --search1      str  : Same as --search for selecting host1 messages only.
+ --search2      str  : Same as --search for selecting host2 messages only.
+                       --search CRIT equals --search1 CRIT --search2 CRIT
 
---exitwhenover int  : Stop syncing when total bytes transferred reached.
-                      Gmail per day allows 
-                      2500000000 = 2.5 GB downloaded from Gmail as host2
-                       500000000 = 500 MB uploaded to Gmail as host1.
+ --exitwhenover int  : Stop syncing when total bytes transferred reached.
+                       Gmail per day allows
+                       2500000000 = 2.5 GB downloaded from Gmail as host2
+                        500000000 = 500 MB uploaded to Gmail as host1.
 
---maxlinelength int : skip messages with a line length longer than  int  bytes.
-                      RFC 2822 says it must be no more than 1000 bytes.
+ --maxlinelength int : skip messages with a line length longer than  int  bytes.
+                       RFC 2822 says it must be no more than 1000 bytes.
 
---useheader    str  : Use this header to compare messages on both sides.
-                      Ex: Message-ID or Subject or Date.
---useheader    str    and this one, etc.
+ --useheader    str  : Use this header to compare messages on both sides.
+                       Ex: Message-ID or Subject or Date.
+ --useheader    str    and this one, etc.
 
---subscribed        : Transfers subscribed folders.
---subscribe         : Subscribe to the folders transferred on the 
-                      host2 that are subscribed on host1. On by default.
---subscribeall      : Subscribe to the folders transferred on the 
-                      host2 even if they are not subscribed on host1.
+ --subscribed        : Transfers subscribed folders.
+ --subscribe         : Subscribe to the folders transferred on the
+                       host2 that are subscribed on host1. On by default.
+ --subscribeall      : Subscribe to the folders transferred on the
+                       host2 even if they are not subscribed on host1.
 
---nofoldersizes     : Do not calculate the size of each folder in bytes
-                      and message counts. Default is to calculate them.
---nofoldersizesatend: Do not calculate the size of each folder in bytes
-                      and message counts at the end. Default is on.
---justfoldersizes   : Exit after having printed the folder sizes.
+ --nofoldersizes     : Do not calculate the size of each folder in bytes
+                       and message counts. Default is to calculate them.
+ --nofoldersizesatend: Do not calculate the size of each folder in bytes
+                       and message counts at the end. Default is on.
+ --justfoldersizes   : Exit after having printed the folder sizes.
 
---syncacls          : Synchronises acls (Access Control Lists).
---nosyncacls        : Does not synchronize acls. This is the default.
-                      Acls in IMAP are not standardized, be careful.
+ --syncacls          : Synchronises acls (Access Control Lists).
+ --nosyncacls        : Does not synchronize acls. This is the default.
+                       Acls in IMAP are not standardized, be careful.
 
---usecache          : Use cache to speedup.
---nousecache        : Do not use cache. Caveat: --useuid --nousecache creates
-                      duplicates on multiple runs.
---useuid            : Use uid instead of header as a criterium to recognize 
-                      messages. Option --usecache is then implied unless 
-                      --nousecache is used.  
+ --usecache          : Use cache to speedup.
+ --nousecache        : Do not use cache. Caveat: --useuid --nousecache creates
+                       duplicates on multiple runs.
+ --useuid            : Use uid instead of header as a criterium to recognize
+                       messages. Option --usecache is then implied unless
+                       --nousecache is used.
 
---debug             : Debug mode.
---debugfolders      : Debug mode for the folders part only.
---debugcontent      : Debug content of the messages transfered. Huge ouput.
---debugflags        : Debug mode for flags.
---debugimap1        : IMAP debug mode for host1. Very verbose.
---debugimap2        : IMAP debug mode for host2. Very verbose.
---debugimap         : IMAP debug mode for host1 and host2.
---debugmemory       : Debug mode showing memory consumption after each copy.
+ --debug             : Debug mode.
+ --debugfolders      : Debug mode for the folders part only.
+ --debugcontent      : Debug content of the messages transfered. Huge ouput.
+ --debugflags        : Debug mode for flags.
+ --debugimap1        : IMAP debug mode for host1. Very verbose.
+ --debugimap2        : IMAP debug mode for host2. Very verbose.
+ --debugimap         : IMAP debug mode for host1 and host2.
+ --debugmemory       : Debug mode showing memory consumption after each copy.
 
---tests             : Run non-regression tests.
---testslive         : Run a live test with test1.lamiral.info imap server. 
-                      Useful to check the basics. Needs internet connexion.
+ --errorsmax     int : Exit when int number of errors is reached. Default is 50.
 
---version           : Print only software version.
---noreleasecheck    : Do not check for new imapsync release (a http request).
---releasecheck      : Check for new imapsync release (a http request).
---noid              : Do not send/receive ID command to imap servers.
---justconnect       : Just connect to both servers and print useful
-                      information. Need only --host1 and --host2 options.
---justlogin         : Just login to both host1 and host2 with users 
-                      credentials, then exit.
---justfolders       : Do only things about folders (ignore messages).
+ --tests             : Run local non-regression tests. Exit code 0 means all ok.
+ --testslive         : Run a live test with test1.lamiral.info imap server.
+                       Useful to check the basics. Needs internet connexion.
 
---help              : print this help.
+ --version           : Print only software version.
+ --noreleasecheck    : Do not check for new imapsync release (a http request).
+ --releasecheck      : Check for new imapsync release (a http request).
+ --noid              : Do not send/receive ID command to imap servers.
+ --justconnect       : Just connect to both servers and print useful
+                       information. Need only --host1 and --host2 options.
+ --justlogin         : Just login to both host1 and host2 with users
+                       credentials, then exit.
+ --justfolders       : Do only things about folders (ignore messages).
 
-Example: to synchronize imap account "test1" on "test1.lamiral.info"
-                    to  imap account "test2" on "test2.lamiral.info"
-                    with test1 password "secret1"
-                    and  test2 password "secret2"
+ --help              : print this help.
 
-./imapsync \
-   --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
-   --host2 test2.lamiral.info --user2 test2 --password2 secret2
+ Example: to synchronize imap account "test1" on "test1.lamiral.info"
+                     to  imap account "test2" on "test2.lamiral.info"
+                     with test1 password "secret1"
+                     and  test2 password "secret2"
 
-Here is a [linux] system (Linux petite 3.2.0-91-generic #129-Ubuntu SMP Wed Sep 9 10:56:56 UTC 2015 i686)
+ ./imapsync \
+    --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
+    --host2 test2.lamiral.info --user2 test2 --password2 secret2
+
+Here is a [linux] system (Linux petite 3.2.0-97-generic #137-Ubuntu SMP Thu Dec 17 21:14:00 UTC 2015 i686)
 With perl 5.14.2 Mail::IMAPClient  3.37
-$Id: imapsync,v 1.670 2015/12/03 02:36:41 gilles Exp gilles $ 
+$Id: imapsync,v 1.678 2016/01/21 19:47:02 gilles Exp gilles $ 
 This current imapsync is up to date
 
 Homepage: http://imapsync.lamiral.info/

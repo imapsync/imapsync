@@ -1,0 +1,46 @@
+#!/usr/bin/perl 
+
+use strict ;
+use warnings ;
+use Net::DNS;
+
+
+
+lookup_srv( '_imaps._tcp.gmail.com' ) ;
+lookup_srv( '_imap._tcp.gmail.com' ) ;
+
+sub lookup_srv {
+        my $name = shift ;
+        
+        my $resolver = new Net::DNS::Resolver(  ) ;
+        my $reply = $resolver->query( $name, 'SRV' ) ;
+
+        if ( $reply ) {
+                #($reply->answer)[0]->print;
+                foreach my $rr ($reply->answer) {
+                        print $rr->name . "\n" ;
+                        print $rr->class . "\n" ;
+                        print $rr->type . "\n" ;
+                        print $rr->ttl . "\n" ;
+                        print $rr->string . "\n" ;
+                }
+        } else {
+                print "query failed: ", $resolver->errorstring, "\n";
+        }
+}
+
+
+sub lookup_address {
+# Perform a lookup, using the searchlist if appropriate.
+        my $resolver = new Net::DNS::Resolver(  ) ;
+        my $reply = $resolver->search( 'example.com' );
+        if ($reply) {
+                foreach my $rr ($reply->answer) {
+                        next unless $rr->type eq "A";
+                        print $rr->address, "\n";
+                }
+        } else {
+                warn "query failed: ", $resolver->errorstring, "\n";
+        }
+}
+

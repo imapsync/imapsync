@@ -1,13 +1,15 @@
 #!/bin/cat 
-# $Id: INSTALL.Ubuntu.txt,v 1.4 2015/09/19 08:55:25 gilles Exp gilles $
+# $Id: INSTALL.Ubuntu.txt,v 1.5 2016/01/21 15:10:01 gilles Exp gilles $
 
-=================================
-= Installing imapsync on Ubuntu =
-=================================
+=================================================
+= Installing imapsync on Ubuntu 12.04 or higher =
+=================================================
 
-== Ubuntu 12.04 or higher ==
+Here are the two commands to install imapsync dependencies.
+You need root priviledge to run them.
 
-Here are the two commands to install imapsync dependencies:
+The first command installs standard Ubuntu packages:
+
 
   sudo apt-get install \
 libauthen-ntlm-perl \
@@ -18,7 +20,6 @@ libio-compress-perl \
 libio-socket-inet6-perl \
 libio-socket-ssl-perl \
 libio-tee-perl \
-libmail-imapclient-perl \
 libmodule-scandeps-perl \
 libnet-ssleay-perl      \
 libpar-packer-perl \
@@ -26,17 +27,45 @@ libterm-readkey-perl \
 libtest-pod-perl \
 libtest-simple-perl     \
 libunicode-string-perl \
-liburi-perl
+liburi-perl \
+cpanminus
 
-  sudo cpan Data::Uniqid
+The second command installs "manually" the Perl module Data::Uniqid
+because Debian hasn't made it available via a package yet.
+It also  install manually Perl module Mail::IMAPClient because
+it is good to be up to date:
 
-Now a good dependencies test that shows also the basic example:
+  cpanm Data::Uniqid Mail::IMAPClient
+
+After installing the dependencies, imapsync should be working.
+
+You don't have to be root to test and use imapsync.
+Take the compressed tarball called imapsync-1.xxx.tgz
+where 1.xxx is the version number. 
+Untar the tarball where you want:
+
+  cd 
+  tar xzvf  imapsync-1.xxx.tgz
+
+Go into the directory imapsync-1.xxx
+
+  cd imapsync-1.xxx
+
+A dependencies test that shows also the basic example:
 
   ./imapsync
 
-Now the install command:
+A live test showing imapsync job:
 
-  sudo cp imapsync /usr/bin/
+  ./imapsync --testslive
+
+Now the install command (need root priviledges again):
+
+  cp imapsync /usr/bin/
 
 That's finished for the installation part.
 You can use imapsync.
+
+Now go to read http://imapsync.lamiral.info/#doc
+start with the tutorial.
+

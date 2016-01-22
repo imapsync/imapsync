@@ -1,15 +1,17 @@
 #!/bin/cat
-$Id: FAQ.Exchange.txt,v 1.14 2015/11/30 16:12:18 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.17 2016/01/18 18:14:12 gilles Exp gilles $
 
-=======================================================================
-  Imapsync. Exchange 20xx and Office365 specific issues and solutions
-=======================================================================
+=================================================================================
+  Imapsync tips for Exchange 20xx and Office365. Specific issues and solutions.
+=================================================================================
 
 Questions anwswered in this FAQ are:
 
 Q. Can I use imapsync to transfer from or to Exchange or Office365 accounts?
 
-Q. How to sync from XXX to Exchange 2010/2013 or Office365
+Q. How to sync from XXX to Exchange 2010/2013
+
+Q. How to sync from XXX to Office365
 
 Q. For Office365 I have double and triple checked the username and 
    password spelling but I still get a "LOGIN failed". Any clue?
@@ -54,26 +56,21 @@ R. Yes. But IMAP access to a Exchange or Office365 account is not always
    part:
 
 =======================================================================
-Q. How to sync from XXX to Exchange 2010/2013 or Office365
+Q. How to sync from XXX to Exchange 2010/2013
 
 R. Here is a command line resume that solves most encountered issues when 
-   migrating to Exchange or Office365. To understand or change the
-   details you have to read next Q/R sections.
+   migrating to Exchange. To understand or change the details you have 
+   to read next Q/R sections.
 
 
 On Windows:
 
   imapsync.exe ... ^
     --maxsize 10000000 ^
-    --maxlinelength 9900 ^
     --maxmessagespersecond 4 ^
     --regexflag "s/\\Flagged//g" ^
     --disarmreadreceipts ^
     --regexmess "s,(.{9900}),$1\r\n,g"
-
-  On Unix
-  imapsync ... --regexmess 's,(.{9900}),$1\r\n,g'
-
 
 On Unix:
 
@@ -86,13 +83,43 @@ On Unix:
     --maxlinelengthcmd 'reformime -r7' 
     
 On Linux, to get the "reformime" command, install the "maildrop" package.
-In case you don't have it you can use 
+In case you don't have it you can still use 
   --regexmess 's,(.{9900}),$1\r\n,g'
 instead of --maxlinelengthcmd 'reformime -r7' 
 
-On Windows, no "reformime" is available so messages with too long line length
-can be synced to Exchange or Office365 by inserting a CRLF every 9900
-characters on long lines, using --regexmess "s,(.{9900}),$1\r\n,g"
+
+=======================================================================
+Q. How to sync from XXX to Office365
+
+R. Here is a command line resume that solves most encountered issues when 
+   migrating to Office365. It's similar with Exchange except for some 
+   values. To understand or change the details you have to read 
+   next Q/R sections.
+
+
+On Windows:
+
+  imapsync.exe ... ^
+    --maxsize 45000000 ^
+    --maxmessagespersecond 4 ^
+    --regexflag "s/\\Flagged//g" ^
+    --disarmreadreceipts ^
+    --regexmess "s,(.{10500}),$1\r\n,g"
+
+On Unix:
+
+  imapsync ... \
+    --maxsize 45000000 \
+    --maxlinelength 10500 \
+    --maxmessagespersecond 4 \
+    --regexflag 's/\\Flagged//g' \
+    --disarmreadreceipts \
+    --maxlinelengthcmd 'reformime -r7' 
+    
+On Linux, to get the "reformime" command, install the "maildrop" package.
+In case you don't have it you can use 
+  --regexmess 's,(.{10500}),$1\r\n,g'
+instead of --maxlinelengthcmd 'reformime -r7' 
 
 =======================================================================
 Q. For Office365 I have double and triple checked the username and 
@@ -112,7 +139,7 @@ R3. Try with a classic email client like Thunderbird and the same
 =======================================================================
 Q. Exchange fails with "User is authenticated but not connected".
 
-R. "The message “User is authenticated but not connected” is due to a 
+R. "The message User is authenticated but not connected is due to a 
    bug in the Exchange server's IMAP implementation. If the client 
    presents a valid user name but an invalid password, the server 
    accepts the login, but subsequent commands fail with the 
@@ -164,14 +191,14 @@ R. This error message comes from Exchange IMAP server when it
 
   * Some messages are bigger than the size limit. 10 MB by default
     on Exchange. It can be upped by configuration for Exchange.
-    If you can't configure this limit then use option
+    If you can't fix this limit on Exchange then use option
     --maxsize 10000000 for 10 MB, change it if needed) to tell
     imapsync to skip those messages.
-    This value is 25 MB by default for Office365 --maxsize 25000000
+    This value is 45 MB by default for Office365
 
   imapsync ... --maxsize 10000000 # 10 MB for Exchange
 
-  imapsync ... --maxsize 25000000 # 25 MB for Office365
+  imapsync ... --maxsize 45000000 # 45 MB for Office365
   
 
   * Quota reached. The whole account is full.
@@ -180,9 +207,14 @@ R. This error message comes from Exchange IMAP server when it
   * Some messages have some lines too long. Use option --maxlinelength
     to skip messages whose max line length is over a number of bytes.
     --maxlinelength 1000 is a RFC2822 must but most server support
-    higher values. Exchange supports 9900:
+    higher values. 
+    Exchange supports 9900 characters line length:
 
   imapsync ... --maxlinelength 9900 
+
+    Office365 supports 10500 characters line length:
+
+  imapsync ... --maxlinelength 10500
 
   In case you prefer fixing messages with long lines the hard way,
   instead of skipping them with --maxlinelength 9900, just use:

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.60 2015/12/01 08:17:49 gilles Exp gilles $
+# $Id: memo,v 1.63 2015/12/18 20:53:37 gilles Exp gilles $
 
 count_nice() {
 
@@ -407,13 +407,30 @@ statistics_VERSION_yearly_ip_resolved() {
 	)
 }
 
+
+maxmind_update() {
+cat << 'EOF'
+wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz
+wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
+wget http://download.maxmind.com/download/geoip/database/asnum/GeoIPASNum.dat.gz
+gunzip GeoIP.dat.gz
+gunzip GeoIPASNum.dat.gz
+gunzip GeoLiteCity.dat.gz
+sudo cp GeoIP.dat GeoIPASNum.dat GeoLiteCity.dat /usr/share/GeoIP/
+EOF
+}
+
 echo "statistics_VERSION_yearly_ip_geo 2015 # long"
 statistics_VERSION_yearly_ip_geo() {
 	year=${1:-`date '+%Y'`}
 	today=`date +%Y_%m_%d`
 	(
 	cd $HOME/imapsync_stats
-	awk  '{ print $2 }' stats_imapsync_${year}.ip  | xargs -n1 geoiplookup | sort | uniq -c | sort -n  > stats_imapsync_${year}.ipgeo
+	awk  '{ print $2 }' stats_imapsync_${year}.ip  | xargs -n1 geoiplookup > stats_imapsync_${year}.ipgeo.tmp.countries
+	awk  '{ print $2 }' stats_imapsync_${year}.ip  | xargs -n1 geoiplookup -f /usr/share/GeoIP/GeoLiteCity.dat > stats_imapsync_${year}.ipgeo.tmp.cities
+	cat stats_imapsync_${year}.ipgeo.tmp.countries stats_imapsync_${year}.ipgeo.tmp.cities | sort | uniq -c | sort -n  > stats_imapsync_${year}.ipgeo
+	rm stats_imapsync_${year}.ipgeo.tmp.countries stats_imapsync_${year}.ipgeo.tmp.cities
+	echo stats_imapsync_${year}.ipgeo
 	)
 }
 
@@ -421,7 +438,11 @@ echo "statistics_VERSION_all_years_ip_geo # long"
 statistics_VERSION_all_years_ip_geo() {
 	(
 	cd $HOME/imapsync_stats
-	awk  '{ print $2 }' stats_imapsync_20??.ip  | xargs -n1 geoiplookup | sort | uniq -c | sort -n  > stats_imapsync_20xx.ipgeo
+	awk  '{ print $2 }' stats_imapsync_20??.ip  | xargs -n1 geoiplookup > stats_imapsync_20xx.ipgeo.tmp.countries
+	awk  '{ print $2 }' stats_imapsync_20??.ip  | xargs -n1 geoiplookup -f /usr/share/GeoIP/GeoLiteCity.dat > stats_imapsync_20xx.ipgeo.tmp.cities
+	cat stats_imapsync_20xx.ipgeo.tmp.countries stats_imapsync_20xx.ipgeo.tmp.cities | sort | uniq -c | sort -n  > stats_imapsync_20xx.ipgeo
+	rm stats_imapsync_20xx.ipgeo.tmp.countries stats_imapsync_20xx.ipgeo.tmp.cities
+	echo stats_imapsync_20xx.ipgeo
 	)
 }
 
@@ -492,12 +513,44 @@ statistics_perl_yearly() {
 	)
 }
 
-statistics_perl_all() {
+statistics_perl_all_times() {
 	(
 	cd $HOME/imapsync_stats
 	ls -d stats_imapsync_????.ip > /dev/null || return
 	grep -h -o -P 'perl ''(\.|\d)+' stats_imapsync_20??.ip \
 	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -nr
+	)
+}
+
+echo statistics_Mail_IMAPClient_monthly
+statistics_Mail_IMAPClient_monthly() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}_${month}.ip \
+	&& grep -o -P ', ''(\.|\d)+' stats_imapsync_${year}_${month}.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
+	)
+}
+
+echo statistics_Mail_IMAPClient_yearly
+statistics_Mail_IMAPClient_yearly() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}.ip \
+	&& grep -o -P ', ''(\.|\d)+' stats_imapsync_${year}.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
+	)
+}
+
+statistics_Mail_IMAPClient_all_times() {
+	(
+	cd $HOME/imapsync_stats
+	ls -d stats_imapsync_????.ip > /dev/null || return
+	grep -h -o -P ', ''(\.|\d)+' stats_imapsync_20??.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
 	)
 }
 

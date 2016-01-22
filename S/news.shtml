@@ -7,7 +7,7 @@
 <title>Imapsync News</title>
 <meta name="generator" content="Bluefish 2.2.2" />
 <meta name="author" content="Gilles LAMIRAL" />
-<meta name="date" content="2015-12-03T03:55:04+0100" />
+<meta name="date" content="2016-01-22T01:56:39+0100" />
 <meta name="copyright" content="None"/>
 <meta name="keywords" content="imap, transfer, migration, synchronization"/>
 <meta name="description" content="imap migration tool"/>
@@ -40,7 +40,7 @@
 
 <!-- 
 <ul>
-<li><b>1.667</b></li>
+<li><b>1.677</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -59,9 +59,31 @@
 </ul>
  -->
 
+<ul>
+<li><b>1.678</b> <b>Improved website!</b> (I hope...)</li>
+<li><b>Enhancement</b>: Added <b><tt>--sslargs1</tt></b> and <b><tt>--sslargs2</tt></b> to pass any ssl parameter for host1 or host2 connection. 
+Example: <tt>--sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3</tt></li>
+<li><b>Enhancement</b>: Added <tt>--timeout1 int</tt> and <tt>--timeout2 int</tt> in seconds (<tt>--timeout int</tt> still available to set both with the same value)</li>
+<li><b>Enhancement</b>: Added <tt>--debugssl int</tt>. Default is like <tt>--debugssl 1</tt> (Only print out errors).</li>
+<li><b>Enhancement</b>: Added several <a href="../#polls">polls</a> to know where I shall focus improvements.</li>
+
+
+<li><b>Usability</b>: Added env_proxy call in <tt>sub xoauth2()</tt> 
+to read proxy settings from environment variable <tt>http_proxy</tt>
+without using <tt>PERL_LWP_ENV_PROXY=1</tt></li>
+<li><b>Usability</b>: Wrote <a href="../TUTORIAL_Unix.html">TUTORIAL_Unix</a>.</li>
+<li><b>Usability</b>: Check f1 folder exists when specified by <tt>--f1f2</tt> and warns when it doesn't</li>
+<li><b>Usability</b>: Added <tt>--automap --justfolders --dry</tt> in <tt>imapsync_example.sh</tt> and <tt>imapsync_example.bat</tt></li>
+
+<li><b>Bug fix</b>: Added require Encode::Byte to solve "The locale codeset (cp1252) isn't one that perl can decode" on Win32.</li>
+
+
+<li><b>Refactoring</b>: Removed <tt>--allow3xx</tt> option.</li>
+<li><b>Refactoring</b>: Continue to move to one global $sync-> in order to reduce number of parameters in routines.</li>
+</ul>
 
 <ul>
-<li><b>1.670</b> Folders mapping made easy with --automap</li>
+<li><b>1.670</b> Folders <b>mapping made easy</b> with <b>--automap</b></li>
 <li><b>Enhancement</b>: Added option <b><tt>--automap</tt></b> that guesses folders mapping, 
                         for folders like "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
                         <ul> 
@@ -71,21 +93,22 @@
                         to try it a safe method is to use <tt>--automap --justautomap</tt>, it will exit early</li>
                         </ul> 
  </li>
-<li><b>Enhancement</b>: Added <tt>--f1f2 str1=str2</tt> : Force folder str1 to be synced to str2. 
+<li><b>Enhancement</b>: Added <b><tt>--f1f2 str1=str2</tt></b> : Force folder str1 to be synced to str2. 
                         <ul> 
-                        <li>Option --f1f2 overrides any automap mapping and any regextrans2. </li>
+                        <li>Option <tt>--f1f2</tt> overrides any <tt>--automap</tt> mapping and any <tt>--regextrans2</tt> transformation. </li>
                         <li>Example <tt>--f1f2 Spam=Junk</tt> to map Spam folder to Junk.</li>
                         </ul>
 </li>
-<li><b>Enhancement</b>: Added --justautomap to exit after seeing what will happen with --automap and --f1f2 options.</li>
-<li><b>Enhancement</b>: Added IMAP4 QUOTA values when they're available and a warning when it's time to find space.  
-                        See RFC 2087 <a href="https://tools.ietf.org/html/rfc2087">IMAP4 QUOTA extension</a>
+<li><b>Enhancement</b>: Added <b><tt>--justautomap</tt></b> to exit after seeing what will happen with 
+                        --automap and --f1f2 options.</li>
+<li><b>Enhancement</b>: Added <a href="https://tools.ietf.org/html/rfc2087">IMAP4 QUOTA </a> values (RFC 2087) 
+                        when they are available. A warning goes up when it's time to find space.  
 </li>
 
 <li><b>Enhancement</b>: Added <a href="http://tools.ietf.org/html/rfc2971.html">IMAP4 ID extension</a>.
                         <ul>
                         <li>ID feature is on  by default if supported by the IMAP servers, 
-                        use <tt>--noid</tt> to turn it off.</li>
+                        use <b><tt>--noid</tt></b> to turn it off.</li>
                         <li>ID Infos returned by the imap servers are shown.</li>
                         <li>Infos sent to the servers are name=imapsync, version=`imapsync --version`, os=$OSNAME`, 
                         vendor='Gilles LAMIRAL' and date=`rcs date of release`.</li>
@@ -94,7 +117,7 @@
                         </ul>
 </li>
 
-<li><b>Enhancement</b>: Added <tt>--logdir path</tt> to change the default log directory. 
+<li><b>Enhancement</b>: Added <b><tt>--logdir path</tt></b> to change the default log directory. 
                         Default is <tt>LOG_imapsync/</tt> 
 </li>
 
@@ -103,7 +126,7 @@
 <li><b>Usability</b>: Added folders counting in outputs.</li>
 <li><b>Usability</b>: Better output in the login part</li>
 <li><b>Usability</b>: Guess prefixes and separators instead of forcing the user to find them.</li>
-<li><b>Usability</b>: Output, added <tt>Host1:</tt> or <tt>Host2</tt> at the beginning of lines.</li>
+<li><b>Usability</b>: Output, added <tt>Host1:</tt> or <tt>Host2:</tt> at the beginning of lines.</li>
 
 
 <li><b>Bug fix</b>: SSL_VERIFY_NONE in --ssl and --tls modes</li>
@@ -370,7 +393,7 @@ alt="Viewable With Any Browser" />
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.7 2015/12/03 02:55:37 gilles Exp gilles $)<br/>
+($Id: news.shtml,v 1.10 2016/01/22 01:04:15 gilles Exp gilles $)<br/>
 <a href="#TOP">Top of the page</a>
 </p>
 

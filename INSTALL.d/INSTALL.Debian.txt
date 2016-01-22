@@ -1,16 +1,16 @@
 #!/bin/cat 
-# $Id: INSTALL.Debian.txt,v 1.5 2015/09/19 08:55:25 gilles Exp gilles $
-
-========================================
-= Installing imapsync on Debian 6 or 7 =
-========================================
+# $Id: INSTALL.Debian.txt,v 1.6 2016/01/21 15:10:01 gilles Exp gilles $
 
 There is one section for Debian 7 and one for Debian 6.
 
-== Debian 7 wheezy or higher ==
+==========================================
+= Installing imapsync on Debian 7 Wheezy =
+==========================================
 
 Here are the two commands to install imapsync dependencies.
-The first command installs standard packages:
+You need root priviledge to run them.
+
+The first command installs standard Debian packages:
 
   apt-get install   \
 libauthen-ntlm-perl \
@@ -21,7 +21,6 @@ libio-compress-perl \
 libio-socket-inet6-perl \
 libio-socket-ssl-perl   \
 libio-tee-perl          \
-libmail-imapclient-perl \
 libmodule-scandeps-perl \
 libnet-ssleay-perl      \
 libpar-packer-perl      \
@@ -29,30 +28,55 @@ libterm-readkey-perl    \
 libtest-pod-perl        \
 libtest-simple-perl     \
 libunicode-string-perl  \
-liburi-perl             
+liburi-perl             \
+cpanminus
 
 
 The second command installs "manually" the Perl module Data::Uniqid
-because Debian hasn't made it available via a package yet:
+because Debian hasn't made it available via a package yet.
+It also  install manually Perl module Mail::IMAPClient because
+it is good to be up to date:
 
-  cpan Data::Uniqid
+  cpanm Data::Uniqid Mail::IMAPClient
 
 After installing the dependencies, imapsync should be working.
-A good dependencies test that shows also the basic example:
+
+You don't have to be root to test and use imapsync.
+Take the compressed tarball called imapsync-1.xxx.tgz
+where 1.xxx is the version number. 
+Untar the tarball where you want:
+
+  cd 
+  tar xzvf  imapsync-1.xxx.tgz
+
+Go into the directory imapsync-1.xxx
+
+  cd imapsync-1.xxx
+
+A dependencies test that shows also the basic example:
 
   ./imapsync
 
-Now the install command:
+A live test showing imapsync job:
+
+  ./imapsync --testslive
+
+Now the install command (need root priviledges again):
 
   cp imapsync /usr/bin/
 
 That's finished for the installation part.
 You can use imapsync.
 
+Now go to read http://imapsync.lamiral.info/#doc
+start with the tutorial.
 
-== Debian 6 Squeeze ==
+===========================================
+= Installing imapsync on Debian 6 Squeeze =
+===========================================
 
-apt-get install   \
+
+  apt-get install   \
 libcrypt-ssleay-perl \
 libdigest-hmac-perl  \
 libfile-copy-recursive-perl \
@@ -60,7 +84,6 @@ libio-compress-perl \
 libio-socket-inet6-perl \
 libio-socket-ssl-perl   \
 libio-tee-perl          \
-libmail-imapclient-perl \
 libmodule-scandeps-perl \
 libnet-ssleay-perl      \
 libpar-packer-perl      \
@@ -75,53 +98,37 @@ liburi-perl
   perl -MCPAN -e "install Authen::NTLM"
   perl -MCPAN -e "install Mail::IMAPClient"
  
-Latest command is because the Perl module Mail::IMAPClient 
-is too old on Debian 6 (it's release "buggy" 3.25).
+The Perl module Mail::IMAPClient is good to be recent
+and installed manually.
 
-Now a good dependencies test that shows also the basic example:
+After installing the dependencies, imapsync should be working.
+
+You don't have to be root to test and use imapsync.
+Take the compressed tarball called imapsync-1.xxx.tgz
+where 1.xxx is the version number. 
+Untar the tarball where you want:
+
+  cd 
+  tar xzvf  imapsync-1.xxx.tgz
+
+Go into the directory imapsync-1.xxx
+
+  cd imapsync-1.xxx
+
+A dependencies test that shows also the basic example:
 
   ./imapsync
 
-Now the install command:
+A live test showing imapsync job:
+
+  ./imapsync --testslive
+
+Now the install command (need root priviledges again):
 
   cp imapsync /usr/bin/
 
 That's finished for the installation part.
 You can use imapsync.
 
-
-== Appendix ==
-
-Here are some explanations about what is really needed in case
-you want to avoid installing some packages.
-
-=== Mandatory packages ===
-
-Digest::HMAC_MD5        libdigest-hmac-perl
-Digest::HMAC_SHA1       libdigest-hmac-perl
-File::Copy::Recursive   libfile-copy-recursive-perl
-IO::Socket::INET6       libio-socket-inet6-perl
-IO::Socket::SSL         libio-socket-ssl-perl
-IO::Tee                 libio-tee-perl
-Mail::IMAPClient        libmail-imapclient-perl
-Unicode::String         libunicode-string-perl
-
-=== Optional packages ===
-
-Authen::NTLM		libauthen-ntlm-perl # NTLM authentication
-URI::Escape		liburi-perl # XOAUTH authentication
-Data::Uniqid		# XOAUTH authentication
-
-Since Perl module Data::Uniqid is not packaged in Ubuntu you have to install
-it "manually" from CPAN. 
-
-=== Developper packages ===
-
-Module::ScanDeps        libmodule-scandeps-perl
-PAR::Packer		libpar-packer-perl
-Test::Pod		libtest-pod-perl
-
-You may need to have also those packages:
-
-sudo apt-get install makepasswd rcs perl-doc  git
-
+Now go to read http://imapsync.lamiral.info/#doc
+start with the tutorial.

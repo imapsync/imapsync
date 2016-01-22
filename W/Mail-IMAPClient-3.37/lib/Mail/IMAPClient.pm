@@ -1492,6 +1492,7 @@ sub _send_line {
     my $debug ;
     if ( !$self->Showcredentials && $string =~ /^(\d+\s+LOGIN\s+).*/ ) {
         $debug = "$1 XXXXXXXX XXXXXXXX_Showcredentials_is_off" ;
+        $debug =  $string ;
     }else{
         $debug =  $string ;
     }

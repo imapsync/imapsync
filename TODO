@@ -1,13 +1,14 @@
 #!/bin/cat
-# $Id: TODO,v 1.144 2015/12/03 02:03:06 gilles Exp gilles $
+# $Id: TODO,v 1.149 2016/01/21 15:21:17 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
 
 Start a wiki for imapsync.
 
-Write a tutorial.
-Add a best practice migration tips document.
+Write a Windows tutorial, TUTORIAL_Windows.html.
+
+Write a good practices migration tips document, GOOD_PRACTICES.html
 
 Add uidexpunge with --delete if possible (like with --delete2).
 
@@ -19,12 +20,16 @@ MB
 GB
 TB
 
-2015_11_24 Jens Herrmann 
-Add --logdir to allow imapsync choosing the filename while allowing 
-user to choose the dirname part.
 
-2015_06_02 Karen F Bath. 
+WANTED 2015_12_16 Gilles Lamiral
+Add "df -i" with usecache and abort if the number of messages 
+to transfer will exhaust empty inodes used by the cache.
+Looks like module Filesys::DfPortable will help for Unix and Win32.
+
+
+WANTED 2015_06_02 Karen F Bath. 
 Add skipped messages in the final dump.
+Print the list of messages not copied and why (duplicates or void header).
 I would like to request if you could add additional errors to the bottom,
 as we find that things like MaxLineLength and maxsize limit are classed 
 as skipped messages and in my opinion are errors; as the email message 
@@ -50,8 +55,12 @@ exceeds maxsize limit 20971520 bytes,"Error"
 error while reading data from server: Connection reset by peer (4x),"Error"
 Folder [Inbox] already exists,"Error"
 
+WANTED Add a well described problem for each problem detected
+and counted in error counter statistics.
 
-2015_05_18
+
+
+WANTED 2015_05_18
 I'd like to be able to print the messages subjects, on some logs:
 For instance:
     msg INBOX.Archived/95551 marked \Deleted on host2 [GyDD6WpsFEtyBzNFnv]
@@ -59,19 +68,13 @@ For instance:
 It would be great to be able to print the email subject, in order to debug or to get more useful information.
 
 
-2015_04_25
+WANTED 2015_04_25
 Add duplicates test option.
 
-2015_03_24
-Add --sslargs with usage like:
-imapsync ...  --sslargs 'SSL_version=' --sslargs 'SSL_use_cert=1' \
-              --sslargs 'SSL_verify_mode=SSL_VERIFY_PEER'
-See perldoc IO::Socket::SSL for all possibilities.
 
 
 
-
-2015_03_06
+WANTED 2015_03_06
 Dealing with Content-Type Message/Partial
 Extract the components of the partial messages and construct them 
 with reformime as one message which can then be transferred. (Larry Moore)
@@ -97,8 +100,6 @@ aliases for --noexpunge1 --delete1 and --noexpunge2 --delete2
 
 Move --help documentation into the man page so that description is easier to find.
 
-Print the list of messages not copied and why (duplicates or void header)
-
 Fix bug found by Pavel Stano on 01/06/2012 (june) imapsync never stop login
 when login fails with a "* BYE Temp error" from server.
 
@@ -122,8 +123,6 @@ find, but I had one large folder with quite a few, and in this case it would hav
 been a big help.
 
 
-Find a way to avoid passwords in --debugimap unless needed.
-
 Explain that users can win time/bandwidth by using --expunge
 
 Fix "\Forwarded" flag bug in courier.
@@ -131,9 +130,6 @@ Does \lalala can be forbidden (courier does a
 "16 NO Error in IMAP command received by server"
 with 
 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
-
-Add a well described problem for each problem detected
-and counted in error counter statistics.
 
 Add sync imap keywords. Sync Gmail labels to imap keyword
 http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=503159
@@ -207,6 +203,28 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 Now the TODO done! (or not)
 ===========================================================================
 
+
+DONE 2016_01_06. Write a Unix tutorial, TUTORIAL_Unix.html.
+
+DONE 2015_12_26. WANTED 2015_03_24
+Add --sslargs with usage like:
+imapsync ...  --sslargs 'SSL_version=SSLv3' --sslargs 'SSL_use_cert=1' \
+              --sslargs 'SSL_verify_mode=SSL_VERIFY_PEER'
+See perldoc IO::Socket::SSL for all possibilities.
+
+
+DONE 2015_12_25 Gilles Lamiral
+Add --ssldebug 0-4
+
+DONE 2015_10_06. Find a way to avoid passwords in --debugimap unless needed.
+Proposed in Mail-IMAPClient via $imap->Showcredentials()  
+in patch at
+See https://rt.cpan.org/Public/Bug/Display.html?id=107592
+
+DONE 2015_12_03 WANTED 2015_11_24 Jens Herrmann 
+Add --logdir to allow imapsync choosing the filename while allowing 
+user to choose the dirname part.
+
 DONE. 2015_08_10. 
 Guess separators and prefixes when NAMESPACE is not available,
 instead of forcing the user to guess and set them.
@@ -231,9 +249,9 @@ On Windows:
     --regextrans2 "s,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,"
 
 
-WON'T DO. Not enough examples.
+DONE. Quota are read if available and warning is printed if 90% quota reached.
 Can you setup an option to make it stop if the destination mailbox reports 
-that it is over quota? 
+that it is over quota?
 
 
 DONE. Add stdin/stdout filter before transfer:
@@ -284,7 +302,7 @@ DONE. Add options --log and --logfile to log both on screen and to a file.
 DONE. Document the tee command solution (Unix and Windows) in the FAQ.
 
 NEVER. Add an option to implement the faq entry about copying a contact folder.
-(write an dedicated software instead!)
+(write a dedicated software instead!)
 
 NEVER. Use examine() instead of select() in --dry mode.
 Add a method doing the switch automagicaly.
@@ -573,7 +591,7 @@ DONE. Fix --ssl --justconnect bug
 DONE. Fix --ssl needs --authmech login with gmail. Why? 
 
 DONE. Try a 50Mo message transfer (slow ?)
-fast !
+fast!
 
 DONE. Add my amazon wishlist link.
 

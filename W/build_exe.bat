@@ -1,11 +1,15 @@
 
-REM $Id: build_exe.bat,v 1.33 2015/11/23 16:47:21 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.35 2015/12/14 15:15:36 gilles Exp gilles $
 @ECHO OFF
 
 ECHO Building imapsync.exe
 
-@REM the following command cd to dirname of the current batch pathname
-cd /D %~dp0
+@REM the following command change current directory to the dirname of the current batch pathname
+CD /D %~dp0
+
+perl -v
+IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://strawberryperl.com/ ^
+  && PAUSE && EXIT /B 3
 
 REM CALL .\install_modules.bat
 
@@ -33,17 +37,18 @@ perl ^
      -mHTML::Entities ^
      -mJSON ^
      -mCrypt::OpenSSL::RSA ^
+     -mEncode::Byte ^
      -e ''
 
 @ECHO ON
-del imapsync.exe
+DEL imapsync.exe
 pp -o imapsync.exe  ^
  --link libeay32_.dll ^
  --link zlib1_.dll ^
  --link ssleay32_.dll ^
  .\imapsync
 
-echo Done building imapsync.exe 
+ECHO Done building imapsync.exe 
 
 @REM Previous options to pp
 @REM Previous options to pp
@@ -71,8 +76,8 @@ echo Done building imapsync.exe
 @REM      -M LWP::UserAgent ^
 @REM      -M HTML::Entities ^
 @REM      -M JSON ^
-
-EXIT
+@REM      -M Encode::Byte ^
+EXIT /B 
 
  -M Mail::IMAPClient ^
  -M IO::Socket ^
@@ -96,3 +101,4 @@ EXIT
  -M HTML::Entities ^
  -M Crypt::OpenSSL::RSA ^
  -M JSON ^
+ -M Encode::Byte ^
