@@ -1,0 +1,27 @@
+#!/usr/bin/perl -w
+
+use Mail::IMAPClient;
+
+$ARGV[3] or die "usage: $0 host user password folder\n";
+
+$host = $ARGV[0];
+$user = $ARGV[1];
+$password = $ARGV[2];
+$folder_arg = $ARGV[3];
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(1);
+$imap->Server($host);
+$imap->connect() or die;
+$imap->IsUnconnected();
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+my @folders = $imap->folders(  ) ;
+foreach my $folder ( @folders ) {
+	print "$folder\n" ;
+}
+$imap->select( $folder_arg ) or die ;
+$imap->logout();

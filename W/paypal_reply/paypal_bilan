@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.78 2014/05/04 02:01:26 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.80 2015/11/01 01:13:59 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.78 2014/05/04 02:01:26 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.80 2015/11/01 01:13:59 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -424,7 +424,7 @@ sub compute_line_debug {
         
 	return( "#" x 78, "\n",
         "[$A->{Date}] [$A->{Heure}] [$A->{Fuseau_horaire}] [$A->{Nom}] [$A->{Type}] [$A->{Etat}] ", 
-        "[$A->{Devise}] [$A->{Hors_taxe_paypal}] [$A->{Montant}] [$A->{Numero_davis_de_reception}] [$A->{Solde}] [$A->{Impact_sur_le_solde}] ",
+        "[$A->{Devise}] [$A->{Hors_taxe_paypal}] [$A->{Montant}] [$A->{N_de_transaction}] [$A->{Solde}] [$A->{Impact_sur_le_solde}] ",
 	"[$A->{Pays}] [$A->{Nom_Option_1}] [$A->{Valeur_Option_1}] [$A->{Titre_de_l_objet}]\n" ) ;
 
 }
@@ -445,7 +445,7 @@ sub details {
         
 	return( "[$A->{invoice}] [$A->{Date}] [$A->{Heure}] [$A->{Fuseau_horaire}] ", 
                 "[$A->{Nom}] [$A->{Type}] [$A->{Etat}] [$A->{Devise}] [$A->{Montant}] ",
-                "[$A->{Numero_davis_de_reception}] [$A->{Solde}] [$A->{Impact_sur_le_solde}]\n" ) ;
+                "[$A->{N_de_transaction}] [$A->{Solde}] [$A->{Impact_sur_le_solde}]\n" ) ;
 
 }
 
@@ -579,13 +579,13 @@ sub compute_line {
         
         @{$A}{ qw( 
         Date Heure Fuseau_horaire Nom Type Etat
-	Devise Montant Numero_davis_de_reception Solde
+	Devise Montant N_de_transaction Solde
 	Pays Nom_Option_1 Valeur_Option_1 Hors_taxe_paypal
         Titre_de_l_objet Nom_Option_2 Option_2_Valeur
         Impact_sur_le_solde
         ) }
 	= @action{ ( 'Date', 'Heure', 'Fuseau horaire', 'Nom', 'Type', 'Etat',
-	'Devise', 'Montant', "Numéro d'avis de réception", 'Solde',
+	'Devise', 'Montant', "N° de transaction", 'Solde',
 	'Pays', 'Nom Option 1', 'Valeur Option 1', 'Hors taxe', 
         "Titre de l'objet", 'Nom Option 2', 'Option 2 Valeur',
         'Impact sur le solde') } ;
@@ -862,6 +862,9 @@ sub object_type {
         }elsif ( ( 'imapsync any' eq $F->{Titre_de_l_objet} )
         	and ( 'Software only. For individual use.' eq $F->{Valeur_Option_1} ) ) {
         	$F->{object_type} = 'software' ;
+        }elsif ( ( 'imapsync any' eq $F->{Titre_de_l_objet} )
+        	and ( 'Support only. For professional use.' eq $F->{Valeur_Option_1} ) ) {
+        	$F->{object_type} = 'support' ;
         }
 }
 
@@ -1013,13 +1016,12 @@ sub write_tex_variables_file {
 	close( FILE ) ;
         
         if ( ! -f "$dir_invoices/$invoice_00000/imapsync_var_manual.tex" ) {
-	open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var_manual.tex") or die ;
-        print FILE "%% $0 created this file
+		open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var_manual.tex") or die ;
+        	print FILE "%% $0 created this file
 %% Can be used to override imapsync_var.tex definitions\n" ;
-	print FILE $tex_variables_utf8 ;
-	close( FILE ) ;
+		print FILE $tex_variables_utf8 ;
+		close( FILE ) ;
         }
-
 }
 
 sub download_urls {
@@ -1031,7 +1033,9 @@ sub download_urls {
         and (
             ( 'software' eq $F->{object_type} ) 
             or
-            ( 'software + support' eq $F->{object_type} ) 
+            ( 'software + support' eq $F->{object_type} )
+            or
+            ( 'support' eq $F->{object_type} )
             )
         ) {
 		$F->{urlSrc} = 'http://imapsync.lamiral.info/paypal_return.shtml' ;

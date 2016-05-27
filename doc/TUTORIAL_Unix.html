@@ -1,0 +1,443 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<META NAME="generator" CONTENT="http://txt2tags.org">
+<TITLE>Imapsync tutorial</TITLE>
+</HEAD><BODY BGCOLOR="white" TEXT="black">
+<CENTER>
+<H1>Imapsync tutorial</H1>
+<FONT SIZE="4"><I>Gilles LAMIRAL   gilles.lamiral@laposte.net</I></FONT><BR>
+<FONT SIZE="4">$Id: TUTORIAL_Unix.t2t,v 1.17 2016/01/21 03:34:23 gilles Exp gilles $ </FONT>
+</CENTER>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+  <UL>
+  <LI><A HREF="#toc1">1. Good practices</A>
+  <LI><A HREF="#toc2">2. Basic steps</A>
+    <UL>
+    <LI><A HREF="#toc3">2.1. Verifying imapsync works well on its own</A>
+    <LI><A HREF="#toc4">2.2. Working with your data</A>
+    <LI><A HREF="#toc5">2.3. Prepare your credentials</A>
+    <LI><A HREF="#toc6">2.4. Take a real user account as source</A>
+    <LI><A HREF="#toc7">2.5. Take a test user account as destination</A>
+    </UL>
+  <LI><A HREF="#toc8">3. Background knowledge about emailboxes</A>
+  <LI><A HREF="#toc9">4. Conventions</A>
+  <LI><A HREF="#toc10">5. Why start with a test account on destination host2?</A>
+  <LI><A HREF="#toc11">6. Imapsync default behaviour</A>
+  </UL>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+<A NAME="toc1"></A>
+<H1>1. Good practices</H1>
+
+<UL>
+<LI>Do the basic steps showing imapsync works by itself.
+<P></P>
+<LI>Next, applying imapsync to your data, 
+continue with a <B>real user</B> account on the source imap server (host1)
+and a <B>test</B> account on the destination imap server (host2).
+<P></P>
+It's the best advice I can give to learn imapsync, be confident in it, and
+verify it will do what you expect it to do in your context, all of that 
+without much pain. So try imapsync with a real account at the source, aka host1,
+and a test account at the destination, aka host2.
+<P></P>
+<LI>Next, once familiar and satified by the result on the host2 test account, 
+change to a real user account on host2 or just stop consider it a test one.
+</UL>
+
+<A NAME="toc2"></A>
+<H1>2. Basic steps</H1>
+
+<A NAME="toc3"></A>
+<H2>2.1. Verifying imapsync works well on its own</H2>
+
+<P>
+Open a terminal and go to the imapsync directory. 
+The imapsync directory is the directory created by extraction
+of the tarball (.tgz), its name is <CODE>imapsync-1.xxx</CODE> where <CODE>1.xxx</CODE> 
+is imapsync release number (1.675 or upper).
+</P>
+
+<PRE>
+  cd imapsync-1.xxx/
+</PRE>
+
+<P>
+Verify imapsync runs on your system
+</P>
+
+<PRE>
+  ./imapsync
+</PRE>
+
+<P>
+It should outpout the help message. The help message is also at
+<A HREF="http://imapsync.lamiral.info/OPTIONS">http://imapsync.lamiral.info/OPTIONS</A> but you don't have to read it now.
+</P>
+<P>
+If the previous command fails then there is an installation issue.
+Go back to <A HREF="http://imapsync.lamiral.info/#doc">http://imapsync.lamiral.info/#doc</A> and read INSTALL file
+or drop me an email.
+</P>
+<P>
+Next, verify imapsync runs live tests. This check needs internet
+access. It does a simple sync between two real dedicated
+imap maiboxes located at test.lamiral.info.
+</P>
+
+<PRE>
+  ./imapsync --testslive
+</PRE>
+
+<P>
+Now verify the script examples/imapsync_example.sh runs
+</P>
+
+<PRE>
+  sh examples/imapsync_example.sh
+</PRE>
+
+<P>
+This script does the same thing than "<CODE>imapsync --testslive</CODE>" but it
+uses explicitely the 6 parameters so it'll a good start 
+for your future own script.
+</P>
+
+<A NAME="toc4"></A>
+<H2>2.2. Working with your data</H2>
+
+<P>
+You're still in the imapsync directory.
+</P>
+<P>
+Copy the script <CODE>examples/imapsync_example.sh</CODE>
+</P>
+
+<PRE>
+  cp examples/imapsync_example.sh   mysync
+</PRE>
+
+<P>
+Check that the copy works as the original 
+</P>
+
+<PRE>
+  sh mysync
+</PRE>
+
+<P>
+So far so good, now we're going to work with your data.
+</P>
+
+<A NAME="toc5"></A>
+<H2>2.3. Prepare your credentials</H2>
+
+<P>
+An IMAP account is accessed with 3 parameters, 
+</P>
+
+<UL>
+<LI>the imap server <B>host</B>. It's a server name or an ip address.
+<LI>the <B>user</B> name.
+<LI>the <B>password</B>.
+</UL>
+
+<P>
+Since imapsync job is to sync two imap accounts we need 3 + 3 = 6 parameters.
+</P>
+
+<UL>
+<LI>Three parameters to read from the source account, <B>host1</B>, <B>user1</B> and <B>password1</B>.
+<LI>Three parameters to write to the destination account, <B>host2</B>, <B>user2</B> and <B>password2</B>.
+</UL>
+
+<A NAME="toc6"></A>
+<H2>2.4. Take a real user account as source</H2>
+
+<P>
+Even to learn and get familiar with imapsync, you can take a 
+real user account as a source. No problem if it's currently used
+by a user.
+</P>
+<P>
+Assuming that the imap source server name host1 is <B>imaphost1.mydomain.tld</B>, 
+the user1 account name is <B>myuser1</B> and its password is <B>mysecret1</B>,
+we now have the first three parameters.
+</P>
+
+<UL>
+<LI>--host1 <B>imaphost1.mydomain.tld</B>
+<LI>--user1 <B>myuser1</B>
+<LI>--password1 <B>mysecret1</B> 
+</UL>
+
+<A NAME="toc7"></A>
+<H2>2.5. Take a test user account as destination</H2>
+
+<P>
+Unlike the source side, the destination side will be modified by
+imapsync. Therefore, for learning, checking and adjusting, 
+it is not a very good idea to use a real user imap account 
+the first times you play with imapsync.
+</P>
+<P>
+If you really can't afford a test account on host2, it's ok,
+imapsync is not that bad but you may have work to fix unwanted behaviour.
+</P>
+<P>
+Assuming that the imap destination server name host2 is <B>imaphost2.mydomain.tld</B>, 
+the user2 account name is <B>myuser2</B> and its password is <B>mysecret2</B>,
+we now have the next three parameters.
+</P>
+
+<UL>
+<LI>--host2 <B>imaphost2.mydomain.tld</B>
+<LI>--user2 <B>myuser2</B>
+<LI>--password2 <B>mysecret2</B> 
+<P></P>
+++ Edit your own script mysync ++
+<P></P>
+Now edit the script <CODE>mysync</CODE> and replace the test values by yours.
+<P></P>
+You're ready for a dry test on your accounts.
+<P></P>
+
+<PRE>
+  sh mysync
+</PRE>
+
+<P></P>
+Since mysync script is a copy of examples/imapsync_example.sh, 
+your first run with your data should include three other options
+--automap --justfolders --dry. 
+With --dry option, nothing will really be  done on host2 
+but you will test whether the credentials are ok on both sides
+or not, by a successful login or a failure. You will also observe  
+if the folders mapping is ok. 
+<P></P>
+If a login fails then double-check all three values that identify
+the account, which are the host, the login name, and the password.
+<P></P>
+If the folders mapping proposed is not ok then you can fix it with
+option --f1f2, like this example:
+</UL>
+
+<PRE>
+  ...  --f1f2 "Sent Messages=Sent"
+</PRE>
+
+<P>
+As explained in the inline help or in the README:
+</P>
+
+<PRE>
+  --f1f2    str1=str2 : Force folder str1 to be synced to str2.
+</PRE>
+
+<P>
+You're ready for a real test on your accounts, resticted to
+folders. Remove --dry from mysync and rerun it:
+</P>
+
+<PRE>
+  sh mysync
+</PRE>
+
+<A NAME="toc8"></A>
+<H1>3. Background knowledge about emailboxes</H1>
+
+<P>
+Three Internet protocols are used to access almost all email accounts: 
+POP3, IMAP, HTTP.
+</P>
+<P>
+The oldest one still used is POP3, Post Office Protocol.  POP3 allows only 
+one main box called INBOX. With POP3 messages have no flags, no Seen/UnSeen 
+Forwarded Flagged labels. Messages are often
+removed from the POP3 server each time a software client looks into it,
+so messages only appear on the client host that fetched them, they are
+unavailable from any other system located elsewhere.
+</P>
+<P>
+The second protocol to deal with email messages is IMAP, Internet Message Access Protocol.
+ IMAP allows a hierarchy of mailboxes also called folders, also concurrent accesses, 
+tagging with flags, search by many criterium like date, subject, size etc.
+The IMAP protocol presents most of the features POP lacks.
+Messages stay on the imap server so any client on the network can access them
+at any time from anywhere, the same messages with the same flags.
+</P>
+<P>
+The third protocol to access email messages is HTTP, HyperText Transfer Protocol.
+HTTP is the protocol to browse the web. 
+Web browsers like Google Chrome, Mozilla Firefox, Internet Explorer, Safari,
+are HTTP client softwares.
+Webmails often offer the same features than imap servers because 
+webmails underlying storage systems are often imap servers. 
+So webmail mailboxes like Gmail, Yahoo, Exchange, Zimbra or Office365 are also accessible via imap. 
+</P>
+<P>
+The conclusion of this protocol review is that IMAP can be used
+to access mailboxes most of the time. Here comes imapsync.
+</P>
+<P>
+Software imapsync is a command line tool to 
+copy, migrate, backup or synchronize IMAP mailboxes.
+</P>
+<P>
+Command line means imapsync is not graphical, it is textual.
+Usually with command line tools you have to type characters 
+on your keyboard. But your fingers won't suffer much pain 
+typing on the keyboard because working script examples are available,
+nearly ready to run. Most of the time you only have to change 
+the main values in those files and adapt them to your context.
+</P>
+<P>
+Don't be afraid, the mouse won't be forsaken. 
+You can still use the mouse to launch an editor, 
+select/copy/paste complete examples,
+and run the little script with a doubleclick.
+</P>
+<P>
+Imapsync runs on Linux, Windows and OS X (Macintosh world).
+Imapsync is written in the Perl language and thanks to the 
+Perl developpers, Perl runs everywhere, so does imapsync.
+</P>
+<P>
+While operating systems have a lot in common, they sometimes differ,
+especially within syntax. I won't blame anyone, historically Windows 
+came after Unix. The marvelous designers in this old times 
+decided it would be very cool to not share exactly the same syntax 
+for doing the same things. Thanks guys, great thinking!
+</P>
+<P>
+To avoid you to learn by headaches a system you do not master 
+I will give examples in both worlds, Unix and Windows. 
+OS X users are in the Unix world nowadays so they must follow 
+the Unix examples.
+</P>
+
+<A NAME="toc9"></A>
+<H1>4. Conventions</H1>
+
+<P>
+In order to simplify display or print,
+each imapsync command line is usually written in several lines
+but it could be written in one single line.
+</P>
+<P>
+If you prefer to use the whole command written in one single line then 
+just remove the last visible character of each line and
+also the carriage return character. 
+The last visible character meaning "command continues on next line"
+is the backslash \ character on Unix examples 
+or the caret ^ character on Windows examples.
+</P>
+<P>
+For example, on Unix
+</P>
+
+<PRE>
+    imapsync \
+       --host1 test.lamiral.info \
+       --user1 test1 \
+       --password1 secret1 \
+       ...
+</PRE>
+
+<P>
+is equivalent to
+</P>
+
+<PRE>
+    imapsync --host1 test.lamiral.info --user1 test1 --password1 secret1 ...
+</PRE>
+
+<P>
+and on Windows
+</P>
+
+<PRE>
+    imapsync.exe ^
+       --host1 test.lamiral.info ^
+       --user1 test1 ^
+       --password1 secret1 ^
+       ...
+</PRE>
+
+<P>
+is equivalent to
+</P>
+
+<PRE>
+    imapsync --host1 test.lamiral.info --user1 test1 --password1 secret1 ...
+</PRE>
+
+<A NAME="toc10"></A>
+<H1>5. Why start with a test account on destination host2?</H1>
+
+<P>
+A little explanation about this hint.
+Imapsync is safe with accounts on host1, 
+it doesn't change anything on them, it just read them. 
+The exception of this safe principle is when --delete option is used, 
+since --delete removes on host1 each message successfully copied to host2. 
+</P>
+<P>
+It's not the same for destination accounts as imapsync writes on host2 accounts. 
+Imapsync creates folders on them, add messages, set flags on messages. 
+It isn't a safe behavior on a real account. So don't use a real user account
+to test imapsync. Learn to use it and see what it does on a test account at host2.
+</P>
+<P>
+What can badly happen? The most common bad behaviour is
+the folders mapping won't be what you expect because it is strictly
+reproduced from  host1 to  host2. The second bad behaviour is
+duplicates on second run and after, it's rare but it can happen, 
+depending on imap server software changing headers. Solutions
+to avoid duplicates are often easy. It's also possible to remove 
+the duplicates on host2 but it's better to avoid them on user accounts,
+users won't like you mess up their mailboxes.
+</P>
+
+<A NAME="toc11"></A>
+<H1>6. Imapsync default behaviour</H1>
+
+<P>
+By default, so unless explicitely told to do something else:
+</P>
+
+<UL>
+<LI>Imapsync syncs all folders of host1
+<LI>Imapsync syncs all messages from host1, except duplicates.
+<LI>Imapsync syncs all flags, at least all allowed by host2.
+<P></P>
+</UL>
+
+<OL>
+<LI>To go further with imapsync +
+<P></P>
+Imapsync has many options but you can ignore most of them 
+and still make great transfers. 
+<P></P>
+</OL>
+
+<UL>
+<LI>Option names all begin with two minus characters <CODE>--</CODE>, like <CODE>--automap</CODE> or <CODE>--dry</CODE> etc.
+<LI>Option names relative to the <B>source</B> account are ended with <B>1</B>, like <CODE>--host1</CODE>
+<LI>Option names relative to the <B>destination</B> account are ended with <B>2</B>, like <CODE>--host2</CODE>
+<LI>Some options need a <B>value</B>, like <CODE>--host1</CODE> <B><CODE>source.server.tld</CODE></B>
+<LI>Some options are standalone, like <B><CODE>--ssl1</CODE></B>
+<LI>Any order is possible but when an option needs a value then the value must follow its option name, of course.
+</UL>
+
+<!-- html code generated by txt2tags 2.6 (http://txt2tags.org) -->
+<!-- cmdline: txt2tags -i doc/TUTORIAL_Unix.t2t -t html -\-toc -o doc/TUTORIAL_Unix.html -->
+</BODY></HTML>

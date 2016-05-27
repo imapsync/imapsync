@@ -1,0 +1,74 @@
+#!/bin/cat
+# $Id: FAQ.Domino.txt,v 1.5 2016/01/18 18:14:12 gilles Exp gilles $
+
+=============================
+  Imapsync tips for Domino.
+=============================
+
+
+======================================================================
+Q. From Domino Notes to xxx
+
+On Windows use:
+
+  imapsync.exe ... --sep1 "\\" --prefix1 ""
+
+On Unix use:
+
+  imapsync ... --sep1 '\' --prefix1 '' 
+
+======================================================================
+Q. From xxx to Domino Notes
+
+Domino doesn't accept INBOX subfolders. 
+
+On Windows:
+
+  imapsync.exe ... ^
+    --sep2 "\\" --prefix2 "" ^
+    --regextrans2 "s,^Inbox\\(.*),$1,i"  
+
+On Unix:
+
+  imapsync ... \
+    --sep2 '\' --prefix2 '' \
+    --regextrans2 's,^Inbox\\(.*),$1,i'
+
+If you want to sync the complete host1 mailbox in a subfolder called OLDBOX use:
+
+On Windows:
+  imapsync.exe ... ^
+    --sep2 "\\" --prefix2 "" ^
+    --subfolder2 "OLDBOX" --justfolders --dry
+
+On Unix:
+  imapsync ... \
+  --sep2 '\' --prefix2 '' \
+  --subfolder2 'OLDBOX' --justfolders --dry
+    
+If the output is correct for you then remove --dry and have a run.
+Verify the folder hierarchy is good on host2 then remove --justfolders to
+sync the messages.
+
+For Domino with imapsync and Domino on Linux:
+(Thanks to Zafer)
+
+R. We've migrated about 5000 users from cyrus to lotus domino 853! 
+Mails are being copied into the new created lotus domino mailbox 
+retaining the existing folder structure from the old mail database.
+This means that sent mails can be found in the sent folder and 
+mails from the old inbox are copied into the new inbox
+We also marked migrated mails with the header Migratedbyus
+
+For Domino 853FP6 on Linux, we used this command on Unix:
+
+  imapsync \
+  --host1 hhh1  --user1 uuu1  --password1 ppp1 \
+  --host2 hhh2  --user2 uuu2  --password2 ppp2 \
+  --exclude "^INBOX/Trash"  --exclude 'Junk|Drafts' \
+  --regextrans2 's#^INBOX/Sent$#^Sent#' \
+  --prefix2 ""  --sep2 "\/" \
+  --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Migratedbyus:$2\nx-MailDate:$2}gxms'
+
+
+======================================================================

@@ -1,54 +1,110 @@
 #!/bin/cat
-# $Id: TODO,v 1.127 2014/11/14 17:06:17 gilles Exp gilles $
+# $Id: TODO,v 1.149 2016/01/21 15:21:17 gilles Exp gilles $
 
 TODO file for imapsync
 ----------------------
 
 Start a wiki for imapsync.
 
-Write a tutorial.
-Add a best practice migration tips document.
+Write a Windows tutorial, TUTORIAL_Windows.html.
+
+Write a good practices migration tips document, GOOD_PRACTICES.html
+
+Add uidexpunge with --delete if possible (like with --delete2).
+
+Add the possibility to specify a unity with --maxsize and --minsize
+Example --maxsize 10MB --minsize 10KB
+B
+KB
+MB
+GB
+TB
+
+
+WANTED 2015_12_16 Gilles Lamiral
+Add "df -i" with usecache and abort if the number of messages 
+to transfer will exhaust empty inodes used by the cache.
+Looks like module Filesys::DfPortable will help for Unix and Win32.
+
+
+WANTED 2015_06_02 Karen F Bath. 
+Add skipped messages in the final dump.
+Print the list of messages not copied and why (duplicates or void header).
+I would like to request if you could add additional errors to the bottom,
+as we find that things like MaxLineLength and maxsize limit are classed 
+as skipped messages and in my opinion are errors; as the email message 
+is not transferred but this is not logged at the bottom.
+We have our own scan script which we run on all log files at the end
+and copy the users logs into subfolders that have issues. 
+I've attached a list of things we search for.
+
+"Error", "Output"
+NO Mailbox already exists, "Folder"
+NO LOGIN failed, "NoLogin"
+Could not create folder, "Linux"
+Error sending, "Linux"
+Write failed 'no error caught', "Linux"
+line length exceeds maxlinelength, "Linux"
+BAD Command Argument Error. 11, "Linux"
+Failure: can not open, "Linux"
+No not connected, "Linux"
+Write failed 'Connection reset by peer', "Linux"
+could not be fetched:, "Linux"
+NO Mailbox does not exist,"Error"
+exceeds maxsize limit 20971520 bytes,"Error"
+error while reading data from server: Connection reset by peer (4x),"Error"
+Folder [Inbox] already exists,"Error"
+
+WANTED Add a well described problem for each problem detected
+and counted in error counter statistics.
+
+
+
+WANTED 2015_05_18
+I'd like to be able to print the messages subjects, on some logs:
+For instance:
+    msg INBOX.Archived/95551 marked \Deleted on host2 [GyDD6WpsFEtyBzNFnv]
+    msg [Gmail]/All Mail/281079 copying to INBOX.Archived
+It would be great to be able to print the email subject, in order to debug or to get more useful information.
+
+
+WANTED 2015_04_25
+Add duplicates test option.
+
+
+
+
+WANTED 2015_03_06
+Dealing with Content-Type Message/Partial
+Extract the components of the partial messages and construct them 
+with reformime as one message which can then be transferred. (Larry Moore)
+See also uudeview http://www.fpx.de/fp/Software/UUDeview/ 
+(Larry said uudeview is weird on Partial issue, too old maybe)
+
+Apply --disarmreadreceipts only to UNSEEN messages.
+
+Add an exit value when exiting because of --exitwhenover
+The goal is to know easily why to restart later.
 
 Write a Mail::imapsync package and use it.
 
-Evaluate 
+One day, when I have really nothing better to do, evaluate: 
 http://www.rackspace.com/apps/email_hosting/migrations
 http://www.yippiemove.com/
 http://www.migrationwiz.com/
 http://www.microsoft.com/download/en/details.aspx?id=1329 "Microsoft Transporter Suite"
 
-Separate the online site in a subfolder site/ or www/  and make the upper directory simple.
-
-Add an option to remove empty folders on host1, except INBOX.
-Is it possible to run imapsync in a way that empty folders on host1
-aren't created at all on host2? 
-
-Apply --disarmreadreceipts only to UNSEEN messages.
-
-Convert folder names to utf-8 and print them next to the uft-7 ones.
-Look at imapsync/W/learn/ 
-./imap_utf7 data_utf7
-
-Add an exit value when exiting because of --exitwhenover
-The goal is to know easily why to restart later.
 
 Add --mark-as-deleted1 --mark-as-deleted2 as
 aliases for --noexpunge1 --delete1 and --noexpunge2 --delete2
 
 Move --help documentation into the man page so that description is easier to find.
 
-Feature request for ImapSync.
-Can you setup an option to make it stop if the destination mailbox reports that it is over quota? 
-
-Print the list of messages not copied and why (duplicates or void header)
-
 Fix bug found by Pavel Stano on 01/06/2012 (june) imapsync never stop login
 when login fails with a "* BYE Temp error" from server.
 
 Consider /var/tmp/ instead of /tmp (/tmp is destoyed 
 on some Unix at reboot)
-
-Add a FAQ entry about long path over than 260 character on Win32. 
 
 Fix long path over than 260 character on Win32 with --usecache
 Fix inode crunching with --usecache
@@ -67,8 +123,6 @@ find, but I had one large folder with quite a few, and in this case it would hav
 been a big help.
 
 
-Find a way to avoid passwords in --debugimap unless needed.
-
 Explain that users can win time/bandwidth by using --expunge
 
 Fix "\Forwarded" flag bug in courier.
@@ -77,10 +131,7 @@ Does \lalala can be forbidden (courier does a
 with 
 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
 
-Add a well described problem for each problem detected
-and counted in error counter statistics.
-
-Add sync imap keywords. Sync gmail labels to imap keyword
+Add sync imap keywords. Sync Gmail labels to imap keyword
 http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=503159
 http://www.linux-france.org/prj/imapsync_list/msg00022.html
 http://mail.google.com/support/bin/answer.py?hl=en&answer=77657
@@ -118,11 +169,6 @@ Fix bug "not possible to use space in the imap password"
 
 Add kerberos authentification
 
-Add stdin/stdout filter before transfer:
-"Now i asked me, how to modify your perl program to work with
-that - in example, to write each mail to stdout, pipe that to the
-convertion program, and read the result from stdin - and this all before
-the mail will transfer to the target imap-server"
 
 Fix bug with folder names starting with an asterisk: *Archiv
 Sending: 220 SELECT *Archiv/Support/foobar
@@ -154,6 +200,93 @@ Add cyrus link about INBOX. namespace
 http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 
 ===========================================================================
+Now the TODO done! (or not)
+===========================================================================
+
+
+DONE 2016_01_06. Write a Unix tutorial, TUTORIAL_Unix.html.
+
+DONE 2015_12_26. WANTED 2015_03_24
+Add --sslargs with usage like:
+imapsync ...  --sslargs 'SSL_version=SSLv3' --sslargs 'SSL_use_cert=1' \
+              --sslargs 'SSL_verify_mode=SSL_VERIFY_PEER'
+See perldoc IO::Socket::SSL for all possibilities.
+
+
+DONE 2015_12_25 Gilles Lamiral
+Add --ssldebug 0-4
+
+DONE 2015_10_06. Find a way to avoid passwords in --debugimap unless needed.
+Proposed in Mail-IMAPClient via $imap->Showcredentials()  
+in patch at
+See https://rt.cpan.org/Public/Bug/Display.html?id=107592
+
+DONE 2015_12_03 WANTED 2015_11_24 Jens Herrmann 
+Add --logdir to allow imapsync choosing the filename while allowing 
+user to choose the dirname part.
+
+DONE. 2015_08_10. 
+Guess separators and prefixes when NAMESPACE is not available,
+instead of forcing the user to guess and set them.
+
+DONE 2015_08_03. WANTED 2015_07_21
+Fix W/learn/imap_utf7_encode
+--regextrans2 "s,El&AOk-ments,&AMk-l&AOk-ments,"
+
+DONE. Add a FAQ entry about long path over than 260 character on Win32. 
+
+DONE. Build and distribute a standalone Darwin Mac OS X binary.
+It's called imapsync_bin_Darwin
+
+
+DONE. Add a NOP for host2 for each fake copy in --dry mode. 
+Goal is to avoid timeouts happening only because of --dry
+
+DONE 2015_05_09 WANTED 2015_04_25
+Add an option "--subfolder2 FOO" to move all folders to a subfolder FOO:
+On Windows:
+    --regextrans2 "s,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1," \
+    --regextrans2 "s,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,"
+
+
+DONE. Quota are read if available and warning is printed if 90% quota reached.
+Can you setup an option to make it stop if the destination mailbox reports 
+that it is over quota?
+
+
+DONE. Add stdin/stdout filter before transfer:
+"Now i asked me, how to modify your perl program to work with
+that - in example, to write each mail to stdout, pipe that to the
+conversion program, and read the result from stdin - and this all before
+the mail will transfer to the target imap-server"
+http://www.courier-mta.org/maildrop/reformime.html
+Look at IPC::Open2, assuming a good and safe pipe, 
+or write more code handling all the bad stranger behaviours possible.
+Option name: --pipemess "command arg1 arg2 ..."
+
+
+DONE. Transform messages with too long linelength. 
+Office365 and Exchange abort connexion
+when they encounter a message with more than 10000 characters on a single line.
+Could be done with the previous --pipemess with reformime.
+Thanks to Larry Moore for suggesting reformime tool!
+Usage: --maxlinelength 9900 maxlinelengthcmd 'reformime -r7'
+
+
+DONE. Add DavMail in Similar Softwares section. http://davmail.sourceforge.net/
+
+DONE. Convert folder names to utf-8 and print them next to the uft-7 ones.
+Look at imapsync/W/learn/ 
+./imap_utf7 data_utf7
+
+DONE. Separate the online site in a folder site/ or www/  and make the upper directory simple.
+
+DONE. --skipemptyfolders
+Is it possible to run imapsync in a way that empty folders on host1
+aren't created at all on host2? Yes with --skipemptyfolders
+
+NO. Add an option to remove empty folders on host1, except INBOX.
+Use --skipemptyfolders instead
 
 DONE. Subject is output when APPEND fails. Done since a long time.
 Suggestion: it's very difficult to track down messages which are behaving
@@ -169,7 +302,7 @@ DONE. Add options --log and --logfile to log both on screen and to a file.
 DONE. Document the tee command solution (Unix and Windows) in the FAQ.
 
 NEVER. Add an option to implement the faq entry about copying a contact folder.
-(write an dedicated software instead!)
+(write a dedicated software instead!)
 
 NEVER. Use examine() instead of select() in --dry mode.
 Add a method doing the switch automagicaly.
@@ -209,7 +342,7 @@ separator inversion produces an invalid character.
 From uw to cyrus, for example :
 FoldA/FoldB.ext ->  FoldA.FoldB/ext
 
-DONE. Not donse since useless now (--useuid)
+DONE. Not done since useless now (--useuid)
 Add a --skipheaderinfolder option 
 
 DONE. Not fixed since only reported once a long time ago.
@@ -314,9 +447,9 @@ DONE. Write option --delete2foldersonly regex.
 Example: to permit a sync in a subfolder with --delete2folder
 --regextrans2 's#(.*)#NEW/$1#'  --delete2foldersonly /^NEW/ 
 
-DONE. Write option --delete2foldersnot regex.
+DONE. Write option --delete2foldersbutnot regex.
 Example: to permit a sync but not deleting folder OLD
---delete2foldersnot /^OLD/ 
+--delete2foldersbutnot /^OLD/ 
 
 DONE. Add cache to speed up transfer. Option --usecache 
 
@@ -458,7 +591,7 @@ DONE. Fix --ssl --justconnect bug
 DONE. Fix --ssl needs --authmech login with gmail. Why? 
 
 DONE. Try a 50Mo message transfer (slow ?)
-fast !
+fast!
 
 DONE. Add my amazon wishlist link.
 
@@ -508,7 +641,7 @@ To sync a complete account in a subfolder called FOO:
 DONE. Make the --justconnect a real "just connect" connection,
 not a auth connection like it is now.
 
-DONE. Add --prefix1 option. Don't know what is the need exactly.
+DONE. Add --prefix1 option.
 The need is to remove this prefix when building target folder names.
 
 DONE. Read the IMAP RFC http://www.rfc-editor.org/rfc/rfc2342.txt

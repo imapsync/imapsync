@@ -1,29 +1,43 @@
 @REM
-@REM $Id: sync_loop_windows.bat,v 1.7 2014/06/24 08:40:46 gilles Exp gilles $
+@REM $Id: sync_loop_windows.bat,v 1.13 2015/11/26 20:35:09 gilles Exp gilles $
 @REM
 @REM imapsync massive sync example batch for Windows users
-@REM lines beginning with REM are just comments 
+@REM lines beginning with @REM are just comments 
 @REM
-@REM Replace "imap.side1.org" and "imap.side2.org" with your own values
+@REM See also http://imapsync.lamiral.info/FAQ.d/FAQ.Massive.txt
 @REM
-@REM ==== Credentials file ====
+@REM You should get familiar with a simple and single imapsync transfer before
+@REM playing with this loop batch file. See and play with imapsync_example.bat
 
-@REM Credentials data are supposed to be in the file named "file.txt" in the following format
-@REM user001_1;password001_1;user001_2;password001_2
+@REM ==== How it works ====
+@REM 
+@REM The files 
+@REM * sync_loop_windows.bat 
+@REM * imapsync or imapsync.exe and 
+@REM * file.txt 
+@REM are supposed to be in the same directory.
+
+
+@REM ==== Credentials file ====
+@REM
+@REM Credentials data are supposed to be in the file named "file.txt" in the following format:
+@REM host001_1;user001_1;password001_1;host001_2;user001_2;password001_2;
 @REM ...
 @REM Separator is character semi-colon ; it can be replaced with any character by changing 
 @REM the part "delims=;" in the FOR loop below.
-@REM Each data line contains 4 columns, columns are parameters for --user1 --password1 --user2 --password2
 @REM 
+@REM Each data line contains 6 columns, columns are parameter values for 
+@REM --host1 --user1 --password1 --host2 --user2 --password2
+@REM and a fake parameter to avoid CRLF part going into the 6th parameter password2.
 @REM The credentials filename "file.txt" used for the loop can be renamed 
 @REM by changing "SET csvfile=file.txt" below.
 
 @REM ==== Log files ====
-
-@REM Log files are in the LOG_imapsync subfolder
+@REM
+@REM Log files are in the LOG_imapsync sub-folder
 
 @REM ==== Parallel executions ====
-
+@REM
 @REM If you want to do parallel runs of imapsync then this current script is a good start.
 @REM Just copy it several times and replace, on each copy, the csvfile variable value.
 @REM Instead of SET csvfile=file.txt write for example
@@ -34,7 +48,7 @@
 @REM into file01.txt file02.txt etc.
 @REM After that, just double-clic on each batch file to launch each process
 @REM 
-@REM Be aware that imapsync can be  also a cpu/memory cruncher on the remote imap servers,
+@REM Be aware that imapsync can be a cpu/memory cruncher on the remote imap servers,
 @REM especially in parallel runs. The best practice rule to answer the question
 @REM "how many processes in parallel can we run?" is:
 @REM 1) Measure the total transfer rate by adding each one printed in each run.
@@ -43,21 +57,38 @@
 @REM    Note N as the number of parallel runs you got until then.
 @REM 4) Only keep N-2 parallel runs for the future.
 
-@REM ==== The real stuff ====
+@REM For Parallel executions, there is also a PowerShell script written by 
+@REM CARTER Alex explained and located on the imapsync archive list:
+@REM http://www.linux-france.org/prj/imapsync_list/msg02137.html
+
+@REM ==== The real stuff is below ====
 
 @REM @echo off
 
+@REM First let's go in the directory this batch is
+CD /D %~dp0
+
+@REM Let's get arguments of this batch, they will be added to imapsync arguments, if any. 
+@SET arguments= & @SET command=%~0
+@IF %1. EQU . GOTO args_end
+:args_loop
+@SET arguments=%arguments% %1 & @SHIFT
+@IF %1. NEQ . GOTO args_loop
+@ECHO Command and arguments: %command% %arguments%
+:args_end
+
+@REM Now the loop on the csv file.
 SET csvfile=file.txt
 
-FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (%csvfile%) DO (
-@ECHO ==== Syncing from account %%G to account %%I ====
+FOR /F "tokens=1,2,3,4,5,6,7 delims=; eol=#" %%G IN (%csvfile%) DO (
+@ECHO ==== Starting imapsync from --host1 %%G --user1 %%H to --host2 %%J --user2 %%K ====
 @ECHO.
 
 imapsync ^
-  --host1 imap.side1.org --user1 %%G --password1 %%H ^
-  --host2 imap.side2.org --user2 %%I --password2 %%J 
+  --host1 %%G --user1 %%H --password1 %%I ^
+  --host2 %%J --user2 %%K --password2 %%L %arguments%
 
-@ECHO.==== End syncing from account %%G to account %%I ====
+@ECHO ==== Ended imapsync from --host1 %%G --user1 %%H to --host2 %%J --user2 %%K ====
 @ECHO.
 )
 

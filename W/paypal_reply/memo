@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.16 2014/05/01 22:08:06 gilles Exp $
+# $Id: memo,v 1.18 2015/12/03 16:47:48 gilles Exp gilles $
 
 
 echo paypal_bilan_todo
@@ -27,6 +27,35 @@ Europe a un autre assujetti : Article 262 ter => Exoneration
 
 EOF
 }
+
+
+
+echo paypal_bilan_licence_support_only_csv
+paypal_bilan_licence_support_only_csv() {
+# DID output diff between paypal_bilan_1.79 and next
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+cd /g/var/paypal_bilan_support_only/ || return 1
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.79 \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --write_invoices --first_in 30001 \
+   2015_08.csv \
+ > 2015_08.out1 2>&1 || return 1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --write_invoices --first_in 30001 \
+   2015_08.csv \
+ > 2015_08.out2 2>&1 || return 1
+
+echo diff 2015_08.out1 2015_08.out2
+     diff 2015_08.out1 2015_08.out2
+)
+}
+
+
+
 
 echo paypal_bilan_licence_support_same_button_04_2014_04_csv
 paypal_bilan_licence_support_same_button_04_2014_04_csv() {

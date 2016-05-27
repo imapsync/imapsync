@@ -1,17 +1,341 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.607
+head: 1.678
 branch:
 locks: strict
-	gilles: 1.607
+	gilles: 1.678
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 607;	selected revisions: 607
+total revisions: 678;	selected revisions: 678
 description:
 ----------------------------
-revision 1.607	locked by: gilles;
+revision 1.678	locked by: gilles;
+date: 2016/01/21 19:47:02;  author: gilles;  state: Exp;  lines: +14 -21
+README part check.
+----------------------------
+revision 1.677
+date: 2016/01/19 14:55:06;  author: gilles;  state: Exp;  lines: +295 -289
+help message easier to copy in README part.
+----------------------------
+revision 1.676
+date: 2016/01/16 05:30:00;  author: gilles;  state: Exp;  lines: +282 -77
+Changed basic option list by --help output.
+----------------------------
+revision 1.675
+date: 2016/01/06 01:10:05;  author: gilles;  state: Exp;  lines: +11 -9
+Added --errorsmax in --help message.
+----------------------------
+revision 1.674
+date: 2015/12/28 18:31:06;  author: gilles;  state: Exp;  lines: +17 -10
+Added --debugssl int. Default is like --debugssl 1 (Only print out errors).
+----------------------------
+revision 1.673
+date: 2015/12/26 02:00:05;  author: gilles;  state: Exp;  lines: +141 -145
+Added --timeout1
+Added --timeout2 (--timeout still available to set both with the same value)
+Added --sslargs1 to pass any ssl parameter for host1 connection.
+Added --sslargs2 to pass any ssl parameter for host2 connection.
+Example --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
+Removed --allow3xx option.
+----------------------------
+revision 1.672
+date: 2015/12/10 10:23:49;  author: gilles;  state: Exp;  lines: +9 -8
+Added require Encode::Byte to solve "The locale codeset (cp1252) isn't one that perl can decode" on Win32.
+----------------------------
+revision 1.671
+date: 2015/12/09 03:22:46;  author: gilles;  state: Exp;  lines: +48 -47
+Added env_proxy call in sub xoauth2() to read proxy settings from environment variable without  PERL_LWP_ENV_PROXY=1
+----------------------------
+revision 1.670
+date: 2015/12/03 02:36:41;  author: gilles;  state: Exp;  lines: +11 -12
+Bugfix. logfile missed user2.
+----------------------------
+revision 1.669
+date: 2015/12/03 02:03:53;  author: gilles;  state: Exp;  lines: +138 -83
+--logdir --logfile now compatible with old --logfile alone. tests cases.
+----------------------------
+revision 1.668
+date: 2015/12/02 13:23:22;  author: gilles;  state: Exp;  lines: +94 -86
+Fixed some perlcritics.
+----------------------------
+revision 1.667
+date: 2015/11/30 02:44:12;  author: gilles;  state: Exp;  lines: +156 -60
+--automap implemented.
+Added --justautomap to see what will happen with --automap and --f1f2 options.
+----------------------------
+revision 1.666
+date: 2015/11/23 14:56:56;  author: gilles;  state: Exp;  lines: +50 -19
+Doc fix. --logfile path inline and in usage().
+Added require JSON::WebToken::Crypt::RSA and Crypt::OpenSSL::RSA to a good build on Win32.
+Tested OAUTH2 on windows. Works.
+Bug fix. Changed "Host1: checking all wanted folders exist" not efficient algorythm
+  to allow a 2.4 million folders account. Yes, some people have this...
+----------------------------
+revision 1.665
+date: 2015/11/06 00:45:35;  author: gilles;  state: Exp;  lines: +29 -9
+Made quota wrnings, quota human usable.
+----------------------------
+revision 1.664
+date: 2015/11/04 18:09:22;  author: gilles;  state: Exp;  lines: +362 -323
+Back to require IO::Socket::SSL;
+instead of use.
+
+Reformated the usage output.
+Added --f1f2    str1=str2 : Force folder str1 to be synced to str2.
+--f1f2 overrides any automap mapping and any regextrans2
+----------------------------
+revision 1.663
+date: 2015/10/03 23:59:27;  author: gilles;  state: Exp;  lines: +12 -9
+Bugfix. Return with previous Debug when no quota available.
+----------------------------
+revision 1.662
+date: 2015/10/03 22:14:37;  author: gilles;  state: Exp;  lines: +84 -24
+Added quota_extract_storage_limit_in_bytes()
+Added quota_extract_storage_current_in_bytes()
+----------------------------
+revision 1.661
+date: 2015/09/28 15:36:41;  author: gilles;  state: Exp;  lines: +18 -19
+Better prints.
+----------------------------
+revision 1.660
+date: 2015/09/28 14:18:10;  author: gilles;  state: Exp;  lines: +21 -15
+IMAP output as an early stage of quota and ID.
+----------------------------
+revision 1.659
+date: 2015/09/21 22:47:50;  author: gilles;  state: Exp;  lines: +107 -29
+Better ID format sent. Order terms like in thr RFC.
+Added imapsync_id_github, in case.
+----------------------------
+revision 1.658
+date: 2015/09/19 08:56:07;  author: gilles;  state: Exp;  lines: +8 -8
+RCS date in id.
+----------------------------
+revision 1.657
+date: 2015/09/19 08:26:04;  author: gilles;  state: Exp;  lines: +206 -77
+Started to use global $sync-> in order to reduce number of parameters in routines.
+----------------------------
+revision 1.656
+date: 2015/09/13 16:11:07;  author: gilles;  state: Exp;  lines: +46 -24
+Some perlcritic fixes.
+----------------------------
+revision 1.655
+date: 2015/09/11 01:57:51;  author: gilles;  state: Exp;  lines: +15 -12
+Bugfix testing automap.
+----------------------------
+revision 1.654
+date: 2015/09/11 01:23:42;  author: gilles;  state: Exp;  lines: +121 -76
+Added --automap to implement rfc6154. Turned on by default.
+Use --noautomap to avoid it.
+----------------------------
+revision 1.653
+date: 2015/09/05 21:35:56;  author: gilles;  state: Exp;  lines: +27 -25
+IO::Socket::SSL mandatory to run.
+SSL_VERIFY_NONE in --ssl and --tls
+----------------------------
+revision 1.652
+date: 2015/08/28 14:59:59;  author: gilles;  state: Exp;  lines: +8 -8
+"Initial difference" -> "Start difference"
+----------------------------
+revision 1.651
+date: 2015/08/18 22:35:05;  author: gilles;  state: Exp;  lines: +8 -8
+fixed xoauth2 calls.
+----------------------------
+revision 1.650
+date: 2015/08/16 00:42:58;  author: gilles;  state: Exp;  lines: +28 -28
+Changed some output, added Host1: or Host2 at the begining of line.
+----------------------------
+revision 1.649
+date: 2015/08/10 03:10:15;  author: gilles;  state: Exp;  lines: +7 -7
+576 tests.
+----------------------------
+revision 1.648
+date: 2015/08/10 02:58:21;  author: gilles;  state: Exp;  lines: +99 -39
+Added guess_prefix() and guess_separator()
+Guess prefixes and separators instead of forcing the user to find them.
+----------------------------
+revision 1.647
+date: 2015/08/07 04:35:15;  author: gilles;  state: Exp;  lines: +33 -20
+Added folders counting outputs.
+----------------------------
+revision 1.646
+date: 2015/08/07 00:07:39;  author: gilles;  state: Exp;  lines: +16 -6
+Added sub imap_utf7_encode( ). Not used.
+----------------------------
+revision 1.645
+date: 2015/07/31 14:48:11;  author: gilles;  state: Exp;  lines: +11 -11
+Better outpout in login_imap()
+----------------------------
+revision 1.644
+date: 2015/07/17 01:22:52;  author: gilles;  state: Exp;  lines: +9 -7
+Added NOOP in --dry mode during fake APPEND.
+----------------------------
+revision 1.643
+date: 2015/06/24 01:01:00;  author: gilles;  state: Exp;  lines: +17 -10
+Added --fetch_hash_set "1:*" to permit Mail2World success.
+Need a patched Mail::IMAPClient 3.35 in sub fetch_hash()
+See https://rt.cpan.org/Public/Bug/Display.html?id=105456
+----------------------------
+revision 1.642
+date: 2015/05/11 01:07:37;  author: gilles;  state: Exp;  lines: +9 -6
+Added JSON::WebToken in modules list.
+----------------------------
+revision 1.641
+date: 2015/05/09 17:52:27;  author: gilles;  state: Exp;  lines: +27 -128
+Replaced imap servers software list by a link to the web list.
+Added option --subfolder2 SUB Move whole host1 folders hierarchy under folder SUB.
+----------------------------
+revision 1.640
+date: 2015/05/05 01:03:34;  author: gilles;  state: Exp;  lines: +18 -12
+No folders sizes if --justfolders, unless really wanted.
+----------------------------
+revision 1.639
+date: 2015/04/16 19:33:59;  author: gilles;  state: Exp;  lines: +7 -7
+*** empty log message ***
+----------------------------
+revision 1.638
+date: 2015/04/09 22:47:24;  author: gilles;  state: Exp;  lines: +19 -11
+No warning about messages when --dry --justfolders together.
+----------------------------
+revision 1.637
+date: 2015/04/01 01:36:37;  author: gilles;  state: Exp;  lines: +9 -9
+Bugfix. Win32 regression with long_path_2_prefix test. Was too long.
+----------------------------
+revision 1.636
+date: 2015/03/31 14:54:41;  author: gilles;  state: Exp;  lines: +107 -65
+Added errors dump. By default. Use --noerrorsdump to avoid it.
+Added --errorsmax switch. Default is like --errorsmax 50. Exit after 50 errors encountered.
+----------------------------
+revision 1.635
+date: 2015/03/30 07:36:08;  author: gilles;  state: Exp;  lines: +19 -15
+Changed basic example to a working one with test1.lamiral.info
+----------------------------
+revision 1.634
+date: 2015/03/25 02:10:56;  author: gilles;  state: Exp;  lines: +10 -7
+Bugfix. Remove tmp files upon failure as well.
+----------------------------
+revision 1.633
+date: 2015/03/25 01:14:36;  author: gilles;  state: Exp;  lines: +96 -73
+IO::Socket::SSL not mandatory. (Sometimes hard to install).
+Bugfix. SKIP sections for Unix or Windows tests. Removed no_plan. 561 non-regression tests.
+----------------------------
+revision 1.632
+date: 2015/03/23 23:29:16;  author: gilles;  state: Exp;  lines: +16 -6
+Added tests_live_result() call at the end of --livetests
+----------------------------
+revision 1.631
+date: 2015/03/23 00:04:04;  author: gilles;  state: Exp;  lines: +52 -41
+README part review.
+----------------------------
+revision 1.630
+date: 2015/03/20 03:07:59;  author: gilles;  state: Exp;  lines: +93 -52
+Bugfix. Made --tests succeed on Windows. At least at home.
+----------------------------
+revision 1.629
+date: 2015/03/19 03:43:24;  author: gilles;  state: Exp;  lines: +10 -16
+Usability. Better output of folders excluded by --exclude and folders included by --include
+----------------------------
+revision 1.628
+date: 2015/03/19 03:03:28;  author: gilles;  state: Exp;  lines: +80 -38
+Bugfix. tests_imapsync_basename only check substring imapsync in the command name used.
+Feature. Added --maxlinelengthcmd that will be called upon when a line over --maxlinelength is detected. --maxlinelengthcmd 'reformime -r7' on Linux.
+----------------------------
+revision 1.627
+date: 2015/03/16 15:55:57;  author: gilles;  state: Exp;  lines: +34 -21
+Added --testslive
+----------------------------
+revision 1.626
+date: 2015/03/15 02:52:43;  author: gilles;  state: Exp;  lines: +20 -20
+Update tests_skipmess()
+----------------------------
+revision 1.625
+date: 2015/03/14 00:32:41;  author: gilles;  state: Exp;  lines: +31 -15
+Bugfix. New disarmreadreceipts was buggy in IMAP. Fixed. \r in the beginning.
+----------------------------
+revision 1.624
+date: 2015/03/13 02:05:12;  author: gilles;  state: Exp;  lines: +41 -18
+Searching for "deep recursion" with skipmess on "Partial" messages. Not found.
+----------------------------
+revision 1.623
+date: 2015/03/12 16:33:59;  author: gilles;  state: Exp;  lines: +21 -6
+Made check folders exist on host1 independent of checkselectable.
+----------------------------
+revision 1.622
+date: 2015/03/12 16:28:38;  author: gilles;  state: Exp;  lines: +24 -11
+Bugfix. --folderfirst and --folderlast generated an error when their value folder does not exist. Existence is checked.
+----------------------------
+revision 1.621
+date: 2015/03/12 10:40:11;  author: gilles;  state: Exp;  lines: +86 -21
+Bugfix --disarmreadreceipts last fix was a bad one. In IMAP \n is \r\n.
+Added error handling for --pipemess
+Adapted tests for "Content-Type: Message/Partial" --slipmess
+----------------------------
+revision 1.620
+date: 2015/03/10 04:07:33;  author: gilles;  state: Exp;  lines: +141 -10
+Bugfix. --disarmreadreceipts used to change Disposition-Notification-To in the body when not available in the header. Now never changed in the body in all cases.
+----------------------------
+revision 1.619
+date: 2015/03/10 03:13:30;  author: gilles;  state: Exp;  lines: +301 -22
+Use \x00 as a separator to detect --delete 2, instead of ¤.
+Added tests for --skipmess, especially for header "Content-Type: Message/Partial"
+Bug detected --disarmreadreceipts isn't correct. Added tests and fix in tests.
+Added tests in tests_regexmess(). Disposition-Notification-To: better handled.
+----------------------------
+revision 1.618
+date: 2015/03/07 04:38:59;  author: gilles;  state: Exp;  lines: +261 -205
+Added --pipemess in order to pass all message to an external filter tool like "reformime -r7".
+----------------------------
+revision 1.617
+date: 2015/03/04 01:09:50;  author: gilles;  state: Exp;  lines: +18 -19
+Link to http://www.imap.org/ changed to archive.org.
+----------------------------
+revision 1.616
+date: 2015/03/02 23:14:42;  author: gilles;  state: Exp;  lines: +86 -10
+Added xoauth2 support. Thanks to Joaquin Lopez.
+----------------------------
+revision 1.615
+date: 2015/03/01 23:26:10;  author: gilles;  state: Exp;  lines: +76 -46
+Fixed tests with "header_line_normalize: remove last blanks".
+Remove the last blanks ( Gmail bug ) to identify message with headers.
+Term::ReadKey and IO::Socket::SSL now in use statements instead of require (so they became mandatory).
+Change list of use pragmas order to facilitate reading.
+----------------------------
+revision 1.614
+date: 2015/02/22 22:43:16;  author: gilles;  state: Exp;  lines: +90 -46
+Added inline help.
+About --nofoldersizes, foldernames listings, --passfile1 --passfile2.
+Change usage order.
+----------------------------
+revision 1.613
+date: 2015/02/22 01:08:51;  author: gilles;  state: Exp;  lines: +23 -10
+Fixed issue with 1282658400 and logfile() by and system upgrade. Looks like Ubuntu 10.4 was buggy.
+----------------------------
+revision 1.612
+date: 2015/02/03 23:20:51;  author: gilles;  state: Exp;  lines: +17 -13
+Fixed tests_logfile() when TZ is not mine.
+  Works for epoch 0 but found a difference for 1282658400
+----------------------------
+revision 1.611
+date: 2015/02/02 16:14:43;  author: gilles;  state: Exp;  lines: +18 -18
+Started inline help; talk about options everywhere it means and help to lean imapsync.
+Change default useheader. Now it is really like  --useheader "Message-Id" --useheader "Received"
+HMailServer replies two lines with --useheader "Message-Id" --useheader "Message-ID" in older releases.
+----------------------------
+revision 1.610
+date: 2015/01/20 12:07:30;  author: gilles;  state: Exp;  lines: +21 -15
+Bugfix in imap_utf7_decode() + must not be escaped.
+----------------------------
+revision 1.609
+date: 2014/11/28 17:06:53;  author: gilles;  state: Exp;  lines: +14 -8
+Bugfix. --skipmess was not skipping.
+----------------------------
+revision 1.608
+date: 2014/11/28 16:47:29;  author: gilles;  state: Exp;  lines: +95 -12
+Added --skipmess to skip messages matching a regex.
+Example --skipmess 'm/[\x80-ff]/'
+----------------------------
+revision 1.607
 date: 2014/11/14 16:25:06;  author: gilles;  state: Exp;  lines: +46 -40
 Added several checks if IsUnconnected. Goal avoid imap commands while disconnected.
 ----------------------------

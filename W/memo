@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.45 2013/11/11 19:32:19 gilles Exp gilles $
+# $Id: memo,v 1.63 2015/12/18 20:53:37 gilles Exp gilles $
 
 count_nice() {
 
@@ -102,10 +102,43 @@ statistics_VERSION_getstats() {
 
 echo "statistics_VERSION_monthly_ip 02 2012 # long"
 statistics_VERSION_monthly_ip() {
+	statistics_VERSION_getstats
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
+	ls linux-france.org.??-${month}-${year}.imapsync_VERSION || return 1
 	cut -d ' ' -f 1,12,13,18,19 linux-france.org.??-${month}-${year}.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
 }
+
+echo "verify_month_year 02 2015"
+verify_month_year() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	fmy="stats_imapsync_${year}_${month}.ip"
+	test -f "$fmy" || { echo "No $fmy" ; statistics_VERSION_monthly_ip ${month} ${year} ; }
+	test -f "$fmy" || { echo "No $fmy" ; return 1 ; }
+	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
+	diff_month=`expr $fmy_YYYYmm - ${year}${month}` || :
+	echo -n $diff_month
+	test "$diff_month" -ge 1 && echo " is enough" && return 0
+	echo " is not enough"
+	statistics_VERSION_monthly_ip $month $year
+	)
+}
+
+echo "verify_year 2015"
+verify_year() {
+	year=${1:-`date '+%Y'`}
+	now_yearmonth=`date '+%Y%m'`
+	for month in `count_nice 01 12`; do
+		test "$now_yearmonth" -ge "$year$month" && \
+		verify_month_year $month $year
+	done
+	statistics_VERSION_yearly_ip $year
+	statistics_VERSION_synthesis $year
+}
+
 
 echo "statistics_VERSION_monthly_ip_wc 02 2012 # short"
 statistics_VERSION_monthly_ip_wc() {
@@ -177,10 +210,10 @@ statistics_VERSION_yearly_runs() {
 	)
 }
 
-
 echo "statistics_VERSION_synthesis 2012 # short"
 statistics_VERSION_synthesis() {
 	year=${1:-`date '+%Y'`}
+	year_now=`date '+%Y'`
 	(
 	cd /home/lf/glamiral/imapsync_stats
 	echo Nb users each month
@@ -194,11 +227,16 @@ statistics_VERSION_synthesis() {
 	echo Nb users each year
 	wc -l stats_imapsync_????.ip
 	echo "Nb runs each year : "
-	for yyyy in `count_nice 2011 ${year}`; do
+	for yyyy in `count_nice 2011 ${year_now}`; do
 		echo -n "$yyyy: "
 		statistics_VERSION_yearly_runs $yyyy
 	done
+	nb_runs_current_year=`statistics_VERSION_yearly_runs $year_now`
+	current_day_of_year=`date +%j`
+	echo; echo -n "$year_now~~"
+	echo "$nb_runs_current_year/$current_day_of_year*365" | bc 
 	)
+	
 }
 
 
@@ -225,12 +263,44 @@ statistics_VERSION_getstats() {
 
 echo "statistics_VERSION_monthly_ip 02 2012 # long"
 statistics_VERSION_monthly_ip() {
+	statistics_VERSION_getstats
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
-	cut -d ' ' -f 1,12,13,18,19 access.log_${year}${month}??.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
+	ls access.log_${year}${month}??.imapsync_VERSION || return 1
+	cut -d ' ' -f 1,12,13,15,16,18,19 access.log_${year}${month}??.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
 	)
+}
+
+echo "verify_month_year 02 2015"
+verify_month_year() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	fmy="stats_imapsync_${year}_${month}.ip"
+	test -f "$fmy" || { echo "No $fmy" ; statistics_VERSION_monthly_ip ${month} ${year} ; }
+	test -f "$fmy" || { echo "No $fmy" ; return 1 ; }
+	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
+	diff_month=`expr $fmy_YYYYmm - ${year}${month}` || :
+	echo -n $diff_month
+	test "$diff_month" -ge 1 && echo " is enough" && return 0
+	echo " is not enough"
+	statistics_VERSION_monthly $month $year
+	)
+}
+
+echo "verify_year 2015"
+verify_year() {
+	year=${1:-`date '+%Y'`}
+	now_yearmonth=`date '+%Y%m'`
+	for month in `count_nice 01 12`; do
+		test "$now_yearmonth" -ge "$year$month" && \
+		verify_month_year $month $year
+	done
+	statistics_VERSION_yearly_ip $year
+	statistics_VERSION_synthesis $year
 }
 
 echo "statistics_VERSION_monthly_os 08 2012 # short"
@@ -245,8 +315,8 @@ statistics_VERSION_monthly_os() {
 	FreeBSD=`grep -i freebsd stats_imapsync_${year}_${month}.ip | wc -l`
 	Solaris=`grep -i solaris stats_imapsync_${year}_${month}.ip | wc -l`
 	OpenBSD=`grep -i openbsd stats_imapsync_${year}_${month}.ip | wc -l`
-	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd'    stats_imapsync_${year}.ip |wc -l`
-	Nb_All=`cat           stats_imapsync_${year}.ip | wc -l`
+	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd'    stats_imapsync_${year}_${month}.ip |wc -l`
+	Nb_All=`cat           stats_imapsync_${year}_${month}.ip | wc -l`
 	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD Other; do
 		#echo $OS `eval "echo \\$$OS"` / $Nb_All
 		Nb_OS=`eval "echo \\$$OS"`
@@ -315,15 +385,69 @@ statistics_VERSION_monthly() {
 }
 
 
-echo "statistics_VERSION_yearly_ip 2012 # very long"
+echo "statistics_VERSION_yearly_ip 2015 # very long"
 statistics_VERSION_yearly_ip() {
 	year=${1:-`date '+%Y'`}
 	(
 	statistics_VERSION_getstats
 	cd $HOME/imapsync_stats
-	cut -d ' ' -f 1,12,13,18,19 access.log_${year}????.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}.ip
+	cut -d ' ' -f 1,12,13,15,16,18,19 access.log_${year}????.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}.ip
 	)
 }
+
+echo "statistics_VERSION_yearly_ip_resolved 2015 # very long"
+statistics_VERSION_yearly_ip_resolved() {
+	year=${1:-`date '+%Y'`}
+	today=`date +%Y_%m_%d`
+	(
+	cd $HOME/imapsync_stats
+	mkdir -p daily
+	cat stats_imapsync_${year}.ip  | awk '{ count=$1; ip=$2; $1=""; print $2  " " $0 " " count ; }'  \
+	|  webresolve > daily/stats_imapsync_${year}.ip.resolved.${today}.txt
+	)
+}
+
+
+maxmind_update() {
+cat << 'EOF'
+wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz
+wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
+wget http://download.maxmind.com/download/geoip/database/asnum/GeoIPASNum.dat.gz
+gunzip GeoIP.dat.gz
+gunzip GeoIPASNum.dat.gz
+gunzip GeoLiteCity.dat.gz
+sudo cp GeoIP.dat GeoIPASNum.dat GeoLiteCity.dat /usr/share/GeoIP/
+EOF
+}
+
+echo "statistics_VERSION_yearly_ip_geo 2015 # long"
+statistics_VERSION_yearly_ip_geo() {
+	year=${1:-`date '+%Y'`}
+	today=`date +%Y_%m_%d`
+	(
+	cd $HOME/imapsync_stats
+	awk  '{ print $2 }' stats_imapsync_${year}.ip  | xargs -n1 geoiplookup > stats_imapsync_${year}.ipgeo.tmp.countries
+	awk  '{ print $2 }' stats_imapsync_${year}.ip  | xargs -n1 geoiplookup -f /usr/share/GeoIP/GeoLiteCity.dat > stats_imapsync_${year}.ipgeo.tmp.cities
+	cat stats_imapsync_${year}.ipgeo.tmp.countries stats_imapsync_${year}.ipgeo.tmp.cities | sort | uniq -c | sort -n  > stats_imapsync_${year}.ipgeo
+	rm stats_imapsync_${year}.ipgeo.tmp.countries stats_imapsync_${year}.ipgeo.tmp.cities
+	echo stats_imapsync_${year}.ipgeo
+	)
+}
+
+echo "statistics_VERSION_all_years_ip_geo # long"
+statistics_VERSION_all_years_ip_geo() {
+	(
+	cd $HOME/imapsync_stats
+	awk  '{ print $2 }' stats_imapsync_20??.ip  | xargs -n1 geoiplookup > stats_imapsync_20xx.ipgeo.tmp.countries
+	awk  '{ print $2 }' stats_imapsync_20??.ip  | xargs -n1 geoiplookup -f /usr/share/GeoIP/GeoLiteCity.dat > stats_imapsync_20xx.ipgeo.tmp.cities
+	cat stats_imapsync_20xx.ipgeo.tmp.countries stats_imapsync_20xx.ipgeo.tmp.cities | sort | uniq -c | sort -n  > stats_imapsync_20xx.ipgeo
+	rm stats_imapsync_20xx.ipgeo.tmp.countries stats_imapsync_20xx.ipgeo.tmp.cities
+	echo stats_imapsync_20xx.ipgeo
+	)
+}
+
+
+
 
 statistics_VERSION_yearly_runs() {
 	year=${1:-`date '+%Y'`}
@@ -334,34 +458,147 @@ statistics_VERSION_yearly_runs() {
 }
 
 
+statistics_releases_monthly() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}_${month}.ip \
+	&& grep -o -P imapsync/'1\.\d{3}' stats_imapsync_${year}_${month}.ip \
+	| grep -o   -P '1\.\d{3}'   | sort -n | uniq -c | sort -n
+	)
+}
 
-echo "statistics_VERSION_synthesis 2012 # short"
-statistics_VERSION_synthesis() {
+statistics_releases_yearly() {
 	year=${1:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
-	echo Nb users each month
-	wc -l stats_imapsync_${year}_??.ip
-	echo Nb runs each month
-	tail -n 1 stats_imapsync_${year}_??.runs
-	echo % Operating systems
-	statistics_VERSION_yearly_os $year
-	echo Biggest users
-	tail -n 5 stats_imapsync_${year}.ip
-	echo Nb users each year
-	wc -l stats_imapsync_????.ip
-	echo "Nb runs each year : "
-	for yyyy in `count_nice 2011 ${year}`; do
-		echo -n "$yyyy: "
-		statistics_VERSION_yearly_runs $yyyy
-	done
+	test -f stats_imapsync_${year}.ip \
+	&& grep -o -P imapsync/'1\.\d{3}' stats_imapsync_${year}.ip \
+        | grep -o -P '1\.\d{3}' | sort -n | uniq -c | sort -n
+	)
+}
+
+
+# releasecheck started on 1.349 in the imapsync code. date: 2010/09/06 00:25:03
+# Disable releasecheck started on 1.584 on github Mar 5, 2014 
+# https://github.com/imapsync/imapsync/commits/master/imapsync
+statistics_releases_all_times() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	grep -h -o -P imapsync/'1\.\d{3}' stats_imapsync_20??.ip  \
+	| grep -o -P '1\.\d{3}'   | sort -n | uniq -c | sort -n
+	)
+}
+
+statistics_perl_monthly() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}_${month}.ip \
+	&& grep -o -P 'perl ''(\.|\d)+' stats_imapsync_${year}_${month}.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
+	)
+}
+
+statistics_perl_yearly() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}.ip \
+	&& grep -o -P 'perl ''(\.|\d)+' stats_imapsync_${year}.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
+	)
+}
+
+statistics_perl_all_times() {
+	(
+	cd $HOME/imapsync_stats
+	ls -d stats_imapsync_????.ip > /dev/null || return
+	grep -h -o -P 'perl ''(\.|\d)+' stats_imapsync_20??.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -nr
+	)
+}
+
+echo statistics_Mail_IMAPClient_monthly
+statistics_Mail_IMAPClient_monthly() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}_${month}.ip \
+	&& grep -o -P ', ''(\.|\d)+' stats_imapsync_${year}_${month}.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
+	)
+}
+
+echo statistics_Mail_IMAPClient_yearly
+statistics_Mail_IMAPClient_yearly() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}.ip \
+	&& grep -o -P ', ''(\.|\d)+' stats_imapsync_${year}.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
+	)
+}
+
+statistics_Mail_IMAPClient_all_times() {
+	(
+	cd $HOME/imapsync_stats
+	ls -d stats_imapsync_????.ip > /dev/null || return
+	grep -h -o -P ', ''(\.|\d)+' stats_imapsync_20??.ip \
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
 	)
 }
 
 
 
 
+
+
+echo "statistics_VERSION_synthesis 2012 # short"
+statistics_VERSION_synthesis() {
+	year=${1:-`date '+%Y'`}
+	year_now=`date '+%Y'`
+	(
+	cd $HOME/imapsync_stats
+	echo && echo "==== Nb users each month in ${year} "
+	wc -l stats_imapsync_${year}_??.ip
+	echo && echo "==== Nb runs each month in ${year} "
+	for f in stats_imapsync_${year}_??.runs; do
+		test -f $f && echo -n "$f : " && tail -n 1 $f
+	done
+	echo && echo "==== % Operating systems in ${year} "
+	statistics_VERSION_yearly_os $year
+	echo && echo "==== Perl releases in ${year} "
+	statistics_perl_yearly $year | tail -9
+	echo && echo "==== Biggest users in ${year} "
+	tail -n 9 stats_imapsync_${year}.ip
+	echo && echo "==== Most releases used in ${year} "
+	statistics_releases_yearly ${year} | tail -9
+	echo && echo "==== Nb users each year "
+	wc -l stats_imapsync_????.ip
+	echo && echo "==== Nb runs each year : "
+	for yyyy in `count_nice 2011 ${year_now}`; do
+		echo -n "$yyyy: "
+		statistics_VERSION_yearly_runs $yyyy
+	done
+	nb_runs_current_year=`statistics_VERSION_yearly_runs $year_now`
+	current_day_of_year=`date +%j`
+	echo; echo -n "$year_now~~"
+	echo "$nb_runs_current_year/$current_day_of_year*365" | bc 
+	)
 }
+
+
+
+}
+
+test X"`hostname`" = Xks2 && statistics_VERSION_ks
+test X"`hostname`" = Xtuxinette && statistics_VERSION_lfo
 
 
 niouzes_compil() {
@@ -385,7 +622,7 @@ else
 
 <news date="`date  '+%Y%m%d'`">
 `LANG=fr_FR date  '+%A %d %B %Y'` : Synchronisez ou migrez vos boites 
-aux lettres avec économie et l'outil <A
+aux lettres avec \E9conomie et l'outil <A
 HREF="prj/imapsync/">imapsync $VERSION</A> (Gilles LAMIRAL)
 </news>
 EOF

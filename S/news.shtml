@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html  xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" id="TOP">
+
+<head>
+<title>Imapsync News</title>
+<meta name="generator" content="Bluefish 2.2.2" />
+<meta name="author" content="Gilles LAMIRAL" />
+<meta name="date" content="2016-01-22T01:56:39+0100" />
+<meta name="copyright" content="None"/>
+<meta name="keywords" content="imap, transfer, migration, synchronization"/>
+<meta name="description" content="imap migration tool"/>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8"/>
+<meta http-equiv="content-style-type" content="text/css"/>
+ <meta http-equiv="expires" content="0"/>
+<link rel="icon" type="image/png" href="../W/images/logo_imapsync_s.png" />
+<link href="../W/style.css" rel="stylesheet" type="text/css"/>
+
+</head>
+
+<body>
+
+
+<h1>News about imapsync <!--#exec cmd="cat ../VERSION" --> and previous releases <a id="latest" href="../#TOP"><small>(back to menu)</small></a>
+</h1>
+
+<p>imapsync <!--#exec cmd="cat ../VERSION" --> was written on <!--#flastmod file="VERSION" -->
+</p>
+
+<div id="osw_imapsync"></div>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js" type="text/javascript"></script>
+<script src="http://static.oswatershed.org/js/package_badge.js" type="text/javascript"></script>
+<script type="text/javascript">$(document).ready(function(){ package_badge("imapsync", "#osw_imapsync"); });</script>
+
+<p>See <b><a href="../ChangeLog">ChangeLog</a></b> to read what has been done in details since 2001.</p>
+
+<p>New features or bugfixes since previous releases:</p>
+
+<!-- 
+<ul>
+<li><b>1.677</b></li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+
+<li><b>Refactoring</b>: </li>
+<li><b>Refactoring</b>: </li>
+</ul>
+ -->
+
+<ul>
+<li><b>1.678</b> <b>Improved website!</b> (I hope...)</li>
+<li><b>Enhancement</b>: Added <b><tt>--sslargs1</tt></b> and <b><tt>--sslargs2</tt></b> to pass any ssl parameter for host1 or host2 connection. 
+Example: <tt>--sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3</tt></li>
+<li><b>Enhancement</b>: Added <tt>--timeout1 int</tt> and <tt>--timeout2 int</tt> in seconds (<tt>--timeout int</tt> still available to set both with the same value)</li>
+<li><b>Enhancement</b>: Added <tt>--debugssl int</tt>. Default is like <tt>--debugssl 1</tt> (Only print out errors).</li>
+<li><b>Enhancement</b>: Added several <a href="../#polls">polls</a> to know where I shall focus improvements.</li>
+
+
+<li><b>Usability</b>: Added env_proxy call in <tt>sub xoauth2()</tt> 
+to read proxy settings from environment variable <tt>http_proxy</tt>
+without using <tt>PERL_LWP_ENV_PROXY=1</tt></li>
+<li><b>Usability</b>: Wrote <a href="../TUTORIAL_Unix.html">TUTORIAL_Unix</a>.</li>
+<li><b>Usability</b>: Check f1 folder exists when specified by <tt>--f1f2</tt> and warns when it doesn't</li>
+<li><b>Usability</b>: Added <tt>--automap --justfolders --dry</tt> in <tt>imapsync_example.sh</tt> and <tt>imapsync_example.bat</tt></li>
+
+<li><b>Bug fix</b>: Added require Encode::Byte to solve "The locale codeset (cp1252) isn't one that perl can decode" on Win32.</li>
+
+
+<li><b>Refactoring</b>: Removed <tt>--allow3xx</tt> option.</li>
+<li><b>Refactoring</b>: Continue to move to one global $sync-> in order to reduce number of parameters in routines.</li>
+</ul>
+
+<ul>
+<li><b>1.670</b> Folders <b>mapping made easy</b> with <b>--automap</b></li>
+<li><b>Enhancement</b>: Added option <b><tt>--automap</tt></b> that guesses folders mapping, 
+                        for folders like "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
+                        <ul> 
+                        <li>IMAP Special-Use folders described in <a href="https://tools.ietf.org/html/rfc6154">rfc6154</a> 
+                        are supported and also well known names for Exchange and common clients. </li>
+                        <li>Automap is turned off by default, 
+                        to try it a safe method is to use <tt>--automap --justautomap</tt>, it will exit early</li>
+                        </ul> 
+ </li>
+<li><b>Enhancement</b>: Added <b><tt>--f1f2 str1=str2</tt></b> : Force folder str1 to be synced to str2. 
+                        <ul> 
+                        <li>Option <tt>--f1f2</tt> overrides any <tt>--automap</tt> mapping and any <tt>--regextrans2</tt> transformation. </li>
+                        <li>Example <tt>--f1f2 Spam=Junk</tt> to map Spam folder to Junk.</li>
+                        </ul>
+</li>
+<li><b>Enhancement</b>: Added <b><tt>--justautomap</tt></b> to exit after seeing what will happen with 
+                        --automap and --f1f2 options.</li>
+<li><b>Enhancement</b>: Added <a href="https://tools.ietf.org/html/rfc2087">IMAP4 QUOTA </a> values (RFC 2087) 
+                        when they are available. A warning goes up when it's time to find space.  
+</li>
+
+<li><b>Enhancement</b>: Added <a href="http://tools.ietf.org/html/rfc2971.html">IMAP4 ID extension</a>.
+                        <ul>
+                        <li>ID feature is on  by default if supported by the IMAP servers, 
+                        use <b><tt>--noid</tt></b> to turn it off.</li>
+                        <li>ID Infos returned by the imap servers are shown.</li>
+                        <li>Infos sent to the servers are name=imapsync, version=`imapsync --version`, os=$OSNAME`, 
+                        vendor='Gilles LAMIRAL' and date=`rcs date of release`.</li>
+                        <li>For github or other distributors you can hack this part 
+                        by searching <tt>$imapsync_id_github</tt></li>
+                        </ul>
+</li>
+
+<li><b>Enhancement</b>: Added <b><tt>--logdir path</tt></b> to change the default log directory. 
+                        Default is <tt>LOG_imapsync/</tt> 
+</li>
+
+
+
+<li><b>Usability</b>: Added folders counting in outputs.</li>
+<li><b>Usability</b>: Better output in the login part</li>
+<li><b>Usability</b>: Guess prefixes and separators instead of forcing the user to find them.</li>
+<li><b>Usability</b>: Output, added <tt>Host1:</tt> or <tt>Host2:</tt> at the beginning of lines.</li>
+
+
+<li><b>Bug fix</b>: SSL_VERIFY_NONE in --ssl and --tls modes</li>
+<li><b>Bug fix</b>: Fixed xoauth2 calls. Now XOAUTH2 Works on Windows <tt>--authmech1 XOAUTH2</tt> 
+                    with openssl installed.
+                    See <a href="http://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt">FAQ.d/FAQ.XOAUTH2.txt</a>.</li>
+<li><b>Bug fix</b>: Fixed IO::Socket::SSL constants issue with latest releases</li>
+<li><b>Bug fix</b>: Changed "Host1: checking all wanted folders exist" not efficient algorithm  in order
+  to allow efficiently a 2.4 million folders account. Yes, some accounts have this.</li>
+
+<li><b>Refactoring</b>: Started to use global $sync-> in order to reduce number of parameters in routines.</li>
+<li><b>Refactoring</b>: Some perlcritic fixes.</li>
+</ul>
+
+<ul>
+<li><b>1.644</b> Mac OS X standalone binary provided!</li>
+<li><b>Enhancement</b>: Mac OS X standalone binary called <tt>imapsync_bin_Darwin</tt></li>
+
+<li><b>Enhancement</b>: Added option <tt>--subfolder2 SUB</tt> Move whole host1 folders hierarchy under folder SUB.</li>
+<li><b>Enhancement</b>: Added <tt>--fetch_hash_set "1:*"</tt> to permit Mail2World success.
+Need a patched Mail::IMAPClient 3.35 in <tt>sub fetch_hash()</tt></li>
+
+<li><b>Usability</b>: No folders sizes if --justfolders, unless really wanted.</li>
+<li><b>Usability</b>: No warning about messages when <tt>--dry --justfolders</tt> are used together.</li>
+
+<li><b>Bug fix</b>: Added NOOP in --dry mode during fake APPEND in order to avoid timeouts</li>
+
+
+</ul>
+
+<ul>
+<li><b>1.636</b></li>
+<li><b>Enhancement</b>: Added errors dump listing at the end, before last folder sizes or the statistics. Turned on by default. Use <tt>--noerrorsdump</tt> to avoid it.</li>
+<li><b>Enhancement</b>: Added <tt>--maxlinelengthcmd</tt> that will be called upon when a line over <tt>--maxlinelength</tt> value is detected. </li>
+<li><b>Enhancement</b>: Exchange maxlinelength issue fixed with <tt>--maxlinelengthcmd 'reformime -r7'</tt> on Linux. 
+                        Install maildrop package to get reformime command</li>
+<li><b>Enhancement</b>: Added <tt>--testslive</tt>. Running <tt>imapsync --testslive</tt> performs a live test on real accounts (I own).</li>
+<li><b>Enhancement</b>: Added <tt>--pipemess</tt> in order to pass all message to an external filter tool like <tt>reformime -r7</tt>.</li>
+<li><b>Enhancement</b>: Added xoauth2 support, available on Unix with underlying openssl. Thanks to Joaquin Lopez.</li>
+<li><b>Enhancement</b>: Added <tt>--skipmess regex</tt> to skip messages matching a regex.
+Example <tt>--skipmess 'm/[\x80-ff]/'</tt> to slip messages with non-7bit characters ( ie a byte somewhere begins with 1 )</li>
+
+
+<li><b>Usability</b>: Better output of folders excluded by --exclude and folders included by --include</li>
+<li><b>Usability</b>: Added inline help in many places. What you can do with switches to change imapsync behaviour, contextually. Learn imapsync the easy way.</li>
+
+<li><b>Bug fix</b>: <tt>imapsync --tests</tt> should work under any circumstance now, any Unix, Windows, exe or bin or script. 561 non-regression tests</li>
+<li><b>Bug fix</b>: Options <tt>--folderfirst</tt> and <tt>--folderlast</tt> generated an error when their value folder does not exist. Existence is checked.</li>
+<li><b>Bug fix</b>: Option <tt>--disarmreadreceipts</tt> used to change Disposition-Notification-To in the body when not available in the header. 
+                    Now never changes the body in all cases.</li>
+<li><b>Bug fix</b>: Change default useheader values. Now it is really like  <tt>--useheader "Message-Id" --useheader "Received"</tt>.
+HMailServer replies two lines with <tt>--useheader "Message-Id" --useheader "Message-ID"</tt> in older imapsync releases.
+</li>
+<li><b>Bug fix</b>: in <tt>imap_utf7_decode()</tt> + character must not be escaped. Was a bug with Cyrillic characters</li>
+
+<li><b>Refactoring</b>: Started to split the <a href="../FAQ">FAQ</a> file in several parts in <a href="../FAQ.d/">FAQ.d/*</a></li>
+<li><b>Refactoring</b>: Split the <a href="../INSTALL">INSTALL</a> file in several parts in <a href="../INSTALL.d/">INSTALL.d/*</a></li>
+
+</ul>
+
+
+<ul>
+<li><b>1.607</b> Folders shown also in utf8.</li>
+<li><b>Caveat to upgrade on Unix!</b>: New <b>Unicode::String</b> Perl module dependency, for utf8 output. See the <a href="../INSTALL">INSTALL</a> file.</li>
+<li><b>Enhancement</b>: Added --skipemptyfolders to skip syncing empty host1 folders. They are not created on host2.</li>
+<li><b>Enhancement</b>: Windows exe now uses IO::SSL 2.002 instead of 1.98 (is it really an enhancement?).</li>
+<li><b>Usability</b>: Remove /x from regexes applied with --include and --exclude. Blanks no longer have to be explicit with \ or [ ].</li>
+<li><b>Usability</b>: Added utf8 output for folder names, protocol native utf7imap special characters are not user friendly readable</li>
+<li><b>Usability</b>: Moved foldersizes output after folders lists output.</li>
+<li><b>Usability</b>: Added total size transferred after each message copied.</li>
+<li><b>Usability</b>: After ETA, added number of total to be synced, as a denominator dddd after each message copied, like nnn/dddd
+                      where nnn is the number of messages copied. Before there was only nnn without /dddd.</li>
+<li><b>Bug fix</b>: Cache fix on Windows. File paths with brackets [] are special, they have to be escaped with glob. 
+                    For example, [Gmail] must be written [[]Gmail[]].</li>
+<li><b>Bug fix</b>: Added several checks if IsUnconnected. Goal avoid imap commands while disconnected. 
+                    Reconnexion would be better anyway.</li>
+</ul>
+
+<ul>
+<li><b>1.597</b> Small things</li>
+<li><b>Enhancement</b>: Added --nomixfolders to avoid merging folders that are considered different on host1 but the same on destination host2
+because of case sensitivities and insensitivities.</li>
+<li><b>Bug fix</b>: Fixed "imapsync doesn't see created folders in the listing of folder sizes at the end". (second time this bug shows up)</li>
+</ul>
+
+<ul>
+<li><b>1.592</b> Logging by default! (an internal feature now)</li>
+
+<li><b>Caveat to upgrade</b>: New <b>IO::Tee</b> Perl module dependency, for logging. See the <a href="../INSTALL">INSTALL</a> file.</li>
+<li><b>Windows upgrade</b>: Win32 binary is now distributed in a zip file with two batches scripts ready to use it.</li>
+
+
+<li><b>Enhancement</b>: Added logging by default in subdirectory <b>./LOG_imapsync/</b></li>
+<li><b>Enhancement</b>: <b>Added option --log turned on by default</b>. Use --nolog to disable logging.</li>
+<li><b>Enhancement</b>: Added option --logfile. Default is like ./LOG_imapsync/YYYY_MM_DD_HH_MM_SS_user2.txt
+                        where YYYY_MM_DD_HH_MM_SS is the launching date and time like 2014_05_20_23_45_10</li>
+<li><b>Enhancement</b>: Added option <b>--disarmreadreceipts</b> to fix resending read receipts on host2. A must with Exchange as host2.</li>
+<li><b>Enhancement</b>: Added FTGate support (no EXAMINE imap command used anymore).</li>
+
+<li><b>Usability</b>: Updated the code to easily switch on --noreleasecheck by default but allowing --releasecheck (some users want this feature).</li>
+<li><b>Usability</b>: Warn syncing messges will not be simulated when --dry mode is on and folder  on host2 does not exist yet.</li>
+
+<li><b>Bug fix</b>: Make TLS works with last IO::Socket::SSL default value (Added SSL_verify_mode => 'SSL_VERIFY_NONE') in --tls mode.</li>
+<li><b>Bug fix</b>: Fixed bug when creating folders on host2 with --sep2=\\ (Lotus Notes).</li>
+<li><b>Bug fix</b>: Try to get folder size when a folder on host2 has the same name but with a different case 
+                    like OLD_MAIL -> old_mail. This avoids "does not exist" output.</li>
+</ul>
+
+<ul>
+<li><b>1.584</b></li>
+<li><b>Enhancement</b>: Added --minmaxlinelength to select messages with long lines only. 
+                        It helps to diagnostic Echange error on messages with lines longer than 9000 characters</li>
+<li><b>Enhancement</b>: Added --debugmaxlinelength</li>
+<li><b>Bug fix</b>: --ssl1 --tls2 was buggy because of default SSL_VERIFY_PEER. 
+                    "Can not go to tls encryption on [localhost]:Unable to start TLS: Cannot determine peer hostname for verification..."</li>
+<li><b>Bug fix</b>: Check if going to tls is ok, exit otherwise with explicit error message.
+Thanks to Dennis Schridde for reporting this ugly bug that deserves this <a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2014-2014">CVE-2014-2014</a>.</li>
+<li><b>Debug</b>: Print separator given by NAMESPACE even when --sep1 oe --sep2 is used.</li>
+<li><b>Debug</b>: Prints prefix given by NAMESPACE even when --prefix1 or --prefix2 is used. 
+It is a preparation for advising not to use --prefix unless suggested.</li>
+</ul>
+
+
+<p><b>Good changes</b> made before, listed because <b>they can help</b>:
+</p>
+
+<ul>
+<li><b>Enhancement</b>: Added <b>--skipcrossduplicates</b> to avoid copying messages that are already copied in another folder, good <b>from Gmail to X</b>.</li>
+<li><b>Enhancement</b>: Added --debugcrossduplicates to print which messages (UIDs) are skipped with --skipcrossduplicates (and in what other folders they are).</li>
+<li><b>Enhancement</b>: Added --folderfirst string: sync this folder first. --folderfirst "Work" --folderfirst "Friends"</li>
+<li><b>Enhancement</b>: Added --folderlast  string: sync this folder last. --folderlast "[Gmail]/All Mail" etc.</li>
+<li><b>Enhancement</b>: Added <b>--maxmessagespersecond</b> to limit messages tranfer rate and fix <b>Office365 throttle limitation</b> (use --maxmessagespersecond 4).</li>
+<li><b>Enhancement</b>: Added --maxbytespersecond to limit byte transfer rate.</li>
+<li><b>Enhancement</b>: Added --debugmemory option that prints memory consumption after each message is copied.</li>
+
+<li><b>Enhancement</b>: Added --authmech EXTERNAL.</li>
+<li><b>Enhancement</b>: Adapted behavior for allowing --maxdate --mindate with --noabletosearch. 
+Use internat date instead of Date: header.</li>
+
+<li><b>Enhancement</b>: QQMail IMAP4Server success (with --noabletosearch option) </li>
+<li><b>Usability</b>: Apply same treatment to --delete2duplicates as --delete2. 
+If --uidexpunge2 can be done, do it, else do --expunge2 (unless --nouidexpunge2 or --noexpunge2).</li>
+
+<li><b>Usability</b>: Added --timeout in the --help output. Default timeout is 120 seconds now 
+(was nothing by imapsync, 600 with underlying modules).</li>
+
+<li><b>Enhancement/Bug fix</b>: Added --ssl1_SSL_version and --ssl2_SSL_version to force the SSL_version 
+in case the default auto-negociation does not work. Example: <b>--ssl1 --ssl1_SSL_version SSLv3</b></li> 
+
+<li><b>Enhancement</b>: Added option --messageidnodomain to fix Mailenable bug changing the domain part of Message-Id header, and avoid duplicates</li>
+<li><b>Enhancement</b>: Added option --syncflagsaftercopy to fix Mailenable bug not getting the flags with the APPEND</li>
+<li><b>Enhancement</b>: Added option <b>--maxlinelength</b> to skip messages whose max line length is over a number of bytes. 
+                        Exchange 2013 and Office365 need <b>--maxlinelength 1000</b> (which is a RFC2822 must) to avoid disconnections.</li>
+                     
+<li><b>Usability</b>: Added --fixInboxINBOX, turned on by default, to map automatically Inbox INBOX folder names.</li>
+<li><b>Usability</b>: IMAP server removing consecutive spaces on the header part doesn't generate duplicates (MailEnable does that)</li>
+
+
+<li><b>Usability</b>: SSL_verify_mode 0 to avoid warning about Man-In-The-Middle.</li>
+<li><b>Enhancement</b>: Added XOAUTH authentication. Thanks to Eduardo Bortoluzzi Junior.</li>
+<li><b>Enhancement</b>: Added <b>--search1</b> and <b>--search2</b> to allow different searches on each host.</li>
+<li><b>Usability</b>: Added --delete1 as an alias for --delete</li>
+<li><b>Speed</b>: Option <b>--nocheckmessageexists is activated by default</b> since --checkmessageexists often slow down transfers too much.</li>
+<li><b>Usability</b>: Option --foldersizesatend is on if --foldersizes is on. Off if --nofoldersizesatend</li>
+
+
+
+<li><b>Usability</b>: Added <b>host2 minus host1 statistic</b>: number of messages and bytes. 
+One difference at the start and one at the end. 
+Useful to <b>detect quickly a difference between host2 and host1</b>. 
+Need both --foldersizes and --foldersizesatend options (which are on by default).</li>
+
+<li><b>Usability</b>: Added <b>--foldersizesatend</b>. 
+It gets the folders sizes at the end of the whole transfer.
+Turned on by default (use --nofoldersizesatend to turn it off).</li>
+
+<li><b>Enhancement</b>: Added option <b>--delete2duplicates</b>; 
+it deletes messages in host2 that are duplicates.
+--delete2duplicates is on when --delete2 is set unless --nodelete2duplicates is set too.
+</li>
+
+
+<li><b>Enhancement</b>: Added option <b>--pidfilelocking</b>; 
+it aborts imapsync, when just launched, 
+in case another imapsync may be running. 
+Turned off by default</li>
+
+<li><b>Usability</b>: Added option <b>--showpasswords</b>. 
+it shows passwords on output instead of "MASKED".
+Turned off by default. 
+Useful to restart a run by reading the log 
+or to see what happen with special characters.
+</li>
+
+<li><b>Bug fix</b>: Added option <b>--fixslash2</b> 
+to avoid the '<b>Invalid mailbox name</b>' error.
+It acts when --sep1 is character / and --sep2 is not character / 
+and host1 folder name contains --sep2 characters. 
+Turned on by default (--nofixslash2 to unable it).</li>
+
+<li><b>Enhancement</b>: Added option <b>--noabletosearch</b> 
+to allow the listing of messages without the imap "SEARCH ALL" command. 
+It's useful for playing with poor imap servers like <b>Softalk 7.6.4</b> 
+(8.6 is fine with SEARCH ALL).</li>
+
+
+<li><b>Enhancement</b>: Added <b>--noexpungeaftereach</b> 
+to speedup --delete --expunge from Gmail.</li>
+
+
+
+<li><b>Enhancement</b>: Added option <b>--nocheckmessageexists</b> to <b>speed up</b> with <b>Tobit imap server</b> as host1.</li>
+
+
+<li><b>Enhancement</b>: Added option --exitwhenover option <b>to avoid locking</b> 
+when transfers exceed maximum limit.
+See for example <a href="https://support.google.com/a/answer/1071518?hl=en">this Gmail constraint</a>
+	<ul>
+	<li>imapsync ... --exitwhenover 2500000000 # 2.5GB if <b>host1 is Gmail</b></li>
+	<li>imapsync ... --exitwhenover  500000000 # 500MB if <b>host2 is Gmail</b></li>
+	</ul>
+</li>
+
+
+<li><b>Usability</b>: Default headers used to identify a message are like --useheader "Message-Id" --useheader  "Received" 
+(<b>Exchange compatibility</b> bu default).</li>
+
+<li><b>Enhancement</b>: Added option --addheader to fix the issue 
+    "ignored (no header so we ignore this message)" (on <b>Sent</b> folder usually). 
+    Thanks to Ameir Abdeldayem</li>
+
+<li><b>Enhancement</b>: Added --nofilterflags to check any STORE flags 
+by ignoring PERMANENTFLAGS (Exchange tests)</li>
+
+</ul>
+
+
+
+
+
+<hr/>
+<div>
+<a href="http://validator.w3.org/check?uri=referer">
+  <img
+  src="../W/images/valid-xhtml10"
+  alt="Valid XHTML 1.0 Strict" height="31" width="88" />
+</a>
+
+<a href="http://jigsaw.w3.org/css-validator/check/referer">
+  <img style="border:0;width:88px;height:31px"
+  src="../W/images/vcss-blue"
+  alt="CSS Valide !" />
+</a>
+
+<a href="http://www.anybrowser.org/campaign/">
+<img style="border:0;width:88px;height:31px"
+src="../W/images/ab_jlh.png" 
+alt="Viewable With Any Browser" />
+</a>
+</div>
+
+<hr/>
+<p>
+<!--#config timefmt="%D" -->
+<!--#config timefmt="%A %B %d, %Y" -->
+<b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
+($Id: news.shtml,v 1.10 2016/01/22 01:04:15 gilles Exp gilles $)<br/>
+<a href="#TOP">Top of the page</a>
+</p>
+
+</body>
+</html>
+

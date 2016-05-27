@@ -1,0 +1,131 @@
+#!/bin/cat
+$Id: FAQ.XOAUTH2.txt,v 1.8 2016/01/18 18:14:12 gilles Exp gilles $
+
+======================================================================
+  Imapsync tips to use XOAUTH2 authentication (Gmail) and old XOAUTH 
+======================================================================
+
+
+=======================================================================
+Q. Is XOAUTH2 authentication available with imapsync?
+
+R. Yes, but XOAUTH2 has been really tested on Unix systems, 
+   less profund on Windows but it should work.
+
+=======================================================================
+Q. How to use XOAUTH2 to globally authenticate gmail users?
+
+R. First, consider the XOAUTH2 feature at a prototype level.
+
+Perl modules needed for xoauth2 are:
+  Crypt::OpenSSL::RSA
+  JSON
+  JSON::WebToken
+  LWP
+  HTML::Entities
+  Encode::Byte
+
+A easy way to install or upgrade Perl modules is to use cpanm command,
+also called cpanminus.
+
+  sudo cpanm  JSON::WebToken JSON Crypt::OpenSSL::RSA LWP HTML::Entities Encode::Byte
+
+The code and first explanation comes from Joaquin Lopez at
+https://github.com/imapsync/imapsync/pull/25
+http://www.linux-france.org/prj/imapsync_list/msg02129.html
+
+Also, the binary command "openssl" is needed since it is used to 
+convert the pk12 file.
+On Windows I've tried xoauth2 with openssl from
+https://slproweb.com/download/Win32OpenSSL-1_0_2d.exe at
+https://slproweb.com/products/Win32OpenSSL.html
+It works.
+
+Here is a complete example for Gmail. It is a little stupid
+since it is the same account as source and destination but
+it's just to get the picture for xoauth2 authentication.
+
+All xoauth2 config is given via the --password1 parameter. 
+It has the form:
+
+  --password1 "A;B;C"
+
+where A = 108687549524-gj68fg5ho5icoicv3v79dq2rcuf5c85e@developer.gserviceaccount.com
+is the name of the Google Developer API service account.
+
+where B = /g/var/pass/imapsync-xoauth2-15f8456ad5b7_notasecret.p12
+is the location of the keyfile associated with it.
+
+where C = notasecret
+is the password to access the keyfile.
+
+
+imapsync \
+        --host1 imap.gmail.com --ssl1 --user1 gilles.lamiral@gmail.com \
+        --password1 "108687549524-gj68fg5ho5icoicv3v79dq2rcuf5c85e@developer.gserviceaccount.com;/g/var/pass/imapsync-xoauth2-15f8456ad5b7_notasecret.p12;notasecret" \
+        --host2 imap.gmail.com --ssl2 --user2 gilles.lamiral@gmail.com \
+        --password2 "108687549524-gj68fg5ho5icoicv3v79dq2rcuf5c85e@developer.gserviceaccount.com;/g/var/pass/imapsync-xoauth2-15f8456ad5b7_notasecret.p12" \
+        --justfoldersizes --nofoldersizes \
+        --authmech1 XOAUTH2 --authmech2 XOAUTH2 --debug
+
+Use your own xoauth2 values.
+
+
+
+=======================================================================
+Q. How to use a proxy with XOAUTH2 authentication?
+
+With imapsync 1.670, you have to set two environment variables
+PERL_LWP_ENV_PROXY and https_proxy. Example:
+
+  PERL_LWP_ENV_PROXY=1 https_proxy=http://myproxy:8080/ imapsync --host1 ...
+
+With later release than 1.670, you have to set only the https_proxy
+environment variable, if it isn't already set. Example:
+
+  https_proxy=http://myproxy:8080/ imapsync --host1 ...
+
+
+=======================================================================
+Q. How to use XOAUTH to globally authenticate gmail users?
+
+R0. XOAUTH is considered obsolete and superseded by XOAUTH2
+    Anyway the manage part might be the same (I don't know).
+
+R1. The XOAUTH code and this FAQ item come from Eduardo Bortoluzzi
+    Thanks Eduardo!
+
+R2. In case you still have to use XOAUTH, here is the method:
+
+   The goal of OAUTH is to migrate all users from/to Google Apps 
+   Premier Edition without knowing their passwords.
+
+   The global password is available at the Google Apps control panel, 
+   at Advanced Tools -> Manage OAuth domain key.
+
+./imapsync \
+    --host1 imap.gmail.com --ssl1 \
+    --user1 foo@lab3.dedal.br \
+    --password1 secret1 \
+    --authmech1 XOAUTH \
+    --host2 imap.gmail.com --ssl2 \
+    --user2 bar@lab3.dedal.br \
+    --password2 secret2 \
+    --authmech2 XOAUTH
+
+Google Apps is a paid service, but you can try it for 30 days without any cost.
+
+Some notes about configuring the Google Apps XOAUTH:
+
+ On "Advanced Tools > Manage OAuth domain key > Two-legged OAuth access control" 
+    the "Allow access to all APIs" must be checked 
+    (https://support.google.com/a/bin/answer.py?answer=162105)
+
+ OR
+
+ On "Advanced Tools > Manage third party OAuth client access", 
+    the configured costumer key must have the scope 
+    "https://mail.google.com/" configured 
+    (https://support.google.com/a/bin/answer.py?answer=162106).
+
+

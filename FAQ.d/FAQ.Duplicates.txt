@@ -1,0 +1,93 @@
+#!/bin/cat
+$Id: FAQ.Duplicates.txt,v 1.6 2016/01/18 18:14:12 gilles Exp gilles $
+
+======================================================================
+                Imapsync tips about duplicated messages issues.
+======================================================================
+
+=======================================================================
+Q. How can I remove duplicates in an lone account?
+
+R. Just run imapsync on the same account with option --delete2,
+   ie with host1 == host2 and user1 == user2
+
+=======================================================================
+Q: Multiple copies, duplicates, when I run imapsync twice ore more. 
+
+R0. 
+Normally and by default, imapsync doesn't generate duplicates.
+So if it does  generate duplicates it means a problem occurs
+with message identification. It happens sometimes with IMAP 
+servers changing the "Message-Id" line or "Received:" in 
+the header part of messages. 
+
+R1. 
+You can use option --useuid, with it, imapsync  won't use 
+header lines to compare messages in folders. 
+Keep in mind it uses a local cache.
+
+  imapsync ... --useuid
+
+A big issue with --useuid is that it doesn't generate duplicates if 
+used from the first time. But it does generate duplicates after a previous
+run without --useuid (because it uses a different method to identify 
+the messages). A solution? it depends. --delete2 solves this problem 
+if you are permitted to use it. 
+
+R2. 
+Best way if you can follow it. 
+Multiple copies of the emails on the destination server. Some IMAP
+servers (Domino for example) change some headers for each message
+transferred. All messages are transferred again and again each time you
+run imapsync. This is bad of course. The explanation is that imapsync
+considers messages are not the same on each side, default headers used
+to identify the messages have changed.
+
+You can look at the headers found by imapsync by using the --debug
+option (and search for the message on both part), Header lines from
+the source server begin with a "FH:" prefix, Header lines from the
+destination server begin with a "TH:" prefix. Since --debug is very
+verbose I suggest to isolate a email in a specific folder in case you
+want to forward me the output.
+
+A way to avoid this problem is by using option --useheader with
+a different set than the default ones used by imapsync.
+
+The default set is like:
+
+  imapsync ... --useheader "Message-Id" --useheader "Received"
+
+The big problem is that what can be used instead of Message-Id
+and Received lines? Often standalone Message-Id works:
+
+  imapsync ... --useheader "Message-Id"
+
+Once imapsync does not generate duplicates, the previous duplicates
+can be deleted with option --delete2duplicates
+
+  imapsync ... --useheader "Message-Id" --delete2duplicates
+
+Another good way toward a solution is to isolate two or three messages
+in a BUG folder and send me the --debug output by email at
+gilles.lamiral@laposte.net
+
+  imapsync ... --debug  --folder BUG
+
+I will take a close look at the log and modify imapsync to fix
+this faulty duplicate behavior.
+
+Remark. (Trick found by Tomasz Kaczmarski)
+
+Option --useheader "Message-Id" asks the server to send only header
+lines beginning with "Message-Id".  Some (buggy) servers send the whole
+header (all lines) instead of the "Message-Id" line. In that case, a
+trick to keep the --useheader filtering behaviour is to use
+--skipheader with a negative lookahead pattern:
+
+ imapsync ... --skipheader "^(?!Message-Id)"
+
+ Read it as "skip every header except Message-Id".
+
+=======================================================================
+
+

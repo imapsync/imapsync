@@ -1,11 +1,12 @@
 #!/bin/cat
-# $Id: FAQ,v 1.190 2014/11/14 17:08:02 gilles Exp gilles $
+# $Id: FAQ,v 1.216 2015/11/13 23:58:12 gilles Exp gilles $
 
-+------------------+
-| FAQ for imapsync |
-+------------------+
++-------------------+
+| FAQs for imapsync |
++-------------------+
 
 http://imapsync.lamiral.info/FAQ
+http://imapsync.lamiral.info/FAQ.d/
 
 Unix versus Windows syntax.
 There are several differences between Unix and Windows
@@ -64,27 +65,36 @@ R. Use md5sum to check integrity of the file.
 =======================================================================
 Q. How to install imapsync?
 
-R. Read the INSTALL file in the tarball also available at
+R. Read the INSTALL files in the tarball also available at
    http://imapsync.lamiral.info/INSTALL
+   http://imapsync.lamiral.info/INSTALL.d/
 
 =======================================================================
 Q. How to configure and run imapsync?
 
-R. Read the README and FAQ files in the tarball also available at 
+R. Read the README, OPTIONS and FAQ files in the tarball also 
+   available at:
    http://imapsync.lamiral.info/README
+   http://imapsync.lamiral.info/OPTIONS
    http://imapsync.lamiral.info/FAQ
 
 =======================================================================
 Q. Can you give some configuration examples?
 
-R. The FAQ file contains many examples for several scenarios
-   http://www.linux-france.org/prj/imapsync/FAQ
+R1. Basic usage is described there:
+    http://imapsync.lamiral.info/#DOC_BASIC
+
+  imapsync --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
+           --host2 test2.lamiral.info --user2 test2 --password2 secret2
+
+R2. The FAQ files contains many examples for several scenarios
+    http://imapsync.lamiral.info/FAQ
 
 =======================================================================
 Q. How can I have commercial support?
 
 R. Buy support from imapsync author and expert: Gilles LAMIRAL
-http://imapsync.lamiral.info/#buy_support
+http://imapsync.lamiral.info/#buy_all
 
 =======================================================================
 Q. How can I have gratis support?
@@ -140,37 +150,6 @@ c) Etc. Search the web. There's also specific tools and paid services.
    There's no silver bullet to migrate Calendars and Contacts,
    if you find one, tell me!
 
-=======================================================================
-Q. I need to migrate hundred accounts, how can I do?
-
-R. If you have many mailboxes to migrate think about a little
-shell program. Write a file called file.txt (for example)
-containing users and passwords.
-The separator used in this example is ";"
-
-The file.txt file contains:
-
-user001_1;password001_1;user001_2;password001_2
-user002_1;password002_1;user002_2;password002_2
-user003_1;password003_1;user003_2;password003_2
-user004_1;password004_1;user004_2;password004_2
-user005_1;password005_1;user005_2;password005_2
-...
-
-On Unix the shell program can be:
-
- { while IFS=';' read  u1 p1 u2 p2; do 
-	imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
-                 --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
- done ; } < file.txt
-
-On Windows the batch program can be:
-
-  FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO imapsync ^
-  --host1 imap.side1.org --user1 %%G --password1 %%H ^
-  --host2 imap.side2.org --user2 %%I --password2 %%J ...
-
-The ... can be replaced by nothing or any supplementary imapsync option.
 
 =======================================================================
 Q. Where I can find old imapsync releases?
@@ -211,10 +190,11 @@ R. Yes
 
 Q. How can I fix this?
 
-R. The cache path reflects hostnames or ip addresses, just change the
-   directory names of host1 or host2. Use --dry to see if next runs
-   will generate duplicates.
-   By default the cache is like 
+R. The cache path reflects exactly hostnames or ip addresses given via
+   --host1 and --host2 values. So just change the directory names 
+   of host1 or host2. Use --dry to see if next runs will generate 
+   duplicates.
+   By default on Unix the cache is like 
 
    /tmp/imapsync_cache/host1/user1/host2/user2/...
 
@@ -227,30 +207,35 @@ R. By using --useuid imapsync avoid getting messages headers and build
 
    imapsync ... --useuid 
 
+On Unix:
+
+   imapsync ... --useuid --tmpdir /var/tmp/
+
 R. Add also --nofoldersizes since the default behavior is to compute
    folder sizes. Folder sizes are useless for the transfer, just 
    useful to see what has to be done on each folder and guess when 
    the transfer will end (ETA).
 
+R. Add also --noexpungeaftereach if you use --delete. 
+   But be warn that an interrupted transfer can loose messages 
+   on host2 in a second run if you use a (silly) combination like
+
+   imapsync ... --delete --noexpunge --noexpungeaftereach --expunge2
+
 R. Add also --nocheckmessageexists
+   --nocheckmessageexists is on by default since release 1.520.
    Since transfer can be long on a huge mailbox imapsync checks
    a message exist before copying it, but it takes time and 
    cpu on the host1 server. 
-   --nocheckmessageexists is on by default since release 1.520
 
-R. Add also --noexpungeaftereach if you use --delete but be warn
-   that an interrupted transfer can loose messages on host2 in a 
-   second run if you use a combination like
-
-   imapsync ... --delete --noexpunge --noexpungeaftereach --expunge2
 
 Notes about --useuid
 
 Case where building the cache first is necessary (to avoid multiples transfers)
 
-If you run again imapsync with --useuid on a transfer  already done without --useuid
-then, to avoid messages be copied again, first run imapsync with --usecache
-but without --useuid, example scenario:
+If you run again imapsync with --useuid on a transfer  already done without 
+--useuid then, to avoid messages be copied again, first run imapsync 
+with --usecache but without --useuid, example scenario:
 
 A] Running with the default options, I began without --useuid 
 
@@ -275,17 +260,18 @@ B] I began with --useuid from the first time
   imapsync ... --useuid
 
 
-Inodes number issue
-
+Inodes number issue.
 
 The cache is simple, it uses the file-system natively, 
 it's just an empty file per message transfered.
 When mailboxes are huge the cache can exhaust the number of inodes 
-allowed in the filesystem, that's a limitation like size but less
-often encountered.
+allowed in the filesystem, that's a limitation like limitation
+size but it's less often encountered.
+
 On Unix, to predict whether your tmpdir filesystem used by imapsync 
 will support the whole cache, just run the command "df -i /var/tmp", 
 if /var/tmp is the --tmpdir argument.
+
 On windows, search and drop me a note about how to count the number 
 of files allowed in the filesystem. 
 It seems FAT32 supports 268 435 445 clusters.
@@ -300,17 +286,24 @@ option --justfoldersizes (no transfer will be done)
 
 
 =======================================================================
-Q. I see warning messages like 
-"Host1 Sent/15 size 1428 ignored (no header so we ignore this message)"
+Q. I see warning messages like the following:
+"Host1 Sent/15 size 1428 ignored (no header so we ignore this message.
+To solve this: use --addheader)".
+
 What can I do to transfer those messages?
 
-R1. Use --addheader option, it will add a header like
-   "Message-Id: <15@imapsync>" and transfer the message on host2.
-   Duplicates won't happen in next runs.
+
+R1. Like suggested inline, use --addheader option. 
+Option --addheader will add an header line like 
+Message-Id: <15@imapsync>
+where 15 is the message UID number on host1.  
+Then imapsync will transfer the changed message on host2.
+Duplicates won't happen on next runs.
 
    imapsync ... --addheader
 
-R2. Use --useuid then imapsync will avoid dealing with headers.
+R2. Other solution. 
+Use --useuid then imapsync will avoid dealing with headers.
 
    imapsync ... --useuid
 
@@ -366,7 +359,7 @@ Q. How can I try imapsync with latest Mail::IMAPClient 3.xx perl module?
 Three solutions at least.
 
 R1 - Look at the script named "i3" in the tarball, it can be used to
-     run imapsync with the included Mail-IMAPClient-3.35/ wherever you 
+     run imapsync with the included Mail-IMAPClient-3.37/ wherever you 
      unpacked the imapsync tarball
 
 R2 Run:
@@ -390,10 +383,10 @@ R3 If you want to install the Perl module locally in a directory
    - run imapsync with perl and -I option tailing to use the perl
      module Mail-IMAPClient-3.xx. Example:
 
-         perl -I./Mail-IMAPClient-3.35/lib  ./imapsync ...
+         perl -I./Mail-IMAPClient-3.37/lib  ./imapsync ...
 
      or if imapsync is in directory /path/
-        perl -I./Mail-IMAPClient-3.35/lib   /path/imapsync ...
+        perl -I./Mail-IMAPClient-3.37/lib   /path/imapsync ...
 
 
 =======================================================================
@@ -426,7 +419,7 @@ So have a try with imapsync on the same host1.
 Q. Folders are not created on host2. What happens?
 
 R. Do you use IMAP or POP3 with your client software?
-It looks like you use POP3 instead of IMAP, POP3 has only INBOX.
+It looks like you use POP3 instead of IMAP, POP3 sees only INBOX.
 
 
 =======================================================================
@@ -439,53 +432,72 @@ synchronization of mailboxes? Is there a better solution?
 R. If messages are delivered remotely and you play locally with the
 copy, in order to have fast access, then the synchronization can't
 be one way. You may change flags, you may move messages in 
-different folders etc.
+different folders etc. The issue described is clearly 
+two-ways sync.
 
 A better tool with this scenario is offlineimap, 
 designed for this issue, and faster than imapsync.
 
 =======================================================================
-Q. We have found that the sent time and date have been changed to the 
-   time at which the file was synchronized. 
+Q. We have found that the time and date displayed have been changed to 
+   the time at which the file was synchronized. 
 
-R. This is the case with:
-   - Eudora
+R. This is the case by default with some email readers like:
    - Outlook 2003
- but not with 
+   - Ipad
+
+but not with:
+
    - Mutt
    - Thunderbird
- and no longer with
    - Zimbra
    - Gmail
 
 
-Eurora shows by default  the time the imap server received the email. I
-think   it is  quite   a  wrong  behavior  since  the messages can have
-traveled some time before the reception.
+A thing to keep in mind, imapsync does not touch any byte of messages 
+unless told to do so by option --regexmess. 
+Messages on both parts should be identical.
 
-The sent time and date are given by the "Date:" header and it is set
-most of the time by the MUA (Mail User Agent, Mutt, Eudora,
-Thunderbird etc.).
+I explain the whole picture about dates of messages.
 
-imapsync does not touch any byte of messages unless told to do so
-by an option. Messages on both parts should be identical
-(some IMAP servers add or even change header lines).
+There are several different dates for any message.
+First, there is the "Date:" header. Most of the time, this date is set 
+by the MUA. MUA means Mail User Agent; it is Outlook, Mutt
+or Thunderbird. The Date header is usually the date the message was written 
+or sent the first time. It is never changed by any transfer or copy.
+If an email reader uses the Date header for displaying the date of a 
+message then no problem should arise.
+
+There is also the internal date. In IMAP the internal date is handled
+and normally it corresponds to the arrival date in the mailbox. The 
+IMAP protocol allows the internal date to be set by a email client.
+Imapsync synchronizes internal dates by default, internal dates on host2
+should then be the same as the internal dates on host1. 
+If an email reader uses the internal date for displaying the date of a 
+message then the sync date problem only occurs when the host2 server software
+ignores the internal date given by imapsync during the APPEND imap 
+command. It happens with some imap servers.
+
+There are also the Received header lines. Each time a message travels
+a SMTP server, this one adds a Received header line. Sometimes 
+some email clients use the last "Received" header date as the date of the
+message. And some IMAP servers softwares add a Received line after
+and imap transfer. If those both conditions are met then the date
+displayed become the transfer date even if imapsync 
+has done its best to keep all the dates synchronized. Bad luck.
+
+
 
 Solutions: 
-a) Use the --syncinternaldates option and keep using Eudora.
-   But --syncinternaldates is now turn on by default so if you 
-   encounter the issue then the solution is harder, depending
-   on email client softwares and IMAP server softwares.
+a) Use a better email client or configure it in order it sorts messages
+by sent date, the Date header.
 
-b) use --idatefromheader to set the internal dates on host2 same as the 
-   "Date:" headers. It won't work if a) doesn't work.
+b) Use a imap server that respects the imap RFC and accepts 
+the internal date set by imapsync. 
 
-c) In Maildir boxes, after the sync (too late...), use the script
-learn/adjust_time.pl to change the internal dates from the "Date:" header.
-(this a Unix fix using touch command)
+c) Try to understand why the reader shows another date. 
+For Exchange look at the next FAQ item.
 
-d) Use a better email client or configure it in order it sorts messages
-by sent date.
 
 
 =======================================================================
@@ -507,22 +519,19 @@ The result is that you can have more messages on host1 than on host2.
 
 R2. With option --useuid imapsync doesn't use headers to identify
 messages on both sides but it uses their imap uid. In that case
-duplicates on host1 are transfered on host2.
-
-=======================================================================
-Q. How can I remove duplicates on a unique host
-
-R. Just run imapsync on the same account with option --delete2,
-   ie with host1 == host2 and user1 == user2
+duplicates on host1 are transferred on host2.
 
 =======================================================================
 Q. I need to log every output on a file named log.txt
 
-R. Use redirections of both standard and error outputs "> log.txt 2>&1"
+R1. imapsync logs on a file by default, its name is given at the 
+    beginning and the end of each run. This name is unique since
+    it is compound of the current date and time and user2 value. 
 
-  imapsync ... > log.txt 2>&1
+R2. To change this default name, use --logfile log.txt
 
-This syntax is available both on Windows and Unix.
+  imapsync ... --logfile log.txt
+
 
 =======================================================================
 Q. I need to log every output on a file named log.txt and also to the 
@@ -581,36 +590,11 @@ This file is removed at the end of a normal run.
 You can safely ignore the warning if you don't use imapsync.pid file.
 
 =======================================================================
-Q. Couldn't create folder [trash] from [INBOX.trash]: 
-   588 NO Mailbox already exists.
+Q. Quantifier in {,} bigger than 32766 in regex; marked by <-- HERE in 
+   m/(.{ <-- HERE 1,49947})(?:,|$)/ at Mail/IMAPClient.pm line 2121.
 
-R. Some servers take care about character case in folder names, 
-   some servers do not, like Exchange. Since non-respecting case 
-   can merge two different folders into one then imapsync respects case. 
-
-   For example, if a host1 server has a folder name called "trash"
-   and the host2 server already has a folder "Trash" or "TRASH"
-   then imapsync will try to create the folder "trash" on host2,
-   because trash and Trash are different strings. But if host2
-   does not respect character case it will consider folder "trash"
-   already exists and will say it, that's the error message 
-   reported by imapsync: "Mailbox already exists", message coming 
-   from the server.
-
-   The folder creation fails but messages are well transfered in
-   so take a look at this warning, understand why it happens
-   and it should be fine most of the time.
-
-   To avoid this warning use --regextrans2 to map the folder names
-
-   imapsync ...  --regextrans2 "s/^trash$/Trash/"
-
-   If there are two folders Trash and trash on host1 then both
-   will be merge into only one Trash folder on host2. 
-   In case option --delete2 is used the regextans2 above becomes
-   mandatory, otherwise imapsync will sync messages from the
-   first Trash and then delete them when syncing trash.
-
+R. Do not use a bigger value than 3276 with --split1 or --split2
+ 
 =======================================================================
 Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
 INBOX.Ops/foo/bar 
@@ -654,8 +638,8 @@ R. imapsync does not POP3 but I think you mean UID in IMAP.
 Q. Is it possible to sync also the UIDs of the IMAP server?
 
 UIDs in IMAP are chosen and created by the servers, not by the clients,
-imapsync is a client. So UIDs can not be synced by any method,
-unless the server is duplicated as is.
+imapsync is a client. So UIDs cannot be synced by any imap method.
+UIDs might be synced via a rsync command on the server part.
 
 =======================================================================
 Q. The option --subscribe does not seem to work
@@ -664,293 +648,6 @@ R1. Use it with --subscribed
 
 R2. There is also the --subscribe_all option that subscribe
 to all folders on host2.
-
-=======================================================================
-Q. Is there a way we can specify a date range to sync emails? 
-   If yes, can you please share an example?
-
-Yes, with the --search option.
-
-  imapsync ... --search "SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010"
-
-   Jan
-   Feb
-   Mar
-   Apr
-   May 
-   Jun
-   Jul 
-   Aug
-   Sep
-   Oct 
-   Nov
-   Dec
-
-
-=======================================================================
-Q. Does imapsync retain the \Answered and $Forwarded flags?
-
-R. It depends on the destination server.
-
-a) If the destination server honors the "PERMAENTFLAGS \*" 
-directive (meaning it accepts any flag) or no PERMAENTFLAGS at all 
-then imapsync synchronizes all flags except the \Recent flag
-(RFC 3501 says about \Recent flag "This flag can not be 
-altered by the client.").
-
-b) If the destination server honors the "PERMAENTFLAGS without the 
-special "\*"  then imapsync synchronizes only the flags listed 
-in PERMANENTFLAGS.
-
-Some imap servers have problems with flags not beginning with
-the backslash character \ 
-(see next question to find a solution to this issue)
-
-
-=======================================================================
-Q. Is there a way to only sync messages with a specific flag set, 
-for example, the \Seen flag? 
-
-R. use --search 
-
-  imapsync ... --search SEEN
-
-or
-
-  imapsync ... --search UNSEEN
-
-or ...
-
-The complete list of search things are listed below
-
-http://www.faqs.org/rfcs/rfc3501.html
-
-6.4.4.  SEARCH Command
-...
-      ALL
-         All messages in the mailbox; the default initial key for
-         ANDing.
-
-      ANSWERED
-         Messages with the \Answered flag set.
-
-      BCC <string>
-         Messages that contain the specified string in the envelope
-         structure's BCC field.
-
-      BEFORE <date>
-         Messages whose internal date (disregarding time and timezone)
-         is earlier than the specified date.
-
-      BODY <string>
-         Messages that contain the specified string in the body of the
-         message.
-
-      CC <string>
-         Messages that contain the specified string in the envelope
-         structure's CC field.
-
-      DELETED
-         Messages with the \Deleted flag set.
-
-      DRAFT
-         Messages with the \Draft flag set.
-
-      FLAGGED
-         Messages with the \Flagged flag set.
-
-      FROM <string>
-         Messages that contain the specified string in the envelope
-         structure's FROM field.
-
-      HEADER <field-name> <string>
-         Messages that have a header with the specified field-name (as
-         defined in [RFC-2822]) and that contains the specified string
-         in the text of the header (what comes after the colon).  If the
-         string to search is zero-length, this matches all messages that
-         have a header line with the specified field-name regardless of
-         the contents.
-
-      KEYWORD <flag>
-         Messages with the specified keyword flag set.
-
-      LARGER <n>
-         Messages with an [RFC-2822] size larger than the specified
-         number of octets.
-
-      NEW
-         Messages that have the \Recent flag set but not the \Seen flag.
-         This is functionally equivalent to "(RECENT UNSEEN)".
-
-      NOT <search-key>
-         Messages that do not match the specified search key.
-
-      OLD
-         Messages that do not have the \Recent flag set.  This is
-         functionally equivalent to "NOT RECENT" (as opposed to "NOT
-         NEW").
-
-      ON <date>
-         Messages whose internal date (disregarding time and timezone)
-         is within the specified date.
-
-      OR <search-key1> <search-key2>
-         Messages that match either search key.
-
-      RECENT
-         Messages that have the \Recent flag set.
-
-      SEEN
-         Messages that have the \Seen flag set.
-
-      SENTBEFORE <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is earlier than the specified date.
-
-      SENTON <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is within the specified date.
-
-      SENTSINCE <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is within or later than the specified date.
-
-      SINCE <date>
-         Messages whose internal date (disregarding time and timezone)
-         is within or later than the specified date.
-
-      SMALLER <n>
-         Messages with an [RFC-2822] size smaller than the specified
-         number of octets.
-
-      SUBJECT <string>
-         Messages that contain the specified string in the envelope
-         structure's SUBJECT field.
-
-      TEXT <string>
-         Messages that contain the specified string in the header or
-         body of the message.
-
-      TO <string>
-         Messages that contain the specified string in the envelope
-         structure's TO field.
-
-      UID <sequence set>
-         Messages with unique identifiers corresponding to the specified
-         unique identifier set.  Sequence set ranges are permitted.
-
-      UNANSWERED
-         Messages that do not have the \Answered flag set.
-
-      UNDELETED
-         Messages that do not have the \Deleted flag set.
-
-      UNDRAFT
-         Messages that do not have the \Draft flag set.
-
-      UNFLAGGED
-         Messages that do not have the \Flagged flag set.
-
-      UNKEYWORD <flag>
-         Messages that do not have the specified keyword flag set.
-
-      UNSEEN
-         Messages that do not have the \Seen flag set. 
-
-=======================================================================
-Q. How to convert flags?
-
-R. use --regexflag
-For example to convert flag IMPORTANT to flag CANWAIT
-
-  imapsync ... --regexflag "s/IMPORTANT/CANWAIT/g" --debugflags
-
-option --debugflags is usefull to see in details what imapsync
-does with flags.
-
-=======================================================================
-Q. How to fix this error: BAD Invalid system flag \FORWARDED 
-
-R. Filter flag \FORWARDED with --regexflag like this:
-
-On Windows:
-
-  imapsync ... --regexflag "s/\\FORWARDED//g" 
-
-On Unix:
-
-  imapsync ... --regexflag 's/\\FORWARDED//g' 
-
-or
-
-  imapsync ... --regexflag "s/\\\\FORWARDED//g" 
-
-
-=======================================================================
-Q. How to convert flags with $ to \ character?
-
-R. $ and \ are special characters we have to "escape" them.
-For example to convert flag $label1 to \label1
-
-  imapsync ... --regexflag "s/\$label1/\\label1/g" --debugflags
-
-=======================================================================
-Q. I need to keep only a defined list of flags, how can I do?
-The destination imap server complains about bad flags (Exchange).
-
-R1. Recent imapsync deals with this issue by filter with PERMANENTFLAGS
-automatically.
-
-R2. For example if you want to keep only the following flags
-\Seen \Answered \Flagged \Deleted \Draft
-then use these magic --regexflag options (thanks to Phil):
-
- --regexflag 's/.*?(?:(\\(?:Answered|Flagged|Deleted|Seen|Draft)\s?)|$)/defined($1)?$1:q()/eg'
-
-Analysis is left to the reader.
-
-This one is longer and may be use with old perl (no /e regex extension):
- --regexflag 's/(.*)/$1 jrdH8u/' \
- --regexflag 's/.*?(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u)/$1 /g' \
- --regexflag 's/(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u) (?!(\\Seen|\\Answered|\\Flagged|\\Deleted|\\Draft|jrdH8u)).*/$1 /g' \
- --regexflag 's/jrdH8u *//'
-
-
-======================================================================
-Q. imapsync fails with the following error:
-flags from : [\Seen NonJunk]["10-Aug-2006 13:00:30 -0400"]
-Error trying to append string: 58 NO APPEND Invalid flag list
-
-R. For some servers, flags have to begin with a \ character.
-The flag "NonJunk" may be a invalid flag for your server 
-so use for example:
-
-imapsync ...    --regexflag "s/NonJunk//g"
-
-Remark (thanks to Arnt Gulbrandsen): 
-IMAP system flags have to begin with \ character.
-Any other flag must begin with another character.
-System flags are just flags defined by an RFC instead of by users.
-Conclusion, some imap server coders don't read the RFCs (so do I).
-
-Recent imapsync deals with this issue by filter with PERMANENTFLAGS
-automatically.
-
-=======================================================================
-Q. Flags are not well synchronized. Is it a bug?
-
-R. It happens with some servers on the first sync. 
-Also, it was a bug from revision 1.200 to revision 1.207
-
-Two solutions: 
-
-* Run imapsync a second time. imapsync synchronizes flags on each run.
-
-* Use option --syncflagsaftercopy. With this option imapsync will 
-  also sync flags after each message transfer. Flags are already 
-  synced during the transfer with the imap APPEND command but 
-  option --syncflagsaftercopy does it again using the imap STORE 
-  command.
 
 =======================================================================
 Q. On Unix, some passwords contain * and " characters. Login fails.
@@ -1056,18 +753,6 @@ b OK 73 good day (Success)
 The client part to type is "a LOGIN ..." and "b LOGOUT" without
 the double-quotes. 
 
-=======================================================================
-Q. On windows ssl use to work with imapsync.exe 1.536 or previous then
-   an upgrade to next release makes it fail.
-
-R. The I0::Socket::SSL can have SSL_version set by default to 
-   "SSLv23:!SSLv2" but the auto-negociation can fail with 
-   some ssl servers. Use --ssl1_SSL_version or 
-   --ssl2_SSL_version to change SSL_version.
-
-Try:
-
-   imapsync ... --ssl1 --ssl1_SSL_version "SSLv3"
 
 =======================================================================
 Q: How to have an imaps server?
@@ -1081,53 +766,6 @@ b) or use stunnel :
 
 c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
-
-=======================================================================
-Q: Multiple copies when I run imapsync twice ore more.
-
-R1. You can use option --useuid, imapsync then won't use header lines to
-compare messages in folders. Keep in ming it uses a local cache.
-
-  imapsync ... --useuid
-
-R2. Multiple copies of the emails on the destination server. Some IMAP
-servers (Domino for example) add some headers for each message
-transfered. The message is transfered again and again each time you
-run imapsync. This is bad of course. The explanation is that imapsync
-considers the message is not the same since headers have changed (one
-line added) and size too (the header part). 
-
-You can look at the headers found by imapsync by using the --debug
-option (and search for the message on both part), Header lines from
-the source server begin with a "FH:" prefix, Header lines from the
-destination server begin with a "TH:" prefix. Since --debug is very
-verbose I suggest to isolate a email in a specific folder in case you
-want to forward me the output.
-
-The way to avoid this problem is by using options --skipheader and
---skipsize, like this (avoid headers beginning whith the string "X-"):
-
- imapsync ... --skipheader "^X-" --skipsize
-
-To skip several headers you can use --skipheader one time
-
- imapsync ... --skipheader "^X-|^Status|^Bcc"
-
-If you think you have too many header to avoid just use
-
- imapsync ... --useheader "Message-ID" --skipsize
-
-Remark. (Trick found by Tomasz Kaczmarski)
-
-Option --useheader "Message-ID" asks the server to send only header
-lines begining with "Message-ID".  Some (buggy) servers send the whole
-header (all lines) instead of the "Message-ID" line. In that case, a
-trick to keep the --useheader filtering behavior is to use
---skipheader with a negative lookahead pattern :
-
- imapsync ... --skipheader "^(?!Message-ID)" --skipsize
-
- Read it as "skip every header except Message-ID".
 
 ======================================================================
 Q. I am transferring mails from one IMAP server to another. I am using
@@ -1186,6 +824,21 @@ A good way to see what will be done is to first use:
 
   imapsync ...  --exclude "^INBOX$" --justfolders --nofoldersizes --dry
 
+
+======================================================================
+Q. Can Imapsync filter Spam during the sync?
+
+R. No, imapsync doesn't detect Spam by itself and currently it can't
+delegate this job during its IMAP syncs. But I've seen blogs and
+Spamassassin documentation explaining solutions to apply Spamassassin
+to a imap mailbox. So you can apply one of these solutions on the host1
+source mailbox before the imapsync run or on the destination host2
+mailbox after the imapsync transfer.
+
+http://www.stearns.org/doc/spamassassin-setup.current.html#isbg
+http://euer.krebsco.de/using-spamassassin-on-a-remote-imap-host.html
+https://github.com/ook/isbg
+
 ======================================================================
 Q. I want to exclude folders matching SPAM no matter the case, 
    aka how to be case insensitive
@@ -1211,124 +864,6 @@ R1. Use
 R2. Use --include "^MyFolder"
    Then the folder "MyFolder" and all its subfolders will be handled
    and only them.
-
-======================================================================
-Q. Migrating to Exchange 201O, messages get date of the transfer,
-   this is bad for sorting and listing.
-
-R1. Be sure to have at least Exchange 2010 SP2 Rollup 5
-http://www.tribalchicken.com.au/15-technical/29-imapsync-exchange2010
-
-R2. See also the Outlook side (thanks to Martin Hochreiter for this solution)
-http://www.howto-outlook.com/faq/archivenotworking.htm
-by changing Archive to sent/receive date
-
-It's often shorter to change one server than thousands clients
-so R1 might be easier to do.
-
-======================================================================
-Q. How to migrate from or to Exchange 2003 with an admin/authuser 
-   account?
-
-R. Thomas Edgar wrote the following
-
-In case you can glean something from this snippet which allowed us 
-to migrate from Exchange 2003 t0 Cyrus Imap 2.4 (you would reverse 
-the flow to go the other way):
-
-  imapsync --dry --host1 ExchangeServer.mycompany.com \
-    --user1 Some.User@mycompany.com --authuser1 ExchangeAdminAccount \
-    --proxyauth1 --password1 '$pass_with_dollars$' \
-    --host2 cyrusimapbackend.mycompany.com \
-    --user2 SameOrDiffererentUser@mycompany.com \
-    --authuser2 CyrusAdminAccount --password2 CyrusAdminPassword
-
-We also needed to:
-
-- Ensure the Exchange Admin Acct had IMAP4 enabled in it's 
-  profile (it initially didn't!)
-- Ensure the Some.User Exchange Acct had IMAP4 enabled 
-  in it's profile (it initially didn't!)
-- Add the CyrusAdminAccount to admins line in /etc/imapd.conf
-- Give CyrusAdminAccount lrswipkxtecda to the Cyrus Imap account 
-  being migrated to (- or in your case, from)
-
-In case you are not aware:
-
-- It will prompt for a password if you don't supply it
-- the domain part of the fully-qualified email could be 
-  omitted in our case
-- Use --debugimap when testing initial connectivity, if necessary
-
-======================================================================
-Q. How to migrate from or to Exchange 2007/2010 with an 
-   admin/authuser account?
-   
-R. The tricks comes from Michele Marcionelli and Benjamin Priestman:
-
-This doesn't work:
-  imapsync ... --user2 user2 --authuser2 admin2 --password2 adminpassword2 ...
-
-This might works:
-  imapsync ... --user2 "domain\admin2\user2" --password2 adminpassword2 ...
-or 
-  imapsync ... --user2 "admin2@domain\user2" --password2 adminpassword2 ...
-
-where "domain" is set be the user's UPN in Active Directory
-or the NETBIOS or DNS name of the domain.
-
-The exact format might vary depending on local configuration and you
-should experiment with the different formats.
-
-PLAIN authentication is the only way to go with --authuser1 for now.
-So don't use --authmech1 SOMETHING with --authuser1 admin_user,
-it will not work.
-Same behavior with the --authuser2 option.
-
-A little note from Michael Scherer. 
-The previous workaround in the FAQ seems to be obsolete.
-I can confirm that
-
-  imapsync ... --host2 exchange_server --authmech2 PLAIN \
-               --authuser2 admin@domain --user2 user_alias
-
-is working without any glitches, running Exchange 2010 SP2 here.
-Explanation, Exchange knows a) about a username 
-and b) about a mailNickname which can be different to the username. 
-As it seems you need to use the mailNickname (e.g. alias) defined 
-for user2, not the username itself.
-http://blogs.technet.com/b/exchange/archive/2004/03/31/105275.aspx
-
-
-A little note from John Becker.
-After you pointed out that I had issues with authorization, I realized that
-as an admin user I don't have all the rights on the mailboxes.
-So I added myself to the user mailbox with full rights.
-I also changed the login type on the Exchange CAS to type 1, plain text.
-The command that I used for imapsync is:
-   imapsync ... ^
-       --host2 exchange-server ^
-       --user2 "windows-domain\admin-user\aaaa" ^
-       --password2 admin-password ...
-
-======================================================================
-Q. How to migrate from or to Office 365 with an admin/authuser account?
-
-Note from Yago Torres Fernandez:
-(a working command using admin/authuser on host2 Office 365)
-
-  imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
-               --password2 XXXX --ssl2 --ssl2_SSL_version SSLv3 --exclude "Shared Folders"     ^
-               --regextrans2 "s#Trash$#Papelera#"  --regextrans2 "s#^Deleted Items$#Papelera#"
-
-but previous in Office365 you must do something like that, using powershell:
-
-  Add-MailboxPermission -identity user_to_be_migrated@domain.com -user user_admin@domain.com -accessrights fullaccess -inheritancetype all
-
-PLAIN authentication is the only way to go with --authuser1 for now.
-So don't use --authmech1 SOMETHING with --authuser1 admin_user,
-it will not work.
-Same behavior with the --authuser2 option.
 
 
 ======================================================================
@@ -1421,148 +956,20 @@ In imapsync, you can achieve this by using the following options:
 Q. Is there anyway of making imapsync purge the destination folder
    when the source folder is deleted?
 
-R. No, that's too dangerous. May be coded in future release.
+R. Yes, use --delete2folders
 
-But if the source folder is empty (not deleted) and options --delete2
---expunge2 are used then the destination folder will be empty.
+--delete2folders       : Delete folders in host2 that are not in host1 server. 
+                         For safety, first try it like this (it is safe):
+			 --delete2folders --dry --justfolders --nofoldersizes
+--delete2foldersonly   <regex>: Deleted only folders matching regex.
+                         Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+--delete2foldersbutnot <regex>: Do not delete folders matching regex.
+                         Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
 
-======================================================================
-Q. Is it possible to synchronize all messages from one server to 
-another without recreating the folder structure and the target server.
-
-R. Yes.
-
-For example, to synchronize all messages in all folders on host1
-to folder INBOX only on host2:
-
-1) First try (safe mode):
-
-imapsync \
- ...
- --regextrans2 "s/(.*)/INBOX/" \
- --dry --justfolders
-
-2) See if the output says everything you want imapsync to do, 
-   --dry option is safe and does nothing real.
-   
-3) Remove --dry 
-   Check the imap folder tree on the target side, you should
-   only have one: the classical INBOX.
-
-4) Remove --justfolders
-
-
-======================================================================
-Q. I have moved from Braunschweig to Graz, so I would like to have my
-   whole Braunschweig mail sorted into a sub-folder INBOX.Braunschweig 
-   of my new mail account.
-
-R.
-1) First try (safe mode):
-
-imapsync \
- ...
- --regextrans2 "s/INBOX(.*)/INBOX.Braunschweig\$1/" \
- --dry --justfolders
-
-On Windows, in the previous example containing \$1 you have to 
-replace the two \$1 by $1 (remove the \ before $).
-
-
-2) See if the output says everything you want imapsync to do, 
-   --dry option is safe and does nothing real.
-   
-3) Remove --dry 
-   Check the imap folder tree on the target side
-
-4) Remove --justfolders
-
-=======================================================================
-Q. Give examples about --regextrans2
-
-R. --regextrans2 is used to transform folder names
-
-Remember that --regextrans2 applies after the default 
-inversion prefix1 <-> prefix2 and sep1 <-> sep2
-
-Examples: 
-
-0) First try with --dry --justfolders options since imapsync shows the
-   transformations it will do without really doing them. Then when
-   happy with the output remove the --dry --justfolders options.
-
-1) To remove INBOX. in the name of destination folders:
-
-    --regextrans2 's/^INBOX\.(.+)/$1/'
-
-2a) To sync all folders to INBOX:
-
-  imapsync ... --regextrans2 "s/.*/INBOX/"
-
-
-2b) To sync a complete account in a subfolder called FOO:
-  
-  a) Seperator is dot character "." and "INBOX" prefixes every folder
-  
-    --regextrans2 's/^INBOX(.*)/INBOX.FOO$1/'
-
-  or:
-  
-  b) Seperator is slash character "/" and there is no prefix 
-  
-   --regextrans2 's#(.*)#FOO/$1#'
-   
-   or:
-
-  c) Any separator, any prefix solution, FOO is the subfolder:
-
-  It is a complicated line because every case is taken into account.
-  Type it in one line (or with the \ at the end of first line on Unix shells.
-   
-   --regextrans2 's,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
-   --regextrans2 's,^INBOX$,${h2_prefix}FOO{h2_sep}INBOX,'
-
-
-3) to substitute all characters dot "." by underscores "_"
-    --regextrans2 's/\./_/g'
-
-4) to change folder names like this:
-[mail/Sent Items] -> [Sent]
-[mail/Test]       -> [INBOX/Test]
-[mail/Test2]      -> [INBOX/Test2]
-
-    --regextrans2 's#^mail/Sent Items$#Sent#' \
-    --regextrans2 's#^mail/#INBOX/#'
-
-=======================================================================
-Q. I would like to move emails from InBox to a sub-folder called,
-   say "2010-INBOX" based on the date (Like all emails received in the
-   Year 2010 should be moved to the folder called "2010-INBOX").
-
-R. 2 ways :
-
-a) Manually:
-------------
-
-1) You create a folder INBOX.2010-INBOX
-
-2) Mostly every email software allow sorting by date. In INBOX, you
-   select from 1 January to 31 December 2010 messages with the shift key.
-   (in mutt, use ~d)
-
-3) Cut/paste in INBOX.2010-INBOX
-
-b) With imapsync:
------------------
-
-imapsync ... \
---search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010'
---regextrans2 's/^INBOX$/INBOX.2010-INBOX/' \
---folder INBOX
 
 =======================================================================
 Q. I want to play with headers line and --regexmess but I want to leave
-   the body as is
+   the body as is.
 
 R. The header/body separation is a blank line so an example:
    --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nX-Date:$2}gxms'
@@ -1613,12 +1020,12 @@ b) Replace manually the whitespace by a colon in string "From " but you
    header lines of the message)
 
 c) Run imapsync with the following option (this replaces "From "by "From:"):
-   --regexmess 's/\AFrom /From:/'
+   --regexmess 's/\AFrom /From: /'
 
 or may be better (no other "From:" collision):
 
 d) Run imapsync with the following option (this replaces "From "by "X-om:"):
-   --regexmess 's/\AFrom /X-om:/'
+   --regexmess 's/\AFrom /X-From: /'
 
 e) Run imapsync with the following option (this removes the whole "From " line):
    --regexmess 's{\AFrom\ [^\n]*(\n)?}{}gxms'
@@ -1643,710 +1050,6 @@ and tried a copy of the mail instead an append_string. Because we are
 using the same server, we can use $from->copy Therefore we seem to not
 download and upload the message and therefore we do not have any
 format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
-
-=======================================================================
-              Server specific issues and solutions
-=======================================================================
-
-=======================================================================
-Q. From XXX to Exchange 2010/2013 or Office365
-
-R. Here is a command line resume that solves most encountered issues when 
-   migrating to Exchange or Office365. To understand or change the
-   details you have to read next Q/R sections.
-
-For Office365 you also have to add --ssl2  --ssl2_SSL_version SSLv3 
-if Office365 is host2 (or --ssl1 if Office365 is host1)
-
-  imapsync ... --ssl2  --ssl2_SSL_version SSLv3
-
-or 
-
-  imapsync ... --ssl1  --ssl1_SSL_version SSLv3
-
-
-On Windows:
-
-  imapsync ... ^
-    --maxsize 10000000 ^
-    --maxlinelength 9900 ^
-    --regexflag "s/\\Flagged//g" ^
-    --disarmreadreceipts
-
-
-On Unix:
-
-  imapsync ... \
-    --maxsize 10000000 \
-    --maxlinelength 9900 \
-    --regexflag "s/\\Flagged//g" \
-    --disarmreadreceipts
-
-
-=======================================================================
-Q. From XXX to Exchange 2013 or Office365 read receipts are all
-  resent again after a sync. Even for old messages. How can I fix that?
-
-R. imapsync can remove the header containing this read receipt request.
-
-On Unix or Windows use:
-
-  imapsync ... --disarmreadreceipts
-
-Since read receipts should be sent for unseen messages that will go 
-to a seen state after the migration, you could be strict and apply 
-the regex only to seen messages. 
-Selecting seen message can be done with:
-
-  imapsync ... --search1 "SEEN" --disarmreadreceipts
-
-Of course a second run has to be run without the --regexmess for 
-unseen messages:
-
-  imapsync ... --search1 "UNSEEN" 
-
-If fact --disarmreadreceipts is just an option equivalent to:
-
-  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
-
-That regex prefixes the header Disposition-Notification-To with an X-
-so that it becomes inactive.
-
-Thanks to David Karnowski for pointing and solving this issue.
-
-=======================================================================
-Q. From XXX to Exchange 2010/2013 or Office365 I get this error message
-   sometimes: "BAD Command Argument Error 11"
-
-R. This error message comes from Exchange IMAP server when it 
-   encounters any problem. Most of the time it is one of the following:
-
-  * Some messages are bigger than the size limit. 10 MB by default
-    on Exchange. It can be upped by configuration for Exchange.
-    If you can't configure this limit then use option
-    --maxsize 10000000 for 10 MB, change it if needed) to tell
-    imapsync to skip those messages.
-    This value is 25 MB by default for Office365 --maxsize 25000000
-
-  imapsync ... --maxsize 10000000 # 10 MB for Exchange
-
-  imapsync ... --maxsize 25000000 # 25 MB for Office365
-  
-
-  * Quota reached. The whole account is full.
-    It can be upped by configuration.
-
-  * Some messages have some lines too long. Use option --maxlinelength
-    to skip messages whose max line length is over a number of bytes.
-    --maxlinelength 1000 is a RFC2822 must but most server support
-    higher values. Exchange supports 9900:
-
-  imapsync ... --maxlinelength 9900 
-
-Have also in mind that Exchange closes the connection after 10 errors
-encountered so you might also see "BYE Connection closed" errors from
-Exchange, which means Exchange leaves the session and say goodbye,
-come back later. Rerun a sync then.
-
-=======================================================================
-Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
-   not seem to be well synced.
-
-R. Use the following trick. Run imapsync twice, one with --regexflag
-   and one without, like this:
-
-1) imapsync ... --regexflag "s/\\Flagged//g"
-2) imapsync ...
-
-You can add --debugflags if you want to see what imapsync gets and 
-does in details with flags.
-
-The magic of this trick is on ignoring the \Flagged flag on the first 
-sync and setting it on the second sync, with STORE instead of APPEND.
-This Exchange bug seems that Exchange gets and sets well the Flagged 
-flag with APPEND in IMAP but then it forgets it with other protocols;
-With STORE it sets and gets the "\Flagged" flag everywhere.
-
-Thanks to Dave Murray and Simon Savva for reporting and solving 
-this issue.
-
-=======================================================================
-Q. Synchronizing from XXX to Gmail  
-
-R. There are some details to get the special [Gmail] sub-folders
-   right. Here's an example of migrating an old "Sent" folder to
-   Gmail's structure:
-
-imapsync --host1 mail.oldhost.com \
-         --user1 my_email@oldhost.com \
-         --password1 password \
-         --host2 imap.gmail.com \
-         --user2 my_email@gmail.com \
-         --password2 password \
-         --ssl2 \
-         --exitwhenover 500000000 \
-         --maxsize 25000000 \
-         --expunge1 \
-         --addheader \
-         --exclude "\[Gmail\]$"           \
-         --regextrans2 "s/[ ]+/_/g"       \
-         --regextrans2 "s/[\^]/_/g"       \
-         --regextrans2 "s/['\"\\\\]/_/g"  \
-         --regextrans2 "s,^Sent$,[Gmail]/Sent Mail," 
-
-Explanations:
-
---ssl2 is mandatory since Gmail only supports imap ssl connections.
-
---exitwhenover 500000000 option is here to avoid locking when 
-transfers exceed maximum limit. 
-See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---exitwhenover is not mandatory in the sense you may be able to
-use an upper value than 500 MB without disconnections; I don't
-know the hard value, it seems to vary, so just have some tries
-and report me what you discover in case you detect something.
-
---maxsize 25000000 is mandatory since Gmail limits messages size
-up to 25 MB. This value increases over time, it was 10 MB some 
-years ago so you can try higher values. The Gmail page about
-this limit is https://support.google.com/mail/answer/6584
-
---expunge1 is optional. It deletes messages marked \Deleted on host1.
-Imapsync syncs messages with all their flags, Gmail takes the messages
-marked \Deleted but deletes or moves them just after.
-Option --expunge1 really removes messages marked \Deleted on host1 
-so they are not synced at all.
-
-
-The --addheader option is there because "Sent" folder messages 
-sometimes lack the "Message-Id:" and "Received:" headers needed 
-by imapsync to identify messages (only when --useuid is not used). 
-So option --addheader adds a "Message-Id" header consisting of
-the imap UID of the message on the host1 folder, like
-"Message-Id: 12345@imapsync".
-
---exclude "\[Gmail\]$" is there to avoid a small examine/select error:
-"Could not examine: 43 NO [NONEXISTENT] Unknown Mailbox: [Gmail] 
-(now in authenticated state) (Failure)".
-
---regextrans2 "s/[ ]+/_/g" is there to convert blank characters not 
-accepted by gmail to character _ underscore. In fact only leading
-and trailing blank characters are problems with gmail, and
-also successive blanks ending with the IMAP error 
-"NO [CANNOT] Folder contains excess whitespace (Failure)"
-If you want to change only leading and trailing blank characters
-then use instead:
---regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g"
-
-On Windows, in the previous example containing \$1 you have to 
-replace the two \$1 by $1 (remove the \ before $1).
-
---regextrans2 "s/[\^]/_/g" is mandatory.  It converts, since
-not accepted by gmail, character ^ to character _ underscore.
-
---regextrans2 "s/['\"\\\\]/_/g" is optional. It converts 
-characters ' or " or \ to character _ underscore.
-
---regextrans2 "s,^Sent$,[Gmail]/Sent Mail," is to transform the
-folder name "Sent" and adapt it to Gmail "Sent Mail" folder.
-If you're using a different language in Gmail you might adapt
-this example with the folder name translated, an example in French:
-
-imapsync ...
-	 --regextrans2 "s,^Messages envoy&AOk-s$,[Gmail]/Messages envoy&AOk-s," \
-
-
-You can add --folder "INBOX.Sent" in the example in case
-you want to sync only the "Sent" folder.
-
-You can select folders exported to imap within the gmail preferences,
-unselect some  "System labels", depending on your needs.
-
-The "All Mail" archive pseudo-folder should be updated automatically.
-
-
-
-=======================================================================
-Q. Some of the folders are getting created with [IMAP] prefix on Google
-side. How to stop creating folder with this prefix?
-Any switch we can use? e.g. [IMAP]/Archive
-
-R. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
-   it might be configurable with Gmail parameters.
-
-=======================================================================
-Q. Synchronizing from Gmail to XXX 
-
-R. Gmail needs SSL 
-
-./imapsync \
-           --host1 imap.gmail.com \
-           --user1 gilles.lamiral@gmail.com \
-           --password1 gmailsecret \
-           --host2 localhost
-           --user2 tata \
-           --password2 tatasecret \
-           --ssl1 \
-           --exitwhenover 2500000000 \
-           --useheader="X-Gmail-Received" \
-           --useheader "Message-Id" \
-           --skipcrossduplicates \
-           --folderfirst "Work" \
-           --folderfirst "Friends" \
-           --folderlast  "CanWait" \
-           --folderlast  "[Gmail]/All Mail"
-
-
-Explanations:
-
---ssl1 is mandatory since Gmail only supports imap ssl connections.
-
---exitwhenover 2500000000 option is here to avoid locking when 
-transfers exceed maximum limit. 
-See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---exitwhenover is not mandatory in the sense you may be able to
-use an upper value than 2.5 GB without disconnections; I don't
-know the hard value, it seems to vary, so just have some tries
-and report me what you discover in case you detect something.
-
---useheader="X-Gmail-Received" --useheader "Message-Id" are not
-mandatory. I use them because I found (several years ago, it may
-have changed) that Gmail always adds a different header 
-"X-Gmail-Received:" to all messages it gets. So the identification
-by imapsync can not fail using this header. "Message-Id" is there
-for safety about this Gmail rule.
-
-
-If your destination imap server doesn't like "[Gmail]" name, just add
-option:
-           --regextrans2 's/\[Gmail\]/Gmail/'
-
-You can select folders exported to imap within the gmail preferences,
-for example you may unselect all "System labels".
-
---exitwhenover option is here to avoid locking when transfers 
-exceed maximum limit. 
-See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
-
---skipcrossduplicates is optional but it can save Gigabytes of hard
-disk memory. Within imap protocol, Gmail presents Gmail labels as 
-folders, so a message labeled "Work" "ProjectX" "Urgent" ends up 
-in three different imap folders "Work" "ProjectX" and "Urgent"
-after an imap sync. --skipcrossduplicates prevent this behavior.
-
-An issue with --skipcrossduplicates is that the first label synced
-by imapsync goes to its corresponding folder and other labels are
-ignored. This way, at least you can choose what labels have the 
-priority by using the --folderfirst option. For example
---folderfirst "Work" will sync messages labeled "Work" before
-messages labeled "CanWait" or "Urgent". By default imapsync 
-syncs folders (Gmail labels) using the classical alphanumeric order.
-
---folderlast "CanWait" will sync only messages that have the
-label CanWait and only it.
-
---folderlast "[Gmail]/All Mail", in conjunction with option 
---skipcrossduplicates, will only put in "[Gmail]/All Mail"
-the messages that are not labeled at all.
-
-=======================================================================
-Q. Does imapsync have the capability to do 2 stage authentication for google. 
-
-No, imapsync doesn't support 2 stage authentication. 
-Reading https://support.google.com/mail/answer/1173270?hl=en
-it looks like it can't because imapsync uses imap protocol.
-
-So you have to follow the Google recommendation and generate an 
-application-specific password or normal authentication or XOAUTH.
-
-=======================================================================
-Q. How to use XOAUTH to globally authenticate gmail users?
-   The XOAUTH code and this FAQ item come from Eduardo Bortoluzzi
-   Thanks Eduardo!
-
-R. The goal of OAUTH is to migrate all users from/to Google Apps 
-   Premier Edition without knowing their passwords.
-
-   The global password is available at the Google Apps control panel, 
-   at Advanced Tools -> Manage OAuth domain key.
-
-./imapsync \
-    --host1 imap.gmail.com --ssl1 \
-    --user1 foo@lab3.dedal.br \
-    --password1 secret1 \
-    --authmech1 XOAUTH \
-    --host2 imap.gmail.com --ssl2 \
-    --user2 bar@lab3.dedal.br \
-    --password2 secret2 \
-    --authmech2 XOAUTH
-
-Google Apps is a paid service, but you can try it for 30 days without any cost.
-
-Some notes about configuring the Google Apps XOAUTH:
-
- On "Advanced Tools > Manage OAuth domain key > Two-legged OAuth access control" 
-    the "Allow access to all APIs" must be checked 
-    (https://support.google.com/a/bin/answer.py?answer=162105)
-
- OR
-
- On "Advanced Tools > Manage third party OAuth client access", 
-    the configured costumer key must have the scope 
-    "https://mail.google.com/" configured 
-    (https://support.google.com/a/bin/answer.py?answer=162106).
-
-
-=======================================================================
-Q. migrate email from gmail to google apps
-
-R. Take a look at:
-http://www.linux-france.org/prj/imapsync_list/msg00639.html
-
-http://biasecurities.com/blog/2009/migrate-email-from-gmail-to-google-apps/
-http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
-
-=======================================================================
-Q. From Zimbra to XXX
-
-imapsync ... \
-	--exclude "Conversation Action Settings" \
-	--exclude "Quick Step Settings" \
-	--exclude "News Feed"
-
-=======================================================================
-Q. From or to HMailServer version 4.4.1.
-
-R. You have to add prefix and separator manually because  4.4.1 doesn't
-honor the NAMESPACE imap command.
-
-Example for host1:
-
-imapsync ... \
-         --prefix1 "" --sep1 .
-
-No specific option for HMailServer 5.3.3 since NAMESPACE is supported.
-
-Maybe --subscribe_all will help you to see all migrated folders.
-
-
-=======================================================================
-Q. Synchronizing from Kerio Connect to XXX
-
-R. No special options required. 
-See also:
-http://www.linux-france.org/prj/imapsync_list/msg01756.html
-http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-1/
-http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-2/
-
-
-=======================================================================
-Q. Synchronizing from SmarterMail to XXX
-
-imapsync --host1 imap.d1.org --user1 joe --password1 secret1 --sep1 "/" \
-         --host2 imap.d2.org --user2 joe --password2 secret2  \
-         --prefix1 ""  \
-         --regextrans2 "s#Sent Items$#Sent#" \
-         --dry --justfolders
-
-Maybe add other --regextrans2 to change folder names and see the result.
-When satisfied, run without --dry --justfolders
-
-
-=======================================================================
-Q. Synchronizing from Yahoo to XXX
-
-R. Use --host1 imap.mail.yahoo.com --sep1 '/'
-
-./imapsync \
-	--host1 imap.mail.yahoo.com \
-        --user1 billy \
-        --password1 secret \
-        --host2 XXX \
-        --user2 billy \
-        --password2 secret \
-        --sep1 '/'
-
-Can also add --ssl1 to gain encrypted transfer from yahoo.
-SSL seems to be mandatory for yahoo (since november 2011)
-
-=======================================================================
-Q. from Microsoft's Exchange 2007 to Google Apps for your Domain 
-   (GAFYD)
-
-R. Take a look at:
-http://mark.ossdl.de/2009/02/migrating-from-exchange-2007-to-google-apps-mail/
-
-=======================================================================
-Q. Syncing from Google Apps domain to Googlemail account
-
-A known bug encountered with this output (Alexander is a folder name):
-
-++++ Verifying [Alexander] -> [Alexander] ++++
-+ NO msg #16 [A96Dh4AwlLVphOAW5MS/eQ:779824] in Alexander
-+ Copying msg #16:779824 to folder Alexander
-flags from : [\Seen]["04-Jul-2007 14:32:22 +0100"]
-Couldn't append msg #16 (Subject:[Rieter-Event    (please accept with
-comments)]) to folder Alexander: 46 NO Invalid folder: Sent (Failure)
-
-In fact folder "Sent" is just the last folder listed previously
-as a:
-...
-To   Folder [Sent]                             does not exist yet
-To   Folder [Sonja]                             Size:   1024546 Messages:    96
-...
-
-R. Just run imapsync a time like this :
-imapsync ... --folder Alexander
-
-=======================================================================
-Q. Migrating from or to Parallels Plex Server
-
-R. It depends on the OS
-
-Parallells Plesk Panel for Windows requires --sep2 / --prefix2 ""
-Parallells Plesk Panel for Linux works with default parameters.
-
-=======================================================================
-Q. I'm migrating from WU to Cyrus, and the mail folders are under
-   /home/user/mail but the tool copies everything in /home/user, how
-   can i avoid that?
-
-Two solutions:
-
-R. Use
-   imapsync ... --include '^mail'
-
-R. or (better)
-   imapsync ... --subscribed --subscribe
-
-
-=======================================================================
-Q. I'm migrating from WU to Cyrus, and the mail folders are under
-   /home/user/mail directory.  When imapsync creates the folders in
-   the new cyrus imap server, it makes a folder "mail" and below that
-   folder puts all the mail folders the user have in /home/user/mail,
-   i would like to have all those folders directly under INBOX.
-
-R. Use 
-   imapsync ... --regextrans2 's/^mail/INBOX/' --dry
-   look at the simulation and if all transformations seem
-   good then remove the --dry option.
-
-
-=======================================================================
-Q. Migrating from Groupwise to Cyrus
-
-R. By Jamie Neil:
-
-I eventually managed to get the mail to migrate without errors using the 
-following options:
-
---sep1 /
-  - doesn't report separator so has to be set explicitly.
-
---nosyncacls
-  - doesn't support ACLs.
-
---skipheader '^Content-Type'
-  - MIME separator IDs seem to change every time a mail is accessed so 
-    this is required to stop duplicates.
-
---maxage 3650
-  - some messages just don't seem to want to transfer and produce the 
-    perl errors I mentioned before. This prevents the errors, but the
-    bad messages don't transfer.
-
-Even though the mail migrated OK, there are a couple of gotchas with 
-Groupwise IMAP:
-
-1) Some of the GW folders are not real folders and are not available
-to IMAP, the main problem one being "Sent Items". I could find no way
-of coping the contents of these folders. The nearest I got was to
-create a "real" folder and copy/move the sent items into it, but
-imapsync still didn't see the messages (I think because there is
-something funny about the reported dates/sizes).
-
-It think this problem has been rectified in GW6.5.
-
-2) The "skipheader '^Content-Type'" directive is required to stop 
-duplicate messages being created. GW seems to generate this field on
-the fly for messages that have MIME separators and so it's different
-every time.
-
-3) Version 6.0.1 of the Groupwise Internet Connector sucks. I was 
-getting server aborts when I pushed it a bit hard! I eventually had to
-upgrade to 6.0.4 which seems to be a lot more stable.
-
-
-=======================================================================
-Q. Migrating from iPlanet Messaging Server
-5.2 Patch 2 (built Jul 14 2004)) to Groupwise 7.0
-I encounter many errors like this:
-"Error trying to append string: 17847 BAD APPEND"
-
-R. GroupWise 7 seems buggy. Apply GroupWise 7 support pack 1
-
-=======================================================================
-Q. Migrating from David Tobit V10 (DvISE Mail Access Server MA-...)
-
-R. Use the following options:
-
-imapsync ... --prefix1 ""    --sep1 /  --idatefromheader ^
-             --nofoldersizes --useuid --nocheckmessageexists
-
-=======================================================================
-Q. Migrating from David Tobit V8
-   ("* OK IMAP4rev1 DvISE Mail Access Server MA-8.10a (0126)")
-
-First try above V10 solution since improvments have been made
-to support Tobit.
-
-R. Use the following options :
-imapsync ... --prefix1 INBOX. --sep1 / --subscribe --subscribed 
-
-=======================================================================
-Q. Migrating from Tobit David Server 6 
-   ("DvISE Mail Access Server MA-6.60a (0118)")
-
-First try above V10 solution since improvments have been made
-to support Tobit.
-
-R. Look at the discussion:
-http://www.linux-france.org/prj/imapsync_list/msg00582.html
-http://www.linux-france.org/prj/imapsync_list/threads.html#00582
-patch saved in ./patches/imapsync-1.337_tobit_V6.patch
-
-=======================================================================
-Q. I need to migrate 1250 mailboxes, passwords are in a MySQL Database.
-Can you tell me if your script suits my needs?
-
-R. Mailboxes must exist before running imapsync.
-You have to extract users logins and passwords in a csv file.
-See the "HUGE MIGRATION" section in the README file.
-
-======================================================================
-Q. From Cyrus to Notes
-
-Default behavior might works.
-
-======================================================================
-Q. From cyrus to dbmail
-
-Default behavior might works.
-
-======================================================================
-Q: From MailEnable 1.75
-R: --sep1 "/" --prefix1 ""
-
-Q: From MailEnable 2.2
-R: --sep1 "." --prefix1 ""
-
-Q: To MailEnable
-R: --sep2 / --prefix2 "" --addheader --messageidnodomain --syncflagsaftercopy
-
-======================================================================
-Q. From GMX IMAP4 StreamProxy
-R. Use:
-   --prefix1 INBOX and --sep1 .
-
-======================================================================
-Q. From Courier to Archiveopteryx
-R. You can read http://www.archiveopteryx.org/migration/imapsync
-   Default values might be fine now with latest imapsync.
-
-======================================================================
-Q. To Sun Java(tm) System Messaging Server 6.2-7.05
-Q. To Communigate Pro - Solaris version
-
-R. See and run patches/imapsync_1.267_jari
-
-======================================================================
-Q. From any to Exchange2007 
-
-Several problems:
-- Big messages: increase the "send- and receive-connector" 
-  in exchange2007 to 40 MB.
-
-R. 2 solutions
-
-R1. With imapsync (only partial success)
---skipsize --skipheader 'Received' \
---regexmess 's{\A(.*?(?!^$))^Date:(.*?)$}{$1Date:$2\nReceived: From; $2}gxms'
-Any user having time to spend to debug Exchange2007 with imapsync
-is welcome.
-
-R2. Other solution
-Two users succeeded by using "MS Transporter Suite" (which is closed
-expensive non-free software).
-
-======================================================================
-Q. From Microsoft Exchange 2000 IMAP4rev1 server version 6.0.6487.0.
-
-R. imapsync ... \
-   --prefix1 INBOX. 
-
-
-======================================================================
-Q. From Softalk Workgroup Mail 7.6.4 
-
-R. Old Softalk releases don't support the IMAP SEARCH command.
-   Here are the options to get it working.
-
-imapsync ... --sep1 '.' --prefix1 '' \
-             --noabletosearch  --nocheckmessageexists --addheader
-
-(Thanks to Andrew Tucker)
-
-======================================================================
-Q. From or to QQMail IMAP4Server
-
-R. imapsync ... --noabletosearch
-
-======================================================================
-Q. From FirstClass to XXX
-   http://www.firstclass.com/
-
-R. Migrating from FirstClass is not easy because FirstClass, strangely, 
-   does not show all messages via IMAP. To make it show all messages,
-   a trick, painful to follow by hand, is moving emails 
-   out and back in, for each folder. May be it can be done by a script.
-
-  FirstClass releases prior to release 12 do not shows the "Sent" 
-  folder in IMAP but FirstClass release 12 shows it.
-  I advice you to upgrade to FirstClass release 12 before leaving it
-  with imapsync or another imap tool.
-
-Here is a command line used to migrate from FirtClass release 12:
-
-  imapsync ... \
-    --tmpdir /var/tmp --usecache \
-    --useheader Message-ID \
-    --idatefromheader \
-    --addheader \
-    --regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g" \
-    --regextrans2 "s/[\^]/_/g"       \
-    --regextrans2 "s/['\"\\\\]/_/g"  \
-    --regextrans2 "s,&AC8-,-,g" \
-    --regextrans2 "s,&APg-,oe,g" 
-
-On Windows, in the previous example containing \$1 you have to 
-replace the two \$1 by $1 (remove the \ before $).
-
-Special thanks to Kristian Wind and Joey Alexander for helping me
-writing this FAQ item. 
-See also this worth reading discussion in a Zimbra forum:
-http://www.zimbra.com/forums/migration/20349-help-needed-migrating-firstclass.html
-
-======================================================================
-Q. From XXX to FTGate
-
-R. Do NOT use --usecache since new UIDs are not given by FTGate and also
-   badly guessed by imapsync. UIDEXPUNGE does not work so use also
-   --expunge2 when using --delete2
-  
-  imapsync ... \
-     --sep2 / --prefix2 "" \
-     --useheader Message-Id \
 
 
 ======================================================================

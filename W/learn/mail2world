@@ -1,0 +1,43 @@
+#!/usr/bin/perl -w
+
+use lib '/g/public_html/imapsync/W/Mail-IMAPClient-3.37/lib/' ;
+use Mail::IMAPClient ;
+use Data::Dumper ;
+
+$ARGV[3] or die "usage: $0 host user password folder\n" ;
+
+print "Mail::IMAPClient $Mail::IMAPClient::VERSION\n" ;
+$host = $ARGV[0] ;
+$user = $ARGV[1] ;
+$password = $ARGV[2] ;
+$folder = $ARGV[3] ;
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(1);
+$imap->Uid( 0 ) ;
+$imap->Server( $host ) ;
+$imap->connect( ) or die ;
+$imap->IsUnconnected(  );
+$imap->User( $user ) ;
+$imap->Password( $password ) ;
+$imap->login(  ) or die ;
+$imap->Uid( 1 ) ;
+$imap->Peek( 1 ) ;
+$imap->select( $folder ) or die ;
+
+print "==== tag_and_run\n" ;
+$imap->tag_and_run( 'UID FETCH 1:* ( RFC822.SIZE )' ) ;
+
+print "==== fetch\n" ;
+print $imap->fetch( "1:*", "RFC822.SIZE" ) ;
+
+print "==== fetch_hash\n" ;
+my $hashref = {} ;
+$imap->fetch_hash( "1:*", "RFC822.SIZE", $hashref ) ;
+
+foreach my $m (keys %$hashref) {
+	print "Msg $m is ", $hashref->{$m}->{'RFC822.SIZE'}, " bytes\n" ;
+}
+print Data::Dumper->Dump( [ $hashref ] ) ;
+
+$imap->logout(  ) ;

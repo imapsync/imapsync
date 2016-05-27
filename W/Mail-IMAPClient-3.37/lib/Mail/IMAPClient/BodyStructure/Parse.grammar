@@ -1,0 +1,189 @@
+# Directives
+# ( none)
+# Start-up Actions
+
+{
+    my $mibs  = "Mail::IMAPClient::BodyStructure";
+    my $subpartCount = 0;
+    my $partCount    = 0;
+
+    sub take_optional_items($$@)
+    {   my ($r, $items) = (shift, shift);
+        foreach (@_)
+        {   my $opt = $_ .'(?)';
+            exists $items->{$opt} or next;
+            $r->{$_} = UNIVERSAL::isa($items->{$opt}, 'ARRAY')
+                     ? $items->{$opt}[0] : $items->{$opt};
+        }
+    }
+
+    sub merge_hash($$)
+    {   my $to   = shift;
+        my $from = shift or return;
+	while( my($k,$v) = each %$from) { $to->{$k} = $v }
+    }
+}
+
+# Atoms
+
+TEXT:		/^"TEXT"|^TEXT/i 	{ $return = "TEXT"   }
+PLAIN:		/^"PLAIN"|^PLAIN/i 	{ $return = "PLAIN"  }
+HTML:		/"HTML"|HTML/i 		{ $return = "HTML"   }
+MESSAGE:	/^"MESSAGE"|^MESSAGE/i 	{ $return = "MESSAGE"}
+RFC822:		/^"RFC822"|^RFC822/i  	{ $return = "RFC822" }
+NIL:		/^NIL/i			{ $return = "NIL"    }
+RFCNONCOMPLY:	/^\(\)/i		{ $return = "NIL"    }
+NUMBER:		/^(\d+)/		{ $return = $item[1] }
+
+# Strings:
+
+SINGLE_QUOTED_STRING: "'" /(?:\\['\\]|[^'])*/ "'" { $return = $item{__PATTERN1__} }
+DOUBLE_QUOTED_STRING: '"' /(?:\\["\\]|[^"])*/ '"' { $return = $item{__PATTERN1__} }
+
+BARESTRING:	...!/^[)('"]/	/^(?!\(|\))(?:\\ |\S)+/
+	{ $return = $item{__PATTERN1__} }
+
+STRING:		DOUBLE_QUOTED_STRING | SINGLE_QUOTED_STRING | BARESTRING
+
+STRINGS:	"(" STRING(s) ")" { $return = $item{'STRING(s)'} }
+
+textlines:	NIL | NUMBER
+
+rfc822message:  MESSAGE RFC822    { $return = "MESSAGE RFC822" }
+
+bodysubtype:	PLAIN | HTML | NIL | STRING
+
+key:		STRING
+value:		NIL | NUMBER | STRING | KVPAIRS
+
+kvpair:		...!")" key value
+	{ $return = { $item{key} => $item{value} } }
+
+KVPAIRS:	"(" kvpair(s) ")"
+       { $return = { map { (%$_) } @{$item{'kvpair(s)'}} } }
+
+bodytype:	STRING
+bodyparms:	NIL | KVPAIRS
+bodydisp:	NIL | KVPAIRS
+bodyid:		...!/[()]/ NIL | STRING
+bodydesc:	...!/[()]/ NIL | STRING
+bodysize:	...!/[()]/ NIL | NUMBER
+bodyenc:	NIL | STRING | KVPAIRS
+bodyMD5:	NIL | STRING
+bodylang:	NIL | STRING | STRINGS
+bodyextra:	NIL | STRING | STRINGS
+bodyloc:	NIL | STRING
+
+personalname:	NIL | STRING
+sourceroute:	NIL | STRING
+mailboxname:	NIL | STRING
+hostname:	NIL | STRING
+
+addressstruct:	"(" personalname sourceroute mailboxname hostname ")"
+	{ bless { personalname => $item{personalname}
+		, sourceroute  => $item{sourceroute}
+		, mailboxname  => $item{mailboxname}
+		, hostname     => $item{hostname}
+	        }, 'Mail::IMAPClient::BodyStructure::Address';
+	}
+
+subject:	NIL | STRING
+inreplyto:	NIL | STRING
+messageid:	NIL | STRING
+date:		NIL | STRING
+
+ADDRESSES:	NIL | RFCNONCOMPLY
+	| "(" addressstruct(s) ")" { $return = $item{'addressstruct(s)'} }
+
+cc:		ADDRESSES
+bcc:		ADDRESSES
+from:		ADDRESSES
+replyto:	ADDRESSES
+sender:		ADDRESSES
+to:		ADDRESSES
+
+envelopestruct:	"(" date subject from sender replyto to cc
+	        bcc inreplyto messageid ")"
+	{ $return = bless {}, "Mail::IMAPClient::BodyStructure::Envelope";
+	  $return->{$_} = $item{$_}
+	     for qw/date subject from sender replyto to cc/
+	       , qw/bcc inreplyto messageid/;
+	  1;
+	}
+
+basicfields: 	bodysubtype bodyparms(?) bodyid(?)
+		bodydesc(?) bodyenc(?) bodysize(?)
+	{  $return = { bodysubtype => $item{bodysubtype} };
+	   take_optional_items($return, \%item,
+	      qw/bodyparms bodyid bodydesc bodyenc bodysize/);
+	   1;
+	}
+
+textmessage: 	TEXT <commit> basicfields textlines(?) bodyMD5(?)
+		bodydisp(?) bodylang(?) bodyextra(?)
+	{
+	  $return = $item{basicfields} || {};
+	  $return->{bodytype} = 'TEXT';
+	  take_optional_items($return, \%item
+            , qw/textlines bodyMD5 bodydisp bodylang bodyextra/);
+	  1;
+	}
+
+othertypemessage: bodytype basicfields bodyMD5(?) bodydisp(?)
+	          bodylang(?) bodyextra(?)
+	{ $return = { bodytype => $item{bodytype} };
+	  take_optional_items($return, \%item
+             , qw/bodyMD5 bodydisp bodylang bodyextra/ );
+	  merge_hash($return, $item{basicfields});
+	  1;
+	}
+
+nestedmessage:	rfc822message <commit> bodyparms bodyid bodydesc bodyenc
+#		bodysize envelopestruct bodystructure textlines
+		bodysize envelopestruct(?) bodystructure(?) textlines(?)
+		bodyMD5(?) bodydisp(?) bodylang(?) bodyextra(?)
+	{
+	  $return = {};
+	  $return->{$_} = $item{$_}
+	      for qw/bodyparms bodyid bodydesc bodyenc bodysize/;
+#             envelopestruct bodystructure textlines/;
+
+	  take_optional_items($return, \%item
+            , qw/envelopestruct bodystructure textlines/
+	    , qw/bodyMD5 bodydisp bodylang bodyextra/);
+
+	  merge_hash($return, $item{bodystructure}[0]);
+	  merge_hash($return, $item{basicfields});
+	  $return->{bodytype}    = "MESSAGE" ;
+	  $return->{bodysubtype} = "RFC822" ;
+	  1;
+	}
+
+multipart:	subpart(s) <commit> bodysubtype
+		bodyparms(?) bodydisp(?) bodylang(?) bodyloc(?) bodyextra(?)
+		<defer: $subpartCount = 0>
+	{ $return =
+	    { bodysubtype   => $item{bodysubtype}
+	    , bodytype      => 'MULTIPART'
+	    , bodystructure => $item{'subpart(s)'}
+	    };
+	  take_optional_items($return, \%item
+              , qw/bodyparms bodydisp bodylang bodyloc bodyextra/);
+	  1;
+	}
+
+subpart:  "(" part ")" {$return = $item{part}} <defer: ++$subpartCount;>
+
+part:	  multipart        { $return = bless $item{multipart}, $mibs }
+	| textmessage      { $return = bless $item{textmessage}, $mibs }
+	| nestedmessage    { $return = bless $item{nestedmessage}, $mibs }
+	| othertypemessage { $return = bless $item{othertypemessage}, $mibs }
+
+bodystructure:	"(" part(s) ")"
+	{ $return = $item{'part(s)'} }
+
+start:		/.*?\(.*?BODYSTRUCTURE \(/i part(1)  /\).*\)\r?\n?/
+	{ $return = $item{'part(1)'}[0] }
+
+envelope:	/.*?\(.*?ENVELOPE/ envelopestruct /.*\)/
+	{ $return = $item{envelopestruct} }
