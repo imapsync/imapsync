@@ -3031,6 +3031,13 @@ sub plainauth {
 #
 # This is a good guide on setting up the google api/apps side of the equation:
 # http://www.limilabs.com/blog/oauth2-gmail-imap-service-account
+#
+# 2016/05/27: Updated to support oauth/key data in the .json files Google now defaults to
+# when creating gmail service accounts. They're easier to work with since they neither
+# requiring decrypting nor specifying the oauth2 client id separately.
+#
+# If the password arg ends in .json, it will assume this new json method, otherwise it
+# will fallback to the "oauth client id;.p12" format it was previously using.
 sub xoauth2 {
 	require JSON::WebToken ;
 	require LWP::UserAgent ;
@@ -3044,18 +3051,34 @@ sub xoauth2 {
         my $code = shift;
         my $imap = shift;
 
-        # Get iss (service account address), keyfile name, and keypassword if necessary
-        my ( $iss, $keyfile, $keypass ) = $imap->Password =~ /([\-\d\w\@\.]+);([a-zA-Z0-9\_\-\.\/]+);?(.*)?/ ;
+        my ($iss,$key);
 
-        # Assume key password is google default if not provided
-        $keypass = 'notasecret' if not $keypass;
+        if( $imap->Password =~ /^(.*\.json)$/ ) {
+            my $json = JSON->new( ) ;
+            my $filename = $1;
+            open( my $FILE, '<', $filename ) or die_clean( "error [$filename]: $! " ) ;
+            my $jsonfile = $json->decode(join("",<$FILE>));
+            close $FILE ;
 
-        $debug and print("Service account: $iss\nKey file: $keyfile\nKey password: $keypass\n");
+            $iss = $jsonfile->{client_id};
+            $key = $jsonfile->{private_key};
+            $debug and print("Service account: $iss\n");
+            $debug and print("Private key:\n$key\n");
+        }
+        else {
+            # Get iss (service account address), keyfile name, and keypassword if necessary
+            ( $iss, my $keyfile, my $keypass ) = $imap->Password =~ /([\-\d\w\@\.]+);([a-zA-Z0-9 \_\-\.\/]+);?(.*)?/ ;
 
-        # Get private key from p12 file (would be better in perl...)
-        my $key = `openssl pkcs12 -in $keyfile -nodes -nocerts -passin pass:$keypass -nomacver`;
+            # Assume key password is google default if not provided
+            $keypass = 'notasecret' if not $keypass;
 
-        $debug and print("Private key:\n$key\n");
+            $debug and print("Service account: $iss\nKey file: $keyfile\nKey password: $keypass\n");
+
+            # Get private key from p12 file (would be better in perl...)
+            $key = `openssl pkcs12 -in "$keyfile" -nodes -nocerts -passin pass:$keypass -nomacver`;
+
+            $debug and print("Private key:\n$key\n");
+        }
 
         # Create jwt of oauth2 request
         my $time = time();
