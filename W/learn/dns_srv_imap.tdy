@@ -1,0 +1,249 @@
+#!/usr/bin/perl 
+
+# $Id: dns_srv_imap,v 1.5 2016/08/15 01:24:20 gilles Exp gilles $
+
+use strict;
+use warnings;
+use English;
+use Test::More;
+use Net::DNS;
+
+# _imaps._tcp.gmail.com.  86183   IN      SRV     5 0 993 imap.gmail.com.
+lookup_srv_string('_imaps._tcp.gmail.com');
+
+#lookup_srv( '_imap._tcp.gmail.com' ) ;
+#lookup_srv( '_imaps._tcp.lamiral.info' ) ;
+#lookup_srv( '_imap._tcp.lamiral.info' ) ;
+
+foreach my $email (@ARGV) {
+    my $domain = domain_name_of($email);
+    print "Domain for email $email: $domain\n";
+    my ( $host, $port ) = host_port_from_lookup_srv( '_imaps._tcp.' . $domain );
+    $host ||= q{};
+    $port ||= q{};
+    print "IMAPS server name and port for $email: $host $port\n";
+
+    ( $host, $port ) = host_port_from_lookup_srv( '_imap._tcp.' . $domain );
+    $host ||= q{};
+    $port ||= q{};
+    print "IMAP  server name and port for $email: $host $port\n";
+
+}
+
+tests_server_name_from_srv_string();
+tests_server_port_from_srv_string();
+tests_domain_name_of();
+tests_host_port_ssl_from_user();
+done_testing();
+
+my $debug = 1;
+
+sub host_port_ssl_from_user {
+    my $user = shift @ARG;
+
+    if ( !$user ) {
+        return;
+    }
+
+    my $domain = domain_name_of($user);
+    if ( !$domain ) {
+        return;
+    }
+
+    my ( $host, $port ) = host_port_from_lookup_srv(qq{_imaps._tcp.$domain});
+    my $ssl = 1;
+    if ( $host and $port ) {
+        return ( $host, $port, $ssl );
+    }
+
+    # fallback to imap in clear
+    $ssl = 0;
+    ( $host, $port ) = host_port_from_lookup_srv(qq{_imap._tcp.$domain});
+
+    if ( $host and $port ) {
+        return ( $host, $port, $ssl );
+    }
+
+    return;
+
+}
+
+sub tests_host_port_ssl_from_user {
+    is( undef, host_port_ssl_from_user(),
+        'host_port_ssl_from_user: no args => undef' );
+    is_deeply(
+        [qw( imap.gmail.com. 993 1 )],
+        [ host_port_ssl_from_user('gilles.lamiral@gmail.com') ],
+'host_port_ssl_from_user: gilles.lamiral@gmail.com => imap.gmail.com. 993 1 (ssl)'
+    );
+
+}
+
+sub host_port_from_lookup_srv {
+    my $request = shift @ARG;
+
+    my $lookup = lookup_srv_string($request);
+    if ( !$lookup ) {
+        return;
+    }
+
+    my $host = server_name_from_srv_string($lookup);
+    my $port = server_port_from_srv_string($lookup);
+
+    if ( $host and $port ) {
+        return ( $host, $port );
+    }
+    else {
+        return;
+    }
+}
+
+sub domain_name_of_email {
+    my $email = shift;
+
+    return (undef) if ( not $email );
+
+    my $domain;
+
+    if ( $email =~ /^.*@([^@]+)$/ ) {
+        $domain = $1;
+        $debug and print "domain: $domain\n";
+        return ($domain);
+    }
+    return;
+}
+
+sub domain_name_of {
+    my $email = shift;
+
+    return (undef) if ( not $email );
+
+    my $domain = domain_name_of_email($email);
+
+    if ( !$domain ) {
+        $domain = $email;
+    }
+
+    return ($domain);
+}
+
+sub tests_domain_name_of {
+    ok( not( domain_name_of('') ), 'domain_name_of: void => undef' );
+    ok( not( domain_name_of() ),   'domain_name_of: undef => undef' );
+    ok( 'foo' eq domain_name_of('foo'), 'domain_name_of: foo => foo' );
+
+    #ok( 'foo' eq domain_name_of( 'foo ' ),  'domain_name_of: foo  => foo' ) ;
+    #ok( 'foo' eq domain_name_of( 'foo  ' ), 'domain_name_of: foo   => foo' ) ;
+    ok(
+        'example.com' eq domain_name_of('foo@example.com'),
+        'domain_name_of: foo@example.com => example.com'
+    );
+    ok(
+        'example.com' eq domain_name_of('@foo@example.com'),
+        'domain_name_of: @foo@example.com => example.com'
+    );
+    ok(
+        'example.com' eq domain_name_of('bar@foo@example.com'),
+        'domain_name_of: bar@foo@example.com => example.com'
+    );
+}
+
+sub lookup_srv_string {
+    my $name = shift;
+
+    my $resolver = new Net::DNS::Resolver();
+    my $reply = $resolver->query( $name, 'SRV' );
+
+    my $string;
+    if ($reply) {
+
+        #($reply->answer)[0]->print;
+        foreach my $rr ( $reply->answer ) {
+            $debug and print 'name:   ' . $rr->name . "\n";
+            $debug and print 'class:  ' . $rr->class . "\n";
+            $debug and print 'type:   ' . $rr->type . "\n";
+            $debug and print 'ttl:    ' . $rr->ttl . "\n";
+            $debug and print 'string: ' . $rr->string . "\n";
+            next if ( 'SRV' ne $rr->type );
+            next if ( not( $rr->string ) );
+            $string = $rr->string;
+            return ($string);
+        }
+    }
+    else {
+        print "Query failed SRV for domain $name: ", $resolver->errorstring,
+          "\n";
+        return (undef);
+    }
+    return ($string);
+}
+
+sub server_name_from_srv_string {
+    my $srv_string = shift;
+
+    return (undef) if ( not $srv_string );
+    my $server_name = ( split( /\s+/, $srv_string ) )[7];
+    return (undef) if ( '.' eq $server_name );
+    return ($server_name);
+}
+
+sub tests_server_name_from_srv_string {
+    ok(
+        not( server_name_from_srv_string('') ),
+        'server_name_from_srv_string: void'
+    );
+    ok(
+        not( server_name_from_srv_string() ),
+        'server_name_from_srv_string: undef'
+    );
+    ok(
+        'imap.gmail.com.' eq server_name_from_srv_string(
+'_imaps._tcp.gmail.com.  82466   IN      SRV     5 0 993 imap.gmail.com.'
+        ),
+        'server_name_from_srv_string: _imaps._tcp.gmail.com. => imap.gmail.com.'
+    );
+    ok(
+        not(
+            server_name_from_srv_string(
+                '_imap._tcp.gmail.com.   81999   IN      SRV     0 0 0 .')
+        ),
+        'server_name_from_srv_string: _imap._tcp.gmail.com. => undef'
+    );
+
+    return ();
+}
+
+sub server_port_from_srv_string {
+    my $srv_string = shift;
+
+    return (undef) if ( not $srv_string );
+    my $server_port = ( split( /\s+/, $srv_string ) )[6];
+    return (undef) if ( 0 == $server_port );
+    return ($server_port);
+}
+
+sub tests_server_port_from_srv_string {
+    ok(
+        not( server_port_from_srv_string('') ),
+        'server_port_from_srv_string: void'
+    );
+    ok(
+        not( server_port_from_srv_string() ),
+        'server_port_from_srv_string: undef'
+    );
+    ok(
+        '993' eq server_port_from_srv_string(
+'_imaps._tcp.gmail.com.  82466   IN      SRV     5 0 993 imap.gmail.com.'
+        ),
+        'server_port_from_srv_string: _imaps._tcp.gmail.com. => 993'
+    );
+    ok(
+        not(
+            server_port_from_srv_string(
+                '_imap._tcp.gmail.com.   81999   IN      SRV     0 0 0 .')
+        ),
+        'server_port_from_srv_string: _imap._tcp.gmail.com. => undef'
+    );
+
+    return ();
+}

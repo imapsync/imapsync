@@ -1,0 +1,36 @@
+#!/usr/bin/perl -w
+
+# $Id: delete_folder,v 1.1 2016/07/05 20:59:43 gilles Exp gilles $
+
+use Mail::IMAPClient;
+
+$ARGV[2] or die "usage: $0 host user password folder1 folder2 ...\n";
+
+$host = $ARGV[0];
+$user = $ARGV[1];
+$password = $ARGV[2];
+
+my $imap = Mail::IMAPClient->new();
+$imap->Debug(1);
+$imap->Server($host);
+$imap->Ssl( 1 ) ;
+$imap->connect() or die;
+$imap->User($user);
+$imap->Password($password);
+$imap->login() or die;
+$imap->Uid(1);
+$imap->Peek(1);
+
+
+
+my @folders = $imap->folders(  ) ;
+print map { "$_\n" } @folders ;
+foreach $folder (@ARGV[3..$#ARGV]) {
+	print "deleting folder $folder\n";
+	$imap->delete( $folder ) ;
+}
+
+$imap->logout();
+# $imap->close();
+
+

@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ,v 1.221 2016/03/07 02:55:01 gilles Exp gilles $
+# $Id: FAQ,v 1.224 2016/06/08 21:32:09 gilles Exp gilles $
 
 +-------------------+
 | FAQs for imapsync |
@@ -120,36 +120,6 @@ can see your post. Use a pseudonym or do not
 post to this list if you want to stay private.
 
 Thank you for your participation.
-
-=======================================================================
-Q. Can I copy or sync Calendar or Contacts with imapsync?
-
-R. No. It's because most IMAP servers don't get contacts and calendar 
-events via IMAP. In other words, messages synced by imapsync from 
-Calendar or Contacts folders are not used by email servers to set 
-or get the contacts or calendars. 
-No way via IMAP, no way via imapsync.
-See next question.
-
-=======================================================================
-Q. How can I copy or synchronize Calendars or Contacts?
-
-R1. It can't be done with imapsync.
-
-R2. It can be done, depending on the email server softwares used.
-
-a) From Exchange to Exchange, export contacts and calendar to
-   PST format files on host1 and import them on host2.
-
-b) From Gmail to Gmail, export and import calendars in ical format, 
-   extension for those files is .ics.
-   Contacts can be copied using a csv file. See the help page
-   http://support.google.com/mail/bin/topic.py?hl=en&topic=1669027
-
-c) Etc. Search the web. There's also specific tools and paid services.
-   There's no silver bullet to migrate Calendars and Contacts,
-   if you find one, tell me!
-
 
 =======================================================================
 Q. Where I can find old imapsync releases?
@@ -320,11 +290,11 @@ http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247.aspx#maxpath
 The workaround solution given at the previous link, 
 ie using \\?\D:", does not work for imapsync. 
 So this imapsync Windows bug is still pending and needs a fix using 
-a different technic to cache, like a database file for example.
+a different technique to cache, like a database file for example.
 
 A solution to fix the issue is to use a Linux virtual host on a 
 Windows box, with VirtualBox or VmWare etc. There is no bug this way,
-pathnames can be several thousands charaters long.
+pathnames can be several thousands characters long.
 Better said that done but not so difficult nor expensive these days,
 VirtualBox is free and VmWare Player is free for personal or test use.
 
@@ -399,14 +369,6 @@ R3 If you want to install the Perl module locally in a directory
 Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
 
 R. Mail::IMAPClient 2.2.9 is no longer supported.
-
-=======================================================================
-Q. I get "Out of memory" errors. How to fix that?
-
-R. Usually "Out of memory" errors are related to old days,
-to old Mail::IMAPClient module releases, before 3.26.
-Look at imapsync output first lines to get the Mail::IMAPClient release used.
-Then upgrade Mail::IMAPClient Perl module if needed.
 
 =======================================================================
 Q. Can I use imapsync to migrate emails from pop3 server to imap server?
@@ -527,35 +489,6 @@ It works for the star * character,
 I don't know if it works for the " character.
 
 =======================================================================
-Q. On Windows, some passwords contain $ characters. Login fails.
-R1. Enclose passwords between ""
-
-    imapsync ... --password1 "zzz$zz$$z"
-
-R2. Prefix each $ character with a ^ since ^ is the escape character
-    on Windows
-
-    imapsync ... --password1 zzz^$zz^$^$z
-
-For a password that is exactly the 8 characters string $%&<>|^"
-you have to enter
-
-    imapsync ... --password1 "$%%&<>|^"^"
-
-=======================================================================
-Q. On Windows, some passwords begin with an equal = character. 
-   Login fails. What can I do?
-
-R. Use twice equals == characters instead; For example, if =secret 
-   is the password then use:
-
-    imapsync ... --password1 ==secret
-
-or even
-
-    imapsync ... --password1 "==secret"
-
-=======================================================================
 Q. With huge account (many messages) when it comes to reading the
 destination server it comes out this error:
 "To   Folder [INBOX.foobar] Not connected" 
@@ -586,16 +519,6 @@ R. Use the following syntax:
 
   imapsync ... --user1="loginuser*admin_user" --password1 "admin_user_password"
 
-
-======================================================================
-Q. How to migrate to Dovecot with an admin/MasterUser account?
-
-R. Dovecot uses the same syntax as uw-imap
-
-  imapsync ... --user2="loginuser*admin_user" --password2 "admin_user_password"
-
-To setup a Dovecot MasterUser see 
-http://wiki2.dovecot.org/Authentication/MasterUsers
 
 ======================================================================
 Q. How to migrate from cyrus with an admin account?

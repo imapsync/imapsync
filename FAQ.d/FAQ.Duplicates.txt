@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Duplicates.txt,v 1.9 2016/03/08 21:17:21 gilles Exp gilles $
+$Id: FAQ.Duplicates.txt,v 1.10 2016/04/17 19:06:39 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -20,21 +20,50 @@ R0.
 Normally and by default, imapsync doesn't generate duplicates.
 So if it does  generate duplicates it means a problem occurs
 with message identification. It happens sometimes with IMAP 
-servers changing the "Message-Id" line or "Received:" in 
-the header part of messages. 
+servers changing the "Message-Id" header line or one or more
+of the "Received:" header lines in the header part of messages. 
+Imapsync uses "Message-Id" header line and "Received:" header 
+lines to identify messages on both sides.
 
 R1. 
-You can use option --useuid, with it, imapsync  won't use 
-header lines to compare messages in folders. 
-Keep in mind it uses a local cache.
+A first solution is to use option --useuid. 
+With option --useuid, imapsync  doesn't use header lines 
+to identify and compare messages in folders.
+Instead of some headers,  --useuid tell imapsync to use 
+the imap UIDs given by imap servers on bith sides.
+To avoid duplicates on next runs, imapsync uses a local cache
+where it keeps UIDs already transfered.
 
   imapsync ... --useuid
 
+There is an issue when --useuid is not used the first time.
 A big issue with --useuid is that it doesn't generate duplicates if 
 used from the first time but it does generate duplicates after a previous
-run without --useuid (because it uses a different method to identify 
-the messages). A solution? it depends. --delete2 solves this problem 
-if you are permitted to use it. 
+run without --useuid (because then uses a different method to identify 
+the messages). 
+
+A solution? Two solutions. 
+
+The easiest is --delete2
+if you are permitted to use it. Option --delete2 removes messages on host2
+that are not on host1 so with --delete2 you go for resyncing all 
+messages again but all previously transferred messages are deleted,
+and also messages previously there without imapsync. 
+So --useuid --delete2 is easy to remove duplicates but not for 
+all context.
+
+A second solution, better if R2 works (see R2 below), is to build 
+the cache before using --useuid
+
+First sync:
+
+  imapsync ... --useheader "Message-Id" --addheader --usecache
+
+Next syncs:
+
+  imapsync ... --useuid
+  imapsync ... --useuid
+  ...
 
 R2. 
 Best way if you can follow it. 

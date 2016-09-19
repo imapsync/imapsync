@@ -1,13 +1,126 @@
 #!/bin/cat
-# $Id: TODO,v 1.155 2016/03/13 13:01:26 gilles Exp gilles $
+# $Id: TODO,v 1.168 2016/08/19 14:17:53 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
+===========================================================================
 TODO file for imapsync
 ----------------------
 
+SUGGESTED 2016_08_19 by Gilles
+Go back to SSL_VERIFY_PEER but include
+SSL_ca_file inside imapsync or near.
+
+SUGGESTED 2016_08_07 by Gilles
+Add a meaningful exit value to all die:
+  * fatal software dependency, Perl modules
+  * fatal parameter issue
+  * fatal connect issue
+  * fatal login issue
+  * fatal permission file issue (open)
+  * fatal IMAP issue
+  * fatal IMAP disconnection
+Add a meaningful exit value to all exit
+  * exit at end but with errors 
+  * exit at middle because of errormax
+  * exit by signal
+
+
+SUGGESTED 2016_07_29 by Gilles from CSS3 Coursera course
+Take a look at
+https://modernizr.com/
+
+SUGGESTED 2016_07_29 by Gilles
+Move website to HTML5
+https://about.validator.nu/
+
+SUGGESTED 2016_07_12 by Fronik
+With --automap apply the mapping to subfolders of mapped folders.
+If 
+Sent => Envoyes
+then
+Sent.Foo     =>  Envoyes.Foo
+Sent.Foo.Bar =>  Envoyes.Foo.bar
+
+SUGGESTED 2016_07_07 by Jean-Dominique Delyon.
+Add a way to know easily which account transfers went wrong.
+Générer un fichier des comptes qui ont rencontré des problèmes 
+et afficher le contenu à la fin de la boucle sur les comptes.
+
+SUGGESTED 2016_06_29 by Gilles
+Clarify system flags in RFC
+Example to add:
+If \Forwarded is not in PERMANENTFLAGS but \* is then transform
+\Forwarded to Forwarded. And by default.
+
+SUGGESTED 2016_06_29 by Gilles
+Add --gmail1 --gmail2 --gmail12 to set automatically advices from
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
+Add --exchange --office365 to set automatically advices from
+https://imapsync.lamiral.info/FAQ.d/FAQ.Exchange.txt
+
+
+SUGGESTED 2016_06_13 by David Carter
+--pipemess could also treat stderr
+` $command < $input_tmpfile > $output_tmpfile 2> $error_tmpfile `
+
+
+SUGGESTED 2016_06_22 by Gilles
+Add  --quiet mode
+Make --quiet mode being switched by a signal
+
+SUGGESTED by Gilles
 Try to act as --tls if CAPABILITY allows it and if there is no --notls.
 Fallback without --tls if --tls fails.
+
+DONE      2016_07_27 by Gilles
+SUGGESTED 2016_06_15 by Gilles
+Fix sub check_lib_version and its call.
+It was ok because of the Perl line "use Mail::IMAPClient 3.30".
+
+SUGGESTED 2016_06_12 by Gilles
+Fix many perlcritic, all?
+DONE *  60 perlcritic Double-sigil dereference (Severity 2)
+DONE * 627 perlcritic violations of CodeLayout::ProhibitTrailingWhitespace. (Severity 1).
+DONE * 458 perlcritic violations of ValuesAndExpressions::ProhibitInterpolationOfLiterals. "Useless interpolation of literal string"
+DONE * 420 perlcritic violations of CodeLayout::ProhibitParensWithBuiltins. "Builtin function called with parentheses". (Severity: 1).
+
+* 304 violations of ValuesAndExpressions::ProhibitMagicNumbers.
+* 236 violations of InputOutput::RequireCheckedSyscalls. "Return value of flagged function ignored". (Severity: 1).
+* 115 violations of ControlStructures::ProhibitPostfixControls. Postfix control "if" used.  (Severity: 2).
+*  90 violations of ValuesAndExpressions::ProhibitNoisyQuotes.
+*  86 violations of ValuesAndExpressions::RequireInterpolationOfMetachars.
+*  85 violations of RegularExpressions::RequireLineBoundaryMatching.
+*  85 violations of RegularExpressions::RequireDotMatchAnything.
+*  37 violations of Variables::ProhibitPunctuationVars.
+*  30 violations of RegularExpressions::RequireExtendedFormatting.
+*  30 violations of NamingConventions::Capitalization.
+*  24 violations of ValuesAndExpressions::RequireNumberSeparators.
+*  20 violations of RegularExpressions::ProhibitEscapedMetacharacters.
+*  19 violations of ControlStructures::ProhibitUnlessBlocks.
+*  14 violations of Variables::ProhibitReusedNames.
+*  11 violations of Subroutines::ProhibitManyArgs.
+
+SUGGESTED 2016_06_09 by Gilles and David Carter
+In order to avoid useless headaches from --regexmess, add
+--regexheader
+--regexbody
+
+SUGGESTED 2016_06_09 by David Carter
+Add --pipemess-on-fail
+If, and only if, the target server responses with NO or BAD then have another go 
+with a sanitized version of the message.
+
+SUGGESTED 2016_06_01 by M. Beaubien
+Add flag --noheaderwarnings or better name
+no header by parse_headers so taking whole header with BODY.PEEK[HEADER]
+no header found so adding our own [Message-Id: <151648@imapsync>]
+
+SUGGESTED 2016_04_17 by Gilles
+Add a --passfile to allow user=>password style file.
+
+SUGGESTED 2016_04_13 by Gilles 
+Split --noabletosearch in --noabletosearch1 --noabletosearch2
 
 WANTED 2016_03_11
 Add a FAQ about Authentication failures and quoting.
@@ -167,9 +280,6 @@ http://www.linux-france.org/prj/imapsync_list/msg00022.html
 http://mail.google.com/support/bin/answer.py?hl=en&answer=77657
 http://mail.google.com/support/bin/answer.py?answer=78892 
 
-Look at larch https://github.com/rgrove/larch/ 
-http://wonko.com/
-
 Add and option to sync to & from files.
 
 Add an --aclregextrans2 flag.
@@ -177,9 +287,6 @@ Add an --aclregextrans2 flag.
 their ACLs. Syncing ACLs vom Cyrus to Dovecot (at least 1.2) doesn't 
 work. Cyrus uses c and d, Dovecot uses k and x instead." 
 Peer Heinlein.
-
-Add different levels of output to see clearly the
-problem by default.
 
 Add more information about skipped messages.
 
@@ -199,29 +306,17 @@ Fix bug "not possible to use space in the imap password"
 
 Add kerberos authentification
 
-
 Fix bug with folder names starting with an asterisk: *Archiv
 Sending: 220 SELECT *Archiv/Support/foobar
 Read: 220 BAD Protokollfehler: "Invalid folder specified in SELECT command"
-
-Compare speed between 1.182 and 1.217
-"un mailbox de 90MB, ~2400 fichiers prends 80s avec la version 1.182 
-vs 250s avec la version 1.217". Marc Jauvin
 
 Add LITERAL+ [RFC 2088] support to imapsync.
 
 Make a m4 file for lsm.imapsync and generate it at each public release.
 
-Add an option to tell imapsync that the domain
-is changing and have it replace the domain in all user names that are
-related to ACLs.
-See patches/imapsync-acls-users
-
 Add --verbose from Kjetil jumbo patch.
 
 Read the IMAP RFC http://www.faqs.org/rfcs/rfc3501.html
-
-Interface with external software like procmail 
 
 Read:
 http://www.washington.edu/imap/documentation/commndmt.txt.html
@@ -233,6 +328,27 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 Now the TODO done! (or not)
 ===========================================================================
 
+SUGGESTED 2016_06_22 by Gilles
+DONE      2016_07_29 by Gilles
+Make reconnections launched by a signal Ctrl-c, aka INT signal.
+2 consecutive Ctrl-c within 1 second then exit the program.
+Inline help when Ctrl-c is hit
+
+SUGGESTED 2016_07_15 by Alan Williams
+DONE      2016_07_20 for IO::Socket::SSL
+Add --inet4 --inet6 to force AF_INET or AF_INET6 ip connexion,
+aka ipv4 or ipv6.
+
+SUGGESTED 2016_06_24 by Jean-Dominique Delyon
+DONE      2016_06_30 by Gilles
+Add --delete1emptyfolders
+Destroy host1 empty folders.
+Be carefull of non-empty subfolders!
+
+
+SUGGESTED 2016_07_01 by Gilles
+DONE      2016_07_01 by Gilles
+Add exit explanation after errorsdump
 
 DONE 2016_01_06. Write a Unix tutorial, TUTORIAL_Unix.html.
 

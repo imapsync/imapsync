@@ -1,11 +1,12 @@
 #!/bin/cat
-# $Id: INSTALL.Darwin.txt,v 1.11 2016/01/05 23:43:26 gilles Exp gilles $
+# $Id: INSTALL.Darwin.txt,v 1.14 2016/06/22 19:57:00 gilles Exp gilles $
 
 ===================================================
 = Installing imapsync binary on Darwin / Mac OS X =
 ===================================================
 
-There is a standalone imapsync binary for Mac OS X called imapsync_bin_Darwin,
+There is a standalone imapsync binary for Mac OS X 
+called "imapsync_bin_Darwin" (without the quotes),
 available in the compressed tarball called imapsync-1.xxx.tgz
 where 1.xxx is the version number. I suppose this tarball is put
 under your $HOME directory, let say /Users/gilles/, but you can
@@ -35,7 +36,21 @@ real IMAP server accounts:
   ./imapsync_bin_Darwin --testslive
 
 If this sync works fine then imapsync_bin_Darwin is ready for any 
-imap account synchronization.
+imap account synchronization. 
+
+When reading the documentation with imapsync command lines 
+examples, you have to replace the command "imapsync" by "imapsync_bin_Darwin"
+For example, instead of the command:
+
+  ./imapsync \
+    --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
+    --host2 test2.lamiral.info --user2 test2 --password2 secret2
+
+you have to use:
+
+  ./imapsync_bin_Darwin \
+    --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
+    --host2 test2.lamiral.info --user2 test2 --password2 secret2
 
 
 ===================================================
@@ -59,6 +74,7 @@ sh prerequisites_imapsync
 cpanm Authen::NTLM
 cpanm File::Copy::Recursive IO::Tee
 cpanm Mail::IMAPClient
+cpanm Readonly
 cpanm Unicode::String
 
 wget -c http://imapsync.lamiral.info/imapsync
@@ -94,7 +110,6 @@ pp -o imapsync.bin imapsync
 ./imapsync.bin  --module
 
 
-  
 ==========================================
 == Installing imapsync Mac OS X Leopard ==
 ==========================================

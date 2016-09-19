@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Messages_Selection.txt,v 1.5 2016/02/05 08:22:26 gilles Exp gilles $
+$Id: FAQ.Messages_Selection.txt,v 1.6 2016/04/18 12:45:20 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -65,12 +65,27 @@ Full explanation:
                          past|----maxage+++++minage---->now (intersection)
                          past|++++minage-----maxage++++>now (union)
 
+C.1 By default,
 
+  option --maxage is implemented as a --search SENTSINCE 
+RFC 3501 says: SENTSINCE <date>
+Messages whose [RFC-2822] Date: header (disregarding time and
+timezone) is within or later than the specified date.
+
+  Option --minage is implemented as a --search SENTBEFORE
+RFC 3501 says: SENTBEFORE <date>
+Messages whose [RFC-2822] Date: header (disregarding time and
+timezone) is earlier than the specified date.
+
+If --noabletosearch is on then --minage and --maxage deal
+with the internal dates given by a FETCH imap command but 
+not the Date: header. Internal date is the arrival date 
+in the mailbox.
 
 =======================================================================
 Q. I want to sync messages based on their UID.
 
-R. First have in mind that UIDs are uniq only per folder, so work this
+R. First have in mind that UIDs are unique only per folder, so work this
    way only with one folder at a time, with --folder option.
 
 To show UIDs, there is the --debugLIST parameter.
@@ -91,7 +106,148 @@ UIDs 20000 20002 20004:
 
   imapsync ... --search1 'NOT OR OR UID 20000 UID 20002 UID 20004' --folder INBOX
 
-If you search n UIDs then you have to put n-1 OR in the search line. 
-That's IMAP.
+If you search n UIDs then you have to put n-1 OR in the search line,
+that's IMAP.
 
+
+=======================================================================
+Q. What is the selection criteria available with --search option?
+
+R. The list of search criteria are listed below, an excerpt from RFC3501.
+
+http://www.faqs.org/rfcs/rfc3501.html
+
+6.4.4.  SEARCH Command
+...
+      ALL
+         All messages in the mailbox; the default initial key for
+         ANDing.
+
+      ANSWERED
+         Messages with the \Answered flag set.
+
+      BCC <string>
+         Messages that contain the specified string in the envelope
+         structure's BCC field.
+
+      BEFORE <date>
+         Messages whose internal date (disregarding time and timezone)
+         is earlier than the specified date.
+
+      BODY <string>
+         Messages that contain the specified string in the body of the
+         message.
+
+      CC <string>
+         Messages that contain the specified string in the envelope
+         structure's CC field.
+
+      DELETED
+         Messages with the \Deleted flag set.
+
+      DRAFT
+         Messages with the \Draft flag set.
+
+      FLAGGED
+         Messages with the \Flagged flag set.
+
+      FROM <string>
+         Messages that contain the specified string in the envelope
+         structure's FROM field.
+
+      HEADER <field-name> <string>
+         Messages that have a header with the specified field-name (as
+         defined in [RFC-2822]) and that contains the specified string
+         in the text of the header (what comes after the colon).  If the
+         string to search is zero-length, this matches all messages that
+         have a header line with the specified field-name regardless of
+         the contents.
+
+      KEYWORD <flag>
+         Messages with the specified keyword flag set.
+
+      LARGER <n>
+         Messages with an [RFC-2822] size larger than the specified
+         number of octets.
+
+      NEW
+         Messages that have the \Recent flag set but not the \Seen flag.
+         This is functionally equivalent to "(RECENT UNSEEN)".
+
+      NOT <search-key>
+         Messages that do not match the specified search key.
+
+      OLD
+         Messages that do not have the \Recent flag set.  This is
+         functionally equivalent to "NOT RECENT" (as opposed to "NOT
+         NEW").
+
+      ON <date>
+         Messages whose internal date (disregarding time and timezone)
+         is within the specified date.
+
+      OR <search-key1> <search-key2>
+         Messages that match either search key.
+
+      RECENT
+         Messages that have the \Recent flag set.
+
+      SEEN
+         Messages that have the \Seen flag set.
+
+      SENTBEFORE <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is earlier than the specified date.
+
+      SENTON <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is within the specified date.
+
+      SENTSINCE <date>
+         Messages whose [RFC-2822] Date: header (disregarding time and
+         timezone) is within or later than the specified date.
+
+      SINCE <date>
+         Messages whose internal date (disregarding time and timezone)
+         is within or later than the specified date.
+
+      SMALLER <n>
+         Messages with an [RFC-2822] size smaller than the specified
+         number of octets.
+
+      SUBJECT <string>
+         Messages that contain the specified string in the envelope
+         structure's SUBJECT field.
+
+      TEXT <string>
+         Messages that contain the specified string in the header or
+         body of the message.
+
+      TO <string>
+         Messages that contain the specified string in the envelope
+         structure's TO field.
+
+      UID <sequence set>
+         Messages with unique identifiers corresponding to the specified
+         unique identifier set.  Sequence set ranges are permitted.
+
+      UNANSWERED
+         Messages that do not have the \Answered flag set.
+
+      UNDELETED
+         Messages that do not have the \Deleted flag set.
+
+      UNDRAFT
+         Messages that do not have the \Draft flag set.
+
+      UNFLAGGED
+         Messages that do not have the \Flagged flag set.
+
+      UNKEYWORD <flag>
+         Messages that do not have the specified keyword flag set.
+
+      UNSEEN
+         Messages that do not have the \Seen flag set. 
+
+=======================================================================
 

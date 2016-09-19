@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+
+# $Id: print,v 1.1 2016/06/16 19:10:04 gilles Exp gilles $
+
+use strict;
+use warnings;
+use English;
+
+our $VERSION = q$Revision: 1.1 $;
+
+# myprint( STDOUT "Hello\n" ) ; # DO NOT WORK
+
+open my $stdout, ">-" ;
+#myprint( $stdout, "Hello from myprint & filehandle\n" ) ; # DO NOT WORK
+close $stdout ;
+
+myprint( "Hello\n" ) ; # WORKS
+
+myprint( << 'EOF' ) ;
+lalala
+myprint inline
+EOF
+
+exit;
+
+sub myprint { print @ARG ; }
+

@@ -1,11 +1,11 @@
 
-@REM $Id: test_xoauth2.bat,v 1.1 2015/12/26 02:11:27 gilles Exp gilles $
+@REM $Id: test_xoauth2.bat,v 1.2 2016/08/19 14:07:40 gilles Exp gilles $
 @REM
 
 cd /D %~dp0
 
 @REM @ECHO off
-@REM .\imapsync.exe --modules_version
+@REM .\imapsync.exe --justbanner
 @REM @PAUSE
 @REM .\imapsync.exe --tests
 @REM @PAUSE

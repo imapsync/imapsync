@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.21 2016/03/17 20:14:14 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.25 2016/07/22 00:18:35 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -10,6 +10,8 @@ This documentation is also at http://imapsync.lamiral.info/#doc
 Questions anwswered in this FAQ are:
 
 Q. Can I use imapsync to transfer from or to Gmail accounts?
+
+Q. How many days does it take to transfer X GB?
 
 Q. How to synchronize from Gmail to Gmail?
 
@@ -50,8 +52,18 @@ it has to be allowed in the Gmail configuration part:
  -> Enable IMAP
 
 =======================================================================
-Q. How to synchronize from Gmail to Gmail?
+Q. How many days does it take to transfer X GB?
 
+R. Basically it takes X days to transfer X GB per account.
+   Gmail has usage limits per day
+   http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+   From the previous link,
+   it's 2X  days to upload   X GB to Gmail
+   it's X/2 days to download X BG from Gmail
+   but that's the theory.
+
+=======================================================================
+Q. How to synchronize from Gmail to Gmail?
 
 R. Use the following example:
 
@@ -64,7 +76,7 @@ R. Use the following example:
            --ssl2 \
            --user2 account2@gmail.com \
            --password2 gmailsecret2 \
-           --exitwhenover 500000000 \
+           --maxbytespersecond 10000 \
            --automap \
            --exclude "\[Gmail\]$"   
 
@@ -74,17 +86,18 @@ Explanations:
 --ssl1 --ssl2 are mandatory since Gmail only supports 
 imap ssl connections.
 
---exitwhenover 500000000 ( ~500 MB ) option is here to avoid 
-locking or errors when imap transfers exceed maximum limit. 
+--maxbytespersecond 10000 ( 10 kBytes/s ) option is here to avoid 
+locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---exitwhenover is not mandatory in the sense Gmail may allow you 
-to use an upper value than 500 MB without disconnections; I don't
-know the hard value, it seems to vary, so just have some tries
-and report me what you discover in case you detect something
-reliable.
+--maxbytespersecond 10000 is not mandatory in the sense Gmail may 
+allow you to use an upper value than 1 GBytes per 24h without 
+disconnections.
+
 
 --automap is not mandatory but it's a feature to automatically
 map folder names based on the Gmail user configuration itself, par account.
+It will save manual folder names changes or the use of --regextrans2 
+or --f1f2 to map folder names.
 For example, imap folder "[Gmail]/Sent Mail" may be mapped as one of
 E-mails enviados
 Enviada
@@ -97,7 +110,7 @@ Skickat
 Verzonden
 etc.
 on both sides, host1 or host2, maybe differently, sometimes in 
-incomprehensible alphabets, a headache for imap sysadmins. 
+incomprehensible alphabets, a headache for imap sysadmins.
 See a listing here:
 http://stackoverflow.com/questions/2185391/localized-gmail-imap-folders/2185548#2185548
 
@@ -112,34 +125,32 @@ Q. How to synchronize from XXX to Gmail?
 
 R. Use the following example:
 
-imapsync --host1 mail.oldhost.com \
+imapsync --host1 mail.oldhost.com     \
          --user1 my_email@oldhost.com \
-         --password1 password \
+         --password1 password   \
          --host2 imap.gmail.com \
          --user2 my_email@gmail.com \
          --password2 password \
          --ssl2 \
-         --exitwhenover 500000000 \
+         --maxbytespersecond 10000 \
          --maxsize 25000000 \
-         --automap \
-         --expunge1 \
+         --automap   \
+         --expunge1  \
          --addheader \
-         --exclude "\[Gmail\]$"           \
-         --regextrans2 "s/[ ]+/_/g"       \
-         --regextrans2 "s/[\^]/_/g"       \
-         --regextrans2 "s/['\"\\\\]/_/g"  
+         --exclude "\[Gmail\]$"      \
+         --regextrans2 "s/[ ]+/_/g"  \
+         --regextrans2 "s/['\^\"\\\\]/_/g"
 
 Explanations:
 
 --ssl2 is mandatory since Gmail only supports imap ssl connections.
 
---exitwhenover 500000000 option is here to avoid locking when 
-transfers exceed maximum limit. 
+--maxbytespersecond 10000 ( 10 kBytes/s ) option is here to avoid 
+locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---exitwhenover is not mandatory in the sense you may be able to
-use an upper value than 500 MB without disconnections; I don't
-know the hard value, it seems to vary, so just have some tries
-and report me what you discover in case you detect something.
+--maxbytespersecond 10000 is not mandatory in the sense Gmail may 
+allow you to use an upper value than 1 GBytes per 24h without 
+disconnections.
 
 --maxsize 25000000 is mandatory since Gmail limits messages size
 up to 25 MB. This value increases over time, it was 10 MB some 
@@ -147,7 +158,7 @@ years ago so you can try higher values. The Gmail page about
 this limit is https://support.google.com/mail/answer/6584
 
 --automap is optional but it will save manual folder names
-changes or the use of --regextrans2 to map folder names.
+changes or the use of --regextrans2 or --f1f2 to map folder names.
 
 --expunge1 is optional. It deletes messages marked \Deleted on host1.
 Imapsync syncs messages with all their flags, Gmail takes the messages
@@ -203,7 +214,7 @@ R. Use this example:
            --user2 tata \
            --password2 tatasecret \
            --ssl1 \
-           --exitwhenover 2500000000 \
+           --maxbytespersecond 20000 \
            --useheader="X-Gmail-Received" \
            --useheader "Message-Id" \
            --automap \
@@ -219,14 +230,12 @@ Explanations:
 
 --ssl1 is mandatory since Gmail only supports imap ssl connections.
 
---exitwhenover 2500000000 (2.5 GB) option is here to avoid 
-locking when transfers exceed maximum limit.
-
+--maxbytespersecond 20000 ( 20 kBytes/s ) option is here to avoid 
+locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---exitwhenover is not mandatory in the sense you may be able to
-use an upper value than 2.5 GB without disconnections; I don't
-know the hard value, it seems to vary, so just have some tries
-and report me what you discover in case you detect something.
+--maxbytespersecond 20000 is not mandatory in the sense Gmail may 
+allow you to use an upper value than 2 GBytes per 24h without 
+disconnections.
 
 --useheader="X-Gmail-Received" --useheader "Message-Id" are not
 mandatory. I use them because I found (several years ago, it may
@@ -244,10 +253,6 @@ get rid of this "[Gmail]" part with that.
 
 You can select folders exported to imap within the gmail preferences,
 for example you may unselect all "System labels".
-
---exitwhenover option is here to avoid locking when transfers 
-exceed maximum limit. 
-See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 
 --skipcrossduplicates is optional but it can save Gigabytes of hard
 disk memory. Within imap protocol, Gmail presents Gmail labels as 
@@ -271,36 +276,23 @@ label CanWait and only it.
 the messages that are not labeled at all.
 
 =======================================================================
-Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
-   https://support.google.com/mail/answer/7190?hl=en
-   https://developers.google.com/gmail/imap_extensions#extension_of_the_search_command_x-gm-raw
-
-R. Sure. Example, to search only emails with attachment and in unread state:
-
-On Unix:
-
-  imapsync ... --search 'X-GM-RAW "has:attachment in:unread"'
-
-On Windows:
-
-  imapsync.exe ... --search "X-GM-RAW ""has:attachment in:unread"""
-
-
-
-=======================================================================
-Q. How to avoid the [IMAP] prefix on Gmail side?
-How to stop creating folder with this prefix?
-Any switch we can use? e.g. [IMAP]/Archive
-
-R. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
-   it might be configurable within Gmail parameters configuration.
-
-=======================================================================
 Q. I can't authenticate with Gmail via IMAP
    and Gmail says "Please log in via your web browser"
 
+R0. My current settings on two Gmail account are made
+with 0) 1) 2)
+
+0) Login via a browser to the Gmail account concerned.
+
+1) The 2-step verification is OFF
+https://myaccount.google.com/security?hl=en&pli=1&nlr=1#signin
+
+2) Access for less secure apps is turned ON
+https://www.google.com/settings/security/lesssecureapps
+https://support.google.com/accounts/answer/6010255?hl=en
+
 R1. See Coert Grobbelaar solution:
-https://security.stackexchange.com/questions/86404/how-do-i-interact-with-google-to-import-email-via-imapsync
+https://web.archive.org/web/20150906230041/http://security.stackexchange.com/questions/86404/how-do-i-interact-with-google-to-import-email-via-imapsync
 
 R2. I had the same issue one time (mars 2015) logging to Gmail 
 with imapsync.
@@ -309,9 +301,6 @@ so I logged for this account via a web browser,
 it asked me to receive a code via a mobile, I said yes,
 I entered the code and everything went ok. 
 
-R3. Use https://www.google.com/settings/security/lesssecureapps
-    (thanks to Flavio Zarur)
-    See https://support.google.com/accounts/answer/6010255?hl=en
 
 =======================================================================
 Q. Can not open imap connection on [imap.gmail.com]: 
@@ -352,6 +341,29 @@ https://support.google.com/mail/answer/78755?hl=en
 
 To really remove messages in folder "[Gmail]/All Mail", they have to
 be moved to the "Trash" folder and be deleted from "Trash".
+
+=======================================================================
+Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
+   https://support.google.com/mail/answer/7190?hl=en
+   https://developers.google.com/gmail/imap_extensions#extension_of_the_search_command_x-gm-raw
+
+R. Sure. Example, to search only emails with attachment and in unread state:
+
+On Unix:
+
+  imapsync ... --search 'X-GM-RAW "has:attachment in:unread"'
+
+On Windows:
+
+  imapsync.exe ... --search "X-GM-RAW ""has:attachment in:unread"""
+
+=======================================================================
+Q. How to avoid the [IMAP] prefix on Gmail side?
+How to stop creating folder with this prefix?
+Any switch we can use? e.g. [IMAP]/Archive
+
+R. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
+   it might be configurable within Gmail parameters configuration.
 
 
 =======================================================================

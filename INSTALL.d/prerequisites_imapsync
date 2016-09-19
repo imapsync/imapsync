@@ -1,13 +1,13 @@
 #!/bin/sh
 
-# $Id: prerequisites_imapsync,v 1.12 2015/07/06 03:12:43 gilles Exp gilles $
+# $Id: prerequisites_imapsync,v 1.16 2016/08/16 16:25:01 gilles Exp gilles $
 
 MODULES_MANDATORY='
-Digest::HMAC_MD5
 Authen::NTLM
 Compress::Zlib
 Data::Dumper
 Data::Uniqid
+Digest::HMAC_MD5
 Digest::HMAC
 Digest::MD5
 File::Copy::Recursive
@@ -15,9 +15,12 @@ IO::Socket::INET
 IO::Socket::INET6
 IO::Socket::SSL
 IO::Tee
+JSON::WebToken
 Mail::IMAPClient
 Parse::RecDescent
+Readonly
 Term::ReadKey
+Test::MockObject
 Test::More
 Test::Pod
 Unicode::String
@@ -53,6 +56,7 @@ test_module() {
 		echo "Failure: Not found Perl module $M_tested $@"
 		LIST_TO_INSTALL="$LIST_TO_INSTALL $M_tested"
 	fi
+        return
 }
 
 test_mandatory_modules() {
@@ -79,15 +83,15 @@ search_modules_any() {
 	
 	# no yum, no apt-get
 	{
-		search_modules_cpan "$@"
+		search_modules_cpanm "$@"
 		return
 	}
 }
 
-search_modules_cpan() {
+search_modules_cpanm() {
 		cat <<EOD
-Here is a cpan command to install missing Perl modules:
-cpan -i $@
+Here is a cpanm command to install missing Perl modules:
+cpanm "$@"
 EOD
 }
 
@@ -121,12 +125,14 @@ search_modules_apt() {
 
 
 list_to_install() {
-	test -n "$LIST_TO_INSTALL" || return
+	test -n "$LIST_TO_INSTALL" || return 0
 	echo
 	echo 'What you have to do before using imapsync:'
 	for M in $LIST_TO_INSTALL ; do
 		echo "Install Perl module $M"
 	done
+        # return false/bad if some modules are missing.
+        return 1
 }
 
 test_unix() {
@@ -143,5 +149,8 @@ test_unix
 test_perl || exit
 test_mandatory_modules
 list_to_install
-#search_modules_cpan $MODULES_MANDATORY
+EXIT=$?
+
+# Help the user to install missing modules
 search_modules_any $LIST_TO_INSTALL
+exit $EXIT

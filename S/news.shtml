@@ -21,16 +21,11 @@
 <body>
 
 
-<h1>News about imapsync <!--#exec cmd="cat ../VERSION" --> and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)</small></a>
+<h1>News about next imapsync, currently distributed <!--#exec cmd="cat ../VERSION" -->, next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)</small></a>
 </h1>
 
 <p>imapsync <!--#exec cmd="cat ../VERSION" --> was written on <!--#flastmod file="VERSION" -->
 </p>
-
-<div  id="osw_imapsync"></div>
-<script  type="text/javascript"  src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
-<script  type="text/javascript"  src="http://static.oswatershed.org/js/package_badge.js"></script>
-<script  type="text/javascript">$(document).ready(function(){ package_badge("imapsync", "#osw_imapsync"); });</script>
 
 <p>See <b><a  href="../ChangeLog">ChangeLog</a></b> to read what has been done in details since 2001.</p>
 
@@ -38,7 +33,7 @@
 
 <!-- 
 <ul>
-<li><b>1.683</b></li>
+<li><b>1.694</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -54,8 +49,65 @@
 
 <li><b>Refactoring</b>: </li>
 <li><b>Refactoring</b>: </li>
+
+<li><b>Security</b>: </li>
+<li><b>Dependency</b>: </li>
+
 </ul>
  -->
+
+<ul>
+<li><b>1.727</b> https website and CGI on the way!</li>
+
+
+<li><b>Security</b>: Thanks to free and easy <b>letsencrypt</b>, 
+Imapsync website is available in https: 
+<a href="https://imapsync.lamiral.info/"><b>https://imapsync.lamiral.info/</b></a>
+</li>
+
+<li><b>Enhancement</b>: Added option <tt>--delete1emptyfolders</tt>. It deletes empty folders on host1, INBOX excepted. 
+Useful with <tt>--delete</tt> since what remains on host1 is only what failed to be synced.</li>
+
+<li><b>Enhancement</b>: Imapsync can be used as a CGI program. Still experimental. The web UI interface has to be written.</li>
+<li><b>Enhancement</b>: <b>XOAUTH2</b> authentication works with <b>json</b> files without extra tool openssl. Old pk12 files are still supported (still with openssl).</li>
+<li><b>Enhancement</b>: Memory usage passed from <b>5x to 2x of the biggest message size</b>. 
+Some users do send 700MB messages, imapsync needed 3.5 GB of RAM, now it crunches only 1.4 GB, 
+a more common RAM value available on small hosts.</li>
+
+<li><b>Enhancement</b>: Added option <tt>--inet4</tt> to force ipv4 in ssl and tls modes. 
+Useful with Gmail and Office365 when ipv6 is disable on the imapsync host but not ipv6 resolution.</li>
+
+<li><b>Enhancement</b>: Reconnect to imap servers with a Ctrl-c. Exit with two Ctrl-c within one second or one Ctrl-\</li>
+<li><b>Enhancement</b>: Copy is not done when one --pipemess command ends with an empty message generated.</li>
+<li><b>Enhancement</b>: STDERR of --pipemess commands are reported on STDOUT and in the logfile (they were ignored before).</li>
+<li><b>Enhancement</b>: </li>
+
+<li><b>Dependency</b>: Added Perl module dependency of Readonly to transform hard coded magic numbers into names. Mandatory module.</li>
+<li><b>Dependency</b>: Added Perl module dependency of Test::MockObject for some tests. Only a "require" for now.</li>
+
+
+<li><b>Security</b>: In CGI mode, remove all content in the unsafe "eval"uated options 
+                     (--regextrans2 --regexflag --regexmess --skipmess --pipemess --delete2foldersonly --delete2foldersbutnot). 
+                     Consider these options not available in CGI mode.</li>
+
+
+<li><b>Bug fix</b>: Fixed -1 wrong output in statistics for big accounts (%d => %s) in printf.</li>
+<li><b>Bug fix</b>: Uncommented call to $test_builder->reset(  ) Don't know why it was commented but it was bad for knowing tests go wrong.</li>
+<li><b>Bug fix</b>: Check connected state in sub create_folder(). Avoid multiple useless failures.</li>
+
+
+<li><b>Refactoring</b>: Wrote Perl package Imapsync::Getopt::Long to handle CGI requests like command line options. 
+Started as a copy of Luke Ross Getopt::Long::CGI</li>
+<li><b>Refactoring</b>: Perlcritic cleanup 627 violations of CodeLayout::ProhibitTrailingWhitespace.</li>
+<li><b>Refactoring</b>: Perlcritic cleanup 60 Double-sigil dereferences.</li>
+<li><b>Refactoring</b>: Perlcritic cleanup 458 ValuesAndExpressions::ProhibitInterpolationOfLiterals. "Useless interpolation of literal string"</li>
+<li><b>Refactoring</b>: Perlcritic cleanup 420 CodeLayout::ProhibitParensWithBuiltins. "Builtin function called with parentheses". (Severity: 1).</li>
+<li><b>Refactoring</b>: Perlcritic cleanup, various small advices.</li>
+
+<li><b>Refactoring</b>: Replaced print by myprint, printf by myprintf, sprinf by mysprintf. 
+                        Will ease <tt>--quiet</tt> mode and general output handling.</li>
+
+</ul> 
  
 <ul>
 <li><b>1.684</b> Small changes, bugfixes</li>
@@ -78,13 +130,13 @@ in ssl or tls mode.  Was due to "'SSL_version' => undef".</li>
 Example: <tt>--sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3</tt></li>
 <li><b>Enhancement</b>: Added <tt>--timeout1 int</tt> and <tt>--timeout2 int</tt> in seconds (<tt>--timeout int</tt> still available to set both with the same value)</li>
 <li><b>Enhancement</b>: Added <tt>--debugssl int</tt>. Default is like <tt>--debugssl 1</tt> (Only print out errors).</li>
-<li><b>Enhancement</b>: Added several <a  href="../#polls">polls</a> to know where I shall focus improvements.</li>
+<li><b>Enhancement</b>: Added several <a  href="./poll.shtml">polls</a> to know where I shall focus improvements.</li>
 
 
 <li><b>Usability</b>: Added env_proxy call in <tt>sub xoauth2()</tt> 
 to read proxy settings from environment variable <tt>http_proxy</tt>
 without using <tt>PERL_LWP_ENV_PROXY=1</tt></li>
-<li><b>Usability</b>: Wrote <a  href="../TUTORIAL_Unix.html">TUTORIAL_Unix</a>.</li>
+<li><b>Usability</b>: Wrote <a  href="../doc/TUTORIAL_Unix.html">TUTORIAL_Unix</a>.</li>
 <li><b>Usability</b>: Check f1 folder exists when specified by <tt>--f1f2</tt> and warns when it doesn't</li>
 <li><b>Usability</b>: Added <tt>--automap --justfolders --dry</tt> in <tt>imapsync_example.sh</tt> and <tt>imapsync_example.bat</tt></li>
 
@@ -403,7 +455,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.15 2016/03/17 19:59:00 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.28 2016/08/19 14:16:58 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

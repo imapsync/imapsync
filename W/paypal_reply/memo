@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.18 2015/12/03 16:47:48 gilles Exp gilles $
+# $Id: memo,v 1.19 2016/08/09 10:50:30 gilles Exp gilles $
 
 
 echo paypal_bilan_todo
@@ -26,6 +26,49 @@ Europe a un autre assujetti : Article 262 ter => Exoneration
 
 
 EOF
+}
+
+
+echo paypal_bilan_changefix_Commission_Frais
+paypal_bilan_changefix_Commission_Frais() {
+# DID output diff between 
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+cd /g/var/paypal_bilan_changefix_Commission_Frais || return 1
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.81 \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --first_in 40001 \
+   2016_07_old.csv \
+ > 2016_07_old.out1 2>&1 || return 1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --first_in 40001 \
+   2016_07_old.csv \
+ > 2016_07_old.out2 2>&1 || return 1
+
+echo diff 2016_07_old.out1 2016_07_old.out2
+     diff 2016_07_old.out1 2016_07_old.out2
+
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --first_in 40001 \
+   2016_07_old.csv \
+ > 2016_07_old.out3 2>&1 || return 1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --first_in 40001 \
+   2016_07_new.csv \
+ > 2016_07_new.out3 2>&1 || return 1
+
+echo diff 2016_07_old.out3 2016_07_new.out3
+     diff 2016_07_old.out3 2016_07_new.out3
+
+
+)
 }
 
 

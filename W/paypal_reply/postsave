@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+# $Id: postsave,v 1.2 2016/08/08 15:22:57 gilles Exp gilles $
+
+use strict ;
+use warnings ;
+use English ;
+use CGI ;
+use URL::Encode ;
+
+my $query = CGI->new(  ) ;
+
+my $data = $query->param('POSTDATA') || q{} ;
+
+print "\n\n" ;
+my $datadec = URL::Encode::url_decode($data); 
+#print $data ;
+if ( ! -d "/var/tmp/postsave" ) {
+	mkdir '/var/tmp/postsave' or die $! ;
+}
+
+open (OUT,'>', "/var/tmp/postsave/postsave.$BASETIME.txt") || die;
+#open (OUT,'>>', "/var/tmp/postsave/postsave.dev.txt") || die;
+
+print OUT "$datadec\n" ;
+close OUT ;
+
+

@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# $Id: validate_xml_html5,v 1.3 2016/08/05 19:34:46 gilles Exp gilles $
+
+#set -x
+
+validate_xml_html5_one() {
+        type=`file -b -i "$1"`
+        echo $1 : $type
+        if expr match "$type" '.*text/html.*' > /dev/null; then
+                echo html5check.py -h "$1"
+                html5check.py -h "$1"
+                return $?
+        fi
+        if expr match "$type" '.*application/xml.*' > /dev/null; then
+                echo validate --verbose "$1"
+                validate --verbose "$1"
+                return $?
+        fi
+        echo Unknown type
+        return 1
+}
+
+
+for f in "$@"; do
+        validate_xml_html5_one "$f"
+        cmd_status=$?
+        echo cmd_status = $cmd_status
+        test 0 != $cmd_status && return $cmd_status
+done
+
+: # if here then good return
+
+

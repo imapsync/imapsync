@@ -1,12 +1,11 @@
 
-@REM $Id: install_module_one.bat,v 1.1 2015/11/23 16:49:17 gilles Exp gilles $
+@REM $Id: install_module_one.bat,v 1.4 2016/07/20 21:44:40 gilles Exp gilles $
 
 @ECHO OFF 
 SET SHELL=
 SET
 REM EXIT
 
-ECHO Installing Perl module IO::Socket::SSL for imapsync
 REM CD /D %~dp0
 
 perl -v
@@ -16,9 +15,9 @@ IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://stra
 @ECHO perl is here
 
 FOR %%M in ( 
-              IO::Socket::SSL ^         
+              IO::Socket::SSL Net::SSLeay PAR::Packer^         
              ) DO perl -m%%M -e "print qq{Updating %%M $%%M::VERSION \n}" ^
-   & cpanm %%M
+   & cpanm --force %%M
 
 REM IO::Socket::SSL
 

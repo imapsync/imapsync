@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# $Id: check_winerr,v 1.4 2016/06/30 11:10:37 gilles Exp gilles $
+
+test -n "$1" || { echo usage: "$0 script.bat" && exit 1 ; }
+
+test -d W/LOG_bat || mkdir W/LOG_bat
+ERROR_FILENAME=$1.txt
+rm -f "W/LOG_bat/$ERROR_FILENAME"
+if scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/LOG_bat/'"$ERROR_FILENAME" W/LOG_bat/ > /dev/null 2>&1 ; then
+        #echo -n "W/LOG_bat/$ERROR_FILENAME : "
+        #cat "W/LOG_bat/$ERROR_FILENAME"
+        sed -e "s#^#W/LOG_bat/$ERROR_FILENAME : #" "W/LOG_bat/$ERROR_FILENAME"
+        exit 1
+else 
+        echo NO errror
+fi

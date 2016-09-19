@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.81 2016/01/23 09:37:19 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.83 2016/08/18 09:43:40 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -13,7 +13,7 @@ use Test::More 'no_plan' ;
 
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.81 2016/01/23 09:37:19 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.83 2016/08/18 09:43:40 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -592,6 +592,18 @@ sub compute_line {
 
         ( $A->{Etat} )             = @action{ ( 'Etat' ) }      || @action{ ( 'État' ) } ;
         ( $A->{Hors_taxe_paypal} ) = @action{ ( 'Hors taxe' ) } || @action{ ( 'Avant commission' ) } ;
+        
+        # August 2016
+        ( $A->{N_de_transaction} ) = @action{ ( 'N° de transaction' ) } || @action{ ( 'Numéro de transaction' ) } ;
+        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
+        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
+        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
+        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
+        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
+        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
+        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
+
+        # 
         $A->{Impact_sur_le_solde} ||= '' ;
 	$A->{invoice} = 'NONE' ;
 	$A->{Montant} = $action->{ 'Net' } if not defined $A->{Montant};
@@ -699,6 +711,16 @@ sub build_invoice {
 	'Adresse 1', 'Adresse 2/district/quartier', 'Ville', 
 	'Etat/Province/Région/Comté/Territoire/Préfecture/République', 'Code postal', 'Pays', 'line_number', 'line_csv', 'file_csv', 
         'Nom Option 2', 'Option 2 Valeur' ) } ;
+
+        # August 2016
+        $F->{Commission}       = $action->{'Commission'} || $action->{'Frais'} ;
+        $F->{N_de_transaction} = $action->{'N° de transaction'} || $action->{'Numéro de transaction'} ;
+        $F->{Adresse_1} = $action->{'Adresse 1'} || $action->{'Adresse (ligne 1)'} ;
+        #$F->{} = $action->{''} || $action->{''} ;
+        #$F->{} = $action->{''} || $action->{''} ;
+        #$F->{} = $action->{''} || $action->{''} ;
+        #$F->{} = $action->{''} || $action->{''} ;
+        #
 
         $F->{Etat_Province} = $action->{'Etat/Province/Région/Comté/Territoire/Préfecture/République'}
                       || $action->{'État/Province/Région/Comté/Territoire/Préfecture/République'}
@@ -918,11 +940,14 @@ or any other gpg graphical tool.
 
 Once more, thank you for buying and using imapsync $F->{object_type}.
 
-Any feedback is welcome.
+Any feedback is welcome!
+Best Regards.
 
 --
-Best Regards,                          09 51 84 42 42
-Gilles Lamiral. France, Baulon (35580) 06 20 79 76 06 
+Gilles Lamiral.
+add: La Billais 35580 Baulon, France
+mob: +33 6 19 22 03 54
+fix: +33 9 51 84 42 42
 } ;
 
 

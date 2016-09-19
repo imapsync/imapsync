@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Exchange.txt,v 1.20 2016/03/03 15:44:17 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.23 2016/08/10 01:29:37 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -91,7 +91,6 @@ In case you don't have it you can still use
   --regexmess 's,(.{9900}),$1\r\n,g'
 instead of --maxlinelengthcmd 'reformime -r7' 
 
-
 =======================================================================
 Q. How to sync from XXX to Office365
 
@@ -143,7 +142,7 @@ R3. Try with a classic email client like Thunderbird and the same
 =======================================================================
 Q. Exchange fails with "User is authenticated but not connected".
 
-R. "The message User is authenticated but not connected is due to a 
+R1. "The message User is authenticated but not connected is due to a 
    bug in the Exchange server's IMAP implementation. If the client 
    presents a valid user name but an invalid password, the server 
    accepts the login, but subsequent commands fail with the 
@@ -151,6 +150,10 @@ R. "The message User is authenticated but not connected is due to a
 http://unix.stackexchange.com/questions/164823/user-is-authenticated-but-not-connected-after-changing-my-exchange-password
 Thanks to James Abbottsmith for this link and explanation at
 https://github.com/imapsync/imapsync/issues/32#issuecomment-153561647
+
+R2. Miguel Alameda reported understanding and solving this issue 
+    like this, the context was admin/authuser:
+    "The admin user had not permission in the target mailbox."
 
 =======================================================================
 Q. Exchange fails with "BAD Command received in Invalid state".
@@ -276,7 +279,7 @@ R. It looks like limiting 4 messages per second is enough to never
   imapsync ... --maxmessagespersecond 4
 
 ======================================================================
-Q. How to migrate from or to Exchange 2007/2010 with an 
+Q. How to migrate from or to Exchange 2007/2010/2013 with an 
    admin/authuser account?
    
 R. The tricks comes from Michele Marcionelli and Benjamin Priestman:
@@ -326,9 +329,6 @@ The command that I used for imapsync is:
        --user2 "windows-domain\admin-user\aaaa" ^
        --password2 admin-password ...
 
-
-
-
 ======================================================================
 Q. How to migrate from or to Office 365 with an admin/authuser account?
 
@@ -336,8 +336,7 @@ Note from Yago Torres Fernandez:
 (a working command using admin/authuser on host2 Office 365)
 
   imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
-               --password2 XXXX --ssl2 --exclude "Shared Folders"     ^
-               --regextrans2 "s#Trash$#Papelera#"  --regextrans2 "s#^Deleted Items$#Papelera#"
+               --password2 XXXX --ssl2  ^
 
 but previous in Office365 you must do something like that, using powershell:
 
@@ -350,8 +349,6 @@ Same behavior with the --authuser2 option.
 
 See also:
 http://www.linux-france.org/prj/imapsync_list/msg02203.html
-
-
 
 ======================================================================
 Q. How to migrate from or to Exchange 2003 with an admin/authuser 
@@ -386,8 +383,6 @@ In case you are not aware:
 - the domain part of the fully-qualified email could be 
   omitted in our case
 - Use --debugimap when testing initial connectivity, if necessary
-
-
 
 =======================================================================
 Q. Couldn't create folder [trash] "Mailbox already exists".

@@ -1,6 +1,9 @@
 #!/bin/sh
 
-# $Id: build_mac.sh,v 1.2 2015/11/04 18:19:48 gilles Exp gilles $
+# $Id: build_mac.sh,v 1.6 2016/06/22 20:04:16 gilles Exp gilles $
+
+# exit on any failure
+set -e
 
 eval `perl -I $HOME/perl5/lib/perl5 -Mlocal::lib`
 export MANPATH=$HOME/perl5/man:$MANPATH
@@ -10,10 +13,15 @@ ARCH=`uname -m`
 KERNEL=`uname -s`
 echo "$HOSTNAME $ARCH $KERNEL"
 
-VERSION=`./imapsync --version`
 BIN_NAME=imapsync_bin_Darwin
 
-cpanm Mail::IMAPClient
+# exit if known needed modules are missing
+sh prerequisites_imapsync
+
+VERSION=`./imapsync --version`
+
+# Update important Perl modules
+cpanm Mail::IMAPClient IO::Socket::SSL PAR::Packer
 
 pp -o $BIN_NAME  \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
@@ -22,6 +30,6 @@ pp -o $BIN_NAME  \
 	-M Crypt::OpenSSL::RSA -M JSON -M JSON::WebToken -M LWP -M HTML::Entities \
 	imapsync
 
-./imapsync_bin_Darwin
+./imapsync_bin_Darwin 
 ./imapsync_bin_Darwin --tests
 ./imapsync_bin_Darwin --testslive

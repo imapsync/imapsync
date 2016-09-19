@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Dates.txt,v 1.2 2016/03/07 02:08:12 gilles Exp gilles $
+$Id: FAQ.Dates.txt,v 1.3 2016/07/27 13:14:30 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -25,21 +25,26 @@ but not with:
 
 A thing to keep in mind, imapsync does not touch any byte of messages 
 unless told to do so by option --regexmess or --pipemess
-Messages on both parts should be identical.
+Messages on both parts should be exactly identical.
 
 Now I explain the whole picture about dates of messages.
 
 There are several different dates for any message.
-First, there is the "Date:" header. Most of the time, this date is set 
-by the MUA (MUA means Mail User Agent) it can be Outlook, Thunderbird,
-a webmail or Mutt. The Date header is usually the date the message was written 
+First, there is the "Date:" header, which belongs to the message itself.
+You can see this "Date:" header line by asking View->Message Source
+in most email client software (Ctrl-u in Thunderbird).
+Most of the time, this date is set by the MUA, MUA stands for "Mail User Agent".
+MUA can be Outlook, Thunderbird, a webmail or Mutt etc. 
+The Date header is usually the date the message was written 
 or sent the first time, at the writer side. 
-This Date: header line is never changed by any transfer or copy.
+This "Date:" header line is never changed by any transfer or copy.
 If an email reader uses the "Date:" header for displaying the date of a 
 message then no problem should arise.
 
 Another date is the internal date. In IMAP, the internal date is handled
-by the server and normally it corresponds to the arrival date in the mailbox. 
+by the server and normally it corresponds to the arrival date in the mailbox.
+This date is not part of the email message itself, it's a metadata kept
+by the imap server.
 The IMAP protocol allows the internal date to be set by a email client
 when a message is delivered by the imap APPEND command.
 Imapsync synchronizes internal dates by default, internal dates on host2

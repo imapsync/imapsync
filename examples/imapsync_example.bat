@@ -1,4 +1,4 @@
-@REM $Id: imapsync_example.bat,v 1.9 2016/01/21 03:34:51 gilles Exp gilles $
+@REM $Id: imapsync_example.bat,v 1.10 2016/04/07 23:14:09 gilles Exp gilles $
 
 @REM imapsync example batch for Windows users
 @REM lines beginning with @REM are just comments 
@@ -11,13 +11,13 @@
 @REM with your own values
 @REM Double quotes are necessary if a value contain one or more blanks.
 
-@REM value for --host1 is the IMAP source server hostname or IP address
-@REM value for --user1 is the IMAP source user login
-@REM value for --password1 is the IMAP source user password
+@REM value "test1.lamiral.info" for --host1 is the IMAP source server hostname or IP address
+@REM value "test1" for --user1 is the IMAP source user login
+@REM value "secret1" for --password1 is the IMAP source user password
 
-@REM value for --host2 is the IMAP destination server hostname or IP address
-@REM value for --user2 is the IMAP destination user login
-@REM value for --password2 is the IMAP destination user password
+@REM value "test2.lamiral.info" for --host2 is the IMAP destination server hostname or IP address
+@REM value "test2" for --user2 is the IMAP destination user login
+@REM value "secret2" for --password2 is the IMAP destination user password
 
 @REM Character ^ at the end of the first line is essential and means
 @REM "this command continues on the next line". You can add other lines

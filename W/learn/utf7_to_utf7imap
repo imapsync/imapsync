@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+# $Id: utf7_to_utf7imap,v 1.1 2016/08/08 22:57:44 gilles Exp gilles $
+
+use strict ;
+use warnings ;
+
+foreach my $str_utf7 ( @ARGV ) {
+	my $str_utf7imap = utf7_to_uft7imap( $str_utf7 ) ;
+	print qq{mv '$str_utf7' '$str_utf7imap'\n} ;
+}
+
+# http://cpansearch.perl.org/src/FABPOT/Unicode-IMAPUtf7-2.01/lib/Unicode/IMAPUtf7.pm
+sub utf7_to_uft7imap {
+        my ( $s ) = @_ ;
+	
+	$s =~ s/\+([^\/&\-]*)\/([^\/\-&]*)\-/\+$1,$2\-/g ;
+	$s =~ s/&/&\-/g ;
+	$s =~ s/\+([^+\-]+)?\-/&$1\-/g ;
+        return( $s ) ;
+}
