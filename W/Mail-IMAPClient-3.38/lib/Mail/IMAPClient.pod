@@ -1196,17 +1196,18 @@ and looks like the following:
 
   {
     name  => 'Mail/Box/Name',
-    attrs => '\Marked \HasNoChildren',
+    attrs => [ '\Marked', '\HasNoChildren' ],
     delim => '/',
   }
 
 IMAP servers implementing RFC6154 return attributes to be used to
 identify special-use mailboxes (folders).
 
-  my $sattr_re = /\b\\(?:All|Archive|Drafts|Flagged|Junk|Sent|Trash)\b/;
+  my $sattr_re = /\A\\(?:All|Archive|Drafts|Flagged|Junk|Sent|Trash)\Z/;
   foreach my $fhash (@fhashes) {
-      next unless ( $fhash->{attrs} =~ $sattr_re );
-      print("special: $fhash->{name} : $fhash->{attrs}\n");
+      next unless defined $fhash->{name};
+      my @special = grep { $sattr_re } @{ $fhash->{attrs} };
+      print("special: $fhash->{name} : @special\n") if (@special);
   }
 
 Version note: method added in Mail::IMAPClient 3.34
@@ -3968,7 +3969,7 @@ http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient
 
   Copyright (C) 1999-2003 The Kernen Group, Inc.
   Copyright (C) 2007-2009 Mark Overmeer
-  Copyright (C) 2010-2015 Phil Pearl (Lobbes)
+  Copyright (C) 2010-2016 Phil Pearl (Lobbes)
   All rights reserved.
 
 This library is free software; you can redistribute it and/or modify

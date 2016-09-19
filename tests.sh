@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.271 2015/12/26 02:07:20 gilles Exp gilles $  
+# $Id: tests.sh,v 1.272 2016/03/07 02:54:02 gilles Exp gilles $  
 
 # Example 1:
-# CMD_PERL='perl -I./W/Mail-IMAPClient-3.37/lib' sh -x tests.sh
+# CMD_PERL='perl -I./W/Mail-IMAPClient-3.38/lib' sh -x tests.sh
 
 # Example 2:
 # To select which Mail-IMAPClient within arguments:
@@ -22,7 +22,7 @@ echo HOST2=$HOST2
 # most tests use:
 
 # few debugging tests use:
-CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.37/lib'
+CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.38/lib'
 
 CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
 
@@ -570,6 +570,30 @@ ll_pipemess_nocmd() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.few_emails --pipemess 'nocat'
+		
+		echo "sudo rm -rf /home/vmail/titi/.few_emails/"
+}
+
+ll_pipemess_false() {
+		
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails --pipemess '/bin/false' --nopipemesscheck 
+		
+		echo "sudo rm -rf /home/vmail/titi/.few_emails/"
+}
+
+ll_pipemess_true() {
+		
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.few_emails --pipemess '/bin/true' 
 		
 		echo "sudo rm -rf /home/vmail/titi/.few_emails/"
 }

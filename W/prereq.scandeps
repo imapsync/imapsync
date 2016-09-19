@@ -31,7 +31,13 @@
  --tls1              : Use a TLS connection on host1.
  --tls2              : Use a TLS connection on host2.
  --debugssl     int  : SSL debug mode from 0 to 4.
-
+ --sslargs1     str  : Pass any ssl parameter for host1 ssl or tls connection. Example:
+                       --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
+                       See all possibilities in the new() method of IO::Socket::SSL
+                       http://search.cpan.org/perldoc?IO::Socket::SSL#Description_Of_Methods
+ --sslargs2     str  : Pass any ssl parameter for host2 ssl or tls connection.
+                       See --sslargs1 
+					   
  --timeout1     int  : Connection timeout in seconds for host1.
                        Default is 120 and 0 means no timeout at all.
  --timeout2     int  : Connection timeout in seconds for host2.
@@ -270,7 +276,7 @@
 
 Here is a [linux] system (Linux petite 3.2.0-97-generic #137-Ubuntu SMP Thu Dec 17 21:14:00 UTC 2015 i686)
 With perl 5.14.2 Mail::IMAPClient  3.30
-$Id: imapsync,v 1.678 2016/01/21 19:47:02 gilles Exp gilles $ 
+$Id: imapsync,v 1.684 2016/03/17 08:35:03 gilles Exp gilles $ 
 This current imapsync is up to date
 
 Homepage: http://imapsync.lamiral.info/
@@ -283,8 +289,8 @@ Homepage: http://imapsync.lamiral.info/
 'Authen::NTLM::MD4'                => '1.02',
 'IO::Compress::Gzip'               => '2.048',
 'IO::Uncompress::Gunzip'           => '2.048',
-'IO::Compress::Base::Common'       => '2.048',
 'IO::Compress::Gzip::Constants'    => '2.048',
+'IO::Compress::Base::Common'       => '2.048',
 'Compress::Raw::Zlib'              => '2.048',
 'Convert::ASN1::IO'                => 'undef',
 'Convert::ASN1::_decode'           => 'undef',
@@ -307,7 +313,6 @@ Homepage: http://imapsync.lamiral.info/
 'File::GlobMapper'                 => '1.000',
 'IO::Compress::Base'               => '2.048',
 'IO::Compress::Adapter::Bzip2'     => '2.048',
-'IO::Compress::Zlib::Constants'    => '2.048',
 'IO::Compress::RawDeflate'         => '2.048',
 'IO::Compress::Adapter::Deflate'   => '2.048',
 'IO::Compress::Zlib::Extra'        => '2.048',
@@ -317,6 +322,7 @@ Homepage: http://imapsync.lamiral.info/
 'Compress::Raw::Bzip2'             => '2.048',
 'IO::Uncompress::Adapter::Bunzip2' => '2.048',
 'IO::Uncompress::Base'             => '2.048',
+'IO::Compress::Zlib::Constants'    => '2.048',
 'IO::Uncompress::Adapter::Inflate' => '2.048',
 'JSON::WebToken::Constants'        => 'undef',
 'JSON::WebToken::Exception'        => 'undef',

@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 
-# $Id: paypal_build_reply,v 1.26 2014/05/22 10:35:33 gilles Exp gilles $
+# $Id: paypal_build_reply,v 1.28 2016/03/03 13:36:18 gilles Exp gilles $
 
 use warnings;
 use strict;
@@ -23,16 +23,16 @@ my $opt_ret = GetOptions(
         "debug!"        => \$debug,
 );
 
-usage() and exit if ($help or ! $numopt) ;
+usage(  ) and exit if ( $help or ! $numopt ) ;
 
 $msg_id_file = $ARGV[1];
 $msg_id = firstline($msg_id_file);
 
 $release      = firstline( '/g/public_html/imapsync/VERSION' ) ;
 $release_exe  = firstline( '/g/public_html/imapsync/VERSION_EXE' ) ;
-my $path_last = firstline( '/g/public_html/imapsync/dist/path_last.txt' ) ;
+#my $path_last = firstline( '/g/public_html/imapsync/dist/path_last.txt' ) ;
 
-$url = "http://ks.lamiral.info/imapsync/dist/$path_last/" ;
+$url = "http://ks.lamiral.info/imapsync/dist/" ;
 
 
 $debug and print "Hi!\n" ;
@@ -107,7 +107,7 @@ while( my $line = shift @input ) {
 
 my $address = 'gilles.lamiral@laposte.net';
 my $address2 = 'gilles@lamiral.info';
-my $rcstag  = '$Id: paypal_build_reply,v 1.26 2014/05/22 10:35:33 gilles Exp gilles $';
+my $rcstag  = '$Id: paypal_build_reply,v 1.28 2016/03/03 13:36:18 gilles Exp gilles $';
 
 my $download_info = "You will find the latest imapsync.exe binary (release $release_exe)
 and the latest imapsync source code (release $release) at the following link:
@@ -209,4 +209,8 @@ sub firstline {
         close FILE;
         $line = ($line) ? $line: "error !EMPTY! [$file]";
         return $line;
+}
+
+sub usage {
+	print "$0\n" ;
 }

@@ -6,52 +6,31 @@ use IO::File qw();
 use Test::More;
 use File::Temp qw(tempfile);
 
-my $debug = $ARGV[0];
-
-my %parms;
-my $range   = 0;
-my $uidplus = 0;
-my $fast    = 1;
+use lib "t/lib";
+use MyTest;
+my $params;
 
 BEGIN {
-    open TST, 'test.txt'
-      or plan skip_all => 'test parameters not provided in test.txt';
-
-    while ( my $l = <TST> ) {
-        chomp $l;
-        my ( $p, $v ) = split /\=/, $l, 2;
-        s/^\s+//, s/\s+$// for $p, $v;
-        $parms{$p} = $v if $v;
-    }
-
-    close TST;
-
-    my @missing;
-    foreach my $p (qw/server user passed/) {
-        push( @missing, $p ) unless defined $parms{$p};
-    }
-
-    @missing
-      ? plan skip_all => "missing value for: @missing"
+    eval { $params = MyTest->new; };
+    $@
+      ? plan skip_all => $@
       : plan tests    => 104;
 }
 
 BEGIN { use_ok('Mail::IMAPClient') or exit; }
 
+my $debug   = $ARGV[0];
+my $range   = 0;
+my $uidplus = 0;
+
 my %new_args = (
-    Server        => delete $parms{server},
-    Port          => delete $parms{port},
-    User          => delete $parms{user},
-    Password      => delete $parms{passed},
-    Authmechanism => delete $parms{authmech},
     Clear         => 0,
-    Fast_IO       => $fast,
     Uid           => $uidplus,
     Debug         => $debug,
 );
 
 # allow other options to be placed in test.txt
-%new_args = ( %new_args, %parms );
+%new_args = ( %new_args, %${params} );
 
 my $imap = Mail::IMAPClient->new(
     %new_args,
@@ -113,7 +92,7 @@ ok( $imap->select('inbox'), "select inbox" );
         [ sort keys %{ $fh[0] } ],
         [ sort @fh_keys ],
         "folders eq folders_hash"
-      )
+      );
 }
 
 # test append_file
@@ -189,6 +168,17 @@ SKIP: {
 
     ok( $imap->delete_message($uid), "delete_message $uid" );
     ok( $imap->uidexpunge($uid),     "uidexpunge $uid" );
+
+=begin comment
+
+    my $ol = $imap->Maxcommandlength();
+    $imap->Maxcommandlength(64);
+    my $exp = $imap->uidexpunge($uid . "," . join(",", map{$_*2} 2..40) );
+    $imap->Maxcommandlength($ol);
+    is( $exp->[0], $imap->Count . " UID EXPUNGE $uid", "UID EXPUNGE $uid" );
+    is( grep( /^\* $uid EXPUNGE/, @$exp ), !undef, "found EXPUNGE response" );
+
+=cut
 
     # multiple args joined internally in append()
     $uid = $imap->append( $target, $testmsg, "Some extra text too" );

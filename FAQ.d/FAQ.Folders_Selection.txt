@@ -1,0 +1,96 @@
+#!/bin/cat
+$Id: FAQ.Folders_Selection.txt,v 1.3 2016/02/07 22:01:56 gilles Exp gilles $
+
+This documentation is also at http://imapsync.lamiral.info/#doc
+
+=====================================
+  Imapsync tips to select folders.
+=====================================
+
+By default, Imapsync syncs all folders, one by one, in alphanumeric order.
+
+======================================================================
+Q. How can I sync only one folder?
+
+R. Use --folder option.
+
+  imapsync ... --folder MyFolder
+
+If you have more specific folders to sync just add several --folder 
+
+  imapsync ... --folder MyFolder --folder ThisFolder --folder ThatFolder
+
+
+======================================================================
+Q. What are --subscribe and --subscribed for, and how can they be used?
+
+R. In the IMAP protocol each user can subscribe to one or more folders.
+   Then one can configure his email software to just see his subscribed
+   folders. That's an IMAP feature.
+
+   Knowing that, the imapsync help mentions:
+
+  imapsync --help
+  ...
+  --subscribed           : transfers subscribed folders.
+  --subscribe            : subscribe to the folders transferred on the 
+                           host2 that are subscribed on host1.
+  --subscribe_all        : subscribe to the folders transferred on the 
+                           host2 even if they are not subscribed on host1.
+
+
+======================================================================
+Q. I want to exclude a folder hierarchy like "public"
+
+R. Use:
+
+--exclude "^public\."
+or maybe
+--exclude '^"public\.'
+
+In the example given the character "." is the folder separator, you
+can omit it. Just take the string as it appears on the imapsync
+output line :
+
+From folders list : [INBOX] [public.dreams] [etc.]
+
+
+======================================================================
+Q. I want to exclude only INBOX
+
+R. Use:
+
+  imapsync ... --exclude "^INBOX$" 
+
+A good way to see what will be done is to first use:
+
+  imapsync ...  --exclude "^INBOX$" --justfolders --nofoldersizes --dry
+
+======================================================================
+Q. I want to exclude folders matching SPAM no matter the case, 
+   aka how to be case insensitive
+
+R. Use:
+
+  imapsync ... --exclude "(?i)spam" 
+
+A good way to see what will be done is to first use:
+
+  imapsync ... --exclude "(?i)spam" --justfolders --nofoldersizes --dry
+
+
+======================================================================
+Q. I want the --folder "MyFolder" option be recursive.
+
+Two solutions:
+
+R1. Use
+
+--folderrec "MyFolder"
+
+R2. Use --include "^MyFolder"
+   Then the folder "MyFolder" and all its subfolders will be handled
+   and only them.
+
+
+

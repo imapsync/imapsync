@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.37';
+our $VERSION = '3.38';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -571,13 +571,14 @@ sub login {
         # if user is passed as a literal:
         # 1. send passwd as a literal
         # 2. empty literal passwd are sent as an blank line ($CRLF)
-        $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
+        $user = $self->Quote($user);
         if ( $user =~ /^{/ ) {
+            my $nopasswd = ( $passwd eq "" ) ? 1 : 0;
             $passwd = $self->Quote( $passwd, 1 );    # force literal
-            $passwd .= $CRLF if ( $passwd eq "{0}$CRLF" );    # blank line
+            $passwd .= $CRLF if ($nopasswd);         # blank line
         }
         else {
-            $passwd = qq("") if ( $passwd eq "" );
+            $passwd = $self->Quote($passwd);
         }
 
         $self->_imap_command("LOGIN $user $passwd")
@@ -598,7 +599,7 @@ sub noop {
 
 sub proxyauth {
     my ( $self, $user ) = @_;
-    $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
+    $user = $self->Quote($user);
     $self->_imap_command("PROXYAUTH $user") ? $self->Results : undef;
 }
 
@@ -764,7 +765,7 @@ sub subscribed {
 sub deleteacl {
     my ( $self, $target, $user ) = @_;
     $target = $self->Quote($target);
-    $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
+    $user   = $self->Quote($user);
 
     $self->_imap_command(qq(DELETEACL $target $user))
       or return undef;
@@ -778,8 +779,8 @@ sub setacl {
     $target = $self->Quote($target);
 
     $user ||= $self->User;
-    $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
-    $acl  = ( $acl  eq "" ) ? qq("") : $self->Quote($acl);
+    $user = $self->Quote($user);
+    $acl  = $self->Quote($acl);
 
     $self->_imap_command(qq(SETACL $target $user $acl))
       or return undef;
@@ -823,7 +824,7 @@ sub listrights {
     $target = $self->Quote($target);
 
     $user ||= $self->User;
-    $user = ( $user eq "" ) ? qq("") : $self->Quote($user);
+    $user = $self->Quote($user);
 
     $self->_imap_command(qq(LISTRIGHTS $target $user))
       or return undef;
@@ -1312,7 +1313,6 @@ sub _imap_command_do {
     # for APPEND (append_string) only log first line of command
     my $logstr = ( $string =~ /^($tag\s+APPEND\s+.*?)$CR?$LF/ ) ? $1 : $string;
 
-
     # BUG? use $self->_next_index($tag) ? or 0 ???
     # $self->_record($tag, [$self->_next_index($tag), "INPUT", $logstr] );
     $self->_record( $count, [ 0, "INPUT", $logstr ] );
@@ -1466,6 +1466,44 @@ sub _record {
     push @{ $self->{History}{$count} }, $array;
 }
 
+# try to avoid exposing auth info via debug unless Showcredentials is true
+sub _redact_line {
+    my ( $self, $string ) = @_;
+    $self->Showcredentials and return undef;
+
+    my ( $tag, $cmd ) = ( $self->Count, undef );
+    my $retext = "[Redact: Count=$tag Showcredentials=OFF]";
+    my $show   = $retext;
+
+    # tagged command?
+    if ( $string =~ s/^($tag\s+(\S+)\s+)// ) {
+        ( $show, $cmd ) = ( $1, $2 );
+
+        # login <username|literal> <password|literal>
+        if ( $cmd =~ /login/i ) {
+
+            # username as literal
+            if ( $string =~ /^{/ ) {
+                $show .= $string;
+            }
+
+            # username (possibly quoted) string, then literal? password
+            elsif ( $string =~ s/^((?:"(?>(?:(?>[^"\\]+)|\\.)*)"|\S+)\s*)// ) {
+                $show .= $1;
+                $show .= ( $string =~ /^{/ ) ? $string : $retext;
+            }
+        }
+        elsif ( $cmd =~ /^auth/i ) {
+            $show .= $string;
+        }
+        else {
+            return undef;    # show it all
+        }
+    }
+
+    return $show;
+}
+
 # _send_line handles literal data and supports the Prewritemethod
 sub _send_line {
     my ( $self, $string, $suppress ) = @_;
@@ -1476,7 +1514,13 @@ sub _send_line {
     # handle case where string contains a literal
     if ( $string =~ s/^([^$LF\{]*\{\d+\}$CRLF)(?=.)//o ) {
         my $first = $1;
-        $self->_debug("Sending literal: $first\tthen: $string");
+        if ( $self->Debug ) {
+            my $dat =
+              ( $self->IsConnected and !$self->IsAuthenticated )
+              ? $self->_redact_line($string)
+              : undef;
+            $self->_debug( "Sending literal: $first\tthen: ", $dat || $string );
+        }
         $self->_send_line($first) or return undef;
 
         # look for "$tag NO" or "+ ..."
@@ -1489,15 +1533,14 @@ sub _send_line {
         $string = $prew->( $self, $string );
     }
 
-    my $debug ;
-    if ( !$self->Showcredentials && $string =~ /^(\d+\s+LOGIN\s+).*/ ) {
-        $debug = "$1 XXXXXXXX XXXXXXXX_Showcredentials_is_off" ;
-        $debug =  $string ;
-    }else{
-        $debug =  $string ;
+    if ( $self->Debug ) {
+        my $dat =
+          ( $self->IsConnected and !$self->IsAuthenticated )
+          ? $self->_redact_line($string)
+          : undef;
+        $self->_debug( "Sending: ", $dat || $string );
     }
 
-    $self->_debug("Sending: $debug");
     unless ( $self->IsConnected ) {
         $self->LastError("NO not connected");
         return undef;
@@ -2207,7 +2250,9 @@ sub fetch_hash {
                 $l             = shift @$output;
                 next ATTR;
             }
-            elsif ( $l=~  m/\G(?:"((?>(?:(?>[^"\\]+)|\\.)*))"|([^()\s]+))\s*/gc ) {
+            elsif (
+                $l =~ m/\G(?:"((?>(?:(?>[^"\\]+)|\\.)*))"|([^()\s]+))\s*/gc )
+            {
                 $value = defined $1 ? $1 : $2;
                 $entry->{$key} = $value;
                 next ATTR;
@@ -2215,7 +2260,9 @@ sub fetch_hash {
             elsif ( $l =~ m/\G\(/gc ) {
                 my $depth = 1;
                 $value = "";
-                while ( $l =~ m/\G("((?>(?:(?>[^"\\]+)|\\.)*))"\s*|[()]|[^()"]+)/gc ) {
+                while ( $l =~
+                    m/\G("((?>(?:(?>[^"\\]+)|\\.)*))"\s*|[()]|[^()"]+)/gc )
+                {
                     my $stuff = $1;
                     if ( $stuff eq "(" ) {
                         $depth++;
@@ -2326,6 +2373,10 @@ sub uidexpunge {
     my ( $self, $msgspec ) = ( shift, shift );
 
     return undef unless $self->has_capability("UIDPLUS");
+    unless ( $self->Uid ) {
+        $self->LastError("Uid must be enabled for uidexpunge");
+        return undef;
+    }
 
     my $msg =
       UNIVERSAL::isa( $msgspec, 'Mail::IMAPClient::MessageSet' )
@@ -2334,23 +2385,35 @@ sub uidexpunge {
 
     $msg->cat(@_) if @_;
 
-    if ( $self->Uid ) {
-        $self->_imap_command("UID EXPUNGE $msg")
+    my ( @data, $cmd );
+    my ($seq_set) = $self->_split_sequence( $msg, "UID EXPUNGE" );
+
+    for ( my $x = 0 ; $x <= $#$seq_set ; $x++ ) {
+        my $seq = $seq_set->[$x];
+        $self->_imap_uid_command( "EXPUNGE" => $seq )
           or return undef;
-    }
-    else {
-        $self->LastError("Uid must be enabled for uidexpunge");
-        return undef;
+        my $res = $self->Results;
+
+        # only keep last command and last response (* OK ...)
+        $cmd = shift(@$res);
+        pop(@$res) if ( $x != $#{$seq_set} );
+        push( @data, @$res );
     }
 
-    return wantarray ? $self->History : $self->Results;
+    if ( $cmd and !wantarray ) {
+        $cmd =~ s/^(\d+\s+.*?EXPUNGE\s+)\S+(\s*)/$1$msg$2/;
+        unshift( @data, $cmd );
+    }
+
+    #wantarray ? $self->History : $self->Results;
+    return wantarray ? @data : \@data;
 }
 
 sub rename {
     my ( $self, $from, $to ) = @_;
 
-    $from = ( $from eq "" ) ? qq("") : $self->Quote($from);
-    $to   = ( $to   eq "" ) ? qq("") : $self->Quote($to);
+    $from = $self->Quote($from);
+    $to   = $self->Quote($to);
 
     $self->_imap_command(qq(RENAME $from $to)) ? $self : undef;
 }
@@ -2842,13 +2905,13 @@ sub is_parent {
         my $rec = $self->_list_or_lsub_response_parse($resp);
         next unless defined $rec->{attrs};
         $self->_debug("unexpected attrs data: @$list\n") if $attrs;
-        $attrs = $rec->{attrs}->[0];
+        $attrs = $rec->{attrs};
     }
 
     if ($attrs) {
-        return undef if $attrs =~ /\\NoInferiors/i;
-        return 1     if $attrs =~ /\\HasChildren/i;
-        return 0     if $attrs =~ /\\HasNoChildren/i;
+        return undef if grep { /\A\\NoInferiors\Z/i } @$attrs;
+        return 1     if grep { /\A\\HasChildren\Z/i } @$attrs;
+        return 0     if grep { /\A\\HasNoChildren\Z/i } @$attrs;
     }
     else {
         $self->_debug( join( "\n\t", "no attrs for '$folder' in:", @$list ) );
@@ -3327,21 +3390,21 @@ sub size {
 
 sub getquotaroot {
     my ( $self, $what ) = @_;
-    my $who = $what ? $self->Quote($what) : "INBOX";
+    my $who = defined $what ? $self->Quote($what) : "INBOX";
     return $self->_imap_command("GETQUOTAROOT $who") ? $self->Results : undef;
 }
 
 # BUG? using user/$User here and INBOX in quota/quota_usage
 sub getquota {
     my ( $self, $what ) = @_;
-    my $who = $what ? $self->Quote($what) : "user/" . $self->User;
+    my $who = defined $what ? $self->Quote($what) : "user/" . $self->User;
     return $self->_imap_command("GETQUOTA $who") ? $self->Results : undef;
 }
 
 # usage: $self->setquota($quotaroot, storage => 512, ...)
 sub setquota(@) {
     my ( $self, $what ) = ( shift, shift );
-    my $who = $what ? $self->Quote($what) : "user/" . $self->User;
+    my $who = defined $what ? $self->Quote($what) : "user/" . $self->User;
     my @limits;
     while (@_) {
         my ( $k, $v ) = ( $self->Quote( uc( shift @_ ) ), shift @_ );
@@ -3380,7 +3443,7 @@ sub Quote($;$) {
     if ( $force or $name =~ /["\\[:^ascii:][:cntrl:]]/s ) {
         return "{" . length($name) . "}" . $CRLF . $name;
     }
-    elsif ( $name =~ /[(){}\s%*\[\]]/s ) {
+    elsif ( $name =~ /[(){}\s%*\[\]]/s or $name eq "" ) {
         return qq("$name");
     }
     else {

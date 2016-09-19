@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: imapsync,v 1.678 2016/01/21 19:47:02 gilles Exp gilles $
+# $Id: imapsync,v 1.684 2016/03/17 08:35:03 gilles Exp gilles $
 # structure
 # pod documentation
 # pragmas
@@ -24,7 +24,7 @@ Synchronises mailboxes between two imap servers.
 Good at IMAP migration. More than 66 different IMAP server softwares
 supported with success, few failures.
 
-$Revision: 1.678 $
+$Revision: 1.684 $
 
 =head1 SYNOPSIS
 
@@ -106,6 +106,12 @@ reproduced here:
  --tls1              : Use a TLS connection on host1.
  --tls2              : Use a TLS connection on host2.
  --debugssl     int  : SSL debug mode from 0 to 4.
+ --sslargs1     str  : Pass any ssl parameter for host1 ssl or tls connection. Example:
+                       --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
+                       See all possibilities in the new() method of IO::Socket::SSL
+                       http://search.cpan.org/perldoc?IO::Socket::SSL#Description_Of_Methods
+ --sslargs2     str  : Pass any ssl parameter for host2 ssl or tls connection.
+                       See --sslargs1 
  
  --timeout1     int  : Connection timeout in seconds for host1. 
                        Default is 120 and 0 means no timeout at all.
@@ -662,7 +668,7 @@ https://web.archive.org/web/20070202005121/http://www.imap.org/products/showall.
 
 Feedback (good or bad) will often be welcome.
 
-$Id: imapsync,v 1.678 2016/01/21 19:47:02 gilles Exp gilles $
+$Id: imapsync,v 1.684 2016/03/17 08:35:03 gilles Exp gilles $
 
 =cut
 
@@ -807,7 +813,7 @@ my(
 
 # global variables initialisation
 
-$rcs = '$Id: imapsync,v 1.678 2016/01/21 19:47:02 gilles Exp gilles $ ';
+$rcs = '$Id: imapsync,v 1.684 2016/03/17 08:35:03 gilles Exp gilles $ ';
 
 $total_bytes_transferred   = 0;
 $total_bytes_skipped = 0;
@@ -885,8 +891,8 @@ $modules_version = defined( $modules_version ) ? $modules_version : 1 ;
 # The second line (ending with "1 ;") can stay active or be commented, 
 # the result will be the same: no releasecheck by default.
 
-$releasecheck = defined( $releasecheck ) ? $releasecheck : 0 ;
-#$releasecheck = defined( $releasecheck ) ? $releasecheck : 1 ;
+#$releasecheck = defined( $releasecheck ) ? $releasecheck : 0 ;
+$releasecheck = defined( $releasecheck ) ? $releasecheck : 1 ;
 
 my $warn_release = ( $releasecheck ) ? check_last_release(  ) : '' ;
 
@@ -995,9 +1001,9 @@ $allowsizemismatch = defined($allowsizemismatch) ? $allowsizemismatch : 1;
 $delete2folders = 1 
     if ( defined( $delete2foldersbutnot ) or defined( $delete2foldersonly ) ) ;
 
-if ($justconnect) {
-	justconnect();
-	exit_clean(0);
+if ( $justconnect ) {
+	justconnect(  ) ;
+	exit_clean( 0 ) ;
 }
 
 $user1 || missing_option("--user1");
@@ -1010,10 +1016,12 @@ $syncinternaldates = defined($syncinternaldates) ? $syncinternaldates : 1;
 # Done because --delete --noexpunge is very dangerous on the second run:
 # the Deleted flag is then synced to all previously transfered messages.
 # So --delete implies --expunge is a better usability default behaviour.
-if ($delete) {
-	if ( ! defined($expunge)) {
-		$expunge = 1;
+if ( $delete ) {
+	if ( ! defined( $expunge ) ) {
+		print "Info: turning on --expunge1 because --delete --noexpunge1 is very dangerous on the second run.\n" ;
+		$expunge = 1 ;
 	}
+		print "Info: if expunging after each message slows down too much the sync then use --noexpungeaftereach to speed up\n" ;
 }
 
 if ( $uidexpunge2 and not Mail::IMAPClient->can( 'uidexpunge' ) ) {
@@ -1456,7 +1464,7 @@ if ( @h2_folders_not_in_1 ) {
 }
 
 
-if ( %{$sync->{f1f2auto}} ) {
+if ( defined( $sync->{f1f2auto} ) ) {
 	print "Folders mapping from --automap feature (use --f1f2 to override any mapping):\n" ;
 	foreach my $h1_fold ( keys %{$sync->{f1f2auto}} ) {
         	my $h2_fold = $sync->{f1f2auto}{$h1_fold} ;
@@ -1466,7 +1474,7 @@ if ( %{$sync->{f1f2auto}} ) {
         print "\n" ;
 }
 
-if ( %{$sync->{f1f2}} ) {
+if ( defined( $sync->{f1f2} ) ) {
 	print "Folders mapping from --f1f2 options, it overrides --automap:\n" ;
 	foreach my $h1_fold ( keys %{$sync->{f1f2}} ) {
         	my $h2_fold = $sync->{f1f2}{$h1_fold} ;
@@ -1942,15 +1950,8 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
 		}
                 last FOLDER if $imap2->IsUnconnected(  ) ;
                 
-		if( $delete ) {
-                        my $expunge_message = '' ;
-                        $expunge_message = "and expunged" if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
-			print "Host1 msg $h1_fold/$h1_msg marked deleted $expunge_message $dry_message\n" ;
-			unless( $dry ) {
-				$imap1->delete_message( $h1_msg ) ;
-				$h1_nb_msg_deleted += 1 ;
-				$imap1->expunge() if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
-			}
+		if ( $delete ) {
+			delete_message_on_host1( $h1_msg, $h1_fold ) ;
 		}
 	}
 	# END MESS: loop
@@ -2085,7 +2086,7 @@ sub imapsync_id {
 		vendor        => 'Gilles LAMIRAL',
 		'support-url' => 'http://imapsync.lamiral.info/',
 		# Example of date-time:  19-Sep-2015 08:56:07
-		date          => date_from_rcs( '$Date: 2016/01/21 19:47:02 $ ' ),
+		date          => date_from_rcs( '$Date: 2016/03/17 08:35:03 $ ' ),
 	} ;
 	
 	my $imapsync_id_github  = {
@@ -2094,7 +2095,7 @@ sub imapsync_id {
 		os            => $OSNAME,
 		vendor        => 'github',
 		'support-url' => 'https://github.com/imapsync/imapsync',
-		date          => date_from_rcs( '$Date: 2016/01/21 19:47:02 $ ' ),
+		date          => date_from_rcs( '$Date: 2016/03/17 08:35:03 $ ' ),
 	} ;
 	
 	$imapsync_id = $imapsync_id_lamiral ;
@@ -2930,18 +2931,22 @@ sub set_ssl {
 
         my $sslargs_hash = $h->{sslargs} ;
 
-	my $sslargs_default = [
+	my $sslargs_default = {
 		SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE(  ),
         	SSL_verifycn_scheme => 'imap',
-        ] ;
+        } ;
 
         # initiate with default values
-        my %sslargs_mix = @{ $sslargs_default } ;
+        my %sslargs_mix = %{ $sslargs_default } ;
         # now override with passed values
         @sslargs_mix{ keys( %{ $sslargs_hash } ) } = values( %{ $sslargs_hash } ) ;
+        # remove keys with undef values
+        foreach my $key ( keys %sslargs_mix ) { 
+                delete( $sslargs_mix{ $key } ) if ( not defined( $sslargs_mix{ $key } ) ) ;
+        }
         # back to an ARRAY
         my @sslargs_mix = %sslargs_mix ;
-
+        #print Data::Dumper->Dump( [ $sslargs_hash, $sslargs_default, \%sslargs_mix, \@sslargs_mix ] ) ;
         $imap->Ssl( \@sslargs_mix ) ;
 	return(  ) ;
 }
@@ -2951,14 +2956,18 @@ sub set_tls {
 
         my $sslargs_hash = $h->{sslargs} ;
 
-	my $sslargs_default = [
+	my $sslargs_default = {
 		SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE(  ),
-        ] ;
+        } ;
 
         # initiate with default values
-        my %sslargs_mix = @{ $sslargs_default } ;
+        my %sslargs_mix = %{ $sslargs_default } ;
         # now override with passed values
         @sslargs_mix{ keys( %{ $sslargs_hash } ) } = values( %{ $sslargs_hash } ) ;
+        # remove keys with undef values
+        foreach my $key ( keys %sslargs_mix ) { 
+                delete( $sslargs_mix{ $key } ) if ( not defined( $sslargs_mix{ $key } ) ) ;
+        }
         # back to an ARRAY
         my @sslargs_mix = %sslargs_mix ;
 
@@ -3178,8 +3187,8 @@ sub banner_imapsync {
 	my @argv = @_ ;
 	my $banner_imapsync = join("", 
 		  '$RCSfile: imapsync,v $ ',
-		  '$Revision: 1.678 $ ',
-		  '$Date: 2016/01/21 19:47:02 $ ',
+		  '$Revision: 1.684 $ ',
+		  '$Date: 2016/03/17 08:35:03 $ ',
 		  "\n",localhost_info(), "\n",
 		  "Command line used:\n",
 		  "$0 ", command_line_nopassword( @argv ), "\n",
@@ -3453,9 +3462,14 @@ sub create_folder {
                 print "Folder [$h2_fold] already exists\n" ;
                 return( 1 ) ;
         }
+
+        if ( $mixfolders and $imap2->exists( $h2_fold ) ) {
+                print "Folder [$h2_fold] already exists  (--nomixfolders is not set)\n" ;
+                return( 1 ) ;
+        }
+
         
-        if ( ( not $mixfolders )
-         and ( $imap2->exists( $h2_fold ) ) ) {
+        if ( ( not $mixfolders ) and ( $imap2->exists( $h2_fold ) ) ) {
                 print "Folder [$h2_fold] already exists and --nomixfolders is set\n" ;
                 return( 0 ) ;
         }
@@ -4999,16 +5013,18 @@ sub tests_sleep_max_bytes {
 }
 
 
-
+ 
 
 # 6 GlobVar: $dry_message $dry $imap1 $h1_nb_msg_deleted $expunge $expunge1 
-sub delete_message_on_host1 {
+sub delete_message_on_host1  {
 	my( $h1_msg, $h1_fold ) = @_ ;
-	print "msg $h1_fold/$h1_msg deleted on host1 $dry_message\n";
+	my $expunge_message = '' ;
+	$expunge_message = "and expunged" if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
+	print "Host1 msg $h1_fold/$h1_msg marked deleted $expunge_message $dry_message\n" ;
         if ( ! $dry ) {
         	$imap1->delete_message( $h1_msg ) ;
         	$h1_nb_msg_deleted += 1 ;
-        	$imap1->expunge() if ( $expunge or $expunge1 ) ;
+        	$imap1->expunge(  ) if ( $expungeaftereach and ( $expunge or $expunge1 ) ) ;
         }
         return(  ) ;
 }
@@ -6822,7 +6838,7 @@ sub check_last_release {
 }
 
 sub imapsync_version  {
-	my $rcs_imapsync = '$Id: imapsync,v 1.678 2016/01/21 19:47:02 gilles Exp gilles $ ' ;
+	my $rcs_imapsync = '$Id: imapsync,v 1.684 2016/03/17 08:35:03 gilles Exp gilles $ ' ;
         my $imapsync_version ;
         
 	if ( $rcs_imapsync =~ m{,v\s+(\d+\.\d+)}xo ) {
@@ -7779,7 +7795,13 @@ sub usage {
  --tls1              : Use a TLS connection on host1.
  --tls2              : Use a TLS connection on host2.
  --debugssl     int  : SSL debug mode from 0 to 4.
-
+ --sslargs1     str  : Pass any ssl parameter for host1 ssl or tls connection. Example:
+                       --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
+                       See all possibilities in the new() method of IO::Socket::SSL
+                       http://search.cpan.org/perldoc?IO::Socket::SSL#Description_Of_Methods
+ --sslargs2     str  : Pass any ssl parameter for host2 ssl or tls connection.
+                       See --sslargs1 
+					   
  --timeout1     int  : Connection timeout in seconds for host1.
                        Default is 120 and 0 means no timeout at all.
  --timeout2     int  : Connection timeout in seconds for host2.
