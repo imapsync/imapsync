@@ -907,6 +907,7 @@ my(
         $disarmreadreceipts,
         $mixfolders, $skipemptyfolders,
 	$fetch_hash_set,
+	$porttagstogmail,
 );
 
 # main program
@@ -5401,6 +5402,21 @@ EOF
 }
 
 
+sub port_tags_to_gmail_labels {
+	my( $id, $h1_flags ) = @_;
+
+	# Thunderbird, Zimbra, and possibly other IMAP clients, store user defined
+	# tags as IMAP keywords which are flags that don't start with '\' [1].
+	# Split apart the current flag string, remove any that start with a backslash,
+	# and then join them back into a single string.
+	#
+	# [1] https://tools.ietf.org/html/rfc3501#page-11
+	( $debug or $debugflags ) and myprint( "gmail labels: starting with $h1_flags\n" );
+	my $labels = join( ' ', grep( !/^\\/, split( /\s/, $h1_flags ) ) );
+	( $debug or $debugflags ) and myprint( "gmail labels: labels are '$labels'\n" );
+	$imap2->store( $id, "+X-GM-LABELS ($labels)" ) if $labels;
+}
+
 # GlobVar
 # $dry
 # $max_msg_size_in_bytes
@@ -5449,6 +5465,10 @@ sub append_message_on_host2 {
 			$total_bytes_transferred += $h1_size ;
 			$nb_msg_transferred += 1 ;
                         $h1_nb_msg_processed +=1 ;
+
+			if ($porttagstogmail) {
+				port_tags_to_gmail_labels($new_id, $h1_flags);
+			}
 
                         my $time_spent = timesince( $begin_transfer_time ) ;
                         my $rate = bytes_display_string( $total_bytes_transferred / $time_spent ) ;
@@ -8982,6 +9002,8 @@ sub usage {
                        credentials, then exit.
  --justfolders       : Do only things about folders (ignore messages).
 
+ --porttagstogmail   : Convert tags (IMAP keywords) to GMail labels.
+
  --help              : print this help.
 
  Example: to synchronize imap account "test1" on "test1.lamiral.info"
@@ -9203,6 +9225,7 @@ sub get_options {
         'f1f2=s%'          => \$sync->{f1f2},
         'justfolderlists!' => \$sync->{justfolderlists},
         'delete1emptyfolders' => \$sync->{delete1emptyfolders},
+	'porttagstogmail' => \$porttagstogmail,
         ) ;
 
 
