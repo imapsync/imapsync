@@ -907,7 +907,7 @@ my(
         $disarmreadreceipts,
         $mixfolders, $skipemptyfolders,
 	$fetch_hash_set,
-	$porttagstogmail,
+	$porttagstogmail, @excludetags,
 );
 
 # main program
@@ -5408,11 +5408,17 @@ sub port_tags_to_gmail_labels {
 	# Thunderbird, Zimbra, and possibly other IMAP clients, store user defined
 	# tags as IMAP keywords which are flags that don't start with '\' [1].
 	# Split apart the current flag string, remove any that start with a backslash,
-	# and then join them back into a single string.
+	# remove any the user *doesn't* want to port, and then join them back into
+	# a single string.
 	#
 	# [1] https://tools.ietf.org/html/rfc3501#page-11
 	( $debug or $debugflags ) and myprint( "gmail labels: starting with $h1_flags\n" );
-	my $labels = join( ' ', grep( !/^\\/, split( /\s/, $h1_flags ) ) );
+	my @label_list = grep( !/^\\/, split( /\s/, $h1_flags ) );
+	foreach my $exclude_regex ( @excludetags ) {
+		#( $debug or $debugflags ) and myprint( "gmail labels: exclude regex is '$exclude_regex'\n" );
+		@label_list = grep( !/$exclude_regex/, @label_list );
+	}
+	my $labels = join(' ', @label_list);
 	( $debug or $debugflags ) and myprint( "gmail labels: labels are '$labels'\n" );
 	$imap2->store( $id, "+X-GM-LABELS ($labels)" ) if $labels;
 }
@@ -9003,6 +9009,8 @@ sub usage {
  --justfolders       : Do only things about folders (ignore messages).
 
  --porttagstogmail   : Convert tags (IMAP keywords) to GMail labels.
+ --excludetags   reg : Skip (don't port to GMail) tags that match this
+                       regex (similar to the --exclude argument)
 
  --help              : print this help.
 
@@ -9226,6 +9234,7 @@ sub get_options {
         'justfolderlists!' => \$sync->{justfolderlists},
         'delete1emptyfolders' => \$sync->{delete1emptyfolders},
 	'porttagstogmail' => \$porttagstogmail,
+	'excludetags=s' => \@excludetags,
         ) ;
 
 
