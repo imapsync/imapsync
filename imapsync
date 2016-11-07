@@ -907,7 +907,7 @@ my(
         $disarmreadreceipts,
         $mixfolders, $skipemptyfolders,
 	$fetch_hash_set,
-	$porttagstogmail, @excludetags,
+	$tagstogmail, @excludetags,
 );
 
 # main program
@@ -5402,7 +5402,7 @@ EOF
 }
 
 
-sub port_tags_to_gmail_labels {
+sub tags_to_gmail_labels {
 	my( $id, $h1_flags ) = @_;
 
 	# Thunderbird, Zimbra, and possibly other IMAP clients, store user defined
@@ -5472,8 +5472,8 @@ sub append_message_on_host2 {
 			$nb_msg_transferred += 1 ;
                         $h1_nb_msg_processed +=1 ;
 
-			if ($porttagstogmail) {
-				port_tags_to_gmail_labels($new_id, $h1_flags);
+			if ($tagstogmail) {
+				tags_to_gmail_labels($new_id, $h1_flags);
 			}
 
                         my $time_spent = timesince( $begin_transfer_time ) ;
@@ -9008,7 +9008,7 @@ sub usage {
                        credentials, then exit.
  --justfolders       : Do only things about folders (ignore messages).
 
- --porttagstogmail   : Convert tags (IMAP keywords) to GMail labels.
+ --tagstogmail       : Convert tags (IMAP keywords) to GMail labels.
  --excludetags   reg : Skip (don't port to GMail) tags that match this
                        regex (similar to the --exclude argument)
 
@@ -9233,7 +9233,7 @@ sub get_options {
         'f1f2=s%'          => \$sync->{f1f2},
         'justfolderlists!' => \$sync->{justfolderlists},
         'delete1emptyfolders' => \$sync->{delete1emptyfolders},
-	'porttagstogmail' => \$porttagstogmail,
+	'tagstogmail' => \$tagstogmail,
 	'excludetags=s' => \@excludetags,
         ) ;
 
