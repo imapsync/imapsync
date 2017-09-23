@@ -1,17 +1,38 @@
 #!/bin/cat
-$Id: FAQ.Duplicates.txt,v 1.10 2016/04/17 19:06:39 gilles Exp gilles $
+$Id: FAQ.Duplicates.txt,v 1.12 2017/08/31 03:06:45 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-======================================================================
+=======================================================================
                 Imapsync tips about duplicated messages issues.
-======================================================================
+=======================================================================
 
 =======================================================================
 Q. How can I remove duplicates in an lone account?
 
 R. Just run imapsync on the same account with option --delete2duplicates,
    ie, with host1 == host2 and user1 == user2
+
+=======================================================================
+Q. How can I know if imapsync will generate duplicates on a second run?
+
+R. To see if imapsync will generate duplicates on a second run, start
+   a second run with --dry option added. imapsync will then show if it 
+   would mistakenly copy messages again, but without really copying them
+
+     imapsync ... --dry 
+
+   The final stats should also show a positive value for the line 
+   "Messages skipped:" since most of the skipped messages are skipped 
+   because they are already on host2. Example of final stats:
+   
+++++ Statistics
+Transfer started on               : Thu Aug 31 04:28:32 2017
+Transfer ended on                 : Thu Aug 31 04:28:44 2017
+Transfer time                     : 11.7 sec
+Folders synced                    : 1/1 synced
+Messages transferred              : 0 
+Messages skipped                  : 1555
 
 =======================================================================
 Q: Multiple copies, duplicates, when I run imapsync twice ore more. 
@@ -140,5 +161,4 @@ R2. With option --useuid imapsync doesn't use headers to identify
     In that case duplicates on host1 are also transferred on host2.
 
 =======================================================================
-
-
+=======================================================================

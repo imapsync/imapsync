@@ -1,11 +1,11 @@
 #!/bin/cat
-$Id: FAQ.Folders_Mapping.txt,v 1.10 2016/01/28 14:34:15 gilles Exp gilles $
+$Id: FAQ.Folders_Mapping.txt,v 1.13 2017/05/24 19:18:41 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-===============================================
+=======================================================================
   Imapsync tips about changing folders names.
-===============================================
+=======================================================================
 
 Folders names are by default reproduced identical except for
 the prefix and the separator which are automatically adapted
@@ -46,22 +46,22 @@ Here
 
 *) Good method to elaborate any --regextrans2 string
 
-   First elaborate the --regextrans2 string with --dry --justfolders 
-   --nofoldersizes options. 
-   With --dry imapsync shows the transformations it will do without 
-   really doing them. 
-   With --justfolders imapsync will work only with folders, 
-   messages won't be taken into account.
-   With --nofoldersizes imapsync won't spend time useless time on 
-   evaluating folders sizes.
+   First, elaborate the --regextrans2 string with --dry --justfolders options. 
 
-   When the output shows what you escape imapsync to do with folders
+   imapsync ... --dry --justfolders
+
+   With --dry imapsync shows the transformations it will do without 
+   really doing them, --dry is the "do nothing" mode.
+   With --justfolders imapsync will work only with folders, 
+   messages won't be taken into account, so it will be fast.
+
+   When the output shows what you expect imapsync to do with folders
    names, you can remove the --dry option. Keep the --justfolders 
    option in order to see if the destination server host2 accepts
    to create the folders.
 
-   When everything is ok with folders you can remove --justfolders 
-   and --nofoldersizes imapsync will also transfer messages.
+   When everything is ok with folders you might remove --justfolders,
+   imapsync will also transfer messages.
    Showing folders sizes is good then transferring messages, it allows
    ETA calculation and it's a supplementary check on folders.
 
@@ -183,7 +183,7 @@ to folder INBOX only on host2:
 
 1) First try (safe mode):
 
-  --regextrans2 "s/(.*)/INBOX/" --dry --justfolders
+  --regextrans2 "s/.*/INBOX/" --dry --justfolders
 
 2) See if the output says everything you want imapsync to do, 
    --dry option is safe and does nothing real.
@@ -247,5 +247,4 @@ imapsync ... \
 --folder INBOX
 
 =======================================================================
-
-
+=======================================================================

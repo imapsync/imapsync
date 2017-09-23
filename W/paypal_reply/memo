@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.19 2016/08/09 10:50:30 gilles Exp gilles $
+# $Id: memo,v 1.27 2017/08/13 18:27:35 gilles Exp gilles $
 
 
 echo paypal_bilan_todo
@@ -23,13 +23,270 @@ Hors Europe : Article 262 => Exoneration
 Europe a un autre assujetti : Article 262 ter => Exoneration 
 - Article 262 ter-1 sur livraisons de biens expédiés. Question : oeuvre immaterielle, service ?
 
-
-
 EOF
 }
 
 
-echo paypal_bilan_changefix_Commission_Frais
+echo paypal_bilan_online_summary_bug2
+paypal_bilan_online_summary_bug2() {
+# DID output diff between paypal_bilan_1.100 and next one
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.100 || return 1
+cd /g/var/paypal_bilan_online_summary_bug2/ || return 1
+echo Working in `pwd`
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.100   \
+  --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093  
+1330 1331 1332 1333 1334 1652 1653 2131 2132 
+2295 2296 2297 2298 2625 2626 2970 2971 2972  
+3093 3296 3411 3412 3450 3451 3614 3615 3616 3617
+3807 3808 3957 3958 4030 4194 4195 4381 4382 4449 4450 
+4574 4641 5213 5214 5215 5355 5406
+5489 5650' \
+  /g/paypal/paypal_201?_??_complet.csv \
+ > all.out1 2>&1 || return 1
+
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan   \
+  --first_in 147 --avoid_numbers '292 293  643 644 731 732 1093  
+1330 1331 1332 1333 1334 1652 1653 2131 2132 
+2295 2296 2297 2298 2625 2626 2970 2971 2972  
+3093 3296 3411 3412 3450 3451 3614 3615 3616 3617
+3807 3808 3957 3958 4030 4194 4195 4381 4382 4449 4450 
+4574 4641 5213 5214 5215 5355 5406
+5489 5650' \
+  /g/paypal/paypal_201?_??_complet.csv \
+ > all.out2 2>&1 || return 1
+
+echo diff all.out1 all.out2
+     diff all.out1 all.out2
+)
+}
+
+
+
+echo paypal_bilan_online_summary_bug
+paypal_bilan_online_summary_bug() {
+# DID output diff between paypal_bilan_1.100 and next one
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.100 || return 1
+cd /g/var/paypal_bilan_online_summary_bug/ || return 1
+echo Working in `pwd`
+test -f 2017_07.csv || { echo no 2017_07.csv; return 1; }
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.100 \
+   --debug --debug_csv --debug_email --details --debug_invoice --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_online_summary_bug/ --first_in 52001 \
+   2017_07.csv \
+ > 2017_07.out1 2>&1 || return 1
+
+rm 52???/imapsync_var_manual.tex
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_online_summary_bug/ --first_in 52001 \
+   2017_07.csv \
+ > 2017_07.out2 2>&1 || return 1
+
+echo diff 2017_07.out1 2017_07.out2
+     diff 2017_07.out1 2017_07.out2
+)
+}
+
+
+
+echo paypal_bilan_online
+paypal_bilan_online() {
+# DID output diff between paypal_bilan_1.96 and next one
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.96 || return 1
+cd /g/var/paypal_bilan_online/ || return 1
+echo Working in `pwd`
+test -f 2017_06.csv || { echo no 2017_06.csv; return 1; }
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.96 \
+   --debug --debug_csv --debug_email --details --debug_invoice --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_online/ --write_invoices --first_in 51001 \
+   2017_06.csv \
+ > 2017_06.out1 2>&1 || return 1
+
+rm 51???/imapsync_var_manual.tex
+ 
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_online/ --write_invoices --first_in 51001 \
+   2017_06.csv \
+ > 2017_06.out2 2>&1 || return 1
+
+echo diff 2017_06.out1 2017_06.out2
+     diff 2017_06.out1 2017_06.out2
+)
+}
+
+
+
+#echo paypal_bilan_invoices_utf8_bug
+paypal_bilan_invoices_utf8_bug() {
+# DID output diff between paypal_bilan_1.93 and next one
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.93 || return 1
+cd /g/var/paypal_bilan_invoices_utf8_bug/ || return 1
+echo Working in `pwd`
+test -f 2017_02.csv || { echo no 2017_02.csv; return 1; }
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.93 \
+   --debug --debug_csv --debug_email --details --debug_invoice --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_invoices_utf8_bug/ --write_invoices --first_in 51001 \
+   2017_02.csv \
+ > 2017_02.out1 2>&1 || return 1
+
+rm 51???/imapsync_var_manual.tex
+ 
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_invoices_utf8_bug/ --write_invoices --first_in 51001 \
+   2017_02.csv \
+ > 2017_02.out2 2>&1 || return 1
+
+echo diff 2017_02.out1 2017_02.out2
+     diff 2017_02.out1 2017_02.out2
+)
+}
+
+
+#echo paypal_bilan_no_US_if_0_dollars
+paypal_bilan_no_US_if_0_dollars() {
+# DID output diff between paypal_bilan_1.92 and next one
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.92 || return 1
+cd /g/var/paypal_bilan_no_US_if_0_dollars/ || return 1
+test -f /g/paypal/paypal_2017_03_complet.csv || { echo no /g/paypal/paypal_2017_03_complet.csv; return 1; }
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.92 --first_in 54001 \
+   /g/paypal/paypal_2017_03_complet.csv \
+ > 2017_03.out1 2>&1 || return 1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan      --first_in 54001 \
+   /g/paypal/paypal_2017_03_complet.csv \
+ > 2017_03.out2 2>&1 || return 1
+
+echo diff 2017_03.out1 2017_03.out2
+     diff 2017_03.out1 2017_03.out2
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.92 --first_in 55001 \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > all.out1 2>&1 || return 1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan --first_in 55001 \
+   /g/paypal/paypal_201?_??_complet.csv \
+ > all.out2 2>&1 || return 1
+
+echo diff all.out1 all.out2
+     diff all.out1 all.out2
+
+)
+
+}
+
+
+
+#echo paypal_bilan_client_type_VAT_imply_pro
+paypal_bilan_client_type_VAT_imply_pro() {
+# DID output diff between paypal_bilan_1.91 and next one
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.91 || return 1
+cd /g/var/paypal_bilan_client_type_VAT_imply_pro/ || return 1
+cp /g/paypal/paypal_2017_03_complet.csv 2017_03.csv || return 1
+test -f 2017_03.csv || { echo no 2017_03.csv; return 1; }
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.91 \
+   --debug --debug_csv --debug_email --details --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_client_type_VAT_imply_pro/ --first_in 52001 \
+   2017_03.csv \
+ > 2017_03.out1 2>&1 || return 1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_client_type_VAT_imply_pro/ --first_in 52001 \
+   2017_03.csv \
+ > 2017_03.out2 2>&1 || return 1
+
+echo diff 2017_03.out1 2017_03.out2
+     diff 2017_03.out1 2017_03.out2
+
+cp /g/paypal/paypal_201[67]_??_complet.csv .
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.91 \
+   --debug --debug_csv --debug_email --details --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_client_type_VAT_imply_pro/ --first_in 53001 \
+   paypal_201[67]_??_complet.csv \
+ > all.out1 2>&1 || return 1
+
+#cp /g/paypal/paypal_201[67]_??_complet.csv .
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan \
+   --debug --debug_csv --debug_email --details --debug_invoice_utf8 \
+   --dir_invoices /g/var/paypal_bilan_client_type_VAT_imply_pro/ --first_in 53001 \
+   paypal_201[67]_??_complet.csv \
+ > all.out2 2>&1 || return 1
+
+echo diff all.out1 all.out2
+     diff all.out1 all.out2
+
+)
+
+}
+
+
+
+#echo paypal_bilan_individual_or_france_bug
+paypal_bilan_individual_or_france_bug() {
+# DID output diff between paypal_bilan_1.84 and next
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.84 || return 1
+cd /g/var/paypal_bilan_individual_or_france_bug/ || return 1
+test -f 2016_10.csv || { echo no 2016_10.csv; return 1; }
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.84 \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --write_invoices --first_in 50001 \
+   2016_10.csv \
+ > 2016_10.out1 2>&1 || return 1
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan  \
+   --debug --debug_csv --debug_email --details --debug_invoice \
+   --dir_invoices /g/var/paypal_invoices_dev --write_invoices --first_in 50001 \
+   2016_10.csv \
+ > 2016_10.out2 2>&1 || return 1
+
+echo diff 2016_10.out1 2016_10.out2
+     diff 2016_10.out1 2016_10.out2
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.84 \
+  --first_in 4575 --avoid_numbers '4574 4641 5213 5214 5215' \
+  /g/paypal/paypal_2016_??_complet.csv   > 2016.out1 2>&1 || return 1  
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan \
+  --first_in 4575 --avoid_numbers '4574 4641 5213 5214 5215' \
+  /g/paypal/paypal_2016_??_complet.csv  > 2016.out2 2>&1 || return 1
+
+
+echo diff 2016.out1 2016.out2
+     diff 2016.out1 2016.out2
+
+)
+}
+
+
+
+
+#echo paypal_bilan_changefix_Commission_Frais
 paypal_bilan_changefix_Commission_Frais() {
 # DID output diff between 
 (
@@ -73,7 +330,7 @@ echo diff 2016_07_old.out3 2016_07_new.out3
 
 
 
-echo paypal_bilan_licence_support_only_csv
+#echo paypal_bilan_licence_support_only_csv
 paypal_bilan_licence_support_only_csv() {
 # DID output diff between paypal_bilan_1.79 and next
 (
@@ -100,7 +357,7 @@ echo diff 2015_08.out1 2015_08.out2
 
 
 
-echo paypal_bilan_licence_support_same_button_04_2014_04_csv
+#echo paypal_bilan_licence_support_same_button_04_2014_04_csv
 paypal_bilan_licence_support_same_button_04_2014_04_csv() {
 # DID output diff between paypal_bilan_1.78 and next
 (
@@ -126,7 +383,7 @@ echo diff 2014_04.out1 2014_04.out2
 
 
 
-echo paypal_bilan_licence_support_same_button_03_A_B_several_csv
+#echo paypal_bilan_licence_support_same_button_03_A_B_several_csv
 paypal_bilan_licence_support_same_button_03_A_B_several_csv() {
 # DID output diff between paypal_bilan_1.78 and next
 (
@@ -152,7 +409,7 @@ echo diff several.out1 several.out2
 
 
 
-echo paypal_bilan_licence_support_same_button_02_A_B_one_line
+#echo paypal_bilan_licence_support_same_button_02_A_B_one_line
 paypal_bilan_licence_support_same_button_02_A_B_one_line() {
 # DID output diff between paypal_bilan_1.78 and next
 (
@@ -180,7 +437,7 @@ done
 }
 
 
-echo paypal_bilan_licence_support_same_button_01_ALL_before_B_C
+#echo paypal_bilan_licence_support_same_button_01_ALL_before_B_C
 paypal_bilan_licence_support_same_button_01_ALL_before_B_C() {
 # DID output diff between paypal_bilan_1.77 and next
 (
@@ -206,7 +463,7 @@ echo diff /g/var/paypal_bilan/tests/paypal_invoice.out1 /g/var/paypal_bilan/test
 }
 
 
-echo paypal_bilan_final_presentation_for_tva
+#echo paypal_bilan_final_presentation_for_tva
 paypal_bilan_final_presentation_for_tva() {
 # DID output diff between paypal_bilan_1.72 and 1.73
 (

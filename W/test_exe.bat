@@ -1,4 +1,4 @@
-REM $Id: test_exe.bat,v 1.15 2016/08/19 14:09:56 gilles Exp gilles $
+REM $Id: test_exe.bat,v 1.19 2017/08/31 01:57:33 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO OFF
@@ -6,12 +6,14 @@ ECHO Currently running through %0 %*
 
 cd /D %~dp0
 
-REM Remove the error file because its existence means an error occured during this script execution
+@REM Remove the error file because its existence means an error occured during this script execution
 IF EXIST LOG_bat\%~nx0.txt DEL LOG_bat\%~nx0.txt
-REM CALL :handle_error  .\imapsync.exe --thisoptionnoexists
-CALL :handle_error  perl imapsync  --tests
+@REM CALL :handle_error  .\imapsync.exe --thisoptionnoexists
+@REM CALL :handle_error  perl imapsync  --tests
 CALL :handle_error  .\imapsync.exe --tests
-CALL :handle_error  .\imapsync.exe --testslive
+CALL :handle_error  .\imapsync.exe --testslive  --nossl2
+@REM CALL :handle_error  .\imapsync.exe --testslive6 --nossl2
+
 EXIT /B
 
 @ECHO ==== All 8 combinaisons between ssl1/tls1 ssl2/tls2 justconnect/justlogin

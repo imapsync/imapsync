@@ -1,0 +1,53 @@
+#!/usr/bin/perl 
+
+
+use strict ;
+use warnings ;
+use English ;
+
+use Socket qw( SOCK_STREAM AI_CANONNAME NI_NUMERICHOST NIx_NOSERV getaddrinfo getnameinfo );
+#use Socket::GetAddrInfo qw( getaddrinfo getnameinfo );
+use IO::Socket;
+
+
+check_name_and_service( @ARGV ) ;
+
+sub check_name_and_service {
+
+my ( $name, $service ) = @ARG ;
+
+my %hints = ( socktype => SOCK_STREAM, flags => AI_CANONNAME );
+my ( $err, @res ) = getaddrinfo(  $name, $service, \%hints );
+ 
+print "Cannot resolve name - $err\n" if $err;
+ 
+my $sock;
+ 
+foreach my $ai ( @res ) {
+   my $candidate = IO::Socket->new();
+   $candidate->timeout( 2 ) ;
+   
+   print "family: ", $ai->{family}, 
+       "\nsocktype: ", $ai->{socktype}, 
+	   "\nprotocol: ", $ai->{protocol}, 
+	   "\ncanonname: ", $ai->{canonname},
+	   "\ntimeout: ", $candidate->timeout,
+	   "\n" ;
+   $candidate->socket( $ai->{family}, $ai->{socktype}, $ai->{protocol} )
+      or next ;
+ 
+   $candidate->connect( $ai->{addr} ) or next ;
+ 
+   $sock = $candidate;
+   
+   if( $sock ) {
+      my ( $err, $host, $service ) = getnameinfo( $sock->peername );
+      print "Connected to $host:$service\n" if !$err;
+	  my ($err, $ipaddr) = getnameinfo($ai->{addr}, NI_NUMERICHOST, NIx_NOSERV);
+	  print "ipaddr: $ipaddr\n";
+	  $sock->close ;
+	  #last ;
+   }
+}
+ 
+}

@@ -1,10 +1,10 @@
 
-REM $Id: build_exe.bat,v 1.40 2016/08/19 14:12:29 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.46 2017/08/23 13:04:40 gilles Exp gilles $
 
 @SETLOCAL
-ECHO Currently running through %0 %*
+@ECHO Currently running through %0 %*
 
-ECHO Building imapsync.exe
+@ECHO Building imapsync.exe
 
 @REM the following command change current directory to the dirname of the current batch pathname
 CD /D %~dp0
@@ -24,8 +24,13 @@ EXIT /B
 
 :pp_exe
 @SETLOCAL
-CALL pp -o imapsync.exe  --link libeay32_.dll  --link zlib1_.dll --link ssleay32_.dll .\imapsync
-IF ERRORLEVEL 1 CALL pp -o imapsync.exe    .\imapsync
+@REM CALL pp -o imapsync.exe  --link libeay32_.dll  --link zlib1_.dll --link ssleay32_.dll .\imapsync
+IF %PROCESSOR_ARCHITECTURE% == x86 (
+	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll --link libcrypto-1_1_.dll --link libssl-1_1_.dll .\imapsync
+	REM CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info                            --link zlib1_.dll  .\imapsync
+) ELSE (
+	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  .\imapsync
+)
 @ENDLOCAL
 EXIT /B
 
@@ -64,6 +69,7 @@ perl ^
      -mIO::Socket::SSL ^
      -mIO::Tee ^
      -mMail::IMAPClient ^
+     -mNet::Ping ^
      -mTerm::ReadKey ^
      -mTime::Local ^
      -mUnicode::String ^

@@ -1,0 +1,32 @@
+#!/bin/cat
+$Id: FAQ.TTL.txt,v 1.1 2017/05/03 22:27:45 gilles Exp gilles $
+
+This documentation is also at http://imapsync.lamiral.info/#doc
+
+=====================================================================
+   Imapsync tips about TTL when changing name resolution of hosts
+=====================================================================
+
+Why decrease the TTL (Time To Live) delay in DNS configuration, down
+to 5 minutes?
+
+A small TTL is not mandatory, it's safer and more easy to work with when
+migrating.
+
+It's about how long it takes to be sure the users are using the new
+imap host, and how long it takes to be sure all new incoming messages
+are going right now at the right place. Will you shut down the old
+server just after the resolution change? I guess you won't and you'll
+be right.
+
+The TTL is just a value, very well supported by machines, with a
+little name resolution supplementary work for them when it is set to a
+small value like 5 minutes, but it's a tremendous comfort for migrator
+people like us.
+
+Be sure to wait 24h after this TTL change before changing any
+resolution since the TTL change has to be propagated as well. After
+the migration done, no problem to set back the TTL to 24h or more. If
+you can't decrease TTL under 4h or even 24h, it's ok anyway, imapsync
+can sync the new messages dropped in the old server.
+

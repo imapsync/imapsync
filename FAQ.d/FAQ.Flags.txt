@@ -1,11 +1,11 @@
 #!/bin/cat
-$Id: FAQ.Flags.txt,v 1.7 2016/01/28 14:34:15 gilles Exp gilles $
+$Id: FAQ.Flags.txt,v 1.17 2017/07/27 15:39:57 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-===============================
+=======================================================================
    Imapsync tips about flags.
-===============================
+=======================================================================
 
 Questions answered here are:
 
@@ -15,7 +15,11 @@ Q. Is there a way to only sync messages with a specific flag set,
    for example, the \Seen flag?
 
 Q. How to convert flags?
-   
+
+Q. Exchange sends an email to any sender whose email is deleted 
+   without reading. It's called "unread notifications".
+   How to set the \Seen flag on host1 (source system) before syncing?
+
 Q. Does imapsync retain the \Answered and $Forwarded flags?
 
 Q. How to fix this error: BAD Invalid system flag \FORWARDED
@@ -25,8 +29,15 @@ Q. How to convert flags with $ to \ character?
 Q. imapsync fails with the following error:
 flags from : [\Seen NonJunk]
 Error trying to append string: 58 NO APPEND Invalid flag list   
-   
+
 Q. Flags are not well synchronized. Is it a bug?
+
+Q. Flags are resynced at each run for already synced/copied messages, 
+   how can I avoid this feature?
+
+Q. Is it possible to sync labels and stars made by Thunderbird to
+   Exchange categories? Or a way in Outlook to show labels created by
+   Thunderbird?
 
 =======================================================================
 Q. How to debug flag issues?
@@ -50,34 +61,14 @@ or
 
 or ...
 
-The complete list of search things are listed below
+The complete list of search things related to flags are listed below
 
 http://www.faqs.org/rfcs/rfc3501.html
 
 6.4.4.  SEARCH Command
 ...
-      ALL
-         All messages in the mailbox; the default initial key for
-         ANDing.
-
       ANSWERED
          Messages with the \Answered flag set.
-
-      BCC <string>
-         Messages that contain the specified string in the envelope
-         structure's BCC field.
-
-      BEFORE <date>
-         Messages whose internal date (disregarding time and timezone)
-         is earlier than the specified date.
-
-      BODY <string>
-         Messages that contain the specified string in the body of the
-         message.
-
-      CC <string>
-         Messages that contain the specified string in the envelope
-         structure's CC field.
 
       DELETED
          Messages with the \Deleted flag set.
@@ -88,24 +79,8 @@ http://www.faqs.org/rfcs/rfc3501.html
       FLAGGED
          Messages with the \Flagged flag set.
 
-      FROM <string>
-         Messages that contain the specified string in the envelope
-         structure's FROM field.
-
-      HEADER <field-name> <string>
-         Messages that have a header with the specified field-name (as
-         defined in [RFC-2822]) and that contains the specified string
-         in the text of the header (what comes after the colon).  If the
-         string to search is zero-length, this matches all messages that
-         have a header line with the specified field-name regardless of
-         the contents.
-
       KEYWORD <flag>
          Messages with the specified keyword flag set.
-
-      LARGER <n>
-         Messages with an [RFC-2822] size larger than the specified
-         number of octets.
 
       NEW
          Messages that have the \Recent flag set but not the \Seen flag.
@@ -119,10 +94,6 @@ http://www.faqs.org/rfcs/rfc3501.html
          functionally equivalent to "NOT RECENT" (as opposed to "NOT
          NEW").
 
-      ON <date>
-         Messages whose internal date (disregarding time and timezone)
-         is within the specified date.
-
       OR <search-key1> <search-key2>
          Messages that match either search key.
 
@@ -131,42 +102,6 @@ http://www.faqs.org/rfcs/rfc3501.html
 
       SEEN
          Messages that have the \Seen flag set.
-
-      SENTBEFORE <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is earlier than the specified date.
-
-      SENTON <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is within the specified date.
-
-      SENTSINCE <date>
-         Messages whose [RFC-2822] Date: header (disregarding time and
-         timezone) is within or later than the specified date.
-
-      SINCE <date>
-         Messages whose internal date (disregarding time and timezone)
-         is within or later than the specified date.
-
-      SMALLER <n>
-         Messages with an [RFC-2822] size smaller than the specified
-         number of octets.
-
-      SUBJECT <string>
-         Messages that contain the specified string in the envelope
-         structure's SUBJECT field.
-
-      TEXT <string>
-         Messages that contain the specified string in the header or
-         body of the message.
-
-      TO <string>
-         Messages that contain the specified string in the envelope
-         structure's TO field.
-
-      UID <sequence set>
-         Messages with unique identifiers corresponding to the specified
-         unique identifier set.  Sequence set ranges are permitted.
 
       UNANSWERED
          Messages that do not have the \Answered flag set.
@@ -197,6 +132,44 @@ For example to convert flag IMPORTANT to flag CANWAIT
 option --debugflags is usefull to see in details what imapsync
 does with flags.
 
+
+=======================================================================
+Q. Exchange sends an email to any sender whose email is deleted 
+   without reading. It's called "unread notifications".
+   How to set the \Seen flag on host1 (source system) before syncing?
+
+R. You can add \Seen (if missing) to the host1 account by applying a 
+   first sync to the same account, same at source and destination, 
+   and the help of option --regexflag. It can also be done on the fly
+   from account1 to account2 in case account1 has to stay as it is.
+   
+Add the \Seen flag to all messages like this:
+
+On Winwows:
+
+  imapsync.exe ... --regexflag "s,^((?!\\Seen)).*$,$1 \\Seen,"
+
+On Unix:
+
+  imapsync ... --regexflag 's,^((?!\\Seen)).*$,$1 \\Seen,' 
+
+R2. You can also filter with --search1 UNSEEN and use a simpler
+    regex:
+
+On Winwows:
+
+  imapsync.exe ... --search1 UNSEEN --regexflag "s/(.*)/$1 \\Seen/"
+
+On Unix:
+
+  imapsync ... --search1 UNSEEN --regexflag 's/(.*)/$1 \\Seen/'
+
+R3. Fix it on the server Exchange:
+Google translate: 
+https://translate.google.com/translate?sl=auto&tl=en&u=https%3A%2F%2Fwww.ci-solution.com%2Fblog%2Fartikel%2Fungelesen-geloescht-verhindern.html
+German original:
+https://www.ci-solution.com/blog/artikel/ungelesen-geloescht-verhindern.html
+(Link from Oliver B.)
 =======================================================================
 Q. Does imapsync retain the \Answered and $Forwarded flags?
 
@@ -224,7 +197,7 @@ R. Filter flag \FORWARDED with --regexflag like this:
 
 On Windows:
 
-  imapsync ... --regexflag "s/\\FORWARDED//gi" 
+  imapsync.exe ... --regexflag "s/\\FORWARDED//gi" 
 
 On Unix:
 
@@ -233,6 +206,19 @@ On Unix:
 or
 
   imapsync ... --regexflag "s/\\\\FORWARDED//gi" 
+
+Other related flags to remove are \Indexed and \ATTACHED
+
+Windows:   imapsync.exe ... --regexflag "s/\\Indexed//gi" 
+Unix:      imapsync ...     --regexflag 's/\\Indexed//gi' 
+
+Windows:   imapsync.exe ... --regexflag "s/\\ATTACHED//gi" 
+Unix:      imapsync ...     --regexflag 's/\\ATTACHED//gi' 
+
+All usually problematic flags in one line:
+
+Windows:   imapsync.exe ... --regexflag "s/\\FORWARDED|\\Indexed|\\ATTACHED//gi" 
+Unix:      imapsync ...     --regexflag 's/\\FORWARDED|\\Indexed|\\ATTACHED//gi' 
 
 
 =======================================================================
@@ -280,5 +266,37 @@ Two solutions:
   option --syncflagsaftercopy does it again using the imap STORE 
   command.
 
+=======================================================================
+Q. Flags are resynced at each run for already synced/copied messages, 
+   how can I avoid this feature?
 
+R. It is not possible to avoid this feature by an option for now.
+   If you really need this then ask for it and I might code it.
+
+
+=======================================================================
+Q. Is it possible to sync labels and stars made by Thunderbird to
+   Exchange categories? Or a way in Outlook to show labels created by
+   Thunderbird?
+
+R. Imapsync syncs all flags possible by default, so if it doesn't do 
+that it might means there are not on the server but stay only on the 
+client or that the host2 server claims to accept only a given set 
+of flags.
+
+Check those claims by accessing the same mailbox on the same server 
+from another thunderbird on another host, you should not retrieve
+those labels. If you do find them it then might mean that host2 
+server don't want them, try --nofilterflags
+
+  imapsync ... --nofilterflags
+
+You can try --nofilterflags straightaway without the 
+"other thunderbird" proposal.
+
+There is also the possibility to map flags across servers 
+with --regexflags
+
+
+=======================================================================
 =======================================================================

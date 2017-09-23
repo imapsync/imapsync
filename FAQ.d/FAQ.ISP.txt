@@ -1,11 +1,11 @@
 #!/bin/cat
-$Id: FAQ.ISP.txt,v 1.4 2016/01/28 14:34:15 gilles Exp gilles $
+$Id: FAQ.ISP.txt,v 1.8 2017/06/21 18:09:00 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-=========================================================
-  Imapsync tips for ISP. Specific issues and solutions.
-=========================================================
+=======================================================================
+      Imapsync tips for ISP. Specific issues and solutions.
+=======================================================================
 
 * IMAPSync - usage scenario with ISP - by Flávio Zarur Lucarelli.
 
@@ -18,12 +18,43 @@ Lamiral for all his help and hard work.
 First of all, remember to use --dry to test things first always and
 check the log file to see what would actually happen.
 
+Initially, I used a method where I'd do an exact sync of source to
+destination, deleting messages which were in destination, but not
+source. I call this "Method 2", below. In this cenario, customer
+shouldn't be using the destination account yet. Then, after I switch MX,
+I'd do a final sync based on date. The big advantage of this is, you
+get an exact sync.
+
+Easier, however, is method 1, where I sync based on message ID, this
+way, I can use the same syntax before and after MX change, with no
+worries. Only disadvantage, you might not get an exact sync, there
+might be some difference in terms of total emails in folders, due to
+duplicates, emails that had same message ID in source server.
+
+* Method 1 - sync based on message ID, can use same syntax before and
+  after MX change
+
+  imapsync --host1 imap.myisp.com --user1 user@domain.com --password1 pwd \
+           --host2 imap.myisp.com --user2 user@domain.com --password2 pwd \
+		   --addheader
+
+Note: add header adds message ID when it doesn't exist.
+
+This syntax can also be used to sync different source accounts to one
+same destination account, simply execute it as many times as desired,
+switching source user (user1).
+
+* Method 2 - exact sync source do destination, then sync based on date
+  after MX change
+
 My first goal is to have an exact sync of an account from
 current/source host to the new/destination host and be able to sync
 several times. The --useuid parameter is very important for that
 purpose. This is what I use:
 
-  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl1 --host2 imap.myisp.com --user2 user@domain.com --password2 pwd --ssl2 --useuid --delete2 --delete2folders 
+  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl1 \
+           --host2 imap.myisp.com --user2 user@domain.com --password2 pwd --ssl2 \
+		   --useuid --delete2 --delete2folders 
 
 This makes it so imap.myisp.com (destination) is an exact copy of the
 account at imap.gmail.com (source). This is not a problem, since the
@@ -51,7 +82,9 @@ cache) and delete such emails from source server. This way, customer's
 mailbox is still intact on the source server, except new emails, which
 get synced to new server and deleted from source.
 
-  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl2 --folder INBOX --useuid --noexpungeaftereach --skipemptyfolders --maxage 1 --delete1
+  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl1 \
+           --host2 imap.myisp.com --user2 user@domain.com --password2 pwd --ssl2 \
+           --folder INBOX --useuid --noexpungeaftereach --skipemptyfolders --maxage 1 --delete1
 
 I personally prefer to keep a copy of users box intact in source, but
 if that's not an issue for you, you can remove --folder INBOX and even
@@ -70,5 +103,22 @@ lixeira (trash) and rascunhos (drafts).
 
 So this was added:
 
-  --regextrans2 "s,\[Gmail\].,," --regextrans2 "s,E-mails enviados,Sent," --regextrans2 "s,/Lixeira,Trash," --regextrans2 "s,/Rascunhos,Drafts,"
+  --regextrans2 "s,\[Gmail\].,," \
+  --regextrans2 "s,E-mails enviados,Sent," \
+  --regextrans2 "s,Lixeira,Trash," \
+  --regextrans2 "s,Rascunhos,Drafts,"
 
+*** Other cenarios
+
+- Sync entire account into 1 folder of another account
+
+  imapsync --host1 xxx --user1 user1@domain.com --password1 secret1 --ssl1 \
+           --host2 yyy --user2 user2@domain.com --password2 secret2 --ssl2 \
+		   --useuid --subfolder2 otheraccountfolder --delete2 --delete2foldersonly /otheraccountfolder/
+
+Above is based on message UID, advantage of no dupes, however, user
+must not be using such destination folder in destination account until
+you finish syncing.
+
+=======================================================================
+=======================================================================

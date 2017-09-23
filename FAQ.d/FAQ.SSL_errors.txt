@@ -1,0 +1,56 @@
+#!/bin/cat
+$Id: FAQ.SSL_errors.txt,v 1.1 2017/05/24 19:16:40 gilles Exp gilles $
+
+This documentation is also at http://imapsync.lamiral.info/#doc
+
+=====================================================
+                Imapsync SSL errors
+=====================================================
+
+Questions anwswered in this FAQ are:
+
+Q. What are the errors
+  DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
+  or
+  DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
+
+
+Q. What can I do to avoid those "SSL read/write errors"?
+
+=======================================================================
+Q. What are the errors
+  DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
+  or
+  DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
+
+R. Like they claim, those errors are SSL errors. SSL is not directly
+   done by imapsync but by an underlying Perl module called
+   IO::Socket::SSL. Those errors arise sometimes and sometimes
+   they form a serie that ends with imapsync auto-abortion.
+   Those errors happen with some hosts but not with others,
+   it's often Exchange or Office365. I don't know what exactly happens.
+   Those errors happen more often on Windows than on Linux.
+
+
+=======================================================================
+Q. What can I do to avoid those "SSL read/write errors"?
+
+R1. Remove all ssl/tls encryption
+
+  imapsync ...   --nossl1 --notls1 --nossl2 --notls2
+
+R2. If you don't want to quit encryption, rerun imapsync until the 
+    complete sync is over. Those errors are not at the same place 
+    each time, so imapsync will sync remaining messages at each run
+    until none remains.
+
+R3. Run imapsync on a Linux machine, a VM is ok, there are less
+    SSL errors on Unix.
+    
+R4. Use https://imapsync.lamiral.info/X/
+    It's a Linux host so R3 applies there.
+
+R5. Set up a ssltunnel proxy to the host.
+    Read the file FAQ.Security.txt
+
+=======================================================================

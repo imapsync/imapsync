@@ -1,0 +1,81 @@
+#!/usr/bin/perl
+
+use HTTP::Request::Common qw(POST);
+use LWP::UserAgent;
+use Data::Dumper;
+use Mail::IMAPClient;
+use URI::Escape;
+use MIME::Base64;
+
+print "\n\nType your email address here: ";
+$username = "gilles.lamiral@gmail.com" ;
+chomp($username);
+
+print "\n\nPaste the client_id here: ";
+$client_id = '108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com' ;
+chomp($client_id);
+
+print "\n\nPaste the client_secret here: ";
+$client_secret = 'zAJO4PLxzeJ4yOaiJRk6f69k' ;
+chomp($client_secret);
+
+$scope_string = "https%3A%2F%2Fmail.google.com%2F";
+
+print "Please open the following in your web browser:\n\nhttps://accounts.google.com/o/oauth2/auth?scope=$scope_string&redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=code&client_id=$client_id";
+
+print "\n\nPaste the code here: ";
+$code = '4/-e6wojtOSXCjZnwZKKhvg3AdDqDjGLOF0nXxfAFcdmk';
+# 
+chomp($code);
+
+$ENV{'PERL_LWP_SSL_VERIFY_HOSTNAME'} = 0;
+my $ua = LWP::UserAgent->new;
+$ua->timeout(10);
+$ua->env_proxy;
+
+print "Exchanging the code for an access token and refresh token...\n";
+my $exchange_response = $ua->request(POST 'https://accounts.google.com/o/oauth2/token',
+'Content_Type' => 'application/x-www-form-urlencoded',
+'Content' => [
+'code' => $code,
+'client_id' => $client_id,
+'client_secret' => $client_secret,
+'redirect_uri' => 'urn:ietf:wg:oauth:2.0:oob',
+'grant_type' => 'authorization_code',
+],
+);
+
+my ($access_token) = ($exchange_response->decoded_content =~ m/access_token"."(.)"/);
+my ($refresh_token) = ($exchange_response->decoded_content =~ m/refresh_token"."(.)"/);
+
+
+print "exchange_response: ", $exchange_response->decoded_content, "\n" ;
+
+print "access token: $access_token\n";
+print "refresh token: $refresh_token\n";
+
+print "Refreshing the access token...\n";
+my $auth_response = $ua->request(POST 'https://accounts.google.com/o/oauth2/token',
+'Host' => 'accounts.google.com',
+'Content_Type' => 'application/x-www-form-urlencoded',
+'Content' => [
+'client_id' => $client_id,
+'client_secret' => $client_secret,
+'refresh_token' => $refresh_token,
+'grant_type' => 'refresh_token',
+],
+);
+
+my ($access_token) = ($auth_response->decoded_content =~ m/access_token"."(.)"/);
+
+my $oauth_sign = encode_base64("user=". $username ."\x01auth=Bearer ". $access_token ."\x01\x01", '');
+
+my $imap = Mail::IMAPClient->new(
+Server => 'imap.gmail.com',
+Port => 993,
+Ssl => 1,
+Uid => 1,
+) or die("Can't connect to imap server.");
+$imap->authenticate('XOAUTH2', sub { return $oauth_sign }) or die("Auth error: ". $imap->LastError);
+
+print join(", ",$imap->folders),".\n" or die("List folders error: ". $imap->LastError);

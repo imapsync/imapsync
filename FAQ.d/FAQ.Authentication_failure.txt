@@ -1,0 +1,54 @@
+#!/bin/cat
+$Id: FAQ.Authentication_failure.txt,v 1.5 2017/09/04 11:03:57 gilles Exp gilles $
+
+This documentation is also at http://imapsync.lamiral.info/#doc
+
+=======================================================================
+              Imapsync authentication issues
+=======================================================================
+
+
+Host1 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 NO [AUTHENTICATIONFAILED] Authentication failed
+
+
+One over four imapsync syncs ends up quickly with the error message 
+"Authentication failed" or "NO LOGIN failed" or similar. 
+Authentication failure is the primary failure with imapsync
+and since nothing tangible can be done without authentication, 
+this stage must succeed to go further.
+
+Here are some advices to get you pass this difficult stage of authentication:
+
+  * Triple check each credendial parameter, there are three parameters at each side:
+     * triple check --host1
+     * triple check --user1
+     * triple check --password1
+     * triple check --host2
+     * triple check --user2
+     * triple check --password2
+
+   * If you can authenticate successfully with an other imap client software 
+     like Thunderbird or Outlook or Sparrow then it is a very good sign to 
+     authenticate successfully with imapsync. Examine the parameters of 
+     this other imap client and copy them as is for imapsync.
+
+   * Use option --showpasswords
+     At the beginning of the output, imapsync dumps all its command
+     line parameters; it's the line after "Command line used:".
+     With --showpasswords, imapsync prints the passwords received 
+     instead of the string MASKED. It helps for debugging quoting issues.
+     Option --showpasswords shows passwords again when the IMAP dialog
+     is dumped by --debugimap option. Search for a line like 
+     "Sending: 2 LOGIN test1 secret1" (secret1 is the password here)
+     
+     
+   * It is sometimes very hard to quote correctly unusual characters,
+     especially on Windows. See 
+     https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
+     https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
+     The quicker trick might be to change the password temporarilly
+     with easy characters like the classical alphabet, a long
+     string will still ensure strong security.
+     
+     
+ 

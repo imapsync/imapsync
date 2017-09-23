@@ -1,22 +1,55 @@
 #!/bin/cat
-$Id: FAQ.Messages_Selection.txt,v 1.6 2016/04/18 12:45:20 gilles Exp gilles $
+$Id: FAQ.Messages_Selection.txt,v 1.12 2017/09/05 15:11:20 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-=====================================
-  Imapsync tips to select messages.
-=====================================
+=======================================================================
+                Imapsync tips to select messages.
+=======================================================================
 
-By default, Imapsync syncs all messages, avoiding duplicates.
+Questions anwswered in this FAQ are:
+
+Q. What messages imapsync syncs by default?
+
+Q. Is there a way we can specify a date range to sync emails? 
+   If yes, can you please share an example?
+
+Q. Is there a way we can specify an age to sync emails? 
+   If yes, can you please share some examples?
+
+Q. I want to sync messages based on their UID.
+
+Q. Can I migrate only mails with attachments?
+
+Q. How can I move messages marked \Deleted from all folders to
+   a dedicated folder?
+
+Q. What are the selection criteria available with --search option?
+
+
+=======================================================================
+Q. What messages imapsync syncs by default?
+
+R. By default, Imapsync syncs all messages, except duplicates.
 
 =======================================================================
 Q. Is there a way we can specify a date range to sync emails? 
    If yes, can you please share an example?
 
-R. Yes, with the --search option.
+R. Yes, a date range is possible with the --search option.
 
+  imapsync ... --search "SENTSINCE 1-Jan-2010" 
+  
+or 
+  
+  imapsync ... --search "SENTBEFORE 31-Dec-2010"
+
+or
+  
   imapsync ... --search "SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010"
 
+  Months are specified like this:
+  
    Jan
    Feb
    Mar
@@ -80,7 +113,8 @@ timezone) is earlier than the specified date.
 If --noabletosearch is on then --minage and --maxage deal
 with the internal dates given by a FETCH imap command but 
 not the Date: header. Internal date is the arrival date 
-in the mailbox.
+in the mailbox. Same remark for --noabletosearch1 and
+--noabletosearch2 but only for one side then.
 
 =======================================================================
 Q. I want to sync messages based on their UID.
@@ -109,9 +143,29 @@ UIDs 20000 20002 20004:
 If you search n UIDs then you have to put n-1 OR in the search line,
 that's IMAP.
 
+=======================================================================
+Q. Can I migrate only mails with attachments?
+
+R. Use:
+
+  imapsync ... --search "HEADER Content-Type multipart/mixed" 
+
+or more generally:
+
+  imapsync ... --search "OR HEADER Content-Disposition attachment HEADER Content-Type multipart/mixed" 
+
 
 =======================================================================
-Q. What is the selection criteria available with --search option?
+Q. How can I move messages marked \Deleted from all folders to
+   a dedicated folder?
+
+R. To move \Deleted messages from all folders to a specific folder, 
+   let's call it Trash, use:
+
+  imapsync ... --search DELETED --regextrans2 "s/.*/Trash/" 
+
+=======================================================================
+Q. What are the selection criteria available with --search option?
 
 R. The list of search criteria are listed below, an excerpt from RFC3501.
 
@@ -249,5 +303,6 @@ http://www.faqs.org/rfcs/rfc3501.html
       UNSEEN
          Messages that do not have the \Seen flag set. 
 
+=======================================================================
 =======================================================================
 

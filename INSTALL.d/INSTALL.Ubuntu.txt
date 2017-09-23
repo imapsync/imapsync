@@ -1,43 +1,54 @@
 #!/bin/cat 
-# $Id: INSTALL.Ubuntu.txt,v 1.7 2016/06/22 19:58:32 gilles Exp gilles $
+# $Id: INSTALL.Ubuntu.txt,v 1.10 2017/03/30 11:23:37 gilles Exp gilles $
 
 =================================================
-= Installing imapsync on Ubuntu 12.04 or higher =
+= Installing imapsync on Ubuntu 16.04 or higher =
 =================================================
 
-Here are the two commands to install imapsync dependencies.
-You need root priviledge to run them.
+Here is  the command to install imapsync dependencies,
+you need root privilege to run them.
 
-The first command installs standard Ubuntu packages:
-
+This command installs standard Ubuntu packages:
 
   sudo apt-get install \
-libauthen-ntlm-perl \
-libcrypt-ssleay-perl \
-libdigest-hmac-perl \
+libauthen-ntlm-perl    \
+libclass-load-perl     \
+libcrypt-ssleay-perl   \
+libdata-uniqid-perl    \
+libdigest-hmac-perl    \
+libdist-checkconflicts-perl \
 libfile-copy-recursive-perl \
-libio-compress-perl \
+libio-compress-perl     \
 libio-socket-inet6-perl \
-libio-socket-ssl-perl \
-libio-tee-perl \
+libio-socket-ssl-perl   \
+libio-tee-perl          \
+libmail-imapclient-perl \
 libmodule-scandeps-perl \
 libnet-ssleay-perl      \
-libpar-packer-perl \
-libreadonly-perl \
-libterm-readkey-perl \
-libtest-pod-perl \
+libpar-packer-perl      \
+libreadonly-perl        \
+libsys-meminfo-perl     \
+libterm-readkey-perl    \
+libtest-fatal-perl      \
+libtest-mock-guard-perl \
+libtest-pod-perl        \
+libtest-requires-perl   \
 libtest-simple-perl     \
-libunicode-string-perl \
-liburi-perl \
-libtest-mockobject-perl \
+libunicode-string-perl  \
+liburi-perl             \
+make                    \
 cpanminus
 
-The second command installs "manually" the Perl module Data::Uniqid
-because Debian hasn't made it available via a package yet.
-It also  install manually Perl module Mail::IMAPClient because
-it is good to be up to date:
+In case you want to update the Perl module 
+Mail::IMAPClient, a major module for imapsync,
+the following command installs it "manually":
 
-  sudo cpanm Data::Uniqid Mail::IMAPClient
+  sudo cpanm Mail::IMAPClient
+
+In case you need to use XOAUTH2 authentication you have to install   
+the module JSON::WebToken with the command:
+
+  sudo cpanm JSON::WebToken
 
 After installing the dependencies, imapsync should be working.
 

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Archiving.txt,v 1.2 2016/05/09 13:03:14 gilles Exp gilles $
+$Id: FAQ.Archiving.txt,v 1.6 2017/07/13 14:44:07 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -7,6 +7,30 @@ This documentation is also at http://imapsync.lamiral.info/#doc
    Imapsync tips about archiving messages.
 ============================================
 
+=======================================================================
+Q. Can I archive different accounts on the same destination account,
+   each account on a separate folder?
+
+R. Yes. Use --subfolder2 
+
+--subfolder2 str : Move whole host1 folders hierarchy under the
+                   host2 folder str.
+                   It is done it by adding two --regextrans2 options before
+                   all others. Add --debug to see what's really going on.
+
+					   
+Example:
+
+  imapsync ... --user1 foo --subfolder2 foo
+
+  imapsync ... --user1 bar --subfolder2 bar
+
+In case you need a strict sync, add --delete2 --delete2foldersonly "foo"
+(or "bar"), il will delete on account2 what is not on account1 but only
+in the right place, ie, the subfolder "foo".
+  
+  imapsync ... --user1 foo --subfolder2 foo --delete2 --delete2foldersonly "foo" 
+  
 =======================================================================
 Q. How to move emails from one IMAP folder to another either on the 
   same IMAP server or a different one?
@@ -21,3 +45,5 @@ Add option --delete if you want to move messages, instead of just copy/sync them
 
 R2. See also file FAQ.Folders_Mapping.txt
 
+=======================================================================
+=======================================================================

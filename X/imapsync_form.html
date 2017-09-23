@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<!-- $Id: imapsync_form.html,v 1.42 2017/09/07 00:58:48 gilles Exp gilles $ -->
+
+<html lang="en" id="top">
+
+<head>
+    <title>Imapsync online</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" 
+	integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" 
+	integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    <link rel="license" href="../NOLIMIT">
+    <!-- 
+	Terms and conditions for copying, distribution, modification or anything else: 
+    No limits to do anything with this work and this license. 
+	-->
+
+	<noscript>
+	<style>
+	.scripton {display:none;}
+	</style>
+	</noscript>
+	
+</head>
+
+<body>
+
+
+<div class="container-fluid" >
+
+    <div class="row">
+        <div class="text-center">
+            <a href="../">
+                <img alt="Imapsync home" src="../S/images/logo_imapsync_Xn.png" height="38" width="60">
+            </a>
+            <a href="#top"      class="btn btn-info active" role="button">Top</a>
+			<a href="#payment"  class="btn btn-warning" data-toggle="collapse">Pricing</a>
+            <a href="#buttons"  class="btn btn-info scripton"  role="button">Consoles</a>
+            <a href="#bottom"   class="btn btn-info"        role="button">Bottom</a>
+        </div>
+    </div>
+
+    <h1 class="text-center">Imapsync online</h1>
+
+<!-- Paypal part start 
+new: NDGMR6TLFZ926
+old: H2YTURNFT4XT4
+-->
+
+        <!-- A button above the pricing form, not very beautiful...
+	<div class="text-center">
+	<a href="#payment" class="btn btn-warning btn-lg" data-toggle="collapse">Pricing</a>
+	</div>
+	-->
+	
+    <div id="payment" class="well text-center collapse " >
+        <p class="lead">Pay by usage type</p>
+        <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+            <input type="hidden" name="cmd" value="_s-xclick" />
+            <input type="hidden" name="hosted_button_id" value="H2YTURNFT4XT4" />
+            <input type="hidden" name="on0" value="imapsync choice" />
+            <fieldset>
+            <!--
+            <label data-toggle="tooltip" data-placement="top" title="A try"
+            class="radio-inline"><input type="radio" name="os0" value="Tiny"          > €1,00     </label>
+            -->
+            <label data-toggle="tooltip" data-placement="top" title="A whole mailbox"
+            class="radio-inline"><input type="radio" name="os0" value="Small" checked > €5,00    </label>
+            <label data-toggle="tooltip" data-placement="top" title="Several mailboxes to migrate"
+            class="radio-inline"><input type="radio" name="os0" value="Normal"        > €25,00  </label>
+            <label data-toggle="tooltip" data-placement="top" title="Tons of gigabytes to copy"
+            class="radio-inline"><input type="radio" name="os0" value="High"          > €125,00   </label>
+            <br>
+            <input type="hidden" name="currency_code" value="EUR" />
+            <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" name="submit" alt="PayPal - A safe, easy way to pay online!" />
+            </fieldset>
+        <p>
+            <strong><em>Payment only after the job is well done are ok!</em></strong>
+        </p>
+        </form>
+    </div>
+<!-- Paypal part end -->
+	
+	
+    <form id="form" action="/cgi-bin/imapsync" method="post" autocomplete="on">
+        <div class="row">
+            <div class="col-md-6" style="background-color: DodgerBlue;" >
+				<fieldset>
+				<legend class="text-center h2">Source account</legend>
+
+                <label for="user1">--user1</label>
+                <div class="input-group form-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-user"> </i></span>
+                    <input
+                    data-toggle="tooltip" data-placement="top" title="It is usually an email address or its left part before @"
+                    type="text" class="form-control input-lg" id="user1" name="user1" tabindex="1"
+                    placeholder="Enter source login name">
+                </div>
+
+                <label for="password1">--password1</label>
+                <div class="input-group form-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                    <input
+                    data-toggle="tooltip" data-placement="top" title="Passwords are not stored on the server"
+                    type="password" class="form-control input-lg" id="password1" name="password1" tabindex="2"
+                     placeholder="Enter password">
+                </div>
+
+                <label for="host1">--host1</label>
+                <div class="input-group form-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-cloud"></i></span>
+                    <input list="servers1" type="text" class="form-control input-lg" id="host1" name="host1" tabindex="3"
+                     placeholder="Enter imap source server name or IP address">
+                        <datalist id="servers1">
+                        <option value="imap.gmail.com">
+                        <option value="outlook.office365.com">
+                        <option value="imap.mail.yahoo.com">
+                    </datalist>
+                </div>
+                
+                <!--
+                <div class="form-group" style="padding-bottom: 15px;">
+                <label class="checkbox-inline">
+                    <input type="checkbox" id="ssl1" name="ssl1" tabindex="4">-ssl1 (port 993)
+                </label>
+                </div>
+                -->
+                <div>
+                    <br>
+                </div>
+				</fieldset>
+            </div>
+
+
+            <div class="col-md-6" style="background-color:DarkTurquoise;">
+				<fieldset>
+				<legend class="text-center h2">Destination account</legend>
+
+                <label for="user2">--user2</label>
+                <div class="input-group form-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                    <input
+                    data-toggle="tooltip" data-placement="top" title="It is usually an email address or its left part before @"
+                    type="text" class="form-control input-lg" id="user2" name="user2" tabindex="6"
+                    placeholder="Enter destination login name">
+                </div>
+                <label for="password2">--password2</label>
+                <div class="input-group form-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                    <input
+                    data-toggle="tooltip" data-placement="top" title="Passwords are not stored on the server"
+                    type="password" class="form-control input-lg" id="password2" name="password2" tabindex="7"
+                     placeholder="Enter password">
+                </div>
+
+                <label for="host2">--host2</label>
+                <div class="input-group form-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-cloud"></i></span>
+                    <input list="servers2" type="text" class="form-control input-lg" id="host2" name="host2" tabindex="8"
+                     placeholder="Enter imap destination server name or IP address">
+                     <datalist id="servers2">
+                        <option value="imap.gmail.com">
+                        <option value="outlook.office365.com">
+                        <option value="imap.mail.yahoo.com">
+                     </datalist>
+                </div>
+                <!--
+                <div class="form-group" style="padding-bottom: 15px;">
+                    <label class="checkbox-inline">
+                    <input type="checkbox" id="ssl2" name="ssl2" tabindex="9">-ssl2 (port 993)
+                    </label>
+                </div>
+                -->
+                 <div>
+                    <br>
+                </div>
+				</fieldset>
+           </div>
+          
+        </div>
+        <input type="hidden" name="automap"   value="on">
+        <input type="hidden" name="addheader" value="on">
+        <!--
+        <input type="hidden" name="simulong" value="3600">
+        -->
+
+        <hr id="buttons">
+        <!-- Classical button to go to the log only -->
+        <noscript>
+			<button type="submit" class="btn btn-success btn-lg center-block btn-block">Go sync!</button> 
+        </noscript>
+
+		<!-- Javascript buttons using xhr -->
+        <div class="row scripton">
+            <div class="col-sm-6"
+                style="padding-left: 0px; padding-right: 0px;"
+            >
+            <button id="bt-sync" type="button"
+                    class="btn btn-success btn-lg center-block btn-block"
+                    tabindex="11"
+                    data-toggle="tooltip" data-placement="top" title="IMAP transfers are done with encryption if servers support it"
+                    >
+                Sync or resync!<br>
+                <span class="glyphicon glyphicon-envelope"></span>
+                <span class="glyphicon glyphicon-arrow-right"></span>
+                <span class="glyphicon glyphicon-envelope"></span>
+            </button>
+            </div>
+            <div class="col-sm-6"
+                style="padding-left: 0px; padding-right: 0px;"
+            >
+            <button id="bt-abort" type="button" 
+                    class="btn btn-danger btn-lg center-block  btn-block" tabindex="12"
+                    data-toggle="tooltip" data-placement="top" title="You can abort and restart the sync later, no duplicates should happen"
+
+            >
+                Abort!<br>
+                <span class="glyphicon glyphicon-scissors"></span>
+            </button>
+            </div>
+        </div>
+    </form>
+
+
+
+	
+    <div class="row scripton" id="consoles">
+        <div class="col-sm-6 well">
+            <h2 class="text-center">Console of imapsync run</h2>
+            <pre id="console">
+
+
+
+            </pre>
+            <a id="link_to_bottom" href="#bottom">Bottom of imapsync log</a>
+        </div>
+
+        <div class="col-sm-6 well">
+            <h2 class="text-center">Console of abort</h2>
+            <pre id="abort">
+
+
+
+            </pre>
+        </div>
+    </div>
+	
+</div>
+
+<h2 class="text-center scripton">Log of imapsync run</h2>
+
+<pre id="output" class="scripton">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+
+
+<hr id="bottom">
+
+    <p class="text-center">Feel free to contact 
+    <strong><a  href="../#AUTHOR" target="_blank">Gilles LAMIRAL</a></strong>
+    </p>
+
+
+<div class="container-fluid" >
+    <div class="row">
+        <div class="text-center">
+            <a href="../">
+                <img alt="Imapsync home" src="../S/images/logo_imapsync_Xn.png" height="38" width="60">
+            </a>
+            <a href="#top"      class="btn btn-info "         role="button">Top</a>
+            <a href="#buttons"  class="btn btn-info scripton" role="button">Consoles</a>
+            <a href="#bottom"   class="btn btn-info active"   role="button">Bottom</a>
+            <br>
+        <small> ($Id: imapsync_form.html,v 1.42 2017/09/07 00:58:48 gilles Exp gilles $) </small><br>
+        Terms and conditions for anything: <a href="../LICENSE">No limits to do anything with this work and this license!</a><br>
+        </div>
+    </div>
+</div>
+
+
+<script 
+src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"
+integrity="sha384-xBuQ/xzmlsLoJpyjoggmTEz8OWUFM0/RC5BsqQBDX2v5cMvDHcMakNTNrHIW2I5f"
+crossorigin="anonymous"
+></script>
+
+<script 
+src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
+crossorigin="anonymous"
+></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+/*jslint browser: true*/ /*global  $*/
+$(document).ready(function () {
+    "use strict";
+    // Bootstrap popover and tooltip
+    $("[data-toggle='tooltip']").tooltip();
+
+    var readyStateStr = {
+        "0": "Request not initialized",
+        "1": "Server connection established",
+        "2": "Response headers received",
+        "3": "Processing request",
+        "4": "Finished and response is ready"
+    };
+
+    function refreshLog(xhr) {
+        $("#output").html(xhr.responseText);
+    }
+
+    function handleRun(xhr, timerRefreshLog) {
+
+        $("#console").text("Status: " + xhr.status + " " + xhr.statusText + "\n"
+                + "State: " + readyStateStr[xhr.readyState] + "\n");
+
+        if (xhr.readyState === 4) {
+            // var headers = xhr.getAllResponseHeaders();
+            // $("#console").append(headers);
+            // $("#console").append("See the completed log\n");
+            $("#link_to_bottom").show();
+            clearInterval(timerRefreshLog);
+            refreshLog(xhr); // a last time
+            $("#bt-sync").prop("disabled", false); // back to enable state for next run
+        }
+    }
+
+    function imapsync() {
+        var querystring = $("#form").serialize();
+        $("#abort").text("\n\n"); // clean abort console
+        $("#output").text("Here comes the log!\n\n");
+        if ("imap.gmail.com" === $("#host1").val()) {
+            querystring = querystring + "&gmail1=on";
+        }
+        if ("imap.gmail.com" === $("#host2").val()) {
+            querystring = querystring + "&gmail2=on";
+        }
+        var xhr;
+        xhr = new XMLHttpRequest();
+        var timerRefreshLog = setInterval(function () {
+            refreshLog(xhr);
+        }, 5000);
+        xhr.onreadystatechange = function () {
+            handleRun(xhr, timerRefreshLog);
+        };
+        xhr.open("POST", "/cgi-bin/imapsync", true);
+        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhr.send(querystring);
+    }
+
+
+    function handleAbort(xhr) {
+
+        $("#abort").text("Status: " + xhr.status + " " + xhr.statusText + "\n"
+                + "State: " + readyStateStr[xhr.readyState] + "\n\n");
+
+        if (xhr.readyState === 4) {
+            $("#abort").append(xhr.responseText);
+            $("#bt-sync").prop("disabled", false);
+            $("#bt-abort").prop("disabled", false); // back for next abort
+        }
+    }
+
+    function abort() {
+        var querystring = $("#form").serialize() + "&abort=on";
+        var xhr;
+        xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            handleAbort(xhr);
+        };
+        xhr.open("POST", "/cgi-bin/imapsync", true);
+        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhr.send(querystring);
+    }
+
+
+    // in case of a manual refresh, start
+    $("#bt-sync").prop("disabled", false);
+    $("#bt-abort").prop("disabled", false);
+    $("#link_to_bottom").hide();
+
+    $("#bt-sync").click(function () {
+        $("#bt-sync").prop("disabled", true);
+        $("#bt-abort").prop("disabled", false);
+        $("#link_to_bottom").hide();
+        imapsync();
+    });
+
+    $("#bt-abort").click(function () {
+        $("#bt-sync").prop("disabled", true);
+        $("#bt-abort").prop("disabled", true);
+        abort();
+    });
+
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,3997 @@
+=head1 NAME
+
+Mail::IMAPClient - An IMAP Client API
+
+=head1 SYNOPSIS
+
+  use Mail::IMAPClient;
+
+  my $imap = Mail::IMAPClient->new(
+    Server   => 'localhost',
+    User     => 'username',
+    Password => 'password',
+    Ssl      => 1,
+    Uid      => 1,
+  );
+
+  my $folders = $imap->folders
+    or die "List folders error: ", $imap->LastError, "\n";
+  print "Folders: @$folders\n";
+
+  $imap->select( $Opt{folder} )
+    or die "Select '$Opt{folder}' error: ", $imap->LastError, "\n";
+
+  $imap->fetch_hash("FLAGS", "INTERNALDATE", "RFC822.SIZE")
+    or die "Fetch hash '$Opt{folder}' error: ", $imap->LastError, "\n";
+
+  $imap->logout
+    or die "Logout error: ", $imap->LastError, "\n";
+
+=head1 DESCRIPTION
+
+This module provides methods implementing the IMAP protocol to support
+interacting with IMAP message stores.
+
+The module is used by constructing or instantiating a new IMAPClient
+object via the L</new> constructor method.  Once the object has been
+instantiated, the L</connect> method is either implicitly or
+explicitly called.  At that point methods are available that implement
+the IMAP client commands as specified in B<RFC3501>.  When processing
+is complete, the L</logout> object method should be called.
+
+This documentation is not meant to be a replacement for RFC3501 nor
+any other IMAP related RFCs.
+
+Note that this documentation uses the term I<folder> in place of
+RFC3501's use of I<mailbox>.  This documentation reserves the use of
+the term I<mailbox> to refer to the set of folders owned by a specific
+IMAP id.
+
+=head2 Connection State
+
+RFC3501 defines four possible states for an IMAP connection: not
+authenticated, authenticated, selected, and logged out.  These
+correspond to the IMAPClient constants C<Connected>, C<Authenticated>,
+C<Selected>, and C<Unconnected>, respectively.  These constants can be
+used in conjunction with the L</Status> method to determine the status
+of an IMAPClient object and its underlying IMAP session.
+
+Note that an IMAPClient object can be in the C<Unconnected> state both
+before a server connection is made and after it has ended.  This
+differs slightly from RFC3501, which does not define a pre-connection
+status.  For a discussion of the methods available for examining the
+IMAPClient object's status, see the section labeled
+L</"Status Methods">, below.
+
+=head2 Advanced Authentication Mechanisms
+
+RFC3501 defines two commands for authenticating to an IMAP server:
+
+=over 4
+
+=item LOGIN
+
+LOGIN is for plain text authentication.
+
+=item AUTHENTICATE
+
+AUTHENTICATE for more advanced and/or secure authentication mechanisms.
+
+=back
+
+Mail::IMAPClient supports the following AUTHENTICATE mechanisms:
+
+=over 4
+
+=item DIGEST-MD5
+
+DIGEST-MD5 authentication requires the L<Authen::SASL> and
+L<Digest::MD5> modules.  See also L</Authuser>.
+
+=item CRAM-MD5
+
+CRAM-MD5 requires the L<Digest::HMAC_MD5> module.
+
+=item PLAIN (SASL)
+
+PLAIN (SASL) authentication allows the optional use of the L</Proxy>
+parameter.  RFC 4616 documents this syntax for SASL PLAIN:
+
+  message = [authzid] UTF8NUL authcid UTF8NUL passwd
+
+When L</Proxy> is defined, L</User> is used as 'authzid' and L</Proxy>
+is used as 'authcid'.  Otherwise, L</User> is used as 'authcid'.
+
+=item NTLM
+
+NTLM authentication requires the L<Authen::NTLM> module.  See also
+L</Domain>.
+
+=back
+
+=head2 Errors
+
+If you attempt an operation that results in an error, then you can
+retrieve the text of the error message by using the L</LastError>
+method.  However, the L</LastError> method is an object method (not a
+class method) and can only be used once an object is successfully
+created.  In cases where an object is not successfully created the
+C<$@> variable is set with an error message.
+
+Mail::IMAPClient resets C<$@> and L</LastError> to undef before most
+IMAP requests, so the values only have a short lifespan.
+L</LastError> will always contain error info from the last error,
+until another error is encountered, another IMAP command is issued or
+it is explicitly cleared.
+
+Please note that the use of C<$@> is subject to change in the future
+release so it is best to use L</LastError> for error checking once a
+Mail::IMAPClient object has been created.
+
+Errors in the L</new> method can prevent your object from ever being
+created.  If the L</Server>, L</User>, and L</Password> parameters are
+supplied to L</new>, it will attempt to call L</connect> and
+L</login>.  Any of these methods could fail and cause the L</new>
+method call to return C<undef> and leaving the variable C<$@> is set
+to an error message.
+
+WARNING: (due to historical API behavior) on errors, many methods may
+return undef regardless of LIST/SCALAR context.  Therefore, it may be
+wise to use most methods in a scalar context.  Regardless, check
+L</LastError> for details on errors.
+
+=head2 Transactions
+
+RFC3501 requires that each line in an IMAP conversation be prefixed
+with a tag.  A typical conversation consists of the client issuing a
+tag-prefixed command string, and the server replying with one of more
+lines of output.  Those lines of output will include a command
+completion status code prefixed by the same tag as the original
+command string.
+
+The IMAPClient module uses a simple counter to ensure that each client
+command is issued with a unique tag value.  This tag value is referred
+to by the IMAPClient module as the transaction number.  A history is
+maintained by the IMAPClient object documenting each transaction.  The
+L</Transaction> method returns the number of the last transaction, and
+can be used to retrieve lines of text from the object's history.
+
+The L</Clear> parameter is used to control the size of the session
+history so that long-running sessions do not eat up unreasonable
+amounts of memory.  See the discussion of L</Clear> parameter for more
+information.
+
+The L</Report> transaction returns the history of the entire IMAP
+session since the initial connection or for the last L</Clear>
+transactions.  This provides a record of the entire conversation,
+including client command strings and server responses, and is a
+wonderful debugging tool as well as a useful source of raw data for
+custom parsing.
+
+=head1 CLASS METHODS
+
+There are a couple of methods that can be invoked as class methods.
+Generally they can be invoked as an object method as well.  Note that
+if the L</new> method is called as an object method, the object
+returned is identical to what have would been returned if L</new> had
+been called as a class method.  It doesn't give you a copy of the
+original object.
+
+=head2 new
+
+Example:
+
+  my $imap = Mail::IMAPClient->new(%args)
+    or die "new failed: $@\n";
+
+The L</new> method creates a new instance of an IMAPClient object.
+
+If the L</Server> parameter is passed as an argument to B<new>, then
+B<new> will implicitly call the L</connect> method, placing the new
+object in the I<Connected> state.  If L</User> and L</Password> values
+are also provided, then L</connect> will in turn call L</login>, and
+the resulting object will be returned from B<new> in the
+I<Authenticated> state.
+
+If the L</Server> parameter is not supplied then the IMAPClient
+object is created in the I<Unconnected> state.
+
+If the B<new> method is passed arguments then those arguments will be
+treated as a list of key=>value pairs.  The key should be one of the
+parameters as documented under L</"Parameters"> below.
+
+Here are some examples:
+
+  use Mail::IMAPClient;
+  
+  # returns an unconnected Mail::IMAPClient object:
+  my $imap = Mail::IMAPClient->new;
+  # ...
+  # intervening code using the 1st object, then:
+  # (returns a new, authenticated Mail::IMAPClient object)
+  $imap = Mail::IMAPClient->new(
+      Server   => $host,
+      User     => $id,
+      Password => $pass,
+      Clear    => 5,   # Unnecessary since '5' is the default
+      # ...            # Other key=>value pairs go here
+  )
+    or die "Cannot connect to $host as $id: $@";
+
+See also L</Parameters>, L</connect> and L</login> for more
+information on how to manually connect and login after B<new>.
+
+=head2 Quote
+
+Example:
+
+  $imap->search( HEADER => 'Message-id' => \$imap->Quote($msg_id) );
+
+The B<Quote> method accepts a value as an argument and returns its
+argument as a correctly quoted string or a literal string.  Since
+version 3.17 Mail::IMAPClient automatically quotes search arguments we
+use a SCALARREF so search will not modify or re-quote the value
+returned by B<Quote>.
+
+Note this method should not be used on folder names for
+Mail::IMAPClient methods, since methods that accept folder names as an
+argument will quote the folder name arguments automatically.
+
+If you are getting unexpected results when running methods with values
+that have (or might have) embedded spaces, double quotes, braces, or
+parentheses, then calling B<Quote> may be necessary.  This method
+should B<not> be used with arguments that are wrapped in quotes or
+parens if those quotes or parens are required by RFC3501.  For
+example, if the RFC requires an argument in this format:
+
+  ( argument )
+
+and the argument is (or might be) "pennies (from heaven)", then one
+could use:
+
+  $argument = "(" . $imap->Quote($argument) . ")"
+
+Of course, the fact that sometimes these characters are sometimes
+required delimiters is precisely the reason you must quote them when
+they are I<not> delimiting.
+
+However, there are times when a method fails unexpectedly and may
+require the use of B<Quote> to work.  Should this happen, you can
+probably file a bug/enhancement request for Mail::IMAPClient to
+safeguard the particular call/case better.
+
+An example is RFC822 Message-id's, which I<usually> don't contain
+quotes or parens.  When dealing with these it is usually best to take
+proactive, defensive measures from the very start and use B<Quote>.
+
+=head2 Range
+
+Example:
+
+  my $parsed = $imap->parse_headers(
+      $imap->Range( $imap->messages ), "Date", "Subject"
+  );
+
+The B<Range> method will condense a list of message sequence numbers
+or message UID's into the most compact format supported by RFC3501.
+It accepts one or more arguments, each of which can be:
+
+=over 4
+
+=item a) a message number,
+
+=item b) a comma-separated list of message numbers,
+
+=item c) a colon-separated range of message numbers (i.e. "$begin:$end")
+
+=item d) a combination of messages and message ranges, separated by commas
+(i.e. 1,3,5:8,10), or
+
+=item e) a reference to an array whose elements are like I<a)> through I<d)>.
+
+=back
+
+The B<Range> method returns a L<Mail::IMAPClient::MessageSet> object.
+The object uses L<overload> and if treated as a string it will act
+like a string.  This means you can ignore its objectivity and just
+treat it like a string whose value is your message set expressed in
+compact format.
+
+This method provides an easy way to add or remove messages from a
+message set.
+
+For more information see L<Mail::IMAPClient::MessageSet>.
+
+=head2 Rfc3501_date
+
+Example:
+
+  $Rfc3501_date = $imap->Rfc3501_date($seconds);
+  # or:
+  $Rfc3501_date = Mail::IMAPClient->Rfc3501_date($seconds);
+
+The B<Rfc3501_date> method accepts one input argument, a number of
+seconds since the epoch date.  It returns an RFC3501 compliant date
+string for that date (as required in date-related arguments to SEARCH,
+such as "since", "before", etc.).
+
+=head2 Rfc3501_datetime
+
+Example:
+
+  $date = $imap->Rfc3501_datetime($seconds);
+  # or:
+  $date = Mail::IMAPClient->Rfc3501_datetime($seconds);
+
+The B<Rfc3501_datetime> method accepts one or two arguments: a
+obligatory timestamp and an optional zone.  The zone shall be
+formatted as C<< [+-]\d{4} >>, and defaults to C<< +0000 >>.  The
+timestamp follows the definition of the output of the platforms
+specific C<time>, usually in seconds since Jan 1st 1970.  However, you
+have to correct the number yourself for the zone.
+
+=head2 Rfc822_date
+
+Example:
+
+  $Rfc822_date = $imap->Rfc822_date($seconds);
+  # or:
+  $Rfc822_date = Mail::IMAPClient->Rfc822_date($seconds);
+
+The B<Rfc822_date> method accepts one input argument, a number of
+seconds since the epoch date.  It returns an RFC822 compliant date
+string for that date (without the 'Date:' prefix).  Useful for putting
+dates in message strings before calling L</append>, L</search>, etc.
+
+=head2 Strip_cr
+
+Examples:
+
+  my $stripped = $imap->Strip_cr($string);
+  # or:
+  my @list = $imap->some_imap_method;
+  @list = $imap->Strip_cr(@list);
+  # or:
+  my $list = [ $imap->some_imap_method ];   # returns an array ref
+  $list = $imap->Strip_cr($list);
+
+The B<Strip_cr> method strips carriage returns from input and returns
+the new string to the caller.  This method accepts one or more lines
+of text as arguments, and returns those lines with all <CR><LF>
+sequences changed to <LF>.  Any input argument with no carriage
+returns is returned unchanged.  If the first argument (not counting
+the class name or object reference) is an array reference, then
+members of that array are processed as above and subsequent arguments
+are ignored.  If the method is called in scalar context then an array
+reference is returned instead of an array of results.
+
+NOTE: B<Strip_cr> does not remove new line characters.
+
+=head1 OBJECT METHODS
+
+Object methods must be invoked against objects created via the L</new>
+method and cannot be invoked as class methods.
+
+There object methods typically fall into one of two categories.  There
+are mailbox methods which participate in the IMAP session's
+conversation (i.e. they issue IMAP client commands) and object control
+methods which do not result in IMAP commands but which may affect
+later commands or provide details of previous ones.
+
+This object control methods can be further broken  down into two
+types, Parameter accessor methods, which affect the behavior of future
+mailbox methods, and L</"Status Methods">, which report on the affects
+of previous mailbox methods.
+
+Methods that do not result in new IMAP client commands being issued
+(such as the L</Transaction>, L</Status>, and L</History> methods) all
+begin with an uppercase letter, to distinguish them from methods that
+do correspond to IMAP client commands.  Class methods and eponymous
+parameter methods likewise begin with an uppercase letter because they
+also do not correspond to an IMAP client command.
+
+As a general rule, mailbox control methods return C<undef> on failure
+and something besides C<undef> when they succeed.  This rule is
+modified in the case of methods that return search results.  When
+called in a list context, searches that do not find matching results
+return an empty list.  When called in a scalar context, searches with
+no hits return 'undef' instead of an array reference.  If you want to
+know why you received no hits, you should check L</LastError> or
+C<$@>, which will be empty if the search was successful but had no
+matching results but populated with an error message if the search
+encountered a problem (such as invalid parameters).
+
+A number of IMAP commands do not have corresponding Mail::IMAPClient
+methods.  Patches are welcome.  In the pre-2.99 releases of this
+module, they were automatically created (AUTOLOAD), but that was very
+error-prone and stalled the progress of this module.
+
+=head1 Mailbox Control Methods
+
+=head2 append
+
+Example:
+
+  my $uid_or_true = $imap->append( $folder, $msgtext )
+    or die "Could not append: ", $imap->LastError;
+
+WARNING: This method may be deprecated in the future, consider using
+L</append_string> instead of this method.
+
+The B<append> method adds a message to the specified folder.  See
+L</append_string> for details as it is effectively an alias for that
+method.
+
+DEPRECATED BEHAVIOR: Additional arguments are added to the message
+text, separated with <CR><LF>.
+
+=head2 append_string
+
+Example:
+
+   # brackets indicate optional arguments (not array refs):
+   my $uidort = $imap->append_string( $folder, $msgtext [,$flags [,$date ] ] )
+       or die "Could not append_string: ", $imap->LastError;
+
+Arguments:
+
+=over 4
+
+=item $folder
+
+the name of the folder to append the message to
+
+=item $msgtext
+
+the message text (including headers) of the message
+
+=item $flags
+
+An optional list of flags to set.  The list must be specified as
+a space-separated list of flags, including any backslashes that may be
+necessary and optionally enclosed by parenthesis.
+
+=item $date
+
+An optional RFC3501 date argument to set as the internal date.  It
+should be in the format described for I<date_time> fields in RFC3501,
+i.e. "dd-Mon-yyyy hh:mm:ss +0000".
+
+If you want to specify a date/time but you don't want any flags then
+specify I<undef> as the third ($flags) argument.
+
+=back
+
+Returns:
+
+=over 4
+
+=item error: undef
+
+On error, undef can be returned regardless of LIST/SCALAR context.
+Check L</LastError> for details.
+
+=item success: UID or $imap
+
+With UIDPLUS the UID of the new message is returned otherwise a true
+value (currently $self) is returned.
+
+=back
+
+To protect against "bare newlines", B<append> will insert a carriage
+return before any newline that is "bare".
+
+=head2 append_file
+
+Example:
+
+  my $new_msg_uid = $imap->append_file(
+      $folder,
+      $file,
+      [ undef, $flags, $date ] # optional
+  ) or die "Could not append_file: ", $imap->LastError;
+
+The B<append_file> method adds a message to the specified folder.
+Note: The brackets in the example indicate optional arguments; they do
+not mean that the argument should be an array reference.
+
+Arguments:
+
+=over 4
+
+=item $folder
+
+the name of the folder to append the message to
+
+=item $file
+
+a filename, filehandle or SCALAR reference which holds an
+RFC822-formatted message
+
+=item undef
+
+a deprecated argument used as a place holder for backwards
+compatibility
+
+=item $flags
+
+The optional argument is handled the same as append_string.
+
+=item $date
+
+The optional argument is handled the same as append_string (RFC3501
+date), with the exception that if $date is "1" (one) then the
+modification time (mtime) of the file will be used.
+
+=back
+
+Returns:
+
+=over 4
+
+=item error: undef
+
+On error, undef can be returned regardless of LIST/SCALAR context.
+Check L</LastError> for details.
+
+=item success: UID or $imap
+
+With UIDPLUS the UID of the new message is returned otherwise a true
+value (currently $self) is returned.
+
+=back
+
+To protect against "bare newlines", B<append_file> will insert a
+carriage return before any newline that is "bare".
+
+The B<append_file> method provides a mechanism for allowing large
+messages to be appended without holding the whole file in memory.
+
+Version note: In 2.x an optional third argument to use for
+C<input_record_separator> was allowed, however this argument is
+ignored/not supported as of 3.x.
+
+=head2 authenticate
+
+Example:
+
+  $imap->authenticate( $authentication_mechanism, $coderef )
+    or die "Could not authenticate: ", $imap->LastError;
+
+This method implements the AUTHENTICATE IMAP client command.  It can
+be called directly or may be called by L</login> if the
+L</Authmechanism> parameter is set to anything except 'LOGIN'.
+
+The B<authenticate> method accepts two arguments, an authentication
+type to be used (ie CRAM-MD5) and a code or subroutine reference to
+execute to obtain a response.  The B<authenticate> method assumes that
+the authentication type specified in the first argument follows a
+challenge-response flow.  The B<authenticate> method issues the IMAP
+Client AUTHENTICATE command and receives a challenge from the server.
+That challenge (minus any tag prefix or enclosing '+' characters but
+still in the original base64 encoding) is passed as the only argument
+to the code or subroutine referenced in the second argument.  The
+return value from the 2nd argument's code is written to the server as
+is, except that a <CR><LF> sequence is appended if necessary.
+
+If one or both of the arguments are not specified in the call to
+B<authenticate> but their corresponding parameters have been set
+(L</Authmechanism> and L</Authcallback>, respectively) then the parameter
+values are used. Arguments provided to the method call however will
+override parameter settings.
+
+If you do not specify a second argument and you have not set the
+L</Authcallback> parameter, then the first argument must be
+one of the authentication mechanisms for which Mail::IMAPClient
+has built in support.
+
+See also the L</login> method, which is the simplest form of
+authentication defined by RFC3501.
+
+=head2 before
+
+Example:
+
+  my @msgs = $imap->before($Rfc3501_date)
+    or warn "No messages found before $Rfc3501_date.\n";
+
+The B<before> method works just like the L</"since"> method, below,
+except it returns a list of messages whose internal system dates are
+before the date supplied as the argument to the B<before> method.
+
+=head2 body_string
+
+Example:
+
+  my $string = $imap->body_string($msgId)
+    or die "Could not body_string: ", $imap->LastError;
+
+The B<body_string> method accepts a message sequence number (or a
+message UID, if the L</Uid> parameter is set to true) as an argument
+and returns the message body as a string.  The returned value contains
+the entire message in one scalar variable, without the message
+headers.
+
+=head2 bodypart_string
+
+Example:
+
+  my $string = $imap->bodypart_string(
+      $msgid, $part_number, $length, $offset
+  ) or die "Could not get bodypart string: ", $imap->LastError;
+
+The B<bodypart_string> method accepts a message sequence number (or a
+message UID, if the L</Uid> parameter is set to true) and a body part
+as arguments and returns the message part as a string.  The returned
+value contains the entire message part (or, optionally, a portion of
+the part) in one scalar variable.
+
+If an optional third argument is provided, that argument is the number
+of bytes to fetch.  (The default is the whole message part.)  If an
+optional fourth argument is provided then that fourth argument is the
+offset into the part at which the fetch should begin.  The default is
+offset zero, or the beginning of the message part.
+
+If you specify an offset without specifying a length then the offset
+will be ignored and the entire part will be returned.
+
+B<bodypart_string> will return C<undef> if it encounters an error.
+
+=head2 capability
+
+Example:
+
+  my $features = $imap->capability
+    or die "Could not determine capability: ", $imap->LastError;
+
+The B<capability> method returns an array of capabilities as returned
+by the CAPABILITY IMAP Client command, or a reference to an array of
+capabilities if called in scalar context.  If the CAPABILITY IMAP
+Client command fails for any reason then the B<capability> method will
+return C<undef>.  Supported capabilities are cached by the client,
+however, this cache is deleted after a connection is set to
+I<Authenticated> and when L</starttls> is called.
+
+See also L</has_capability>.
+
+=head2 close
+
+Example:
+
+  $imap->close or die "Could not close: $@\n";
+
+The B<close> method is used to close the currently selected folder via
+the CLOSE IMAP client command.  According to RFC3501, the CLOSE
+command performs an implicit EXPUNGE, which means that any messages
+that are flagged as I<\Deleted> (i.e. with the L</delete_message>
+method) will now be deleted.  If you haven't deleted any messages then
+B<close> can be thought of as an "unselect".
+
+Note: this closes the currently selected folder, not the IMAP session.
+
+See also L</delete_message>, L</expunge>, and RFC3501.
+
+=head2 compress
+
+Example:
+
+  $imap->compress or die "Could not enable RFC4978 compression: $@\n";
+
+The B<compress> method accepts no arguments.  This method is used to
+instruct the server to use the DEFLATE (RFC1951) compression
+extension.  See the L</Compress> attribute for how to specify
+arguments for use during the initialization process.
+
+Version note: method added in Mail::IMAPClient 3.30
+
+=head2 connect
+
+Example:
+
+  $imap->connect or die "Could not connect: $@\n";
+
+The B<connect> method connects an imap object to the server.  It
+returns C<undef> if it fails to connect for any reason.  If values are
+available for the L</User> and L</Password> parameters at the time
+that B<connect> is invoked, then B<connect> will call the L</login>
+method after connecting and return the result of the L</login> method
+to B<connect>'s caller.  If either or both of the L</User> and
+L</Password> parameters are unavailable but the connection to the
+server succeeds then B<connect> returns a pointer to the IMAPClient
+object.
+
+The L</Server> parameter must be set (either during L</new> method
+invocation or via the L</Server> object method) before invoking
+B<connect>.  When the parameter is an absolute file path, an UNIX
+socket will get opened.  If the L</Server> parameter is supplied to
+the L</new> method then B<connect> is implicitly called during object
+construction.
+
+The B<connect> method sets the state of the object to C<Connected> if
+it successfully connects to the server.  It returns C<undef> on
+failure.
+
+=head2 copy
+
+Example:
+
+  # Here brackets indicate optional arguments:
+  my $uidList = $imap->copy($folder, $msg_1 [ , ... , $msg_n ])
+    or die "Could not copy: $@\n";
+
+Or:
+
+  # Now brackets indicate an array ref!
+  my $uidList = $imap->copy($folder, [ $msg_1, ... , $msg_n ])
+    or die "Could not copy: $@\n";
+
+The B<copy> method requires a folder name as the first argument, and a
+list of one or more messages sequence numbers (or messages UID's, if
+the I<UID> parameter is set to a true value).  The message sequence
+numbers or UID's should refer to messages in the currently selected
+folder.  Those messages will be copied into the folder named in the
+first argument.
+
+The B<copy> method returns C<undef> on failure and a true value if
+successful.  If the server to which the current Mail::IMAPClient
+object is connected supports the UIDPLUS capability then the true
+value returned by B<copy> will be a comma separated list of UID's,
+which are the UID's of the newly copied messages in the target folder.
+
+=head2 create
+
+Example:
+
+  $imap->create($new_folder)
+    or die "Could not create $new_folder: $@\n";
+
+The B<create> method accepts one argument, the name of a folder (or
+what RFC3501 calls a "mailbox") to create.  If you specify additional
+arguments to the B<create> method and your server allows additional
+arguments to the CREATE IMAP client command then the extra argument(s)
+will be passed to your server.
+
+If you specify additional arguments to the B<create> method and your
+server does not allow additional arguments to the CREATE IMAP client
+command then the extra argument(s) will still be passed to your server
+and the create will fail.
+
+B<create> returns a true value on success and C<undef> on failure.
+
+=head2 date
+
+Example:
+
+  my $date = $imap->date($msg);
+
+The B<date> method accepts one argument, a message sequence number (or
+a message UID if the L</Uid> parameter is set to a true value).  It
+returns the date of message as specified in the message's RFC822
+"Date: " header, without the "Date: " prefix.
+
+The B<date> method is a short-cut for:
+
+  my $date = $imap->get_header($msg,"Date");
+
+=head2 delete
+
+Example:
+
+  $imap->delete($folder) or die "Could not delete $folder: $@\n";
+
+The B<delete> method accepts a single argument, the name of a folder
+to delete.  It returns a true value on success and C<undef> on
+failure.
+
+=head2 deleteacl
+
+Example:
+
+  $imap->deleteacl( $folder, $userid )
+    or die "Could not delete acl: $@\n";
+
+The B<deleteacl> method accepts two input arguments, a folder name, a
+user id (or authentication identifier, to use the terminology of
+RFC2086).  See RFC2086 for more information.  (This is somewhat
+experimental and its implementation may change.)
+
+=head2 delete_message
+
+Example:
+
+  my @msgs = $imap->seen;
+  scalar(@msgs) and $imap->delete_message(\@msgs)
+    or die "Could not delete_message: $@\n";
+
+The above could also be rewritten like this:
+
+  # scalar context returns array ref
+  my $msgs = scalar($imap->seen);
+
+  scalar(@$msgs) and $imap->delete_message($msgs)
+    or die "Could not delete_message: $@\n";
+
+Or, as a one-liner:
+
+  $imap->delete_message( scalar($imap->seen) )
+    or warn "Could not delete_message: $@\n";
+  # just give warning in case failure is
+  # due to having no 'seen' msgs in the 1st place!
+
+The B<delete_message> method accepts a list of arguments.  If the
+L</Uid> parameter is not set to a true value, then each item in the
+list should be either:
+
+=over 4
+
+=item *
+
+a message sequence number,
+
+=item *
+
+a comma-separated list of message sequence numbers,
+
+=item *
+
+a reference to an array of message sequence numbers, or
+
+=back
+
+If the L</Uid> parameter is set to a true value, then each item in the
+list should be either:
+
+=over 4
+
+=item *
+
+a message UID,
+
+=item *
+
+a comma-separated list of UID's, or
+
+=item *
+
+a reference to an array of message UID's.
+
+=back
+
+The messages identified by the sequence numbers or UID's will be
+deleted.  If successful, B<delete_message> returns the number of
+messages it was told to delete.  However, since the delete is done by
+issuing the I<+FLAGS.SILENT> option of the STORE IMAP client command,
+there is no guarantee that the delete was successful for every
+message.  In this manner the B<delete_message> method sacrifices
+accuracy for speed.  Generally, though, if a single message in a list
+of messages fails to be deleted it's because it was already deleted,
+which is what you wanted anyway so why worry about it? If there is a
+more severe error, i.e. the server replies "NO", "BAD", or, banish the
+thought, "BYE", then B<delete_message> will return C<undef>.
+
+If you must have guaranteed results then use the IMAP STORE client
+command (via the default method) and use the +FLAGS (\Deleted) option,
+and then parse your results manually.
+
+Eg:
+
+  $imap->store( $msg_id, '+FLAGS (\Deleted)' );
+  my @results = $imap->History( $imap->Transaction );
+    ...           # code to parse output goes here
+
+(Frankly I see no reason to bother with any of that; if a message
+doesn't get deleted it's almost always because it's already not there,
+which is what you want anyway.  But 'your mileage may vary' and all
+that.)
+
+The IMAPClient object must be in C<Selected> status to use the
+B<delete_message> method.
+
+B<NOTE>: All the messages identified in the input argument(s) must be in
+the currently selected folder.  Failure to comply with this
+requirement will almost certainly result in the wrong message(s) being
+deleted.
+
+B<ADDITIONAL NOTE>: In the grand tradition of the IMAP protocol,
+deleting a message doesn't actually delete the message.  Really.  If
+you want to make sure the message has been deleted, you need to
+expunge the folder (via the L</expunge> method, which is implemented
+via the default method).  Or at least L</close> it.  This is generally
+considered a feature, since after deleting a message, you can change
+your mind and undelete it at any time before your L</expunge> or
+L</close>.
+
+See also: the L</delete> method, to delete a folder, the L</expunge>
+method, to expunge a folder, the L</restore_message> method to
+undelete a message, and the L</close> method (implemented here via the
+default method) to close a folder.  Oh, and don't forget about RFC3501.
+
+=head2 deny_seeing
+
+Example:
+
+  # Reset all read msgs to unread
+  # (produces error if there are no seen msgs):
+  $imap->deny_seeing( scalar($imap->seen) )
+    or die "Could not deny_seeing: $@\n";
+
+The B<deny_seeing> method accepts a list of one or more message
+sequence numbers, or a single reference to an array of one or more
+message sequence numbers, as its argument(s).  It then unsets the
+"\Seen" flag for those messages (so that you can "deny" that you ever
+saw them).  Of course, if the L</Uid> parameter is set to a true value
+then those message sequence numbers should be unique message id's.
+
+Note that specifying C<$imap-E<gt>deny_seeing(@msgs)> is just a
+shortcut for specifying C<$imap-E<gt>unset_flag("Seen",@msgs)>.
+
+=head2 disconnect
+
+Example:
+
+  $imap->disconnect or warn "Could not logout: $@\n";
+
+This method calls L</logout>, see L</logout> for details.
+
+=head2 done
+
+Example:
+
+  my $tag = $imap->idle or warn "idle failed: $@\n";
+  doSomethingA();
+  my $idlemsgs = $imap->idle_data() or warn "idle_data error: $@\n";
+  doSomethingB();
+  my $results = $imap->done($tag) or warn "Error from done: $@\n";
+
+The B<done> method tells the IMAP server to terminate the IDLE
+command.  The only argument is the I<tag> (identifier) received from
+the previous call to L</idle>.  If I<tag> is not specified a default
+I<tag> based on the B<Count> attribute is assumed to be the I<tag> to
+look for in the response from the server.
+
+If an invalid I<tag> is specified, or the default I<tag> is wrong,
+then B<done> will hang indefinitely or until a timeout occurs.
+
+If B<done> is called when an L</idle> command is not active then the
+server will likely respond with an error like I<* BAD Invalid tag>.
+
+On failure <undef> is returned and L</LastError> is set.
+
+See also L</idle>, L</idle_data> and L</Results>.
+
+=head2 examine
+
+Example:
+
+  $imap->examine($folder) or die "Could not examine: $@\n";
+
+The B<examine> method selects a folder in read-only mode and changes
+the object's state to "Selected".  The folder selected via the
+B<examine> method can be examined but no changes can be made unless it
+is first selected via the L</select> method.
+
+The B<examine> method accepts one argument, which is the name of the
+folder to select.
+
+=head2 exists
+
+Example:
+
+  $imap->exists($folder) or warn "$folder not found: $@\n";
+
+Accepts one argument, a folder name.  Returns true if the folder
+exists or false if it does not exist.
+
+=head2 expunge
+
+Example:
+
+  $imap->expunge($folder) or die "Could not expunge: $@\n";
+
+The B<expunge> method accepts one optional argument, a folder name.
+It expunges the folder specified as the argument, or the currently
+selected folder (if any) when no argument is supplied.
+
+Although RFC3501 does not permit optional arguments (like a folder
+name) to the EXPUNGE client command, the L</expunge> method does.
+Note: expunging a folder deletes the messages that have the \Deleted
+flag set (i.e. messages flagged via L</delete_message>).
+
+See also the L</close> method, which "deselects" as well as expunges.
+
+=head2 fetch
+
+Usage:
+
+  $imap->fetch( [$seq_set|ALL], @msg_data_items )
+
+Example:
+
+  my $output = $imap->fetch(@args) or die "Could not fetch: $@\n";
+
+The B<fetch> method implements the FETCH IMAP client command.  It
+accepts a list of arguments, which will be converted into a
+space-delimited list of arguments to the FETCH IMAP client command.
+If no arguments are supplied then B<fetch> does a FETCH ALL.  If the
+L</Uid> parameter is set to a true value then the first argument will
+be treated as a UID or list of UID's, which means that the UID FETCH
+IMAP client command will be run instead of FETCH.  (It would really be
+a good idea at this point to review RFC3501.)
+
+If called in array context, B<fetch> will return an array of output
+lines.  The output lines will be returned just as they were received
+from the server, so your script will have to be prepared to parse out
+the bits you want.  The only exception to this is literal strings,
+which will be inserted into the output line at the point at which they
+were encountered (without the {nnn} literal field indicator).  See
+RFC3501 for a description of literal fields.
+
+If B<fetch> is called in a scalar context, then a reference to an array
+(as described above) is returned instead of the entire array.
+
+B<fetch> returns C<undef> on failure.  Inspect L</LastError> or C<$@>
+for an explanation of your error.
+
+=head2 fetch_hash
+
+Usage:
+
+  $imap->fetch_hash( [$seq_set|ALL], @msg_data_items, [\%msg_by_ids] )
+
+Examples:
+
+  my $hashref = $imap->fetch_hash("RFC822.SIZE");
+
+ OR
+
+  my $hashref = {};
+  $imap->fetch_hash( "RFC822.SIZE", $hashref );
+  print "Msg #$_ is $hashref->{$_}->{'RFC822.SIZE'} bytes\n" for (keys %$hashref);
+
+The B<fetch_hash> method accepts a list of message attributes to be
+fetched (as described in RFC3501).  It returns a hash whose keys are
+all the messages in the currently selected folder and whose values are
+key-value pairs of fetch keywords and the message's value for that
+keyword (see sample output below).
+
+If B<fetch_hash> is called in scalar context, it returns a reference
+to the hash instead of the hash itself.  If the last argument is a hash
+reference, then that hash reference will be used as the place where
+results are stored (and that reference will be returned upon
+successful completion).  If the last argument is not a reference then
+it will be treated as one of the FETCH attributes and a new hash will
+be created and returned (either by value or by reference, depending on
+the context in which B<fetch_hash> was called).
+
+For example, if you have a folder with 3 messages and want the size
+and internal date for each of them, you could do the following:
+
+  use Mail::IMAPClient;
+  use Data::Dumper;
+  # ... other code goes here
+  $imap->select($folder);
+  my $hash = $imap->fetch_hash( "RFC822.SIZE", "INTERNALDATE" );
+  # (Same as:
+  #  my $hash = $imap->fetch_hash("RFC822.SIZE");
+  #  $imap->fetch_hash( "INTERNALDATE", $hash );
+  # ).
+  print Data::Dumper->Dumpxs( [$hash], ['$hash'] );
+
+This would result in L<Data::Dumper> output similar to the following:
+
+   $hash = {
+       '1' => {
+                  'INTERNALDATE' => '21-Sep-2002 18:21:56 +0000',
+                  'RFC822.SIZE' => '1586',
+              },
+       '2' => {
+                  'INTERNALDATE' => '22-Sep-2002 11:29:42 +0000',
+                  'RFC822.SIZE' => '1945',
+              },
+       '3' => {
+                  'INTERNALDATE' => '23-Sep-2002 09:16:51 +0000',
+                  'RFC822.SIZE' => '134314',
+              }
+     };
+
+By itself this method may be useful for tasks like obtaining the size
+of every message in a folder.  It issues one command and receives one
+(possibly long!) response from the server.
+
+If the fetch request causes the server to return data in a
+parenthesized list, the data within the parenthesized list may be
+escaped via the Escape() method. Use the Unescape() method to get the
+raw values back in this case.
+
+=head2 flags
+
+Example:
+
+  my @flags = $imap->flags($msgid)
+    or die "Could not flags: $@\n";
+
+The B<flags> method implements the FETCH IMAP client command to list a
+single message's flags.  It accepts one argument, a message sequence
+number (or a message UID, if the L</Uid> parameter is true), and
+returns an array (or a reference to an array, if called in scalar
+context) listing the flags that have been set.  Flag names are
+provided with leading backslashes.
+
+As of version 1.11, you can supply either a list of message id's or a
+reference to an array of message id's (which means either sequence
+number, if the Uid parameter is false, or message UID's, if the Uid
+parameter is true) instead of supplying a single message sequence
+number or UID.  If you do, then the return value will not be an array
+or array reference; instead, it will be a hash reference, with each
+key being a message sequence number (or UID) and each value being a
+reference to an array of flags set for that message.
+
+For example, if you want to display the flags for every message in the
+folder where you store e-mail related to your plans for world
+domination, you could do something like this:
+
+  use Mail::IMAPClient;
+  my $imap = Mail::IMAPClient->new(
+      Server   => $imaphost,
+      User     => $login,
+      Password => $pass,
+      Uid      => 1,        # optional
+  );
+
+  $imap->select("World Domination");
+  # get the flags for every message in my 'World Domination' folder
+  $flaghash = $imap->flags( scalar( $imap->search("ALL") ) );
+
+  # pump through sorted hash keys to print results:
+  for my $k ( sort { $flaghash->{$a} <=> $flaghash->{$b} } keys %$flaghash ) {
+      # print: Message 1: \Flag1, \Flag2, \Flag3
+      print "Message $k:\t", join( ", ", @{$flaghash->{$k}} ), "\n";
+  }
+
+=head2 folders
+
+Example:
+
+  $imap->folders or die "Could not list folders: $@\n";
+
+The B<folders> method returns an array listing the available folders.
+It will only be successful if the object is in the I<Authenticated> or
+I<Selected> states.
+
+The B<folders> method accepts one optional argument, which is a
+prefix.  If a prefix is supplied to the B<folders> method, then only
+folders beginning with the prefix will be returned.
+
+For example:
+
+  print join( ", ", $imap->folders ), ".\n";
+  # Prints:
+  # INBOX, Sent, Projects, Projects/Completed, Projects/Ongoing, Projects Software.
+  print join( ", ", $imap->folders("Projects") ), ".\n";
+  # Prints:
+  # Projects, Projects/Completed, Projects/Ongoing, Projects Software.
+  print join( ", ", $imap->folders("Projects" . $imap->separator) ), ".\n";
+  # Prints:
+  # Projects/Completed, Projects/Ongoing
+
+Please note that documentation previously suggested that if you just
+want to list a folder's subfolders (and not the folder itself), then
+you need to include the hierarchy separator character (as returned by
+the L</separator> method). However, this does not match the behavior
+of the existing implementation, so you will need to manually exclude
+the parent folder from the results.
+
+=head2 folders_hash
+
+  my @fhashes = $imap->folders_hash
+    or die "Could not get list of folder hashes.\n";
+
+The B<folders_hash> method accepts one optional argument, which is a
+prefix.  If a prefix is supplied to the B<folders_hash> method, then
+only folders beginning with the prefix will be returned.
+
+An array(ref) of hashes is returned that contain information about the
+requested folders.  Each hash contains three keys (name, attrs, delim)
+and looks like the following:
+
+  {
+    name  => 'Mail/Box/Name',
+    attrs => [ '\Marked', '\HasNoChildren' ],
+    delim => '/',
+  }
+
+IMAP servers implementing RFC6154 return attributes to be used to
+identify special-use mailboxes (folders).
+
+  my $sattr_re = /\A\\(?:All|Archive|Drafts|Flagged|Junk|Sent|Trash)\Z/;
+  foreach my $fhash (@fhashes) {
+      next unless defined $fhash->{name};
+      my @special = grep { $sattr_re } @{ $fhash->{attrs} };
+      print("special: $fhash->{name} : @special\n") if (@special);
+  }
+
+Version note: method added in Mail::IMAPClient 3.34
+
+=head2 xlist_folders (DEPRECATED)
+
+This method is deprecated as of version 3.34.  Please use folders_hash
+instead.  See RFC6154 for attributes to be used to identify
+special-use mailboxes (folders).
+
+Example:
+
+  my $xlist = $imap->xlist_folders
+    or die "Could not get xlist folders.\n";
+
+IMAP servers implementing the XLIST extension (such as Gmail)
+designate particular folders to be used for particular functions.
+This is useful in the case where you want to know which folder should
+be used for Trash when the actual folder name can't be predicted
+(e.g. in the case of Gmail, the folder names change depending on the
+user's locale settings).
+
+The B<xlist_folders> method returns a hash listing any "xlist" folder
+names, with the values listing the actual folders that should be used
+for those names.  For example, using this method with a Gmail user
+using the English (US) locale might give this output from
+L<Data::Dumper>:
+
+  $VAR1 = {
+      'Inbox'   => 'Inbox',
+      'AllMail' => '[Gmail]/All Mail',
+      'Trash'   => '[Gmail]/Trash',
+      'Drafts'  => '[Gmail]/Drafts',
+      'Sent'    => '[Gmail]/Sent Mail',
+      'Spam'    => '[Gmail]/Spam',
+      'Starred' => '[Gmail]/Starred'
+  };
+
+The same list for a user using the French locale might look like this:
+
+  $VAR1 = {
+      'Inbox'   => 'Bo&AO4-te de r&AOk-ception',
+      'AllMail' => '[Gmail]/Tous les messages',
+      'Trash'   => '[Gmail]/Corbeille',
+      'Drafts'  => '[Gmail]/Brouillons',
+      'Sent'    => '[Gmail]/Messages envoy&AOk-s',
+      'Spam'    => '[Gmail]/Spam',
+      'Starred' => '[Gmail]/Suivis'
+  };
+
+Mail::IMAPClient recognizes the following "xlist" folder names:
+
+=over 4
+
+=item Inbox
+
+=item AllMail
+
+=item Trash
+
+=item Drafts
+
+=item Sent
+
+=item Spam
+
+=item Starred
+
+=back
+
+These are currently the only ones supported by Gmail.  The XLIST
+extension is not documented, and there are no other known
+implementations other than Gmail, so this list is based on what Gmail
+provides.
+
+If the server does not support the XLIST extension, this method
+returns undef.
+
+Version note: method added in Mail::IMAPClient 3.21
+
+=head2 has_capability
+
+Example:
+
+  my $has_feature = $imap->has_capability($feature)
+    or die "Could not do has_capability($feature): $@\n";
+
+Returns true if the IMAP server to which the IMAPClient object is
+connected has the capability specified as an argument to
+B<has_capability>.  If the server does not have the capability then
+the empty string "" is returned, if the underlying L</capability>
+calls fails then undef is returned.
+
+=head2 idle
+
+Example:
+
+  my $tag = $imap->idle or warn "idle failed: $@\n";
+  doSomethingA();
+  my $idlemsgs = $imap->idle_data() or warn "idle_data error: $@\n";
+  doSomethingB();
+  my $results = $imap->done($tag) or warn "Error from done: $@\n";
+
+The B<idle> method tells the IMAP server the client is ready to accept
+unsolicited mailbox update messages (on the selected folder/mailbox).
+This method is only valid on servers that support the IMAP IDLE
+extension, see RFC2177 for details.
+
+The B<idle> method accepts no arguments and returns the I<tag>
+(identifier) that was sent by the client for this command.  This tag
+should be supplied as the argument to L</done> when ending the IDLE
+command.
+
+On failure <undef> is returned and L</LastError> is set.
+
+The method L</idle_data> may be used once B<idle> has been successful.
+However, no mailbox operations may be called until the B<idle> command
+has been terminated by calling L</done>.  Failure to do so will result
+in an error and the idle command will typically be terminated by the
+server.
+
+See also L</idle_data> and L</done>.
+
+=head2 idle_data
+
+Usage:
+
+  # an optional timeout in seconds may be specified
+  $imap->idle_data( [$timeout] )
+
+Example:
+
+  my $tag = $imap->idle or warn "idle failed: $@\n";
+  doSomethingA();
+  my $idlemsgs = $imap->idle_data() or warn "idle_data error: $@\n";
+  doSomethingB();
+  my $results = $imap->done($tag) or warn "Error from done: $@\n";
+
+The B<idle_data> method can be used to accept any unsolicited mailbox
+update messages that have been sent by the server during an L</idle>
+command.  This method does not send any commands to the server, it
+simply looks for and optionally waits for data from the server and
+returns that data to the caller.
+
+The B<idle_data> method accepts an optional $timeout argument and
+returns an array (or an array reference if called in scalar context)
+with the messages from the server.
+
+By default a timeout of 0 seconds is used (do not block).  Internally
+the timeout is passed to L<perlfunc/select>.  The timeout controls how
+long the select call blocks if there are no messages waiting to be
+read from the server.
+
+On failure <undef> is returned and L</LastError> is set.
+
+See also L</imap> and L</done>.
+
+Version note: method added in Mail::IMAPClient 3.23
+Warning: this method is considered experimental and the
+interface/output may change in a future version.
+
+=head2 imap4rev1
+
+Example:
+
+  $imap->imap4rev1 or die "Could not imap4rev1: $@\n";
+
+Returns true if the IMAP server to which the IMAPClient object is
+connected has the IMAP4REV1 capability.  If the server does not have
+the capability then the empty string "" is returned, if the underlying
+L</capability> calls fails then undef is returned.
+
+=head2 internaldate
+
+Example:
+
+  my $msg_internal_date = $imap->internaldate($msgid)
+    or die "Could not internaldate: $@\n";
+
+B<internaldate> accepts one argument, a message id (or UID if the
+L</Uid> parameter is true), and returns that message's internal date
+or undef if the call fails or internal date is not returned.
+
+=head2 get_bodystructure
+
+Example:
+
+  my $bodyStructObject = $imap->get_bodystructure($msgid)
+    or die "Could not get_bodystructure: $@\n";
+
+The B<get_bodystructure> method accepts one argument, a message
+sequence number or, if L</Uid> is true, a message UID.  It obtains the
+message's body structure and returns a parsed
+L<Mail::IMAPClient::BodyStructure> object for the message.
+
+=head2 get_envelope
+
+Example:
+
+  my $envObject = $imap->get_envelope(@args)
+    or die "Could not get_envelope: $@\n";
+
+The B<get_envelope> method accepts one argument, a message sequence
+number or, if L</Uid> is true, a message UID.  It obtains the
+message's envelope and returns a
+B<Mail::IMAPClient::BodyStructure::Envelope> object for the envelope,
+which is just a version of the envelope that's been parsed into a Perl
+object.
+
+For more information on how to use this object once you've gotten it,
+see the L<Mail::IMAPClient::BodyStructure> documentation.  (As of this
+writing there is no separate pod document for
+B<Mail::IMAPClient::BodyStructure::Envelope>.)
+
+=head2 getacl
+
+Example:
+
+  my $hash = $imap->getacl($folder)
+    or die "Could not getacl for $folder: $@\n";
+
+B<getacl> accepts one argument, the name of a folder.  If no argument
+is provided then the currently selected folder is used as the default.
+It returns a reference to a hash.  The keys of the hash are userids
+that have access to the folder, and the value of each element are the
+permissions for that user.  The permissions are listed in a string in
+the order returned from the server with no white space or punctuation
+between them.
+
+=head2 get_header
+
+Example:
+
+  my $messageId = $imap->get_header( $msg, "Message-Id" );
+
+The B<get_header> method accepts two arguments, a message sequence
+number or UID and the name of an RFC822 header (without the trailing
+colon).  It returns the value for that header in the message whose
+sequence number or UID was passed as the first argument.  If no value
+can be found it returns C<undef>; if multiple values are found it
+returns the first one.  Its return value is always a scalar.
+B<get_header> uses case insensitive matching to get the value, so you
+do not have to worry about the case of your second argument.
+
+The B<get_header> method is a short-cut for:
+
+  my $messageId = $imap->parse_headers($msg,"Subject")->{"Subject"}[0];
+
+=head2 getquotaroot
+
+Example:
+
+  my $results = $imap->getquotaroot($mailboxname)
+    or die "Could not getquotaroot for $mailboxname: $@\n";
+
+The B<getquotaroot> method implements the RFC2087 GETQUOTAROOT
+command.  The "$mailboxname" defaults to "INBOX" if no argument is
+provided.
+
+On error C<undef> is returned, otherwise L</Results> are returned.
+The results should have the untagged QUOTAROOT response from the
+server along with the QUOTAROOT's resource usage and limits in an
+untagged QUOTA response.
+
+See also B<RFC2087>, L</getquota>, L</setquota>, L</quota> and L</quota_usage>.
+
+=head2 getquota
+
+Example:
+
+  my $results = $imap->getquota($quotaroot)
+    or die "Could not getquota for $quotaroot: $@\n";
+
+The B<getquota> method implements the RFC2087 GETQUOTA command.  The
+"$quotaroot" defaults to "user/I<User>" if no argument is provided.
+
+On error C<undef> is returned, otherwise L</Results> are returned.
+The results from the server should have the untagged QUOTA response
+from the server.
+
+See also B<RFC2087>, L</getquotaroot>, L</quota> and L</quota_usage>.
+
+=head2 quota
+
+Example:
+
+  my $limit = $imap->quota($quotaroot)
+    or die "Could not get quota limit for $quotaroot: $@\n";
+
+The B<quota> method takes the L</Results> from L<getquota> and parses
+out the "STORAGE" limit returned by the server.  The "$quotaroot"
+defaults to "INBOX" if no argument is provided.
+
+On error C<undef> is returned, otherwise the integer "STORAGE" limit
+provided by the server is returned.
+
+See also B<RFC2087>, L</getquotaroot>, L</getquota> and L</quota_usage>.
+
+=head2 quota_usage
+
+Example:
+
+  my $usage = $imap->quota_usage($quotaroot)
+    or die "Could not get quota usage for $quotaroot: $@\n";
+
+The B<quota_usage> method takes the L</Results> from L<getquota> and
+parses out the "STORAGE" usage returned by the server.  The
+"$quotaroot" defaults to "INBOX" if no argument is provided.
+
+On error C<undef> is returned, otherwise the integer "STORAGE" usage
+provided by the server is returned.
+
+See also B<RFC2087>, L</getquotaroot>, L</getquota> and L</quota>.
+
+=head2 setquota
+
+Example:
+
+  my $results = $imap->setquota( $quotaroot, $resource, $limit )
+    or die "Could not setquota for $quotaroot: $@\n";
+
+The B<setquota> method implements the RFC2087 SETQUOTA command.  It
+accepts multiple pairs of $resource and $limit arguments.  The
+"$quotaroot" defaults to "user/I<User>" if not defined.
+
+On error C<undef> is returned, otherwise L</Results> are returned.
+
+See also B<RFC2087>, L</getquotaroot> and L</getquota>.
+
+=head2 is_parent
+
+Example:
+
+  my $hasKids = $imap->is_parent($folder);
+
+The B<is_parent> method accepts one argument, the name of a folder. It
+returns a value that indicates whether or not the folder has children.
+The value it returns is either:
+
+=over 4
+
+=item C<1> (or a positive integer)
+
+The C<\HasChildren> attribute is set, indicating that the folder has
+children.
+
+=item C<0> (zero)
+
+The C<\HasNoChildren> attribute is set, indicating that the folder has
+no children at this time.
+
+=item C<undef>
+
+The C<\NoInferiors> attribute is set, indicating the folder is not
+permitted to have children.
+
+=back
+
+Eg:
+
+  my $parenthood = $imap->is_parent($folder);
+  if ( defined($parenthood) ) {
+      if ($parenthood) {
+          print "$folder has children.\n";
+      }
+      else {
+          print "$folder is permitted children, but has none.\n";
+      }
+  }
+  else {
+      print "$folder is not permitted to have children.\n";
+  }
+
+=head2 list
+
+Example:
+
+  my @raw_output = $imap->list(@args)
+    or die "Could not list: $@\n";
+
+The B<list> method implements the IMAP LIST client command.  Arguments
+are passed to the IMAP server as received, separated from each other
+by spaces.  If no arguments are supplied then the default list command
+C<tag LIST "" '*'> is issued.
+
+The B<list> method returns an array (or an array reference, if called
+in a scalar context).  The array is the unadulterated output of the
+LIST command.  (If you want your output adulterated then see the
+L</folders> method, above.)
+
+An C<undef> value is returned in case of errors.  Be sure to check for
+it.
+
+=head2 listrights
+
+Example:
+
+  $imap->listrights( $folder, $user )
+    or die "Could not listrights: $@\n";
+
+The B<listrights> method implements the IMAP LISTRIGHTS client command
+(L<RFC2086>).  It accepts two arguments, the foldername and a user id.
+It returns the rights the specified user has for the specified folder.
+If called in a scalar context then the rights are returned a strings,
+with no punctuation or white space or any nonsense like that.  If called
+in array context then B<listrights> returns an array in which each
+element is one right.
+
+=head2 login
+
+Example:
+
+  $imap->login or die "Could not login: $@\n";
+
+The B<login> method implements the IMAP LOGIN client command to log
+into the server.  It automatically calls L</authenticate> if the
+I<Authmechanism> parameter is set to anything except 'LOGIN' otherwise
+a clear text LOGIN is attempted.
+
+The I<User> and I<Password> parameters must be set before the B<login>
+method can be invoked.  On success, a Mail::IMAPClient object with the
+Status of I<Authenticated> is returned.  On failure, undef is returned
+and $@ is set.  The methods L</new>, L</connect>, and L</Socket> may
+automatically invoke B<login> see the documentation of each method for
+details.
+
+If the L</Compress> parameter is set, the L</compress> method will
+automatically be called after successful authentication.
+
+See also L</proxyauth> and L</Proxy> for additional information
+regarding ways of authenticating with a server via SASL and/or
+PROXYAUTH.
+
+=head2 proxyauth
+
+Example:
+
+  $imap->login( "admin", "password" );
+  $imap->proxyauth("someuser");
+
+The B<proxyauth> method implements the IMAP PROXYAUTH client command.
+The command is used by Sun/iPlanet/Netscape IMAP servers to allow an
+administrative user to masquerade as another user.
+
+=head2 logout
+
+Example:
+
+  $imap->logout or die "Could not logout: $@\n";
+
+The B<logout> method implements the LOGOUT IMAP client command.  This
+method causes the server to end the connection and the IMAPClient
+client enters the I<Unconnected> state.  This method does not, destroy
+the IMAPClient object, thus the L</connect> and L</login> methods can
+be used to establish a new IMAP session.
+
+Note that RFC2683 section 3.1.2 (Severed connections) makes some
+recommendations on how IMAP clients should behave.  It is up to the
+user of this module to decide on the preferred behavior and code
+accordingly.
+
+Version note: documentation (from 2.x through 3.23) claimed that
+Mail::IMAPClient would attempt to log out of the server during
+B<DESTROY> if the object is in the L</Connected> state.  This
+documentation was apparently incorrect from at least 2.2.2 and
+possibly earlier versions on up.
+
+=head2 lsub
+
+Example:
+
+  $imap->lsub(@args) or die "Could not lsub: $@\n";
+
+The B<lsub> method implements the IMAP LSUB client command.  Arguments
+are passed to the IMAP server as received, separated from each other
+by spaces.  If no arguments are supplied then the default lsub command
+C<tag LSUB "" '*'> is issued.
+
+The B<lsub> method returns an array (or an array reference, if called
+in a scalar context).  The array is the unaltered output of the LSUB
+command.  If you want an array of subscribed folders then see the
+L</subscribed> method, below.
+
+=head2 mark
+
+Example:
+
+  $imap->mark(@msgs) or die "Could not mark: $@\n";
+
+The B<mark> method accepts a list of one or more messages sequence
+numbers, or a single reference to an array of one or more message
+sequence numbers, as its argument(s).  It then sets the "\Flagged"
+flag for those message(s).  Of course, if the L</Uid> parameter is set
+to a true value then those message sequence numbers had better be
+unique message id's.
+
+Note that specifying C<$imap-E<gt>see(@msgs)> is just a shortcut for
+specifying C<$imap-E<gt>set_flag("Flagged",@msgs)>.
+
+=head2 Massage
+
+Example:
+
+  $imap->search(HEADER => 'Message-id' => $imap->Massage($msg_id,1));
+
+WARNING: This method may be deprecated in the future, consider using
+L</Quote> instead of this method.
+
+The B<Massage> method accepts a value as an argument and, optionally,
+a second value that, when true, indicates that the first argument is
+not the name of an existing folder.
+
+WARNING: If the first argument has double quotes at the beginning and
+end of its value, those double quote will be stripped unless the
+second argument does not evaluate to true.
+
+It returns its argument as a correctly quoted string or a literal
+string.
+
+Note that you should rarely use this on folder names, since methods
+that accept folder names as an argument will call B<Quote> for
+you.
+
+=head2 message_count
+
+Example:
+
+  my $msgcount = $imap->message_count($folder);
+  defined($msgcount) or die "Could not message_count: $@\n";
+
+The B<message_count> method accepts the name of a folder as an
+argument and returns the number of messages in that folder.
+Internally, it invokes the L</status> method (see above) and parses
+out the results to obtain the number of messages.  If you don't supply
+an argument to B<message_count> then it will return the number of
+messages in the currently selected folder (assuming of course that
+you've used the L</select> or L</examine> method to select it instead
+of trying something funky).  Note that RFC2683 contains warnings about
+the use of the IMAP I<STATUS> command (and thus the L</status> method
+and therefore the B<message_count> method) against the currently
+selected folder.  You should carefully consider this before using
+B<message_count> on the currently selected folder.  You may be better
+off using L</search> or one of its variants (especially L</messages>),
+and then counting the results.  On the other hand, I regularly violate
+this rule on my server without suffering any dire consequences.  Your
+mileage may vary.
+
+=head2 message_string
+
+Example:
+
+  my $string = $imap->message_string($msgid)
+    or die "Could not message_string: $@\n";
+
+The B<message_string> method accepts a message sequence number (or
+message UID if L</Uid> is true) as an argument and returns the message
+as a string.  The returned value contains the entire message in one
+scalar variable, including the message headers.  Note that using this
+method will set the message's "\Seen" flag as a side effect, unless
+I<Peek> is set to a true value.
+
+=head2 message_to_file
+
+Example:
+
+  $imap->message_to_file( $file, @msgs )
+    or die "Could not message_to_file: $@\n";
+
+The B<message_to_file> method accepts a filename or file handle and
+one or more message sequence numbers (or message UIDs if L</Uid> is
+true) as arguments and places the message string(s) (including RFC822
+headers) into the file named in the first argument (or prints them to
+the file handle, if a file handle is passed).  The returned value is
+true on success and C<undef> on failure.
+
+If the first argument is a reference, it is assumed to be an open
+file handle and will not be closed when the method completes, If it is
+a file, it is opened in append mode, written to, then closed.
+
+Note that using this method will set the message's "\Seen" flag as a
+side effect.  But you can use the L</deny_seeing> method to set it
+back, or set the L</Peek> parameter to a true value to prevent setting
+the "\Seen" flag at all.
+
+This method currently works by making some basic assumptions about the
+server's behavior, notably that the message text will be returned as a
+literal string but that nothing else will be.  If you have a better
+idea then I'd like to hear it.
+
+=head2 message_uid
+
+Example:
+
+  my $msg_uid = $imap->message_uid($msg_seq_no)
+    or die "Could not get uid for $msg_seq_no: $@\n";
+
+The B<message_uid> method accepts a message sequence number (or
+message UID if L</Uid> is true) as an argument and returns the
+message's UID.  Yes, if L</Uid> is true then it will use the IMAP UID
+FETCH UID client command to obtain and return the very same argument
+you supplied.  This is an IMAP feature so don't complain to me about
+it.
+
+=head2 messages
+
+Example:
+
+  # Get a list of messages in the current folder:
+  my @msgs = $imap->messages or die "Could not messages: $@\n";
+  # Get a reference to an array of messages in the current folder:
+  my $msgs = $imap->messages or die "Could not messages: $@\n";
+
+If called in list context, the B<messages> method returns a list of
+all the messages in the currently selected folder.  If called in
+scalar context, it returns a reference to an array containing all the
+messages in the folder.  If you have the L</Uid> parameter turned off,
+then this is the same as specifying C<1 ... $imap-E<gt>L<message_count>>;
+if you have UID set to true then this is the same as specifying
+C<$imap-E<gt>L</search>("ALL")>.
+
+=head2 migrate
+
+Example:
+
+  $imap_src->migrate( $imap_dest, "ALL", $targetFolder )
+    or die "Could not migrate: ", $imap_src->LastError;
+
+The B<migrate> method copies the indicated message(s) B<from> the
+currently selected folder B<to> another Mail::IMAPClient object's
+session.  It requires these arguments:
+
+=over 4
+
+=item 1.
+
+a reference to the target Mail::IMAPClient object (not the calling
+object, which is connected to the source account);
+
+=item 2.
+
+the message(s) to be copied, specified as either a) the message
+sequence number (or message UID if the UID parameter is true) of a
+single message, b) a reference to an array of message sequence numbers
+(or message UID's if the UID parameter is true) or c) the special
+string "ALL", which is a shortcut for the results of
+C<L</search>("ALL")>.
+
+=item 3.
+
+the name of the destination folder on the target mailbox to receive
+the message(s).  If this argument is not supplied or is I<undef> then
+the currently selected folder on the calling object will be used. The
+destination folder will be automatically created if necessary.
+
+=back
+
+The target ($imap_dest) Mail::IMAPClient object must not be the same
+object as the source ($imap_src).
+
+This method does not attempt to minimize memory usage.  In the future
+it could be enhanced to (optionally) write message data to a temporary
+file to avoid storing the entire message in memory.
+
+To work around potential network timeouts on large messages, consider
+setting L</Reconnectretry> to 1 on both $imap_src and $imap_dest.
+
+See also C<Supportedflags>.
+
+=head2 move
+
+Example:
+
+  my $newUid = $imap->move( $newFolder, $oldUid )
+    or die "Could not move: $@\n";
+  $imap->expunge;
+
+The B<move> method moves messages from the currently selected folder
+to the folder specified in the first argument to B<move>.  If the
+L</Uid> parameter is not true, then the rest of the arguments should
+be either:
+
+=over 4
+
+=item a)
+
+a message sequence number,
+
+=item b)
+
+a comma-separated list of message sequence numbers, or
+
+=item c)
+
+a reference to an array of message sequence numbers.
+
+=back
+
+If the L</Uid> parameter is true, then the arguments should be:
+
+=over 4
+
+=item a)
+
+a message UID,
+
+=item b)
+
+a comma-separated list of message UID's, or
+
+=item c)
+
+a reference to an array of message UID's.
+
+=back
+
+If the target folder does not exist then it will be created.
+
+If move is successful, then it returns a true value.  Furthermore, if
+the Mail::IMAPClient object is connected to a server that has the
+UIDPLUS capability, then the true value will be the comma-separated
+list of UID's for the newly copied messages.  The list will be in the
+order in which the messages were moved which should correspond to the
+order of the message UID provided by the caller.
+
+If the move is not successful then B<move> returns C<undef>.
+
+Note that a move really just involves copying the message to the new
+folder and then setting the I<\Deleted> flag.  To actually delete the
+original message you will need to run L</expunge> (or L</close>).
+
+=head2 namespace
+
+Example:
+
+  my $refs = $imap->namespace
+    or die "Could not namespace: $@\n";
+
+The namespace method runs the NAMESPACE IMAP command (as defined in
+RFC 2342).  When called in a list context, it returns a list of three
+references.  Each reference looks like this:
+
+  [
+    [ $prefix_1, $separator_1 ],
+    [ $prefix_2, $separator_2 ],
+    [ $prefix_n, $separator_n ],
+  ]
+
+The first reference provides a list of prefixes and separator
+characters for the available personal namespaces.  The second
+reference provides a list of prefixes and separator characters for the
+available shared namespaces.  The third reference provides a list of
+prefixes and separator characters for the available public namespaces.
+
+If any of the three namespaces are unavailable on the current server
+then an 'undef' is returned instead of a reference.  So for example if
+shared folders were not supported on the server but personal and
+public namespaces were both available (with one namespace each), the
+returned value might resemble this:
+
+  [ [ "", "/" ] , undef, [ "#news", "." ] ];
+
+If the B<namespace> method is called in scalar context, it returns a
+reference to the above-mentioned list of three references, thus
+creating a single structure that would pretty-print something like
+this:
+
+  $VAR1 = [
+      [
+          [ $user_prefix_1, $user_separator_1 ],
+          [ $user_prefix_2, $user_separator_2 ],
+          [ $user_prefix_n, $user_separator_n ],
+      ],                    # or undef
+      [
+          [ $shared_prefix_1, $shared_separator_1 ],
+          [ $shared_prefix_2, $shared_separator_2 ],
+          [ $shared_prefix_n, $shared_separator_n ],
+      ],                    # or undef
+      [
+          [ $public_prefix_1, $public_separator_1 ],
+          [ $public_prefix_2, $public_separator_2 ],
+          [ $public_prefix_n, $public_separator_n ],
+      ],                    # or undef
+  ];
+
+=head2 on
+
+Example:
+
+  my @msgs = $imap->on($Rfc3501_date)
+    or warn "Could not find messages sent on $Rfc3501_date: $@\n";
+
+The B<on> method works just like the L</since> method, below, except
+it returns a list of messages whose internal system dates are the same
+as the date supplied as the argument.
+
+=head2 parse_headers
+
+Example:
+
+  my $hashref = $imap->parse_headers($msg||\@msgs, "Date", "Subject")
+    or die "Could not parse_headers: $@\n";
+
+The B<parse_headers> method accepts as arguments a message sequence
+number and a list of header fields.  It returns a hash reference in
+which the keys are the header field names (without the colon) and the
+values are references to arrays of values.  A picture would look
+something like this:
+
+  $hashref = $imap->parse_headers(1,"Date","Received","Subject","To");
+  $hashref = {
+      "Date"     => [ "Thu, 09 Sep 1999 09:49:04 -0400" ]  ,
+      "Received" => [ q/
+        from mailhub ([111.11.111.111]) by mailhost.bigco.com
+        (Netscape Messaging Server 3.6)  with ESMTP id AAA527D for
+        <bigshot@bigco.com>; Fri, 18 Jun 1999 16:29:07 +0000
+        /, q/
+        from directory-daemon by mailhub.bigco.com (PMDF V5.2-31 #38473)
+        id <0FDJ0010174HF7@mailhub.bigco.com> for bigshot@bigco.com
+        (ORCPT rfc822;big.shot@bigco.com); Fri, 18 Jun 1999 16:29:05 +0000 (GMT)
+        /, q/
+        from someplace ([999.9.99.99]) by smtp-relay.bigco.com (PMDF V5.2-31 #38473)
+        with ESMTP id <0FDJ0000P74H0W@smtp-relay.bigco.com> for big.shot@bigco.com; Fri,
+        18 Jun 1999 16:29:05 +0000 (GMT)
+        /] ,
+      "Subject" => [ qw/ Help! I've fallen and I can't get up!/ ] ,
+      "To"      => [ "Big Shot <big.shot@bigco.com> ] ,
+  };
+
+The text in the example for the "Received" array has been formatted to
+make reading the example easier.  The actual values returned are just
+strings of words separated by spaces and with newlines and carriage
+returns stripped off.  The I<Received> header is probably the main
+reason that the B<parse_headers> method creates a hash of lists rather
+than a hash of values.
+
+If the second argument to B<parse_headers> is 'ALL' or if it is
+unspecified then all available headers are included in the returned
+hash of lists.
+
+If you're not emotionally prepared to deal with a hash of lists then
+you can always call the L</fetch> method yourself with the appropriate
+parameters and parse the data out any way you want to.  Also, in the
+case of headers whose contents are also reflected in the envelope, you
+can use the L</get_envelope> method as an alternative to
+L</parse_headers>.
+
+If the L</Uid> parameter is true then the first argument will be
+treated as a message UID.  If the first argument is a reference to an
+array of message sequence numbers (or UID's if L</Uid> is true), then
+B<parse_headers> will be run against each message in the array.  In
+this case the return value is a hash, in which the key is the message
+sequence number (or UID) and the value is a reference to a hash as
+described above.
+
+An example of using B<parse_headers> to print the date and subject of
+every message in your smut folder could look like this:
+
+  use Mail::IMAPClient;
+  my $imap = Mail::IMAPClient->new(
+      Server => $imaphost, User => $login, Password => $pass, Uid => 1
+  );
+
+  $imap->select("demo");
+
+  my $msgs = $imap->search("ALL");
+  for my $h (
+
+   # get the Subject and Date from every message in folder "demo" the
+   # first arg is a reference to an array listing all messages in the
+   # folder (which is what gets returned by the $imap->search("ALL")
+   # method when called in scalar context) and the remaining arguments
+   # are the fields to parse out The key is the message number, which
+   # in this case we don't care about:
+
+    values %{ $imap->parse_headers( $msgs , "Subject", "Date") } )
+  {
+      # $h is the value of each element in the hash ref returned
+      # from parse_headers, and $h is also a reference to a hash.
+      # We'll only print the first occurrence of each field because
+      # we don't expect more than one Date: or Subject: line per
+      # message.
+      print map { "$_:\t$h->{$_}[0]\n"} keys %$h;
+  }
+
+=head2 recent
+
+Example:
+
+  my @recent = $imap->recent or warn "No recent msgs: $@\n";
+
+The B<recent> method performs an IMAP SEARCH RECENT search against the
+selected folder and returns an array of sequence numbers (or UID's, if
+the L</Uid> parameter is true) of messages that are recent.
+
+=head2 recent_count
+
+Example:
+
+  my $count = 0;
+  defined($count = $imap->recent_count($folder))
+    or die "Could not recent_count: $@\n";
+
+The B<recent_count> method accepts as an argument a folder name.  It
+returns the number of recent messages in the folder (as returned by
+the IMAP client command "STATUS folder RECENT"), or C<undef> in the
+case of an error.  The B<recent_count> method was contributed by Rob
+Deker (deker@ikimbo.com).
+
+=head2 noop
+
+Example:
+
+  $imap->noop or die "noop failed: $@\n";
+
+The B<noop> method performs an IMAP NOOP command.  Per RFC3501 this
+command does nothing and always succeeds.  However, if a connection
+times out or other errors occur while communicating with the server,
+this method can still fail.  This command can be used as a periodic
+poll to check for (untagged) status updates (new messages, etc.) from
+the server and also to reset any inactivity/auto-logout timers the
+server may maintain.
+
+=head2 reconnect
+
+Example:
+
+  $imap->noop or $imap->reconnect or die "noop failed: $@\n";
+
+Attempt to reconnect if the IMAP connection unless $imap is already in
+the IsConnected state.  This method calls L</connect> and optionally
+L</select> if a Folder was previously selected.  On success, returns
+the (same) $imap object.  On failure <undef> is returned and
+L</LastError> is set.
+
+Version note: method added in Mail::IMAPClient 3.17
+
+=head2 rename
+
+Example:
+
+  $imap->rename($oldname,$nedwname)
+    or die "Could not rename: $@\n";
+
+The B<rename> method accepts two arguments: the name of an existing
+folder, and a new name for the folder.  The existing folder will be
+renamed to the new name using the RENAME IMAP client command.
+B<rename> will return a true value if successful, or C<undef> if
+unsuccessful.
+
+=head2 restore_message
+
+Example:
+
+  $imap->restore_message(@msgs) or die "Could not restore_message: $@\n";
+
+The B<restore_message> method is used to undo a previous
+L</delete_message> operation (but not if there has been an intervening
+L</expunge> or L</close>).  The IMAPClient object must be in
+L</Selected> status to use the B<restore_message> method.
+
+The B<restore_message> method accepts a list of arguments.  If the
+L</Uid> parameter is not set to a true value, then each item in the
+list should be either:
+
+=over 4
+
+=item >
+
+a message sequence number,
+
+=item >
+
+a comma-separated list of message sequence numbers,
+
+=item >
+
+a reference to an array of message sequence numbers, or
+
+=back
+
+If the L</Uid> parameter is set to a true value, then each item in the
+list should be either:
+
+=over 4
+
+=item >
+
+a message UID,
+
+=item >
+
+a comma-separated list of UID's, or
+
+=item >
+
+a reference to an array of message UID's.
+
+=back
+
+The messages identified by the sequence numbers or UID's will have
+their I<\Deleted> flags cleared, effectively "undeleting" the
+messages.  B<restore_message> returns the number of messages it was
+able to restore.
+
+Note that B<restore_messages> is similar to calling
+C<L</unset_flag>("\Deleted",@msgs)>, except that B<restore_messages>
+returns a (slightly) more meaningful value. Also it's easier to type.
+
+=head2 run
+
+Example:
+
+  $imap->run(@args) or die "Could not run: $@\n";
+
+The B<run> method is provided to make those uncommon things
+possible... however, we would like you to contribute the knowledge of
+missing features with us.
+
+The B<run> method excepts one or two arguments.  The first argument is
+a string containing an IMAP Client command, including a tag and all
+required arguments.  The optional second argument is a string to look
+for that will indicate success.  (The default is C</OK.*/>).  The
+B<run> method returns an array (or arrayref in scalar context) of
+output lines from the command, which you are free to parse as you see
+fit.
+
+The B<run> method does not do any syntax checking, other than
+rudimentary checking for a tag.
+
+When B<run> processes the command, it increments the transaction count
+and saves the command and responses in the History buffer in the same
+way other commands do.  However, it also creates a special entry in
+the History buffer named after the tag supplied in the string passed
+as the first argument.  If you supply a numeric value as the tag then
+you may risk overwriting a previous transaction's entry in the History
+buffer.
+
+If you want the control of B<run> but you don't want to worry about
+tags then see L</"tag_and_run">, below.
+
+=head2 search
+
+Example:
+
+  my $msgs1 = $imap->search(@args);
+  if ($msgs) {
+      print "search matches: @$msgs1";
+  }
+  else {
+      warn "Error in search: $@\n" if $@;
+  }
+
+  # or  note: be sure to quote string properly
+  my $msgs2 = $imap->search( \( $imap->Quote($msgid), "FROM", q{"me"} ) )
+    or warn "search failed: $@\n";
+
+  # or  note: be sure to quote string properly
+  my $msgs3 = $imap->search('TEXT "string not in mailbox"')
+    or warn "search failed: $@\n";
+
+The B<search> method implements the SEARCH IMAP client command.  Any
+arguments supplied to B<search> are prefixed with a space then
+appended to the SEARCH IMAP client command.  The SEARCH IMAP client
+command allows for many options and arguments.  See RFC3501 for
+details.
+
+As of version 3.17 B<search> tries to "DWIM" by automatically quoting
+things that likely need quotes when the words do not match any of the
+following:
+
+    ALL ANSWERED BCC BEFORE BODY CC DELETED DRAFT FLAGGED
+    FROM HEADER KEYWORD LARGER NEW NOT OLD ON OR RECENT
+    SEEN SENTBEFORE SENTON SENTSINCE SINCE SMALLER SUBJECT
+    TEXT TO UID UNANSWERED UNDELETED UNDRAFT UNFLAGGED
+    UNKEYWORD UNSEEN
+
+The following options exist to avoid the automatic quoting (note:
+caller is responsible for verifying the data sent in these cases is
+properly escaped/quoted):
+
+=over 4
+
+=item *
+
+specify a single string/argument in the call to search.
+
+=item *
+
+specify args as scalar references (SCALAR) and the values of those
+SCALAR refs will be passed along as-is.
+
+=back
+
+The B<search> method returns an array containing sequence numbers of
+messages that passed the SEARCH IMAP client command's search criteria.
+If the L</Uid> parameter is true then the array will contain message
+UID's.  If B<search> is called in scalar context then a pointer to the
+array will be passed, instead of the array itself.  If no messages
+meet the criteria then B<search> returns an empty list (when in list
+context) or C<undef> (in scalar context).
+
+Since a valid, successful search can legitimately return zero matches,
+you may wish to distinguish between a search that correctly returns
+zero hits and a search that has failed for some other reason (i.e.
+invalid search parameters).  Therefore, the C<$@> variable will always
+be cleared before the I<SEARCH> command is issued to the server, and
+will thus remain empty unless the server gives a I<BAD> or I<NO>
+response to the I<SEARCH> command.
+
+=head2 see
+
+Example:
+
+  $imap->see(@msgs) or die "Could not see: $@\n";
+
+The B<see> method accepts a list of one or more messages sequence
+numbers, or a single reference to an array of one or more message
+sequence numbers, as its argument(s).  It then sets the I<\Seen> flag
+for those message(s).  Of course, if the L</Uid> parameter is set to a
+true value then those message sequence numbers had better be unique
+message id's, but then you already knew that, didn't you?
+
+Note that specifying C<$imap-E<gt>see(@msgs)> is just a shortcut for
+specifying C<$imap-E<gt>L</set_flag>("Seen",@msgs)>.
+
+=head2 seen
+
+Example:
+
+  my @seenMsgs = $imap->seen or warn "No seen msgs: $@\n";
+
+The B<seen> method performs an IMAP SEARCH SEEN search against the
+selected folder and returns an array of sequence numbers of messages
+that have already been seen (ie their I<\Seen> flag is set).  If the
+L</Uid> parameter is true then an array of message UID's will be
+returned instead.  If called in scalar context than a reference to the
+array (rather than the array itself) will be returned.
+
+=head2 select
+
+Example:
+
+  $imap->select($folder) or die "Could not select: $@\n";
+
+The B<select> method selects a folder and changes the object's state
+to I<Selected>.  It accepts one argument, which is the name of the
+folder to select.
+
+=head2 selectable
+
+Example:
+
+  foreach my $f ( grep( $imap->selectable($_), $imap->folders ) ) {
+      $imap->select($f);
+  }
+
+The B<selectable> method accepts one value, a folder name, and returns
+true if the folder is selectable or false if it is not selectable.
+
+=head2 sentbefore
+
+Example:
+
+  my @msgs = $imap->sentbefore($Rfc3501_date)
+    or warn "Could not find any msgs sent before $Rfc3501_date: $@\n";
+
+The B<sentbefore> method works just like L</"sentsince">, below,
+except it searches for messages that were sent before the date
+supplied as an argument to the method.
+
+=head2 senton
+
+Example:
+
+  my @msgs = $imap->senton($Rfc3501_date)
+    or warn "Could not find any messages sent on $Rfc3501_date: $@\n";
+
+The B<senton> method works just like L</"sentsince">, below, except it
+searches for messages that were sent on the exact date supplied as an
+argument to the method.
+
+=head2 sentsince
+
+Example:
+
+  my @msgs = $imap->sentsince($Rfc3501_date)
+    or warn "Could not find any messages sent since $Rfc3501_date: $@\n";
+
+The B<sentsince> method accepts one argument, a date in either epoch
+time format (seconds since 1/1/1970, or as output by
+L<time|perlfunc/time> and as accepted by
+L<localtime|perlfunc/localtime>) or in the I<date_text> format as
+defined in RFC3501 (dd-Mon-yyyy, where Mon is the English-language
+three-letter abbreviation for the month).
+
+It searches for items in the currently selected folder for messages
+sent since the day whose date is provided as the argument.  It uses
+the RFC822 I<Date:> header to determine the I<sentsince> date.
+(Actually, it the server that uses the I<Date:> header; this
+documentation just assumes that the date is coming from the I<Date:>
+header because that's what RFC3501 dictates.)
+
+In the case of arguments supplied as a number of seconds, the returned
+result list will include items sent on or after that day, regardless
+of whether they arrived before the specified time on that day.  The
+IMAP protocol does not support searches at a granularity finer than a
+day, so neither do I.  On the other hand, the only thing I check for
+in a I<date_text> argument is that it matches the pattern
+C</\d\d-\D\D\D-\d\d\d\d/> (notice the lack of anchors), so if your
+server lets you add something extra to a I<date_text> string then so
+will Mail::IMAPClient.
+
+If you'd like, you can use the L</Rfc3501_date> method to convert from
+epoch time (as returned by L<time|perlfunc/time>) into an RFC3501 date
+specification.
+
+=head2 separator
+
+Example:
+
+  my $sepChar = $imap->separator(@args)
+    or die "Could not get separator: $@\n";
+
+The B<separator> method returns the character used as a separator
+character in folder hierarchies.  On UNIX-based servers, this is often
+but not necessarily a forward slash (/).  It accepts one argument, the
+name of a folder whose hierarchy's separator should be returned.  If
+no folder name is supplied then the separator for the INBOX is
+returned, which probably is good enough.
+
+If you want your programs to be portable from IMAP server brand X to
+IMAP server brand Y, then you should never use hard-coded separator
+characters to specify subfolders.  (In fact, it's even more
+complicated than that, since some server don't allow any subfolders at
+all, some only allow subfolders under the "INBOX" folder, and some
+forbid subfolders in the inbox but allow them "next" to the inbox.
+Furthermore, some server implementations do not allow folders to
+contain both subfolders and mail messages; other servers allow this.)
+
+=head2 set_flag
+
+Example:
+
+  $imap->set_flag( "Seen", @msgs )
+    or die "Could not set flag: $@\n";
+
+The B<set_flag> method accepts the name of a flag as its first
+argument and a list of one or more messages sequence numbers, or a
+single reference to an array of one or more message sequence numbers,
+as its next argument(s).  It then sets the flag specified for those
+message(s).  Of course, if the L</Uid> parameter is set to a true
+value then those message sequence numbers had better be unique message
+id's, just as you'd expect.
+
+Note that when specifying the flag in question, the preceding
+backslash (\) is entirely optional.  (For you, that is.
+Mail::IMAPClient still has remember to stick it in there before
+passing the command to the server if the flag is one of the reserved
+flags specified in RFC3501.  This is in fact so important that the
+method checks its argument and adds the backslash when necessary,
+which is why you don't have to worry about it overly much.)
+
+=head2 setacl
+
+Example:
+
+  $imap->setacl( $folder, $userid, $aclstring )
+    or die "Could not set acl: $@\n";
+
+The B<setacl> method accepts three input arguments, a folder name, a
+user id (or authentication identifier, to use the terminology of
+RFC2086), and an access rights modification string.  See RFC2086 for
+more information.  (This is somewhat experimental and its
+implementation may change.)
+
+=head2 since
+
+Example:
+
+  my @msgs = $imap->since($date)
+    or warn "Could not find any messages since $date: $@\n";
+
+The B<since> method accepts a date in either epoch format (seconds
+since 1/1/1970, or as output by L<perlfunc/time> and as accepted by
+L<perlfunc/localtime>) or in the I<date_text> format as defined in
+RFC3501 (dd-Mon-yyyy, where Mon is the English-language three-letter
+abbreviation for the month).  It searches for items in the currently
+selected folder for messages whose internal dates are on or after the
+day whose date is provided as the argument.  It uses the internal
+system date for a message to determine if that message was sent since
+the given date.
+
+In the case of arguments supplied as a number of seconds, the returned
+result list will include items whose internal date is on or after that
+day, regardless of whether they arrived before the specified time on
+that day.
+
+If B<since> is called in a list context then it will return a list of
+messages meeting the I<SEARCH SINCE> criterion, or an empty list if no
+messages meet the criterion.
+
+If B<since> is called in a scalar context then it will return a
+reference to an array of messages meeting the I<SEARCH SINCE>
+criterion, or C<undef> if no messages meet the criterion.
+
+Since B<since> is a front-end to L</search>, some of the same rules
+apply.  For example, the C<$@> variable will always be cleared before
+the I<SEARCH> command is issued to the server, and will thus remain
+empty unless the server gives a I<BAD> or I<NO> response to the
+I<SEARCH> command.
+
+=head2 size
+
+Example:
+
+  my $size = $imap->size($msgId)
+    or die "Could not find size of message $msgId: $@\n";
+
+The B<size> method accepts one input argument, a sequence number (or
+message UID if the L</Uid> parameter is true).  It returns the size of
+the message in the currently selected folder with the supplied
+sequence number (or UID).  The IMAPClient object must be in a
+I<Selected> state in order to use this method.
+
+=head2 sort
+
+Example:
+
+  my @msgs = $imap->sort(@args);
+  warn "Error in sort: $@\n" if $@;
+
+The B<sort> method is just like the L</search> method, only different.
+It implements the SORT extension as described in
+F<http://search.ietf.org/internet-drafts/draft-ietf-imapext-sort-10.txt>.
+It would be wise to use the L</has_capability> method to verify that
+the SORT capability is available on your server before trying to use
+the B<sort> method.  If you forget to check and you're connecting to a
+server that doesn't have the SORT capability then B<sort> will return
+undef.  L</LastError> will then say you are "BAD".  If your server
+doesn't support the SORT capability then you'll have to use L</search>
+and then sort the results yourself.
+
+The first argument to B<sort> is a space-delimited list of sorting
+criteria.  The Internet Draft that describes SORT requires that this
+list be wrapped in parentheses, even if there is only one sort
+criterion.  If you forget the parentheses then the B<sort> method will
+add them.  But you have to forget both of them, or none.  This isn't
+CMS running under VM!
+
+The second argument is a character set to use for sorting.  Different
+character sets use different sorting orders, so this argument is
+important.  Since all servers must support UTF-8 and US-ASCII if they
+support the SORT capability at all, you can use one of those if you
+don't have some other preferred character set in mind.
+
+The rest of the arguments are searching criteria, just as you would
+supply to the L</search> method.  These are all documented in RFC3501.
+If you just want all of the messages in the currently selected folder
+returned to you in sorted order, use I<ALL> as your only search
+criterion.
+
+The B<sort> method returns an array containing sequence numbers of
+messages that passed the SORT IMAP client command's search criteria.
+If the L</Uid> parameter is true then the array will contain message
+UID's.  If B<sort> is called in scalar context then a pointer to the
+array will be passed, instead of the array itself.  The message
+sequence numbers or unique identifiers are ordered according to the
+sort criteria specified.  The sort criteria are nested in the order
+specified; that is, items are sorted first by the first criterion, and
+within the first criterion they are sorted by the second criterion,
+and so on.
+
+The sort method will clear C<$@> before attempting the I<SORT>
+operation just as the L</search> method does.
+
+=head2 starttls
+
+Example:
+
+  $imap->starttls() or die "starttls failed: $@\n";
+
+The B<starttls> method accepts no arguments.  This method is used to
+upgrade an exiting connection which is not authenticated to a TLS/SSL
+connection by using the IMAP STARTTLS command followed by using the
+B<start_SSL> class method from L<IO::Socket::SSL> to do the necessary
+TLS negotiation.  The negotiation is done in a blocking fashion with a
+default B<Timeout> of 30 seconds.  The arguments used in the call to
+B<start_SSL> can be controlled by setting the Mail::IMAPClient
+L</Starttls> attribute to an ARRAY reference containing the desired
+arguments.
+
+Version note: method added in Mail::IMAPClient 3.22
+
+=head2 status
+
+Example:
+
+  my @rawdata = $imap->status( $folder, qw/(Messages)/ )
+    or die "Error obtaining status: $@\n";
+
+The B<status> method accepts one argument, the name of a folder (or
+mailbox, to use RFC3501's terminology), and returns an array
+containing the results of running the IMAP STATUS client command
+against that folder.  If additional arguments are supplied then they
+are appended to the IMAP STATUS client command string, separated from
+the rest of the string and each other with spaces.
+
+If B<status> is not called in an array context then it returns a
+reference to an array rather than the array itself.
+
+The B<status> method should not be confused with the B<Status> method
+(with an uppercase 'S'), which returns information about the
+IMAPClient object.  (See the section labeled L</"Status Methods">,
+below).
+
+=head2 store
+
+Example:
+
+  $imap->store(@args) or die "Could not store: $@\n";
+
+The B<store> method accepts a message sequence number or
+comma-separated list of message sequence numbers as a first argument,
+a message data item name, and a value for the message data item.
+Currently, data items are the word "FLAGS" followed by a space and a
+list of flags (in parens).  The word "FLAGS" can be modified by
+prefixing it with either a "+" or a "-" (to indicate "add these flags"
+or "remove these flags") and by suffixing it with ".SILENT" (which
+reduces the amount of output from the server; very useful with large
+message sets).  Normally you won't need to call B<store> because there
+are oodles of methods that will invoke store for you with the correct
+arguments.  Furthermore, these methods are friendlier and more
+flexible with regards to how you specify your arguments.  See for
+example L</see>, L</deny_seeing>, L</delete_message>, and
+L</restore_message>.  Or L</mark>, L</unmark>, L</set_flag>, and
+L</unset_flag>.
+
+=head2 subject
+
+Example:
+
+  my $subject = $imap->subject($msg);
+
+The B<subject> method accepts one argument, a message sequence number
+(or a message UID, if the I<Uid> parameter is true).  The text in the
+"Subject" header of that message is returned (without the "Subject: "
+prefix).  This method is a short-cut for:
+
+  my $subject = $imap->get_header($msg, "Subject");
+
+=head2 subscribed
+
+Example:
+
+  my @subscribedFolders = $imap->subscribed
+    or warn "Could not find subscribed folders: $@\n";
+
+The B<subscribed> method works like the B<folders> method, above,
+except that the returned list (or array reference, if called in scalar
+context) contains only the subscribed folders.
+
+Like L</folders>, you can optionally provide a prefix argument to the
+B<subscribed> method.
+
+=head2 tag_and_run
+
+Example:
+
+  my $output = $imap->tag_and_run(@args)
+    or die "Could not tag_and_run: $@\n";
+
+The B<tag_and_run> method accepts one or two arguments.  The first
+argument is a string containing an IMAP Client command, without a tag
+but with all required arguments.  The optional second argument is a
+string to look for that will indicate success (without pattern
+delimiters).  The default is C<OK.*>.
+
+The B<tag_and_run> method will prefix your string (from the first
+argument) with the next transaction number and run the command.  It
+returns an array of output lines from the command, which you are free
+to parse as you see fit.  Using this method instead of B<run> (above)
+will free you from having to worry about handling the tags (and from
+worrying about the side affects of naming your own tags).
+
+=head2 uidexpunge
+
+Example:
+
+  $imap->uidexpunge(@uids) or die "Could not uidexpunge: $@\n";
+
+The B<uidexpunge> method implements the UID EXPUNGE IMAP (RFC4315
+UIDPLUS ext) client command to permanently remove all messages that
+have the \Deleted flag set and have a UID that is included in the list
+of UIDs.
+
+B<uidexpunge> returns an array or arrayref (scalar context) of output
+lines returned from the UID EXPUNGE command.
+
+B<uidexpunge> returns undef on failure.
+
+If the server does not support the UIDPLUS extension, this method
+returns undef.
+
+=head2 uidnext
+
+Example:
+
+  my $nextUid = $imap->uidnext($folder) or die "Could not uidnext: $@\n";
+
+The B<uidnext> method accepts one argument, the name of a folder, and
+returns the numeric string that is the next available message UID for
+that folder.
+
+=head2 thread
+
+Example:
+
+  my $thread = $imap->thread($algorithm, $charset, @search_args );
+
+The B<thread> method accepts zero to three arguments.  The first
+argument is the threading algorithm to use, generally either
+I<ORDEREDSUBJECT> or I<REFERENCES>.  The second argument is the
+character set to use, and the third argument is the set of search
+arguments to use.
+
+If the algorithm is not supplied, it defaults to I<REFERENCES> if
+available, or I<ORDEREDSUBJECT> if available.  If neither of these is
+available then the B<thread> method returns undef.
+
+If the character set is not specified it will default to I<UTF-8>.
+
+If the search arguments are not specified, the default is I<ALL>.
+
+If B<thread> is called for an object connected to a server that does
+not support the THREADS extension then the B<thread> method will
+return C<undef>.
+
+The B<threads> method will issue the I<THREAD> command as defined in
+F<http://www.ietf.org/internet-drafts/draft-ietf-imapext-thread-11.txt>.
+It returns an array of threads.  Each element in the array is either a
+message id or a reference to another array of (sub)threads.
+
+If the L</Uid> parameter is set to a true value then the message id's
+returned in the thread structure will be message UID's.  Otherwise
+they will be message sequence numbers.
+
+=head2 uidvalidity
+
+Example:
+
+  my $validity = $imap->uidvalidity($folder)
+    or die "Could not uidvalidity: $@\n";
+
+The B<uidvalidity> method accepts one argument, the name of a folder,
+and returns the numeric string that is the unique identifier validity
+value for the folder.
+
+=head2 unmark
+
+Example:
+
+  $imap->unmark(@msgs) or die "Could not unmark: $@\n";
+
+The B<unmark> method accepts a list of one or more messages sequence
+numbers, or a single reference to an array of one or more message
+sequence numbers, as its argument(s).  It then unsets the I<\Flagged>
+flag for those message(s).  Of course, if the L</Uid> parameter is set
+to a true value then those message sequence numbers should really be
+unique message id's.
+
+Note that specifying C<$imap-E<gt>unmark(@msgs)> is just a shortcut
+for specifying C<$imap-E<gt>unset_flag("Flagged",@msgs)>.
+
+Note also that the I<\Flagged> flag is just one of many possible
+flags.  This is a little confusing, but you'll have to get used to the
+idea that among the reserved flags specified in RFC3501 is one name
+I<\Flagged>.  There is no specific meaning for this flag; it means
+whatever the mailbox owner (or delegate) wants it to mean when it is
+turned on.
+
+=head2 unseen
+
+Example:
+
+  my @unread = $imap->unseen or warn "Could not find unseen msgs: $@\n";
+
+The B<unseen> method performs an IMAP SEARCH UNSEEN search against the
+selected folder and returns an array of sequence numbers of messages
+that have not yet been seen (ie their I<\Seen> flag is not set).  If
+the L</Uid> parameter is true then an array of message UID's will be
+returned instead.  If called in scalar context than a pointer to the
+array (rather than the array itself) will be returned.
+
+Note that when specifying the flag in question, the preceding
+backslash (\) is entirely optional.
+
+=head2 unseen_count
+
+Example:
+
+  foreach my $f ($imap->folders) {
+      print "The $f folder has ",
+        $imap->unseen_count($f)||0, " unseen messages.\n";
+  }
+
+The B<unseen_count> method accepts the name of a folder as an argument
+and returns the number of unseen messages in that folder.  If no
+folder argument is provided then it returns the number of unseen
+messages in the currently selected Folder.
+
+=head2 unset_flag
+
+Example:
+
+  $imap->unset_flag( "\Seen", @msgs )
+    or die "Could not unset_flag: $@\n";
+
+The B<unset_flag> method accepts the name of a flag as its first
+argument and a list of one or more messages sequence numbers, or a
+single reference to an array of one or more message sequence numbers,
+as its next argument(s).  It then unsets the flag specified for those
+message(s).  Of course, if the L</Uid> parameter is set to a true
+value then those message sequence numbers had better be unique message
+id's, just as you'd expect.
+
+=head1 Other IMAP Client Commands
+
+Until release C<2.99>, when you called a method which did not exist,
+they where automatically translated into an IMAP call with the same
+name via an AUTOLOAD hack.  This "feature" was removed for various
+reasons: people made typos in the capitalization of method names, and
+the program still seemed to work correctly.  Besides, it blocked
+further development of this module, because people did not contribute
+their private extensions to the protocol implementation.
+
+=head2 copy($msg, $folder)
+
+Copy a message from the currently selected folder in the folder whose
+name is in C<$folder>
+
+=head2 subscribe($folder)
+
+Subscribe to a folder
+
+B<CAUTION:> Once again, remember to quote your quotes (or use the
+L</Quote> method) if you want quotes to be part of the IMAP command
+string.
+
+You can also use the default method to override the behavior of
+implemented IMAP methods by changing the case of the method name,
+preferably to all-uppercase so as not to conflict with the Class
+method and accessor method namespace.  For example, if you don't want
+the L</search> method's behavior (which returns a list of message
+numbers) but would rather have an array of raw data returned from your
+L</search> operation, you can issue the following snippet:
+
+  my @raw = $imap->SEARCH("SUBJECT","Whatever...");
+
+which is slightly more efficient than the equivalent:
+
+  $imap->search("SUBJECT","Whatever...");
+  my @raw = $imap->Results;
+
+Of course you probably want the search results tucked nicely into a
+list for you anyway, in which case you might as well use the
+L</search> method.
+
+=head1 Parameters
+
+There are several parameters that influence the behavior of an
+IMAPClient object.  Each is set by specifying a named value pair
+during new method invocation as follows:
+
+  my $imap = Mail::IMAPClient->new ( parameter  => "value",
+      parameter2 => "value",
+      ...
+  );
+
+Parameters can also be set after an object has been instantiated by
+using the parameter's eponymous accessor method like this:
+
+  my $imap = Mail::IMAPClient->new;
+     $imap->parameter( "value");
+     $imap->parameter2("value");
+
+The eponymous accessor methods can also be used without arguments to
+obtain the current value of the parameter as follows:
+
+  my $imap = Mail::IMAPClient->new;
+     $imap->parameter( "value");
+     $imap->parameter2("value");
+
+    ...    # A whole bunch of awesome Perl code, omitted for brevity
+
+  my $forgot  = $imap->parameter;
+  my $forgot2 = $imap->parameter2;
+
+Note that in these examples I'm using 'parameter' and 'parameter2' as
+generic parameter names.  The IMAPClient object doesn't actually have
+parameters named 'parameter' and 'parameter2'.  On the contrary, the
+available parameters are:
+
+=head2 Authmechanism
+
+Example:
+
+  $imap->Authmechanism("CRAM-MD5");
+  # or
+  my $authmech = $imap->Authmechanism();
+
+If specified, the I<Authmechanism> causes the specified authentication
+mechanism to be used whenever Mail::IMAPClient would otherwise invoke
+B<login>.  If the value specified for the I<Authmechanism> parameter
+is not a valid authentication mechanism for your server then you will
+never ever be able to log in again for the rest of your Perl script,
+probably.  So you might want to check, like this:
+
+  my $authmech = "CRAM-MD5";
+  $imap->has_capability($authmech) and $imap->Authmechanism($authmech);
+
+Of course if you know your server supports your favorite authentication
+mechanism then you know, so you can then include your I<Authmechanism>
+with your B<new> call, as in:
+
+  my $imap = Mail::IMAPClient->new(
+      User    => $user,
+      Passord => $passord,
+      Server  => $server,
+      Authmechanism  => $authmech,
+      %etc
+  );
+
+If I<Authmechanism> is supplied but I<Authcallback> is not then you
+had better be supporting one of the authentication mechanisms that
+Mail::IMAPClient supports "out of the box" (such as CRAM-MD5).
+
+=head2 Authcallback
+
+Example:
+
+  $imap->Authcallback( \&callback );
+
+This specifies a default callback to the default authentication
+mechanism (see L</Authmechanism>, above).  Together, these two methods
+replace automatic calls to login with automatic calls that look like
+this (sort of):
+
+  $imap->authenticate($imap->Authmechanism,$imap->Authcallback);
+
+If I<Authmechanism> is supplied but I<Authcallback> is not then you
+had better be supporting one of the authentication mechanisms that
+Mail::IMAPClient supports "out of the box" (such as CRAM-MD5).
+
+=head2 Authuser
+
+The I<Authuser> parameter is used by the DIGEST-MD5 L</Authmechanism>.
+
+Typically when you authenticate the username specified in the User
+parameter is used.  However, when using the DIGEST-MD5
+I<Authmechanism> the I<Authuser> can be used to specify a different
+username for the login.
+
+This can be useful to mark messages as seen for the I<Authuser> if you
+don't know the password of the user as the seen state is often a
+per-user state.
+
+=head2 Buffer
+
+Example:
+
+  $Buffer = $imap->Buffer();
+  # or:
+  $imap->Buffer($new_value);
+
+The I<Buffer> parameter sets the size of a block of I/O.  It is
+ignored unless L</Fast_io>, below, is set to a true value (the
+default), or unless you are using the L</migrate> method.  It's value
+should be the number of bytes to attempt to read in one I/O operation.
+The default value is 4096.
+
+When using the L</migrate> method, you can often achieve dramatic
+improvements in throughput by adjusting this number upward.  However,
+doing so also entails a memory cost, so if set too high you risk
+losing all the benefits of the L</migrate> method's chunking
+algorithm.  Your program can thus terminate with an "out of memory"
+error and you'll have no one but yourself to blame.
+
+Note that, as hinted above, the I<Buffer> parameter affects the
+behavior of the L</migrate> method regardless of whether you have
+L</Fast_io> turned on.  Believe me, you don't want to go around
+migrating tons of mail without using buffered I/O!
+
+=head2 Clear
+
+Example:
+
+  $Clear = $imap->Clear();
+  # or:
+  $imap->Clear($integer);
+
+The name of this parameter, for historical reasons, is somewhat
+misleading.  It should be named I<Wrap>, because it specifies how many
+transactions are stored in the wrapped history buffer.  But it didn't
+always work that way; the buffer used to actually get cleared.  The
+name though remains the same in the interests of backwards
+compatibility.
+
+I<Clear> specifies that the object's history buffer should be wrapped
+after every I<n> transactions, where I<n> is the value specified for
+the I<Clear> parameter.  Calling the eponymous B<Clear> method without
+an argument will return the current value of the I<Clear> parameter
+but will not cause clear the history buffer to wrap.
+
+Setting I<Clear> to 0 turns off automatic history buffer wrapping, and
+setting it to 1 turns off the history buffer facility (except for the
+last transaction, which cannot be disabled without breaking the
+IMAPClient module).  Setting I<Clear> to 0 will not cause an immediate
+clearing of the history buffer; setting it to 1 (or any other number)
+will (except of course for that inevitable last transaction).
+
+The default I<Clear> value is set to five (5) in order to conserve
+memory.
+
+=head2 Compress
+
+If set, Mail::IMAPClient attempts to enable use of the RFC4978
+COMPRESS DEFLATE extension.  This requires that the server supports
+this CAPABILITY.  This attribute can be set to a true value to enable
+or an ARRAYREF to control the arguments used in the call to
+Compress::Zlib::deflateInit().
+
+Mail::IMAPClient will automatically use L<Compress::Zlib> to
+deflate/inflate the data to/from the server.  This attribute is used
+in the L</login> method.
+
+See also L</compress> and L</capability>.
+
+Version note: attribute added in Mail::IMAPClient 3.30
+
+=head2 Debug
+
+Example:
+
+  $Debug = $imap->Debug();
+  # or:
+  $imap->Debug($true_or_false);
+
+Sets the debugging flag to either a true or false value.  Can be
+supplied with the L</new> method call or separately by calling the
+B<Debug> object method.  Use of this parameter is strongly recommended
+when debugging scripts and required when reporting bugs.
+
+=head2 Debug_fh
+
+Example:
+
+  $Debug_fh = $imap->Debug_fh();
+  # or:
+  $imap->Debug_fh($fileHandle);
+
+Specifies the file handle to which debugging information should be
+printed.  It can either a file handle object reference or a file handle
+glob.  The default is to print debugging info to STDERR.
+
+For example, you can:
+
+  use Mail::IMAPClient;
+  use IO::File;
+  # set $user, $pass, and $server here
+  my $dh = IO::File->new(">debugging.output")
+    or die "Can't open debugging.output: $!\n";
+  my $imap = Mail::IMAPClient->new(
+      User=>$user, Password=>$pass, Server=>$server, Debug=>1, Debug_fh => $dh
+  );
+
+which is the same as:
+
+  use Mail::IMAPClient;
+  use IO::File;
+  # set $user, $pass, and $server here
+  my $imap = Mail::IMAPClient->new(
+      User     => $user,
+      Password => $pass,
+      Server   => $server,
+      Debug    => "yes, please",
+      Debug_fh => IO::File->new(">debugging.output")
+        || die "Can't open debugging.output: $!\n"
+  );
+
+You can also:
+
+  use Mail::IMAPClient;
+  # set $user, $pass, and $server here
+  open(DBG,">debugging.output")
+    or die "Can't open debugging.output: $!\n";
+  my $imap = Mail::IMAPClient->new(
+    User=>$user, Password=>$pass, Server=>$server, Debug=> 1, Debug_fh => *DBG
+  );
+
+Specifying this parameter is not very useful unless L</Debug> is set
+to a true value.
+
+=head2 Domain
+
+The I<Domain> parameter is used by the NTLM L</Authmechanism>.  The
+domain is an optional parameter for NTLM authentication.
+
+=head2 EnableServerResponseInLiteral
+
+Removed in 2.99_01 (now autodetect)
+
+=head2 Fast_io
+
+Example:
+
+  $Fast_io = $imap->Fast_io();
+  # or:
+  $imap->Fast_io($true_or_false);
+
+The I<Fast_io> parameter controls whether or not the Mail::IMAPClient
+object will attempt to use non-blocking I/O on the IMAP socket.  It is
+turned on by default (unless the caller provides the socket to be
+used).
+
+See also L</Buffer>.
+
+=head2 Folder
+
+Example:
+
+  $Folder = $imap->Folder();
+  # or:
+  $imap->Folder($new_value);
+
+The I<Folder> parameter returns the name of the currently-selected
+folder (in case you forgot).  It can also be used to set the name of
+the currently selected folder, which is completely unnecessary if you
+used the L</select> method (or L</select>'s read-only equivalent, the
+L</examine> method) to select it.
+
+Note that setting the I<Folder> parameter does not automatically
+select a new folder; you use the L</select> or L</examine> object
+methods for that.  Generally, the I<Folder> parameter should only be
+queried (by using the no-argument form of the B<Folder> method).  You
+will only need to set the I<Folder> parameter if you use some
+mysterious technique of your own for selecting a folder, which you
+probably won't do.
+
+=head2 Ignoresizeerrors
+
+Certain (caching) servers, like Exchange 2007, often report the wrong
+message size.  Instead of chopping the message into a size that it
+fits the specified size, the reported size will be simply ignored when
+this parameter is set to C<1>.
+
+=head2 Keepalive
+
+Some firewalls and network gear like to timeout connections
+prematurely if the connection sits idle.  The B<Keepalive> parameter,
+when set to a true value, affects the behavior of L</new> and
+L</Socket> by enabling SO_KEEPALIVE on the socket.
+
+Version note: attribute added in Mail::IMAPClient 3.17
+
+=head2 Maxcommandlength
+
+The B<Maxcommandlength> attribute is used by fetch() to limit length
+of commands sent to a server.  The default is 1000 chars, following
+the recommendation of RFC2683 section 3.2.1.5.
+
+B<Note>: this attribute should also be used for several other methods
+but this has not yet been implemented please feel free to file bugs
+for methods where you run into problems with this.
+
+This attribute should remove the need for utilities like imapsync to
+create their own split() functions and instead allows Mail::IMAPClient
+to DWIM.
+
+In practice, this parameter has proven to be useful to overcome a
+limit of 8000 octets for UW-IMAPD and 16384 octets for Courier/Cyrus
+IMAP servers.
+
+Version note: attribute added in Mail::IMAPClient 3.17
+
+=head2 Maxtemperrors
+
+Example:
+
+  $Maxtemperrors = $imap->Maxtemperrors();
+  # or:
+  $imap->Maxtemperrors($number);
+
+The I<Maxtemperrors> parameter specifies the number of times a read or
+write operation is allowed to fail on a "Resource Temporarily
+Available" (e.g. EAGAIN) error.  The default setting is I<undef> which
+means there is no limit.
+
+Setting this parameter to the string "unlimited" (instead of undef) to
+ignore "Resource Temporarily Unavailable" errors is deprecated.
+
+B<Note>: This setting should be used with caution and may be removed
+in a future release.  Setting this can cause methods to return to the
+caller before data is received (and then handled) properly thereby
+possibly then leaving the module in a bad state.  In the future, this
+behavior may be changed in an attempt to avoid this situation.
+
+=head2 Password
+
+Example:
+
+  $Password = $imap->Password();
+  # or:
+  $imap->Password($new_value);
+
+Specifies the password to use when logging into the IMAP service on
+the host specified in the I<Server> parameter as the user specified in
+the I<User> parameter.  Can be supplied with the B<new> method call or
+separately by calling the B<Password> object method.
+
+If I<Server>, I<User>, and I<Password> are all provided to the L</new>
+method, then the newly instantiated object will be connected to the
+host specified in I<Server> (at either the port specified in I<Port>
+or the default port 143) and then logged on as the user specified in
+the I<User> parameter (using the password provided in the I<Password>
+parameter).  See the discussion of the L</"new"> method, below.
+
+=head2 Peek
+
+Example:
+
+  $Peek = $imap->Peek();
+  # or:
+  $imap->Peek($true_or_false);
+
+Setting I<Peek> to a true value will prevent the L</body_string>,
+L</message_string> and L</message_to_file> methods from automatically
+setting the I<\Seen> flag.  Setting L</"Peek"> to 0 (zero) will force
+L</"body_string">, L</"message_string">, L</"message_to_file">, and
+L</"parse_headers"> to always set the I<\Seen> flag.
+
+The default is to set the seen flag whenever you fetch the body of a
+message but not when you just fetch the headers.  Passing I<undef> to
+the eponymous B<Peek> method will reset the I<Peek> parameter to its
+pristine, default state.
+
+=head2 Port
+
+Example:
+
+  $Port = $imap->Port();
+  # or:
+  $imap->Port($new_value);
+
+Specifies the port on which the IMAP server is listening.  A default
+value of 993 (if L</Ssl> is true) or 143 is set during a call to
+L</connect> if no value is provided by the caller.  This argument can
+be supplied with the L</new> method call or separately by calling the
+L</Port> object method.
+
+=head2 Prewritemethod
+
+I<Prewritemethod> parameter should contain a reference to a subroutine
+that will do "special things" to data before it is sent to the IMAP
+server (such as encryption or signing).
+
+This method will be called immediately prior to sending an IMAP client
+command to the server.  Its first argument is a reference to the
+I<Mail::IMAPClient> object and the second argument is a string
+containing the command that will be sent to the server.  Your
+I<Prewritemethod> should return a string that has been signed or
+encrypted or whatever; this returned string is what will actually be
+sent to the server.
+
+Your I<Prewritemethod> will probably need to know more than this to do
+whatever it does.  It is recommended that you tuck all other pertinent
+information into a hash, and store a reference to this hash somewhere
+where your method can get to it, possibly in the I<Mail::IMAPClient>
+object itself.
+
+Note that this method should not actually send anything over the
+socket connection to the server; it merely converts data prior to
+sending.
+
+See also L</Readmethod>.
+
+=head2 Ranges
+
+Example:
+
+  $imap->Ranges(1);
+  # or:
+  my $search = $imap->search(@search_args);
+  if ( $imap->Ranges) { # $search is a MessageSet object
+      print "This is my condensed search result: $search\n";
+      print "This is every message in the search result: ",
+        join(",",@$search),"\n;
+  }
+
+If set to a true value, then the L</search> method will return a
+L<Mail::IMAPClient::MessageSet> object if called in a scalar context,
+instead of the array reference that B<fetch> normally returns when
+called in a scalar context.  If set to zero or if undefined, then
+B<search> will continue to return an array reference when called in
+scalar context.
+
+This parameter has no affect on the B<search> method when B<search>
+is called in a list context.
+
+=head2 RawSocket
+
+Example:
+        $socket = $imap->RawSocket;
+        # or:
+        $imap->RawSocket($socketh);
+
+The I<RawSocket> method can be used to obtain the socket handle of the
+current connection (say, to do I/O on the connection that is not
+otherwise supported by Mail::IMAPClient) or to replace the current
+socket with a new handle (for instance an SSL handle, see
+L<IO::Socket::SSL>, but be sure to see the L</Socket> method as well).
+
+If you supply a socket handle yourself, either by doing something like:
+
+        $imap=Mail::IMAPClient->new(RawSocket => $sock, User => ... );
+
+or by doing something like:
+
+        $imap = Mail::IMAPClient->new(User => $user,
+                    Password => $pass, Server => $host);
+        # blah blah blah
+        $imap->RawSocket($ssl);
+
+then it will be up to you to establish the connection AND to
+authenticate, either via the L</login> method, or the fancier
+L</authenticate>, or, since you know so much anyway, by just doing raw
+I/O against the socket until you're logged in.  If you do any of this
+then you should also set the L</State> parameter yourself to reflect
+the current state of the object (i.e. Connected, Authenticated, etc).
+
+Note that no operation will be attempted on the socket when this
+method is called.  In particular, after the TCP connections towards
+the IMAP server is established, the protocol mandates the server to
+send an initial greeting message, and you will have to explicitly cope
+with this message before doing any other operation, e.g. trying to
+call L</login>. Caveat emptor.
+
+For a more DWIM approach to setting the socket see L</Socket>.
+
+=head2 Readmethod
+
+Example:
+
+  $imap->Readmethod(   # IMAP, HANDLE, BUFFER, LENGTH, OFFSET
+      sub {
+          my ( $self, $handle, $buffer, $count, $offset ) = @_;
+          my $rc = sysread( $handle, $$buffer, $count, $offset );
+          # do something useful here...
+      }
+  );
+
+B<Readmethod> should contain a reference to a subroutine that will
+replace sysread.  The subroutine will be passed the following
+arguments: first the used Mail::IMAPClient object.  Second, a
+reference to a socket.  Third, a reference to a scalar variable into
+which data is read (BUFFER). The data placed here should be "finished
+data", so if you are decrypting or removing signatures then be sure to
+do that before you place data into this buffer.  Fourth, the number of
+bytes requested to be read; the LENGTH of the request.  Lastly, the
+OFFSET into the BUFFER where the data should be read.  If not supplied
+it should default to zero.
+
+Note that this method completely replaces reads from the connection
+to the server, so if you define one of these then your subroutine will
+have to actually do the read.  It is for things like this that we have
+the L</Socket> parameter and eponymous accessor method.
+
+Your I<Readmethod> will probably need to know more than this to do
+whatever it does.  It is recommended that you tuck all other pertinent
+information into a hash, and store a reference to this hash somewhere
+where your method can get to it, possibly in the I<Mail::IMAPClient>
+object itself.
+
+See also L</Prewritemethod>.
+
+=head2 Readmoremethod
+
+B<Readmoremethod> should contain a reference to a subroutine that will
+replace/enhance the behavior of the internal _read_more() method.  The
+subroutine will be passed the following arguments: first the used
+Mail::IMAPClient object.  Second, a reference to a socket.  Third, a
+timeout value which is used as the timeout value for CORE::select() by
+default.  Depending upon changes/features introduced by Readmethod
+changes may be required here.
+
+Version note: attribute added in Mail::IMAPClient 3.30
+
+=head2 Reconnectretry
+
+If an IMAP connection sits idle too long, the connection may be closed
+by the server or firewall, etc.  The B<Reconnectretry> parameter, when
+given a positive integer value, will cause Mail::IMAPClient to
+retrying IMAP commands up to X times when an EPIPE or ECONNRESET error
+occurs.  This is disabled (0) by default.
+
+See also L</Keepalive>
+
+Version note: attribute added in Mail::IMAPClient 3.17
+
+=head2 Server
+
+Example:
+
+  $Server = $imap->Server();
+  # or:
+  $imap->Server($hostname);
+
+Specifies the hostname or IP address of the host running the IMAP
+server.  If provided as part of the L</new> method call, then the new
+IMAP object will automatically be connected at the time of
+instantiation.  (See the L</new> method, below.) Can be supplied with
+the L</new> method call or separately by calling the B<Server> object
+method.
+
+=head2 Showcredentials
+
+Normally debugging output will mask the login credentials when the
+plain text login mechanism is used.  Setting I<Showcredentials> to a
+true value will suppress this, so that you can see the string being
+passed back and forth during plain text login.  Only set this to true
+when you are debugging problems with the IMAP LOGIN command, and then
+turn it off right away when you're finished working on that problem.
+
+Example:
+
+  print "This is very risky!\n" if $imap->Showcredentials();
+  # or:
+  $imap->Showcredentials(0);    # mask credentials again
+
+=head2 Socket
+
+B<PLEASE NOTE> The semantics of this method has changed as of version
+2.99_04 of this module.  If you need the old semantics use
+L</RawSocket>.
+
+Example:
+
+  $Socket = $imap->Socket();
+  # or:
+  $imap->Socket($socket_fh);
+
+The I<Socket> method can be used to obtain the socket handle of the
+current connection.  This may be necessary to do I/O on the connection
+that is not otherwise supported by Mail::IMAPClient) or to replace the
+current socket with a new handle (for instance an SSL handle, see
+IO::Socket::SSL).
+
+If you supply a socket handle yourself, either by doing something like:
+
+  $imap = Mail::IMAPClient->new( Socket => $sock, User => ... );
+
+or by doing something like:
+
+  $imap = Mail::IMAPClient->new(
+    User => $user, Password => $pass, Server => $host
+  );
+  $imap->Socket($ssl);
+
+then you are responsible for establishing the connection, i.e. make
+sure that C<$ssl> in the example is a valid and connected socket.
+
+This method is primarily used to provide a drop-in replacement for
+L<IO::Socket::INET>, used by L</connect> by default.  In fact, this
+method is called by L</connect> itself after having established a
+suitable L<IO::Socket::INET> socket connection towards the target
+server; for this reason, this method also carries the normal
+operations associated with L</connect>, namely:
+
+=over 4
+
+=item *
+
+read the initial greeting message from the server;
+
+=item *
+
+call L</login> if the conditions apply (see L</connect> for details);
+
+=item *
+
+leave the I<Mail::IMAPClient> object in a suitable state.
+
+=back
+
+For these reasons, the following example will work "out of the box":
+
+   use IO::Socket::SSL;
+   my $imap = Mail::IMAPClient->new
+    ( User     => 'your-username',
+      Password => 'your-password',
+      Socket   => IO::Socket::SSL->new
+      (  Proto    => 'tcp',
+         PeerAddr => 'some.imap.server',
+         PeerPort => 993, # IMAP over SSL standard port
+      ),
+   );
+
+If you need more control over the socket, e.g. you have to implement a
+fancier authentication method, see L</RawSocket>.
+
+=head2 Starttls
+
+If an IMAP connection must start TLS/SSL after connecting to a server
+then set this attribute.  If the value is set to an arrayref then they
+will be used as arguments to IO::Socket::SSL->start_SSL.  By default
+this connection is set to blocking while establishing the connection
+with a timeout of 30 seconds.  The socket will be reset to the
+original blocking/non-blocking value after a successful TLS
+negotiation has occurred.  The arguments used in the call to start_SSL
+can be controlled by setting this attribute to an ARRAY reference
+containing the desired arguments.
+
+Version note: attribute added in Mail::IMAPClient 3.22
+
+=head2 Socketargs
+
+The arguments used in the call to IO::Socket::{UNIX|INET|SSL}->new can
+be controlled by setting this attribute to an ARRAY reference
+containing the desired arguments.
+
+For example, to always pass MultiHomed => 1 to IO::Socket::...->new
+the following can be used:
+
+  $imap = Mail::IMAPClient->new(
+    ..., Socketargs => [ MultiHomed => 1 ], ...
+  );
+
+See also L</Ssl> for specific control of the args to IO::Socket::SSL.
+
+Version note: attribute added in Mail::IMAPClient 3.34
+
+=head2 Ssl
+
+If an IMAP connection requires SSL you can set the Ssl attribute to
+'1' and Mail::IMAPClient will automatically use L<IO::Socket::SSL>
+instead of L<IO::Socket::INET> to connect to the server.  This
+attribute is used in the L</connect> method.  The arguments used in
+the call to IO::Socket::SSL->new can be controlled by setting this
+attribute to an ARRAY reference containing the desired arguments.
+
+See also L</connect> for details on connection initiation and
+L</Socket> and L</Rawsocket> if you need to take more control of
+connection management.
+
+Version note: attribute added in Mail::IMAPClient 3.18
+
+=head2 Supportedflags
+
+Especially when C<migrate()> is used, the receiving peer may need to
+be configured explicitly with the list of supported flags; that may
+be different from the source IMAP server.
+
+The names are to be specified as an ARRAY.  Black-slashes and casing
+will be ignored.
+
+You may also specify a CODE reference, which will be called for each
+of the flags separately.  In this case, the flags are not (yet)
+normalized.  The returned lists of the CODE calls are shape the
+resulting flag list.
+
+=head2 Timeout
+
+Example:
+
+  $Timeout = $imap->Timeout();
+  # or:
+  $imap->Timeout($seconds);
+
+Specifies the timeout value in seconds for reads (default is 600).
+Specifying a I<Timeout> will prevent Mail::IMAPClient from blocking
+in a read.
+
+Since timeouts are implemented via the Perl L<select|perlfunc/select>
+operator, the I<Timeout> parameter may be set to a fractional number
+of seconds.  Setting I<Timeout> to 0 (zero) disables the timeout
+feature.
+
+=head2 Uid
+
+Example:
+
+  $Uid = $imap->Uid();
+  # or:
+  $imap->Uid($true_or_false);
+
+If L</Uid> is set to a true value (i.e. 1) then the behavior of the
+L</fetch>, L</search>, L</copy>, and L</store> methods (and their
+derivatives) is changed so that arguments that would otherwise be
+message sequence numbers are treated as message UID's and so that
+return values (in the case of the L</search> method and its
+derivatives) that would normally be message sequence numbers are
+instead message UID's.
+
+Internally this is implemented as a switch that, if turned on, causes
+methods that would otherwise issue an IMAP FETCH, STORE, SEARCH, or
+COPY client command to instead issue UID FETCH, UID STORE, UID SEARCH,
+or UID COPY, respectively.  The main difference between message
+sequence numbers and message UID's is that, according to RFC3501,
+UID's must not change during a session and should not change between
+sessions, and must never be reused.  Sequence numbers do not have that
+same guarantee and in fact may be reused right away.
+
+Since folder names also have a unique identifier (UIDVALIDITY), which
+is provided when the folder is L</select>ed or L</examine>d or by
+doing something like "$imap->status($folder,"UIDVALIDITY"), it is
+possible to uniquely identify every message on the server, although
+normally you won't need to bother.
+
+The methods currently affected by turning on the L</Uid> flag are:
+
+  copy            fetch
+  search          store
+  message_string  message_uid
+  body_string     flags
+  move            size
+  parse_headers   thread
+
+Note that if for some reason you only want the L</Uid> parameter turned
+on for one command, then you can choose between the following two
+snippets, which are equivalent:
+
+Example 1:
+
+  $imap->Uid(1);
+  my @uids = $imap->search('SUBJECT',"Just a silly test"); #
+  $imap->Uid(0);
+
+Example 2:
+
+  my @uids;
+  foreach $r ($imap->UID("SEARCH","SUBJECT","Just a silly test") {
+      chomp $r;
+      $r =~ s/\r$//;
+      $r =~ s/^\*\s+SEARCH\s+// or next;
+      push @uids, grep(/\d/,(split(/\s+/,$r)));
+  }
+
+In the second example, we used the default method to issue the UID
+IMAP Client command, being careful to use an all-uppercase method name
+so as not to inadvertently call the L</Uid> accessor method.  Then we
+parsed out the message UIDs manually, since we don't have the benefit
+of the built-in L</search> method doing it for us.
+
+Please be very careful when turning the L</Uid> parameter on and off
+throughout a script.  If you loose track of whether you've got the
+L</Uid> parameter turned on you might do something sad, like deleting
+the wrong message.  Remember, like all eponymous accessor methods, the
+B<Uid> method without arguments will return the current value for the
+L</Uid> parameter, so do yourself a favor and check.  The safest
+approach is probably to turn it on at the beginning (or just let it
+default to being on) and then leave it on.  (Remember that leaving it
+turned off can lead to problems if changes to a folder's contents
+cause resequencing.)
+
+By default, the L</Uid> parameter is turned on.
+
+=head2 User
+
+Example:
+
+  $User = $imap->User();
+  # or:
+  $imap->User($userid);
+
+Specifies the userid to use when logging into the IMAP service.  Can
+be supplied with the L</new> method call or separately by calling the
+B<User> object method.
+
+Parameters can be set during L</new> method invocation by passing named
+parameter/value pairs to the method, or later by calling the
+parameter's eponymous object method.
+
+=head1 Status Methods
+
+There are several object methods that return the status of the object.
+They can be used at any time to check the status of an IMAPClient
+object, but are particularly useful for determining the cause of
+failure when a connection and login are attempted as part of a single
+L</new> method invocation.  The status methods are:
+
+=head2 Escaped_history
+
+Example:
+
+  my @history = $imap->Escaped_history;
+
+The B<Escaped_history> method is almost identical to the B<History>
+method.  Unlike the B<History> method, however, server output
+transmitted literally will be wrapped in double quotes, with all
+double quotes, backslashes escaped.  If called in a scalar context,
+B<Escaped_history> returns an array reference rather than an array.
+
+B<Escaped_history> is useful if you are retrieving output and
+processing it manually, and you are depending on the above special
+characters to delimit the data.  It is not useful when retrieving
+message contents; use B<message_string> or B<body_string> for that.
+
+=head2 Escaped_results
+
+Example:
+
+  my @results = $imap->Escaped_results;
+
+The B<Escaped_results> method is almost identical to the B<Results>
+method.  Unlike the B<Results> method, however, server output
+transmitted literally will be wrapped in double quotes, with all
+double quotes, backslashes escaped.  If called in a scalar context,
+B<Escaped_results> returns an array reference rather than an array.
+
+B<Escaped_results> is useful if you are retrieving output and
+processing it manually, and you are depending on the above special
+characters to delimit the data.  It is not useful when retrieving
+message contents; use B<message_string> or B<body_string> for that.
+
+=head2 History
+
+Example:
+
+  my @history = $imap->History;
+
+The B<History> method is almost identical to the L</Results> method.
+Unlike the L</Results> method, however, the IMAP command that was
+issued to create the results being returned is not included in the
+returned results.  If called in a scalar context, B<History> returns
+an array reference rather than an array.
+
+=head2 IsUnconnected
+
+returns a true value if the object is currently in an L</Unconnected>
+state.
+
+=head2 IsConnected
+
+returns a true value if the object is currently in either a
+L</Connected>, L</Authenticated>, or L</Selected> state.
+
+=head2 IsAuthenticated
+
+returns a true value if the object is currently in either an
+L</Authenticated> or L</Selected> state.
+
+=head2 IsSelected
+
+returns a true value if the object is currently in a L</Selected>
+state.
+
+=head2 LastError
+
+Internally B<LastError> is implemented just like a parameter (as
+described in L</"Parameters">, above).  There is a I<LastError>
+attribute and an eponymous accessor method which returns the
+I<LastError> text string describing the last error condition
+encountered by the server.
+
+Note that some errors are more serious than others, so I<LastError>'s
+value is only meaningful if you encounter an error condition that you
+don't like.  For example, if you use the L</exists> method to see if a
+folder exists and the folder does not exist, then an error message
+will be recorded in I<LastError> even though this is not a
+particularly serious error.  On the other hand, if you didn't use
+L</exists> and just tried to L</select> a non-existing folder, then
+L</select> would return C<undef> after setting I<LastError> to
+something like C<NO SELECT failed: Can't open mailbox "mailbox": no
+such mailbox>.  At this point it would be useful to print out the
+contents of I<LastError> as you L<die|perlfunc/die>.
+
+=head2 LastIMAPCommand
+
+New in version 2.0.4, B<LastIMAPCommand> returns the exact IMAP
+command string to be sent to the server.  Useful mainly in
+constructing error messages when L</LastError> just isn't enough.
+
+=head2 Report
+
+The B<Report> method returns an array containing a history of the IMAP
+session up to the point that B<Report> was called.  It is primarily
+meant to assist in debugging but can also be used to retrieve raw
+output for manual parsing.  The value of the L</Clear> parameter
+controls how many transactions are in the report.
+
+=head2 Results
+
+The B<Results> method returns an array containing the results of one
+IMAP client command.  It accepts one argument, the transaction number
+of the command whose results are to be returned.  If transaction
+number is unspecified then B<Results> returns the results of the last
+IMAP client command issued.  If called in a scalar context, B<Results>
+returns an array reference rather than an array.
+
+=head2 State
+
+The B<State> method returns a numerical value that indicates the
+current status of the IMAPClient object.  If invoked with an argument,
+it will set the object's state to that value.  If invoked without an
+argument, it behaves just like L</Status>, below.
+
+Normally you will not have to invoke this function.  An exception is
+if you are bypassing the Mail::IMAPClient module's L</connect> and/or
+L</login> modules to set up your own connection (say, for example,
+over a secure socket), in which case you must manually do what the
+L</connect> and L</login> methods would otherwise do for you.
+
+=head2 Status
+
+The B<Status> method returns a numerical value that indicates the
+current status of the IMAPClient object.  (Not to be confused with the
+L</status> method, all lower-case, which is the implementation of the
+I<STATUS> IMAP client command.)
+
+=head2 Transaction
+
+The B<Transaction> method returns the tag value (or transaction
+number) of the last IMAP client command.
+
+=head1 Custom Authentication Mechanisms
+
+If you just want to use plain text authentication or any of the
+supported L</"Advanced Authentication Mechanisms"> then there is no
+need to read this section.
+
+There are a number of methods and parameters that you can use to build
+your own authentication mechanism.  All of the methods and parameters
+discussed in this section are described in more detail elsewhere in
+this document.  This section provides a starting point for building
+your own authentication mechanism.
+
+There are I<many> authentication mechanisms out there, if your
+preferred mechanism is not currently supported but you manage to get
+it working please consider donating them to this module.  Patches and
+suggestions are always welcome.
+
+Support for add-on authentication mechanisms in Mail::IMAPClient is
+pretty straight forward.  You create a callback to be used to provide
+the response to the server's challenge.  The L</Authcallback> parameter
+contains a reference to the callback, which can be an anonymous
+subroutine or a named subroutine.  Then, you identify your
+authentication mechanism, either via the L</Authmechanism> parameter or
+as an argument to L</authenticate>.
+
+You may also need to provide a subroutine to encrypt (or whatever)
+data before it is sent to the server.  The L</Prewritemethod> parameter
+must contain a reference to this subroutine.  And, you will need to
+decrypt data from the server; a reference to the subroutine that does
+this must be stored in the L</Readmethod> parameter.
+
+This framework is based on the assumptions that a) the mechanism you
+are using requires a challenge-response exchange, and b) the mechanism
+does not fundamentally alter the exchange between client and server
+but merely wraps the exchange in a layer of encryption.  It also
+assumes that the line-oriented nature of the IMAP conversation is
+preserved; authentication mechanisms that break up messages into
+blocks of a predetermined size may still be possible but will
+certainly be more difficult to implement.
+
+Alternatively, if you have access to B<imtest>, a utility included in
+the Cyrus IMAP distribution, you can use that utility to broker your
+communications with the IMAP server.  This is quite easy to implement.
+An example, F<examples/imtestExample.pl>, can be found in the
+C<examples> subdirectory of the source distribution.
+
+The following list summarizes the methods and parameters that you may
+find useful in implementing advanced authentication:
+
+=over 4
+
+=item The authenticate method
+
+The L</authenticate> method uses the L</Authmechanism> parameter to
+determine how to authenticate with the server see the method
+documentation for details.
+
+=item Socket and RawSocket
+
+The L</Socket> and L</RawSocket> methods provide access to the socket
+connection.  The socket is typically automatically created by the
+L</connect> method, but if you are implementing an advanced
+authentication technique you may choose to set up your own socket
+connection and then set this parameter manually, bypassing the
+B<connect> method completely.  This is also useful if you want to use
+L<IO::Socket::INET> alternatives like L<IO::Socket::SSL> and need full
+control.
+
+L</RawSocket> simply gets/sets the socket without attempting any
+interaction on it.  In this case, you have to be sure to handle all
+the preliminary operations and manually set the Mail::IMAPClient
+object in sync with its actual status with respect to this socket (see
+below for additional parameters regarding this, especially the
+L</State> parameter).
+
+Unlike L</RawSocket>, L</Socket> attempts to carry on preliminary
+connection phases if the conditions apply.  If both parameters are
+present, this takes the precedence over L</RawSocket>.  If
+L</Starttls> is set, then the L</starttls> method will be called by
+L</Socket>.
+
+B<PLEASE NOTE> As of version 2.99_04 of this module, semantics for
+L</Socket> have changed to make it more "DWIM".  L</RawSocket> was
+introduced as a replacement for the L</Socket> parameter in older
+version.
+
+=item State, Server, User, Password, Proxy and Domain Parameters
+
+If you need to make your own connection to the server and perform your
+authentication manually, then you can set these parameters to keep
+your Mail::IMAPClient object in sync with its actual status.  Of
+these, only the L</State> parameter is always necessary.  The others
+need to be set only if you think your program will need them later.
+
+=item Authmechanism
+
+Set this to the value that AUTHENTICATE should send to the server as
+the authentication mechanism.  If you are brokering your own
+authentication then this parameter may be less useful.  It exists
+primarily so that you can set it when you call L</new> to instantiate
+your object.  The L</new> method will call L</connect>, which will
+call L</login>.  If L</login> sees that you have set an
+B<Authmechanism> then it will call B<authenticate>, using your
+B<Authmechanism> and B<Authcallback> parameters as arguments.
+
+=item Authcallback
+
+The L</Authcallback>, if set, holds a pointer to a subroutine
+(CODEREF).  The L</login> method will use this as the callback
+argument to the B<authenticate> method if the B<Authmechanism> and
+B<Authcallback> parameters are both set.  If you set B<Authmechanism>
+but not B<Authcallback> then the default callback for your mechanism
+will be used.  All supported authentication mechanisms have a default
+callback; in every other case not supplying the callback results in an
+error.
+
+Most advanced authentication mechanisms require a challenge-response
+exchange.  After the L</authenticate> method sends "<tag> AUTHENTICATE
+<Authmechanism>\015\012" to the IMAP server, the server replies with a
+challenge.  The L</authenticate> method then invokes the code whose
+reference is stored in the B<Authcallback> parameter as follows:
+
+  $Authcallback->( $challenge, $imap )
+
+where C<$Authcallback> is the code reference stored in the
+B<Authcallback> parameter, C<$challenge> is the challenge received
+from the IMAP server, and C<$imap> is a pointer to the
+Mail::IMAPClient object.  The return value from the B<Authcallback>
+routine should be the response to the challenge, and that return value
+will be sent by the L</authenticate> method to the server.
+
+=item Prewritemethod/Readmethod
+
+The B<Prewritemethod> can hold a subroutine that will do whatever
+encryption is necessary and then return the result to the caller so it
+in turn can be sent to the server.
+
+The B<Readmethod> can hold a subroutine to be used to replace
+B<sysread> usually performed by Mail::IMAPClient.
+
+See L</Prewritemethod> and L</Readmethod> for details.
+
+=back
+
+=head1 REPORTING BUGS
+
+Please send bug reports to C<bug-Mail-IMAPClient@rt.cpan.org> or
+http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient
+
+=head1 COPYRIGHT AND LICENSE
+
+  Copyright (C) 1999-2003 The Kernen Group, Inc.
+  Copyright (C) 2007-2009 Mark Overmeer
+  Copyright (C) 2010-2017 Phil Pearl (Lobbes)
+  All rights reserved.
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either the
+GNU General Public License or the Artistic License for more details.

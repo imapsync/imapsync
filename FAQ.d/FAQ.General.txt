@@ -1,0 +1,797 @@
+#!/bin/cat
+# $Id: FAQ.General.txt,v 1.233 2017/09/07 22:08:42 gilles Exp gilles $
+
+=======================================================================
+                     General FAQ for imapsync 
+=======================================================================
+
+This document is also available at
+https://imapsync.lamiral.info/#doc
+https://imapsync.lamiral.info/FAQ.d/FAQ.General.txt
+
+Questions anwswered in this FAQ are:
+
+Q. Do I need to create IMAP mailboxes at the destination platform?
+
+Q. Am I forced to publish the IMAP service on internet since the two
+   environment are not in the same location or same LAN?
+
+Q. What are the most important differences between the Unix shell syntax
+   and the Windows batch syntax.
+
+Q. How to install imapsync?
+
+Q. How to use imapsync?
+
+Q. Can you give some configuration examples?
+
+Q. How can I have commercial support?
+
+Q. How can I have gratis support?
+
+Q. Where I can find old imapsync releases?
+
+Q. Where I can find free open and gratis imapsync releases?
+
+Q. Is is legal to find imapsync gratis (or not) elsewhere?
+
+Q. How "Facts and figures" are known 
+   https://imapsync.lamiral.info/#NUMBERS
+
+Q. I use --useuid which uses a cache in /tmp or --tmpdir, the hostnames
+   host1 or host2 has changed but mailboxes are the same. Will imapsync
+   generate duplicate messages on next runs?
+
+Q. How can I speed up transfers?
+
+Q. I see warning messages like the following:
+   "Host1 Sent/15 size 1428 ignored (no header so we ignore this message.
+   To solve this: use --addheader)".
+   What can I do to transfer those messages?
+
+Q. How can I try imapsync with latest Mail::IMAPClient 3.xx perl module?
+
+Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
+
+Q. How to verify imapsync.exe I got is the right file bit per bit?
+
+Q. Can I use imapsync to migrate emails from pop3 server to imap server?
+
+Q. Folders are not created on host2. What happens?
+
+Q. I am interested in creating  a local clone of the IMAP on a LAN 
+   server for  faster synchronizations, email will always be delivered 
+   to the remote server and so the synchronization will be one way - from 
+   remote to local. How suited is imapsync for continuous one-way 
+   synchronization of mailboxes? Is there a better solution?
+
+Q. I need to log every output on a file named log.txt
+
+Q. Quantifier in {,} bigger than 32766 in regex; marked by <-- HERE in 
+   m/(.{ <-- HERE 1,49947})(?:,|$)/ at Mail/IMAPClient.pm line 2121.
+
+Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
+   INBOX.Ops/foo/bar 
+
+Q. Is it possible to sync also the UIDL of the POP3 server?
+
+Q. Is it possible to sync also the UIDs of the IMAP server?
+
+Q. The option --subscribe does not seem to work
+
+Q. With huge account (many messages) when it comes to reading the
+   destination server it comes out this error:
+   "To   Folder [INBOX.foobar] Not connected" 
+   What can I do?
+
+Q. Can Imapsync filter Spam during the sync?
+
+Q. How to migrate from uw-imap with an admin/authuser account?
+
+Q. How to migrate from cyrus with an admin account?
+
+Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
+   Netscape servers with an admin account?
+
+Q. Is there a way to delete the destination folder when the source 
+   folder is no longer there?
+
+Q. I would love to have a function to inject lines in the header. 
+   Things like "X-migrated-from-foo: 20100617"
+
+Q. I want to play with headers line and --regexmess but I want to leave
+   the body as is.
+
+Q. My imap server does not accept a message and warns
+   "Invalid header". What is the problem?
+
+Q. The contact folder isn't well copied. 
+   How to copy the contact folder?
+
+Q: How can I write an .rpm with imapsync
+
+Q. Where I can read up on the various IMAP RFCs?
+
+
+=======================================================================
+Q. Do I need to create IMAP mailboxes at the destination platform?
+
+R. Yes!
+   Imapsync does only IMAP and there is no way to create an account 
+   with the standard IMAP protocol. So you have to create them first.
+
+=======================================================================
+Q. Am I forced to publish the IMAP service on internet since the two
+   environment are not in the same location or same LAN?
+
+R. The host where you run imapsync has to contact both servers via imap.
+   You are not obliged to publish the imap service on internet if the host 
+   where you run imapsync can contact both imap servers via imap. 
+   Use their names or their IP addresses.
+
+=======================================================================
+Q. What are the most important differences between the Unix shell syntax
+   and the Windows batch syntax.
+
+R. There are several differences between Unix and Windows
+in the command line syntax. 
+- Character \ on Unix versus ^ on Windows 
+- Character ' on Unix versus " on Windows 
+
+Details:
+
+A) \ versus ^
+
+On Unix shells you can write a single command on multiple lines
+by using the escape character \ at the end of each line 
+(except the last one). On Windows this character is ^
+
+Unix example:
+
+./imapsync \
+   --host1 imap.truc.org --user1 foo --password1 secret1 \
+   --host2 imap.trac.org --user2 bar --password2 secret2
+
+
+Windows example:
+
+imapsync ^
+   --host1 imap.truc.org --user1 foo --password1 secret1 ^
+   --host2 imap.trac.org --user2 bar --password2 secret2
+
+
+Of course you can write the command on a single line without 
+characters \ nor ^. I use them because the output is
+better, no truncation, pretty print. It's just sugar!
+
+In this FAQ I use \ for examples. Transcript to ^ if
+you're on a Windows system.
+
+B) Quote vs Double-quote, ie ' versus " 
+
+On Windows the single quote character ' doesn't work
+like on Unix so in the examples of this FAQ the 
+command containing single quotes ' will fail on Windows.
+To fix this, just replace single quotes ' by double quotes "
+
+Also on Windows, in examples with \$1, replace 
+any \$1 by $1 (remove the \ before $).
+
+=======================================================================
+Q. How to install imapsync?
+
+R. Read the INSTALL files in the tarball. also available at
+   https://imapsync.lamiral.info/#doc
+   https://imapsync.lamiral.info/INSTALL.d/
+
+=======================================================================
+Q. How to use imapsync?
+
+R. Read the TUTORIAL_Unix.txt file, maybe the README and, if you 
+   encounter problems, the  FAQ.d/* files in the tarball.
+   All are also available and updated at:
+   https://imapsync.lamiral.info/#doc
+
+=======================================================================
+Q. Can you give some configuration examples?
+
+R1. Basic usage is described there:
+    https://imapsync.lamiral.info/#DOC_BASIC
+
+It is:
+
+  imapsync --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
+           --host2 test2.lamiral.info --user2 test2 --password2 secret2
+
+R2. Some FAQ files contains many examples for several scenarios
+    https://imapsync.lamiral.info/#doc
+    (Gmail, Office365, Exchange, Darwin, etc.)
+
+=======================================================================
+Q. How can I have commercial support?
+
+R. Buy support from imapsync author: Gilles LAMIRAL
+https://imapsync.lamiral.info/#buy_all
+
+=======================================================================
+Q. How can I have gratis support?
+
+R. Write to the imapsync author: Gilles LAMIRAL
+https://imapsync.lamiral.info/#AUTHOR
+
+I help all users as long as I have time to help them all, 
+users who bought the support get my help first.
+
+=======================================================================
+Q. Where I can find old imapsync releases?
+
+R. https://imapsync.lamiral.info/dist/old_releases/
+
+=======================================================================
+Q. Where I can find free open and gratis imapsync releases?
+
+R. https://imapsync.lamiral.info/dist/ 
+   Github has a copy at 
+   https://github.com/imapsync/imapsync
+
+Q. Is is legal to find imapsync gratis (or not) elsewhere?
+
+R. Yes, the license permits it
+   https://imapsync.lamiral.info/NOLIMIT
+
+=======================================================================
+Q. How "Facts and figures" are known 
+   https://imapsync.lamiral.info/#NUMBERS
+
+R. To know wether a newer imapsync exists or not, imapsync does a http 
+   GET to http://imapsync.lamiral.info/VERSION
+   Via the User-agent parameter it also send:
+
+    * imapsync release
+    * Perl version
+    * Mail::IMAPClient version
+    * Operating System
+
+You can remove this behavior by adding option --noreleasecheck on the
+command line (or by setting $releasecheck = 0 in the source code)
+or by using the github release.
+
+=======================================================================
+Q. I use --useuid which uses a cache in /tmp or --tmpdir, the hostnames
+   host1 or host2 has changed but mailboxes are the same. Will imapsync
+   generate duplicate messages on next runs?
+
+R. Yes
+
+Q. How can I fix this?
+
+R. The cache path reflects exactly hostnames or ip addresses given via
+   --host1 and --host2 values. So just change the directory names 
+   of host1 or host2. Use --dry to see if next runs will generate 
+   duplicates.
+   By default on Unix the cache is like 
+
+   /tmp/imapsync_cache/host1/user1/host2/user2/...
+
+=======================================================================
+Q. How can I speed up transfers?
+
+R. By using --useuid imapsync avoid getting messages headers and build
+   a cache. On Unix a good thing is to add also --tmpdir /var/tmp
+   to keep the cache since /tmp is often cleared on reboot.
+
+   imapsync ... --useuid 
+
+On Unix:
+
+   imapsync ... --useuid --tmpdir /var/tmp/
+
+R. Add also --nofoldersizes since the default behavior is to compute
+   folder sizes. Folder sizes are useless for the transfer, just 
+   useful to see what has to be done on each folder and guess when 
+   the transfer will end (ETA).
+
+R. Add also --noexpungeaftereach if you use --delete. 
+   But be warn that an interrupted transfer can loose messages 
+   on host2 in a second run if you use a (silly) combination like
+
+   imapsync ... --delete --noexpunge --noexpungeaftereach --expunge2
+
+R. Add also --nocheckmessageexists
+   --nocheckmessageexists is on by default since release 1.520.
+   Since transfer can be long on a huge mailbox imapsync checks
+   a message exist before copying it, but it takes time and 
+   cpu on the host1 server. 
+
+Notes about --useuid
+
+Case where building the cache first is necessary (to avoid multiples transfers)
+
+If you run again imapsync with --useuid on a transfer  already done without 
+--useuid then, to avoid messages be copied again, first run imapsync 
+with --usecache but without --useuid, example scenario:
+
+A] Running with the default options, I began without --useuid 
+
+1) First run with default options
+
+  imapsync ...
+
+Too slow, I want to speed up!
+
+2) Build the cache
+
+ imapsync ... --usecache
+
+3) Speed up now
+
+  imapsync ... --useuid
+
+B] I began with --useuid from the first time
+
+1) First run and next runs with --useuid
+
+  imapsync ... --useuid
+
+
+Inodes number issue.
+
+The cache is simple, it uses the file-system natively, 
+it's just an empty file per message transfered.
+When mailboxes are huge the cache can exhaust the number of inodes 
+allowed in the filesystem, that's a limitation like limitation
+size but it's less often encountered.
+
+On Unix, to predict whether your tmpdir filesystem used by imapsync 
+will support the whole cache, just run the command "df -i /var/tmp", 
+if /var/tmp is the --tmpdir argument.
+
+On windows, search and drop me a note about how to count the number 
+of files allowed in the filesystem. 
+It seems FAT32 supports 268 435 445 clusters.
+
+Choosing the number of inodes allowed by a filesystem can be done 
+at the creation of it with "mkfs -N number-of-inodes ..."
+
+imapsync can predict how many messages have to be synced with the 
+option --justfoldersizes (no transfer will be done)
+
+  imapsync ... --justfoldersizes
+
+
+=======================================================================
+Q. I see warning messages like the following:
+   "Host1 Sent/15 size 1428 ignored (no header so we ignore this message.
+   To solve this: use --addheader)".
+   What can I do to transfer those messages?
+
+
+R1. Like suggested inline, use --addheader option. 
+Option --addheader will add an header line like 
+Message-Id: <15@imapsync>
+where 15 is the message UID number on host1.  
+Then imapsync will transfer the changed message on host2.
+Duplicates won't happen on next runs.
+
+   imapsync ... --addheader
+
+R2. Other solution. 
+Use --useuid then imapsync will avoid dealing with headers.
+
+   imapsync ... --useuid
+
+=======================================================================
+Q. How can I try imapsync with latest Mail::IMAPClient 3.xx perl module?
+
+Three solutions at least.
+
+R1 - Look at the script named "i3" in the tarball, it can be used to
+     run imapsync with the included Mail-IMAPClient-3.39/ wherever you 
+     unpacked the imapsync tarball
+
+R2 Run:
+
+   cpanm Mail::IMAPClient # this uses cpanminus
+
+   or
+
+   cpan -i Mail::IMAPClient 
+   
+   or
+
+   perl -MCPAN -e "install Mail::IMAPClient"
+   
+
+R3 If you want to install the Perl module locally in a directory
+
+   - Download latest Mail::IMAPClient 3.xx at
+     http://search.cpan.org/dist/Mail-IMAPClient/
+
+   - untar it anywhere:
+        tar xzvf Mail-IMAPClient-3.xx.tar.gz
+
+   - Get any imapsync (latest is better).
+
+   - run imapsync with perl and -I option tailing to use the perl
+     module Mail-IMAPClient-3.xx. Example:
+
+         perl -I./Mail-IMAPClient-3.39/lib  ./imapsync ...
+
+     or if imapsync is in directory /path/
+        perl -I./Mail-IMAPClient-3.39/lib   /path/imapsync ...
+
+
+=======================================================================
+Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
+
+R. Mail::IMAPClient 2.2.9 is no longer supported.
+
+=======================================================================
+Q. How to verify imapsync.exe I got is the right file bit per bit?
+
+R. Use md5sum to check integrity of the file.
+   Get md5sum.exe at http://etree.org/md5com.html
+
+   md5sum imapsync.exe
+
+   Then compare the checksum with the one given by the author.
+
+=======================================================================
+Q. Can I use imapsync to migrate emails from pop3 server to imap server?
+
+R1. No, but you can migrate emails from a pop3 server to an imap server 
+with the command line tool pop2imap:
+http://www.linux-france.org/prj/pop2imap/
+
+R2. Yes, sometimes, because many pop3 servers runs in parallel
+with an imap server on exactly the same mailboxes. They serve 
+the same INBOX (imap serves INBOX and several other folders, 
+pop3 serves only INBOX).
+So have a try with imapsync on the same host1.
+
+=======================================================================
+Q. Folders are not created on host2. What happens?
+
+R. Do you use IMAP or POP3 with your client software?
+It looks like you use POP3 instead of IMAP, POP3 sees only INBOX.
+
+
+=======================================================================
+Q. I am interested in creating  a local clone of the IMAP on a LAN 
+   server for  faster synchronizations, email will always be delivered 
+   to the remote server and so the synchronization will be one way - from 
+   remote to local. How suited is imapsync for continuous one-way 
+   synchronization of mailboxes? Is there a better solution?
+
+R. If messages are delivered remotely and you play locally with the
+   copy, in order to have fast access, then the synchronization can't
+   be one way. You may change flags, you may move messages in 
+   different folders etc. The issue described is clearly 
+   two-ways sync.
+
+   A better tool with this scenario is offlineimap, 
+   designed for this issue, and faster than imapsync.
+
+
+=======================================================================
+Q. I need to log every output on a file named log.txt
+
+R1. imapsync logs on a file by default, its name is given at the 
+    beginning and the end of each run. This name is unique since
+    it is compound of the current date and time and user2 value. 
+
+R2. To change this default name, use --logfile log.txt
+
+  imapsync ... --logfile log.txt
+
+
+=======================================================================
+Q. Quantifier in {,} bigger than 32766 in regex; marked by <-- HERE in 
+   m/(.{ <-- HERE 1,49947})(?:,|$)/ at Mail/IMAPClient.pm line 2121.
+
+R. Do not use a bigger value than 3276 with --split1 or --split2
+ 
+=======================================================================
+Q. Couldn't create [INBOX.Ops/foo/bar]: NO Invalid mailbox name: 
+   INBOX.Ops/foo/bar 
+
+Let begin by an explanation.
+
+Example:
+sep1 = /
+sep2 = .
+
+imapsync reverts each separator automatically. 
+
+a) All / character coming from host1 are converted to . (convert the separator)
+b) All . character coming from host1 are converted to / (to avoid 
+intermediate unwanted folder creation). 
+
+So 
+INBOX/Ops.foo.bar (Ops.foo.bar is just one folder name) will be translated to 
+INBOX.Ops/foo/bar 
+
+Sometimes the sep1 character is not valid on host2 (character "/" usually)
+
+R. Try :
+
+  --regextrans2 "s,/,X,g"
+
+It'll convert / character to X 
+Choose X as you wish: _ or SEP or 
+any string (including the empty string).
+
+This issue is automatically fixed by default since imapsync 
+release 1.513, use --nofixslash2 to suppress the fix.
+
+=======================================================================
+Q. Is it possible to sync also the UIDL of the POP3 server?
+
+R. imapsync doesn't talk POP3 but I think you mean UID in IMAP.
+   See next question.
+
+=======================================================================
+Q. Is it possible to sync also the UIDs of the IMAP server?
+
+R. UIDs in IMAP are chosen and created by the server, not by the 
+   client software. imapsync is a client software. So UIDs cannot 
+   be synced by any imap method.
+
+   UIDs may be synced via a rsync command between the imap servers but
+   it implies they are the same software, among other constraints.
+
+=======================================================================
+Q. The option --subscribe does not seem to work
+
+R1. Use it with --subscribed
+
+R2. There is also the --subscribe_all option that subscribe
+    to all folders on host2.
+
+=======================================================================
+Q. With huge account (many messages) when it comes to reading the
+   destination server it comes out this error:
+   "To   Folder [INBOX.foobar] Not connected" 
+   What can I do?
+
+R. May be spending too much time on the source server, the connection 
+   timed out on the destination server.
+   Try options --nofoldersizes 
+
+======================================================================
+Q. Can Imapsync filter Spam during the sync?
+
+R. No, imapsync doesn't detect Spam by itself. But I've seen blogs and
+   Spamassassin documentation explaining solutions to apply Spamassassin
+   to a imap mailbox. So you can apply one of these solutions on the host1
+   source mailbox before the imapsync run or on the destination host2
+   mailbox after the imapsync transfer.
+
+http://www.stearns.org/doc/spamassassin-setup.current.html#isbg
+http://euer.krebsco.de/using-spamassassin-on-a-remote-imap-host.html
+https://github.com/ook/isbg
+
+   Imapsync can delegate this job during its IMAP syncs via the 
+   --pipemess option but the underlying spam tool has to be written.
+   
+======================================================================
+Q. How to migrate from uw-imap with an admin/authuser account?
+
+R. Use the following syntax:
+
+  imapsync ... --user1="loginuser*admin_user" --password1 "admin_user_password"
+
+
+======================================================================
+Q. How to migrate from cyrus with an admin account?
+
+R. Use:
+ 
+ imapsync ... \
+   --authuser1 admin_user  ----password1 admin_user_password \
+   --user1 foo_user --ssl1
+
+Instead of --ssl1 the alternative --tls1 can be used.
+With --authuser1, the option --authmech1 PLAIN is set
+automatically, you don't have to add it.
+
+PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
+Same behavior with the --authuser2 option.
+
+Do not forget the option --ssl1 or --tls1 since PLAIN auth is only
+supported with ssl encryption most of the time. But it can
+work without --ssl1 nor --tls1 if PLAIN is permitted in clear text
+transmissions (the normal mode).
+
+Add the AdminAccount to admins line in /etc/imapd.conf
+Give AdminAccount lrswipkxtecda to the Cyrus Imap account 
+being migrated from, "joe" here.
+
+
+Here is an example:
+ imapsync \
+	--host1 server1 \
+	--user1 joe \
+	--authuser1 AdminAccount \
+	--password1 AdminAccountPassword \
+	--ssl1 \
+	--host2 server2 \
+	--user2 joe \
+	--password2 joespassonserver2 \
+	--exclude "^user\."
+
+======================================================================
+Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
+   Netscape servers with an admin account?
+
+R: Those imap servers don't allow the typical use of --authuser1 to use an
+administrative account. They expect the use of an IMAP command called
+proxyauth that is issued after login in as an administrative account.
+
+For example, consider the administrative account 'administrator' and your
+real user 'real_user'. The IMAP sequence would be:
+
+  OK [CAPABILITY IMAP4 IMAP4rev1 ACL QUOTA LITERAL+ NAMESPACE UIDPLUS
+  CHILDREN BINARY UNSELECT LANGUAGE STARTTLS XSENDER X-NETSCAPE XSERVERINFO
+  AUTH=PLAIN] imap.server IMAP4 service (Sun Java(tm) System Messaging
+  Server ...))
+  1 LOGIN administrator password
+  1 OK User logged in
+  2 PROXYAUTH real_user
+  2 OK Completed
+
+In imapsync, you can achieve this by using the following options:
+
+  --host1 source.imap.server \
+  --user1 real_user \
+  --authuser1 administrator \
+  --proxyauth1 \
+  --passfile admin.txt
+
+======================================================================
+Q. Is there a way to delete the destination folder when the source 
+   folder is no longer there?
+
+R. Yes, use --delete2folders
+
+--delete2folders       : Delete folders in host2 that are not in host1 server. 
+                         For safety, first try it like this (it is safe):
+			 --delete2folders --dry --justfolders --nofoldersizes
+--delete2foldersonly   <regex>: Deleted only folders matching regex.
+                         Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+--delete2foldersbutnot <regex>: Do not delete folders matching regex.
+                         Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
+
+=======================================================================
+Q. I would love to have a function to inject lines in the header. 
+   Things like "X-migrated-from-foo: 20100617"
+
+R. You can do that with:
+
+  imapsync ... --regexmess 's/\A/X-migrated-from-foo: 20100617\n/'
+
+It will insert a first header line containing "X-migrated-from-foo: 20100617" 
+
+=======================================================================
+Q. I want to play with headers line and --regexmess but I want to leave
+   the body as is.
+
+R. The header/body separation is a blank line so an example:
+   --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nX-Date:$2}gxms'
+
+Will replace the next three lines
+
+Message-ID: <499EF800.4030002@blabla.fr>
+Date: Fri, 20 Feb 2009 19:35:44 +0100
+From: Gilles LAMIRAL <lamiral@linux-france.org>
+
+by the next four lines
+
+Message-ID: <499EF800.4030002@blabla.fr>
+Date: Fri, 20 Feb 2009 19:35:44 +0100
+X-Date: Fri, 20 Feb 2009 19:35:44 +0100
+From: Gilles LAMIRAL <lamiral@linux-france.org>
+
+
+This example just add an header line "X-Date:" based on "Date:" line.
+
+=======================================================================
+Q. My imap server does not accept a message and warns
+   "Invalid header". What is the problem?
+
+R. You fall in the classical mbox versus Maildir/ format
+   problem. May be you use a misconfigured procmail rule.
+
+A header beginning like the following one is in the mbox
+format, header line 1 has no colon behind "From", header
+lines 2 through N do have a colon :
+
+From foo@yoyo.org  Sat Jun 22 01:10:21 2002
+Return-Path: <foo@yoyo.org>
+Received: ...
+
+Any Maildir/ configured imap server may refuse this message since its
+header is invalid. The first "From " line is not valid. It lacks a
+colon character ":". To solve this issue you have several solutions
+
+a) Remove manually this first "From " line for each message before
+   using imapsync. 
+
+b) Replace manually the whitespace by a colon in string "From " but you
+   might end with two "From:" lines (just have a look at the other 
+   header lines of the message)
+
+c) Run imapsync with the following option (this replaces "From "by "From:"):
+   --regexmess 's/\AFrom /From: /'
+
+or may be better (no other "From:" collision):
+
+d) Run imapsync with the following option (this replaces "From "by "X-om:"):
+   --regexmess 's/\AFrom /X-From: /'
+
+e) Run imapsync with the following option (this removes the whole "From " line):
+   --regexmess 's{\AFrom\ [^\n]*(\n)?}{}gxms'
+
+Solution e) is solution a) made by imapsync itself.
+Solutions c) and d) keep "From " lines information
+(normally it's useless to keep them)
+
+Best solutions are e) or d).
+
+=======================================================================
+Q. The contact folder isn't well copied. 
+   How to copy the contact folder?
+
+R. Forget the destination server (choose the same)
+Change the script around line 1426
+       # ITSD
+       $new_id = $from->copy($t_fold,$f_msg);
+       #$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
+
+and tried a copy of the mail instead an append_string. Because we are
+using the same server, we can use $from->copy Therefore we seem to not
+download and upload the message and therefore we do not have any
+format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
+
+
+======================================================================
+Q: How can I write an .rpm with imapsync
+
+R. You'll find an RPM imapsync.spec file in the directory learn/rpm/
+   It has been downloaded from
+   https://svn.fysik.dtu.dk/projects/rpmbuild/trunk/SPECS/imapsync.spec
+   It has been tested with imapsync 1.434 (May 2011) on CentOS5 
+   and RedHat RHEL5 Linux. (Thanks to Ole Holm Nielsen).
+   This imapsync.spec is coming from Neil Brown work in 2007.
+
+=======================================================================
+Q. Where I can read up on the various IMAP RFCs?
+
+R. Here:
+
+RFC 3501 - INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1
+http://www.faqs.org/rfcs/rfc3501.html
+
+RFC2683 - IMAP4 Implementation Recommendations
+http://www.faqs.org/rfcs/rfc2683.html
+
+RFC 2595 - Using TLS with IMAP, POP3 and ACAP
+http://www.faqs.org/rfcs/rfc2595.html
+
+RFC 2822 - Internet Message Format
+http://www.faqs.org/rfcs/rfc2822.html
+
+RFC 2342 - IMAP4 Namespace
+http://www.faqs.org/rfcs/rfc2342.html
+
+RFC2180 - IMAP4 Multi-Accessed Mailbox Practice
+http://www.faqs.org/rfcs/rfc2180.html
+
+RFC 4549 - Synchronization Operations for Disconnected IMAP4 Clients
+http://www.faqs.org/rfcs/rfc4549.html
+
+
+=======================================================================
+=======================================================================

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.63 2015/12/18 20:53:37 gilles Exp gilles $
+# $Id: memo,v 1.66 2017/04/12 20:57:37 gilles Exp gilles $
 
 count_nice() {
 
@@ -281,7 +281,7 @@ verify_month_year() {
 	cd $HOME/imapsync_stats
 	fmy="stats_imapsync_${year}_${month}.ip"
 	test -f "$fmy" || { echo "No $fmy" ; statistics_VERSION_monthly_ip ${month} ${year} ; }
-	test -f "$fmy" || { echo "No $fmy" ; return 1 ; }
+	test -f "$fmy" || { echo "No $fmy" ; return 0 ; }
 	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
 	diff_month=`expr $fmy_YYYYmm - ${year}${month}` || :
 	echo -n $diff_month
@@ -337,9 +337,10 @@ statistics_VERSION_yearly_os() {
 	FreeBSD=`grep -i freebsd stats_imapsync_${year}.ip | wc -l`
 	Solaris=`grep -i solaris stats_imapsync_${year}.ip | wc -l`
 	OpenBSD=`grep -i openbsd stats_imapsync_${year}.ip | wc -l`
-	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd'    stats_imapsync_${year}.ip |wc -l`
-	Nb_All=`cat           stats_imapsync_${year}.ip | wc -l`
-	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD Other; do
+	Unknown=`grep -i '"-"'   stats_imapsync_${year}.ip | wc -l`
+	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd|"-"'  stats_imapsync_${year}.ip |wc -l`
+	Nb_All=`cat stats_imapsync_${year}.ip | wc -l`
+	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD Unknown Other; do
 		#echo $OS `eval "echo \\$$OS"` / $Nb_All
 		Nb_OS=`eval "echo \\$$OS"`
 		PerCent=`echo "scale=2; 100*$Nb_OS/$Nb_All" | bc -l`
@@ -416,7 +417,7 @@ wget http://download.maxmind.com/download/geoip/database/asnum/GeoIPASNum.dat.gz
 gunzip GeoIP.dat.gz
 gunzip GeoIPASNum.dat.gz
 gunzip GeoLiteCity.dat.gz
-sudo cp GeoIP.dat GeoIPASNum.dat GeoLiteCity.dat /usr/share/GeoIP/
+sudo mv GeoIP.dat GeoIPASNum.dat GeoLiteCity.dat /usr/share/GeoIP/
 EOF
 }
 
@@ -468,6 +469,13 @@ statistics_releases_monthly() {
 	| grep -o   -P '1\.\d{3}'   | sort -n | uniq -c | sort -n
 	)
 }
+
+statistics_releases_previous_month() {
+	month=${1:-`date '+%m' -d 'last month'`}
+	year=${2:-`date '+%Y'  -d 'last month'`}
+	statistics_releases_monthly $month $year
+}
+
 
 statistics_releases_yearly() {
 	year=${1:-`date '+%Y'`}
@@ -574,11 +582,15 @@ statistics_VERSION_synthesis() {
 	echo && echo "==== % Operating systems in ${year} "
 	statistics_VERSION_yearly_os $year
 	echo && echo "==== Perl releases in ${year} "
-	statistics_perl_yearly $year | tail -9
+	statistics_perl_yearly $year | tail -15
 	echo && echo "==== Biggest users in ${year} "
-	tail -n 9 stats_imapsync_${year}.ip
+	tail -n 15 stats_imapsync_${year}.ip
 	echo && echo "==== Most releases used in ${year} "
-	statistics_releases_yearly ${year} | tail -9
+	statistics_releases_yearly ${year} | tail -15
+	echo && echo "==== Most releases used the previous month "
+	statistics_releases_previous_month | tail -10
+	echo && echo "==== Most releases used this month "
+	statistics_releases_monthly | tail -10
 	echo && echo "==== Nb users each year "
 	wc -l stats_imapsync_????.ip
 	echo && echo "==== Nb runs each year : "
@@ -592,8 +604,6 @@ statistics_VERSION_synthesis() {
 	echo "$nb_runs_current_year/$current_day_of_year*365" | bc 
 	)
 }
-
-
 
 }
 
@@ -632,54 +642,5 @@ niouzes_compil
 
 #' nedit sucks with syntax color
 
-fm_init() {
-software_version
-NEWS_FILE_FM="./freshmeat_submition"
-NEWS_FILE_FM_INP=${NEWS_FILE_FM}.inp
-NEWS_FILE_FM_OUT=${NEWS_FILE_FM}.json
-}
-
-fm_read_param() {
-# read definitions
-. $NEWS_FILE_FM_INP
-}
-
-
-fm_read_announce() {
-
-  fm_init
-  fm_read_param
-
-  cat << EOF
-{
-  "release": {
-    "tag_list": "stable, $RELEASE_FOCUS",
-    "version": "$VERSION",
-    "hidden_from_frontpage": false,
-    "changelog": "$TEXT_BODY"
-  }
-}
-
-EOF
-}
-
-fm_announce() {
-  fm_init
-
-  if ! newer VERSION $NEWS_FILE_FM_OUT; then 
-	echo "$VERSION already submitted on freshmeat"
-  else
-    if newer VERSION $NEWS_FILE_FM_INP; then
-	echo "Update $NEWS_FILE_FM_INP please"
-	return 1
-    fi
-
-    fm_read_announce > $NEWS_FILE_FM_OUT 
-    curl -X PUT -d @../../var/pass/secret.freshmeat -d @$NEWS_FILE_FM_OUT \
-         -H "Content-Type: application/json" \
-         http://freshmeat.net/projects/imapsync.json
-
-  fi
-}
 
 

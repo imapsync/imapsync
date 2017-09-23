@@ -1,0 +1,70 @@
+#!/bin/cat 
+# $Id: INSTALL.OnlineUI.txt,v 1.8 2017/09/01 22:50:06 gilles Exp gilles $
+
+==============================
+= Installing imapsync online = 
+==============================
+
+Please consider this as relatively new and experimental.
+I add I'm begining to be confident with /X since the /X service 
+is up and running quite well since january 2017.
+
+You have to be a little familiar with what is a CGI script
+and how to activate it on an Apache (or any other) HTTP server.
+
+The web visual user interface frontend is the file
+https://imapsync.lamiral.info/X/imapsync_form.html
+You can do a "view source" to see it as it is written,
+and a "save" to get it locally.
+
+This imapsync_form.html file in action calls the CGI location
+/cgi-bin/imapsync
+which has to be imapsync itself. 
+
+The very latest and relatively stable imapsync is at
+https://imapsync.lamiral.info/imapsync
+It is the program file used verbatim for the service given at
+https://imapsync.lamiral.info/X/
+
+So copy both imapsync_form.html and imapsync on a HTTP server 
+allowing CGIs and you'll have your own imapsync visual interface.
+
+
+Example on a Debian server with Apache:
+
+Imapsync place on the server disk:
+/usr/lib/cgi-bin/imapsync
+
+This classical /cgi-bin directory is configured in Apache
+configuration file
+/etc/apache2/sites-available/default-ssl
+or
+/etc/apache2/sites-available/default
+
+It contains somewhere (maybe in comments for now, 
+with some # characters to make them ignored):
+
+ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+<Directory "/usr/lib/cgi-bin">
+    AllowOverride None
+    Options +ExecCGI -MultiViews
+    Order allow,deny
+    Allow from all
+</Directory>
+
+The UI frontend file place on the server disk is
+/var/www/X/imapsync_form.html
+but it can be placed it anywhere on disk, the important
+thing is that it has to be served by the web server. 
+
+The imapsync working directory in cgi mode is
+/var/tmp/imapsync_cgi/
+it is not configurable unless changing it in
+imapsync directly, it is hardcoded in imapsync. 
+In this directory will go the log files and
+the pid files.
+
+Use at least CGI.pm release 4.08 (2014-10-18)
+to avoid the bug "Undefined subroutine CGI::multi_param"
+
+

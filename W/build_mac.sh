@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: build_mac.sh,v 1.6 2016/06/22 20:04:16 gilles Exp gilles $
+# $Id: build_mac.sh,v 1.8 2017/03/01 03:06:46 gilles Exp gilles $
 
 # exit on any failure
 set -e
@@ -26,8 +26,9 @@ cpanm Mail::IMAPClient IO::Socket::SSL PAR::Packer
 pp -o $BIN_NAME  \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
-	-M Authen::NTLM \
+	-M Authen::NTLM -M Net::Ping \
 	-M Crypt::OpenSSL::RSA -M JSON -M JSON::WebToken -M LWP -M HTML::Entities \
+	-M Sys::MemInfo \
 	imapsync
 
 ./imapsync_bin_Darwin 

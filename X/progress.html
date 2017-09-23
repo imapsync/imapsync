@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Imapsync online</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    -->
+  </head>
+
+<body>
+
+<h1>Imapsync online</h1>
+
+<button type="button"
+	onclick="imapsync('?lalala=zzz&host1=sss&user1=&password1=&host2=&user2=&password2=&simulong=2&debugenv=on', handleRun)"
+	>Run imapsync
+</button>
+<!-- 
+&debugcgi=on&debugenv=on
+-->
+
+<button type="button"
+	onclick="abort( '?host1=&user1=&password1=&host2=&user2=&password2=&abort=on' )"
+	>Abort imapsync
+</button>
+
+
+<h2>Console of imapsync run</h2>
+
+<pre id="console">
+</pre>
+
+<h2>Console of abort</h2>
+<pre id="abort">
+</pre>
+
+
+<h2>Log of imapsync run</h2>
+
+<pre id="output" >
+</pre>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+<script>
+
+var readyStateStr = {
+	0: "Request not initialized",
+	1: "Server connection established",
+	2: "Response headers received",
+	3: "Processing request",
+	4: "Finished and response is ready"
+} ;
+
+function imapsync( querystring, cFunction ) {
+	var xhr ;
+	xhr = new XMLHttpRequest(  ) ;
+	var timerRefreshLog = setInterval( function() { refreshLog( xhr ) }, 3000 ) ;
+	xhr.onreadystatechange = function(  ) {
+		cFunction( this, timerRefreshLog ) ;
+	} ;
+	xhr.open( "GET", "http://lamiral.info/cgi-bin/imapsync" + querystring, true ) ;
+	xhr.send(  ) ;
+}
+
+function handleRun( xhr, timerRefreshLog ) {
+
+	$( "#console" ).text( "Status: " + xhr.status + " " + xhr.statusText + ".\n" 
+	+ "State: " + readyStateStr[ xhr.readyState ] + "\n" ) ;
+
+	if ( xhr.status == 200 && xhr.readyState == 4 ) {
+	        var headers =  xhr.getAllResponseHeaders(  ) ;
+		$( "#console" ).append( "\n" + headers + "\n" ) ;
+		clearInterval( timerRefreshLog ) ;
+		refreshLog( xhr ) ; // a last time
+	}
+}
+
+function refreshLog( xhr ) {
+	$( "#output" ).html( xhr.responseText ) ;
+}
+
+function abort( querystring ) {
+	var xhr ;
+	xhr = new XMLHttpRequest(  ) ;
+	xhr.onreadystatechange = function(  ) {
+		handleAbort( this ) ;
+	} ;
+	xhr.open( "GET", "http://lamiral.info/cgi-bin/imapsync" + querystring, true ) ;
+	xhr.send(  ) ;
+}
+
+function handleAbort( xhr ) {
+
+	$( "#abort" ).text( "Status: " + xhr.status + " " + xhr.statusText + ".\n" 
+	+ "State: " + readyStateStr[ xhr.readyState ] + "\n" ) ;
+
+	if ( xhr.status == 200 && xhr.readyState == 4 ) {
+	        var headers =  xhr.getAllResponseHeaders(  ) ;
+		$( "#abort" ).append( "\n" + headers + "\n" ) ;
+		$( "#abort" ).append( xhr.responseText ) ;
+		
+	}
+}
+
+
+</script>
+</body>
+</html>

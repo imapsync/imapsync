@@ -1,44 +1,108 @@
 #!/bin/cat
-# $Id: FAQ.Security.txt,v 1.9 2016/08/19 17:53:21 gilles Exp gilles $
+# $Id: FAQ.Security.txt,v 1.16 2017/04/26 21:50:00 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-=======================================================
-  Imapsync tips about security. Issues and solutions.
-=======================================================
+=======================================================================
+      Imapsync tips about security. Issues and solutions.
+=======================================================================
+
+SSL: going to encryption before the imap session start. 
+     It is on port 993.
+
+TLS: going to encryption after the imap session start but before
+     the credential are sent. It is on port 143.
+
+=======================================================================
+Q. Is running this program a secure method of transferring emails?  
+   Are there any security concerns?
+
+R. Well, it depends. Use encryption, secure the access to the host running
+   imapsync and everything shall be safe.
+
+=======================================================================
+Q. I noticed that the online UI has no option for TLS/SSL 
+   Is this secure? Is this more secure that using the .bat file 
+   on my computer?
+
+R1. The online UI does TLS/SSL imap connections if the imap
+    servers support TLS/SSL. If you are concerned by security then 
+    using the .bat file or .sh on your computer should be more secure 
+    since you can examine and secure it by yourself, no matter high is
+    your paranoïd spirit. The online UI security is mine, I am
+    concerned by security, not to the upmost high level possible 
+    but I won't give you direct access to the host to discover my level.
+    With a good guy spirit, feel free to try to break the online UI 
+    security and report me any security issue you encounter, I'll do my
+    best to fix them as soon as possible. Drop me a note before
+    starting because I may detect a sort of abuse and ban 
+    definitively your IPs.
+
+=======================================================================
+Q. Are transferred emails/attachments stored on any other 
+   server/location aside from my originating/destination server(s)?
+
+R. No!
+
+=======================================================================
+Q. Other than changing passwords on the originating/destination email 
+   accounts once the relevant emails have been moved, 
+   are there any other security tips I should know?
+
+R. Secure the host where imapsync is running since credentials are
+   on it.
+
+=======================================================================
+Q. I need to transfer mail from an imap server to an other imap server. 
+   Which ports need to be open on the firewall to make this possible?
+
+R. It depends. Open either:
+    * port 143 in basic (no special option) or tls mode (--tls1 or --tls2)
+    * port 993 in ssl mode (--ssl1 or --ssl2)
 
 =======================================================================
 Q. Does imapsync support IMAP TLS?
 
-R. Use --tls1 and/or --tls2 options
+R1. Yes. 
+   Use --tls1 and/or --tls2 options:
 
---tls1 tells imapsync to use tls on host1.
---tls2 tells imapsync to use tls on host2.
+  --tls1 tells imapsync to use tls on host1.
+  --tls2 tells imapsync to use tls on host2.
 
+R2. Since imapsync release 1.755 TLS mode is activated automatically
+    if the server announce it supports it, STARTTLS inside the response 
+    to CAPABILITY, and if neither --notls nor --ssl is explicitely
+    mentioned on the command line options.
 
 =======================================================================
 Q. Does imapsync support IMAP over SSL (IMAPS)?
 
 R. Yes natively since release 1.161. 
-still, 2 ways, at least to use ssl:
+   Still, there are 2 ways, at least, to use ssl:
 
 a) Use native --ssl1 and/or --ssl2 options
 
---ssl1 tells imapsync to use ssl on host1.
---ssl2 tells imapsync to use ssl on host2.
+  --ssl1 tells imapsync to use ssl on host1.
+  --ssl2 tells imapsync to use ssl on host2.
 
 
 b) Use stunnel
    http://www.stunnel.org/
    Assuming there is an imaps (993) server on imap.foo.org,
-   on your localhost machine (or bar machine) run :
-       stunnel -c -d imap -r imap.foo.org:imaps
-   or using names instead of numbers 
-       stunnel -c -d 143 -r imap.foo.org:993
-   then use imapsync on localhost (or bar machine) imap (143) port.
-   If the local port 143 is already taken then use a free one, 10143.
+   on your localhost machine (or bar machine), run:
 
-c) Other example for gmail with no root access to open port 143
+     stunnel -c -d imap -r imap.foo.org:imaps
+
+   or using numbers instead of names:
+
+     stunnel -c -d 143 -r imap.foo.org:993
+
+   then use imapsync on localhost (or bar machine) imap (143) port.
+   If the local port 143 is already taken then use a free one, 
+   like 10143 for example.
+
+c) Other example for accessing gmail with no local root access 
+   to open port 143
 
    stunnel -f -P '' -c -d 9993 -r imap.gmail.com:993
 
@@ -48,11 +112,35 @@ Then, to access gmail as host2 use:
 
 
 =======================================================================
+Q.How can I test an ssl imap connection without imapsync?
+
+R1. Use either ncat or telnet-ssl or openssl commands like in the 
+    following examples with imap.gmail.com server:
+
+  ncat --ssl -C imap.gmail.com 993
+
+  telnet-ssl -z ssl  imap.gmail.com 993
+
+  openssl s_client -crlf -connect imap.gmail.com:993
+
+The previous commands are interactive, hit ctrl-c
+to finish them. If you want to finish automatically, then use: 
+
+  { sleep 2; echo "a logout"; sleep 1; } | ncat --ssl -C  imap.gmail.com 993
+
+
+=======================================================================
 Q. How can I manually test a login via ssl?
 
-R. Use ncat or telnet-ssl like in this example:
+R. Use either ncat or telnet-ssl or openssl commands like in the 
+    following examples with imap.gmail.com server:
 
-ncat --ssl -C  imap.gmail.com 993
+  ncat --ssl -C imap.gmail.com 993
+  telnet-ssl -z ssl  imap.gmail.com 993
+  openssl s_client -crlf  -connect imap.gmail.com:993
+
+Tipical dialog for an imap LOGIN command:
+  
 * OK Gimap ready for requests from 78.196.254.58 q1mb175739668wix
 a LOGIN "gilles.lamiral@gmail.com" "secret" 
 * CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE ... ESEARCH
@@ -61,21 +149,27 @@ b LOGOUT
 * BYE LOGOUT Requested
 b OK 73 good day (Success)
 
-The client part to type is "a LOGIN ..." and "b LOGOUT" without
-the double-quotes. 
+The client part you have to type is 
+a LOGIN ... 
+b LOGOUT
+while replacing ... by your credentials values.
+
 
 =======================================================================
-Q.How to test a ssl imap connection without imapsync?
+Q.How can I test an tls imap connection without imapsync?
 
-R1.Use openssl command like the following, 
-   an example with imap.gmail.com server:
+R1. Use openssl command like the following example with 
+    an outlook.office365.com server:
 
-  openssl s_client -crlf -connect imap.gmail.com:993
+  openssl s_client -crlf -starttls imap -connect outlook.office365.com:143
 
-The previous command is an interactive connection, hit ctrl-c
-to finish it. If you want to finish it gently, then use: 
+The previous commands are interactive, hit ctrl-c
+to finish them. If you want to finish automatically, then use: 
 
-  { sleep 2; echo "a logout"; sleep 1; } | openssl s_client -crlf  -connect imap.gmail.com:993
+  { sleep 2; echo "a logout"; sleep 1; } | openssl s_client -crlf -starttls imap -connect outlook.office365.com:143
+
+Replace outlook.office365.com with your imap server name.
+
 
 ======================================================================
 Q. Imapsync used to use SSL_VERIFY_PEER now it uses SSL_VERIFY_NONE.
@@ -130,3 +224,5 @@ b) or use stunnel :
 c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
 
+=======================================================================
+=======================================================================

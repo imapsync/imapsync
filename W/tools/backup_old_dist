@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# $Id: backup_old_dist,v 1.3 2017/09/11 03:04:20 gilles Exp gilles $
+
+# Bye on any error not handled
+set -e
+
+! test -f dist/imapsync && return
+
+version_previous=`dist/imapsync --version || echo ERROR`
+echo "previous: [$version_previous]"
+
+test "ERROR" != "$version_previous" || return 1
+
+version_current=`cat VERSION || echo ERROR`
+
+test "ERROR" != "$version_current" || return 1
+
+echo "current:  [$version_current]"
+
+# nothing to backup
+test "$version_previous" = "$version_current" && return 0
+
+test -d dist/old_releases/$version_previous || mkdir dist/old_releases/$version_previous && ( cd dist/old_releases/$version_previous )
+
+pwd
+# all or nothing
+ls -ld dist/imapsync  dist/imapsync-$version_previous.tgz  dist/imapsync_$version_previous.zip || return 1
+# let's do it
+mv -vf dist/imapsync dist/imapsync_bin_Darwin dist/imapsync-$version_previous.tgz  dist/imapsync_$version_previous.zip dist/old_releases/$version_previous
+
+

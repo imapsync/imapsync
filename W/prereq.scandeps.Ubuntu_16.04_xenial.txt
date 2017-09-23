@@ -1,0 +1,582 @@
+Name:
+
+ imapsync - Email IMAP tool for syncing, copying and migrating email
+ mailboxes between two imap servers, one way, and without duplicates.
+
+Version:
+
+ This documentation refers to Imapsync $Revision: 1.1 $
+
+Usage:
+
+  To synchronize the source imap account
+    "test1" on server "test1.lamiral.info" with password "secret1"
+  to the destination imap account
+    "test2" on server "test2.lamiral.info" with password "secret2"
+  do:
+
+   imapsync \
+    --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
+    --host2 test2.lamiral.info --user2 test2 --password2 secret2
+
+Options:
+
+  usage: imapsync [options]
+
+ Mandatory options are the six values, three on each sides, needed to log in
+ into the IMAP servers, ie, a host, a username, and a password, two times.
+
+ Conventions used:
+
+  str means string
+  int means integer
+  reg means regular expression
+  cmd means command
+
+  --dry               : Makes imapsync doing nothing for real, just print what 
+                        would be done without --dry.
+
+Options/credentials:
+
+  --host1        str  : Source or "from" imap server. Mandatory.
+  --port1        int  : Port to connect on host1. Default is 143, 993 if --ssl1
+  --user1        str  : User to login on host1. Mandatory.
+  --password1    str  : Password for the user1.
+  --host2        str  : "destination" imap server. Mandatory.
+  --port2        int  : Port to connect on host2. Default is 143, 993 if --ssl2
+  --user2        str  : User to login on host2. Mandatory.
+  --password2    str  : Password for the user2.
+
+  --showpasswords     : Shows passwords on output instead of "MASKED".
+                        Useful to restart a complete run by just reading the log,
+                        or to debug passwords. It's not a secure practice.
+
+  --passfile1    str  : Password file for the user1. It must contain the
+                        password on the first line. This option avoids to show
+                        the password on the command line like --password1 does.
+  --passfile2    str  : Password file for the user2. Contains the password.
+
+Options/encryption:
+
+  --nossl1            : Do not use a SSL connection on host1.
+  --ssl1              : Use a SSL connection on host1. On by default if possible.
+  --nossl2            : Do not use a SSL connection on host2.
+  --ssl2              : Use a SSL connection on host2. On by default if possible.
+  --notls1            : Do not use a TLS connection on host1.
+  --tls1              : Use a TLS connection on host1. On by default if possible.
+  --notls2            : Do not use a TLS connection on host2.
+  --tls2              : Use a TLS connection on host2. On by default if possible.
+  --debugssl     int  : SSL debug mode from 0 to 4.
+  --sslargs1     str  : Pass any ssl parameter for host1 ssl or tls connection. Example:
+                        --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
+                        See all possibilities in the new() method of IO::Socket::SSL
+                        http://search.cpan.org/perldoc?IO::Socket::SSL#Description_Of_Methods
+  --sslargs2     str  : Pass any ssl parameter for host2 ssl or tls connection.
+                        See --sslargs1
+
+  --timeout1     int  : Connection timeout in seconds for host1.
+                        Default is 120 and 0 means no timeout at all.
+  --timeout2     int  : Connection timeout in seconds for host2.
+                        Default is 120 and 0 means no timeout at all.
+
+Options/authentication:
+
+  --authmech1    str  : Auth mechanism to use with host1:
+                        PLAIN, LOGIN, CRAM-MD5 etc. Use UPPERCASE.
+  --authmech2    str  : Auth mechanism to use with host2. See --authmech1
+
+  --authuser1    str  : User to auth with on host1 (admin user).
+                        Avoid using --authmech1 SOMETHING with --authuser1.
+  --authuser2    str  : User to auth with on host2 (admin user).
+  --proxyauth1        : Use proxyauth on host1. Requires --authuser1.
+                        Required by Sun/iPlanet/Netscape IMAP servers to
+                        be able to use an administrative user.
+  --proxyauth2        : Use proxyauth on host2. Requires --authuser2.
+
+  --authmd51          : Use MD5 authentication for host1.
+  --authmd52          : Use MD5 authentication for host2.
+  --domain1      str  : Domain on host1 (NTLM authentication).
+  --domain2      str  : Domain on host2 (NTLM authentication).
+
+Options/folders:
+
+  --folder       str  : Sync this folder.
+  --folder       str  : and this one, etc.
+  --folderrec    str  : Sync this folder recursively.
+  --folderrec    str  : and this one, etc.
+
+  --folderfirst  str  : Sync this folder first. --folderfirst "Work"
+  --folderfirst  str  : then this one, etc.
+  --folderlast   str  : Sync this folder last. --folderlast "[Gmail]/All Mail"
+  --folderlast   str  : then this one, etc.
+
+  --nomixfolders      : Do not merge folders when host1 is case-sensitive
+                        while host2 is not (like Exchange). Only the first
+                        similar folder is synced (ex: Sent SENT sent -> Sent).
+
+  --skipemptyfolders  : Empty host1 folders are not created on host2.
+
+  --include      reg  : Sync folders matching this regular expression
+  --include      reg  : or this one, etc.
+                        If both --include --exclude options are used, then
+                        include is done before.
+  --exclude      reg  : Skips folders matching this regular expression
+                        Several folders to avoid:
+                         --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
+  --exclude      reg  : or this one, etc.
+
+  --subfolder2   str  : Move whole host1 folders hierarchy under this
+                        host2 folder  str    .
+                        It does it by adding two --regextrans2 options before
+                        all others. Add --debug to see what's really going on.
+
+  --automap           : guesses folders mapping, for folders like
+                        "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
+  --f1f2    str1=str2 : Force folder str1 to be synced to str2,
+                        --f1f2 overrides --automap and --regextrans2.
+
+  --nomixfolders      : Avoid merging folders that are considered different on
+                        host1 but the same on destination host2 because of
+                        case sensitivities and insensitivities.
+
+  --subscribed        : Transfers subscribed folders.
+  --subscribe         : Subscribe to the folders transferred on the
+                        host2 that are subscribed on host1. On by default.
+  --subscribeall      : Subscribe to the folders transferred on the
+                        host2 even if they are not subscribed on host1.
+
+  --prefix1      str  : Remove prefix str to all destination folders,
+                        usually INBOX. or INBOX/ or an empty string "".
+                        imapsync guesses the prefix if host1 imap server
+                        does not have NAMESPACE capability. This option
+                        should not be used, most of the time.
+  --prefix2      str  : Add prefix to all host2 folders. See --prefix1
+  --sep1         str  : Host1 separator in case NAMESPACE is not supported.
+  --sep2         str  : Host2 separator in case NAMESPACE is not supported.
+
+  --regextrans2  reg  : Apply the whole regex to each destination folders.
+  --regextrans2  reg  : and this one. etc.
+                        When you play with the --regextrans2 option, first
+                        add also the safe options --dry --justfolders
+                        Then, when happy, remove --dry, remove --justfolders.
+                        Have in mind that --regextrans2 is applied after prefix
+                        and separator inversion. For examples see
+                        http://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
+
+Options/folders sizes:
+
+  --nofoldersizes     : Do not calculate the size of each folder at the
+                        beginning of the sync. Default is to calculate them.
+  --nofoldersizesatend: Do not calculate the size of each folder at the 
+                        end of the sync. Default is to calculate them.
+  --justfoldersizes   : Exit after having printed the initial folder sizes.
+
+Options/tmp:
+
+  --tmpdir       str  : Where to store temporary files and subdirectories.
+                        Will be created if it doesn't exist.
+                        Default is system specific, Unix is /tmp but
+                        /tmp is often too small and deleted at reboot.
+                        --tmpdir /var/tmp should be better.
+  --pidfile      str  : The file where imapsync pid is written,
+                        it can be dirname/filename.
+                        Default name is imapsync.pid in tmpdir.
+  --pidfilelocking    : Abort if pidfile already exists. Useful to avoid
+                        concurrent transfers on the same mailbox.
+
+Options/log:
+
+  --nolog             : Turn off logging on file
+  --logfile      str  : Change the default log filename (can be dirname/filename).
+  --logdir       str  : Change the default log directory. Default is LOG_imapsync/
+
+Options/messages:
+
+  --skipmess     reg  : Skips messages matching the regex.
+                        Example: 'm/[\x80-ff]/' # to avoid 8bits messages.
+                        --skipmess is applied before --regexmess
+  --skipmess     reg  : or this one, etc.
+
+  --pipemess     cmd  : Apply this cmd command to each message content
+                        before the copy.
+  --pipemess     cmd  : and this one, etc.
+
+  --disarmreadreceipts : Disarms read receipts (host2 Exchange issue)
+
+  --regexmess    reg  : Apply the whole regex to each message before transfer.
+                        Example: 's/\000/ /g' # to replace null by space.
+  --regexmess    reg  : and this one, etc.
+
+Options/flags:
+
+  --regexflag    reg  : Apply the whole regex to each flags list.
+                        Example: 's/"Junk"//g' # to remove "Junk" flag.
+  --regexflag    reg  : then this one, etc.
+
+Options/deletions:
+
+  --delete1           : Deletes messages on host1 server after a successful
+                        transfer. Option --delete1 has the following behavior:
+                        it marks messages as deleted with the IMAP flag
+                        \Deleted, then messages are really deleted with an
+                        EXPUNGE IMAP command. If expunging after each message
+                        slows down too much the sync then use
+                        --noexpungeaftereach to speed up.
+  --expunge1          : Expunge messages on host1 just before syncing a folder.
+                        Expunge is done per folder.
+                        Expunge aims is to really delete messages marked deleted.
+                        An expunge is also done after each message copied
+                        if option --delete1 is set.
+  --noexpunge1        : Do not expunge messages on host1.
+  --delete1emptyfolders : Deletes empty folders on host1, INBOX excepted.
+                          Useful with --delete1 since what remains on host1
+                          is only what failed to be synced.
+
+  --delete2           : Delete messages in host2 that are not in
+                        host1 server. Useful for backup or pre-sync.
+  --delete2duplicates : Delete messages in host2 that are duplicates.
+                        Works only without --useuid since duplicates are
+                        detected with an header part of each message.
+
+  --delete2folders    : Delete folders in host2 that are not in host1 server.
+                        For safety, first try it like this (it is safe):
+                        --delete2folders --dry --justfolders --nofoldersizes
+  --delete2foldersonly   reg : Deleted only folders matching regex.
+                               Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+  --delete2foldersbutnot reg : Do not delete folders matching regex.
+                               Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
+
+  --expunge2          : Expunge messages on host2 after messages transfer.
+  --uidexpunge2       : uidexpunge messages on the host2 account
+                        that are not on the host1 account, requires --delete2
+
+Options/dates:
+
+  --syncinternaldates : Sets the internal dates on host2 same as host1.
+                        Turned on by default. Internal date is the date
+                        a message arrived on a host (mtime).
+  --idatefromheader   : Sets the internal dates on host2 same as the
+                        "Date:" headers.
+
+Options/message selection:
+
+  --maxsize      int  : Skip messages larger  (or equal) than  int  bytes
+  --minsize      int  : Skip messages smaller (or equal) than  int  bytes
+  --maxage       int  : Skip messages older than  int  days.
+                        final stats (skipped) don't count older messages
+                        see also --minage
+  --minage       int  : Skip messages newer than  int  days.
+                        final stats (skipped) don't count newer messages
+                        You can do (+ are the messages selected):
+                        past|----maxage+++++++++++++++>now
+                        past|+++++++++++++++minage---->now
+                        past|----maxage+++++minage---->now (intersection)
+                        past|++++minage-----maxage++++>now (union)
+
+  --search       str  : Selects only messages returned by this IMAP SEARCH
+                        command. Applied on both sides.
+  --search1      str  : Same as --search for selecting host1 messages only.
+  --search2      str  : Same as --search for selecting host2 messages only.
+                        --search CRIT equals --search1 CRIT --search2 CRIT
+
+  --maxlinelength int : skip messages with a line length longer than  int  bytes.
+                        RFC 2822 says it must be no more than 1000 bytes.
+
+
+  --useheader    str  : Use this header to compare messages on both sides.
+                        Ex: Message-ID or Subject or Date.
+  --useheader    str    and this one, etc.
+
+  --usecache          : Use cache to speed up the sync.
+  --nousecache        : Do not use cache. Caveat: --useuid --nousecache creates
+                        duplicates on multiple runs.
+  --useuid            : Use uid instead of header as a criterium to recognize
+                        messages. Option --usecache is then implied unless
+                        --nousecache is used.
+
+Options/miscelaneous:
+
+  --syncacls          : Synchronizes acls (Access Control Lists).
+  --nosyncacls        : Does not synchronize acls. This is the default.
+                        Acls in IMAP are not standardized, be careful.
+
+Options/debugging:
+
+  --debug             : Debug mode.
+  --debugfolders      : Debug mode for the folders part only.
+  --debugcontent      : Debug content of the messages transferred. Huge output.
+  --debugflags        : Debug mode for flags.
+  --debugimap1        : IMAP debug mode for host1. Very verbose.
+  --debugimap2        : IMAP debug mode for host2. Very verbose.
+  --debugimap         : IMAP debug mode for host1 and host2.
+  --debugmemory       : Debug mode showing memory consumption after each copy.
+
+  --errorsmax     int : Exit when int number of errors is reached. Default is 50.
+
+  --tests             : Run local non-regression tests. Exit code 0 means all ok.
+  --testslive         : Run a live test with test1.lamiral.info imap server.
+                        Useful to check the basics. Needs internet connexion.
+  --testslive6        : Run a live test with ks2ipv6.lamiral.info imap server.
+                        Useful to check the ipv6 connectivity. Needs internet.
+
+Options/specific:
+
+   --gmail1           : sets --host1 to Gmail and options from FAQ.Gmail.txt
+   --gmail2           : sets --host2 to Gmail and options from FAQ.Gmail.txt
+  
+   --office1          : sets --host1 to Office365 options from FAQ.Exchange.txt
+   --office2          : sets --host2 to Office365 options from FAQ.Exchange.txt
+
+   --exchange1        : sets options from FAQ.Exchange.txt, account1 part
+   --exchange2        : sets options from FAQ.Exchange.txt, account2 part
+  
+   --domino1          : sets options from FAQ.Domino.txt, account1 part
+   --domino2          : sets options from FAQ.Domino.txt, account2 part
+
+Options/behavior:
+
+  --maxmessagespersecond int : limits the number of messages transferred per second.
+ 
+  --maxbytespersecond int : limits the average transfer rate per second.
+  --maxbytesafter     int : starts --maxbytespersecond limitation only after 
+                            --maxbytesafter amount of data transferred.
+ 
+  --maxsleep      int : do not sleep more than int seconds.
+                        On by default, 2 seconds max, like --maxsleep 2
+
+  --abort             : terminates a previous call still running. 
+                        It uses the pidfile to know what processus to abort.
+
+  --exitwhenover int  : Stop syncing when total bytes transferred reached.
+
+  --version           : Print only software version.
+  --noreleasecheck    : Do not check for new imapsync release (a http request).
+  --releasecheck      : Check for new imapsync release (a http request).
+  --noid              : Do not send/receive ID command to imap servers.
+  --justconnect       : Just connect to both servers and print useful
+                        information. Need only --host1 and --host2 options.
+  --justlogin         : Just login to both host1 and host2 with users
+                        credentials, then exit.
+  --justfolders       : Do only things about folders (ignore messages).
+
+  --help              : print this help.
+
+  Example: to synchronize imap account "test1" on "test1.lamiral.info"
+                      to  imap account "test2" on "test2.lamiral.info"
+                      with test1 password "secret1"
+                      and  test2 password "secret2"
+
+  imapsync \
+     --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
+     --host2 test2.lamiral.info --user2 test2 --password2 secret2
+
+Here is petite, a 2.0 GiB [linux] system (Linux petite 4.4.0-92-generic #115-Ubuntu SMP Thu Aug 10 16:02:55 UTC 2017 i686)
+with Perl 5.22.1 and Mail::IMAPClient 3.38
+$Id: prereq.scandeps.Ubuntu_16.04_xenial.txt,v 1.1 2017/09/07 12:39:54 gilles Exp gilles $
+This imapsync is up to date. ( local 1.836 >= official 1.727 )
+
+Homepage: http://imapsync.lamiral.info/
+'Tie::Hash::NamedCapture'          => '0.09',
+'Authen::NTLM::DES'                => '1.02',
+'Authen::NTLM::MD4'                => '1.02',
+'Crypt::Random::Seed'              => '0.03',
+'Math::Random::ISAAC'              => '1.003',
+'CGI::Cookie'                      => '4.26',
+'CGI::File::Temp'                  => '4.26',
+'CGI::Util'                        => '4.26',
+'Fh'                               => '4.26',
+'Convert::ASN1::IO'                => '0.27',
+'Convert::ASN1::_decode'           => '0.27',
+'Convert::ASN1::_encode'           => '0.27',
+'Convert::ASN1::parser'            => '0.27',
+'Bytes::Random::Secure'            => '0.28',
+'Crypt::SSLeay::X509'              => 'undef',
+'Crypt::SSLeay::CTX'               => 'undef',
+'Digest::HMAC'                     => '1.03',
+'Encode::HanExtra'                 => '0.23',
+'HTML::Parser'                     => '3.72',
+'HTTP::Headers'                    => '6.11',
+'HTTP::Cookies::Netscape'          => '6.00',
+'IO::Compress::Bzip2'              => '2.069',
+'IO::Compress::Deflate'            => '2.069',
+'IO::Compress::Gzip'               => '2.069',
+'IO::HTML'                         => '1.001',
+'IO::Uncompress::Bunzip2'          => '2.069',
+'IO::Uncompress::Inflate'          => '2.069',
+'IO::Uncompress::RawInflate'       => '2.069',
+'IO::Uncompress::Gunzip'           => '2.069',
+'HTTP::Message'                    => '6.11',
+'File::GlobMapper'                 => '1.000',
+'IO::Compress::Adapter::Bzip2'     => '2.069',
+'IO::Compress::Base'               => '2.069',
+'IO::Compress::Zlib::Constants'    => '2.069',
+'IO::Compress::RawDeflate'         => '2.069',
+'IO::Compress::Adapter::Deflate'   => '2.069',
+'Socket6'                          => '0.25',
+'IO::Socket::SSL::PublicSuffix'    => 'undef',
+'Net::SSLeay'                      => '1.72',
+'Compress::Raw::Bzip2'             => '2.069',
+'IO::Uncompress::Adapter::Bunzip2' => '2.069',
+'IO::Compress::Zlib::Extra'        => '2.069',
+'IO::Compress::Gzip::Constants'    => '2.069',
+'IO::Compress::Base::Common'       => '2.069',
+'IO::Uncompress::Adapter::Inflate' => '2.069',
+'IO::Uncompress::Base'             => '2.069',
+'JSON::WebToken::Constants'        => 'undef',
+'JSON::WebToken::Exception'        => 'undef',
+'Module::Runtime'                  => '0.014',
+'JSON::WebToken::Crypt'            => 'undef',
+'Types::Serialiser'                => '1.0',
+'common::sense'                    => '3.74',
+'Authen::NTLM'                     => '1.09',
+'HTTP::Status'                     => '6.11',
+'LWP::Protocol'                    => '6.15',
+'HTTP::Response'                   => '6.11',
+'CPAN::Config'                     => 'undef',
+'URI::_query'                      => '1.71',
+'URI::data'                        => '1.71',
+'URI::_idna'                       => '1.71',
+'URI::mailto'                      => '1.71',
+'URI'                              => '1.71',
+'URI::QueryParam'                  => '1.71',
+'URI::Split'                       => '1.71',
+'URI::_segment'                    => '1.71',
+'URI::file::FAT'                   => '1.71',
+'URI::file::Mac'                   => '1.71',
+'URI::file::OS2'                   => '1.71',
+'URI::file::QNX'                   => '1.71',
+'URI::ftp'                         => '1.71',
+'URI::gopher'                      => '1.71',
+'URI::https'                       => '1.71',
+'URI::ldapi'                       => '1.71',
+'URI::ldaps'                       => '1.71',
+'URI::mms'                         => '1.71',
+'URI::nntp'                        => '1.71',
+'URI::pop'                         => '1.71',
+'URI::rlogin'                      => '1.71',
+'URI::rsync'                       => '1.71',
+'URI::rtspu'                       => '1.71',
+'URI::sftp'                        => '1.71',
+'URI::sips'                        => '1.71',
+'URI::snews'                       => '1.71',
+'URI::telnet'                      => '1.71',
+'URI::tn3270'                      => '1.71',
+'URI::_foreign'                    => '1.71',
+'URI::file::Win32'                 => '1.71',
+'URI::file::Unix'                  => '1.71',
+'URI::file::Base'                  => '1.71',
+'URI::Heuristic'                   => '4.20',
+'URI::_login'                      => '1.71',
+'URI::IRI'                         => '1.71',
+'URI::ldap'                        => '1.71',
+'URI::news'                        => '1.71',
+'URI::ssh'                         => '1.71',
+'URI::_punycode'                   => '1.71',
+'URI::_generic'                    => '1.71',
+'URI::_ldap'                       => '1.71',
+'URI::rtsp'                        => '1.71',
+'URI::_userpass'                   => '1.71',
+'URI::sip'                         => '1.71',
+'URI::WithBase'                    => '2.20',
+'URI::file'                        => '4.21',
+'URI::_server'                     => '1.71',
+'HTTP::Date'                       => '6.02',
+'LWP'                              => '6.15',
+'LWP::MediaTypes'                  => '6.02',
+'HTTP::Request'                    => '6.11',
+'File::Listing'                    => '6.04',
+'HTTP::Negotiate'                  => '6.00',
+'Net::HTTP'                        => '6.09',
+'Net::HTTPS'                       => '6.09',
+'Net::SSL'                         => '2.88',
+'Net::LDAP::DSML'                  => '0.16',
+'Net::LDAP'                        => '0.65',
+'Net::LDAP::LDIF'                  => '0.26',
+'Mail::Internet'                   => '2.13',
+'HTML::HeadParser'                 => '3.71',
+'HTTP::Config'                     => '6.11',
+'HTTP::Request::Common'            => '6.11',
+'LWP::ConnCache'                   => '6.15',
+'HTTP::Cookies'                    => '6.01',
+'Encode::Locale'                   => '1.05',
+'HTTP::Headers::Util'              => '6.11',
+'LWP::MemberMixin'                 => 'undef',
+'Mail::IMAPClient::MessageSet'     => 'undef',
+'Digest::HMAC_MD5'                 => '1.01',
+'Mail::Address'                    => '2.13',
+'Mail::Header'                     => '2.13',
+'Mail::Mailer'                     => '2.13',
+'Mail::Util'                       => '2.13',
+'Math::Random::ISAAC::PP'          => '1.003',
+'Math::Random::ISAAC::XS'          => '1.004',
+'Net::HTTP::Methods'               => '6.09',
+'Compress::Raw::Zlib'              => '2.069',
+'Net::LDAP::Bind'                  => '1.05',
+'Net::LDAP::Extension'             => '1.04',
+'Net::LDAP::RootDSE'               => '0.02',
+'Net::LDAP::Search'                => '0.14',
+'Convert::ASN1::Debug'             => '0.27',
+'Convert::ASN1'                    => '0.27',
+'Net::LDAP::Constant'              => '0.23',
+'Net::LDAP::ASN'                   => '0.12',
+'Net::LDAP::Message'               => '1.12',
+'Net::LDAP::Filter'                => '0.20',
+'XML::SAX::Base'                   => '1.07',
+'Net::LDAP::Schema'                => '0.9908',
+'Net::LDAP::Entry'                 => '0.27',
+'Net::LDAP::Control'               => '0.18',
+'Net::LDAP::Util'                  => '0.19',
+'Net::LDAP::Intermediate'          => '0.04',
+'Crypt::SSLeay::MainContext'       => 'undef',
+'Crypt::SSLeay'                    => '0.73_04',
+'Test::Builder::IO::Scalar'        => '2.113',
+'UNIVERSAL::can'                   => '1.20140328',
+'UNIVERSAL::isa'                   => '1.20150614',
+'Test::Builder'                    => '1.001014',
+'Test::Builder::Module'            => '1.001014',
+'Unicode::CharName'                => '1.07',
+'XML::SAX::Exception'              => '1.07',
+'CGI::Carp'                        => '4.26',
+'Data::Uniqid'                     => '0.12',
+'Digest::HMAC_SHA1'                => '1.03',
+'File::Copy::Recursive'            => '0.38',
+'IO::Tee'                          => '0.64',
+'JSON::WebToken'                   => '0.10',
+'JSON::WebToken::Crypt::RSA'       => 'undef',
+'Mail::IMAPClient'                 => '3.38',
+'Readonly'                         => '2.00',
+'Sys::MemInfo'                     => '0.98',
+'Term::ReadKey'                    => '2.33',
+'Test::MockObject'                 => '1.20150527',
+'Test::More'                       => '1.001014',
+'Unicode::String'                  => '2.09',
+'CGI'                              => '4.26',
+'Crypt::OpenSSL::RSA'              => '0.28',
+'LWP::Authen::Digest'              => 'undef',
+'LWP::Authen::Ntlm'                => '6.15',
+'LWP::Protocol::GHTTP'             => 'undef',
+'LWP::Protocol::cpan'              => 'undef',
+'LWP::Protocol::data'              => 'undef',
+'LWP::Protocol::file'              => 'undef',
+'LWP::Protocol::ftp'               => 'undef',
+'LWP::Protocol::gopher'            => 'undef',
+'LWP::Protocol::https'             => '6.06',
+'LWP::Protocol::ldapi'             => 'undef',
+'LWP::Protocol::ldaps'             => 'undef',
+'LWP::Protocol::loopback'          => 'undef',
+'LWP::Protocol::mailto'            => 'undef',
+'LWP::Protocol::nntp'              => 'undef',
+'LWP::UserAgent'                   => '6.15',
+'LWP::Authen::Basic'               => 'undef',
+'URI::URL'                         => '5.04',
+'URI::http'                        => '1.71',
+'HTML::Entities'                   => '3.69',
+'URI::Escape'                      => '3.31',
+'LWP::Protocol::http'              => 'undef',
+'IO::Socket::SSL'                  => '2.047',
+'JSON'                             => '2.90',
+'JSON::XS::Boolean'                => 'undef',
+'JSON::XS'                         => '3.01',
+'LWP::Protocol::ldap'              => '1.25',
+'LWP::Protocol::nogo'              => 'undef',
+'IO::Socket::INET6'                => '2.72',

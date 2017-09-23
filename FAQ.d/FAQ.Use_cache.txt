@@ -1,0 +1,99 @@
+
+$Id: FAQ.Use_cache.txt,v 1.4 2017/02/14 17:35:22 gilles Exp gilles $
+
+This documentation is also at http://imapsync.lamiral.info/#doc
+
+============================================
+      Imapsync  --usecache option
+============================================
+
+Questions anwswered in this FAQ are:
+
+Q. On Windows, with --useuid or --usecache a problem occurs with long
+   nested folder names. The error message is:
+   "No such file or directory; The filename or extension is too long"
+
+Q. Inode problem with --usecache on Linux
+
+
+Questions and their answers:
+
+=======================================================================
+Q. On Windows, with --useuid or --usecache a problem occurs with long
+   nested folder names. The error message is:
+   "No such file or directory; The filename or extension is too long"
+
+R. This comes from a Windows limitation on pathnames.
+No more than 260 characters are allowed for pathnames.
+See more details on page
+http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247.aspx#maxpath
+The workaround solution given at the previous link, 
+ie using \\?\D:", does not work for imapsync. 
+So this imapsync Windows bug is still pending and needs a fix using 
+a different technique to cache, like a database file for example.
+
+A solution to fix the issue is to use a Linux virtual host on a 
+Windows box, with VirtualBox or VmWare etc. There is no bug this way,
+pathnames can be several thousands characters long.
+Better said that done but not so difficult nor expensive these days,
+VirtualBox is free and VmWare Player is free for personal or test use.
+
+If you have to stick on Windows, there are two good workarounds 
+to reduce the cache directory name:
+
+1) Use --tmpdir "D:\\temp" or simply --tmpdir "D:" and imapsync
+will build and use the cache in the sub directory 
+D:\imapsync_cache\
+
+2) add two equivalent entries in the etc/hosts for host1 imap.truc.org 
+and host2 imap.trac.org. 
+If you map the ip of imap.truc.org just with the letter a 
+and same thing for imap.trac.org then you gain characters
+
+etc/hosts
+
+192.168.12.1 a
+192.168.55.3 b
+
+Then use:
+
+  imapsync --host1 a --host2 b ...
+
+You can get the ip of a host with the ping command line
+C:\> ping imap.truc.org
+
+3) A third solution is to not use options --useuid nor --usecache
+
+Fixing this long path problem directly in imapsync is in the TODO file
+for a very long time.
+
+=======================================================================
+Q. Inode problem with --usecache on Linux
+
+R. You may run out of inodes using --usecache, especially with large
+migration. Option --usecache creates a empty file per email message
+in order to keep the UIDs mapping between account1 and account2.
+
+So, if you plan to sync regularly 10 millions messages over a period 
+of migration then the filesystem of --tmpdir needs 10 millions of free 
+inodes. If it hasn't those free inodes then create a new special
+filesystem devoted to the imapsync cache. 
+
+# Create a file of 10 GB (10 millions*1024):
+
+  dd if=/dev/zero of=/var/tmp/fscache bs=1M count=10000
+
+# Create a filesystem where each file is only 1024 bytes per inode:
+
+  mkfs.ext2 -F -i 1024  /var/tmp/fscache
+
+# Mount this brand new filesystem
+
+  mount -o loop /var/tmp/fscache /var/tmp/cachedir
+
+# Tell imapsync to use it
+
+  imapsync ... --tmpdir /var/tmp/cachedir/
+  
+=======================================================================
+=======================================================================

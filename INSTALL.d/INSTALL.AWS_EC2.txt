@@ -1,0 +1,57 @@
+#!/bin/cat 
+# $Id: INSTALL.AWS_EC2.txt,v 1.3 2017/04/18 15:06:35 gilles Exp gilles $
+
+==================================
+= Installing imapsync on AWS EC2 = 
+==================================
+
+AWS: Amazon Web Service
+
+cat /etc/system-release
+Amazon Linux AMI release 2017.03
+
+
+sudo yum install  \
+perl-Class-Load-0.20-3.6.amzn1.noarch \
+perl-IO-Compress-2.061-2.12.amzn1.noarch \
+perl-Crypt-OpenSSL-RSA-0.28-7.8.amzn1.x86_64 \
+perl-Data-Dumper-2.145-3.5.amzn1.x86_64 \
+perl-Dist-CheckConflicts-0.06-2.5.amzn1.noarch \
+perl-File-Copy-Recursive-0.38-14.8.amzn1.noarch \
+perl-IO-Socket-INET6-2.69-5.8.amzn1.noarch \
+perl-IO-Socket-SSL-1.94-3.13.amzn1.noarch \
+perl-JSON-2.59-2.8.amzn1.noarch \
+perl-HTML-Parser-3.71-4.7.amzn1.x86_64 \
+perl-libwww-perl-6.05-2.17.amzn1.noarch \
+perl-Mail-IMAPClient-3.34-1.2.amzn1.noarch \
+perl-Module-Implementation-0.06-6.6.amzn1.noarch \
+perl-Module-Runtime-0.013-4.5.amzn1.noarch \
+perl-Module-ScanDeps-1.10-3.7.amzn1.noarch \
+perl-Net-SSLeay-1.65-2.10.amzn1.x86_64 \
+perl-Package-Stash-0.34-2.6.amzn1.noarch \
+perl-Package-Stash-XS-0.26-3.7.amzn1.x86_64 \
+perl-Parse-RecDescent-1.967009-5.13.amzn1.noarch \
+perl-Readonly-1.03-22.8.amzn1.noarch \
+perl-Sys-MemInfo-0.91-7.5.amzn1.x86_64 \
+perl-TermReadKey-2.30-20.9.amzn1.x86_64 \
+perl-Test-Fatal-0.010-5.5.amzn1.noarch \
+perl-Test-MockObject-1.20120301-3.8.amzn1.noarch \
+perl-Test-Simple-0.98-243.6.amzn1.noarch \
+perl-Test-Pod-1.48-3.9.amzn1.noarch \
+perl-Test-Requires-0.06-10.6.amzn1.noarch \
+perl-Try-Tiny-0.12-2.5.amzn1.noarch \
+perl-Unicode-String-2.09-29.7.amzn1.x86_64 \
+perl-URI-1.60-9.8.amzn1.noarch \
+perl-ExtUtils-Embed-1.30-286.38.amzn1.noarch \
+cpanminus
+
+sudo cpanm Authen::NTLM Data::Uniqid IO::Tee JSON::WebToken JSON::WebToken::Crypt::RSA Test::Mock::Guard
+
+wget -N https://imapsync.lamiral.info/imapsync
+
+chmod +x imapsync
+
+./imapsync
+
+./imapsync --testslive
+

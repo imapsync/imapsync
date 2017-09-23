@@ -1,0 +1,26 @@
+#!/usr/bin/perl -w
+
+# $Id: 8859_utf8,v 1.1 2010/10/01 13:00:09 gilles Exp gilles $
+
+use Unicode::MapUTF8 qw(to_utf8 from_utf8 utf8_supported_charset);
+use strict ;
+use warnings ;
+
+die unless (utf8_supported_charset('ISO-8859-1'));
+
+#local $/ ;
+
+my @string = <> ;
+
+my $string = join( q{}, @string ) ;
+# print $string ;
+
+my $string_utf8 =  to_utf8({ -string => $string, -charset => 'ISO-8859-1' }) ;
+
+print $string_utf8 ;
+
+#foreach my $string ( "A", "\xE9", "\xE9\x1A" ) {
+#	print to_utf8({ -string => $string, -charset => 'ISO-8859-1' }), "\n";
+#}
+
+

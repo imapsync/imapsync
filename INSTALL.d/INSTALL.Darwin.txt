@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: INSTALL.Darwin.txt,v 1.14 2016/06/22 19:57:00 gilles Exp gilles $
+# $Id: INSTALL.Darwin.txt,v 1.16 2016/11/07 05:06:34 gilles Exp gilles $
 
 ===================================================
 = Installing imapsync binary on Darwin / Mac OS X =
@@ -57,32 +57,49 @@ you have to use:
 = Installing imapsync script on Darwin / Mac OS X =
 ===================================================
 
-This part is only for advanced Unix users, or brave ones.
+This part is only for advanced Unix users, or brave users.
 
-wget --no-check-certificate -O- http://cpanmin.us | perl - -l ~/perl5 App::cpanminus local::lib
-eval `perl -I ~/perl5/lib/perl5 -Mlocal::lib`
-perl -I ~/perl5/lib/perl5 -Mlocal::lib
+The "make" command is a prerequisite to build some Perl modules.
+Install make in case it is not already installed.
 
-echo 'eval `perl -I ~/perl5/lib/perl5 -Mlocal::lib`' >> ~/.profile
-echo 'export MANPATH=$HOME/perl5/man:$MANPATH' >> ~/.profile
-cat ~/.profile 
-cpanm CPAN
+First let us install cpanminus locally in ~/perl5
 
-curl -L http://imapsync.lamiral.info/INSTALL.d/prerequisites_imapsync > prerequisites_imapsync 
-sh prerequisites_imapsync
+  wget --no-check-certificate -O- http://cpanmin.us | perl - -l ~/perl5 App::cpanminus local::lib
 
-cpanm Authen::NTLM
-cpanm File::Copy::Recursive IO::Tee
-cpanm Mail::IMAPClient
-cpanm Readonly
-cpanm Unicode::String
+Then take this install into account in the current environment
 
-wget -c http://imapsync.lamiral.info/imapsync
-./imapsync
-perl ./imapsync
-perl ./imapsync --modules
-cpanm Data::Uniqid
-cpanm JSON::WebToken
+  eval `perl -I ~/perl5/lib/perl5 -Mlocal::lib`
+  perl -I ~/perl5/lib/perl5 -Mlocal::lib
+
+If you want to have always this setting in your environment then run the commands
+  
+  echo 'eval `perl -I ~/perl5/lib/perl5 -Mlocal::lib`' >> ~/.profile
+  echo 'export MANPATH=$HOME/perl5/man:$MANPATH' >> ~/.profile
+  cat ~/.profile 
+
+Now let's update the standard CPAN Perl module
+
+  cpanm CPAN
+
+The specific install part for imapsync begins, the script "prerequisites_imapsync"
+helps to verify what is needed to install on your system
+
+  curl -L http://imapsync.lamiral.info/INSTALL.d/prerequisites_imapsync > prerequisites_imapsync 
+  sh prerequisites_imapsync
+
+  cpanm Authen::NTLM
+  cpanm File::Copy::Recursive IO::Tee
+  cpanm Mail::IMAPClient
+  cpanm Readonly
+  cpanm Unicode::String
+  cpanm Data::Uniqid
+  cpanm JSON::WebToken
+
+We're ready to install and test the latest imapsync
+
+  wget -c http://imapsync.lamiral.info/imapsync
+  ./imapsync
+  ./imapsync --modules
 
 You can rerun "sh prerequisites_imapsync" 
 to verify everything is ok:
@@ -93,6 +110,8 @@ When everything is ok the script execution ends with this sentence
 "All needed modules are already installed"
 
 Now imapsync should work on your system.
+
+  ./imapsync --testslive
 
 =================================================
 = Building imapsync binary on Darwin / Mac OS X =

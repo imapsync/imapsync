@@ -1,11 +1,11 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.25 2016/07/22 00:18:35 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.33 2017/09/05 15:11:20 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-=====================================
-  Imapsync tips for Gmail accounts.
-=====================================
+=======================================================================
+              Imapsync tips for Gmail accounts.
+=======================================================================
 
 Questions anwswered in this FAQ are:
 
@@ -19,17 +19,22 @@ Q. How to synchronize from XXX to Gmail?
 
 Q. How to synchronize from Gmail to XXX?
 
-Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
-   https://support.google.com/mail/answer/7190?hl=en
-
-Q. How to avoid the [IMAP] prefix on Gmail side?
-
 Q. I can't authenticate with Gmail via IMAP
    and Gmail says "Please log in via your web browser"
 
 Q. Can not open imap connection on [imap.gmail.com]
+   Unable to connect to imap.gmail.com
+
+Q. Can I safely use --useuid for Gmail transfers?
 
 Q. Gmail does not really delete messages in folder [Gmail]/All Mail
+   What happens? What can I do?
+
+Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
+   https://support.google.com/mail/answer/7190?hl=en
+   https://developers.google.com/gmail/imap_extensions#extension_of_the_search_command_x-gm-raw
+
+Q. How to avoid the [IMAP] prefix on Gmail side?
 
 Q. Does imapsync have the capability to do 2 stage authentication?
 
@@ -55,13 +60,25 @@ it has to be allowed in the Gmail configuration part:
 Q. How many days does it take to transfer X GB?
 
 R. Basically it takes X days to transfer X GB per account.
-   Gmail has usage limits per day
+   Gmail has usage limits per day and use throttlers when
+   they are overtaken
    http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
-   From the previous link,
-   it's 2X  days to upload   X GB to Gmail
-   it's X/2 days to download X BG from Gmail
-   but that's the theory.
+   From the previous link:
 
+   * it's 2X days to upload  X GB to Gmail, it's why I suggest to add
+   --maxbytespersecond 10000
+   for uploading messages to Gmail
+   * it's X/2 days to download X BG from Gmail, it's why I suggest to add
+   --maxbytespersecond 20000
+   for downloading messages from Gmail
+  
+   That's theoretical values that always work in practice. Try
+   upper values and see if they still work.
+
+   How Gmail says limits are reached?
+   This is either a disconnection with
+   "BYE Session expired, please login again"
+   or a very small rate, less than 1 Kib/s
 =======================================================================
 Q. How to synchronize from Gmail to Gmail?
 
@@ -275,6 +292,8 @@ label CanWait and only it.
 --skipcrossduplicates, will only put in "[Gmail]/All Mail"
 the messages that are not labeled at all.
 
+
+
 =======================================================================
 Q. I can't authenticate with Gmail via IMAP
    and Gmail says "Please log in via your web browser"
@@ -310,10 +329,16 @@ R0. It looks like this issue is related to ipv6. Both ipv4 and ipv6
 protocols should work with gmail and imapsync, I test that regularly, 
 imapsync works fine for both ipv4 and ipv6. 
 If you disable ipv6 then disable also ipv6 resolution! 
-Or at least, make ipv4 answers be taken before ipv6 since the default 
-names resolution order is to present ipv6 name resolutions first.
 
-R1. A first simple solution is to use directly gmail ipv4 ip address:
+The default names resolution order is to present ipv6 name resolutions 
+first. If you know how to make ipv4 answers be taken before ipv6 
+then tell me.
+
+R1. First solution, run imapsync with the option --inet4:
+
+   imapsync ... --inet4
+
+R2. A second solution is to use directly gmail ipv4 ip address:
 
   imapsync ... --host1 64.233.184.108 
 
@@ -326,11 +351,22 @@ name resolution, try one of those:
 
 Or go to http://ping.eu/nslookup/ to get the resolution.
 
-R2. Second solution. Fix imapsync with the line:
-
-  use IO::Socket::SSL 'inet4' ;
-
 Thanks to Chris Nolan to report, understand and fix this issue!
+
+=======================================================================
+Q. Can I safely use --useuid for Gmail transfers?
+
+R. Yes, but I suggest to not use --useuid for Gmail transfers.
+
+Using UIDs is useless with Gmail in the case of global duplicates
+(duplicates across different folders). Gmail always accept a global
+duplicate message as a new message, giving imapsync a new UID for this
+message, and throw it away because it already has it. Gmail
+will do this at each run so imapsync will always try to copy the
+message, and Gmail will always accept and throw away the new copy. It
+ends up with no duplicates on Gmail but a waste of bandwith and time,
+which is the opposite goal of --usecache implied by --useuid.
+
 
 =======================================================================
 Q. Gmail does not really delete messages in folder [Gmail]/All Mail
@@ -407,6 +443,8 @@ Q. How to migrate email from gmail to google apps?
 R. Take a look at:
 http://www.linux-france.org/prj/imapsync_list/msg00639.html
 
-http://biasecurities.com/blog/2009/migrate-email-from-gmail-to-google-apps/
+http://biasecurities.com/2009/02/migrate-email-from-gmail-to-google-apps/
 http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/
 
+=======================================================================
+=======================================================================

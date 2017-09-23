@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 
-# $Id: paypal_build_reply,v 1.29 2016/08/18 09:48:27 gilles Exp gilles $
+# $Id: paypal_build_reply,v 1.33 2017/07/03 22:49:06 gilles Exp gilles $
 
 use warnings;
 use strict;
@@ -11,7 +11,7 @@ my ($amount, $name, $email);
 my (
 	$paypal_line, $paypal_info,
 	$buyer, $description, $object, 
-	$url, $release, $release_exe, 
+	$release, $release_exe, 
 );
 
 my $help ;
@@ -32,22 +32,20 @@ $release      = firstline( '/g/public_html/imapsync/VERSION' ) ;
 $release_exe  = firstline( '/g/public_html/imapsync/VERSION_EXE' ) ;
 #my $path_last = firstline( '/g/public_html/imapsync/dist/path_last.txt' ) ;
 
-$url = "http://ks.lamiral.info/imapsync/dist/" ;
-
 
 $debug and print "Hi!\n" ;
 
 my @input = <> ;
 
 while( my $line = shift @input ) {
-	next if ( $line !~ /^(.*Num.+ro de transaction.*)$/ );
+	next if ( $line !~ /^(.*de transaction.*)$/ );
 	$paypal_line = $1;
 	$paypal_info  = "===== Paypal id =====\n$paypal_line\n";
 	$debug and print "$paypal_info" ;
 	last;
 }
 while( my $line = shift @input ) {
-	if ( $line =~ /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) \((.*)\)/) {
+	if ( $line =~ /^Vous avez re.*paiement d'un montant de (.*) de la part de (.*) ?\((.*)\)/) {
 		($amount, $name, $email) = ($1, $2, $3);
                 $debug and print "1 ($amount, $name, $email)\n" ;
 		last;
@@ -78,11 +76,20 @@ while( my $line = shift @input ) {
                 $debug and print "2 $buyer\n" ;
 		last;
 	}
+	if ( $line =~ /^"Informations sur l'acheteur :"/ ) {
+		$buyer .= "===== Acheteur =====\n";
+		shift @input ;
+		chomp( $name = shift @input );
+		$buyer .= "$name\n" ;
+                $debug and print "2 $buyer\n" ;
+		last;
+	}
+	
 }
 
 while( my $line = shift @input ) {
-      $buyer .= $line if ( $line !~ /^-----------------------------------/ );
-      last if ( $line =~ /^-----------------------------------/ );
+      $buyer .= $line if ( ( $line !~ /^-----------------------------------/ ) and ( $line !~ /^Veuillez conserver ce num/ ) );
+      last if ( ( $line =~ /^-----------------------------------/ ) or ( $line =~ /^Veuillez conserver ce num/ ) or ( $line =~ /tails de l'achat/)  ) ;
 }
 $debug and print "3 $buyer\n" ;
 
@@ -107,53 +114,65 @@ while( my $line = shift @input ) {
 
 my $address = 'gilles.lamiral@laposte.net';
 my $address2 = 'gilles@lamiral.info';
-my $rcstag  = '$Id: paypal_build_reply,v 1.29 2016/08/18 09:48:27 gilles Exp gilles $';
+my $rcstag  = '$Id: paypal_build_reply,v 1.33 2017/07/03 22:49:06 gilles Exp gilles $';
 
-my $download_info = "You will find the latest imapsync.exe binary (release $release_exe)
-and the latest imapsync source code (release $release) at the following link:
-$url" ;
-
-my $next_releases =
-"Next imapsync releases will be available to you for lifetime without extra payment.
-
-You are subscribed to a newsletter [imapsync_update] announcing new releases.
-Just keep this message and ask for the new links in case you miss the newsletter.
-Ask me to be unsubscribed, you can also do it yourself at
-http://lists.lamiral.info/cgi-bin/mailman/listinfo/imapsync_update
-
-Run imapsync without any argument to know if a new release is available.
-A permanent link to last release is http://imapsync.lamiral.info/paypal_return.shtml
-also written on the invoice you'll receive soon, I edit invoices once a week or on demand." ;
-
-my $support_info = 'For imapsync professional support,
+my $contact = 
+q{
+For imapsync professional support or any other request,
 contact me (Gilles LAMIRAL) by email or phone at:
 
-Email address:              gilles.lamiral@laposte.net.
-Professionnal phone number: +33 9 51 84 42 42 (France) 
-Mobile phone number:        +33 6 19 22 03 54 (France, SFR operator).
+Email address:              gilles.lamiral@laposte.net
+Mobile phone number:        +33 6 19 22 03 54 (France, SFR operator)
+Professionnal phone number: +33 9 51 84 42 42 (France, Free operator) 
+} ;
 
-I can call you back toll-free in many countries on landline telephone numbers
-and to mobile numbers in the United States and France. So do not hesitate
-to send me a note if you need vocal support.' ;
+my $download_info = 
+qq{
+Software users, you will find the latest stable imapsync software 
+(release $release) at the following link:
+https://imapsync.lamiral.info/dist/
+Next imapsync releases will be available to you for lifetime without 
+extra payment. To know if a new release is available, just
+run imapsync with no arguments or look at the end of any logfile.
+} ;
+
+my $online_info =
+q{
+Online users, the imapsync service is at
+https://imapsync.lamiral.info/X/
+Don't hesitate to drop me a note in case of problems or
+clarifications about this online visual interface.
+} ;
+
+my $newsletter =
+q{
+As a buyer, you are also subscribed to a very low traffic newsletter 
+called [imapsync_update], announcing new releases or new services. 
+You might have reveived a welcome email message from the list manager, 
+telling you how to unsubscribe by yourself at
+http://lists.lamiral.info/cgi-bin/mailman/listinfo/imapsync_update
+In any case, you can also ask me to unsubscribe you, as
+it's often frustrating to deal with unsubscriptions.
+
+} ;
 
 
-my $thanks_software = "I thank you for buying and using imapsync,
-I wish you successful transfers!" ;
+my $thanks = 
+q{
+I thank you for buying and using imapsync services or products,
+I wish you very successful transfers!
 
+You will receive an invoice soon.
+} ;
 
-my $text_software = "$download_info\n
-$next_releases\n
-$support_info\n
-You will receive an invoice soon.\n
-$thanks_software" ;
+my $text = $thanks 
+. $contact 
+. $download_info
+. $online_info
+. $newsletter
+;
 
-my $subject_software = "[imapsync download] imapsync release $release [$amount_ascii from $email]" ;
-
-my $subject ;
-
-my $text ;
-$text = $text_software ;
-$subject = $subject_software ;
+my $subject = "[imapsync download/support/online] imapsync payment done [$amount_ascii from $email]" ;
 
 
 
@@ -162,7 +181,7 @@ X-Comment: $rcstag
 In-Reply-To: $msg_id
 From: Gilles LAMIRAL <$address>
 To: <$email>
-Bcc: Gilles LAMIRAL <$address>, <$address2>
+Cc: Gilles LAMIRAL <$address>, <$address2>
 Subject: $subject
 
 Hello $name,

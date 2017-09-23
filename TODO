@@ -1,11 +1,102 @@
 #!/bin/cat
-# $Id: TODO,v 1.168 2016/08/19 14:17:53 gilles Exp gilles $
+# $Id: TODO,v 1.193 2017/09/05 15:23:26 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
 ===========================================================================
 TODO file for imapsync
 ----------------------
+
+SUGGESTED 2017_09_04 by Gilles
+STDOUT instead of STDERR with Mail::IMAPClient output.
+Shoulbe easy using $imap->Debug_fh($fileHandle);
+
+SUGGESTED 2017_09_02 by Gilles
+Check that @ARGV is empty after readding it by GetOptions since
+remaining arguments are not used and might signal something wrong 
+in the command line arguments.
+
+SUGGESTED 2017_08_31 by Gilles
+Makefile. Add a "make docker" goal that build, test and publish the 
+docker package on ks3.
+
+SUGGESTED 2017_08_22 by Ismael Baena
+when hmailserver hierarchy delimiter is “\”
+When imapsync asks hmailserver about namespace, hmailserver returns “\\” instead of “\”. 
+After that, imapsync fails when accessing any folder. Comparing hmailserver logs between 
+imapsync and outlook accessing the account, I see outlook quoting every path 
+while imapsync don’t, and outlook doesn’t fail.
+I wrote a message to the hmailserver forum, 
+https://www.hmailserver.com/forum/viewtopic.php?f=7&t=31503
+
+
+SUGGESTED 2017_05_04 by Gilles
+Verif ipv6 connection, seems to fail now
+./imapsync --host1 2603:1026:200:52::2 --host2 2603:1026:200:52::2 --justconnect
+...
+Host1: connecting on host1 [2603:1026:200:52::2] port [143]
+Host1: Can not open imap connection on [2603:1026:200:52::2]: Unable to connect to 2603:1026:200:52::2: Invalid argument
+
+SUGGESTED 2017_05_04 via github
+Review the "make install" in Makefile
+
+SUGGESTED 2017_04_26 by Franco Fassio
+--usecache with trailing dots foo... in folder name breaks on NTFS.
+
+SUGGESTED 2017_04_26 by Franco Fassio
+Check that --maxbyteperseconds does not interfer with --timeout 
+by sleeping too long.
+
+SUGGESTED 2017_04_11 by Stefano Lo Cascio
+Add a --donotsyncflags or similar (--syncflags)
+
+SUGGESTED 2016_12_01 by Gilles
+When working under with webmin and virtualmin imapsync
+acts as a cgi, it should not. Find a way to avoid cgi mode
+even under a web server.
+
+SUGGESTED 2016_11_16 by Flávio Zarur Lucarelli LucaNet Sistemas
+Getting subjects of messages for duplicates and print them.
+Dates and sizes are easier printable because imapsync gets them each time.
+
+SUGGESTED 2016_10_24 by Gilles
+Verify regex --delete2foldersbutnot and --delete2foldersonly are ok
+before anything.
+
+SUGGESTED 2016_10_07 by Gilles
+Write a FAQ file for packagers,
+mostly how to get the dependency Perl modules complete.
+
+SUGGESTED 2016_10_07 by Gilles
+Write a FAQ file about all errors and explain what they mean.
+Maybe propose an action to solve them in the code,
+or even solve them directly in the execution.
+
+SUGGESTED 2016_10_06 by Gilles
+Document or fix behavior (do a AND),
+curently "--search" makes "--maxage" and "--minage" ignored.
+
+SUGGESTED 2016_09_16 by Gilles
+Add a check of all --regextrans2 before going further,
+like what is done with --regexmess
+
+SUGGESTED 2016_08_25 by David Carter
+It would be helpful if imapsync reported Message-Id:/From:/Subject
+as well as folder name and message UID when it skips a message.
+
+SUGGESTED 2016_09_02 by Gilles & David Carter
+Exchange Online errors that need a relogin:
+ "BAD User is authenticated but not connected."
+ "error while reading data from server: Connection reset by peer"
+ "timeout waiting 1200s for data from server"
+
+
+SUGGESTED 2016_08_31 by Gilles
+Rename $expungeaftereach $expungeaftereach1 or $expunge1aftereach
+
+SUGGESTED 2016_08_31 by Gilles & David Carter
+Detect equivalent folders by upper/lower case on host1
+and add a way to not merge them when host2 is case insensitive.
 
 SUGGESTED 2016_08_19 by Gilles
 Go back to SSL_VERIFY_PEER but include
@@ -20,8 +111,9 @@ Add a meaningful exit value to all die:
   * fatal permission file issue (open)
   * fatal IMAP issue
   * fatal IMAP disconnection
+Maybe replace all die by exit
 Add a meaningful exit value to all exit
-  * exit at end but with errors 
+  * exit at end but with errors
   * exit at middle because of errormax
   * exit by signal
 
@@ -36,7 +128,7 @@ https://about.validator.nu/
 
 SUGGESTED 2016_07_12 by Fronik
 With --automap apply the mapping to subfolders of mapped folders.
-If 
+If
 Sent => Envoyes
 then
 Sent.Foo     =>  Envoyes.Foo
@@ -44,21 +136,14 @@ Sent.Foo.Bar =>  Envoyes.Foo.bar
 
 SUGGESTED 2016_07_07 by Jean-Dominique Delyon.
 Add a way to know easily which account transfers went wrong.
-Générer un fichier des comptes qui ont rencontré des problèmes 
+Générer un fichier des comptes qui ont rencontré des problèmes
 et afficher le contenu à la fin de la boucle sur les comptes.
 
 SUGGESTED 2016_06_29 by Gilles
 Clarify system flags in RFC
 Example to add:
-If \Forwarded is not in PERMANENTFLAGS but \* is then transform
+If \Forwarded is not in PERMANENTFLAGS but \* is, then transform
 \Forwarded to Forwarded. And by default.
-
-SUGGESTED 2016_06_29 by Gilles
-Add --gmail1 --gmail2 --gmail12 to set automatically advices from
-https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
-Add --exchange --office365 to set automatically advices from
-https://imapsync.lamiral.info/FAQ.d/FAQ.Exchange.txt
-
 
 SUGGESTED 2016_06_13 by David Carter
 --pipemess could also treat stderr
@@ -108,7 +193,7 @@ In order to avoid useless headaches from --regexmess, add
 
 SUGGESTED 2016_06_09 by David Carter
 Add --pipemess-on-fail
-If, and only if, the target server responses with NO or BAD then have another go 
+If, and only if, the target server responses with NO or BAD then have another go
 with a sanitized version of the message.
 
 SUGGESTED 2016_06_01 by M. Beaubien
@@ -118,9 +203,6 @@ no header found so adding our own [Message-Id: <151648@imapsync>]
 
 SUGGESTED 2016_04_17 by Gilles
 Add a --passfile to allow user=>password style file.
-
-SUGGESTED 2016_04_13 by Gilles 
-Split --noabletosearch in --noabletosearch1 --noabletosearch2
 
 WANTED 2016_03_11
 Add a FAQ about Authentication failures and quoting.
@@ -161,7 +243,7 @@ TB
 
 
 WANTED 2015_12_16 Gilles Lamiral
-Add "df -i" with usecache and abort if the number of messages 
+Add "df -i" with usecache and abort if the number of messages
 to transfer will exhaust empty inodes used by the cache.
 Looks like module Filesys::DfPortable will help for Unix and Win32.
 
@@ -170,15 +252,15 @@ WANTED 2016_01_28 Stephen Sookdeo
 List all emails that gives errors so you know exactly which. List with detailed info.
 Then ability to perform action on these specific emails like delete or ignore per email.
 
-WANTED 2015_06_02 Karen F Bath. 
+WANTED 2015_06_02 Karen F Bath.
 Add skipped messages in the final dump.
 Print the list of messages not copied and why (duplicates or void header).
 I would like to request if you could add additional errors to the bottom,
-as we find that things like MaxLineLength and maxsize limit are classed 
-as skipped messages and in my opinion are errors; as the email message 
+as we find that things like MaxLineLength and maxsize limit are classed
+as skipped messages and in my opinion are errors; as the email message
 is not transferred but this is not logged at the bottom.
 We have our own scan script which we run on all log files at the end
-and copy the users logs into subfolders that have issues. 
+and copy the users logs into subfolders that have issues.
 I've attached a list of things we search for.
 
 "Error", "Output"
@@ -219,9 +301,9 @@ Add duplicates test option.
 
 WANTED 2015_03_06
 Dealing with Content-Type Message/Partial
-Extract the components of the partial messages and construct them 
+Extract the components of the partial messages and construct them
 with reformime as one message which can then be transferred. (Larry Moore)
-See also uudeview http://www.fpx.de/fp/Software/UUDeview/ 
+See also uudeview http://www.fpx.de/fp/Software/UUDeview/
 (Larry said uudeview is weird on Partial issue, too old maybe)
 
 Apply --disarmreadreceipts only to UNSEEN messages.
@@ -231,7 +313,7 @@ The goal is to know easily why to restart later.
 
 Write a Mail::imapsync package and use it.
 
-One day, when I have really nothing better to do, evaluate: 
+One day, when I have really nothing better to do, evaluate:
 http://www.rackspace.com/apps/email_hosting/migrations
 http://www.yippiemove.com/
 http://www.migrationwiz.com/
@@ -246,7 +328,7 @@ Move --help documentation into the man page so that description is easier to fin
 Fix bug found by Pavel Stano on 01/06/2012 (june) imapsync never stop login
 when login fails with a "* BYE Temp error" from server.
 
-Consider /var/tmp/ instead of /tmp (/tmp is destoyed 
+Consider /var/tmp/ instead of /tmp (/tmp is destoyed
 on some Unix at reboot)
 
 Fix long path over than 260 character on Win32 with --usecache
@@ -269,23 +351,23 @@ been a big help.
 Explain that users can win time/bandwidth by using --expunge
 
 Fix "\Forwarded" flag bug in courier.
-Does \lalala can be forbidden (courier does a 
+Does \lalala can be forbidden (courier does a
 "16 NO Error in IMAP command received by server"
-with 
+with
 * OK [PERMANENTFLAGS (\* \Draft \Answered \Flagged \Deleted \Seen)] Limited
 
 Add sync imap keywords. Sync Gmail labels to imap keyword
 http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=503159
 http://www.linux-france.org/prj/imapsync_list/msg00022.html
 http://mail.google.com/support/bin/answer.py?hl=en&answer=77657
-http://mail.google.com/support/bin/answer.py?answer=78892 
+http://mail.google.com/support/bin/answer.py?answer=78892
 
 Add and option to sync to & from files.
 
 Add an --aclregextrans2 flag.
-"Today we discovered, that Cyrus and Dovecot use different characters for 
-their ACLs. Syncing ACLs vom Cyrus to Dovecot (at least 1.2) doesn't 
-work. Cyrus uses c and d, Dovecot uses k and x instead." 
+"Today we discovered, that Cyrus and Dovecot use different characters for
+their ACLs. Syncing ACLs vom Cyrus to Dovecot (at least 1.2) doesn't
+work. Cyrus uses c and d, Dovecot uses k and x instead."
 Peer Heinlein.
 
 Add more information about skipped messages.
@@ -294,13 +376,13 @@ Add Rick Romero patch with
 --quiet   No output at all
 --showstats  intended for use with --quiet
 
-Take a look at Mail::IMAPTalk 
+Take a look at Mail::IMAPTalk
 Simon Bertrang said "way better performance, less problems, easier to use and no
-issues so far". Sounds good! 
+issues so far". Sounds good!
 
 imapsync doesn't report well. It should says "I had
 to sync 123 messages but I could transfer only 99 messages"
-Maybe count messages not transfered because they're dupplicate.
+Maybe count messages not transferred because they're dupplicate.
 
 Fix bug "not possible to use space in the imap password"
 
@@ -327,6 +409,33 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 ===========================================================================
 Now the TODO done! (or not)
 ===========================================================================
+
+SUGGESTED 2016_12_14 by Gilles
+DONE 2017_08_31 by Gilles
+Look at Pod::Usage and convert the actual doc to it
+
+DONE 2017_04_24 by Gilles
+SUGGESTED 2016_11_29 by Gilles
+Fix bug passfile no exist => login
+Should be fatal sooner.
+
+SUGGESTED 2016_06_29 by Gilles
+DONE      2017/03/13 by gilles in revision 1.782
+Add --gmail1 --gmail2 --gmail12 to set automatically advices from
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
+Add --exchange --office365 to set automatically advices from
+https://imapsync.lamiral.info/FAQ.d/FAQ.Exchange.txt
+Add --domino1 --domino2
+
+DONE      2016_09_29 by Gilles
+SUGGESTED 2016_04_13 by Gilles
+Split --noabletosearch in --noabletosearch1 --noabletosearch2
+
+
+SUGGESTED 2016_09_29 by Gilles
+DONE with revision 1.764 2017/01/19
+Try to use TLS or SSL by default unless not asked to do so.
+
 
 SUGGESTED 2016_06_22 by Gilles
 DONE      2016_07_29 by Gilles
@@ -363,15 +472,15 @@ DONE 2015_12_25 Gilles Lamiral
 Add --ssldebug 0-4
 
 DONE 2015_10_06. Find a way to avoid passwords in --debugimap unless needed.
-Proposed in Mail-IMAPClient via $imap->Showcredentials()  
+Proposed in Mail-IMAPClient via $imap->Showcredentials()
 in patch at
 See https://rt.cpan.org/Public/Bug/Display.html?id=107592
 
-DONE 2015_12_03 WANTED 2015_11_24 Jens Herrmann 
-Add --logdir to allow imapsync choosing the filename while allowing 
+DONE 2015_12_03 WANTED 2015_11_24 Jens Herrmann
+Add --logdir to allow imapsync choosing the filename while allowing
 user to choose the dirname part.
 
-DONE. 2015_08_10. 
+DONE. 2015_08_10.
 Guess separators and prefixes when NAMESPACE is not available,
 instead of forcing the user to guess and set them.
 
@@ -379,13 +488,13 @@ DONE 2015_08_03. WANTED 2015_07_21
 Fix W/learn/imap_utf7_encode
 --regextrans2 "s,El&AOk-ments,&AMk-l&AOk-ments,"
 
-DONE. Add a FAQ entry about long path over than 260 character on Win32. 
+DONE. Add a FAQ entry about long path over than 260 character on Win32.
 
 DONE. Build and distribute a standalone Darwin Mac OS X binary.
 It's called imapsync_bin_Darwin
 
 
-DONE. Add a NOP for host2 for each fake copy in --dry mode. 
+DONE. Add a NOP for host2 for each fake copy in --dry mode.
 Goal is to avoid timeouts happening only because of --dry
 
 DONE 2015_05_09 WANTED 2015_04_25
@@ -396,7 +505,7 @@ On Windows:
 
 
 DONE. Quota are read if available and warning is printed if 90% quota reached.
-Can you setup an option to make it stop if the destination mailbox reports 
+Can you setup an option to make it stop if the destination mailbox reports
 that it is over quota?
 
 
@@ -406,12 +515,12 @@ that - in example, to write each mail to stdout, pipe that to the
 conversion program, and read the result from stdin - and this all before
 the mail will transfer to the target imap-server"
 http://www.courier-mta.org/maildrop/reformime.html
-Look at IPC::Open2, assuming a good and safe pipe, 
+Look at IPC::Open2, assuming a good and safe pipe,
 or write more code handling all the bad stranger behaviours possible.
 Option name: --pipemess "command arg1 arg2 ..."
 
 
-DONE. Transform messages with too long linelength. 
+DONE. Transform messages with too long linelength.
 Office365 and Exchange abort connexion
 when they encounter a message with more than 10000 characters on a single line.
 Could be done with the previous --pipemess with reformime.
@@ -422,7 +531,7 @@ Usage: --maxlinelength 9900 maxlinelengthcmd 'reformime -r7'
 DONE. Add DavMail in Similar Softwares section. http://davmail.sourceforge.net/
 
 DONE. Convert folder names to utf-8 and print them next to the uft-7 ones.
-Look at imapsync/W/learn/ 
+Look at imapsync/W/learn/
 ./imap_utf7 data_utf7
 
 DONE. Separate the online site in a folder site/ or www/  and make the upper directory simple.
@@ -454,16 +563,16 @@ NEVER. Use examine() instead of select() in --dry mode.
 Add a method doing the switch automagicaly.
 
 DONE. Write --disarmreadreceipts that does:
-  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
+  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms'
 
-DONE. With --foldersizes make the listing on host2 independent of case 
+DONE. With --foldersizes make the listing on host2 independent of case
 (avoid "not yet created" if the folder exists in another case string)
 
 DONE. Write --maxmessagespersecond and  --maxbytespersecond for staying under Microsoft's throttling policies.
 
 DONE. Inform about --addheader when the problem occurs "(no wanted headers so we ignore this message)"
 
-DONE. Print the timeout value. 
+DONE. Print the timeout value.
 DONE. Inform --timeout is is seconds.
 
 DONE. Add an entry to http://lsm.qqx.org/lsm/
@@ -475,7 +584,7 @@ http://www.linux-france.org/prj/imapsync_list/msg00307.html
 
 DONE. Remove 2.2.9 Mail::IMAPClient support.
 
-DONE. Add OAUTH autentication support 
+DONE. Add OAUTH autentication support
 https://developers.google.com/google-apps/gmail/oauth_overview
 
 DONE. Add --delete1 as an alias for --delete
@@ -483,13 +592,13 @@ DONE. Add --delete1 as an alias for --delete
 DONE. Add current date at the beginning of the run, useful when imapsync
 doesn't finish with statistics.
 
-DONE. Add automatic convertion or detection  when 
+DONE. Add automatic convertion or detection  when
 separator inversion produces an invalid character.
 From uw to cyrus, for example :
 FoldA/FoldB.ext ->  FoldA.FoldB/ext
 
 DONE. Not done since useless now (--useuid)
-Add a --skipheaderinfolder option 
+Add a --skipheaderinfolder option
 
 DONE. Not fixed since only reported once a long time ago.
 Fix this:
@@ -498,7 +607,7 @@ Fix this:
 > longueur du message ou des entêtes à envoyer au serveur
 > cible n'est pas bon sur une machine Windows.
 > Ci-dessous la modif :
-> 
+>
 >         # No NL Count on Windows my $length = ( -s $file ) + $bare_nl_count;
 >         my $length = ( -s $file );
 I wonder if it is Windows or the imap server used.
@@ -514,7 +623,7 @@ are available:
 http://www.linux-france.org/prj/imapsync_list/msg01151.html
 http://www.linux-france.org/prj/imapsync_list/msg01158.html
 
-DONE. Add a note about 
+DONE. Add a note about
 "One other thing: You might want to warn idiots like me, that if your
 cache resides on a filesystem with a limited number of inodes such as
 ext4, your inodes will be exhausted really fast (check with df -i). I
@@ -526,7 +635,7 @@ http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
 DONE. Check if a message exists before fetching it (could have been deleted recently)
       (Check avoided when UID mode is not available)
 
-DONE. Change default --useheader 'Message-ID' --useheader Date to 
+DONE. Change default --useheader 'Message-ID' --useheader Date to
 --useheader 'Message-ID' --useheader 'Received'
 because Exchange changes Date header! (but not Received:)
 
@@ -539,8 +648,8 @@ if needed. Not a script but command lines in INSTALL file.
 
 DONE. Post on imapsync mailing-list when a new release comes.
 No since I no longer distribute it gratis, imapsync detects
-itself a new release and buyers are informed by a specific 
-list. I know some packagers (FreeBSD) use the Changelog file 
+itself a new release and buyers are informed by a specific
+list. I know some packagers (FreeBSD) use the Changelog file
 to detect an update.
 
 DONE. Subscribe users to imapsync_update mailing-list automatically after the payment.
@@ -559,7 +668,7 @@ http://www.bwebcentral.com/utils/imapsync-yahoo
 See patches/imapsync-yahoo
 
 
-DONE. Add --subscribe by default. 
+DONE. Add --subscribe by default.
 Subscribe only when needed (not already subscribed).
 
 DONE. Ask Nick Czeczulin why he wrote patent "Method for mailbox migration"
@@ -591,13 +700,13 @@ DONE. Add --authmd51 --authmd52 to permit authmd5 by host.
 
 DONE. Write option --delete2foldersonly regex.
 Example: to permit a sync in a subfolder with --delete2folder
---regextrans2 's#(.*)#NEW/$1#'  --delete2foldersonly /^NEW/ 
+--regextrans2 's#(.*)#NEW/$1#'  --delete2foldersonly /^NEW/
 
 DONE. Write option --delete2foldersbutnot regex.
 Example: to permit a sync but not deleting folder OLD
---delete2foldersbutnot /^OLD/ 
+--delete2foldersbutnot /^OLD/
 
-DONE. Add cache to speed up transfer. Option --usecache 
+DONE. Add cache to speed up transfer. Option --usecache
 
 DONE. There was a time imapsync took the whole message when the
 header was bad (empty). But it was bad for speed with big
@@ -611,15 +720,15 @@ target account? The --delete2 option only seems to delete individual
 messages, not folders."
 
 DONE. Add NTLM authentification support. Mail-IMAPClient-3.25
-support it. 
+support it.
 http://cpansearch.perl.org/src/BUZZ/NTLM-1.05/NTLM.pm
 http://curl.haxx.se/rfc/ntlm.html
 
 DONE. Evaluate memory consumption with (or better):
 print qx{ ps o pid,pcpu,comm,vsz,rss,size $$ }, "\n"
-Search memory leaks with 
+Search memory leaks with
 Test-Weaken Test-Memory-Cycle Devel-Cycle Devel-Leak Test-Weaken
-sh -x tests.sh ll_bigmail 
+sh -x tests.sh ll_bigmail
 sh -x tests.sh ll_memory_consumption
 are good candidate to stress memory.
 No memory leak detected just up to 8 memory copies of the same data
@@ -651,7 +760,7 @@ subscription on the source server? Perhaps --subscribeall?
 DONE. Add an option to make imapsync automatically
 reconnect when the connection drops
 
-DONE. Add Google adsence to imapsync website to see if it can help. 
+DONE. Add Google adsence to imapsync website to see if it can help.
 
 DONE. Be "FLAGS.SILENT" the normal behavior instead of "+FLAGS.SILENT".
 
@@ -668,11 +777,11 @@ to check usernames and passwords.
 
 DONE. Add a --tmpdir option.
 
-DONE. Fix bug "Found that if folders have a space at the end of 
-the name, it will not create the folder name on the new 
+DONE. Fix bug "Found that if folders have a space at the end of
+the name, it will not create the folder name on the new
 server, nor will it copy that folder's email."
 Added regression test checking this.
-Could not reproduce this bug. 
+Could not reproduce this bug.
 Seems to be a old imapsync bug with 2.2.9
 
 
@@ -694,7 +803,7 @@ Sorting by default by internal date is bad with migrations
 and delayed arrivals. An user option would be good.
 
 DONE.
-Add failure return code in case of 
+Add failure return code in case of
 last FOLDER if $from->IsUnconnected();
 last FOLDER if   $to->IsUnconnected();
 See Phil Lobbes messages (18 Sep 2008)
@@ -723,18 +832,18 @@ with no header. It may be a bad message with really no header
 or it may be a imap server problem, the server gives no header
 for this message. In that case imapsync gets the whole message
 to see if there is the same on the other side. It slows the transfer
-of course. I think I'll change imapsync behavior and let it 
+of course. I think I'll change imapsync behavior and let it
 give up those bad messages missing an header.
 
 DONE. Make --syncinternaldates turn on by default
 
-DONE. Check imapsync with gmail (dates problem?). 
+DONE. Check imapsync with gmail (dates problem?).
 
 DONE. Start an imap internet scan project.
 
-DONE. Fix --ssl --justconnect bug 
+DONE. Fix --ssl --justconnect bug
 
-DONE. Fix --ssl needs --authmech login with gmail. Why? 
+DONE. Fix --ssl needs --authmech login with gmail. Why?
 
 DONE. Try a 50Mo message transfer (slow ?)
 fast!
@@ -769,7 +878,7 @@ http://groups.google.fr/group/comp.mail.imap
 to talk about imapsync
 
 DONE. Add a --recurse option when --folder option is used.
-No I won't since this feature can be done by doing a 
+No I won't since this feature can be done by doing a
 --include '^INBOX.MyFolder'
 Yes done with --folderrec
 
@@ -797,7 +906,7 @@ DONE. Add in doc: Does imapsync support IMAP over TLS (IMAPS)?
 
 DONE. Add the licence of each IMAP software (the free ones).
 
-DONE. Add  MailEnable version 1.54 if 
+DONE. Add  MailEnable version 1.54 if
 Javier Gomez succeed. He failed.
 MailEnable is an early stage developpment IMAP server.
 
@@ -826,7 +935,7 @@ DONE. Add a --subscribed option to transfert only subscribed
 
 DONE. Add a CREDITS file.
 
-DONE. Pb with namespace INBOX. Some IMAP servers 
+DONE. Pb with namespace INBOX. Some IMAP servers
 don't have this CAPABILITY
 http://www.inter7.com/courierimap/FAQ.html#namespace
 http://www.rfc-editor.org/rfc/rfc2342.txt

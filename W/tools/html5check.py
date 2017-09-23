@@ -158,6 +158,7 @@ while (status == 302 or status == 301 or status == 307) and redirectCount < 10:
   connection = httplib.HTTPConnection(parsed[1])
   connection.connect()
   connection.putrequest("POST", "%s?%s" % (parsed[2], parsed[3]), skip_accept_encoding=1)
+  connection.putheader("User-Agent", 'html5check.py/2008-02-12')
   connection.putheader("Accept-Encoding", 'gzip')
   connection.putheader("Content-Type", contentType)
   connection.putheader("Content-Encoding", 'gzip')

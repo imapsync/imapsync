@@ -1,4 +1,4 @@
-@REM $Id: test_testsdebug.bat,v 1.1 2016/08/19 08:20:53 gilles Exp gilles $
+@REM $Id: test_testsdebug.bat,v 1.3 2017/07/08 00:02:13 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO OFF
@@ -11,7 +11,7 @@ REM Remove the error file because its existence means an error occured during th
 IF EXIST LOG_bat\%~nx0.txt DEL LOG_bat\%~nx0.txt
 
 @REM CALL :handle_error perl .\imapsync --justbanner
-CALL :handle_error perl .\imapsync --testsdebug
+CALL :handle_error perl .\imapsync --testsdebug --debug
 @REM CALL :handle_error perl .\imapsync --tests
 
 @REM @PAUSE

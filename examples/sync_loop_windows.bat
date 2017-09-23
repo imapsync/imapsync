@@ -1,5 +1,5 @@
 @REM
-@REM $Id: sync_loop_windows.bat,v 1.14 2016/03/09 01:22:33 gilles Exp gilles $
+@REM $Id: sync_loop_windows.bat,v 1.15 2017/05/13 04:43:01 gilles Exp gilles $
 @REM
 @REM imapsync massive sync example batch for Windows users
 @REM lines beginning with @REM are just comments 
@@ -82,12 +82,9 @@ SET csvfile=file.txt
 
 FOR /F "tokens=1,2,3,4,5,6,7 delims=; eol=#" %%G IN (%csvfile%) DO (
 @ECHO ==== Starting imapsync from --host1 %%G --user1 %%H to --host2 %%J --user2 %%K ====
-@ECHO.
-
-imapsync ^
+@imapsync ^
   --host1 %%G --user1 %%H --password1 %%I ^
   --host2 %%J --user2 %%K --password2 %%L %%M %arguments%
-
 @ECHO ==== Ended imapsync from --host1 %%G --user1 %%H to --host2 %%J --user2 %%K ====
 @ECHO.
 )

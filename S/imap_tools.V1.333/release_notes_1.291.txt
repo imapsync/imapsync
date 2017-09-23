@@ -1,0 +1,76 @@
+Release notes for IMAP-Tools version 1.291. 
+Changes since 2014/06/12:
+
+dumptoIMAP.pl 1.12 2014/06/21
+    Fix handling of delimter and prefix when server does not supply NAMESPACE via -y argument. 
+
+dumptoIMAP.pl 1.11 2014/06/20
+    Fix problem in get_mbx_list caused by the path not being as expected and causing the filespec to not have a leading '/' 
+
+imap_audit.pl 1.6 2014/07/24
+    Added support for "before date" and "after date" audits.  Also added building of "dummy" msgids for messages lacking them. 
+
+imapcopy.pl 1.138 2014/07/21
+    Added -O argument to tell imapcopy that both servers are Dovecot using the brain-dead mbox format where mailboxes can have messages or submailboxes but not both. 
+
+imapcopy.pl 1.136 2014/07/21
+    Added -o <destination mailbox> to permit all messages to be copied to a single "archive" mailbox on the destination (and not to the regular mailboxes.) 
+    Prompt the user for source/dest user password if the password = PROMPT 
+
+imapcopy.pl 1.129 2014/07/02
+    When building dummy msgids use the Date in the header rather than the INTERNALDATE.  It seems that a server may adjust the internaldate according to its timezone. 
+
+imapcopy.pl 1.128 2014/07/02
+    Tweak detection of message size because gmail doesn't send it the way most servers do. 
+
+imapcopy.pl 1.127 2014/06/27
+    Two changes:  If a message does not have a Message-ID then build one for it from the Sender, Subject, and INTERNALDATE fields.  So the same for the source and destination servers. If -l is set (dont_copy_source_dups) then duplicates on the source will not be copied. 
+
+imapcopy.pl 1.126 2014/06/16
+    Add a 'special date' search function for a customer whose SEARCH command seems to be unreliable.  This routine manually compares the INTERNALDATES with the value of -J 'SINCE|BEFORE <date>' argument. 
+
+imapcopy.pl 1.125 2014/06/13
+    Notify msg to dest user with Subject of messages excluded because they exceed the maximum size argument
+
+imapcopy.pl 1.123 2014/06/13
+    Removed 'from the dest' from sub expunge() since the -r option can be used to purge messages on the source that have been copied. 
+
+imapsync.pl 1.62 2014/07/19
+    Add support for backslash as delimiter for -S and -D host/user/pwd 
+
+imapsync.pl 1.60 2014/07/05
+    Fix the getDatedMsg subroutine for built msgids. 
+
+imapsync.pl 1.58 2014/07/05
+    Include the subject in the constructed msgid. 
+
+imapsync.pl 1.56 2014/07/05
+    Build msgid from date,subject,sender if msgid is missing. 
+
+migrateIMAP.pl 1.54 2014/07/11
+    Use from+header_date+subject for msgid if message lacks one. 
+
+pop3toimap.pl 1.8 2014/07/06
+    Fix problem reading users file on Windows (last character was chopped off).   
+
+thunderbird_to_imap.pl 1.12 2014/07/09
+    Added a range selector to deal with out-of-memory errors 
+
+thunderbird_to_imap.pl 1.11 2014/07/09
+    Fix the way Tbird status codes are interpreted 
+
+thunderbird_to_imap.pl 1.10 2014/07/07
+    Fixed problem with CRLF on some Windows boxes, added complete set of Thunderbird Mozilla status flags. 
+
+thunderbird_to_imap.pl 1.9 2014/07/01
+    Don't print 'running in update mode' unless -U is set. 
+
+thunderbird_to_imap.pl 1.8 2014/07/01
+    Tweak the end-of-message check because some Thunderbird folders have just "From " instead of "From xxxxxxxx" 
+
+thunderbird_to_imap.pl 1.6 2014/06/29
+    Enhance the date-formatting code. 
+
+thunderbird_to_imap.pl 1.5 2014/06/28
+    Fix opt_x which was used for two purposes;  add opt_X (CRLF control) in its place. 
+

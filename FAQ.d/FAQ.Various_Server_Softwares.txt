@@ -1,11 +1,11 @@
 #!/bin/cat
-$Id: FAQ.Various_Server_Softwares.txt,v 1.4 2016/01/28 14:34:15 gilles Exp gilles $
+$Id: FAQ.Various_Server_Softwares.txt,v 1.8 2017/09/05 15:11:20 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
-====================================================
-  Imapsync tips for various imap server softwares.
-====================================================
+=======================================================================
+         Imapsync tips for various imap server softwares.
+=======================================================================
 
 
 
@@ -42,22 +42,6 @@ http://www.linux-france.org/prj/imapsync_list/msg01756.html
 http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-1/
 http://www.safetynet-it.com/it-support/mac-kerio-server-to-microsoft-exchange-2010-migration-2/
 
-
-=======================================================================
-Q. Synchronizing from Yahoo to XXX
-
-R. Use --host1 imap.mail.yahoo.com --ssl1
-
-./imapsync \
-	--host1 imap.mail.yahoo.com \
-        --user1 billy \
-        --password1 secret \
-	--ssl1 \
-        --host2 XXX \
-        --user2 billy \
-        --password2 secret
-
-SSL is mandatory for yahoo since november 2011.
 
 =======================================================================
 Q. from Microsoft's Exchange 2007 to Google Apps for your Domain 
@@ -228,14 +212,14 @@ R. Old Softalk releases don't support the IMAP SEARCH command.
    Here are the options to get it working.
 
 imapsync ... --sep1 '.' --prefix1 '' \
-             --noabletosearch  --nocheckmessageexists --addheader
+             --noabletosearch1  --nocheckmessageexists --addheader
 
 (Thanks to Andrew Tucker)
 
 ======================================================================
 Q. From or to QQMail IMAP4Server
 
-R. imapsync ... --noabletosearch
+R. imapsync ... --noabletosearch1
 
 ======================================================================
 Q. From FirstClass to XXX
@@ -264,8 +248,20 @@ Here is a command line used to migrate from FirtClass release 12:
     --regextrans2 "s,&AC8-,-,g" \
     --regextrans2 "s,&APg-,oe,g" 
 
-On Windows, in the previous example containing \$1 you have to 
-replace the two \$1 by $1 (remove the \ before $).
+On Windows:
+  imapsync.exe ... ^
+    --automap ^
+    --usecache ^
+    --useheader Message-ID ^
+    --idatefromheader ^
+    --addheader ^
+    --regextrans2 "s,(/|^) +,$1,g" ^
+    --regextrans2 "s, +(/|$),$1,g" ^
+    --regextrans2 "s/[\^]/_/g" ^
+    --regextrans2 "s/['\\]/_/g" ^
+    --regextrans2 "s,^&AC8-,-,g"  ^
+    --regextrans2 "s,^&APg-,oe,g"
+
 
 Special thanks to Kristian Wind and Joey Alexander for helping me
 writing this FAQ item. 
@@ -283,3 +279,5 @@ R. Do NOT use --usecache since new UIDs are not given by FTGate and also
      --sep2 / --prefix2 "" \
      --useheader Message-Id \
 
+=======================================================================
+=======================================================================

@@ -1,0 +1,2317 @@
+
+== Revision History for Mail::IMAPClient
+Changes from 3.17_01 to ?       made by Phil Pearl (Lobbes)
+Changes from 2.99_01 to 3.16    made by Mark Overmeer
+Changes from 0.09    to 2.99_01 made by David Kernen
+	- Potential compatibility issues from 3.17+ highlighted with '*'
+
+version 3.39: Fri Feb  3 00:43:00 UTC 2017
+	- rt.cpan.org#115726: uninitialized value via fetch_hash
+	  [Malte Stretz]
+	- rt.cpan.org#119523: better error reporting on failed TLS connections
+	  [Matthew Horsfall]
+	- rt.cpan.org#114904: document noop()
+	  [Glenn Golden]
+	- rt.cpan.org#97718: (redux) never retry DONE
+	  [Laurence Darby]
+	- _imap_command() new doretry => 0|1 option to suppress/allow retry
+	- updated copyright for 2017
+
+version 3.38: Tue Feb  9 02:48:21 UTC 2016
+	- rt.cpan.org#107592: redact credentials via debug if !Showcredentials
+	  [Gilles Lamiral]
+	- rt.cpan.org#110273: failure to quote password values
+	  (regression introduced in 3.36 via fix for rt.cpan.org#100601)
+	  [Gilles Lamiral]
+	- rt.cpan.org#107593: allow getquota("")
+	- *Quote() now returns qq("") for defined but empty values
+	- rt.cpan.org#107011: fix folders_hash() docs and usage in is_parent()
+	  [Gilles Lamiral]
+	- rt.cpan.org#106500: split UID EXPUNGE with a large sequence set
+	- added t/quota.t and t/lib/MyTest.pm for testing
+	- updated copyright for 2016
+
+version 3.37: Fri Aug 14 11:04:53 EDT 2015
+	- regex fix in rt.cpan.org#96575 required Perl 5.10
+	    updated regex to be backwards compatible with Perl 5.8
+	  [Paul Howarth]
+
+version 3.36: Fri Aug 14 01:40:50 UTC 2015
+	- rt.cpan.org#96575: parsing fixes for fetch_hash and bodystructure
+	  + better handling of data containing escaped characters
+	  [Ken Neighbors]
+	- rt.cpan.org#97718: hang waiting for tag if DONE sent outside of IDLE
+	  [Laurence Darby]
+	- rt.cpan.org#100683: failed literal commands hang waiting for '+'
+	  [Matthias Pitzl]
+	- rt.cpan.org#100601: login() fails if username requires use of literals
+	  [Andy Lyttle]
+	- *rt.cpan.org#103823: is_parent() should return undef on \NoInferiors
+	  [Gilles Lamiral]
+	- rt.cpan.org#105456: fetch_hash fails if sequence number contains '*'
+	  + *no longer removing unrequested data (except UID) in returned hashes
+	  [Gilles Lamiral]
+	- rt.cpan.org#91912: selectable broke in 3.29 due to \b around \NoSelect
+	  [Justin Vallon, Gilles Lamiral]
+	- some documentation, test cleanup and new tests
+
+version 3.35: Fri, Nov 22, 2013  2:18:41 PM
+	- *use Quote() over Massage() to avoid stripping double quotes from arg
+	  + removed constant NonFolderArg
+	  + may deprecate Massage() in a future release
+	- _list_or_lsub failed to handle folder names with double quotes
+	  + cleanup Escaped_results()
+	  + new methods: Escaped_history() _escaped_trans_data()
+	  + removed method: _list_response_preprocess()
+	  [Gilles Lamiral, Victor Lé]
+	- rt.cpan.org#90315: getacl on a folder returned as literal failed
+	  + _read_line could remove extra space when literal data was received
+	  [Carl Karcher]
+	- rt.cpan.org#89040: typo fixes
+	  [David Steinbrunner]
+
+version 3.34: Fri, Sep 27, 2013 12:50:17 AM
+	- make Makefile.PL use non-interactive and document test.txt usage
+	- new attribute: Socketargs => [ (IO::Socket::.. args) ]
+	  + cleanup connect() to more flexible with IO::Socket::* args
+	- untagged server data during send literal may cause client to hang
+	  [Arthur Wolfe, Josh Hillman]
+	  + _send_line() needs '+' only to know it is OK to send LITERAL data
+	  + created _response_code_sub() to simplify _get_response()
+	- remove internal "Folders" cache
+	- Allow for RFC 6154 "IMAP LIST Extension for Special-Use Mailboxes"
+	  [Mathias Reitinger]
+	  + new method: folders_hash()
+	  + deprecate: xlist_folders(), xlist()
+
+version 3.33: Tue, May 14, 2013 10:12:43 AM
+	- more cleanup on use of $@ and $!
+	- cleanup get_bodystructure / get_envelope
+	- allow Ssl arg as an arrayref to pass args to IO::Socket::SSL
+	  [Ramana V Mokkapati]
+	- no need to Massage() the folder name in uidnext()
+	- rt.cpan.org#84028: get_envelope() fails when subject ends w/backslash
+	  [Andy Lyttle]
+	- rt.cpan.org#79476: move()/copy() with sequence causes numeric warning
+	  [Oleg G]
+	- *move()/copy() no longer sort message(s) provided by caller
+
+version 3.32: Fri, Aug 10, 2012	 4:43:24 PM
+	- document RFC2087 quota related calls
+	  [Mathias Reitinger] documentation request
+	- rt.cpan.org#78474: idle/idle_data documentation error
+	  [Dima Kogan]
+	- Quote()/Massage() now uses literals for non ascii data
+	  [Mathias Reitinger] reported issues with utf8 data in password
+	- use Quote()/Massage() consistently now in:
+	    login() proxyauth() deleteacl() setacl() listrights() rename()
+	- documented deleteacl() and other minor pod cleanup
+	- ran Mail::IMAPClient::BodyStructure through perltidy
+	- update year in README/pod to 2012
+	- rt.cpan.org#74733: Fails with Parse::RecDescent >= 1.966_002
+	  rt.cpan.org#74593: Recent changes break Module::ExtractUse and ...
+	  [ANDK, TEAM, SREZIC, NBEBOUT at CPAN and nine from detonation]
+	  - Makefile.PL avoid buggy Parse::RecDescent 1.966_002 until 1.967_009
+	- rt.cpan.org#76989: Mail::IMAPClient::BodyStructure usage/docs
+	  [Pierluigi Frullani]
+	  - fix incorrect documentation on new()
+	  - lots of doc verbiage updates
+
+version 3.31: Mon, Mar 19, 2012 11:11:11 AM
+	- rt.cpan.org#74799: Support for partial data responses in fetch_hash
+	  [Philip Garrett]
+	  + bonus: cleaner handling of BODY.PEEK responses
+	- properly handle ALL|FULL|FAST fetch macros in fetch_hash
+
+version 3.30: Fri Nov 11 09:37:00 EST 2011
+	- rt.cpan.org#72347: Starttls array ref argument dereferenced twice
+	  [Jonathan Buhacoff]
+	- during connect(): Port now defaults 143 or 993 if $self->Ssl
+	  [Kodi Arfer]
+	- stop reconnect deep recursion if server disconnects on login
+	  [Luca Ferrario]
+	- reconnect() now returns 1 on success; on error undef or 0=recursive
+	- handle EBADF from syswrite in _send_bytes
+	- rt.cpan.org#67263: add RFC4978 IMAP COMPRESS Extension support
+	  [SDIZ]
+	  + new method: compress()
+	  + new attributes: Compress Readmoremethod
+	- general code cleanup:
+	  + new() now always returns $self or undef (never $sock any more)
+	  + Socket() now always return a socket or undef
+	  + login() now always return $self or undef
+	  + _read_more() will now use Readmoremethod if set
+	- missing second arg '' for encode_base64 causing AUTHENTICATE
+	  PLAIN to fail on lines longer than 76 characters
+	  [Yoshiho Yoshida]
+
+version 3.29: Tue Aug  9 00:33:52 EDT 2011
+	- rt.cpan.org#69876: ENVELOPE as part of fetch_hash convenience method
+	  [Chris Huttman]
+	  + added Mail::IMAPClient::BodyStructure::Envelope->parse_string($str)
+	    convenience method for handling ENVELOPE data from fetch_hash
+	- rt.cpan.org#68310: folders() should not call exists()/STATUS
+	  [Gilles Lamiral]
+	    - affects folders() and subscribed() methods
+	  + use selectable() instead of exists() in call
+	    - consider removing extra call to folders()/subscribed()
+	  + ensure separator is set properly in folders()
+	  + selectable now properly checks for \Noselect flag
+	  + update folders() POD to match implementation behavior
+	- rt.cpan.org#68648: [patch]: CAPABILITY after authenticate
+	  [Stef Simoens]
+	  + delete cache after State set to Authenticate
+	    - State() is no longer an auto-generated method
+	- rt.cpan.org#68755: provided socket loses blocking in 3.19-3.28
+	  [Martin Schmitt]
+
+version 3.28: Fri Mar  4 00:17:38 EST 2011
+	- rt.cpan.org#66004: internaldate() return undef if no internaldate in reply
+	  [Jason Long]
+	- rt.cpan.org#66367: fetch_hash uses Escaped_results() in 3.26/3.27
+	  (redo) rt.cpan.org#63524: fetch_hash() parse errors
+	  [Mathias Reitinger]
+	  + fetch_hash: only Escape() data in parenthesized list
+	  + update fetch_hash test and add a new test
+	- do not touch CRLF in Escape()/Unescape()
+	- added Escape() method
+	- rt.cpan.org#66287: flags results truncated due to Maxcommandlength
+	  [Erik Colson]
+	- rt.cpan.org#65694: SASL PLAIN: bad order of login data
+	  [Willi Mann]
+
+version 3.27: Sun Feb 13 14:37:27 EST 2011
+	- rt.cpan.org#65694: migrate fails
+	  [Erik Colson]
+	- rt.cpan.org#65470: uninitialized warning in message_to_file
+	  [Gilles Lamiral, Mark Hedges]
+	- rt.cpan.org#61835: (DOC) in LIST context undef may be returned
+	  [Stefan Völkel]
+	  + warn/highlight behavior in docs Errors section
+	- updated documentation
+	  + migrate() documentation fixed
+	  + moved Custom Authentication Mechanisms toward end
+	  + recommended use of scalar context due to historical API behavior
+
+version 3.26: Mon Jan 31 22:15:04 EST 2011
+	- *require Perl 5.8.1 as constant use is invalid on 5.6
+	- rt.cpan.org#63524: fetch_hash() parse errors
+	  [Brian Kroth]
+	  + fixed handling of LITERAL values in response
+	  + fixed handling of field names with a dash (e.g. X-SAVEDATE)
+	  + fetch_hash now uses Escaped_results() method
+	- *fixed Escaped_results() to properly join LITERAL data with
+	  the data that comes before and after it
+	- *rt.cpan.org#60945: append_file() does not interpret $date as expected
+	  [Jason Long]
+	  $date should now be 1 (to use the file mtime) or a valid RFC3501 date
+	- *rt.cpan.org#61292: memory consumption with message_string()/append()
+	   rt.cpan.org#61806: Major problem with one function in IMAPClient
+	  [Gilles Lamiral, Casey Duquette]
+	  + use @_ / $_[<num>] in critical places to avoid pass by
+	    value memory overhead
+	  + use in memory files in a few critical places as that code
+	    path in Mail::IMAPClient is significantly more efficient
+	    with internal memory usage
+	  + *new (undocumented/do-not-use-without-good-reason)
+	    attribute Maxappendstringlength used by append() and
+	    append_string() holds the size (in bytes, default 1 MiB)
+	    that triggers when message SCALAR(s) passed to these
+	    methods will be treated as an in memory file.  This
+	    attribute will likely be removed in a future version.
+	  + *append() and append_string() now call append_file() and
+	    use an im memory file when length($message) is greater
+	    than Maxappendstringlength; other minor code cleanup
+	  + *message_string() now calls message_to_file() and uses an
+	    in memory file
+	  + refactor message_to_file() to use internal _imap_uid_command()
+	  + update _read_line() to be more efficient w/CPU in critical
+	    section by pulling isa() checks out of main loop also
+	    conserve memory by not storing an extra copy of LITERAL
+	    data if the data was put into a filehandle from the caller
+	  + Memory/working set (KB) comparison (Perl 5.10 cygwin Win7):
+	    - test: message_string on 6.1M msg and then append 6.1M msg
+	      version | start | after message_string | after append
+	      --------+-------+----------------------+-------------
+	        2.2.9 |  7624 |                74404 |       131896
+	         3.25 |  7716 |                74408 |       156532
+	         3.26 |  7684 |                33372 |        42608
+	- minor arg cleanup of noop() and tag_and_run()
+	- rt.cpan.org#63444: relax get_envelope(), allow empty reply-to
+	  [Nikolay Kravchenko]
+	- rt.cpan.org#61068: append_string can invalidate a good $date
+	- rt.cpan.org#60045: Logout error if delay between BYE and tagged OK
+	  [Armin Wolfermann]
+	  no longer set an error when this happens
+	- rt.cpan.org#61062: migrate() errors
+	  [Johan Ekenberg]
+	  + rewrote migrate() to be functional and simple
+	- Update README and cleanup several old or out of date files
+
+version 3.25: Fri May 28 00:07:40 EDT 2010
+	- fix body_string parsing bug and added tests in t/body_string.t
+	  [Heiko Schlittermann] 
+	- rt.cpan.org#57661: uninitialized value warning in IMAPClient::thread
+	  [Max Bowsher]
+	- rt.cpan.org#57337: Correctly handle multiparts in BodyStructure.pm
+	  [Robert Norris]
+	  fixes in Mail::IMAPClient::BodyStructure::bodystructure for
+	  bugs still in release 3.24
+	- rt.cpan.org#57659: install fails when using cPanel GUI
+	  [Ken Parisi]
+	  hack Makefile.PL to use alarm() and timeout prompt() gracefully
+	- relax t/basic.t logout() error check (allow 'BYE' instead of 'OK')
+	- left examples/idle.pl out of MANIFEST for 3.24
+
+version 3.24: Fri May  7 17:02:35 EDT 2010
+	- rt.cpan.org#48912: wrong part numbers in multipart messages
+	  [Dmitry Bigunyak, Gabor Leszlauer]
+	- fix Mail::IMAPClient::BodyStructure::bodystructure to
+	  properly assign parts for messages using multipart and also
+	  include .TEXT parts as well (still not including top level
+	  HEADER and TEXT though - bug?)
+	- allow _load_module() to set $@ and LastError if module load fails
+	- rt.cpan.org#55527: [no] disconnect during DESTROY
+	  [Stefan Seifert]
+	- updated logout documentation to correctly state that DESTROY
+	  is not used to force an automatic logout on DESTROY despite
+	  documentation that indicated otherwise
+	- update append* documentation to match current implementation
+	- rt.cpan.org#55898: append_file can send too many bytes
+	  [Jeremy Robst]
+	- avoid append_file corner cases operating on lines instead of buffers
+	- use binmode on filehandle in append_file
+	- add tests to t/basic.t for append_file
+	- rt.cpan.org#57048: _quote_search() using $_ in loop instead of $v
+	  [Matthaus Kiem]
+	- added examples/idle.pl program showing use of idle and idle_data
+	- idle_data() should not read/block after server returns data
+	  [Marc Thielemann]
+	- idle_data() _get_response regexp updated to not match errors
+	- idle_data() now uses a timeout of 0 by default as documented
+	- _get_response() now checks for defined($code) to allow $code==0
+
+version 3.23: Fri Jan 29 00:39:27 EST 2010
+	- new beta idle_data() method to retrieve untagged messages during idle
+	  similar to method suggested by Daniel Richard G
+	- added/updated documentation for idle, idle_data, and done
+	- rt.cpan.org#53998: fix NTLM auth: call ntlm with challenge string
+	  [Dragoslav Mlakar]
+	- report the return value from select/_read_more on errors
+	- logout() again returns the success/failure of the LOGOUT command
+	- set/return error when $response->() returns undef in authenticate()
+	- new internal method _load_module() centralizing some 'require' calls
+	- localize use $@ in several places to avoid stomping on global val
+	- refactor code calling _read_more() to centralize error handling
+
+version 3.22: Thu Jan 21 15:25:54 EST 2010
+	- rt.cpan.org#52313: Getting read errors if Fast_io is set to 1
+	  [Jukka Huhta]
+	- updated Maxttemperrors docs related to EAGAIN handling
+	- new starttls() method and Starttls attribute to support STARTTLS
+	- update parse_headers to try harder to find UID in fetch response
+
+version 3.21: Tue Sep 22 19:45:13 EDT 2009
+	- rt.cpan.org#49691: rewrite of fetch_hash to resolve several issues
+	  [Robert Norris]
+	  includes new tests via t/fetch_hash.t
+	- rt.cpan.org#48980: (enhancement) add support for XLIST extension
+	  [Robert Norris]
+	- rt.cpan.org#49024: NIL personal name returned by *_addresses methods
+	  [Dmitry Bigunyak]
+	- rt.cpan.org#49401: IMAPClient expunge fails (unless folder arg used)
+	  [Gary Baluha]
+	- update/clarify close and expunge documentation a little
+
+version 3.20: Fri Aug 21 17:40:40 EDT 2009
+	- added file/tests in t/simple.t
+	- added methods Rfc3501_date/Rfc3501_datetime
+	  used by deprecated methods Rfc2060_date/Rfc2060_datetime
+	  rt.cpan.org#48510: Rfc3501_date/Rfc3501_datetime methods do
+	    not exist [sedmonds]
+	- login() hack to quote an empty password
+	  rt.cpan.org#48107: Cannot LOGIN with empty password [skunk]
+
+version 3.19: Fri Jun 19 14:59:15 EDT 2009
+	- *search() backwards compat: caller must quote single arg properly
+	  rt.cpan.org#47044: $imap->search does not return [ekuemmer]
+	- cleanup regexp in _send_line()
+	- reduce extra newlines injected by _debug()
+
+version 3.19_02: Tue Jun  9 00:47:52 EDT 2009
+	- _list_or_lsub() now calls _list_response_preprocess so
+	  consumers of this method no longer need to deal with how
+	  LITERAL data is represented in the returned data
+	- update _list_or_lsub_response_parse handling of folder names
+	  that came back as literal data
+	- update comments related to _list_response_preprocess
+version 3.19_01: Fri Jun  5 15:45:05 EDT 2009
+	- make parse_headers more robust to errors/non-header data
+
+version 3.18: Wed Jun  3 23:07:12 EDT 2009
+	- enhance fetch_hash to enable caller to specify list of messages
+	  suggestion by [Eugene Mamaev]
+	- better handling of untagged BYE response
+
+version 3.18_02: Wed May 27 10:02:24 EDT 2009
+	- *new attribute Ssl, when true causes IO::Socket::SSL to be
+	  used instead of IO::Socket::INET.  This change allows
+	  Reconnectretry logic to work on SSL connections too.
+	- have LastError cluck() if setting error to NO not connected
+	- handle errors from imap4rev1() in multiple places
+	- Reconnectretry/_imap_command enhancements/fixes
+	  + only run command if IsConnected
+	  + keep a temporary history of LastError(s)
+	  + sets LastError to NO not connected if ! IsConnected
+	  + retry =~ timeout|socket closed|* BYE| NO not connected
+	- _imap_command_do reduce data logged when using APPEND
+	- fetch() now handles messages() errors
+	- thread(), has_capability(), capability() better error checking
+	- authenticate() now uses _imap_command for retry mechanism
+	- size() now sets LastError when no RFC822.SIZE is found 
+
+version 3.18_01: Fri May 22 17:08:00 EDT 2009
+	- *update several methods to use common _get_response() method
+	- refactor most code handling imap responses
+	- new internal method _get_response() to reduce code duplication
+	- more regex cleanup $CR/$LF (not \r\n) per perlport/IMAP spec
+	- major cleanup/fix of append_file for rt.cpan.org#42434
+
+version 3.17: Thu May 21 01:40:08 EDT 2009
+	- ran all test code and lib/Mail/IMAPClient.pm through Perl::Tidy
+	- plan on using perltidy to standardize format going forward
+	- added 13 tests to t/basic.t to cover more methods
+	- fix some broken tests
+	- update Makefile.PL to provide info about optional modules
+
+version 3.17_05: Tue May 19 11:04:28 EDT 2009
+	- *reset LastError for every call to _imap_command_do()
+	- *run() - use _imap_command_do(), return arrayref in scalar context
+	- *tag_and_run() - return arrayref in scalar context
+	- *done() - use _imap_command_do(), return arrayref in scalar context
+	- *search() now returns empty arrayref not undef if no matches found
+	- _imap_command_do() made more flexible to avoid code duplication
+	- _list_response_parse renamed _list_or_lsub_response_parse
+	- updated POD with new/updated behavior
+	- append_string() now uses _imap_command_do() for Reconnectretry
+	- internally use defined return values instead of only LastError()
+	- run() updated to use same/similar code to _imap_command_do()
+	- make several return statements more consistent
+	- delete() now unsets current Folder attribute on success
+
+version 3.17_04: Fri May 15 17:18:52 EDT 2009
+	- updated POD with new reconnect() method and Reconnectretry attr
+	- *new _imap_command() after renaming old one to _imap_command_do
+	  support retrying commands X times EPIPE/ECONNRESET errors
+	- *new Reconnectretry attribute to control number of retry
+	  attempts (default is 0 - no reconnect/retry)
+	- *added reconnect() method to support Reconnectretry attr
+	  reconnect and updated _imap_command() method
+	- *_imap_command_do will return undef if command given has no TAG
+	- fixed message_string() logic/errors for failed size() calls
+	- local-ize $! anywhere we use Carp routines as older versions
+	  of Carp could cause $! to be reset
+	- several 'BUG?' comments -- raising red flag for future work
+	- minor cleanup of sort() logic
+	- reduce duplicate code, hopefully improved error handling:
+	  new _list_or_lsub() for list() and lsub()
+	  new _folders_or_subscribed() for folders() and subscribed()
+	  + new _list_response_preprocess() keeping old code/logic in
+	    for now, but may remove in the future (for buggy servers?)
+	- some updates for migrate() but this method needs much work
+	- body_string() now handles fetch() errors
+	- tag_and_run now handles _imap_command() errors
+	- changed non-timeout CORE::select() timeout from 0.001 to 0.025
+	- minor cleanup of _read_line() error handling/debug output
+	- get_bodystructure() handle more fetch() errors
+	- expunge() handle select() errors
+	- restore_message() handle store() errors
+	- uidvalidity() handle status() errors
+	- uidnext() handle status() errors
+	- is_parent() use _list_response_preprocess() for parsing
+	- move() send delete_message() errors to stderr
+	- simplify size() method
+
+version 3.17_03: Fri May  8 16:37:08 EDT 2009
+	- *added uidexpunge() for UID EXPUNGE UIDPLUS support
+	- *search() now DWIM: auto-escapes args, SCALAR refs not escaped
+	  rt.cpan.org#44936 [cjhenck]
+	- _quote_search() provides auto-escape capability for search()
+	- many POD updates as well as some major reformatting (incomplete)
+	- login now fails if passwd and user are not defined
+	- _sysread(): $self was in args to 'Readmethod' twice
+	- authenticate() return undef on scheme eq "" or LOGIN
+	- "require" instead "use" Digest::HMAC_MD5 for CRAM-MD5 support
+
+version 3.17_02: Fri May  1 16:44:21 EDT 2009
+	- cleanup of use/imported data
+	- use Socket $CRLF in many cases not \r\n per perlport/IMAP spec
+	- *new Keepalive attribute used via new()/Socket() enables SO_KEEPALIVE
+	- LastError now uses Carp::confess for stack trace if Debug is true
+	- Maxcommandlength now defaults to 1000 per RFC2683 section 3.2.1.5
+	- added noop() to support IMAP NOOP
+	- _imap_command now sets LastError if a OK/$good response is not seen
+	- fixed fetch_hash() to return FLAGS as "" not () when no FLAGS set
+
+version 3.17_01: Fri Apr 24 18:36:45 EDT 2009
+	- *new attribute Maxcommandlength used by fetch() to limit
+	  length of commands sent to a server.  This should removes
+	  need for utilities like imapsync to create their own split()
+	  functions and instead allows Mail::IMAPClient to hopefully
+	  "do the right thing"
+	- remove extra 'use' calls for Carp and Data::Dumper
+	- _read_more() improperly initialized vector causing select
+	  errors, thus timeouts were not working properly (now they
+	  work...)
+	- *change default timeout 30s => 600s: 30s seems too short in
+	   practice
+	- *explicit import of encode_base64 and decode_base64 from
+	  MIME::Base64 note the code forces a disconnect from the
+	  server on timeout as we can not easily recover from this
+	  situation right now in the code
+	- *numerous changes of error messages, removing superfluous
+	  text and now relying on LastError instead of $! or $@ when
+	  appropriate
+	- separator():
+	  + now return undef if an error occured for NAMESPACE or LIST calls
+	  + *no longer defaults to '/' if NAMESPACE call does not succeed
+	- new internal _list_response_parse() method for parsing LIST
+	  responses
+	- handle ECONNRESET errors on syswrite and mark connection as
+	  Unconnected
+	  + error "Connection lost" changed to "Write failed"
+	- previously untrapped syswrite error now generate "Write
+	  failed" errors
+	- fix in _imap_command where LastError would be erroneously
+	  set on LOGOUT
+	- _record() no longer tries to infer errors based on data
+	  being "recorded"
+	- _send_line()
+	  + cleanup in watching for: +|NO|BAD|BYE
+	  + now sets LastError when an unexpected response is seen
+	- _read_line()
+	  + handle select errors instead of ignoring them
+	  + forcefully _disconnect() on timeouts as this breaks app logic
+	  + reduced duplication of code on error handling
+	- added _disconnect() method to brute force drop connections
+	  on timeout
+	- added _list_response_parse() to reduce duplicate code for
+	  LIST parsing
+	- added _split_sequence() to support new Maxcommandlength argument
+	- fetch()
+	  + use new Maxcommandlength to split a request into multiple
+	    subrequests then aggregate results before passing them
+	    back to the caller
+	- fetch_hash(): added checks for failed IMAP commands
+	- parse_headers()
+	  + properly check if fetch fails
+	  + handle cases where $header and/or $field are not defined
+	- size():
+	  + return undef if LastError is set
+	  + fix case where SIZE is not found and return undef as expected
+
+version 3.16: Mon Apr  6 12:03:41 CEST 2009
+
+	Fixes:
+
+	- set LastError when the imap_command receives an unexpected 'BYE' answer.
+	  rt.cpan.org#44762 [Phil Lobbes]
+
+	- handle SIGPIPE cleanly.
+	  rt.cpan.org#43414 [Phil Lobbes]
+
+	- improve handling of quotes in folder names
+	  rt.cpan.org#43445 [Phil Lobbes]
+
+	- do not use $socket->eof(), because IO::Socket::SSL does not support it.
+	  rt.cpan.org#43415 [Phil Lobbes]
+
+	- remove excessive reconfiguration of fastio in _read_line()
+	  rt.cpan.org#43413 [Phil Lobbes]
+
+	Improvements:
+
+	- remove experied docs about automatically created calls, which
+	  do not exist since 3.00
+
+	- remove verbose explanation about reporting bugs.
+
+version 3.15: Fri Mar 20 13:20:39 CET 2009
+
+	Fixes:
+
+	- manual-page was using POD syntax incorrectly, which caused many
+	  broken links on search.cpan.org
+	  rt.cpan.org #44212 [R Hubbell]
+
+version 3.14: Mon Feb 16 14:18:09 CET 2009
+
+	Fixes:
+
+	- isparent() when list() returns nothing.
+	  rt.cpan.org#42932 [Phil Lobbes]
+
+	- Quote more characters in Massage(): add  CTL, [, ], % and *
+	  rt.cpan.org#42932 [Phil Lobbes]
+
+	- message_string() will only complain about a difference between
+	  reported message size and actually received size; it will not
+	  try to correct it anymore.
+	  rt.cpan.org#42987 [Phil Lobbes]
+
+	- No error when empty text in append_string()
+	  rt.cpan.org#42987 [Phil Lobbes]
+
+	- login() should not try authenticate() if auth is empty or undef
+	  rt.cpan.org#43277 [Phil Lobbes]
+
+version 3.13: Thu Jan 15 10:29:04 CET 2009
+
+	Fixes:
+
+	- "othermessage" in bodystructure parser should expect an MD5,
+	  not bodyparams.  Fix and test(!) by [Michael Stok]
+
+	Improvement:
+
+	- minor simplifications in code of run() and _imap_command()
+
+	- get_bodystructure trace message fix [Michael Stok]
+
+	- add Domain option for NTLM authentication.
+
+version 3.12: Mon Nov 24 15:34:58 CET 2008
+
+	Improvement:
+
+	- major performance improvement in append_message(), avoiding
+	  reading the whole file in memory as the docs promised but the
+	  code didn't do.  [David Podolsky]
+
+version 3.11: Wed Oct  8 10:57:31 CEST 2008
+
+	Fixes:
+
+	- some SSL connections process more bytes then needed, which
+	  made the select() timeout.  Nice fix by [David Sansome]
+	  rt.cpan.org#39776
+
+	Improvements:
+
+	- improved example imap_to_mbox by [Ralph Sobek]
+
+version 3.10: Sun Aug 24 21:26:27 CEST 2008
+
+	Fixes:
+
+	- INET socket scope error, introduced by 3.09
+	  rt.cpan.org#38689 [Matt Moen]
+
+version 3.09: Fri Aug 22 16:38:25 CEST 2008
+
+	Fixes:
+
+	- return status of append_message reversed.
+	  rt.cpan.org#36726 [Jakob Hirsch]
+
+	- no line-breaks in base64 encoded strings when logging-in
+	  rt.cpan.org#36879 [David Jonas]
+
+	- fix MD5 authentication.
+	  rt.cpan.org#38654 [Thomas Jarosch]
+
+	Improvements:
+
+	- extensions and clean-ups in examples/imap_to_mbox.pl by
+	  [Ralph Sobek]
+
+	- an absolute path as Server setting will open a local ::UNIX
+	  socket, not an ::INET
+	  rt.cpan.org#38655 [Thomas Jarosch]
+
+version 3.08: Tue Jun  3 09:36:24 CEST 2008
+
+	Fixes:
+
+	- message_to_file used wrong command.
+	  rt.cpan.org#36184 [Parse Int]
+
+	- oops, distribution released with OODoc/oodist, not make dist.
+	  [Randy Harmon]
+
+	- fix parsing of body-structure information for multi-parts.
+	  rt.cpan.org#36279 [Doug Claar]
+
+	Improvements:
+
+	- Updated README and TODO (Was 'Todo')
+
+version 3.07: Mon Apr 28 09:17:30 CEST 2008
+
+	Fixes:
+
+	- expunge with no folder specified produced "use of undef"
+	  error.  Fixed by [André Warnier]
+
+	- additional arguments for create [Michael Bacon]
+
+	- accepts LIST answer with multiple lines [Michael Bacon]
+
+	- ::BodyStructure::_address() should be _addresses()
+	  Fixed by rt.cpan.org#35471 [Brian Kelly]
+
+version 3.06: Mon Apr 14 23:44:03 CEST 2008
+
+	Fixes:
+
+	- expunge without argument must use selected folder. [John W]
+
+	- expunge with folder does not select it. [John W]
+
+	- the documentation still spoke about "autogenerated methods",
+	  but they were removed with 2.99 [John W]
+
+	- append_string needs LF -> CRLF translations, for some
+	  servers. rt.cpan.org #35031 [Jonathan Kamens]
+
+	Improvements:
+
+	- added ::setquota(), thanks to [Jappe Reuling]
+
+version 3.05: Wed Feb 20 08:59:37 CET 2008
+
+	Fixes:
+
+	- match ENVELOPE and BODYSTRUCTURE more strict in the
+	  grammar, to avoid confusion. [Zach Levow]
+
+	- get_envelope and get_bodystructure failed for servers which
+          did not return the whole answer in one piece. [Zach Levow]
+
+	- do not produce parser errors when get_envelope does not
+	  return an envelope. [Zach Levow]
+
+	- PLAIN login response possibly solely a '+' [Zach] and [Nick]
+
+version 3.04: Fri Jan 25 09:25:51 CET 2008
+
+	Fixes:
+
+	- read_header fix for UID on Windows Server 2003.
+          rt.cpan.org#32398 [Michiel Stelman]
+
+	Improvements:
+
+	- doc update on authentication, by [Thomas Jarosch]
+
+version 3.03: Wed Jan  9 22:11:36 CET 2008
+
+	Fixes:
+
+	- LIST (f.i. used by folders()) did not return anything when the
+	  passed argument had a trailing separator. [Gunther Heintze]
+
+	- Rfc2060_datetime() must include a zone.
+          rt.cpan.org#31971 [David Golden]
+
+	- folders() uses LIST, and then calls a STATUS on each of the
+	  names found.	This is superfluous, and will cause problems when
+	  the STATUS fails... for instance because of ACL limitations
+	  on the sub-folder.
+	  rt.cpan.org#31962 [Thomas Jarosch]
+
+	- fixed a zillion of problems in the BodyStructure parser.  The
+	  original author did not understand parsing, nor Perl.
+
+	- part numbering wrong when nested messages contained multiparts
+
+	Improvements:
+
+	- implementation of DIGEST-MD5 authentication [Thomas Jarosch]
+
+	- removed call for status() in Massage(), which hopefully speeds-up
+	  things without destroying anything.  It removed a possible deep
+	  recursion, which no-one reported (so should be ok to remove it)
+
+	- simplified folders() algorithm.
+
+	- merged folder commands, like subscribe into one.
+
+	- added unsubscribe()
+	  rt.cpan.org#31268 [G Miller]
+
+	- lazy-load Digest::HMAC_MD5
+
+version 3.02: Wed Dec  5 21:33:17 CET 2007
+
+	Fixes:
+
+	- Another attempt to get get FETCH UID right.  Patch by [David Golden]
+
+version 3.01: Wed Dec  5 09:55:43 CET 2007
+
+	Changes:
+
+	- removed version number from ::BodyStructure
+
+	Fixes:
+
+	- quote password at login.
+	  rt.cpan.org#31035 [Andy Harriston]
+
+	- empty return of flags command should be empty list, not undef.
+	  rt.cpan.org#31195 [David Golden]
+
+	- UID command does not work with folder management commands
+	  rt.cpan.org#31182 [Robbert Norris]
+
+	- _read_line simplifications avoids timeouts.
+	  rt.cpan.org#31221 [Robbert Norris]
+
+	- FETCH did not detect the UID of a message anymore.
+	  [David Golden]
+
+	Improvements:
+
+	- proxyauth for SUN/iPlanet/NetScape IMAP servers.
+	  patch by rt.cpan.org#31152 [Robbert Norris]
+
+	- use grep in stead of map in one occasion in MessageSet.pm
+	  [Yves Orton]
+
+version 3.00: Wed Nov 28 09:56:54 CET 2007
+
+	Fixes:
+
+	- "${peek}[]" should be "$peek\[]" for perl 5.6.1
+	   rt.cpan.org#30900 [Gerald Richter]
+
+version 2.99_07: Wed Nov 14 09:54:46 CET 2007
+
+	Fixes:
+
+	- forgot to update the translate grammar.
+
+version 2.99_06: Mon Nov 12 23:21:58 CET 2007
+
+	Fixes:
+
+	- body structure can have any number of optional parameters.
+	  Patch by [Gerald Richter].
+
+	- get_bodystructure did not take the output correctly [Gerald Richter]
+
+	- parser of body-structure did not handle optional body parameters
+	  Patch by [Gerald Richter], rt.cpan.org#4479 [Geoffrey D. Bennet]
+
+version 2.99_05: Mon Nov 12 00:17:42 CET 2007
+
+	Fixes:
+
+	- pod error in MessageSet.pm
+
+	- folders() without argument failed. [Gerald Richter]
+
+	Improvements:
+
+	- better use of format syntax in date formatting.
+
+	- Rfc2060_datetime also contains the time.
+
+	- append_file() now has options to pass flags and time of file
+	  in one go. [Thomas Jarosch]
+
+version 2.99_04: Sat Nov 10 20:55:18 CET 2007
+
+	Changes:
+
+	- Simplified initiation of IMAP object with own Socket with a new
+	  option: RawSocket [Flavio Poletti]
+
+	Fixes:
+
+	- fixed read_line [Flavio Poletti]
+
+	- fixed test-run in t/basic.t [Flavio Poletti]
+
+version 2.99_03: Thu Nov  1 12:36:44 CET 2007
+
+	Fixes:
+
+	- Remove note about optional Parse::RecDescent by Makefile.PL;
+	  it is not optional anymore
+
+	Improvements:
+
+	- When syswrite() returns 0, that might be caused by an error
+	  as well.  Take the timeout/maxtemperrors track.
+	  rt.cpan.org#4701 [C Meyer]
+
+	- add NTLM support for logging-in, cleanly intergrated. Requires
+	  the user to install Authen::NTLM.
+
+version 2.99_02: Fri Oct 26 11:47:35 CEST 2007
+
+	The whole Mail::IMAPClient was rewritten, hopefully without
+	breaking the interface.  Nearly no line was untouched.
+
+	The following things happened:
+	 - use warnings, use strict everywhere
+	 - removed many lines which were commented out, over the years
+	 - $self->_debug if $self->Debug checked debug flag twice
+	 - $self->LogError calls where quite inconsequent wrt $@ and carp
+	 - consequent layout, changed sporadic tabs in blanks
+	 - consequent calling convensions
+	 - \0x0d\0x0a is always \r\n
+	 - zillions of minor syntactical improvements
+	 - a few major algorithmic rewrites to simplify the code, still
+	   many oppotunities for improvements.
+	 - expanded "smart" accessor methods, search abbreviations,
+	   and autoloaded methods into separate subs.  In total much
+	   shorter, and certainly better understandable!
+	 - fixed many potential bugs.
+	 - labeled some weird things with #????
+	Over 1000 lines (30%!) and 25kB smaller in size
+	Needs to be tested!!!! Volunteers?
+
+	Fixes:
+
+	- Exchange 2007 only works with new parameter: IgnoreSizeErrors
+	  rt.cpan.org#28933 [Dregan], #5297 [Kevin P. Fleming]
+
+	- Passed socket did not get selected.
+ 	  debian bug #401144, rt.cpan.org# [Alexander Zanger],
+	  #8480 [Karl Gaissmaier], #8481 [Karl Gaissmaier],
+	  #7298 [Herbert Engelmann]
+          http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=401144
+
+	- Seperator not correctly extracted from list command.
+	  rt.cpan.org#9236 [Eugene Koontz], #4662 [Rasjid]
+
+	- migrate() Massage'd foldername twice
+	  rt.cpan.org#20703 [Peter J. Holzer]
+
+	- migrate() could loop because error in regexp.
+	  rt.cpan.org#20703 [Peter J. Holzer]
+
+	- migrate() append_string result not tested.
+	  rt.cpan.org#8577 [guest]
+
+	- Failing fetch() returned undef, not empty list.
+          rt.cpan.org#18361 [Robert Terzi]
+
+	- Fix "use of uninitialised" warning when expunge is called
+	  rt.cpan.org#15002 [Matt Jackson]
+
+	- Fix count subfolders in is_parent, regexp did not take care
+	  of regex special characters in foldername and seperator.
+          rt.cpan.org#12883 [Mike Porter]
+
+	- In fetch_hash(), the capturing of UID was too complicated
+          (and simply wrong)
+	  rt.cpan.org#9341 [Gilles Lamiral]
+
+	- overload in MessageSet treated the 3rd arg (reverse) as
+	  message-set.
+
+	- do not send the password on a different line as the username
+	  in LOGIN.  Suggested by many people, amongst them
+	  rt.cpan.org#4449 [Lars Uffmann]
+
+	- select() with $timeout==0 (no timeout) returns immediately.
+	  Should be 'undef' as 4th select parameter.
+	  rt.cpan.org#5962 [Colin Robertson] and [Jules Agee]
+
+	- examine() remembers Massage()d folder name, not the unescaped
+	  version. rt.cpan.org#7859 [guest]
+
+	Improvements:
+
+	- PREAUTH support by rt.cpan.org#17693 [Danny Siu]
+
+	- Option "SupportedFlags", useful when the source supports
+	  different flags than the peer in migrate().
+	  Requested by rt.cpan.org#12961 [Don Christensen]
+
+	- Fast_io did not clear $@ on unimportant errors.
+	  rt.cpan.org#9835 [guest] and #11220 [Brian Helterline]
+
+	- Digest::HMAC_MD5 and MIME::Base64 are now prerequisits.
+	  rt.cpan.org#6391 [David Greaves]
+
+	- PLAIN (SASL) authentication added, option Proxy
+	  rt.cpan.org#5706 [Carl Provencher]
+
+	- removed Bodystructure.grammar and IMAPClient.cleanup from dist.
+
+	- reworked Bodystructure and MessageSet as well.
+
+	- EnableServerResponseInLiteral now autodetect (hence ignored)
+
+version 2.99_01:
+
+	After 4 years of silence, Mark Overmeer took maintenance.  David
+	Kernen could not be reached.  Please let him contact the new
+	maintainer.
+
+	A considerable clean-up took place, fixing bug and adapting the
+	distribution to current best practices.
+
+	- use "prompt" in Makefile.PL, to please CPAN-testers
+
+	- removed old Parse::RecDescent grammars
+
+	- include Artistic and Copying (GPL) into COPYRIGHT file
+
+	- remove INSTALL_perl5.80
+
+	- removed all the seperate Makefile.PLs and test directories
+
+	- removed the hard-copy of all involved RFCs: there are better
+	  sources for those.
+
+	- converted tests to use "Test::More"
+
+	- Authmechanism eq 'LOGIN' understood.
+
+	- test for CRAM-MD5 removed, because conflicts with test params
+	  from Makefile.PL
+
+	- test for fast-io removed, it is Perl core functionality
+
+	- require IO::Socket::INET 1.26 to avoid Port number work-around.
+
+	- Parse::RecDescent is required, and the grammars are pre-parsed
+	  in the distribution.  This makes the whole installation process
+	  a lot easier.
+
+	- Update Todo, and many other texts.
+
+	- added pod tester in t/pod.t
+
+	- cleaned-up the rt.cpan.org bug-list from spam.  The next
+	  release will contain fixes for the real reports.
+
+Changes in version 2.2.9
+------------------------
+Fixed problem in migrate that caused problems in versions of perl earlier
+than 5.6.  Thanks go to Steven Roberts for reporting the problem and
+identifying its cause.
+
+Fixed problem in the make process that caused tests for BodyStructure
+subclass to fail if the grammer had been compiled under a different
+version of Parse::RecDescent. This problem was detected by the dedicated
+people at testers@cpan.org.
+
+Fixed a compatibility problem using Parse::RecDescent version 1.94.
+This caused BodyStructure and Thread to fail for 5.8.x users. A number of
+people reported this bug to CPAN but it took me a while to realize what
+was going on. Really it took me a while to realize my Parse::RecDescent
+was out of date. ;-) Now this module is delivered with two versions of
+each of the affected grammars and Makefile.PL determines which version
+to use.  Upgrading to Parse::RecDescent 1.94 will require you to re-run
+Makefile.PL and reinstall Mail::IMAPClient.
+
+Changes in version 2.2.8
+------------------------
+Change the login method so that it always send password as a literal
+to get around problem 2544 reported by Phil Tracy which caused
+passwords containing asterisks to fail on some systems (but not any of
+mine...). Good catch, Phil.
+
+Added a new example that demonstrates the use of imtest (a utility
+that comes with Cyrus IMAP) and Mail::IMAPClient together. The
+example uses imtest to do secure authentication and then "passes" the
+connection over to Mail::IMAPClient (but imtest is still brokering
+the encryption/decryption). This example comes from an idea of
+Tara L. Andrews', whose brainstorm it was to use imtest to broker
+secure connections.  (But I still want to get encryption working with
+Mail::IMAPClient some day!)
+
+Fixed an error in which a "+" was used as a conncatenation error instead
+of a ".".  Thanks to Andrew Bramble for reporting this, even though he
+mistakenly identified it as a "typo". It is not a typo; a plus sign is the
+correct concatenation operator, as any decent Java book will tell you ;-)
+
+Fixed an error in the login method when the password contains a special
+character (such as an asterisk.) Thanks to Phil Tracey for reporting
+this bug.
+
+Fixed some bugs in _send_line (the "O" side of the I/O engine) that were
+reported by Danny Smith.
+
+Fixed a bug in the migrate method in the optimization code (which 
+gets called when socket writes are delayed due to a slow or busy target 
+host, aka EAGAIN errors). Thanks to Pedro Carvalho for identifying 
+this bug and its cause.
+
+Fixed a bug in migrate that caused migration of unread messages to fail. 
+This was due to the way Mail::IMAPClient's migrate method would try to send 
+an empty list of flags to the target server in the APPEND. Thanks to 
+Stephen Fralich at Syracuse University and for reporting this bug. 
+
+Fixed another bug in the migrate method that caused flags to get lost. Thanks
+go to Jean-Michel Besnard for reporting this.
+
+Fixed a bug in migrate that caused
+Fixed a bug in get_envelope that caused it to fail under certain conditions.
+Thanks go to Bob Brown for reporting this bug.
+
+
+Changes in version 2.2.7
+------------------------
+
+Added some new parameters to support alternate authentication mechanisms:
+
+	Prewritemethod
+      	Readmethod 
+
+Mail::IMAPClient has supported cram-md5 authentication "out of the box"
+as of 2.2.6 (courtesy of Ville Skyttä). I also have digest-md5 working
+in my lab with quality of protection levels "auth" and "integrity", but
+not "confidentiality". I'm hoping to get the confidentiality part working
+soon but so far have only managed to authenticate, send an encrypted command, 
+and receive and decrypt the response. This may sound like enough but I can't 
+seem to send a second command or receive a second response;-( In any event 
+2.2.8 will support at least qop=auth and qop=auth-int but maybe not 
+qop=auth-conf.
+
+Fixed a bug reported by Adrian that caused get_bodystructure to
+fail if the server returned a bodystructure with an embedded 
+literal. Also fixed the same bug in get_envelope, so I guess now
+everyone knows that get_envelope was just a tinkered-with copy of
+get_bodystructure... 
+
+Fixed two related bugs in Parser.pm that caused
+get_bodystructure and get_envelope to fail if the
+UID nnnnn part of a fetch response follows all the
+other stuff.  Thanks to Raphaël Langella for reporting this bug.
+
+Enhanced several methods to use MessageSets when the
+Ranges parameter is true. There are still more methods that
+need to be retrofitted to take advantage of the Range method
+(and its underlying MessageSet object). In the meantime, if you 
+need to get the functionality of the shorter message ranges provided
+by the Range method from a method that does not honor the Ranges
+parameter, then you should a) create a message set by passing the 
+messages to the Range method and then pass the scalar as a string
+to the method you want to use. For example, if you want to move 
+a whole lot of messages to Trash, do something like this:
+>
+>my $range = $imap->Range(scalar($imap->search("SentBefore", "01-Jan-2000"))); 
+>$imap->move("Trash","$range");
+>
+This will cause the range object to stringify out to what looks like
+a non-reference scalar before the move method gets the argument. If you
+omit the quotes around "$range" then this won't work.
+
+Fixed a bug in the list method that caused LIST "" "" to fail miserably.
+Thanks to John W Sopko Jr. for reporting this bug.
+
+Fixed a bug in the test suite that caused the cram-md5 tests to fail
+if you are not running the extended tests. (Introduced in 2.2.6)
+
+Fixed a bug that affected users on platforms that do not support 
+fcntl (i.e. NT).  Thanks to Raphaël Langella for reporting this bug.
+
+Changes in version 2.2.6
+------------------------
+
+Fixed a bug in the migrate method that caused the internaldate
+of migrated messages to sometimes be wrong. Credit goes to Jen Wu 
+for identifying both bug and fix. 
+
+Added a new method, "get_header", to provide a short-cut for a common
+use of parse_headers. Added two other methods, "subject" and "date",
+to provide shortcuts to get_header. 
+
+Changed the Mail::IMAPClient::MessageSet module to override array 
+dereferencing. (See below.)
+
+Changed fetch and search methods to use the Range method (and thus the
+Mail::IMAPClient::MessageSet module) for messages. The fetch method will
+use MessageSet objects all the time, but the search method will only 
+return MessageSet objects if you specify "Ranges => 1" (with Ranges being 
+a new parameter).  The default will be "Ranges => 0" (which preserves 
+the old behavior) but this default will go away in some future release.
+There should be no need to override the fetch method's new behavior, since
+it will be transparent to you unless you tend to fetch a lot of messages
+at once, in which case your fetches may be faster and perhaps less likely
+to fail due to the request exceeding your server's line limit. If you set
+the Ranges parameter to true, then you still should not see a difference,
+because a) when fetch is called in a list context then you will not get
+a MessageSet object, you'll get the same list as always, and b) the 
+MessageSet objects now override array de-referencing operations, so if you
+treat the returned MessageSet object as if it were an array then the object
+will humour you and act like a reference to an array of messages sequence
+numbers or message uids.
+
+Also changed the flags method to use the Range method. This should also
+be transparent since the methods arguments and return values do not change.
+
+Added built-in support for CRAM-MD5 authentication. This authentication 
+method will in this release be used only when requested. In future releases
+the default authentication will probably be the strongest authentication 
+supported "out of the box" that is available on your server. Since CRAM-MD5
+is the only authentication other than plain text that is currently supported
+"out of the box", it will be the default authentication mechanism for any 
+server that supports it. See the pod for the Authmechanism and Authcallback
+parameters (which were also added in this release) and the doc for the 
+authenticate method (which has been around a while). Many thanks to Ville Skyttä
+for providing the code that makes up the heart of this new support, as well
+as to Gisle Aas for the Digest::HMAC_MD5 and MIME::Base64.
+
+Made minor tweaks to the documentation. Again. (Will it ever be 100% right?)
+
+Changes in version 2.2.5
+------------------------
+Added the Range method to convert a bunch of message UID's or sequence numbers
+into compact ranges. Also added a supporting class for the returned range 
+objects with overloaded operators that support stringifying, adding to, and
+deleting from a range object's message set (Mail::IMAPClient::MessageSet). 
+I also wrote documentation for same, so check it out. In future releases, 
+I will probably enhance the base module to use MessageSet objects when 
+feasible (i.e. whenever I know that the argument in question should in fact 
+be a message specification). But I'll let you find all the bugs in the 
+MessageSet module first ;-) Thanks goes to Stefan Schmidt, who is the first
+to report using a server that restricted the size of a client request to 
+something smaller than what Mail::IMAPClient was generating for him. 
+(Originally the Range method was just supposed condense a message set into
+the shortest possible RFC2060-compliant string, but then I got all happy and
+started adding features. You know how it is...)
+
+
+Changes in version 2.2.4
+-------------------------
+Fixed a bug in the done method (new in 2.2.3). 
+
+Added tests for idle and done. (That's how I found the bug in the done method, above.)
+
+Fixed minor bugs in test suite. (The test suite worked but wasn't always using the options
+I wanted tested. <sigh>)
+
+
+Changes in version 2.2.3
+-------------------------
+
+NOTE: This version was distributed to beta testers only.
+
+Fixed the "Changes in version 2.2.2" section so that it correctly specifies
+version 2.2.2 (instead of being yet another 2.2.1 section).
+
+Fixed a bug in the migrate method that affected folders with spaces in their 
+names.
+
+Fixed a bug in the Massage method that affected folders with braces ({}) in 
+their names.
+
+Added a new class method, "Quote", that will quote your arguments for you. (So you
+no longer have to worry so much about quoting your quotes.
+
+Added optimizations to the migrate method and to the core I/O engine inspired
+by Jules Agee. (Actually they were not so much inspired by him as they were
+lifted right out of a patch he had out on sourceForge.net. I had to refit them
+for this version, and reformat his comments so they could fit in my window. Thanks
+Jules, wherever you are.)
+
+Added the fetch_hash method, which will fetch an entire folder's contents into a 
+hash indexed by message UID (or message sequence number if that's all you've got).
+
+Added a new example to the examples subdirectory, and corrected some minor bugs
+in existing examples.
+
+Added the idle and done methods, which together implement the IMAP IDLE extension
+(RFC2177), at John Rudd's suggestion.
+
+Changes in version 2.2.2
+------------------------
+Fixed a bug in Massage method (generally only used by other IMAPClient methods)
+that broke folder names with parens. 
+
+Updated bug reporting procedures. Also added a section in the documentation 
+for REPORTING THINGS THAT ARE NOT BUGS. Bug tracking is now done via 
+rt.cpan.org, which I stumbled upon quite by accident and with which I am 
+really pleased. A lot of credit goes to _somebody_ for putting this 
+out on CPAN. Unfortunately as of this writing I don't whom.
+
+Fixed a bug in the documentation regarding the logoff method, which is never
+implicitly invoked anymore; I gave up on that because the DESTROY method would
+sometimes be called after the Socket handle was already destroyed. (This is
+especially likely at program exit, when everything still in scope goes out of
+scope at the same time.) You should always log off explicitly if you want to 
+be a well behaviod IMAP client.
+
+Changes in version 2.2.1
+------------------------
+Updated append_string to wrap the date argument in double quotes if the argument was
+provided without quotes. Thanks to Grant Waldram for pointing out that some IMAP 
+servers require this behavior.
+
+Added a new method, selectable, which returns a true value if a folder is selectable.
+
+Documented in this Changes file a change that was actually made for 2.2.0, in which 
+newlines are chomped off of $@ (but not LastError).
+
+Added pointers in the documentation to point to Mark Bush's Authen::NTLM module. This 
+module will allow you to use NTML authentication with Mail::IMAPClient connections.
+Also changed the authenticate method so that it will work with Authen::NTML without
+the update mentioned in NTLM::Authen's README.
+
+Added a second example on using the new migrate method,
+migrate_mail2.pl. This example demonstrates more advanced techniques
+then the first, such as using the separator method to massage folder
+names and stuff like that.
+
+Added support for the IMAP THREAD extension. Added
+Mail::IMAPClient::Thread.pm to support this. (This pm file is generated
+during make from Thread/Thread.grammar.) This new function should be
+considered experimental. Note also that this extension has nothing to do
+with threaded perl or anything like that. This is still on the TODO list.
+
+Updated the search, sort, and thread methods to set $@ to "" before
+attempting their respective operations so that text in $@ won't be left
+over from some other error and therefore always indicative of an error
+in search, sort, or thread, respectively.
+
+Made many many tweaks to the documentation, including adding more examples
+(albeit simple ones) and fixing some errors.
+
+Changes in version 2.2.0
+------------------------
+Fixed some tests so that they are less likely to give false negatives. For
+example, test 41 would fail if the test account happened to have an
+empty inbox.
+
+Made improvements to Mail::IMAPClient::BodyStructure and renamed
+Mail::IMAPClient::Parse to Mail::IMAPClient::BodyStructure::Parse. (This
+should be transparent to apps since the ...Parse helper module is
+used by BodyStructure.pm only.) I also resumed my earlier practice of
+using ...Parse.pm from within BodyStructure.pm to avoid the overhead of
+compiling the grammar every time you use BodyStructure.pm. (Parse.pm is
+just the output from saving the compiled Parse::RecDescent grammar.) In a
+related change, I've moved the grammar into its own file (Parse.grammar)
+and taught Makefile.PL how to write a Makefile that converts the .grammar
+file into a .pm file. This work includes a number of fixes to how a body
+structure gets parsed and the parts list returned by the parts method,
+among other things. I was able to successfully parse every bodystructure
+I could get my hands on, and that's a lot.
+
+Also added a bunch of new methods to Mail::IMAPClient::BodyStructure
+and its child classes.  The child classes don't even have files of their
+own yet; they still live with their parent class! Notable amoung these
+changes is support for the FETCH ENVELOPE IMAP command (which was easy
+to build in once the BODYSTRUCTURE stuff was working) and some helper
+modules to get at the envelope info (as well as envelope information
+for MESSAGE/RFC822 attachments from the BODYSTRUCTURE output).  Have a
+look at the documentation for Mail::IMAPClient::BodyStructure for more
+information.
+
+Fixed a bug in the folders method regarding quotes and folders with
+spaces in the names. The bug must have been around for a while but
+rarely manifested itself because of the way methods that take folder
+name arguments always try to get the quoting right anyway but it was
+still there. Noticing it was the hard part (none of you guys reported
+it to me!).
+
+Fixed a bug reported by Jeremy Hinton regarding how the search method
+handles dates. It was screwing it all up but it should be much better now.
+
+Added the get_envelope method which is like the get_bodystructure method
+except for in ways in which it's different.
+
+Added the messages method (a suggestion from Danny Carroll), which is
+functionally equivalent to $imap->search("ALL") but easier to type.
+
+Added new arguments to the bodypart_string method so that you can get
+just a part of a part (or a part of a subpart for that matter...) I did
+this so I could verify BodyStructure's parts method by fetching the first
+few bytes of a part (just to prove that the part has a valid part number).
+
+Added new tests to test the migrate function and to do more thorough
+testing of the BodyStructure stuff. Also added a test to make sure that
+searches that come up empty handed return an undef instead of an empty
+array (reference), regardless of context. Which reminds me...
+
+Fixed a bug in which searches that don't find any hits would return a
+reference to an empty array instead of undef when called in a scalar
+context. This bug sounds awfully familiar, which is why I added the test
+mentioned above...
+
+
+Changes in version 2.1.5
+------------------------
+Fixed the migrate method so now it not only works, but also works
+as originally planned (i.e. without requiring source messages to
+be read entirely into memory).  If the message is smaller than
+the value in the Buffer parameter (default is 4096) then a normal
+$imap2->append($folder,$imap1->message_string) is done. However, if
+the message is over the buffer size then it is retrieved and written a
+bufferful at a time until the whole message has been read and sent. (The
+receiving server still expects the entire message at once, but it
+will have to wait because the message is being read from the source in
+smaller chunks and then written to the destination a chunk at a time.)
+This needs extensive testing before I'd be willing to trust it (or at
+least extensive logging so you know when something has gone terribly
+wrong) and I consider this method to be in BETA in this release. (Numerous
+people wrote complaining that migrate didn't work, and some even included
+patches to make it work, but the real bug in the last release wasn't
+that migrate was broken but that I had inadvertently included the pod for
+the method which I knew perfectly well was not ready to be released. My
+apologies to anyone who was affected by this.) The migrate method does
+seem to work okay on iPlanet (i.e. Netscape) Messenger Server 4.x. Please
+let me know if you have any issues on this or any other platform.
+
+Added a new example, migrate_mbox.pl, which will demonstrate the migrate method.
+
+Fixed a bug that will cause Mail::IMAPClient's message reading methods to misbehave if 
+the last line of the email message starts with a number followed by a space and either 
+"OK", "NO", or "BAD".  This bug was originally introduced in 1.04 as a fix for another 
+bug, but since the fix supports noncompliant behavior I'm disabling this behavior by 
+default.  If your IMAP clients start hanging every time you try to read literal text 
+(i.e. a message's test, or a folder name with spaces or funky characters) then you 
+may want to turn this on with the EnableServerResponseInLiteral parameter. Thanks go 
+to Manpreet Singh for reporting this bug.
+
+Fixed a bug in imap_to_mbox.pl that has been there since 2.0.0 (when the Uid 
+parameter started defaulting to "True"). Thanks to Christoph Viethen for reporting 
+the bug and suggesting the fix. BUT NOTE THIS: I often don't test the example programs,
+so you should think of them as examples and not free production programs. Eventually 
+I would like to add tests to my test suite (either the 'make test' test suite that you
+run or my own more extensive test suite) but it's not a super high priority right now.
+
+Significant improvements to the whole Mail::IMAPClient::BodyStructure module 
+were contributed by Pedro Melo Cunha. It's really much better now.
+
+Bullet-proofing added to some private methods. (Private meaning they are undocumented
+and not part of the module's API. This is perl not java.)
+
+Fix applied to unset_flag to support user-defined flags (thanks to E.Priogov 
+for submitting the bug report and patch).
+
+
+Changes in version 2.1.4
+------------------------
+Added Paul Warren's bugfix to the sort method.
+
+Added Mike Halderman's bugfix for the get_bodystructure method.
+
+Fixed a localization problem reported by Ivo Panecek. Because of this fix,
+the Errno.pm file is now a prerequisite to this module. This way I can just
+test to see if the error is an "EAGAIN" error (as defined in sys/errno.h and thus
+Errno.pm) instead of awkwardly checking the string value of $!. 
+
+I also renamed the MaxTempErrors parameter to Maxtemperrors in response the same 
+bug report.  Added a "MaxTempErrors" accessor method that will set and return 
+Maxtemperrors for backwards compatibility. Also, the number of temporary errors 
+gets reset after each successful I/O, so that the socket i/o operation fails only if
+you if your temporary I/O errors happen more than "Maxtemperrors" times in a row.
+The old behavior was to continue incrementing the count of temporary errors until
+either the entire message was written or until a total of Maxtemperrors had occurred,
+regardless of how many intervening successful syswrites occurred. This was a bug, but 
+Ivo politely suggested the new behavior as an enhancement. ;-) Also, you can now
+specify "UNLIMITED" as the Maxtemperrors, in which case these errors will be ignored.
+And the default for Maxtemperrors is now 100, but I'm open to any feedback you may
+have in this regard. 
+
+I also fixed the operator precedence problem that was reported by many folks in that
+very same part of the code. (As you may have guessed, that code was new in the last
+version!)
+
+One of the people who reported the precedence problem was Jules Agee, who also submitted
+a patch that may in the end provide an optimal solution to handling EAGAIN errors. 
+Unfortunately I have not had time to retrofit his patch into the current version of the
+module. But if I can manage to do this soon and it tests well I'll include it in the next
+release, in which case the Maxtemperrors parameter will be of interest only to historians.
+
+I also received a patch from John Ello that adds support for Netscape's proprietary 
+PROXYAUTH IMAP client command. I haven't included that support in this release because 
+you can already use the proxyauth method. It's one of those famous "default" methods 
+that, despite their fame and my documentation, nobody seems to know about. But you 
+can always say "$imap->proxyauth($uid)", for example, providing that $imap and $uid 
+are already what they're supposed to be. (I've been doing this myself for years.)
+
+However, John's patch does provide a cleaner interface (it remembers who you are as 
+well as who you were, for example) so I may include it later as part of a separate 
+module that extends Mail::IMAPClient. This would also give me an excuse for providing 
+the framework for plugging in Administrative methods that are proprietary to other imap 
+servers, so if you have a technique for acquiring administrative access to your users' 
+mailboxes (besides proxyauth) please let me know what it is. Perhaps we'll get something cool out of it, like a document on how to write administrative scripts for various 
+platforms and a suite of supporting methods for each. 
+
+Changes in version 2.1.3
+------------------------
+Added the new method append_string. It works similarly to append but will allow extra 
+arguments to supply the flags and internal date of the appended message. See the pod 
+for more details.
+
+(Thanks to Federico Edelman Anaya for suggesting this fix.)
+
+Fixed a bug in the AUTOLOAD subroutine that caused "myrights" (and possibly other 
+non-existant methods) to fail. Thanks go to Larry Rosenbaum for reporting the bug 
+and identifying the fix.
+
+Added the new method Escaped_results, which preprocesses results so that data 
+containing certain special characters are returned quoted with special characters 
+(like quotes!) escaped. (I needed this for the bodystructure stuff, below.)
+
+NEW! Added support for parsing bodystructures (as provided in the server response to 
+FETCH BODYSTRUCTURE). This support requires Parse::RecDescent and is implemented via two 
+new modules, Mail::IMAPClient::BodyStructure and Mail::IMAPClient::Parse. Note that 
+the latter module is used by the former; your programs need not and should not use it 
+directly so don't. Also, these modules are ALPHA and EXPERIMENTAL so no screaming when 
+they don't work. (Polite bug reports will of course be gratefully accepted.) Many 
+thanks to Damian Conway, the author of Parse::RecDescent, without which this feature 
+would not have been possible (or at least not very likely).
+
+Enhanced support for DOS systems (and DOS's offspring, such as windows) by removing 
+the "\c\n"s and replacing them with "\x0d\x0a". Thanks go to Marcio Marchini for his 
+help with this effort.
+
+Fixed the list of symbols imported along with Fcntl.pm. (Paul Linder asked me to put 
+this in the last release but I forgot.)
+
+Changes in version 2.1.2
+------------------------
+
+Fixed a bug in the is_parent method which made it inaccurate on some servers.
+
+Added new method "sort", which implements the SORT extenstion and which was contributed 
+by Josh Rotenberg. The SORT extension is documented at 
+http://search.ietf.org/internet-drafts/draft-ietf-imapext-sort-06.txt. A copy of the 
+draft is also included with the Mail::IMAPClient distribution, which means I also:
+
+Added draft-ietf-imapext-sort-06.txt to the docs subdirectory of the distribution.
+
+Fixed a bug in the folders method and the subscribed method (same bug, appeared twice) 
+which broke these methods under some conditions. Thanks again Josh Rotenberg for supplying the fix.
+
+Fixed bugs in getacl and listacl. Changed the interface for getacl significantly; 
+existing scripts using getacl will not behave the same way. But then on the other hand, 
+getacl was never documented before, so how could you be using it? 
+
+Implemented improvements to reduce memory usage by up to 30%. Thanks go Paul Linder, 
+who developed the memory usage patch after a considerable amount of analysis. The 
+improvements include the use of 'use constant', so your perl needs to support that 
+pragma in order to use Mail::IMAPClient.
+
+Added a new parameter, MaxTempErrors, which allows the programmer to control the number 
+of consecutive "Resource Temporarily Unavailable" errors that can occur before a write 
+to the server will fail. Also changed the behavior of the client when one of these 
+errors occurs. Previously, Mail::IMAPClient waited .25 seconds (a quarter of one 
+second) before retrying the read operation. Now it will wait (.25 * the number of 
+consecutive temporary errors) seconds before retrying the read. 
+
+Documented the "Buffer" parameter, which has been secretly available for some time. I 
+just forgot to document it. It sets the size of the read buffer when Fast_io is turned 
+on. (NOTE: As of version 2.1.5 it also controls the size of the buffer used by the 
+migrate method.) 
+
+Updated the Todo file. It was nice to see that a number of lines in the "Todo" file were now deletable. It was depressing to see that a number of original lines need to stay 
+in there. 
+
+
+Changes in version 2.1.1
+------------------------
+Added the "mark", "unmark", and imap4rev1 methods.
+
+Updated the documentation to include the new methods and to document "create", "store", 
+and "delete".
+
+Updated "message_string" to be smart about whether you're using IMAP4 or IMAP4REV1.
+
+Updated "message_to_file" to be smart about whether you're using IMAP4 or IMAP4REV1.
+
+Added several bug fixes to authenticate method. Many thanks to Daniel Wright who 
+reported these bugs and provided the information necessary to fix them.
+
+
+Changes in version 2.1.0
+------------------------
+
+Fixed a serious bug introduced in 2.0.9 when appending large messages.
+
+Made minor changes to improve the cyrus_expunge.pl example script.
+
+Made the set_flags routine RFC2060-compliant. Previously it prepended flag names with 
+backslashes, even if the flags were not reserved flags. This broke support for 
+user-defined flags, which I didn't realize was supposed to even be there until Scott 
+Renner clued me in. (Thanks, Scott.)
+
+Promoted the release level to "1". 
+
+Added a new 'internaldate' method. (Thanks to the folks at jwm3.org for donating the 
+code!)
+
+Added a new example, cyrus_expire.pl.
+
+Changes in version 2.0.8/2.0.9
+------------------------------
+Made minor changes to the tests in t/basic.t so that folders are explicitly closed 
+before they are deleted. (Don't worry, only folders created by the tests are 
+deleted. :-) Thanks go to Alan Young for reporting that some servers require this.
+
+Changed the routine that massages folder names into IMAP-compliant strings so that 
+single-quotes in a name do not force the folder to go through as "LITERAL" strings 
+(as defined in RFC2060). This shouldn't cause a problem for anybody (and in fact 
+should make life easier for some folks) but if you do have any trouble with 
+single-quotes in folder names PLEASE LET ME KNOW ASAP!! 
+
+Divided the sending of literal strings into two I/O operations (as required by RFC2060).
+This should correct problems with sending literals to some servers that will not read 
+any data sent before they reply with the "+ go ahead" message. (Thanks go to Keith Clay,
+who reported seeing this problem with the M-Store IMAP server.)
+
+Changed the "create" method so that it will autoquote the first argument to create 
+rather than the last. Normally the first argument is the last, but Cyrus users can 
+specify an optional 2nd argument, except when using pre-2.0.8 versions of 
+Mail::IMAPClient ;-) Thank you Chris Stratford for reporting this bug and 
+identifying its cause.
+
+Fixed a bug in body_string when the message is empty. (Thanks go to Vladimir Jebelev for 
+finding this bug and providing the fix.)
+
+Added a new example to the examples subdirectory. cyrus_expunge.pl is a script you 
+can use (after making minor tweaks) to periodically expunge your server's mail store. 
+
+Changes in version 2.0.7
+------------------------
+Fixed a bug in message_count. Thanks go to Alistair Adams for reporting this bug.
+
+Fixed a bug in folders that caused some foldernames to not be reported in the 
+returned array.
+
+Changes in version 2.0.6
+------------------------
+
+Applied patches from Phil Lobbe to tighten up sysreads and 'writes and to correct a
+bug in the I/O engine.
+
+Changes in version 2.0.5
+------------------------
+
+Fixed bug in parse_headers so that RFC822 headers now match the pattern /(\S*):\s*/
+instead of /(\S*): /. Thanks go to Paul Warren for reporting this bug and providing the
+fix.
+
+Added more robust error checking to prevent infinite loops during read attempts and
+fixed bugs in parse_headers. Thanks go to Phil Lobbes, who provided several useful 
+patches and who performed valuable pre-release testing.
+
+Changes in version 2.0.4
+------------------------
+
+Fixed bug in parse_headers when connected to an Exchange server with UID=>1. (Kudos to 
+Wilber Pol for that fix.)
+
+Fixed bugs in parse_headers and tightened reliability of I/O engine by implementing 
+many improvements suggested by Phil Lobbes, who also provided code for same.
+
+Added bugfix that under certain conditions caused server responses to be "repeated"
+when fast_io is turned on. Thanks to Jason Hellman for providing bug report and
+diagnostic data to fix this.
+
+Added a "LastIMAPCommand" method, which returns the last IMAP client command that 
+was sent to the server. 
+
+Removed the "=begin debugging" paragraph that somehow got included in CPAN's 
+html pages (even though it shouldn't have). 
+
+Began a process of redesigning the documentation. I would like to be able to present
+a more formal syntax for the various methods and hope to have that ready for the next
+release. 
+
+Tested successfully against Cyrus v 2.0.7.
+
+Tested unsuccessfully against mdaemon. This appears to be due to mdaemon's 
+noncompliance with rfc2060 so future support for mdaemon should not be expected 
+any time soon.  ;-(
+
+
+Changes in version 2.0.3
+------------------------
+
+Did major rewrite of message_string method, which should now be both cleaner 
+and more reliable.
+
+Fixed bug in move method that caused some folders to be incorrectly quoted. 
+Thanks go to Felix Finch for reporting this bug. Also, at his suggestion I 
+added information to move documentation explaining the need to expunge.
+
+Made many fixes and tweaks to pod text.
+
+Added a new method, Rfc2060_date, which takes times in the "seconds since 1/1/1970" 
+format and returns a string in RFC2060's "dd-Mon-yyyy" format (which is the format 
+you need to use in IMAP SEARCH commands).
+
+Changes in version 2.0.2
+------------------------
+Fixed bug that caused a compile error on some earlier versions of perl5. 
+
+Noticed that some older versions of perl give spurious "Ambiguous use" warnings 
+here and there, mostly because I'm not quoting the name of the "History" member 
+of the underlying Mail::IMAPClient hash. These warnings will go away when you upgrade 
+perl. (I may fix them later, or maybe not. Depends on if I have time.) 
+
+Added new parameter (and eponymous method) Peek, along with new tests for 'make test' 
+for same. See the pod for further info.
+
+Added some error checking to avoid trying to read or write with an 
+unconnected IMAPClient object.
+
+Made bug fixes to parse_headers and flags.
+
+Added missing documentation for the exciting new message_to_file method (oops). 
+Also cleaned up a few typos in the pod while I happened to be there. (I'm sure 
+there are still plenty left.)
+
+Fixed bugs in append and append_file. (Thanks to Mauro Bartolomeoli and to the people 
+at jwm3.org for reporting these bugs.) 
+
+Made changes to call to syswrite to guarantee delivery of entire message. (Only affects 
+appends of very large messages.)
+
+Added the 'close' method to the list of lower-case-is-okay methods (see the section 
+under version 2.0.0 on "NEW ERROR MESSAGES").
+
+Changes in version 2.0.1
+------------------------
+Several bug fixes related to the flags method and to spurious warning messages 
+when run with warnings turned on.
+
+A new method, message_to_file, writes message text directly into a file. This 
+bypasses saving the text in the history buffer and the overhead that entails, which 
+could be especially important when processing big ass messages. Of course the bad news 
+is that now you'll have to write all that shtuff out to a filehandle, but maybe you 
+wanted to do that anyway. Anyhow, between append_file and message_to_file, both 
+of which take filehandle arguments, there should be a way to "short circuit" the 
+copying of mail between two imap sessions. I just haven't got it completely figured 
+out yet how it would work. Got any ideas? Anyhow, this method is currently considered 
+experimental.
+
+A couple of new tests have been added to go along with our new little method.
+
+I've added a whole bunch more IMAP-related rfc's to the docs/ subdirectory. Trust me, 
+you are going to need them.
+
+Changes in version 2.0.0
+-----------------------
+NEW I/O ENGINE
+This version includes a major rewrite of the I/O engine. It's now cleaner and more 
+reliable. Also, output processing is less likely to match patterns that look like 
+server output but are really, say, message text contained in a literal or something 
+like that. Also, various problems with blank lines at the ends of messages either 
+magically appearing or disappearing should now go away. Basically, it's much better 
+is what I'm trying to say.
+
+NEW DEFAULT
+The Uid parameter now defaults to true. This should be transparent to existing scripts 
+(except for those scripts that produce embarrassing results because someone forgot to 
+specify Uid=>1, in which case they'll magically start behaving somehow).
+
+NEW METHOD
+The namespace method has been added, thus implementing RFC2342. If you have any scripts 
+that rely on the old, "default method" style of namespace implementation then you should 
+rename those method calls to be mixed case (thus forcing the AUTOLOADed default method). 
+
+NEW ERROR MESSAGES
+Mail::IMAPClient now issues a lot more warning messages when run in warn mode 
+(i.e. $^W is true). Of particular interest are methods implemented via the "default 
+method" AUTOLOAD hack. They will generate a warning telling you to use mixed- or 
+upper-case method names (but only if warnings are turned on, say with the -w switch 
+or $^W++ or something).  The exceptions are certain unimplemented yet quite popular 
+methods that, if ever explicitly implemented, will behave the same way as they do via 
+the default method. (Or at least they will remain downwardly compatible. I may add 
+bells and whistles by not by default.) Those methods are listed in the pod and right 
+here:  store, copy, subscribe, close, create, delete and expunge.
+
+NEW VERSION NUMBERING SCHEME
+Changed the version numbering scheme to match perl's (as of perl v5.6.0).
+
+NEW INSTALLATION TESTS
+Added a few new tests to the test suite. (Still need more, though.) Also changed fast_io 
+and uidplus test suites so that they just "do" the basic tests but with different 
+options set (i.e. Fast_io and Uid, respectively).
+
+OTHER CHANGES
+- The expunge method now optionally accepts the name of the folder to be expunged. It's 
+also been documented, even though it technically doesn't exist. (That won't stop it from 
+working, though.) Since expunge deletes messages that you thought were already deleted, 
+it's only appropriate to use a method that you thought existed but really doesn't, don't 
+you think? And if you're wondering how I managed to change the behavior of a method that 
+doesn't exist, well, I don't want to talk about it.
+
+- Speaking of methods that don't exist (also known as methods implemented via "the 
+default method"), effective with this release there are a number of unimplemented 
+methods that are guaranteed to always exhibit their current behavior. In other words, 
+even if I do eventually implement these methods explicitly, they will continue to 
+accept the same arguments and return the same results that they do now via the default 
+method. (Why I would even bother to do that is specifically not addressed in this 
+document.) Currently this means that these methods will not trigger warnings when 
+called via all-lowercase letters (see "NEW ERROR MESSAGES", above). In the future I 
+hope that it will also mean that these non-existant but functioning methods will also 
+be documented in the pod.
+
+- Fixed a bug in the flags method introduced in 1.19.  (Thanks to the people at jwm3.org 
+for reporting this!)
+
+
+Changes in version 1.19
+-----------------------
+Fixed a bug in which the Folder parameter returned quoted folder names, which sometimes 
+caused other methods to requote the folders an extra time. (The IMAP protocol is real 
+picky about that.) Thanks go to Felix Finch for both reporting the bug and identifying 
+the fix.
+
+Siggy Thorarinsson contributed the new "unseen_count" method and suggested a new 
+"peek mode" parameter.  I have not yet gotten around to implementing the new parameter 
+but have included the unseen_count method, since a) he was kind enough to write it, and 
+b) it tests well. 
+
+In the meantime, you cannot tell methods like "parse_headers" and "message_string" and 
+so forth whether or not you want them to mark messages as "\Seen". So, to make life 
+easier for you in particular I added a bunch of new methods: set_flag, unset_flag, 
+see, and deny_seeing. The latter two are derivitives of the former two, respectively, 
+which should make this sentence almost as difficult to parse as an IMAP conversation.
+
+Fixed bug in which "BAD" "OK" or "NO" lines prefixed by an asterisk (*) instead of the 
+tag are not handled correctly. This is especially likely when LOGIN to a UW IMAP server 
+fails. Thanks go to Phil Lobbes for squashing this bug.
+
+Fixed bug in logout that caused the socket handle to linger. Credit goes to 
+Jean-Philippe Bouchard for reporting this bug and for identifying the fix.
+
+Fixed bug in uidvalidity method where folder has special characters in it.
+
+Made several bug fixes to the example script examples/find_dup_msgs.pl. Thanks to Steve 
+Mayer for identifying these bugs.
+
+Changed Fast_io to automatically turn itself off if running on a platform that does 
+not provide the necessary fcntl macros (I won't mention any names, but it's initials 
+are "NT"). This will occur silently unless warnings are turned on or unless the Debug 
+parameter is set to true. Previously scripts running on this platform had to turn off 
+fast_io by hand, which is lame. (Thank you Kevin Cutts for reporting this problem.)
+
+Updated logic that X's out login credentials when printing debug output so that funky 
+characters in "User" or "Password" parameters won't break the regexp. (Kevin Cutts found 
+this one, too.)
+
+Tinkered with the Strip_cr method so it can accept multiple arguments OR an array 
+reference as an argument. See the updated pod for more info.
+
+Fixed a typo in the documentation in the section describing the fetch method. There 
+has been an entire paragraph missing from this section for who knows how long. Thanks 
+to Adam Wells, who reported this documentation error.
+
+Fixed bug in seen, recent, and unseen methods that caused them to return empty arrays 
+erroneously under certain conditions.
+
+Changes in version 1.18
+-----------------------
+Timeouts during read operations now work correctly.
+
+Fixed several bugs in the I/O engine. This should correct various problems with Fast_io 
+turned on (which is now the default).
+
+Reworked message_string and body_string methods to avoid bugs when Uid set to true.
+
+Changes in version 1.17
+-----------------------
+
+Added support for the Oracle IMAP4r1 server.
+
+Tinkered with the DESTROY method so that it does a local($@) before doing its evals. 
+This will perserve the value of $@ when the "new" method fails during a login but the 
+DESTROY's "logout" succeeds. The module was setting the $@ variable, but on some 
+versions of perl the DESTROY method would clobber $@ before anything useful could be 
+done with it! Thanks to Kimmo Hovi for reporting this problem, which was harder to 
+debug than you might think.
+
+Changes in version 1.16
+-----------------------
+
+IMPORTANT:  Made Fast_IO the default. You must specify Fast_io => 0 in your new method 
+call or invoke the Fast_io method (and supply 0 as an arg) to get the old behavior. 
+(This should be transparent to most users, but as always your mileage may vary.)
+
+Reduced the number of debug msgs printed in the _read_line internal method and added a 
+debug msg to report perl and Mail::IMAPClient versions.
+
+The message_count method will now return the number of messages in the currently select 
+folder if no folder argument is supplied. 
+
+The message_string method now does an IMAP FETCH RFC822 (instead of a 
+FETCH RFC822.HEADERS and a FETCH RFC822.TEXT), which should eliminate missing blank 
+lines at the ends of some messages on some IMAP server platforms. It also returns undef 
+if for some reason the underlying FETCH fails (i.e. there is no folder selected), 
+thanks to a suggestion by Pankaj Garg. It has also been slightly re-worked to support 
+the changes in the I/O engine from version 1.14.
+
+Re-worked the body_string method to support the I/O engine changes from v1.14.
+
+Fixed a bug in parse_headers when used with multiple headers and the Uid parameter set 
+to a true value.
+
+Documented in this file a fix for a bug in the flags method with the Uid parameter 
+turned on. (Belated thanks to Michael Lieberman for reporting this bug.)
+
+Changes in version 1.15
+-----------------------
+Fixes the test suite, which in v1.14 had an "exit" stmt that caused early termination 
+of the tests.  (I had put that "exit" in there on purpose, and left it in there by 
+accident.)
+
+Changes in version 1.14
+-----------------------
+Fixed a bug in the _readline subroutine (part of the I/O engine) that was caused by my 
+less-than-perfect interpretation of RFC2060. This fix will allow the Mail::IMAPClient 
+module to function correctly with servers that imbed literal datatypes in the middle 
+of response lines (rather than just at the end of them). Thanks to Pankaj Garg for 
+reporting this problem and providing the debugging output necessary to correct it.
+
+Fixed a bug in parse_headers that was introduced with the fix to the I/O engine 
+described above.
+
+Changes in version 1.13
+-----------------------
+Changed the parse_headers method so that it uses BODY.PEEK instead of BODY. This 
+prevents the parse_headers method from implicitly setting the "\Seen" flag for messages 
+that have not been otherwise read. This change could produce an incompatibility in 
+scripts that relied on the parse_headers previous behavior. 
+
+Fixed a bug in the flags method with the Uid parameter turned on.  (Thanks to Michael 
+Lieberman for reporting this bug.)
+
+Changes in version 1.12
+-----------------------
+Fixed a bug in the folders method when called first with a second arg and then without 
+a second arg.
+
+Tested sucessfully with perl-5.6.0. 
+
+Added a section to the pod documentation on how to report bugs. I've had to ask for 
+output from scripts with "Debug => 1" so many times that I eventually decided to 
+include the procedure for documenting bugs in the distribution. (Duh! It only took me 
+11 releases to come up with that brainstorm.) Often following the procedures to obtain 
+the documentation is enough; once people see what's going on (by turning on Debug =>1) 
+they no longer want to report a bug. 
+
+Did I mention it's a good idea to turn on debugging when trying to figure out why a 
+script isn't working? (It is.)
+
+In order to make the Debug parameter friendlier, it now prints to STDERR by default. 
+You can override this by supplying the spanking brand new Debug_fh parameter, which 
+if supplied had better well point to a filehandle (either by glob or by reference), 
+and by 'filehandle' I mean something besides STDIN!
+
+Debugging mode will now also X-out the login credentials used to login. This will make 
+it easier to share your debugging output.
+
+Added documentation for the State parameter, which must be set manually by programmers 
+who are not using Mail::IMAPClient's connect and/or login methods but who are instead 
+making their own connections and then using the Socket parameter to turn their 
+connections into IMAP clients.
+
+Fixed bug in parse_headers with Uid turned on.
+
+Fixed bug in parse_headers when using the argument "ALL".
+
+Changes in version 1.11
+-----------------------
+Added new example script, copy_folder.pl, to demonstrate one way to copy entire 
+folders between imap accounts (which may or may not be on the same server). This 
+example is right next to all the others, in the examples/ subdirectory of the 
+distribution.
+
+Changed error handling slightly. $@ now contains pretty much the same stuff as what 
+gets returned by LastError, even when LastError won't work (i.e. when an implicit 
+connect or login fails and so no object reference is returned by new). You can thank 
+John Milton for the friendly nagging that got me to do this.
+
+Added new test suite for the fast_io engine. This should make it easier to determine 
+whether or not the fast_io engine will work on your platform. 
+
+Implemented a work-around to allow the Port parameter to default despite a known bug in 
+IO::Socket::INET version 1.25 (distributed with perl 5.6.0).
+
+Fixed a bug in the message_string method in which the resulting text string for some 
+mime messages to be incompatible with append.
+
+Fixed a bug in the Fast_io i/o engine that could cause hangs during an append operation.
+
+Changed a number of regular expressions to accept mixed-case "Ok", "No" or "Bad" 
+responses from the server and to do multi-line matching.
+
+Fixed a bug in the append method that was causing extra carriage returns to appear in 
+messages whose lines were already terminated with the CR-LF sequence. Thanks to Heather 
+Adkins for reporting this bug.
+
+Enhanced the parse_headers routine so that it is less sensitive to variations of 
+case in message headers. Now, the case of the returned key matches the case of the 
+field as specified in the parse_headers method's arguments, regardless of its case 
+in the message being parsed. (You can thank Heather Atkins for this suggestion as 
+well.) See below for more changes to parse_headers in this release.
+
+Improved the append method so that it has better error handling and error recovery. 
+Thanks to Mark Keisler for pointing out some bugs in the error handling code in 
+this method.
+
+Added the append_file method, which is like the append method but it works on files 
+instead of strings.  The file provided to append must contain an RFC822-formatted 
+message. Use of the append_file method avoids having to stuff huge messages into 
+variables before appending them. Thanks to jwmIII (http://jwm3.org) for suggesting 
+this method.
+
+Changed the flags method and the parse_headers method so that a reference to an array 
+of message sequence numbers (or message UIDS if the Uid parameter is turned on) can 
+optionally be passed instead of a single message sequence number (or UID). Use of this 
+enhancement will change your return values so be sure to read the pod.  Thanks to 
+Adrian Smith (adrian.smith@ucpag.com) for delivering this enhancement.
+
+Fixed a bug in "message_string" that caused the blank lines between headers and body 
+to fall out of the string.
+
+Tinkered with the undocumented _send_line method to permit an optional argument 
+to suppress the automatic insertion of <CR><LF> at the end of strings being sent. 
+(NOTE: I'm telling you this because I'm a nice guy. This doesn't mean that _send_line 
+is now a programming interface.)
+
+Changes in version 1.10
+-----------------------
+
+Added two new methods, lsub and subscribed. lsub replaces the behavior of the default 
+method and should be downwardly compatible. The subscribed method works like the 
+folders method but the results include only subscribed folders. Thanks to Alexei 
+Kharchenko for providing the code for lsub (which is the foundation upon which 
+'subscribed' was built).
+
+Changes in version 1.09
+-----------------------
+
+Changed login method so that values for the User parameter that do not start and end 
+with quotes will be quoted when sent to the server. This is to support user id's 
+with embedded spaces, which are legal on some platforms. 
+
+Changed name of test input file created by perl Makefile.PL and used by 'make test' 
+from .test to test.txt to support weird, offbeat OS platforms that cannot handle 
+filenames beginning with a dot.
+
+Fixed bugs in seen, unseen, and recent methods.  (These are almost the same method 
+anyway; they are dynamically created at compile time from the same code, with 
+variable substitution filling in the places where "seen", "unseen", or "recent" 
+belong.) The bug caused these methods to return the transaction number of the 
+search as if it were the last message sequence number (or message uid) in
+the result set.
+
+Added the 'since' method, which accepts a date in either standard perl format (seconds 
+since 1/1/1970, or as output by time and as accepted by localtime) or in the date_text 
+format as defined in RFC2060 (dd-Mon-yyyy, where Mon is the English-language 
+three-letter abbreviation for the month). It searches for items in the currently 
+selected folder for messages sent since the day whose date is provided as an argument.
+
+Added 'sentsince', 'senton', 'sentbefore', 'on', and 'before' methods which are 
+totally 100% just like the 'since' method, except that they run different searches. 
+(Did I mention that it's useful to have RFC2060 handy when writing IMAP clients?)
+
+Added two new methods, run and tag_and_run, to allow IMAP client programmers finer 
+control over the IMAP conversation. These methods allow the programmer to compose 
+the entire IMAP command string and pass it as-is to the IMAP server. The difference 
+between these two methods is that the run method requires that the string include 
+the tag while the tag_and_run method requires that it does not.
+
+To a similar end, the pre-existing Socket parameter and eponymous accessor method 
+has been documented to allow direct access to the IMAP socket handle and to allow 
+the socket handle to be replaced with some other file handle, presumably one derived 
+from a more interesting technology (such as SSL).
+
+Fixed a bug that caused blank lines to be removed from 'literal' output (as defined 
+in RFC2060) when fast_io was not used. This bug was especially likely to show up in 
+routines that fetched a message's body text.  The fact that this bug did not occur 
+in the newer fast_io code may indicate that I've learned something, but on the other 
+hand we shouldn't jump to rash conclusions.
+
+I've run benchmarks on the fast_io code to determine whether or not it is faster and, 
+if so, under what circumstances. It appears that the fast_io code is quite faster, 
+except when reading large 'literal' strings (i.e. message bodies), in which case it 
+appears to take the same amount of time as the older i/o code but at the cost of 
+more cpu cycles (which means it may actually be slower on cpu-constrained systems). 
+The reason for this is that reads of literal strings are by their nature already 
+optimized, but without the overhead of fcntl calls. So if you expect to be doing 
+lots of message text (or multipart message body parts) fetching you should not use 
+fast_io, but in pretty much any other case you should go ahead and use it. In any 
+event, a number of people have tested fast_io so I no longer consider it 
+experimental, unless you're running perl on NT or CP/M or something funky like that, 
+in which case let me know how you make out! 
+
+Changes in version 1.08
+-----------------------
+
+Maintenance release 1.08a fixes a bug in the folders method when supplying the 
+optional argument (see "Enhanced folders method..." below) with some IMAP servers.
+
+Added option to build_ldif.pl (in the examples subdirectory) to allow new options and 
+to better handle quoted comments in e-mail addresses. Thanks to Jeffrey Fiedl, 
+whose book _Mastering Regular Expressions_ (O'Reilly) helped me to figure out a 
+good way to do this.
+
+Fixed documentation error that failed to mention constraints on when the append 
+method will return the uid of the appended message. (This feature only works with 
+servers that have the UIDPLUS capability.)
+
+Added/improved documentation somewhat.
+
+The copy method now returns a comma-separated list of uids if successful and if the 
+IMAP server supports UIDPLUS extentions. The move method now works similarly.
+
+Added new method uidnext, which accepts the name of a folder as an argument and returns 
+the next available message UID for that folder.
+
+The exists and append methods now will handle unquoted foldernames with embedded 
+spaces or quotes or whatever. Including quotes as part of the argument string is no 
+longer required but is still supported for backwards compatibility reasons. In other 
+words, $imap->exists(q("Some Folder")) is now no longer necessary (but will still work). $imap->exists(some folder) is good enough.
+
+Mail::IMAPClient has been tested successfully on Mirapoint 2.0.2. (Thanks to Jim 
+Hickstein.)
+
+I've now installed the UW imapd IMAP4rev1 v12.264 on one of my machines so I'm better 
+able to certify that platform. All the tests in 'make test' work there (or are at least 
+gently skipped). 
+
+Fixed bug in getacl in which folder names were quoted twice. (Thanks to Albert Chin for 
+squashing this bug.) Similar bugs existed in the other ACL methods and were similarly 
+fixed.
+
+Fixed a bug in message_uid that basically caused it to not work. Muchos gracias to 
+Luvox (aka fluvoxamine hydrochloride) for providing me with just the help I needed to 
+discover and fix this bug. 
+
+Enhanced folders method to allow an argument. If an argument is supplied, then 
+the folders method will restrict its results to subfolders of the supplied argument 
+(which should be the name of a parent folder, IMHO). This is implemented by supplying 
+arguments to the LIST IMAP Client command so we are optimizing network I/O at the 
+expense of possible server incompatibilities.  If you find server incompatibilities 
+with this then please let me know, and in the meantime you can always 
+grep(/^parent/,$imap->folders) or something. Or re-implement the folders 
+method yourself.
+
+
+Changes in version 1.07
+-----------------------
+Added a new parameter, Fast_io, which, if set to a true value, will attempt to 
+implement a faster I/O engine. USE THIS AT YOUR OWN RISK. It is alpha code. I don't 
+even know yet if it even helps.
+
+Added support for spaces in folder names for the autoloaded subscribe method.
+
+Added new methods setacl, getacl, deleteacl, and listrights. These methods are not yet 
+fully tested and should be considered beta for this release.
+
+Enhanced support for the myrights method (which is implemented via the default method).
+
+Fixed bug in append method that caused it to hang if server replied to original APPEND 
+with a NO (because, say, the mailbox's quota has been exceeded).
+
+Removed the autodiscovery of the folder hierarchy from the login method. This will 
+speed up logging in but may delay certain other methods later (but see the next item, 
+below).
+
+Updated the exists method to issue a "STATUS" IMAP Client command, rather than depend 
+on the folder hierarchy being discovered via 'LIST "" "*"'. Apparently this speeds 
+things up a lot for some configurations, although the difference will be negligable to 
+many.
+
+Updated Makefile.PL to support the PREFIX=~/ directive. Thanks to Henry C. Barta 
+(hbarta@wwa.com) for this fix.
+
+Added the Timeout parameter and eponymous accessor method, which, if set to a true 
+value, causes reads to time out after the number of seconds specified in the Timeout 
+parameter. The value can be in fractions of a second. This has not been fully tested 
+though, so use of this parameter is strictly "Beta".
+
+Enhanced support for the UID IMAP client command. Setting the new Uid parameter to a 
+true value will now cause the object to treat all message numbers as message UID 
+numbers rather than message sequence numbers. Setting the Uid parameter to a false 
+value will turn off this behavior again. 
+
+Updated test suite to handle servers that cannot do UIDPLUS and to add tests for 
+the Uid parameter.
+
+Incorporated bug fixes for recent_count and message_count in which some servers are 
+sticking in extra \r's, and updated DESTROY to remove spurious warning messages under 
+some versions of perl (thanks to Scott Wilson for catching and killing these bugs).
+
+
+Changes in version 1.06
+-----------------------
+Changed folders method so that it correctly handles mail folders whose names start and 
+end with quotes.
+
+Changed append method so that it returns the uid of the newly appended message if
+successful. Since the uid is a "true" value this should not affect the behavior of
+existing scripts, although it may enhance the behavior of new scripts ;-)
+
+Fixed bug in parse_headers that could cause script to die if there were no headers of
+the type requested and if there was a space on the blank line returned from FETCH.
+(Some blank lines are blanker than others...)
+
+Added the "flags" method, which returns an array (or array reference if called in scalar
+context) containing the flags that have been set for the message whose sequence number 
+has been provided as the argument to the method. 
+
+Added the "message_string" method, which accepts a message sequence number as an 
+argument and returns the contents of the message (including RFC822 headers) as a 
+single string.
+
+Added the "body_string" method, which accepts a message sequence number as an argument 
+and returns the contents of the message (not including RFC822 headers) as a single 
+string.
+
+Changes in version 1.05
+-----------------------
+
+Patched the 'make test' basic test to work correctly on systems that do not
+support double quotes in folder names. Thanks to Rex Walters for this fix.
+
+Added a new example script, build_dist.pl, that rumages through a folder 
+(specified on the command line) and collects the "From:" address, and then 
+appends a message to that folder with all those addresses in both the To: field 
+and the text, to facilitate cuting and pasting (or dragging and dropping) 
+into address books and so forth. (Note that the message doesn't actually get 
+sent to all those people; it just kind of looks that way.)
+
+Also added another example, build_ldif.pl, that is similar to build_dist.pl 
+except that instead of listing addresses in the message text, it creates a 
+MIME attachment and attaches a text file in LDIF format, which can then be
+imported into any address book that supports LDIF as an import file format.
+This example requires the MIME::Lite module. MIME::Lite was written by Eryq 
+(okay, Erik Dorfman is his legal name), and is totally available on CPAN. 
+
+This distribution has now been tested on Mirapoint Message Server Appliances
+(versions 1.6.1 and 1.7.1). Many thanks to Rex Walters for certifying this
+platform and for providing a test account for future releases.
+
+Changes in version 1.04
+-----------------------
+
+Fixed situation in which servers that include the "<tag> <COMMAND> OK\r\n" line
+as part of a literal (i.e. text delivered via {<length>}\r\n<length> bytes\r\n)
+caused the module to hang. This situation is pretty rare; I've only run across
+one server that does it. I'm sure it's a bug; I'm not sure whose. ;-}
+Many thanks to Thomas Stromberg for 1) pointing out this bug and 2) providing 
+me with facilities to find and fix it!
+
+Fixed potential bug in I/O engine that could cause module to hang when reading 
+a literal if the first read did not capture the entire literal.
+
+Cleaned up some unnecessary runtime warnings when a script is executed with 
+the -w switch.
+
+Added new tests to 'make test'. I just can't keep my hands off it! ;-)
+
+Enhanced the append method and several tests in 'make test' to be more widely
+compatible. Successfully tested on UW-IMAP, Cyrus v1.5.19, Netscape Messenger 
+4.1, and Netscape Messenger v3.6. If you know of others please add them to 
+the list! 
+
+Fixed a bug in the separator method (new in 1.03) that caused it to fail if
+'inbox' was specified in lowercase characters as the method's argument. 
+
+Added a new example, imap_to_mbox.pl, contributed by Thomas Stromberg. This 
+example converts a user's IMAP folders on an IMAP server into mbox format. 
+
+Changes in version 1.03
+-----------------------
+Reworked several methods to support double-quote characters within folder 
+names. This was kind of hard. This has been successfully tested with create, 
+delete, select, and folders, to name the ones that come to mind.
+
+Reworked the undocumented method that reads the socket to accept and handle
+more gracefully lines ending in {nnn}\r\n ( where nnn is a number of 
+characters to read). This seems to be part of the IMAP protocol although I 
+am at a total loss as to where it's explained, other than a brief description 
+of a "literal's" bnf syntax, which hardly counts. 
+
+Added separator object method, which returns the separator character in use 
+by the current server. 
+
+Added is_parent method, which returns 1, 0, or undef depending on whether a 
+folder has children, has no children, or is not permitted to have children.
+
+Added tests to 'make test' to test new function. Also changed 'make test' to 
+support IMAP systems that allow folders to be created only in the user's INBOX 
+(which is the exact opposite of what my IMAP server allows...oh, well).
+
+Fixed a bug that caused search to return an array of one undef'ed element 
+rather than undef if there were no hits.
+
+Changes in version 1.02
+-----------------------
+Fixed bugs in search and folders methods. 
+
+Fixed bug in new method that ignored Clear => 0 when specified as arguments to 
+new.
+
+Changes in version 1.01
+-----------------------
+Fixed a bug in test.pl that caused tests to fail if the extended tests were not used.
+
+Added method 'parse_headers' to parse the header fields of a message in the 
+IMAP store into a perl data structure.
+
+Changes in version 1.00
+-----------------------
+Made cosmetic changes to documentation.
+
+Fixed a bug introduced into the 'folders' method in .99.
+
+Changed 'new' method so that it returns undef if an implicit connection or 
+login is attempted but fails. Previous releases returned a Mail::IMAPClient 
+object that was not connected or not logged in, depending on what failed.
+
+Changed installation script so that it reuses the parameter file for test.pl 
+if it finds one. Installation can be run in the background if the test.txt file 
+exists. Touching it is good enough to prevent prompts; having a correctly 
+formatted version (as described in test_template.txt) is even better, as it will 
+allow you to do a thorough 'make test'.
+
+Changes in version .99 
+----------------------
+Added the Rfc822_date class method to create RFC822-compliant date fields in 
+messages being appended with the append method.
+
+Added the recent, seen, and unseen methods to return an array of sequence 
+numbers from a SEARCH RECENT, SEARCH SEEN, or SEARCH UNSEEN method call. 
+These methods are shortcuts to $imap->search("RECENT"), etc. 
+
+Added the recent_count method to return the number of RECENT messages in a 
+folder. Contributed by Rob Deker.
+
+Added 'use strict' compliance, courtesy of Mihai Ibanescu.
+
+Fixed a bug in the search method that resulted in a list with one empty member 
+being returned if a search had no hits. The search method now returns undef 
+if there are no hits.
+
+Added 'authenticate' method to provide very crude support for the IMAP 
+AUTHENTICATE command. The previous release didn't support AUTHENTICATE at all, 
+unless you used very low-level (and undocumented) methods. With the 
+'authenticate' method, the programmer still has to figure out how to 
+respond to the server's challenge. I hope to make it friendlier in the 
+next release. Or maybe the one after that. This method is at least a start, 
+albeit a pretty much untested one.
+
+Added Rfc822_date class method to facilitate creation of "Date:" header 
+field when creating text for the "append" method, although the method may 
+come in handy whenever you're creating a Date: header, even if it's not 
+in conjuction with an IMAP session.
+
+Added more tests, which will optionally run at 'make test' time, provided all 
+the necessary data (like username, hostname, password for testing an IMAP 
+session) are available.
+
+
+Changes in version 0.09  
+-----------------------
+Thu Aug 26 14:10:03 1999 - original version; created by h2xs 1.19
+
+# $Id: Changes,v 20001010.18 2003/06/12 21:35:48 dkernen Exp $

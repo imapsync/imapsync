@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.83 2016/08/18 09:43:40 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.104 2017/08/17 11:06:03 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -11,22 +11,31 @@ use Data::Dumper ;
 use Unicode::MapUTF8 qw(to_utf8 from_utf8 utf8_supported_charset);
 use Test::More 'no_plan' ;
 
+#print join( "\n", utf8_supported_charset(  ) ) ;
 die unless (utf8_supported_charset('ISO-8859-1'));
 
-my $rcs = '$Id: paypal_bilan,v 1.83 2016/08/18 09:43:40 gilles Exp gilles $ ' ;
+
+my $rcs = '$Id: paypal_bilan,v 1.104 2017/08/17 11:06:03 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
 
 my $total_usd_received = 0 ;
 my $total_usd_invoice  = 0 ;
+
 my $total_HT_EUR_logi_exo   = 0 ;
 my $total_HT_EUR_logi_ass   = 0 ;
 my $total_TVA_EUR_logi      = 0 ;
 
-my $total_HT_EUR_sup   = 0 ;
-my $total_TVA_EUR_sup  = 0 ;
 my $total_HT_EUR_sup_exo = 0 ;
+my $total_HT_EUR_sup_ass     = 0 ;
+my $total_TVA_EUR_sup    = 0 ;
+
+my $total_HT_EUR_serv_exo = 0 ;
+my $total_HT_EUR_serv_ass = 0 ;
+my $total_TVA_EUR_serv    = 0 ;
+
+
 
 my $total_eur_received = 0 ;
 my $total_eur_invoice  = 0 ;
@@ -149,7 +158,7 @@ foreach my $invoice ( @invoices_wanted ) {
 	my $email_address = $action->{ "De l'adresse email" } ;
 	
 	my $invoice_sent = invoice_sent( $dir_invoices, $invoice, $email_address ) ;
-	#print "$invoice $invoice_sent\n" ;
+	#print "$invoice $invoice_sent $email_address\n" ;
 
 	if ( $invoice_sent ) {
 		$invoice_sent{ $invoice }++ ;
@@ -173,9 +182,9 @@ print( "\n", "=" x 60, "\n" ) ;
 
 my $total_usd_paypal_cost ;
 $total_usd_paypal_cost = sprintf('%2.2f', $total_usd_invoice - $total_usd_received ) ;
-print "USD received $total_usd_received\n" ;
-print "USD invoice  $total_usd_invoice\n" ;
-print "USD costs    $total_usd_paypal_cost\n" ;
+if ( 0 < $total_usd_received ) { print "USD received $total_usd_received\n" ; }
+if ( 0 < $total_usd_invoice ) { print "USD invoice  $total_usd_invoice\n" ; }
+if ( 0 < $total_usd_paypal_cost ) { print "USD costs    $total_usd_paypal_cost\n" ; }
 
 my $total_eur_invoice_from_usd ;
 my $total_eur_received_from_usd ;
@@ -189,7 +198,7 @@ $total_eur_paypal_cost_from_usd    = sprintf('%2.2f', $total_usd_paypal_cost / $
 # EUR
 $total_eur_received = sprintf('%2.2f', $total_eur_received) ;
 $total_eur_invoice  = sprintf('%2.2f', $total_eur_invoice) ;
-print "EUR invoice  from USD $total_eur_invoice_from_usd\n" ;
+if ( 0 < $total_eur_invoice_from_usd ) { print "EUR invoice  from USD $total_eur_invoice_from_usd\n" ; }
 print "EUR received from EUR $total_eur_received\n" ;
 print "EUR invoice  from EUR $total_eur_invoice\n" ;
 
@@ -202,9 +211,17 @@ $total_HT_EUR_logi_exo = sprintf('%2.2f', $total_HT_EUR_logi_exo) ;
 $total_HT_EUR_logi_ass = sprintf('%2.2f', $total_HT_EUR_logi_ass) ;
 $total_TVA_EUR_logi    = sprintf('%2.2f', $total_TVA_EUR_logi) ;
 
-$total_HT_EUR_sup     = sprintf('%2.2f', $total_HT_EUR_sup) ;
+$total_HT_EUR_sup_ass = sprintf('%2.2f', $total_HT_EUR_sup_ass) ;
 $total_TVA_EUR_sup    = sprintf('%2.2f', $total_TVA_EUR_sup) ;
 $total_HT_EUR_sup_exo = sprintf('%2.2f', $total_HT_EUR_sup_exo) ;
+
+$total_HT_EUR_serv_exo = sprintf('%2.2f', $total_HT_EUR_serv_exo) ;
+$total_HT_EUR_serv_ass = sprintf('%2.2f', $total_HT_EUR_serv_ass) ;
+$total_TVA_EUR_serv    = sprintf('%2.2f', $total_TVA_EUR_serv) ;
+
+
+my $total_HT_EUR_exo  = $total_HT_EUR_sup_exo + $total_HT_EUR_logi_exo + $total_HT_EUR_serv_exo ;
+$total_HT_EUR_exo = sprintf('%2.2f', $total_HT_EUR_exo) ;
 
 $total_eur_invoice_from_eur_usd    = sprintf('%2.2f', $total_eur_invoice_from_eur_usd) ;
 $total_eur_paypal_cost    = sprintf('%2.2f', $total_eur_paypal_cost) ;
@@ -215,14 +232,16 @@ print "EUR total received    $total_eur_received_from_eur_usd\n" ;
 print "EUR total paypal cost $total_eur_paypal_cost\n" ;
 print ;
 print( "---- Assujeti TVA ----\n" ) ;
-print "EUR total HT licen assuj $total_HT_EUR_logi_ass (autres operations imposables)\n" ;
-#print "EUR total TVA licen assuj $total_TVA_EUR_logi\n" ;
-print "EUR total HT supp  assuj $total_HT_EUR_sup (ventes, prestations)\n" ;
-#print "EUR total TVA supp  assuj $total_TVA_EUR_sup\n" ;
+#print "EUR total HT supp  assuj $total_HT_EUR_sup_ass (ventes, prestations)\n" ;
+print "EUR total HT serv+supp assuj ", $total_HT_EUR_serv_ass + $total_HT_EUR_sup_ass, " (ventes, prestations)\n" ;
+print "EUR total HT licences  assuj $total_HT_EUR_logi_ass (autres operations imposables)\n" ;
+
 
 print( "---- Exonere  TVA ----\n" ) ;
-print "EUR total HT licen exo $total_HT_EUR_logi_exo (autres operations NON imposables)\n" ;
-print "EUR total HT suppo exo $total_HT_EUR_sup_exo (autres operations NON imposables)\n" ;
+#print "EUR total HT suppo exo $total_HT_EUR_sup_exo (autres operations NON imposables)\n" ;
+print "EUR total HT serv+supp exo ", $total_HT_EUR_serv_exo + $total_HT_EUR_sup_exo, " (autres operations NON imposables)\n" ;
+print "EUR total HT licences  exo $total_HT_EUR_logi_exo (autres operations NON imposables)\n" ;
+print "EUR total HT autres operations NON imposables: $total_HT_EUR_serv_exo + $total_HT_EUR_sup_exo + $total_HT_EUR_logi_exo = $total_HT_EUR_exo\n" ;
 
 print( "---- Invoices ----\n" ) ;
 
@@ -233,9 +252,12 @@ print "Nb invoice refund     ($nb_invoice_refund) @invoice_refund\n" ;
 print "Nb invoice sent       $nb_invoice_sent\n" ;
 print "Have to send invoices @invoice_not_sent\n" if ( @invoice_not_sent ) ;
 
-my $total_eur2 = $total_HT_EUR_logi_exo + $total_HT_EUR_logi_ass + $total_TVA_EUR_logi + $total_HT_EUR_sup + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo ;
+my $total_eur2 = $total_HT_EUR_logi_exo + $total_HT_EUR_logi_ass + $total_TVA_EUR_logi 
+               + $total_HT_EUR_sup_exo  + $total_HT_EUR_sup_ass  + $total_TVA_EUR_sup 
+               + $total_HT_EUR_serv_exo + $total_HT_EUR_serv_ass + $total_TVA_EUR_serv ;
+               
 $total_eur2    = sprintf('%2.2f', $total_eur2) ;
-print "$total_eur_invoice_from_eur_usd != $total_eur2 = $total_HT_EUR_logi_exo + $total_HT_EUR_logi_ass + $total_TVA_EUR_logi + $total_HT_EUR_sup + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo\n" 
+print "$total_eur_invoice_from_eur_usd != $total_eur2 = $total_HT_EUR_logi_exo + $total_HT_EUR_logi_ass + $total_TVA_EUR_logi + $total_HT_EUR_sup_ass + $total_TVA_EUR_sup + $total_HT_EUR_sup_exo\n" 
 if ( $total_eur_invoice_from_eur_usd !=  $total_eur2 ) ;
 
 sub parse_one_line_io {
@@ -490,9 +512,15 @@ sub paiement_eur_termine {
 		$total_HT_EUR_logi_exo     += $A->{montant_HT_EUR_logi_exo} ;
 		$total_HT_EUR_logi_ass     += $A->{montant_HT_EUR_logi_ass} ;
 		$total_TVA_EUR_logi        += $A->{montant_TVA_EUR_logi} ;
-                $total_HT_EUR_sup     += $A->{montant_HT_EUR_sup} ;
-                $total_TVA_EUR_sup    += $A->{montant_TVA_EUR_sup} ;
-                $total_HT_EUR_sup_exo += $A->{montant_HT_EUR_sup_exo} ;
+                
+                $total_HT_EUR_sup_ass      += $A->{montant_HT_EUR_sup} ;
+                $total_TVA_EUR_sup         += $A->{montant_TVA_EUR_sup} ;
+                $total_HT_EUR_sup_exo      += $A->{montant_HT_EUR_sup_exo} ;
+                
+		$total_HT_EUR_serv_exo     += $A->{montant_HT_EUR_serv_exo} ;
+		$total_HT_EUR_serv_ass     += $A->{montant_HT_EUR_serv_ass} ;
+		$total_TVA_EUR_serv        += $A->{montant_TVA_EUR_serv} ;
+                
                 
                 $A->{invoice} = next_invoice(  ) ;
 		$nb_invoice++ ;
@@ -597,11 +625,6 @@ sub compute_line {
         ( $A->{N_de_transaction} ) = @action{ ( 'N° de transaction' ) } || @action{ ( 'Numéro de transaction' ) } ;
         #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
         #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
-        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
-        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
-        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
-        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
-        #( $A->{} )             = @action{ ( '' ) }      || @action{ ( '' ) } ;
 
         # 
         $A->{Impact_sur_le_solde} ||= '' ;
@@ -631,7 +654,7 @@ sub compute_line {
 }
 
 sub BNC_output {
-# FE 1359 FR IND imapsync Bougon Edouard
+# FE 1359 FR IND imapsync HisName
 # [12/01/2012] FR IND 28.73 EUR 
     my( $invoice, $FR_flag, $IND_flag, $SUPPORT_flag, 
         $Nom, $Date, $MontantEUR, $Devise, $Titre_de_l_objet, $Impact_sur_le_solde, $Type ) = @_ ;
@@ -718,9 +741,7 @@ sub build_invoice {
         $F->{Adresse_1} = $action->{'Adresse 1'} || $action->{'Adresse (ligne 1)'} ;
         #$F->{} = $action->{''} || $action->{''} ;
         #$F->{} = $action->{''} || $action->{''} ;
-        #$F->{} = $action->{''} || $action->{''} ;
-        #$F->{} = $action->{''} || $action->{''} ;
-        #
+        #etc
 
         $F->{Etat_Province} = $action->{'Etat/Province/Région/Comté/Territoire/Préfecture/République'}
                       || $action->{'État/Province/Région/Comté/Territoire/Préfecture/République'}
@@ -743,25 +764,60 @@ sub build_invoice {
 		write_csv_info( $dir_invoices, $F->{invoice}, $F->{file_csv}, $F->{line_number}, $F->{line_csv} ) ;
 	}
 	
-
+	$F->{date_aaaa_mm_jj} = date_aaaa_mm_jj( $F->{Date} ) ;
 	build_address( $F ) ;
 	escape_for_tex( $F ) ;
+	clientVAT( $F ) ;
         client_type( $F ) ;
 	object_type( $F ) ;
+	vat_type( $F ) ;
         description_stuff( $F ) ;
 	tva_stuff( $F ) ;
         $F->{quantity} = '1' ;
 
 	download_urls( $F ) ;        
         ( $F->{Nom1} ) = cut( $F->{Nom}, 42 ) ;
-        $F->{clientVAT} = '' ;
-        
-        if ( ( 'VAT if professional in Europe' eq $F->{Nom_Option_2} ) and $F->{Option_2_Valeur} ) {
-        	$F->{clientVAT} = $F->{Option_2_Valeur} ;
-        }
-        
+	foreach my $key ( keys( %{ $F } ) ) {
+		#if ( not defined $F->{ $key } ) { print "$key\n" ; }
+	}
+	foreach my $key ( qw{ 
+invoice 
+Nom1
+De_l_adresse_email 
+clientAdrA 
+clientAdrB
+clientAdrC
+clientAdrD
+clientAdrE
+clientAdrF
+clientVAT
+Date
+Heure
+descriptionFR
+descriptionEN
+descriptionBFR
+descriptionBEN
+usageFR
+usageEN
+quantity
+quantityB
+priceHT
+priceBHT
+priceZHT
+tvaFR
+priceZTVA
+HTorTTC
+priceZTTC
+messageTVAFR
+messageTVAEN
+urlSrc
+} ) {
+		#if ( not defined $F->{ $key } ) { print "$key $F->{invoice}\n" ; }
+}
+	
+	
 	my $tex_variables = qq{
-%% Begin input from paypal_bilan $VERSION
+%% Begin input from paypal_bilan $VERSION éèàù
 \\providecommand{\\invoiceNumber}{$F->{invoice}}
 \\providecommand{\\clientName}{$F->{Nom1}}
 \\providecommand{\\clientEmail}{$F->{De_l_adresse_email}}
@@ -797,14 +853,15 @@ sub build_invoice {
 %% End input from paypal_bilan
 } ;
 
-	my $tex_variables_utf8 = to_utf8( { -string => $tex_variables, -charset => 'ISO-8859-1' } ) ;
-
+	my $tex_variables_utf8 = Unicode::MapUTF8::to_utf8( { -string => $tex_variables, -charset => 'ISO-8859-1' } ) ;# 
+	
 	$debug_invoice_utf8 and print $tex_variables_utf8 ;
 	$debug_invoice      and print $tex_variables   ;
 
 	#print "$F->{invoice} ", invoice_sent( $dir_invoices, $F->{invoice}, $F->{De_l_adresse_email} ), "\n" ;
-	if ( $write_invoices and ! invoice_sent( $dir_invoices, $F->{invoice}, $F->{De_l_adresse_email} ) ) {
-		write_tex_variables_file( $dir_invoices, $F->{invoice}, $F->{Date}, $tex_variables_utf8 ) ;
+	if ( $write_invoices 
+	     and ! invoice_sent( $dir_invoices, $F->{invoice}, $F->{De_l_adresse_email} ) ) {
+		write_tex_variables_file( $dir_invoices, $F->{invoice}, $F->{Date}, $tex_variables_utf8, $tex_variables ) ;
 	}
 	
 }
@@ -823,26 +880,33 @@ sub description_stuff {
                 $F->{descriptionEN} = '(Imapsync software. ALL rights conceded, allowed.)' ;
         }
         
-        if ( 'professional' eq $F->{clientTypeEN} 
+        if ( 'professional' eq $F->{client_type} 
         and  'software' eq $F->{object_type} ) {
                 $F->{usageFR} = 'Usage à titre professionnel.' ;
                 $F->{usageEN} = '(professional usage.)' ;
         }
         
-        if ( 'individual' eq $F->{clientTypeEN} 
+        if ( 'individual' eq $F->{client_type} 
         and  'software' eq $F->{object_type} ) {
                 $F->{usageFR} = 'Usage à titre individuel.' ;
                 $F->{usageEN} = '(individual usage.)' ;
         }
         
         if ( 'support' eq $F->{object_type} ) {
-                $F->{usageFR} = '' ;
-                $F->{usageEN} = '' ;
+                $F->{usageFR} = 'Usage à titre professionnel.' ;
+                $F->{usageEN} = '(professional usage.)' ;
                 $F->{descriptionFR} = 'Support sur le logiciel imapsync.' ;
                 $F->{descriptionEN} = '(Imapsync support.)' ;
         }
+		
+        if ( 'service' eq $F->{object_type} ) {
+                $F->{usageFR} = 'Usage à titre professionnel.' ;
+                $F->{usageEN} = '(professional usage.)' ;
+                $F->{descriptionFR} = 'Service en ligne avec le logiciel imapsync.' ;
+                $F->{descriptionEN} = '(Imapsync software online service.)' ;
+        }
 
-        if ( 'professional' eq $F->{clientTypeEN} 
+        if ( 'professional' eq $F->{client_type} 
         and 'software + support' eq $F->{object_type} ) {
                 $F->{usageFR} = 'Usage à titre professionnel.' ;
                 $F->{usageEN} = '(professional usage.)' ;
@@ -887,6 +951,21 @@ sub object_type {
         }elsif ( ( 'imapsync any' eq $F->{Titre_de_l_objet} )
         	and ( 'Support only. For professional use.' eq $F->{Valeur_Option_1} ) ) {
         	$F->{object_type} = 'support' ;
+        }elsif ( ( 
+				'imapsync any' eq $F->{Titre_de_l_objet} 
+				or 'imapsync online' eq $F->{Titre_de_l_objet} 
+				)
+        	and ( 
+				   ( 'Tiny' eq $F->{Valeur_Option_1} )
+				or ( 'Small' eq $F->{Valeur_Option_1} )
+				or ( 'Normal' eq $F->{Valeur_Option_1} )
+				or ( 'High' eq $F->{Valeur_Option_1} )
+			) ) {
+        	$F->{object_type} = 'service' ;
+        }elsif ( ( 'imapsync any' eq $F->{Titre_de_l_objet} )
+        	and ( '' eq $F->{Valeur_Option_1} ) ) {
+                # one is like this: 2 oct 2016  00:04:12 CEST 50 EUR
+        	$F->{object_type} = 'software' ;
         }
 }
 
@@ -911,18 +990,35 @@ Hello $F->{Nom},
 First of all, I'm sorry for the delay in getting back to you.
 
 Last imapsync release is available from the page
-http://imapsync.lamiral.info/paypal_return.shtml
+https://imapsync.lamiral.info/paypal_return.shtml
 
-Help me improving imapsync and its services by voting at
-http://imapsync.lamiral.info/#poll
+You're also free to use the online imapsync GUI as you wish:
+https://imapsync.lamiral.info/X/
 
 You'll find in the attachment the invoice of imapsync 
-$F->{object_type} you bought and paid (dd/mm/yyyy $F->{Date}).
+$F->{object_type} that you bought and you paid (dd/mm/yyyy $F->{Date}).
 The invoice file is named facture_imapsync-${invoice}.pdf
 This invoice is in PDF format, ready to be print.
 
-Should you need a hardcopy of this invoice, 
+Should you need a hard-copy of this invoice, 
 I'll send it to you upon request by regular mail.
+
+Once more, thank you for buying and using imapsync $F->{object_type}.
+
+Any feedback is welcome!
+Best Regards.
+
+--
+Gilles Lamiral.
+add: 22 La Billais 35580 Baulon, France
+mob: +33 6 19 22 03 54
+fix: +33 9 51 84 42 42
+} ;
+
+
+	my $message_body_blabla = qq{
+Help me improving imapsync and its services via the pole
+http://imapsync.lamiral.info/S/poll.shtml
 
 As the law requires, this numeric invoice PDF file 
 is signed with my private gpg key.
@@ -938,20 +1034,6 @@ this invoice with the following command line:
 
 or any other gpg graphical tool.
 
-Once more, thank you for buying and using imapsync $F->{object_type}.
-
-Any feedback is welcome!
-Best Regards.
-
---
-Gilles Lamiral.
-add: La Billais 35580 Baulon, France
-mob: +33 6 19 22 03 54
-fix: +33 9 51 84 42 42
-} ;
-
-
-	my $message_body_blabla = qq{
 Here is the fingerprint of my public key
 pub   1024D/FDA2B3DC 2002-05-08
       Key fingerprint = 7906 F53D 0D62 0C67 304A  4CF0 6928 869B FDA2 B3DC
@@ -1001,7 +1083,7 @@ sub invoice_sent {
 sub write_email_message {
 	my ( $dir_invoices, $invoice, $message_header, $message_body, $email_address ) = @_ ;
 	
-	my $message_body_utf8 = to_utf8({ -string => $message_body, -charset => 'ISO-8859-1' });
+	my $message_body_utf8 = Unicode::MapUTF8::to_utf8({ -string => $message_body, -charset => 'ISO-8859-1' });
 
 	my $invoice_00000 = invoice_00000( $invoice ) ;
 	
@@ -1027,7 +1109,7 @@ sub write_email_message {
 
 
 sub write_tex_variables_file { 
-	my ( $dir_invoices, $invoice, $Date, $tex_variables_utf8 ) = @_ ;
+	my ( $dir_invoices, $invoice, $Date, $tex_variables_utf8, $tex_variables ) = @_ ;
 	
 	my $invoice_00000 = invoice_00000( $invoice ) ;
 	
@@ -1039,16 +1121,20 @@ sub write_tex_variables_file {
         $debug and print "Writing imapsync_var.tex $dir_invoices/$invoice_00000/imapsync_var.tex\n" ;
         $dry and return(  ) ;
         
-	open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var.tex") or die ;
+	# original input
+	open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var_latin1.tex") or die ;
+	print FILE $tex_variables ;
+	close( FILE ) ;
+
+	# utf8 conversion
+	open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var_utf8.tex") or die ;
 	print FILE $tex_variables_utf8 ;
 	close( FILE ) ;
+
+	system( "cat $dir_invoices/$invoice_00000/imapsync_var_latin1.tex | 8859_utf8 > $dir_invoices/$invoice_00000/imapsync_var.tex" ) ;
         
         if ( ! -f "$dir_invoices/$invoice_00000/imapsync_var_manual.tex" ) {
-		open( FILE, "> $dir_invoices/$invoice_00000/imapsync_var_manual.tex") or die ;
-        	print FILE "%% $0 created this file
-%% Can be used to override imapsync_var.tex definitions\n" ;
-		print FILE $tex_variables_utf8 ;
-		close( FILE ) ;
+		system( "cp $dir_invoices/$invoice_00000/imapsync_var.tex $dir_invoices/$invoice_00000/imapsync_var_manual.tex" ) ;
         }
 }
 
@@ -1064,6 +1150,8 @@ sub download_urls {
             ( 'software + support' eq $F->{object_type} )
             or
             ( 'support' eq $F->{object_type} )
+			or
+			( 'service' eq $F->{object_type} )
             )
         ) {
 		$F->{urlSrc} = 'http://imapsync.lamiral.info/paypal_return.shtml' ;
@@ -1202,36 +1290,34 @@ sub tva_line_one_button_for_the_software {
           or 'imapsync source code' eq $A->{Titre_de_l_objet} 
           
           ) {
-              if (
-	        ( 'individual' eq $A->{client_type} )
-	        or
-	        ( 'France' eq $A->{Pays} )
-	        ) {
+                $debug and print "tva_line_one_button_for_the_software $A->{Titre_de_l_objet}\n" ;
+                if ( 'TAXED' eq $A->{vat_type} ) {
 		        $A->{montant_HT_EUR_logi_ass}  = $A->{Montant2} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
 		        $A->{montant_TVA_EUR_logi}     = $A->{Montant2} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) * tva_rate( $A->{date_aaaa_mm_jj} ) ;
 	        }else{
 		        $A->{montant_HT_EUR_logi_exo} = $A->{Montant2} ;
 	        }
         }
-        
 }
 
 sub tva_line_one_button_for_the_support {
 
 	my $A = shift ;
-
+        
+        if ( 'single' ne $A->{button_type} ) { return ; }
+        
 	if ( 'support' eq $A->{object_type} ) {
               if (
-	        ( 'individual' eq $A->{client_type} )
-	        or
-	        ( 'France' eq $A->{Pays} )
+	        ( 'TAXED' eq $A->{vat_type} )
                 or
                 ( '2013_02_19' gt $A->{date_aaaa_mm_jj} )
-	        ) 
+	        )
                 {
+                        $debug and print "tva_line_one_button_for_the_support $A->{Montant2} $A->{date_aaaa_mm_jj} $A->{Titre_de_l_objet}\n" ;
                 	$A->{montant_HT_EUR_sup}  = $A->{Montant2} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
 	        	$A->{montant_TVA_EUR_sup} = $A->{Montant2} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) * tva_rate( $A->{date_aaaa_mm_jj} ) ;
         	}else{
+                        $debug and print "tva_line_one_button_for_the_support $A->{Montant2} $A->{date_aaaa_mm_jj} $A->{Titre_de_l_objet}\n" ;
                 	$A->{montant_HT_EUR_sup_exo} = $A->{Montant2} ;
                 }
         }
@@ -1251,20 +1337,53 @@ sub button_type {
         }
 }
 
-sub tva_line_one_button_for_support_and_software {
+sub tva_line_one_button_for_support_and_software_and_service {
 
 	my $A = shift ;
 
-        $A->{Montant2_logi} = software_price( $A->{date_aaaa_mm_jj} ) ;
-        $A->{Montant2_supp} = $A->{Montant2} - $A->{Montant2_logi} ;
+        if ( 'mixed' ne $A->{button_type} ) { return ; }
+        
+        $debug and print "tva_line_one_button_for_support_and_software_and_service $A->{object_type} $A->{Titre_de_l_objet}\n" ;
+        
+        if ( 'service' eq $A->{object_type} ) {
+                $A->{Montant2_serv} = $A->{Montant2} ;
+                if ( 'TAXED' eq $A->{vat_type} ) {
+		        $A->{montant_HT_EUR_serv_ass}  = $A->{Montant2_serv} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
+		        $A->{montant_TVA_EUR_serv}     = $A->{Montant2_serv} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) * tva_rate( $A->{date_aaaa_mm_jj} ) ;
+        	}else{
+                	$A->{montant_HT_EUR_serv_exo} = $A->{Montant2_serv} ;
+                }
+                return ;
+        }
+
+        if ( 'support' eq $A->{object_type} ) {
+                $A->{Montant2_supp} = $A->{Montant2} ;
+                if ( 'TAXED' eq $A->{vat_type} ) {
+                        $A->{montant_HT_EUR_sup}  = $A->{Montant2_supp} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
+                        $A->{montant_TVA_EUR_sup} = $A->{Montant2_supp} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) * tva_rate( $A->{date_aaaa_mm_jj} ) ;
+                }else{
+                        $A->{montant_HT_EUR_sup_exo} = $A->{Montant2_supp} ;
+                }
+                return ;
+        }
+
+        if ( 'software' eq $A->{object_type} ) {
+                $A->{Montant2_logi} = $A->{Montant2} ;
+                if ( 'TAXED' eq $A->{vat_type} ) {
+		        $A->{montant_HT_EUR_logi_ass}  = $A->{Montant2_logi} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
+		        $A->{montant_TVA_EUR_logi}     = $A->{Montant2_logi} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) * tva_rate( $A->{date_aaaa_mm_jj} ) ;
+        	}else{
+                	$A->{montant_HT_EUR_logi_exo} = $A->{Montant2_logi} ;
+                }
+                return ;
+        }
+
+        if ( 'software + support' eq $A->{object_type} ) { 
+                $A->{Montant2_logi} = software_price( $A->{date_aaaa_mm_jj} ) ;
+                $A->{Montant2_supp} = $A->{Montant2} - $A->{Montant2_logi} ;
                         
-	if ( 'mixed' eq $A->{button_type} ) {
-              if ( 'individual' eq $A->{client_type}
-	          or
-	           'France' eq $A->{Pays}
-                 )
-                {
-                	$A->{montant_HT_EUR_sup}  = $A->{Montant2_supp} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
+                if ( 'TAXED' eq $A->{vat_type} ) {
+                        $A->{montant_HT_EUR_sup}  = $A->{Montant2_supp} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
 	        	$A->{montant_TVA_EUR_sup} = $A->{Montant2_supp} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) * tva_rate( $A->{date_aaaa_mm_jj} ) ;
 		        $A->{montant_HT_EUR_logi_ass}  = $A->{Montant2_logi} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) ;
 		        $A->{montant_TVA_EUR_logi}     = $A->{Montant2_logi} / ( 1 + tva_rate( $A->{date_aaaa_mm_jj} ) ) * tva_rate( $A->{date_aaaa_mm_jj} ) ;
@@ -1272,7 +1391,11 @@ sub tva_line_one_button_for_support_and_software {
                 	$A->{montant_HT_EUR_logi_exo} = $A->{Montant2_logi} ;
                 	$A->{montant_HT_EUR_sup_exo} = $A->{Montant2_supp} ;
                 }
+                return ;
         }
+        
+        print "tva_line_one_button_for_support_and_software_and_service type $A->{object_type} title $A->{Titre_de_l_objet} mont $A->{Montant2} Option_1 $A->{Valeur_Option_1} Option_2 $A->{Option_2_Valeur}\n" ;
+        print Data::Dumper->Dump( [$A] ) ;
 }
 
 
@@ -1282,18 +1405,52 @@ sub tva_line {
 
 	$A->{montant_HT_EUR_logi_exo} = $A->{montant_HT_EUR_logi_ass}  = $A->{montant_TVA_EUR_logi} = 0 ;
 	$A->{montant_HT_EUR_sup} = $A->{montant_TVA_EUR_sup} = $A->{montant_HT_EUR_sup_exo} = 0 ;
+        $A->{montant_HT_EUR_serv_exo} = $A->{montant_HT_EUR_serv_ass}  = $A->{montant_TVA_EUR_serv} = 0 ;
 
+	$A->{date_aaaa_mm_jj} = date_aaaa_mm_jj( $A->{Date} ) ;
+	clientVAT( $A ) ;
 	client_type( $A ) ;
         object_type( $A ) ;
         button_type( $A ) ;
-	$A->{date_aaaa_mm_jj} = date_aaaa_mm_jj( $A->{Date} ) ;
+	vat_type( $A ) ;
 	$A->{Montant2} = $A->{Montant2}/$usdeur if 'USD' eq $A->{Devise} ;
 
 	tva_line_one_button_for_the_software( $A ) ;
 	tva_line_one_button_for_the_support( $A ) ;
-        tva_line_one_button_for_support_and_software( $A ) ;
-	return(  ) ;
+        tva_line_one_button_for_support_and_software_and_service( $A ) ;
+	return ;
 }
+
+sub vat_type {
+	my $F = shift ;
+	
+	if ( 
+		( 'individual' eq $F->{client_type} )
+		or ( 'France' eq $F->{Pays} )
+	) {
+		$F->{vat_type} = 'TAXED' ;
+	}else{
+		$F->{vat_type} = 'EXEMPT' ;
+	}
+	return ;
+
+}
+
+sub clientVAT {
+
+	my $F = shift ;
+        $F->{clientVAT} = '' ;
+        
+        if ( 
+	( 'VAT if professional in Europe' eq $F->{Nom_Option_2} )
+	and ( $F->{Option_2_Valeur} )
+	and ( $F->{Option_2_Valeur} !~ /^\s+$/ )
+	and ( 'N/A' ne $F->{Option_2_Valeur} )
+	) {
+        	$F->{clientVAT} = $F->{Option_2_Valeur} ;
+        }
+	return ;
+}  
 
 
 sub tva_stuff_one_button_for_support_xor_software {
@@ -1302,14 +1459,13 @@ sub tva_stuff_one_button_for_support_xor_software {
         
         if ( not (   'software' eq $F->{object_type} 
                   or 'support'  eq $F->{object_type} 
+                  or 'service'  eq $F->{object_type} 
                  ) ) { 
-                 	return(  ) ;
+                 	return ;
         }
-        
-	if ( ( 'individual' eq $F->{clientTypeEN})
-	     or  
-	     ( 'France' eq $F->{Pays} )
-	) {
+
+	
+	if ( 'TAXED' eq $F->{vat_type} ) {
 		$F->{priceHT}  = sprintf('%2.2f', $F->{Hors_taxe} / ( 1 + tva_rate( $F->{date_aaaa_mm_jj} ) ) ) ;
                 $F->{priceBHT} = '' ;
                 $F->{priceZHT} = $F->{priceHT} ;
@@ -1336,25 +1492,34 @@ sub tva_stuff_one_button_for_support_xor_software {
 		$price =~ s{\.}{, } ;
 	}
         
-        return(  ) ;
+        return ;
 }
 
 sub tva_stuff_one_button_for_support_and_software {
 
 	my $F = shift ;
         
-        if ( not ( 'software + support' eq $F->{object_type} ) ) { 
-                 	return(  ) ;
+        if ( ! ( 'software + support' eq $F->{object_type} ) ) { 
+                 	return ;
         }
 
+	# Default values
+	$F->{priceHT}  =  '' ;
+        $F->{priceBHT} =  '' ;
+        $F->{priceZHT} =  '' ;
+	$F->{tvaFR}    =  '' ;
+	$F->{priceZTVA} =  '' ;
+	$F->{priceZTTC} =  '' ;
+        $F->{HTorTTC}  =  '' ;
+	$F->{messageTVAFR} = '' ;
+	$F->{messageTVAEN} = '' ;
+	
+	# Now the stuff
 	my $amountZ = $F->{Hors_taxe} ;
         my $amountA = software_price( $F->{date_aaaa_mm_jj} ) ;
         my $amountB = $amountZ - $amountA ;
         
-	if ( ( 'individual' eq $F->{clientTypeEN})
-	     or  
-	     ( 'France' eq $F->{Pays} )
-	) {
+	if ( 'TAXED' eq $F->{vat_type} ) {
 		$F->{priceHT}  = sprintf('%2.2f', $amountA / ( 1 + tva_rate( $F->{date_aaaa_mm_jj} ) ) ) ;
                 $F->{priceBHT} = sprintf('%2.2f', $amountB / ( 1 + tva_rate( $F->{date_aaaa_mm_jj} ) ) ) ;
                 $F->{priceZHT} = $F->{Hors_taxe} ;
@@ -1392,8 +1557,6 @@ sub tva_stuff {
 	$F->{priceTTCusd} = '' ;
 	$F->{Hors_taxe} =~ s{,}{.} ;
 
-	$F->{date_aaaa_mm_jj} = date_aaaa_mm_jj( $F->{Date} ) ;
-	
         tva_stuff_one_button_for_support_xor_software( $F ) ;
         tva_stuff_one_button_for_support_and_software( $F ) ;
 	return(  ) ;
@@ -1401,11 +1564,15 @@ sub tva_stuff {
 
 sub client_type {
 	my $F = shift ;
+	#print "$F->{date_aaaa_mm_jj}  $F->{Date}\n" ;
 	
+
+	# Default to professional
 	$F->{client_type}  = 'professional'  ;
 	$F->{clientTypeEN} = 'professional'  ;
         $F->{clientTypeFR} = 'professionnel' ;
 	
+	# Otherwise 
 	if ('imapsync usage' eq $F->{Nom_Option_1} and 'individual' eq $F->{Valeur_Option_1} ) {
 		$F->{client_type}  = 'individual' ;
 		$F->{clientTypeEN} = 'individual' ;
@@ -1415,6 +1582,16 @@ sub client_type {
 		$F->{clientTypeEN} = 'professional' ;
 		$F->{clientTypeFR} = 'professionnel' ;	
 	}elsif('usage' eq $F->{Nom_Option_2} and 'individual' eq $F->{Option_2_Valeur} ) {
+		$F->{client_type}  = 'individual' ;
+		$F->{clientTypeEN} = 'individual' ;
+		$F->{clientTypeFR} = 'individuel' ;
+	}elsif ( 
+		'imapsync choice' eq $F->{Nom_Option_1} 
+		and ( $F->{Valeur_Option_1} =~ /individual/ ) 
+		and ( '2016_10_01' le $F->{date_aaaa_mm_jj} )
+		and ( not $F->{clientVAT} )
+		
+	) {
 		$F->{client_type}  = 'individual' ;
 		$F->{clientTypeEN} = 'individual' ;
 		$F->{clientTypeFR} = 'individuel' ;

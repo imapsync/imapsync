@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Domino.txt,v 1.6 2016/01/28 14:34:15 gilles Exp gilles $
+# $Id: FAQ.Domino.txt,v 1.8 2017/03/02 12:54:15 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -8,44 +8,44 @@ This documentation is also at http://imapsync.lamiral.info/#doc
 =============================
 
 
-======================================================================
-Q. From Domino Notes to xxx
+=======================================================================
+Q. From Domino Notes to XXX
 
 On Windows use:
 
-  imapsync.exe ... --sep1 "\\" --prefix1 ""
+  imapsync.exe ... --sep1 "\\" --prefix1 "" --messageidnodomain
 
 On Unix use:
 
-  imapsync ... --sep1 '\' --prefix1 '' 
+  imapsync ... --sep1 '\' --prefix1 '' --messageidnodomain
 
-======================================================================
-Q. From xxx to Domino Notes
+=======================================================================
+Q. From XXX to Domino Notes
 
 Domino doesn't accept INBOX subfolders. 
 
 On Windows:
 
   imapsync.exe ... ^
-    --sep2 "\\" --prefix2 "" ^
+    --sep2 "\\" --prefix2 "" --messageidnodomain ^
     --regextrans2 "s,^Inbox\\(.*),$1,i"  
 
 On Unix:
 
   imapsync ... \
-    --sep2 '\' --prefix2 '' \
+    --sep2 '\' --prefix2 '' --messageidnodomain \
     --regextrans2 's,^Inbox\\(.*),$1,i'
 
 If you want to sync the complete host1 mailbox in a subfolder called OLDBOX use:
 
 On Windows:
   imapsync.exe ... ^
-    --sep2 "\\" --prefix2 "" ^
+    --sep2 "\\" --prefix2 "" --messageidnodomain ^
     --subfolder2 "OLDBOX" --justfolders --dry
 
 On Unix:
   imapsync ... \
-  --sep2 '\' --prefix2 '' \
+  --sep2 '\' --prefix2 '' --messageidnodomain \
   --subfolder2 'OLDBOX' --justfolders --dry
     
 If the output is correct for you then remove --dry and have a run.
@@ -69,8 +69,10 @@ For Domino 853FP6 on Linux, we used this command on Unix:
   --host2 hhh2  --user2 uuu2  --password2 ppp2 \
   --exclude "^INBOX/Trash"  --exclude 'Junk|Drafts' \
   --regextrans2 's#^INBOX/Sent$#^Sent#' \
-  --prefix2 ""  --sep2 "\/" \
+  --prefix2 ""  --sep2 "\/" --messageidnodomain \
   --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Migratedbyus:$2\nx-MailDate:$2}gxms'
 
 
-======================================================================
+
+=======================================================================
+=======================================================================

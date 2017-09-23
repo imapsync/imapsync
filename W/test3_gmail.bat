@@ -1,5 +1,5 @@
 
-@REM $Id: test3_gmail.bat,v 1.4 2016/08/19 14:11:00 gilles Exp gilles $
+@REM $Id: test3_gmail.bat,v 1.5 2016/08/19 18:27:13 gilles Exp gilles $
 
 cd /D %~dp0
 

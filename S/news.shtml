@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html  lang="en"  id="TOP"  xml:lang="en"  xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html  lang="en"  id="TOP"  xml:lang="en"  xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta  http-equiv="content-type"  content="application/xhtml+xml; charset=UTF-8" />
 <title>Imapsync News</title>
@@ -12,16 +13,21 @@
 
 
 <meta  content="text/css"  http-equiv="content-style-type" />
- <meta  content="0"  http-equiv="expires" />
+<meta  content="0"  http-equiv="expires" />
 <link  href="../S/images/logo_imapsync_s.png"  type="image/png"  rel="icon" />
 <link  type="text/css"  rel="stylesheet"  href="../S/style.css" />
 
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!--
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+-->
 </head>
 
 <body>
 
 
-<h1>News about next imapsync, currently distributed <!--#exec cmd="cat ../VERSION" -->, next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)</small></a>
+<h1>News about next imapsync, currently distributed <!--#exec cmd="cat ../VERSION"-->, 
+next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)</small></a>
 </h1>
 
 <p>imapsync <!--#exec cmd="cat ../VERSION" --> was written on <!--#flastmod file="VERSION" -->
@@ -33,12 +39,12 @@
 
 <!-- 
 <ul>
-<li><b>1.694</b></li>
+<li><b>1.824</b></li>
+<li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 
-<li><b>Usability</b>: </li>
 <li><b>Usability</b>: </li>
 <li><b>Usability</b>: </li>
 <li><b>Usability</b>: </li>
@@ -47,15 +53,109 @@
 <li><b>Bug fix</b>: </li>
 <li><b>Bug fix</b>: </li>
 
+<li><b>Refactoring</b>: Removed most of the perlcrit  (Severity: 3) Regular expression without "/x" flag.</li>
+<li><b>Refactoring</b>: </li>
 <li><b>Refactoring</b>: </li>
 <li><b>Refactoring</b>: </li>
 
 <li><b>Security</b>: </li>
 <li><b>Dependency</b>: </li>
+<li><b>Dependency added</b>: </li>
 
 </ul>
  -->
 
+
+<ul>
+<li><b>1.836</b> More secure by default, ssl or tls activation!</li>
+
+<li><b>Enhancement</b>: An <a href="https://hub.docker.com/r/gilleslamiral/imapsync/"><b>Imapsync Docker image</b></a> available!</li>
+
+<li><b>Usability</b>:   Now goes to SSL by default if port 993 is open. Use <tt>--nosslcheck</tt> to avoid that.</li>
+
+<li><b>Usability</b>:   Now goes to TLS by default if possible, ie, only if STARTTLS is in CAPABILITY. If you want only TLS and nothing else, use <tt>--tls1 --nossl1</tt></li> 
+
+<li><b>Usability</b>:   Now if you want a basic imap connection on port 143 with no default encryption behavior, ie, no ssl nor tls, 
+                        then use <tt>--nossl1 --notls1</tt> for host1 and <tt>--nossl2 --notls2</tt> for host2.</li>
+
+<li><b>Enhancement</b>: Added <tt>--gmail1</tt> and <tt>--gmail2</tt> to simplify Gmail options setting. 
+                        It sets parameters suggested in the <a href="../FAQ.d/FAQ.Gmail.txt">Gmail FAQ</a> <tt>--ssl</tt>, <tt>--host</tt>, etc.</li>
+
+<li><b>Enhancement</b>: Added <tt>--office1</tt> and <tt>--office2</tt> to simplify Office 365 options setting. 
+                        It sets parameters suggested in the <a href="../FAQ.d/FAQ.Exchange.txt">Exchange/Office365 FAQ</a>.</li>
+
+<li><b>Enhancement</b>: Added <tt>--domino1</tt> and <tt>--domino2</tt> to simplify Domino options setting.
+                        It sets parameters suggested in the <a href="../FAQ.d/FAQ.Domino.txt">Domino FAQ</a>.</li>
+
+<li><b>Enhancement</b>: Added <tt>--maxsleep</tt> in order to avoid timeouts with <tt>--maxbytespersecond</tt> and <tt>--maxmessagespersecond</tt> options.
+                        By default imapsync will sleep 2 seconds maximum, like if the command line contained <tt>--maxsleep 2</tt></li>
+       
+
+<li><b>Enhancement</b>: Added <tt>--maxbytesafter</tt> in order to start <tt>--maxbytespersecond</tt> limitation only after 
+                        <tt>--maxbytesafter</tt> amount of data transferred. Usefull for Gmail limits, for example,
+                        in order to active a 50K/s limit rate only after 500 MB of data transfer, use
+                        <tt>--maxbytesafter 500_000_000 --maxbytespersecond 50_000</tt></li> 
+
+<li><b>Enhancement</b>: Added <tt>--testsunit</tt> in order to run any unit test individualy from the command line.
+                        Several --testsunit are allowed. Example:
+                        <tt>imapsync --testsunit tests_true --testsunit tests_always_fail</tt></li> 
+  
+  
+<li><b>Enhancement</b>: Added password setting via environment variables <tt>IMAPSYNC_PASSWORD1</tt> and <tt>IMAPSYNC_PASSWORD2</tt></li>             
+
+                        
+<li><b>Usability</b>: No more useless and false warning <tt>"says it has NO CAPABILITY for AUTHENTICATE LOGIN"</tt></li>
+
+
+<li><b>Usability</b>: Options <tt>--delete1</tt> and <tt>--delete</tt> are now aliases. 
+Option <tt>--delete1</tt> is preferable over <tt>--delete</tt> (<tt>--delete</tt> is still supported). </li>
+
+<li><b>Usability</b>: Now prints always permanentflags info. 
+It helps to understand most flag issues at first run, without <tt>--debugflags</tt></li>
+
+<li><b>Usability</b>: Now prints "could not append ( Subject:[$subject], Date:[$h1_date], Size:[$h1_size] )" 
+when append fails.</li>
+<li><b>Usability</b>: Option <tt>--showpasswords</tt> now shows also passwords with <tt>--debugimap</tt>. Useful to debug quoting issues.</li>
+
+
+<li><b>Usability</b>: <tt>--ipv4</tt> is now synonym of <tt>--inet4</tt> and <tt>--ipv6</tt> is now synonim of <tt>--inet6</tt></li>
+
+<li><b>Usability</b>: Added <tt>--testslive6</tt> to check pure ipv6 connectivity.</li>
+
+
+<li><b>Enhancement</b>: Added <tt>--noabletosearch1</tt> and <tt>--noabletosearch2</tt>; 
+                        Still support <tt>--noabletosearch</tt>, which turn on both <tt>--noabletosearch1</tt> and <tt>--noabletosearch2</tt>
+</li>
+<li><b>Enhancement</b>: Added <tt>--abort</tt> option to terminate a previous call still running. 
+In command line context <tt>--abort</tt> uses the pidfile to know what to abort.
+In cgi context, ie online, exact same credentials are needed in order to really abort the other sync.</li>
+
+<li><b>Enhancement</b>: Added milliseconds in the default logfile name since several runs is possible within one second in cgi context or on a powerful machine.</li>
+
+<li><b>Docker context</b>: Added docker context in order to be run under the nobody user without permission issues.</li>
+<li><b>Docker context</b>: Can run imapsync <tt>--tests</tt> under nobody user on Unix (or at least Linux).</li>
+
+<li><b>Bugfix</b>: Fixed issue "SSL routines:ssl3_check_cert_and_algorithm:dh key too small" with 
+                   <a href="http://stackoverflow.com/questions/36417224/openssl-dh-key-too-small-error">openssl-dh-key-too-small-error</a>
+                   <tt>SSL_cipher_list => 'DEFAULT:!DH'</tt></li>
+
+<li><b>CGI context</b>: Allow parameters passed by POST.</li>
+<li><b>CGI context</b>: Abort, before doing anything, if the server load is already too heavy, 
+                        and invite to come later depending on the current load (1, 5, or 15 minutes later).</li>
+
+<li><b>Bug fix</b>: Guessed prefix is the empty string even when there is no folders (which is a bad sign anyway, since INBOX should be listed).</li>
+<li><b>Bug fix</b>: Option <tt>--skipmess</tt> could not work most of the time. I guess it was a mistake arrived by badly converting an "unless" to an "if". Perl critics with no tests added => caveat emptor!</li>
+
+
+<li><b>Refactoring</b>: Removed Mail::IMAPClient overload definitions</li>
+
+<li><b>Dependency added</b>: IO::Socket::SSL</li>
+<li><b>Dependency added</b>: Sys::MemInfo</li>
+<li><b>Dependency added</b>: Pod::Usage</li>
+
+</ul>
+
+ 
 <ul>
 <li><b>1.727</b> https website and CGI on the way!</li>
 
@@ -455,7 +555,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.28 2016/08/19 14:16:58 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.50 2017/09/11 03:04:46 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

@@ -1,0 +1,165 @@
+# $Id: INSTALL.ANY.txt,v 1.55 2017/04/18 15:11:29 gilles Exp gilles $
+# 
+# This is the main INSTALL file for imapsync.
+# imapsync : IMAP sync and migrate tool.
+
+INTRODUCTION
+============
+
+ imapsync works fine under any operating system with Perl and Perl modules (listed below).
+ imapsync.exe works fine standalone under Windows XP, Vista, Seven, 20XX, either 32 or 64bit.
+
+====================================
+== Installing imapsync on WINDOWS ==
+====================================
+
+Read the file README_Windows.txt
+Also available at
+https://imapsync.lamiral.info/README_Windows.txt
+
+
+=================================
+== Installing imapsync on Unix ==
+=================================
+
+There are specific INSTALL files in the imapsync directory INSTALL.d/ 
+also available at https://imapsync.lamiral.info/INSTALL.d/
+
+- Mac OS X
+- FreeBSD
+- CentOS
+- CPanel
+- Debian
+- Ubuntu
+- AWS EC2
+
+If you are not on one of these systems then read the section
+below called "Installing imapsync on other Unixes".
+
+=====================================
+== Installing imapsync on Mac OS X ==
+=====================================
+
+Easy.
+Read the file INSTALL.d/INSTALL.Darwin.txt
+Also available at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.Darwin.txt
+
+=====================================
+== Installing imapsync on FreeBSD ==
+=====================================
+
+Easy.
+Read the file INSTALL.d/INSTALL.FreeBSD.txt
+Also available at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.FreeBSD.txt
+
+
+===================================
+== Installing imapsync on CentOS ==
+===================================
+
+Easy.
+Read the file INSTALL.d/INSTALL.Centos.txt
+Also available at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.Centos.txt
+
+
+===================================
+== Installing imapsync on CPanel ==
+===================================
+
+Easy.
+Read the file INSTALL.d/INSTALL.CPanel.txt
+Also available at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.CPanel.txt
+
+
+==========================================
+== Installing imapsync on Debian 6 or 7 ==
+==========================================
+
+Not so easy.
+See the file INSTALL.d/INSTALL.Debian.txt
+Also available at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.Debian.txt
+
+============================================
+== Installing imapsync on Ubuntu 12 or 14 ==
+============================================
+
+Not so easy.
+See the file INSTALL.d/INSTALL.Ubuntu.txt
+Also available at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.Ubuntu.txt
+
+==================================
+= Installing imapsync on AWS EC2 = 
+==================================
+
+Not so easy.
+See the file INSTALL.d/INSTALL.AWS_EC2.txt
+Also available at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.AWS_EC2.txt
+
+
+=========================================
+== Installing imapsync on other Unixes ==
+=========================================
+
+
+Purchase imapsync at
+https://imapsync.lamiral.info/
+or get it anywhere.
+
+You have access to a compressed tarball called imapsync-1.xxx.tgz
+where 1.xxx is the version number. Untar the tarball where
+you want:
+
+  cd 
+  tar xzvf  imapsync-1.xxx.tgz
+
+Go into the directory imapsync-1.xxx
+
+  cd imapsync-1.xxx
+
+You can easily detect any missing Perl modules via the 
+script prerequisites_imapsync located in the INSTALL.d directory:
+
+  sh INSTALL.d/prerequisites_imapsync
+
+or 
+
+  cd INSTALL.d/
+  sh prerequisites_imapsync
+
+You don't need to be root to run the previous command. You have
+to be root if you want the Perl modules to be available for the 
+whole system, for all users.
+
+You may be in one of following cases: 
+- you are not root.
+- you are in a environment where modifying system Perl 
+  modules can break other things or where you're not allowed to
+  change the whole system.
+
+The "make" command is a prerequisite to build some Perl modules.
+Install make in case it is not already installed.
+
+Run the "cpanm" command with the missing Perl modules as arguments.
+For example it can be:
+
+  cpanm Authen::NTLM Data::Uniqid File::Copy::Recursive IO::Tee Mail::IMAPClient Unicode::String
+
+Once you've run the "cpanm" command, you can rerun "sh prerequisites_imapsync" 
+to verify everything is ok:
+
+  sh prerequisites_imapsync 
+
+When everything is ok the script execution ends with this sentence
+"All needed modules are already installed"
+
+Now imapsync should work on your system. To check it run:
+
+  ./imapsync --testslive
+
