@@ -289,6 +289,9 @@ Conventions used:
  --regexflag    reg  : Apply the whole regex to each flags list.
                        Example: 's/"Junk"//g' # to remove "Junk" flag.
  --regexflag    reg  : then this one, etc.
+ --nosyncflags2      : Do not update flags on host2 if the message 
+                       already exists. Only set flags on newly copied
+                       messages.
 
 
 =head2 OPTIONS/deletions
@@ -801,7 +804,7 @@ my(
         $prefix1, $prefix2,
         $subfolder2,
         @regextrans2, @regexmess, @regexflag, @skipmess, @pipemess, $pipemesscheck,
-        $flagscase, $filterflags, $syncflagsaftercopy,
+        $flagscase, $filterflags, $syncflagsaftercopy, $nosyncflags2,
         $sep1, $sep2,
         $syncinternaldates,
         $idatefromheader,
@@ -1034,6 +1037,12 @@ $flagscase = defined  $flagscase  ? $flagscase : 1 ;
 
 # Use PERMANENTFLAGS if available
 $filterflags = defined  $filterflags  ? $filterflags : 1 ;
+
+# don't update flags on host2 if message already existing
+$nosyncflags2 = defined $nosyncflags2  ? $nosyncflags2 : 0;
+if ( $nosyncflags2 ) {
+        myprint( "Info: --nosyncflags2 will not sync flags on existing messages.\n" ) ;
+}
 
 # sync flags just after an APPEND, some servers ignore the flags given in the APPEND
 # like MailEnable IMAP server.
@@ -2090,7 +2099,11 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
                         #$debug and myprint( "MESSAGE $m_id\n" ) ;
                         my $h2_msg  = $h2_hash{$m_id}{'m'};
 
-                        sync_flags_fir( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+                        #&&&
+                        if ( ! $nosyncflags2 ) {
+                                # do update flags on host2
+                                sync_flags_fir( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+                        }
                         # Good
                         my $h2_size = $h2_hash{$m_id}{'s'};
                         $debug and myprint(
@@ -2109,7 +2122,11 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
         MESS_IN_CACHE: foreach my $h1_msg ( @h1_msgs_in_cache ) {
                 my $h2_msg = $cache_1_2_ref->{ $h1_msg } ;
                 $debugcache and myprint( "cache messages update flags $h1_msg->$h2_msg\n" ) ;
-                sync_flags_fir( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+                #&&&
+                if ( ! $nosyncflags2 ) {
+                        # do sync flags on host2
+                        sync_flags_fir( $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+                }
                 my $h1_size = $h1_fir_ref->{ $h1_msg }->{ 'RFC822.SIZE' } || 0 ;
                 $total_bytes_skipped += $h1_size;
                 $nb_msg_skipped += 1;
@@ -11472,6 +11489,7 @@ sub get_options_cmd {
         'disarmreadreceipts!' => \$disarmreadreceipts,
         'regexflag=s'         => \@regexflag,
         'filterflags!'        => \$filterflags,
+        'nosyncflags2!'       => \$nosyncflags2,
         'flagscase!'          => \$flagscase,
         'syncflagsaftercopy!' => \$syncflagsaftercopy,
         'delete|delete1!'     => \$delete1,
