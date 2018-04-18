@@ -2535,7 +2535,15 @@ sub cgisetcontext {
 	$mysync->{pidfilelocking} = 1 ;
 	$mysync->{errorsmax} = $ERRORS_MAX_CGI ;
 	$modulesversion = 0 ;
-	$releasecheck = 1 ;
+	
+	# If you want releasecheck not to be done by default (like the github maintainer),
+	# then just uncomment the first "$releasecheck =" line, the line ending with "0 ;",
+	# the second line (ending with "1 ;") can then stay active or be commented,
+	# the result will be the same: no releasecheck by default (because 0 is then defined value).
+
+	$releasecheck = defined  $releasecheck  ? $releasecheck : 0 ;
+	#$releasecheck = defined  $releasecheck  ? $releasecheck : 1 ;
+
 	$usecache = 0 ;
 	$mysync->{showpasswords} = 0 ;
 	$debugimap1 = $debugimap2 = $debugimap = 0 ;
