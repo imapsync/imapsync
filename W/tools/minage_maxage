@@ -1,0 +1,113 @@
+#!/bin/sh
+
+# $Id: minage_maxage,v 1.1 2017/12/14 02:50:27 gilles Exp gilles $
+
+main() {
+        tests || return 1
+
+        main_minage=${1:-0}
+        test -n "$1" && shift
+        main_maxage=${1:-740}
+        test -n "$1" && shift
+        main_parall=${1:-1}
+        test -n "$1" && shift
+        main_cmd=${1:-"myscript"}
+        test -n "$1" && shift
+        
+        loop $main_minage $main_maxage $main_parall echo_begin_end_cmd $main_cmd "$@"
+}
+
+
+echo_begin_end_cmd() {
+        minage=$1
+        maxage=$2
+        shift 2
+        echo "$@" --minage $minage --maxage $maxage --pidfile ${1}_${minage}_${maxage}.pid "&"
+        
+        
+}
+
+tests_loop() {
+        test "0 10 -n" = "`loop 0 10 1 echo -n`" || return 1
+        test "0 10" = "`loop 0 10 1 echo`" || return 1
+        # default to echo command
+        test "0 10" = "`loop 0 10 1`" || return 1
+        
+        
+        # Yes, it is ugly, but good enough
+        test "0 5
+6 10" = "`loop 0 10 2 echo`" || return 1
+}
+
+
+loop() {
+        loop_begin=$1
+        loop_end=$2
+        loop_nb=$3
+        shift 3
+        loop_cmd=${1:-echo}
+        test -n "$1" && shift
+        #echo "$@"
+        loop_interval=`interval $loop_begin $loop_end $loop_nb` 
+        loop_begin_tmp=$loop_begin
+        while test $loop_begin_tmp -lt $loop_end; do
+                loop_end_tmp=`expr $loop_begin_tmp + $loop_interval`
+                loop_end_tmp=`min $loop_end_tmp $loop_end`
+                $loop_cmd $loop_begin_tmp $loop_end_tmp "${@}" 
+                loop_begin_tmp=`expr $loop_begin_tmp + $loop_interval + 1`
+        done
+        wait
+}
+
+tests() {
+        tests_loop     || return 1
+        tests_interval || return 1
+        tests_min      || return 1
+        tests_max      || return 1
+}
+
+tests_interval() {
+        test  2  -eq `interval 0 10 5` || return 1
+        test 10  -eq `interval 0 10`    || return 1
+        test 3 -eq `interval 3`       || return 1
+        test 0 -eq `interval`         || return 1
+        
+
+}
+interval() {
+        #    $1|--------------|$2
+        #      |--|--|--|--|--|
+        # out: |--|
+        begin=${1:-0}
+        end=${2:-`expr $begin \* 2` }
+        nb=${3:-1}
+        expr \( $end - $begin \) / $nb || return 1
+}
+
+
+tests_max() {
+        ! test 55 -eq `max 55 66` || return 1
+        test 66 -eq `max 55 66`   || return 1
+        test 42 -eq `max 42 42`   || return 1
+}
+max() {
+        test $1 -ge $2 && echo $1 && return 
+        echo $2
+}
+
+
+tests_min() {
+        test 55 -eq `min 55 66` || return 1
+        ! test 66 -eq `min 55 66`   || return 1
+        test 42 -eq `min 42 42`   || return 1
+}
+min() {
+        test $1 -le $2 && echo $1 && return 
+        echo $2
+}
+
+
+
+main "$@" || return 1
+
+return 0

@@ -1,5 +1,5 @@
 
-REM $Id: build_exe.bat,v 1.46 2017/08/23 13:04:40 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.48 2018/02/06 13:12:47 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO Currently running through %0 %*
@@ -9,7 +9,7 @@ REM $Id: build_exe.bat,v 1.46 2017/08/23 13:04:40 gilles Exp gilles $
 @REM the following command change current directory to the dirname of the current batch pathname
 CD /D %~dp0
 
-REM Remove the error file because its existence means an error occured during this script execution
+REM Remove the error file because its existence means an error occurred during this script execution
 IF EXIST LOG_bat\%~nx0.txt DEL LOG_bat\%~nx0.txt
 
 
@@ -26,8 +26,8 @@ EXIT /B
 @SETLOCAL
 @REM CALL pp -o imapsync.exe  --link libeay32_.dll  --link zlib1_.dll --link ssleay32_.dll .\imapsync
 IF %PROCESSOR_ARCHITECTURE% == x86 (
-	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll --link libcrypto-1_1_.dll --link libssl-1_1_.dll .\imapsync
-	REM CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info                            --link zlib1_.dll  .\imapsync
+	CALL     pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll --link libcrypto-1_1_.dll --link libssl-1_1_.dll .\imapsync
+	REM CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll  .\imapsync
 ) ELSE (
 	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  .\imapsync
 )
@@ -69,7 +69,7 @@ perl ^
      -mIO::Socket::SSL ^
      -mIO::Tee ^
      -mMail::IMAPClient ^
-     -mNet::Ping ^
+     -mRegexp::Common ^
      -mTerm::ReadKey ^
      -mTime::Local ^
      -mUnicode::String ^

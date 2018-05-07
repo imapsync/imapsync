@@ -1,4 +1,4 @@
-REM $Id: install_modules.bat,v 1.32 2017/08/31 01:57:50 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.34 2018/04/10 00:10:52 gilles Exp gilles $
 
 ::------------------------------------------------------
 ::--------------- Main of install_modules.bat ----------
@@ -39,6 +39,7 @@ EXIT /B
 :update_modules
 @SETLOCAL
 FOR %%M in ( ^
+ Regexp::Common ^
  Sys::MemInfo ^
  Test::MockObject ^
  Readonly ^
@@ -58,7 +59,6 @@ FOR %%M in ( ^
  Mail::IMAPClient ^
  Module::ScanDeps ^
  Net::SSL ^
- Net::SSLeay ^
  PAR::Packer ^
  Pod::Usage ^
  Test::Pod ^
@@ -75,6 +75,8 @@ FOR %%M in ( ^
 
 ECHO Perl modules for imapsync updated
 REM PAUSE
+@ECHO Net::SSLeay not updated
+
 @ENDLOCAL
 EXIT /B
 

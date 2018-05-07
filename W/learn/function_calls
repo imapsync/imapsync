@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+sub foo {
+    bar();
+    baz(quux());
+}
+
+sub bar {
+    baz();
+}
+
+sub baz {
+    print "foo\n";
+}
+
+sub quux {
+    return 5;
+}
+
+my %calls;
+
+while (<>) {
+    next unless my ($name) = /^sub (\S+)/;
+    while (<>) {
+        last if /^}/;
+        next unless my @funcs = /(\w+)\(/g;
+        push @{$calls{$name}}, @funcs;
+    }
+}
+
+use Data::Dumper;
+print Dumper \%calls;
+

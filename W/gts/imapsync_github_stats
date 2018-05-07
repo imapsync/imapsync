@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# $Id: imapsync_github_stats,v 1.2 2018/04/02 18:49:59 gilles Exp gilles $
+
+get_csv() {
+
+    ( 
+    cd csv || return
+    { sleep 1; cat /g/var/pass/secret.gilles_github; } | gts gilleslamiral imapsync save_csv  -o imapsync 
+    sh ../merge-csv .
+    )
+}
+
+PATH=$PATH:/g/bin
+cd /g/public_html/imapsync/W/gts/
+get_csv
+rsync -av . /g/public_html/imapsync_github/gts/
+
+
+

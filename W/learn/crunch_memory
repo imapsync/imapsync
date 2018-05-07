@@ -1,0 +1,34 @@
+#!/usr/bin/perl
+
+
+use strict ;
+use warnings ;
+use English qw( -no_match_vars ) ;
+use Sys::MemInfo ;
+use Readonly ;
+
+
+Readonly my $KIBI => 1024 ;
+
+my $total_ram_memory = total_ram_memory(  ) ;
+print "Total RAM memory $total_ram_memory\n" ;
+current_memory_used(  ) ;
+
+sub current_memory_used {
+        my @ps = qx{ ps -o vsz -p $PROCESS_ID } ;
+        print( @ps ) ;
+        shift @ps; # First line is column name "VSZ"
+        chomp @ps;
+        # convert to octets
+        my $val = $KIBI * $ps[ 0 ] ;
+        print "$val\n" ;
+        return $val ;
+}
+
+
+sub total_ram_memory {
+	
+	return(
+		sprintf( "%.1f GiB", Sys::MemInfo::get("totalmem") / ( 1024 ** 3 ) )
+	) ;
+}

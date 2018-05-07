@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: paypal_bilan,v 1.104 2017/08/17 11:06:03 gilles Exp gilles $
+# $Id: paypal_bilan,v 1.110 2018/04/25 22:22:04 gilles Exp gilles $
 
 use strict;
 use warnings;
@@ -15,7 +15,7 @@ use Test::More 'no_plan' ;
 die unless (utf8_supported_charset('ISO-8859-1'));
 
 
-my $rcs = '$Id: paypal_bilan,v 1.104 2017/08/17 11:06:03 gilles Exp gilles $ ' ;
+my $rcs = '$Id: paypal_bilan,v 1.110 2018/04/25 22:22:04 gilles Exp gilles $ ' ;
 $rcs =~ m/,v (\d+\.\d+)/ ;
 my $VERSION = ($1) ? $1: "UNKNOWN" ;
 
@@ -43,6 +43,9 @@ my $nb_invoice = 0 ;
 my $nb_invoice_refund = 0 ;
 my $nb_invoice_suspended = 0 ;
 my $nb_invoice_canceled = 0 ;
+
+my $nb_individuals   = 0 ;
+my $nb_professionals = 0 ;
 
 my ( $tests, $testeur ) ;
 my $dry ;
@@ -151,11 +154,28 @@ my %invoice_sent ;
 my @invoice_not_sent ;
 my %invoice_not_sent ;
 
+sub count_ind_pro {
+        my $A = shift ;
+        if ( ! $A->{ client_type } ) {
+                return ;
+        }
+
+        if ( 'individual' eq $A->{ client_type } ) {
+                $nb_individuals += 1 ;
+                return ;
+        }
+        if ( 'professional' eq $A->{ client_type } ) {
+                $nb_professionals += 1 ;
+                return ;
+        }
+}
+
 foreach my $invoice ( @invoices_wanted ) {
 
 	my $action = $action_invoice{ $invoice } ;
         next if ! $action ;
 	my $email_address = $action->{ "De l'adresse email" } ;
+       
 	
 	my $invoice_sent = invoice_sent( $dir_invoices, $invoice, $email_address ) ;
 	#print "$invoice $invoice_sent $email_address\n" ;
@@ -168,6 +188,8 @@ foreach my $invoice ( @invoices_wanted ) {
 		build_invoice( $invoice ) ;
 	}
 }
+
+
 
 @invoice_sent = sort { $a <=> $b } keys( %invoice_sent ) ;
 my $nb_invoice_sent = scalar( @invoice_sent ) ;
@@ -243,6 +265,9 @@ print "EUR total HT serv+supp exo ", $total_HT_EUR_serv_exo + $total_HT_EUR_sup_
 print "EUR total HT licences  exo $total_HT_EUR_logi_exo (autres operations NON imposables)\n" ;
 print "EUR total HT autres operations NON imposables: $total_HT_EUR_serv_exo + $total_HT_EUR_sup_exo + $total_HT_EUR_logi_exo = $total_HT_EUR_exo\n" ;
 
+print( "---- Client type ----\n" ) ;
+print( "individuals/professionals: $nb_individuals/$nb_professionals\n" ) ;
+printf( "%%professionals = %.0f%%\n", 100 * $nb_professionals /( $nb_individuals + $nb_professionals  ) ) ;
 print( "---- Invoices ----\n" ) ;
 
 print "Nb invoice            $nb_invoice ( from $first_invoice_paypal to $last_invoice )\n" ;
@@ -651,6 +676,7 @@ sub compute_line {
                                    $A->{Titre_de_l_objet}, $A->{Impact_sur_le_solde}, $A->{Type} ) ) ;
 
 	$action->{ 'invoice' } = $A->{invoice} ;
+        count_ind_pro( $A ) ;
 }
 
 sub BNC_output {
@@ -977,10 +1003,10 @@ sub build_email_message {
         my $invoice = $F->{invoice} ;
         
 	my $message_header = qq{X-imapsync: invoice $invoice for imapsync $F->{object_type}
-From: Gilles LAMIRAL <gilles.lamiral\@laposte.net>
+From: Gilles LAMIRAL <gilles\@lamiral.info>
 Bcc: gilles\@lamiral.info
 Subject: [imapsync invoice] $invoice ($F->{Hors_taxe_num} EUR on $F->{Date}) for imapsync $F->{object_type}.
-Disposition-Notification-To: Gilles LAMIRAL <gilles.lamiral\@laposte.net>
+Disposition-Notification-To: Gilles LAMIRAL <gilles\@lamiral.info>
 } ;
 
 
@@ -1037,7 +1063,7 @@ or any other gpg graphical tool.
 Here is the fingerprint of my public key
 pub   1024D/FDA2B3DC 2002-05-08
       Key fingerprint = 7906 F53D 0D62 0C67 304A  4CF0 6928 869B FDA2 B3DC
-uid                  Gilles LAMIRAL <gilles.lamiral\@laposte.net>
+uid                  Gilles LAMIRAL <gilles\@lamiral.info>
 sub   1024g/A2C4CB42 2002-05-08
 
 Of course the verification doesn't prove anything until 
@@ -1154,7 +1180,7 @@ sub download_urls {
 			( 'service' eq $F->{object_type} )
             )
         ) {
-		$F->{urlSrc} = 'http://imapsync.lamiral.info/paypal_return.shtml' ;
+		$F->{urlSrc} = 'https://imapsync.lamiral.info/paypal_return.shtml' ;
 		$F->{urlExe} = '' ;
 		return(  ) ;
 	}
@@ -1603,6 +1629,10 @@ sub client_type {
 sub build_address {
 	my $F = shift ;
 
+        foreach my $key ( qw( Nom Adresse_1 Adresse_2_district_quartier Ville Code_postal Etat_Province Pays ) ) {
+                $F->{ $key } = ( defined($F->{ $key } ) ) ? $F->{ $key } : q{} ;
+        }
+        
 	my $addr = "
 ===========================================================
 Nom			        $F->{Nom}

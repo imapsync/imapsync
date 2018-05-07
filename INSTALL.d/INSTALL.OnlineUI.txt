@@ -1,21 +1,46 @@
 #!/bin/cat 
-# $Id: INSTALL.OnlineUI.txt,v 1.8 2017/09/01 22:50:06 gilles Exp gilles $
+# $Id: INSTALL.OnlineUI.txt,v 1.14 2018/04/24 00:14:51 gilles Exp gilles $
 
 ==============================
 = Installing imapsync online = 
 ==============================
 
 Please consider this as relatively new and experimental.
-I add I'm begining to be confident with /X since the /X service 
-is up and running quite well since january 2017.
+I add I'm beginning to be confident with /X since the /X service 
+is up and running quite well since January 2017.
 
-You have to be a little familiar with what is a CGI script
-and how to activate it on an Apache (or any other) HTTP server.
+You have to be a little familiar with what a CGI script is
+and how to activate a CGI script on an the Apache (or any other) 
+HTTP server.
 
-The web visual user interface frontend is the file
-https://imapsync.lamiral.info/X/imapsync_form.html
-You can do a "view source" to see it as it is written,
-and a "save" to get it locally.
+The web visual user interface frontend is compounded in three
+files, a html5 file, a css file, and a javascript file:
+
+* https://imapsync.lamiral.info/X/imapsync_form.html
+* https://imapsync.lamiral.info/X/imapsync_form.js
+* https://imapsync.lamiral.info/X/imapsync_form.css
+
+You can do a "view source" to see the html file as 
+it is written, and a "save" to get it locally.
+The two other files called imapsync_form.js and 
+imapsync_form.css can be saved the same way.
+
+Those three files can be put anywhere on a web server,
+as long as they stand in the same directory. If you
+want to put them in different directories, just change
+the content of imapsync_form.html to reflect the change,
+ie, change the two lines referencing imapsync_form.css and imapsync_form.js 
+  href="imapsync_form.css" (near the beginning of imapsync_form.html)
+  src="imapsync_form.js"   (near the end of imapsync_form.html)
+
+The actual imap syncing work is done by imapsync acting as a CGI,
+the visual interface is only there to give imapsync the parameters
+needed for the sync.
+
+In order to make imapsync work as a cgi, there is two conditions.
+First it has to work by itself on the web host. If imapsync
+doesn't work by itself, on a command line, then it won't
+work as a cgi.
 
 This imapsync_form.html file in action calls the CGI location
 /cgi-bin/imapsync
@@ -26,33 +51,42 @@ https://imapsync.lamiral.info/imapsync
 It is the program file used verbatim for the service given at
 https://imapsync.lamiral.info/X/
 
-So copy both imapsync_form.html and imapsync on a HTTP server 
-allowing CGIs and you'll have your own imapsync visual interface.
+Copy imapsync_form.* on a directory that is visible by your HTTP server.
+Copy the imapsync script on the cgi-bin/ directory
+allowing CGIs and you'll have your own imapsync visual interface
+and service.
+
+I haven't tested yet this visual interface on Windows nor Mac,
+feedback is welcome from successes or failures on those platforms.
 
 
 Example on a Debian server with Apache:
 
-Imapsync place on the server disk:
+Imapsync script place on the server disk:
 /usr/lib/cgi-bin/imapsync
 
-This classical /cgi-bin directory is configured in Apache
-configuration file
+This classical /cgi-bin directory is already configured 
+in the Apache configuration file
 /etc/apache2/sites-available/default-ssl
 or
 /etc/apache2/sites-available/default
 
-It contains somewhere (maybe in comments for now, 
-with some # characters to make them ignored):
+The configuration file contains somewhere, 
+maybe in comments for now, with some # characters 
+at the beginning to make them ignored:
 
 ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
 <Directory "/usr/lib/cgi-bin">
     AllowOverride None
+    # Next line "no-gzip 1" is to avoid output buffering, 
+    # clients can then see the log along the sync
+    SetEnv no-gzip 1
     Options +ExecCGI -MultiViews
     Order allow,deny
     Allow from all
 </Directory>
 
-The UI frontend file place on the server disk is
+The UI front-end file place on the server disk is
 /var/www/X/imapsync_form.html
 but it can be placed it anywhere on disk, the important
 thing is that it has to be served by the web server. 
@@ -60,11 +94,77 @@ thing is that it has to be served by the web server.
 The imapsync working directory in cgi mode is
 /var/tmp/imapsync_cgi/
 it is not configurable unless changing it in
-imapsync directly, it is hardcoded in imapsync. 
+imapsync directly, it is hard-coded in imapsync. 
 In this directory will go the log files and
 the pid files.
 
 Use at least CGI.pm release 4.08 (2014-10-18)
 to avoid the bug "Undefined subroutine CGI::multi_param"
+You can use the command cpanm to upgrade CGI.pm to its last version,
+it's the easiest way.
 
 
+Example on a Centos 7 server with httpd Apache:
+
+  mkdir /var/www/html/X/
+  cp imapsync_form.html imapsync_form.js imapsync_form.css /var/www/html/X/
+
+  cp imapsync /var/www/cgi-bin/
+
+Check 
+   http://yourhost/X/imapsync_form.html
+or the safer
+  https://yourhost/X/imapsync_form.html
+
+That's all for installing a /X service on Centos 7.
+
+====== mod_perl ======
+
+The script imapsync doesn't work under Modperl::Registry
+nor under ModPerl::PerlRun so read on if you think you
+are better than me.
+
+I've try the standard way, telling how any cgi perl script
+can be run under mod_perl perlrun, but it fails with imapsync.
+Any hint welcome!
+
+# This is a Debian example
+
+# install mod-perl with
+
+  apt-get install libapache2-mod-perl2
+
+# edit the file /etc/apache2/mods-available/perl.conf
+# with the following lines
+  more /etc/apache2/mods-available/perl.conf
+
+<IfModule mod_perl.c>
+  PerlModule ModPerl::PerlRun
+  Alias /perl-run/ /usr/lib/cgi-bin/
+  <Location /perl-run>
+      SetHandler perl-script
+      PerlResponseHandler ModPerl::PerlRun
+      PerlOptions +ParseHeaders
+      Options +ExecCGI
+  </Location>
+</IfModule>
+
+# Enable the Apache perl module
+
+  a2enmod perl
+
+# Verify perl.conf and perl.load are in directory mods-enabled/
+
+  ls mods-enabled/perl.*
+
+# Reload Apache
+
+  apachectl graceful
+
+# Verify imapsync works under perl-run
+
+  curl http://localhost/perl-run/imapsync
+
+
+
+======================

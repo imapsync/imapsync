@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Massive.txt,v 1.15 2017/06/17 13:45:15 gilles Exp gilles $
+$Id: FAQ.Massive.txt,v 1.17 2017/12/20 03:38:07 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -123,9 +123,16 @@ How many syncs can we run in parallel? here comes measurements.
    
      nload -t 6000 eth0 -u K
 
-   Another excellent network tool is dstat:
+   Another good network tool is dstat:
    
      dstat -n -N eth0 6
+
+   A excellent tool for this purpose is iftop, the following
+   command will monitor imap and imaps connexions
+   on interfce eth0, only them, and sum them up:
+   
+     iftop -i eth0 -f 'port imap or port imaps' -B
+
 
    On Windows, get the overall network rate with the classical
    task manager (Ctrl-Alt-Sup), there is a network tab in it.
@@ -164,14 +171,14 @@ Same thing if they both decrease!
 R2. Isolating and overcoming bottlenecks
 
 On any process involving several mechanisms, among all elements taking
-part on the process there is always a bottleneck.  No one knows in
+part on the process, there is always a bottleneck.  No one knows in
 advance what is the first bottleneck. The first bottleneck has to be
 determined, by measurements, not by guesses.  Once this first
 bottleneck is known and overcome then the next bottleneck has to be
 determined and overcome too, if needed. Repeat the process of looking
 for the next bottleneck and its elimination until you estimate the
-transfer rates, money costs and final dates are good enough to proceed
-the whole huge migration.
+transfer rates, money costs, time spent on this, and final dates 
+are good enough to proceed the whole huge migration.
 
 Possible bottlenecks: 
 
@@ -180,7 +187,7 @@ Possible bottlenecks:
   For example Gmail, Office365, Exchange have throttle limits.
 
 - Bandwidth. 
-  Usually available bandwidth is not a bottleneck. 
+  Usually available bandwidth is NOT a bottleneck.
   Meanwhile, it can be a bottleneck on small Internet connexions.
   Imapsync downloads messages from host1 and upload messages to host2,
   consider this in case the connexion are asymetric.
@@ -189,6 +196,11 @@ Possible bottlenecks:
   I/O are a classical bottleneck, almost always forgotten.
   Unlike CPU and RAM, Input/Output performances don't improve
   very much as time goes on so it's often a bottleneck.
+  To measure and overcome an I/O disk bottleneck, you need 
+  usually a direct access to host1 and host2.
+  An I/O bottleneck where imapsync runs is possible if
+  --usecache or --useuid is used or with very big messages.
+
 
 - RAM memory.
   On all sides, monitor that your systems don't swap on disk,

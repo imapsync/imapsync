@@ -1,0 +1,34 @@
+#!/bin/sh
+# Usage:
+# $ bash merge-csv.sh [directory_with_csvs]
+
+# $Id: merge-csv,v 1.3 2018/04/02 18:51:32 gilles Exp gilles $
+
+# Merge all non-header lines into merged.csv
+merge_pattern() {
+    pattern=${1:-rrrrrrrrrr}
+    for fname in `ls -r *${pattern}-stats.csv`
+    do 
+        test -f $fname || continue
+        tail -n+2 $fname >> ${pattern}_merged.csv;
+    done
+    
+    test -f ${pattern}_merged.csv || return
+    # Get the unique rows by column 1, 2
+    awk -F"," '!seen[$1, $2]++' ${pattern}_merged.csv > ${pattern}_merged2.csv
+
+    # Sort the final rows in alpha order - first by the first col., then by second col.
+    sort -k1,1 -k2,2 ${pattern}_merged2.csv > ${pattern}_merged3.csv
+
+    # Rename and cleanup output
+    # Commented out 'rm' commands just in case
+    #rm ${pattern}_merged.csv
+    #rm ${pattern}_merged2.csv
+    mv ${pattern}_merged3.csv imapsync_github_stats_${pattern}.csv
+    
+}
+
+
+merge_pattern clone
+merge_pattern referrer
+merge_pattern traffic

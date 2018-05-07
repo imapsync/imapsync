@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.SSL_errors.txt,v 1.1 2017/05/24 19:16:40 gilles Exp gilles $
+$Id: FAQ.SSL_errors.txt,v 1.5 2018/04/25 17:58:12 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -7,15 +7,17 @@ This documentation is also at http://imapsync.lamiral.info/#doc
                 Imapsync SSL errors
 =====================================================
 
-Questions anwswered in this FAQ are:
+Questions answered in this FAQ are:
 
 Q. What are the errors
   DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
   or
   DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
 
-
 Q. What can I do to avoid those "SSL read/write errors"?
+
+Q. SSL connect attempt failed SSL 
+   routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
 
 =======================================================================
 Q. What are the errors
@@ -23,7 +25,8 @@ Q. What are the errors
   or
   DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
 
-R. Like they claim, those errors are SSL errors. SSL is not directly
+
+R1.Like they claim, those errors are SSL errors. SSL is not directly
    done by imapsync but by an underlying Perl module called
    IO::Socket::SSL. Those errors arise sometimes and sometimes
    they form a serie that ends with imapsync auto-abortion.
@@ -34,6 +37,9 @@ R. Like they claim, those errors are SSL errors. SSL is not directly
 
 =======================================================================
 Q. What can I do to avoid those "SSL read/write errors"?
+
+R0. Windows users: upgrade to imapsync.exe release 1.836 (or next ones)
+    Those errors don't appear with recent releases, post 1.836
 
 R1. Remove all ssl/tls encryption
 
@@ -48,9 +54,28 @@ R3. Run imapsync on a Linux machine, a VM is ok, there are less
     SSL errors on Unix.
     
 R4. Use https://imapsync.lamiral.info/X/
-    It's a Linux host so R3 applies there.
+    It's a Linux host so response R3 applies there.
 
 R5. Set up a ssltunnel proxy to the host.
-    Read the file FAQ.Security.txt
+    Read the file FAQ.Security.txt for an example to set up
+    a ssltunnel proxy.
 
 =======================================================================
+Q. SSL connect attempt failed SSL 
+   routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
+
+R. Use: 
+
+   imapsync ... --sslargs1 'SSL_cipher_list=DEFAULT' 
+   or    
+   imapsync ... --sslargs2 'SSL_cipher_list=DEFAULT' 
+
+   depending on where the error occurs, host1 or host2 or both.
+   
+=======================================================================
+=======================================================================
+=======================================================================
+
+
+
+

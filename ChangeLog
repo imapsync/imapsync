@@ -1,17 +1,237 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.836
+head: 1.882
 branch:
 locks: strict
-	gilles: 1.836
+	gilles: 1.882
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 836;	selected revisions: 836
+total revisions: 882;	selected revisions: 882
 description:
 ----------------------------
-revision 1.836	locked by: gilles;
+revision 1.882	locked by: gilles;
+date: 2018/05/05 21:10:43;  author: gilles;  state: Exp;  lines: +8 -8
+typo
+----------------------------
+revision 1.881
+date: 2018/05/05 20:43:36;  author: gilles;  state: Exp;  lines: +96 -61
+proofread the doc part. ispell on README.
+----------------------------
+revision 1.880
+date: 2018/05/05 12:44:21;  author: gilles;  state: Exp;  lines: +26 -21
+Splitted sub usage() with call to sub mypod2usage(). Crit level 4 on open/close not far away.
+----------------------------
+revision 1.879
+date: 2018/04/20 13:02:13;  author: gilles;  state: Exp;  lines: +20 -13
+Back to `` because of backtick() does not work always on Darwin
+----------------------------
+revision 1.878
+date: 2018/04/19 00:51:45;  author: gilles;  state: Exp;  lines: +76 -40
+Perlcrit. Removed the select in teelaunch()
+Perlcrit. *STDERR change is now localized.
+Perlcrit. Hard 'LOG_imapsync' is now $DEFAULT_LOGDIR
+Proxy mode. Log file will be named with a suffix "_remote.txt" 
+Refactor. sub logfile() is deglobalized. (removed $debug lines)
+----------------------------
+revision 1.877
+date: 2018/04/18 22:00:46;  author: gilles;  state: Exp;  lines: +31 -13
+Changed sub myprint and sub myprintf in order to suppress the select in teelaunch
+----------------------------
+revision 1.876
+date: 2018/04/18 03:02:32;  author: gilles;  state: Exp;  lines: +20 -17
+Bugfix. ARRAY ref not defined with --subscribed
+----------------------------
+revision 1.875
+date: 2018/04/18 02:27:18;  author: gilles;  state: Exp;  lines: +32 -25
+Refactor. $tmpdir unglobalized
+Win32. No USR1 on Windows so skip signals tests on Win32
+----------------------------
+revision 1.874
+date: 2018/04/18 00:46:46;  author: gilles;  state: Exp;  lines: +53 -40
+Perlcrit. Use IPC::Open3::open3 instead of backticks  ``
+----------------------------
+revision 1.873
+date: 2018/04/17 00:24:54;  author: gilles;  state: Exp;  lines: +9 -9
+Added SERVER_SOFTWARE
+Added SERVER_PORT
+----------------------------
+revision 1.872
+date: 2018/04/16 23:10:03;  author: gilles;  state: Exp;  lines: +17 -11
+Bugfix to pass --tests under root user.
+----------------------------
+revision 1.871
+date: 2018/04/13 18:00:06;  author: gilles;  state: Exp;  lines: +71 -12
+Added toggle sleep from 2s to 0s with signal USR1
+----------------------------
+revision 1.870
+date: 2018/04/08 17:25:54;  author: gilles;  state: Exp;  lines: +46 -46
+Changed gilles.lamiral@laposte.net => gilles@lamiral.info
+----------------------------
+revision 1.869
+date: 2018/04/08 17:21:15;  author: gilles;  state: Exp;  lines: +29 -30
+https://imapsync.lamiral.info/ instead of http://imapsync.lamiral.info/ in ID support-url
+Removed uname info from banner, adder ram info.
+Change utf8 char ° to nb in tests summary
+----------------------------
+revision 1.868
+date: 2018/04/03 01:55:24;  author: gilles;  state: Exp;  lines: +13 -12
+Renamed total_ram_memory() =>  ram_memory_info()
+----------------------------
+revision 1.867
+date: 2018/04/03 00:35:58;  author: gilles;  state: Exp;  lines: +21 -18
+Refactor. sub under_cgi_context() uses $mysync.
+----------------------------
+revision 1.866
+date: 2018/03/29 04:58:11;  author: gilles;  state: Exp;  lines: +10 -9
+Changed inline signal message
+----------------------------
+revision 1.865
+date: 2018/03/29 04:50:26;  author: gilles;  state: Exp;  lines: +98 -86
+Moved the inline help "I am asked to stop immediately" after the final stats.
+Tidied up sub myGetOptions()
+----------------------------
+revision 1.864
+date: 2018/03/28 21:33:28;  author: gilles;  state: Exp;  lines: +12 -18
+Before tidy up sub myGetOptions
+----------------------------
+revision 1.863
+date: 2018/03/28 16:57:22;  author: gilles;  state: Exp;  lines: +10 -8
+Added inline advice to resync after an end commanded by a TERM or QUIT signal.
+----------------------------
+revision 1.862
+date: 2018/03/28 14:48:37;  author: gilles;  state: Exp;  lines: +21 -20
+Reduced the loadavg ingo in the header status in CGI context.
+Added the hostname in in the header status in CGI context.
+----------------------------
+revision 1.861
+date: 2018/03/27 03:04:03;  author: gilles;  state: Exp;  lines: +41 -48
+Refactor. Use of debugmemory() 
+Moved the hostname printing at first line. The goal is for clarity when in proxy mode.
+Added free RAM info in the banner
+Added free RAM and total RAM in the status in CGI context.
+----------------------------
+revision 1.860
+date: 2018/03/26 21:14:01;  author: gilles;  state: Exp;  lines: +97 -67
+Reviewed tests_get_options_cgi(), renamed to tests_get_options_cgi_context()
+Reviewed tests_get_options
+----------------------------
+revision 1.859
+date: 2018/03/22 12:55:34;  author: gilles;  state: Exp;  lines: +13 -8
+Bugfix. Predeclare $sync->{folder} as ARRAY ref. $sync->{folder} = [] ;
+----------------------------
+revision 1.858
+date: 2018/03/21 07:53:26;  author: gilles;  state: Exp;  lines: +14 -11
+Refactoring. Deglobalized $justconnect
+----------------------------
+revision 1.857
+date: 2018/03/21 07:40:12;  author: gilles;  state: Exp;  lines: +80 -31
+Refactor. Changed how --f1f2 is handled. Was a hash, now a list.
+----------------------------
+revision 1.856
+date: 2018/03/20 02:24:52;  author: gilles;  state: Exp;  lines: +31 -19
+Refactoring. Deglobalized @folder
+----------------------------
+revision 1.855
+date: 2018/03/19 14:15:53;  author: gilles;  state: Exp;  lines: +18 -21
+Refactoring. Deglobalized $addheader
+Refactoring. Deglobalized $justlogin
+----------------------------
+revision 1.854
+date: 2018/03/19 13:45:31;  author: gilles;  state: Exp;  lines: +32 -25
+Unglobalized $version
+Unglobalized $releasecheck
+Added sub debugmemory()
+----------------------------
+revision 1.853
+date: 2018/03/12 13:43:11;  author: gilles;  state: Exp;  lines: +9 -9
+Back to default signals. INT => reconnect. TERM or QUIT => stats and exit. (cgicontext ignored TERM)
+----------------------------
+revision 1.852
+date: 2018/03/12 03:11:04;  author: gilles;  state: Exp;  lines: +132 -29
+Added --sigexit; For example --sigexit QUIT --sigexit TERM to exit when receiving QUIT or TERM signals.
+Added --sigreconnect. For example --sigreconnect INT to reconnect to both imap servers when receiving INT signal.
+Added --sigignore. For example --sigignore TERM to "ignore" the TERM signal. In fact print stats during the sync.
+Default is like:  --sigexit QUIT --sigexit TERM --sigreconnect INT 
+
+Added sub sig_install() to install any behavior with any signal (the ones actually received in Unix).
+Number of tests with --tests is 1137
+----------------------------
+revision 1.851
+date: 2018/03/04 15:19:04;  author: gilles;  state: Exp;  lines: +10 -10
+Inline help. Clarified --errorsmax inline help.
+----------------------------
+revision 1.850
+date: 2018/02/21 04:15:32;  author: gilles;  state: Exp;  lines: +66 -41
+Option --abort now creates a log too, in order to see if imapsync ends by signal come from --abort or something else.
+----------------------------
+revision 1.849
+date: 2018/02/18 18:45:36;  author: gilles;  state: Exp;  lines: +14 -10
+Added \t\r\n characters replaced by _ in sub filter_forbidden_characters()
+----------------------------
+revision 1.848
+date: 2018/02/07 00:58:59;  author: gilles;  state: Exp;  lines: +50 -28
+Cleaned up --releasecheck stuff.
+Clarified SSL_VERIFY_NONE default.
+----------------------------
+revision 1.847
+date: 2017/12/18 11:04:26;  author: gilles;  state: Exp;  lines: +56 -33
+Bugfix. Fixed sub epoch() to allow that kind of silly INTERNALDATE 00-Jan-0000 00:00:00 +0000
+(Thanks to IBM Domino...)
+Added inline documentation about --releasecheck and --noreleasecheck
+Default upstream is still --releasecheck. Just a line to change to have --noreleasecheck by default (as before)
+Bugfix. --releasecheck on was hardcoded in cgi context. Now it depends on the default behavior chosen.
+Bug pending. Still have to fix --releasecheck on with --help
+----------------------------
+revision 1.846
+date: 2017/11/30 02:00:12;  author: gilles;  state: Exp;  lines: +34 -12
+Added sub memory_stress
+Added sub tests_memory_stress
+memory_stress() crunch 3/4 of the RAM. 
+tests_memory_stress() is the associated test.
+----------------------------
+revision 1.845
+date: 2017/11/28 23:36:43;  author: gilles;  state: Exp;  lines: +51 -29
+Added --noresyncflags     : Do not resync flags for already transfered messages.
+May be useful when a user has already started to play with its host2 account.
+----------------------------
+revision 1.844
+date: 2017/11/16 14:38:38;  author: gilles;  state: Exp;  lines: +107 -43
+Crit. Removed 4 "Warnings disabled". crit level 4
+----------------------------
+revision 1.843
+date: 2017/11/05 22:23:57;  author: gilles;  state: Exp;  lines: +38 -30
+Added --nocheckfoldersexist ( Default is like --checkfoldersexist )
+----------------------------
+revision 1.842
+date: 2017/10/30 18:47:37;  author: gilles;  state: Exp;  lines: +246 -115
+Refactoring. Removed global variables $h1_prefix and $h2_prefix
+Bugfix. cpu_number() returns always an integer >= 1.
+----------------------------
+revision 1.841
+date: 2017/10/27 12:37:39;  author: gilles;  state: Exp;  lines: +55 -41
+Detect extra arguments. Meaning usually a quoting issue in the command line, options not well parsed.
+----------------------------
+revision 1.840
+date: 2017/10/22 14:28:00;  author: gilles;  state: Exp;  lines: +9 -9
+No limitssssss
+----------------------------
+revision 1.839
+date: 2017/10/04 17:50:29;  author: gilles;  state: Exp;  lines: +132 -39
+In case the pidfile already exists, remove it if no process match its content.
+Do nothing if the pidfile doesn't content a pid number 0<pid<65536
+----------------------------
+revision 1.838
+date: 2017/09/22 08:12:49;  author: gilles;  state: Exp;  lines: +28 -12
+Added Polska to possible_special (not for all).
+Started sub tests_write_pidfile()
+----------------------------
+revision 1.837
+date: 2017/09/20 20:14:14;  author: gilles;  state: Exp;  lines: +42 -19
+Usability. More verbose with ssl probing.
+----------------------------
+revision 1.836
 date: 2017/09/05 16:14:53;  author: gilles;  state: Exp;  lines: +189 -182
 Reread the README part. Changed order, rewrote some parts, added options.
 ----------------------------

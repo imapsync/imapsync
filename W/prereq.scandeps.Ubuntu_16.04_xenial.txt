@@ -5,7 +5,7 @@ Name:
 
 Version:
 
- This documentation refers to Imapsync $Revision: 1.1 $
+ This documentation refers to Imapsync $Revision: 1.2 $
 
 Usage:
 
@@ -39,11 +39,14 @@ Options:
 Options/credentials:
 
   --host1        str  : Source or "from" imap server. Mandatory.
-  --port1        int  : Port to connect on host1. Default is 143, 993 if --ssl1
+  --port1        int  : Port to connect on host1. 
+                        Optional since default port is 143 or 993 if --ssl1
   --user1        str  : User to login on host1. Mandatory.
   --password1    str  : Password for the user1.
+
   --host2        str  : "destination" imap server. Mandatory.
-  --port2        int  : Port to connect on host2. Default is 143, 993 if --ssl2
+  --port2        int  : Port to connect on host2. 
+                        Optional since default port is 143 or 993 if --ssl2
   --user2        str  : User to login on host2. Mandatory.
   --password2    str  : Password for the user2.
 
@@ -60,13 +63,18 @@ Options/encryption:
 
   --nossl1            : Do not use a SSL connection on host1.
   --ssl1              : Use a SSL connection on host1. On by default if possible.
+
   --nossl2            : Do not use a SSL connection on host2.
   --ssl2              : Use a SSL connection on host2. On by default if possible.
+
   --notls1            : Do not use a TLS connection on host1.
   --tls1              : Use a TLS connection on host1. On by default if possible.
+
   --notls2            : Do not use a TLS connection on host2.
   --tls2              : Use a TLS connection on host2. On by default if possible.
+
   --debugssl     int  : SSL debug mode from 0 to 4.
+
   --sslargs1     str  : Pass any ssl parameter for host1 ssl or tls connection. Example:
                         --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
                         See all possibilities in the new() method of IO::Socket::SSL
@@ -112,7 +120,8 @@ Options/folders:
 
   --nomixfolders      : Do not merge folders when host1 is case-sensitive
                         while host2 is not (like Exchange). Only the first
-                        similar folder is synced (ex: Sent SENT sent -> Sent).
+                        similar folder is synced (ex: with Sent SENT sent
+                        on host1 only Sent will be synced to host2).
 
   --skipemptyfolders  : Empty host1 folders are not created on host2.
 
@@ -125,19 +134,16 @@ Options/folders:
                          --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
   --exclude      reg  : or this one, etc.
 
+  --automap           : guesses folders mapping, for folders well known as
+                        "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
+
+  --f1f2    str1=str2 : Force folder str1 to be synced to str2,
+                        --f1f2 overrides --automap and --regextrans2.
+
   --subfolder2   str  : Move whole host1 folders hierarchy under this
                         host2 folder  str    .
                         It does it by adding two --regextrans2 options before
                         all others. Add --debug to see what's really going on.
-
-  --automap           : guesses folders mapping, for folders like
-                        "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
-  --f1f2    str1=str2 : Force folder str1 to be synced to str2,
-                        --f1f2 overrides --automap and --regextrans2.
-
-  --nomixfolders      : Avoid merging folders that are considered different on
-                        host1 but the same on destination host2 because of
-                        case sensitivities and insensitivities.
 
   --subscribed        : Transfers subscribed folders.
   --subscribe         : Subscribe to the folders transferred on the
@@ -161,7 +167,7 @@ Options/folders:
                         Then, when happy, remove --dry, remove --justfolders.
                         Have in mind that --regextrans2 is applied after prefix
                         and separator inversion. For examples see
-                        http://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
+                        https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
 
 Options/folders sizes:
 
@@ -213,6 +219,12 @@ Options/flags:
                         Example: 's/"Junk"//g' # to remove "Junk" flag.
   --regexflag    reg  : then this one, etc.
 
+  --resyncflags       : Resync flags for already transferred messages.
+                        On by default.
+  --noresyncflags     : Do not resync flags for already transferred messages.
+                        May be useful when a user has already started to play 
+                        with its host2 account.
+
 Options/deletions:
 
   --delete1           : Deletes messages on host1 server after a successful
@@ -257,6 +269,8 @@ Options/dates:
                         a message arrived on a host (mtime).
   --idatefromheader   : Sets the internal dates on host2 same as the
                         "Date:" headers.
+                        If you encounter problems with dates see also
+                        https://imapsync.lamiral.info/FAQ.d/FAQ.Dates.txt
 
 Options/message selection:
 
@@ -275,8 +289,11 @@ Options/message selection:
 
   --search       str  : Selects only messages returned by this IMAP SEARCH
                         command. Applied on both sides.
-  --search1      str  : Same as --search for selecting host1 messages only.
-  --search2      str  : Same as --search for selecting host2 messages only.
+                        For a complete of what can be search see
+                        https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
+                       
+  --search1      str  : Same as --search but for selecting host1 messages only.
+  --search2      str  : Same as --search but for selecting host2 messages only.
                         --search CRIT equals --search1 CRIT --search2 CRIT
 
   --maxlinelength int : skip messages with a line length longer than  int  bytes.
@@ -290,11 +307,11 @@ Options/message selection:
   --usecache          : Use cache to speed up the sync.
   --nousecache        : Do not use cache. Caveat: --useuid --nousecache creates
                         duplicates on multiple runs.
-  --useuid            : Use uid instead of header as a criterium to recognize
+  --useuid            : Use UIDs instead of headers as a criterium to recognize
                         messages. Option --usecache is then implied unless
                         --nousecache is used.
 
-Options/miscelaneous:
+Options/miscellaneous:
 
   --syncacls          : Synchronizes acls (Access Control Lists).
   --nosyncacls        : Does not synchronize acls. This is the default.
@@ -308,14 +325,14 @@ Options/debugging:
   --debugflags        : Debug mode for flags.
   --debugimap1        : IMAP debug mode for host1. Very verbose.
   --debugimap2        : IMAP debug mode for host2. Very verbose.
-  --debugimap         : IMAP debug mode for host1 and host2.
+  --debugimap         : IMAP debug mode for host1 and host2. Twice very verbose.
   --debugmemory       : Debug mode showing memory consumption after each copy.
 
   --errorsmax     int : Exit when int number of errors is reached. Default is 50.
 
   --tests             : Run local non-regression tests. Exit code 0 means all ok.
   --testslive         : Run a live test with test1.lamiral.info imap server.
-                        Useful to check the basics. Needs internet connexion.
+                        Useful to check the basics. Needs internet connection.
   --testslive6        : Run a live test with ks2ipv6.lamiral.info imap server.
                         Useful to check the ipv6 connectivity. Needs internet.
 
@@ -345,7 +362,7 @@ Options/behavior:
                         On by default, 2 seconds max, like --maxsleep 2
 
   --abort             : terminates a previous call still running. 
-                        It uses the pidfile to know what processus to abort.
+                        It uses the pidfile to know what process to abort.
 
   --exitwhenover int  : Stop syncing when total bytes transferred reached.
 
@@ -370,20 +387,29 @@ Options/behavior:
      --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
      --host2 test2.lamiral.info --user2 test2 --password2 secret2
 
-Here is petite, a 2.0 GiB [linux] system (Linux petite 4.4.0-92-generic #115-Ubuntu SMP Thu Aug 10 16:02:55 UTC 2017 i686)
+Here is imapsync 1.882 on host petite, a linux system with 1.0/2.0 free GiB of RAM
 with Perl 5.22.1 and Mail::IMAPClient 3.38
-$Id: prereq.scandeps.Ubuntu_16.04_xenial.txt,v 1.1 2017/09/07 12:39:54 gilles Exp gilles $
-This imapsync is up to date. ( local 1.836 >= official 1.727 )
-
-Homepage: http://imapsync.lamiral.info/
+$Id: prereq.scandeps.Ubuntu_16.04_xenial.txt,v 1.2 2018/05/05 23:20:56 gilles Exp gilles $
+This imapsync is up to date. ( local 1.882 >= official 1.836 )( Use --noreleasecheck to avoid this release check. )
+Homepage: https://imapsync.lamiral.info/
 'Tie::Hash::NamedCapture'          => '0.09',
+'APR'                              => '0.009000',
+'APR::XSLoader'                    => 'undef',
+'Apache2::XSLoader'                => 'undef',
 'Authen::NTLM::DES'                => '1.02',
 'Authen::NTLM::MD4'                => '1.02',
 'Crypt::Random::Seed'              => '0.03',
 'Math::Random::ISAAC'              => '1.003',
 'CGI::Cookie'                      => '4.26',
 'CGI::File::Temp'                  => '4.26',
+'APR::Pool'                        => '0.009000',
+'Apache2::RequestIO'               => '2.000009',
+'Apache2::RequestRec'              => '2.000009',
+'Apache2::Response'                => '2.000009',
+'Apache2::RequestUtil'             => '2.000009',
 'CGI::Util'                        => '4.26',
+'ModPerl::Util'                    => '2.000009',
+'APR::Table'                       => '0.009000',
 'Fh'                               => '4.26',
 'Convert::ASN1::IO'                => '0.27',
 'Convert::ASN1::_decode'           => '0.27',
@@ -395,7 +421,6 @@ Homepage: http://imapsync.lamiral.info/
 'Digest::HMAC'                     => '1.03',
 'Encode::HanExtra'                 => '0.23',
 'HTML::Parser'                     => '3.72',
-'HTTP::Headers'                    => '6.11',
 'HTTP::Cookies::Netscape'          => '6.00',
 'IO::Compress::Bzip2'              => '2.069',
 'IO::Compress::Deflate'            => '2.069',
@@ -405,6 +430,7 @@ Homepage: http://imapsync.lamiral.info/
 'IO::Uncompress::Inflate'          => '2.069',
 'IO::Uncompress::RawInflate'       => '2.069',
 'IO::Uncompress::Gunzip'           => '2.069',
+'HTTP::Headers'                    => '6.11',
 'HTTP::Message'                    => '6.11',
 'File::GlobMapper'                 => '1.000',
 'IO::Compress::Adapter::Bzip2'     => '2.069',
@@ -412,14 +438,14 @@ Homepage: http://imapsync.lamiral.info/
 'IO::Compress::Zlib::Constants'    => '2.069',
 'IO::Compress::RawDeflate'         => '2.069',
 'IO::Compress::Adapter::Deflate'   => '2.069',
+'IO::Compress::Base::Common'       => '2.069',
+'IO::Compress::Zlib::Extra'        => '2.069',
+'IO::Compress::Gzip::Constants'    => '2.069',
 'Socket6'                          => '0.25',
 'IO::Socket::SSL::PublicSuffix'    => 'undef',
 'Net::SSLeay'                      => '1.72',
 'Compress::Raw::Bzip2'             => '2.069',
 'IO::Uncompress::Adapter::Bunzip2' => '2.069',
-'IO::Compress::Zlib::Extra'        => '2.069',
-'IO::Compress::Gzip::Constants'    => '2.069',
-'IO::Compress::Base::Common'       => '2.069',
 'IO::Uncompress::Adapter::Inflate' => '2.069',
 'IO::Uncompress::Base'             => '2.069',
 'JSON::WebToken::Constants'        => 'undef',
@@ -428,15 +454,13 @@ Homepage: http://imapsync.lamiral.info/
 'JSON::WebToken::Crypt'            => 'undef',
 'Types::Serialiser'                => '1.0',
 'common::sense'                    => '3.74',
-'Authen::NTLM'                     => '1.09',
-'HTTP::Status'                     => '6.11',
-'LWP::Protocol'                    => '6.15',
-'HTTP::Response'                   => '6.11',
 'CPAN::Config'                     => 'undef',
-'URI::_query'                      => '1.71',
+'URI::_generic'                    => '1.71',
+'URI::_foreign'                    => '1.71',
 'URI::data'                        => '1.71',
 'URI::_idna'                       => '1.71',
 'URI::mailto'                      => '1.71',
+'URI::_query'                      => '1.71',
 'URI'                              => '1.71',
 'URI::QueryParam'                  => '1.71',
 'URI::Split'                       => '1.71',
@@ -461,29 +485,24 @@ Homepage: http://imapsync.lamiral.info/
 'URI::snews'                       => '1.71',
 'URI::telnet'                      => '1.71',
 'URI::tn3270'                      => '1.71',
-'URI::_foreign'                    => '1.71',
-'URI::file::Win32'                 => '1.71',
-'URI::file::Unix'                  => '1.71',
-'URI::file::Base'                  => '1.71',
-'URI::Heuristic'                   => '4.20',
-'URI::_login'                      => '1.71',
 'URI::IRI'                         => '1.71',
 'URI::ldap'                        => '1.71',
 'URI::news'                        => '1.71',
 'URI::ssh'                         => '1.71',
 'URI::_punycode'                   => '1.71',
-'URI::_generic'                    => '1.71',
+'URI::file::Win32'                 => '1.71',
+'URI::file::Unix'                  => '1.71',
+'URI::file::Base'                  => '1.71',
 'URI::_ldap'                       => '1.71',
 'URI::rtsp'                        => '1.71',
-'URI::_userpass'                   => '1.71',
 'URI::sip'                         => '1.71',
+'URI::_userpass'                   => '1.71',
+'URI::_login'                      => '1.71',
+'URI::Heuristic'                   => '4.20',
 'URI::WithBase'                    => '2.20',
 'URI::file'                        => '4.21',
 'URI::_server'                     => '1.71',
-'HTTP::Date'                       => '6.02',
-'LWP'                              => '6.15',
 'LWP::MediaTypes'                  => '6.02',
-'HTTP::Request'                    => '6.11',
 'File::Listing'                    => '6.04',
 'HTTP::Negotiate'                  => '6.00',
 'Net::HTTP'                        => '6.09',
@@ -493,6 +512,9 @@ Homepage: http://imapsync.lamiral.info/
 'Net::LDAP'                        => '0.65',
 'Net::LDAP::LDIF'                  => '0.26',
 'Mail::Internet'                   => '2.13',
+'HTTP::Status'                     => '6.11',
+'LWP::Protocol'                    => '6.15',
+'HTTP::Response'                   => '6.11',
 'HTML::HeadParser'                 => '3.71',
 'HTTP::Config'                     => '6.11',
 'HTTP::Request::Common'            => '6.11',
@@ -501,8 +523,12 @@ Homepage: http://imapsync.lamiral.info/
 'Encode::Locale'                   => '1.05',
 'HTTP::Headers::Util'              => '6.11',
 'LWP::MemberMixin'                 => 'undef',
+'LWP'                              => '6.15',
+'HTTP::Date'                       => '6.02',
+'HTTP::Request'                    => '6.11',
 'Mail::IMAPClient::MessageSet'     => 'undef',
 'Digest::HMAC_MD5'                 => '1.01',
+'Authen::NTLM'                     => '1.09',
 'Mail::Address'                    => '2.13',
 'Mail::Header'                     => '2.13',
 'Mail::Mailer'                     => '2.13',
@@ -517,10 +543,10 @@ Homepage: http://imapsync.lamiral.info/
 'Net::LDAP::Search'                => '0.14',
 'Convert::ASN1::Debug'             => '0.27',
 'Convert::ASN1'                    => '0.27',
-'Net::LDAP::Constant'              => '0.23',
-'Net::LDAP::ASN'                   => '0.12',
 'Net::LDAP::Message'               => '1.12',
+'Net::LDAP::ASN'                   => '0.12',
 'Net::LDAP::Filter'                => '0.20',
+'Net::LDAP::Constant'              => '0.23',
 'XML::SAX::Base'                   => '1.07',
 'Net::LDAP::Schema'                => '0.9908',
 'Net::LDAP::Entry'                 => '0.27',
@@ -550,8 +576,8 @@ Homepage: http://imapsync.lamiral.info/
 'Test::MockObject'                 => '1.20150527',
 'Test::More'                       => '1.001014',
 'Unicode::String'                  => '2.09',
+'HTML::Entities'                   => '3.69',
 'CGI'                              => '4.26',
-'Crypt::OpenSSL::RSA'              => '0.28',
 'LWP::Authen::Digest'              => 'undef',
 'LWP::Authen::Ntlm'                => '6.15',
 'LWP::Protocol::GHTTP'             => 'undef',
@@ -567,16 +593,49 @@ Homepage: http://imapsync.lamiral.info/
 'LWP::Protocol::mailto'            => 'undef',
 'LWP::Protocol::nntp'              => 'undef',
 'LWP::UserAgent'                   => '6.15',
+'JSON::XS'                         => '3.01',
+'JSON'                             => '2.90',
+'JSON::XS::Boolean'                => 'undef',
+'Crypt::OpenSSL::RSA'              => '0.28',
 'LWP::Authen::Basic'               => 'undef',
 'URI::URL'                         => '5.04',
 'URI::http'                        => '1.71',
-'HTML::Entities'                   => '3.69',
 'URI::Escape'                      => '3.31',
 'LWP::Protocol::http'              => 'undef',
 'IO::Socket::SSL'                  => '2.047',
-'JSON'                             => '2.90',
-'JSON::XS::Boolean'                => 'undef',
-'JSON::XS'                         => '3.01',
 'LWP::Protocol::ldap'              => '1.25',
 'LWP::Protocol::nogo'              => 'undef',
 'IO::Socket::INET6'                => '2.72',
+'Regexp::Common::profanity'        => '2016020301',
+'Regexp::Common::comment'          => '2016020301',
+'Regexp::Common::lingua'           => '2016020301',
+'Regexp::Common::zip'              => '2016020301',
+'Regexp::Common::net'              => '2016020301',
+'Regexp::Common::list'             => '2016020301',
+'Regexp::Common::URI::news'        => '2016020301',
+'Regexp::Common::URI::pop'         => '2016020301',
+'Regexp::Common::URI::tel'         => '2016020301',
+'Regexp::Common::URI::ftp'         => '2016020301',
+'Regexp::Common::URI::fax'         => '2016020301',
+'Regexp::Common::URI::wais'        => '2016020301',
+'Regexp::Common::URI::RFC2396'     => '2016020301',
+'Regexp::Common::URI::prospero'    => '2016020301',
+'Regexp::Common::URI::tv'          => '2016020301',
+'Regexp::Common::URI::telnet'      => '2016020301',
+'Regexp::Common'                   => '2016020301',
+'Regexp::Common::URI::RFC1808'     => '2016020301',
+'Regexp::Common::URI::RFC2806'     => '2016020301',
+'Regexp::Common::_support'         => '2016020301',
+'Regexp::Common::URI::gopher'      => '2016020301',
+'Regexp::Common::URI::RFC2384'     => '2016020301',
+'Regexp::Common::URI::RFC1738'     => '2016020301',
+'Regexp::Common::URI::RFC1035'     => '2016020301',
+'Regexp::Common::URI::file'        => '2016020301',
+'Regexp::Common::URI::http'        => '2016020301',
+'Regexp::Common::delimited'        => '2016020301',
+'Regexp::Common::SEN'              => '2016020301',
+'Regexp::Common::whitespace'       => '2016020301',
+'Regexp::Common::number'           => '2016020301',
+'Regexp::Common::balanced'         => '2016020301',
+'Regexp::Common::CC'               => '2016020301',
+'Regexp::Common::URI'              => '2016020301',

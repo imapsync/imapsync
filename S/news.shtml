@@ -39,7 +39,7 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 
 <!-- 
 <ul>
-<li><b>1.824</b></li>
+<li><b>1.882</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -53,21 +53,64 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 <li><b>Bug fix</b>: </li>
 <li><b>Bug fix</b>: </li>
 
-<li><b>Refactoring</b>: Removed most of the perlcrit  (Severity: 3) Regular expression without "/x" flag.</li>
+<li><b>Refactoring</b>: </li>
 <li><b>Refactoring</b>: </li>
 <li><b>Refactoring</b>: </li>
 <li><b>Refactoring</b>: </li>
 
 <li><b>Security</b>: </li>
-<li><b>Dependency</b>: </li>
+<li><b>Dependency removed</b>: </li>
 <li><b>Dependency added</b>: </li>
 
 </ul>
  -->
 
+<ul>
+<li><b>1.882</b> (2018/05/06) On the road to a proxy mode! (not done yet)</li>
+<li><b>Enhancement</b>: Added option --nocheckfoldersexist ( Default is like --checkfoldersexist )</li>
+<li><b>Enhancement</b>: Added option --noresyncflags     : Do not resync flags for already transfered messages.
+                        May be useful when a user has already started to play with its host2 account.</li>
+<li><b>Enhancement</b>: Option --abort now creates a log too, in order to see if imapsync ended by signal comes from option --abort or something else.</li>
+<li><b>Enhancement</b>: Added option --sigexit; For example --sigexit QUIT --sigexit TERM to exit when receiving QUIT or TERM signals.<br>
+Added option --sigreconnect. For example --sigreconnect INT to reconnect to both imap servers when receiving INT signal.<br>
+Added option --sigignore. For example --sigignore TERM to "ignore" the TERM signal. In fact print stats during the sync.<br>
+Default is like:  --sigexit QUIT --sigexit TERM --sigreconnect INT 
+</li>
+<li><b>Enhancement</b>: Moved the hostname printing at first line. The goal is for clarity when in proxy mode.<br>
+Added free RAM info in the banner.<br>
+</li>
+<li><b>Enhancement</b>: When using sleeping behavior, a signal USR1 toggles sleep from 2s to 0s (back to 2s with on next USR1 signal). Unix only.</li>
+
+
+<li><b>Usability</b>: Detect extra arguments. Meaning usually a quoting issue in the command line or that options are not well parsed.</li>
+<li><b>Usability</b>: Added inline documentation about --releasecheck and --noreleasecheck
+Default upstream is still --releasecheck. Just a line to change to have --noreleasecheck by default (as before)</li>
+<li><b>Usability</b>: Added inline advice to resync after an end commanded by a TERM or QUIT signal.</li>
+
+
+<li><b>Bug fix</b>: Fixed sub epoch() to allow that kind of silly INTERNALDATE 00-Jan-0000 00:00:00 +0000
+(Thanks to IBM Domino...)</li>
+<li><b>Bug fix</b>:  --releasecheck activated was hardcoded in cgi context. Now it depends on the default behavior chosen.
+Bug pending. Still have to fix --releasecheck on with --help</li>
+<li><b>Bug fix</b>: Added \t\r\n characters to be replaced by character _ in sub filter_forbidden_characters()</li>
+<li><b>Bug fix</b>: fixes to pass --tests under root user.</li>
+
+
+<li><b>CGI context</b>: Added SERVER_SOFTWARE and SERVER_PORT info.</li>
+<li><b>CGI context</b>: Added free RAM, total RAM and hostname in the status.</li>
+<li><b>CGI context</b>: Reduced the loadavg info in the header status.</li>
+
+
+
+<li><b>Refactoring</b>: Fixed some perlcritics level 4.</li>
+<li><b>Refactoring</b>: Deglobalized several global variables.</li>
+
+<li><b>Dependency added</b>: Perl module Regex::Common</li>
+
+</ul>
 
 <ul>
-<li><b>1.836</b> More secure by default, ssl or tls activation!</li>
+<li><b>1.836</b> (2017/09/05) More secure by default, ssl or tls activation!</li>
 
 <li><b>Enhancement</b>: An <a href="https://hub.docker.com/r/gilleslamiral/imapsync/"><b>Imapsync Docker image</b></a> available!</li>
 
@@ -83,6 +126,9 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 
 <li><b>Enhancement</b>: Added <tt>--office1</tt> and <tt>--office2</tt> to simplify Office 365 options setting. 
                         It sets parameters suggested in the <a href="../FAQ.d/FAQ.Exchange.txt">Exchange/Office365 FAQ</a>.</li>
+
+<li><b>Enhancement</b>: Added <tt>--exchange1</tt> and <tt>--exchange2</tt> to simplify Exchange options setting. 
+                        It sets parameters suggested in the <a href="../FAQ.d/FAQ.Exchange.txt">Exchange FAQ</a>.</li>
 
 <li><b>Enhancement</b>: Added <tt>--domino1</tt> and <tt>--domino2</tt> to simplify Domino options setting.
                         It sets parameters suggested in the <a href="../FAQ.d/FAQ.Domino.txt">Domino FAQ</a>.</li>
@@ -157,7 +203,7 @@ In cgi context, ie online, exact same credentials are needed in order to really 
 
  
 <ul>
-<li><b>1.727</b> https website and CGI on the way!</li>
+<li><b>1.727</b> (2016/08/19) https website and CGI on the way!</li>
 
 
 <li><b>Security</b>: Thanks to free and easy <b>letsencrypt</b>, 
@@ -210,7 +256,7 @@ Started as a copy of Luke Ross Getopt::Long::CGI</li>
 </ul> 
  
 <ul>
-<li><b>1.684</b> Small changes, bugfixes</li>
+<li><b>1.684</b> (2016/03/17) Small changes, bugfixes</li>
 
 <li><b>Bug fix</b>: Imapsync.exe updated to Mail-IMAPClient-3.38 (3.37 had a bug with credentials containing special characters)</li>
 
@@ -225,7 +271,7 @@ in ssl or tls mode.  Was due to "'SSL_version' => undef".</li>
 
   
 <ul>
-<li><b>1.678</b> <b>Improved website!</b> (I hope...)</li>
+<li><b>1.678</b> (2016/01/21) <b>Improved website!</b> (I hope...)</li>
 <li><b>Enhancement</b>: Added <b><tt>--sslargs1</tt></b> and <b><tt>--sslargs2</tt></b> to pass any ssl parameter for host1 or host2 connection. 
 Example: <tt>--sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3</tt></li>
 <li><b>Enhancement</b>: Added <tt>--timeout1 int</tt> and <tt>--timeout2 int</tt> in seconds (<tt>--timeout int</tt> still available to set both with the same value)</li>
@@ -248,7 +294,7 @@ without using <tt>PERL_LWP_ENV_PROXY=1</tt></li>
 </ul>
 
 <ul>
-<li><b>1.670</b> Folders <b>mapping made easy</b> with <b>--automap</b></li>
+<li><b>1.670</b> (2015/12/03) Folders <b>mapping made easy</b> with <b>--automap</b></li>
 <li><b>Enhancement</b>: Added option <b><tt>--automap</tt></b> that guesses folders mapping, 
                         for folders like "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
                         
@@ -310,7 +356,7 @@ without using <tt>PERL_LWP_ENV_PROXY=1</tt></li>
 </ul>
 
 <ul>
-<li><b>1.644</b> Mac OS X standalone binary provided!</li>
+<li><b>1.644</b> (2015/07/17) Mac OS X standalone binary provided!</li>
 <li><b>Enhancement</b>: Mac OS X standalone binary called <tt>imapsync_bin_Darwin</tt></li>
 
 <li><b>Enhancement</b>: Added option <tt>--subfolder2 SUB</tt> Move whole host1 folders hierarchy under folder SUB.</li>
@@ -326,7 +372,7 @@ Need a patched Mail::IMAPClient 3.35 in <tt>sub fetch_hash()</tt></li>
 </ul>
 
 <ul>
-<li><b>1.636</b></li>
+<li><b>1.636</b> (2015/03/31)</li>
 <li><b>Enhancement</b>: Added errors dump listing at the end, before last folder sizes or the statistics. Turned on by default. Use <tt>--noerrorsdump</tt> to avoid it.</li>
 <li><b>Enhancement</b>: Added <tt>--maxlinelengthcmd</tt> that will be called upon when a line over <tt>--maxlinelength</tt> value is detected. </li>
 <li><b>Enhancement</b>: Exchange maxlinelength issue fixed with <tt>--maxlinelengthcmd 'reformime -r7'</tt> on Linux. 
@@ -357,7 +403,7 @@ HMailServer replies two lines with <tt>--useheader "Message-Id" --useheader "Mes
 
 
 <ul>
-<li><b>1.607</b> Folders shown also in utf8.</li>
+<li><b>1.607</b> (2014/11/14) Folders shown also in utf8.</li>
 <li><b>Caveat to upgrade on Unix!</b>: New <b>Unicode::String</b> Perl module dependency, for utf8 output. See the <a  href="../INSTALL">INSTALL</a> file.</li>
 <li><b>Enhancement</b>: Added --skipemptyfolders to skip syncing empty host1 folders. They are not created on host2.</li>
 <li><b>Enhancement</b>: Windows exe now uses IO::SSL 2.002 instead of 1.98 (is it really an enhancement?).</li>
@@ -374,14 +420,14 @@ HMailServer replies two lines with <tt>--useheader "Message-Id" --useheader "Mes
 </ul>
 
 <ul>
-<li><b>1.597</b> Small things</li>
+<li><b>1.597</b> (2014/10/06) Small things</li>
 <li><b>Enhancement</b>: Added --nomixfolders to avoid merging folders that are considered different on host1 but the same on destination host2
 because of case sensitivities and insensitivities.</li>
 <li><b>Bug fix</b>: Fixed "imapsync doesn't see created folders in the listing of folder sizes at the end". (second time this bug shows up)</li>
 </ul>
 
 <ul>
-<li><b>1.592</b> Logging by default! (an internal feature now)</li>
+<li><b>1.592</b> (2014/05/22) Logging by default! (an internal feature now)</li>
 
 <li><b>Caveat to upgrade</b>: New <b>IO::Tee</b> Perl module dependency, for logging. See the <a  href="../INSTALL">INSTALL</a> file.</li>
 <li><b>Windows upgrade</b>: Win32 binary is now distributed in a zip file with two batches scripts ready to use it.</li>
@@ -404,7 +450,7 @@ because of case sensitivities and insensitivities.</li>
 </ul>
 
 <ul>
-<li><b>1.584</b></li>
+<li><b>1.584</b> (2014/02/05)</li>
 <li><b>Enhancement</b>: Added --minmaxlinelength to select messages with long lines only. 
                         It helps to diagnostic Echange error on messages with lines longer than 9000 characters</li>
 <li><b>Enhancement</b>: Added --debugmaxlinelength</li>
@@ -555,7 +601,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.50 2017/09/11 03:04:46 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.54 2018/05/06 15:03:59 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

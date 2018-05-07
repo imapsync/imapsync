@@ -2,23 +2,12 @@
 
 cd /D %~dp0
 
-REM .\imapsync.exe --host1 winmail1.webcows.se --user1 monica@fractus.net --password1 yaa  --host2 winmail1.webcows.se --user2 monica@fractus.net --password2 yaa 
-REM perl imapsync --host1 winmail1.webcows.se --user1 monica@fractus.net --password1 yaa  --host2 winmail1.webcows.se --user2 monica@fractus.net --password2 yaa 
-
 REM perl imapsync --host1 p  --user1 toto --passfile1 secret.toto  --host2 p --user2 titi --passfile2 secret.titi --ssl1 --ssl2  --folder INBOX 
 REM .\imapsync.exe --host1 p  --user1 toto --passfile1 secret.toto  --host2 p --user2 titi --passfile2 secret.titi --ssl1 --ssl2 --justconnect 
 REM PAUSE
-REM cmail.cmich.edu has address 207.75.116.61
-
-REM imapsync.exe --host1 cmail.cmich.edu --ssl1 --ssl1_SSL_version SSLv3  ^
-REM             --host2 cmail.cmich.edu --ssl2 --ssl2_SSL_version SSLv3 ^
-REM             --justconnect
-
 
 REM .\imapsync.exe --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --user2 titi --passfile2 secret.titi --ssl1 --ssl2 --delete2 --folder INBOX 
 REM .\imapsync.exe --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --user2 titi --passfile2 secret.titi --ssl1 --ssl2 --delete2 --folder INBOX --usecache
-
-@REM .\imapsync.exe  --host1 ex-cashub1.caltech.edu --justconnect --host2 ex-cashub1.caltech.edu --ssl1 --ssl2 --ssl1_SSL_version SSLv3 --ssl2_SSL_version SSLv3  
 
 @REM perl .\imapsync --tests_debug
 
@@ -81,6 +70,26 @@ perl ./imapsync --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --use
 perl ./imapsync --host1 p  --user1 tata --password1 ami\\\"seen  --host2 p --user2 titi --passfile2 secret.titi --debugimap1 --showpasswords --justlogin
 
 	
+@ECHO ====  --justloadavg --justbanner
+
+@REM perl .\imapsync --host1 p --user1 tata --passfile1 secret.tata --host2 p --user2 titi --passfile2 secret.titi --justbanner
+
+
+@REM perl -V
+@REM perl -e "print 'zzz'"
+@REM perl -c .\imapsync
+@REM perl    .\imapsync --version
+@REM --testsdebug --debugdev
+
+@REM perl .\imapsync  --host1 imap.gmail.com   --host2 ks2ipv6.lamiral.info  --ssl1 --ssl2 --justconnect --debugimap
+@REM perl .\imapsync  --host1 test.lamiral.info   --host2 ks2ipv6.lamiral.info  --nossl1 --justconnect --debugimap
+
+@REM .\imapsync.exe  --host1 p --user1 tata --passfile1 secret.tata --host2 p --user2 titi --passfile2 secret.titi --folder """INBOX.A B""" --justfolders
+@REM perl .\imapsync --host1 p --user1 tata --passfile1 secret.tata --host2 p --user2 titi --passfile2 secret.titi --folder "INBOX.A B" --justfolders
+
+@REM Big emails
+.\imapsync.exe --host1 p  --user1 big1 --passfile1 secret.big1 --host2 p --user2 big2 --passfile2 secret.big2 ^
+               --folder INBOX.bigmail  --debugmemory --nofoldersizes 
 
 
 @REM

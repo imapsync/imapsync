@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use PPI;
+use Data::Dumper;
+use Scalar::Util qw/blessed/;
+
+sub is {
+    my ($obj, $class) = @_;
+    return( blessed $obj and $obj->isa($class) );
+}
+
+my $program = PPI::Document->new(shift);
+
+my $subs = $program->find(
+    sub { $_[1]->isa('PPI::Statement::Sub') and $_[1]->name }
+);
+
+die "no subroutines declared?" unless $subs;
+
+for my $sub (@$subs) {
+    print $sub->name, "\n";
+    next unless my $function_calls = $sub->find(
+        sub { 
+            $_[1]->isa('PPI::Statement')             and
+            $_[1]->child(0)->isa("PPI::Token::Word") and
+            not (
+                $_[1]->isa("PPI::Statement::Scheduled") or
+                $_[1]->isa("PPI::Statement::Package")   or
+                $_[1]->isa("PPI::Statement::Include")   or
+                $_[1]->isa("PPI::Statement::Sub")       or
+                $_[1]->isa("PPI::Statement::Variable")  or
+                $_[1]->isa("PPI::Statement::Compound")  or
+                $_[1]->isa("PPI::Statement::Break")     or
+                $_[1]->isa("PPI::Statement::Given")     or
+                $_[1]->isa("PPI::Statement::When")
+            )
+        }
+    );
+    print map { "\t" . $_->child(0)->content . "\n" } @$function_calls;
+}

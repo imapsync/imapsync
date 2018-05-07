@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.33 2017/09/05 15:11:20 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.37 2018/03/23 19:07:37 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -7,7 +7,7 @@ This documentation is also at http://imapsync.lamiral.info/#doc
               Imapsync tips for Gmail accounts.
 =======================================================================
 
-Questions anwswered in this FAQ are:
+Questions answered in this FAQ are:
 
 Q. Can I use imapsync to transfer from or to Gmail accounts?
 
@@ -46,6 +46,9 @@ Q. How to use a Gmail account to backup several different imap accounts?
 
 Q. How to migrate email from gmail to google apps?
 
+
+Now the questions again with their answers.
+
 =======================================================================
 Q. Can I use imapsync to transfer from or to Gmail accounts?
 
@@ -83,6 +86,15 @@ R. Basically it takes X days to transfer X GB per account.
 Q. How to synchronize from Gmail to Gmail?
 
 R. Use the following example:
+
+./imapsync  \
+           --user1 account1@gmail.com \
+           --password1 gmailsecret1 \
+           --user2 account2@gmail.com \
+           --password2 gmailsecret2 \
+           --gmail12 
+
+Or, replacing what does --gmail12:
 
 ./imapsync \
            --host1 imap.gmail.com \
@@ -141,6 +153,15 @@ when selecting this not used folder.
 Q. How to synchronize from XXX to Gmail?
 
 R. Use the following example:
+
+imapsync --host1 mail.oldhost.com     \
+         --user1 my_email@oldhost.com \
+         --password1 password   \
+         --user2 my_email@gmail.com \
+         --password2 password \
+         --gmail2
+
+Or, replacing what does --gmail2:
 
 imapsync --host1 mail.oldhost.com     \
          --user1 my_email@oldhost.com \
@@ -224,6 +245,15 @@ Q. How to synchronize from Gmail to XXX?
 R. Use this example:
 
 ./imapsync \
+           --user1 gilles.lamiral@gmail.com \
+           --password1 gmailsecret \
+           --host2 localhost \
+           --user2 tata \
+           --gmail1
+
+Or, replacing what does --gmail1:
+
+./imapsync \
            --host1 imap.gmail.com \
            --user1 gilles.lamiral@gmail.com \
            --password1 gmailsecret \
@@ -237,9 +267,6 @@ R. Use this example:
            --automap \
            --regextrans2 "s,\[Gmail\].,," \
            --skipcrossduplicates \
-           --folderfirst "Work" \
-           --folderfirst "Friends" \
-           --folderlast  "CanWait" \
            --folderlast  "[Gmail]/All Mail"
 
 
@@ -391,7 +418,8 @@ On Unix:
 
 On Windows:
 
-  imapsync.exe ... --search "X-GM-RAW ""has:attachment in:unread"""
+  perl imapsync ... --search "X-GM-RAW ""has:attachment in:unread"""
+
 
 =======================================================================
 Q. How to avoid the [IMAP] prefix on Gmail side?

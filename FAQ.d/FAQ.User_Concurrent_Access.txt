@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.User_Concurrent_Access.txt,v 1.2 2017/01/06 14:11:13 gilles Exp gilles $
+$Id: FAQ.User_Concurrent_Access.txt,v 1.4 2017/12/19 14:55:36 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -14,23 +14,30 @@ R. Think all potential problems with a sync between
    a master/source/host1 and a slave/destination/host2
 
 What happens when a user access syncing accounts depends
-on what he does, where he does and when:
+on what he does, where he does and when. 
 
-* Reading: no problem anywhere, anytime.
+As a summary, reading is safe, writing/deleting is not.
+
+Details:
+
+* Reading: no problem anywhere, at source/host1 or at destination/host2,
+           anytime. Reading is safe.
 
 * Writing at source/host1:
-  * adding folder => will need a resync after
-  * deleting folder => deletion not synced unless --delete2folders
-  * deleting message => deletion not synced unless --delete2
-  * adding message => will need a resync
+  * adding folder       => will need a resync after
+  * deleting folder     => folders deletions are not synced unless --delete2folders
+  * deleting message    => messages deletions are not synced unless --delete2
+  * adding message      => will need a resync
+  * moving message      => will need a resync. Moving is like adding + deleting 
+                           so --delete2 is needed to sync the deletion.
   * message flag change => will need a resync
 
 * Writing at destination/host2:
-  * adding folder => no problem, unless --delete2folders is used
-  * deleting folder => might reappear by the sync
-  * adding message => no problem, unless --delete2 is used
-  * deleting message => might reappear by the sync
-  * message flag change => might be canceled by the sync 
+  * adding folder       => no problem, unless --delete2folders is used
+  * deleting folder     => will reappear by a new sync
+  * adding message      => no problem, unless --delete2 is used on next sync.
+  * deleting message    => might reappear by a new sync.
+  * message flag change => will be reseted by a new sync.
 
 =======================================================================
 =======================================================================

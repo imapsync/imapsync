@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: build_mac.sh,v 1.8 2017/03/01 03:06:46 gilles Exp gilles $
+# $Id: build_mac.sh,v 1.9 2018/04/20 18:39:58 gilles Exp gilles $
 
 # exit on any failure
 set -e
@@ -21,12 +21,12 @@ sh prerequisites_imapsync
 VERSION=`./imapsync --version`
 
 # Update important Perl modules
-cpanm Mail::IMAPClient IO::Socket::SSL PAR::Packer
+cpanm Mail::IMAPClient IO::Socket::SSL Net::SSLeay PAR::Packer
 
 pp -o $BIN_NAME  \
 	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
 	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
-	-M Authen::NTLM -M Net::Ping \
+	-M Authen::NTLM \
 	-M Crypt::OpenSSL::RSA -M JSON -M JSON::WebToken -M LWP -M HTML::Entities \
 	-M Sys::MemInfo \
 	imapsync

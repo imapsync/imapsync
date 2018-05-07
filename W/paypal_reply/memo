@@ -1,14 +1,27 @@
 #!/bin/sh
 
-# $Id: memo,v 1.27 2017/08/13 18:27:35 gilles Exp gilles $
+# $Id: memo,v 1.28 2018/02/21 04:08:14 gilles Exp gilles $
 
 
 echo paypal_bilan_todo
 paypal_bilan_todo() {
 cat <<EOF
+==============================================================================
 http://www.cabinet-antoine.fr/spip.php?article138
-Si vous réalisez des ventes de biens au profit d\u2019entreprises ressortissantes d\u2019autres états membres de l\u2019Union européenne et si ces ventes sont exonérées de TVA, les factures correspondantes doivent impérativement comporter le numéro de TVA intracommunautaire de vos clients ainsi que la mention : « Exonération de TVA, article 262 ter, I du Code général des impôts ». Là encore, ces factures ne doivent évidemment pas comporter de taux ni de montant de TVA.
-Si vous fournissez des prestations de services à un client installé dans un autre État membre de l\u2019Union européenne, depuis le 1er janvier 2010, le lieu d\u2019imposition des prestations de services entre entreprises est celui où est situé l\u2019acheteur et non plus celui où est établi le prestataire. En conséquence, en application du système dit de l\u2019autoliquidation de la TVA, vous ne devez plus faire mention de la TVA sur vos factures, mais vous devez indiquer : « Exonération de TVA, article 283-2 du Code général des impôts ».
+Si vous réalisez des ventes de biens au profit d'entreprises ressortissantes 
+d'autres états membres de l'Union européenne et si ces ventes sont exonérées 
+de TVA, les factures correspondantes doivent impérativement comporter le 
+numéro de TVA intracommunautaire de vos clients ainsi que la mention : 
+« Exonération de TVA, article 262 ter, I du Code général des impôts ». 
+Là encore, ces factures ne doivent évidemment pas comporter de taux ni 
+de montant de TVA.
+Si vous fournissez des prestations de services à un client installé 
+dans un autre État membre de l'Union européenne, depuis le 1er janvier 2010, 
+le lieu d'imposition des prestations de services entre entreprises est celui 
+où est situé l'acheteur et non plus celui où est établi le prestataire. 
+En conséquence, en application du système dit de l'autoliquidation de la TVA, 
+vous ne devez plus faire mention de la TVA sur vos factures, mais vous devez 
+indiquer : « Exonération de TVA, article 283-2 du Code général des impôts ».
 
 
 Hors Europe a un non-assujetti : Article 259 B => prestation hors France pour
@@ -17,14 +30,58 @@ Hors Europe a un non-assujetti : Article 259 B => prestation hors France pour
 - Article 259 B-5 Traitement de données et fournitures d information
 
 Hors Europe : Article 262 => Exoneration 
-- Article 262-1 les livraisons de biens expédiés par le vendeur [...] ainsi que les prestations de services directement liées à l exportation ;
-- Article 262-2 les livraisons de biens expédiés ou transportés par l acheteur [...] ainsi que les prestations de services directement liées à l exportation.
+- Article 262-1 les livraisons de biens expédiés par le vendeur [...] 
+  ainsi que les prestations de services directement liées à l exportation ;
+- Article 262-2 les livraisons de biens expédiés ou transportés par l'acheteur [...]
+  ainsi que les prestations de services directement liées à l exportation.
 
 Europe a un autre assujetti : Article 262 ter => Exoneration 
 - Article 262 ter-1 sur livraisons de biens expédiés. Question : oeuvre immaterielle, service ?
 
+==============================================================================
+https://www.impots.gouv.fr/portail/professionnel/prestations-entre-assujettis
+
+Fourniture d'une prestation par un assujetti implanté en France (vente par un prestataire français)
+Prestations relevant de la règle générale
+Dans quel État payer la TVA ?
+La réalisation, par un assujetti implanté en France, d'une prestation au profit d’un assujetti implanté dans ou hors de l'Union européenne n'est pas imposable à la TVA française.
+Le prestataire français facture sans TVA. Il porte la mention « autoliquidation » sur la facture si le client est un assujetti établi dans l'UE. Il indique « TVA non applicable – art. 259-1 du CGI » si le client est un assujetti établi hors de l'UE.
+
+Quelles sont les modalités déclaratives ?
+Le montant de la prestation apparaîtra en « Autres opérations non imposables », ligne 05 de la télé-déclaration n°  3310-CA3, 03 de la télé-déclaration n° 3517-CA12 ou 02 de la télé-déclaration n° 3517-CA12A.
+
+Lorsque le preneur assujetti de la prestation est implanté dans un autre État membre de l'UE, une déclaration européenne de services (DES) doit être transmise dans les dix jours du mois qui suit l'exigibilité de la TVA (réalisation de la prestation ou paiement de l'acompte) (cf. site douane.gouv.fr).
+
+
 EOF
 }
+
+
+echo paypal_bilan_individuals_counter
+paypal_bilan_individuals_counter() {
+# DID output diff between paypal_bilan_1.100 and next one
+(
+#set -x
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan || return 1
+perl -c /g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.108 || return 1
+cd /g/var/paypal_bilan_individuals_counter/ || return 1
+echo Working in `pwd`
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan_1.108   \
+  --first_in 60001 --debug_invoice_utf8 \
+  /g/paypal/paypal_201?_??_complet.csv \
+ > all.out1 2>&1 || return 1
+
+
+/g/public_html/imapsync/W/paypal_reply/paypal_bilan   \
+  --first_in 60001 --debug_invoice_utf8 \
+  /g/paypal/paypal_201?_??_complet.csv \
+ > all.out2 2>&1 || return 1
+
+echo diff all.out1 all.out2
+     diff all.out1 all.out2
+)
+}
+
 
 
 echo paypal_bilan_online_summary_bug2

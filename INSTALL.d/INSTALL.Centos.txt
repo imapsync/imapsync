@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Centos.txt,v 1.6 2016/11/07 10:40:53 gilles Exp gilles $
+# $Id: INSTALL.Centos.txt,v 1.7 2018/04/24 00:15:32 gilles Exp gilles $
 
 =================================
 = Installing imapsync on CentOS = 
@@ -31,6 +31,48 @@ A live test:
 Unit tests:
 
   imapsync --tests
+
+==================================
+== Centos 7 and latest imapsync ==
+==================================
+
+At the time of this writing (April 2018), the epel repository contains 
+imapsync release 1.727, which is not the latest available release.
+
+In order to install the latest imapsync I suggest the following process:
+
+Install the epel imapsync 1.727 release via yum like mentioned above.
+It will install many needed packages, Perl itself and Perl modules 
+for release 1.727. The latest imapsync needs more Perl modules.
+
+Then:
+
+  yum install perl-App-cpanminus \
+ perl-Dist-CheckConflicts \
+ perl-HTML-Parser \
+ perl-libwww-perl \
+ perl-Module-Implementation \
+ perl-Module-ScanDeps \
+ perl-Package-Stash \
+ perl-Package-Stash-XS \
+ perl-PAR-Packer \
+ perl-Regexp-Common \
+ perl-Sys-MemInfo \
+ perl-Test-Fatal \
+ perl-Test-Mock-Guard \
+ perl-Test-Requires \
+ perl-Test-NoWarnings \
+ perl-Test-Deep \
+ perl-Test-Warn \
+ perl-Try-Tiny
+
+  wget https://imapsync.lamiral.info/imapsync
+
+  chmod +x imapsync
+  ./imapsync --testslive
+
+Now you have the latest imapsync on Centos 7.
+
 
 ==============
 == Centos 6 ==

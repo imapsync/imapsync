@@ -1,0 +1,60 @@
+#!/bin/cat
+$Id: FAQ.POP3.txt,v 1.2 2018/02/02 20:32:19 gilles Exp gilles $
+
+This documentation is also at http://imapsync.lamiral.info/#doc
+
+=======================================================================
+              Imapsync tips about POP3.
+=======================================================================
+
+Questions answered here are:
+
+Q. Can I use imapsync to migrate emails from pop3 server to imap server?
+
+Q. How can I handle those terrible POP-leaving-a-copy users?
+   POP-leaving-a-copy clients will download a new copy of all 
+   their emails after a migration, which is a big pain and 
+   causes hundreds of support calls. 
+
+=======================================================================
+Q. Can I use imapsync to migrate emails from pop3 server to imap server?
+
+R1. No, but you can migrate emails from a pop3 server to an imap server 
+with the command line tool pop2imap:
+http://www.linux-france.org/prj/pop2imap/
+
+R2. Yes, sometimes, because many pop3 servers runs in parallel
+with an imap server on exactly the same mailboxes. They serve 
+the same INBOX (imap serves INBOX and several other folders, 
+pop3 serves only INBOX).
+So have a try with imapsync on the same host1.
+
+=======================================================================
+Q. How can I handle those terrible POP-leaving-a-copy users?
+   POP-leaving-a-copy clients will download a new copy of all 
+   their emails after a migration, which is a big pain and 
+   causes hundreds of support calls. 
+
+
+R. A discussion about this issue
+http://www.linux-france.org/prj/imapsync_list/msg02622.html
+http://www.linux-france.org/prj/imapsync_list/msg02623.html
+My reply was not very good
+http://www.linux-france.org/prj/imapsync_list/msg02624.html
+It's because I wrote pop2imap and it uses a stateless
+mechanism to avoid duplicates, I wasn't aware of UIDL.
+
+Here is a better response to handle and fix this problem, I hope:
+If the pop mailboxes are known and known to be regularly fetched, then
+all the INBOX messages, or at least the "old" ones, can be moved in an
+subfolder INBOX_back. It requires to have "access" to the POP
+sessions. The POP server log file is usually enough to know which
+account opened a pop connection, and when.
+
+See also Rick Sanders discussion about this issue:
+https://www.emailquestions.com/threads/how-to-prevent-duplicate-emails-after-server-migration-for-pop3-users-with-leave-mail-on-server.8109/
+
+
+
+=======================================================================
+=======================================================================

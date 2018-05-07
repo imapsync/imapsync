@@ -1,0 +1,49 @@
+#!/bin/cat
+$Id: FAQ.Migration_Plan.txt,v 1.2 2018/03/07 04:28:00 gilles Exp gilles $
+
+This documentation is also at http://imapsync.lamiral.info/#doc
+
+=====================================================================
+   Imapsync. Suggestions for a good, low impact on users, 
+   well executed email migration plan.
+=====================================================================
+
+A good migration plan:
+
+ * Create the new mailboxes on the destination server.
+ * Decrease the TTL of the MX, as well as the imap hostname resolution,
+   to 5 minutes (or even less). See FAQ.TTL.txt to understand why.
+ * Presync all the mailboxes from the old to the new server, using different name
+   that the ones used by the imap software clients (use their IP for example).
+   Presyncs can usefully be done with --delete2 but never use --delete2 once users
+   started playing with their new account on host2.
+
+ * Decide a migration day/hour
+ * repeat the presyncs (--delete2) daily until the migration hour.
+   This repeated process will show how long should take the last sync.
+
+ * At the migration hour, cut access to the users to the old server
+   (by changing the imap hostname to a non-imap server for example).
+ * Change also the MX (for the new messages arriving in the new imap server).
+ * Wait 5 minutes.
+ * Do a last sync exactly like the presyncs, not using the imap hostname.
+ * Shutdown the old imap server.
+
+ Now a fork in the process, depending on the response to the following question:
+ Will the imap software clients use the exact same
+ triplet credentials as the old server? hostname/username/password
+
+If the answer is yes (clients use the exact same triplet credentials):
+ * Change the user imap hostname resolution from the old to the new imap server
+ * Migration done.
+
+If the answer is no (clients use a different triplet credentials):
+ * Tell the users the old imap server is down and no longer available.
+ * Give access to new accounts to the users with their new credential triplet
+   hostname/username/password (the most similar the best for them).
+   If the way to contact users is email then you should give this long before
+   shutting down the old server.
+ * Migration Done 
+ 
+ 
+ 

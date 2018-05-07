@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.1 2017/05/04 23:24:55 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.5 2018/05/02 12:22:13 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -8,24 +8,93 @@ This documentation is also at http://imapsync.lamiral.info/#doc
    https://imapsync.lamiral.info/X/
 =====================================================================
 
-Q .Will I have any issues with browser timing out? What happens
-   if the connection is closed for whatever reason?
+Questions answered in this FAQ are:
+
+Q. How secure is the online visual user interface /X?
+
+Q. Will I have any issues with browser timing out? What happens
+   if the browser connection is closed for whatever reason?
+
+
+Now the questions again with their answers.
+
+=====================================================================
+Q. How secure is the online visual user interface /X?
+
+R0. Well, I don't know if asking the provider whether his online 
+   service is secure or not would be of any interest. 
+   Let's do it anyway, you'll be the judge.
+
+R1. Some figures
+
+Date of this report: 8 March 2018.
+The online imapsync service /X started 9 January 2017 (422 days of service).
+In average, /X has 20 users per day lunching 6 different migrations, from
+one launch to many many (hundreds).
+The total volume /X transferred is 17 TiB in 48000 email imap migrations.
+
+R2. Pros & Cons
+
+The online imapsync service /X runs on https only, with a 
+letsencrypt certificate, a certificate overall rated "A" at
+https://www.ssllabs.com/ssltest/analyze.html?d=imapsync.lamiral.info
+
+Because of the https usage, what the users enter in their browser,
+the imap logins and passwords, can't be eavesdropped on the network.
+
+Imapsync itself cares about encryption for the imap sessions, 
+if possible: It tries SSL first on port 993, then TLS if the 
+servers announces TLS, then no encryption. What is done with
+an imap server is independent of what is done with the other.
+
+At the date of 8 March 2018, there is no security problem detected 
+or reported to me (Gilles LAMIRAL) so far.
+
+As the owner of the service, it could have been 48 000 pairs of 
+credentials collected and nearly 17 terabytes of email messages. 
+I haven't kept them but I can't prove I haven't. It's just trust, 
+like nearly every online service in the universe.
+
+The imap server certificates are not checked (by default) 
+because too many  imap servers are crappy configured regarding 
+certificates.
+
+This default behavior is chosen like this because users of /X 
+wants their emails transferred, instead of not trasferred because
+of an incompetent imap server sysadmin. 
+Anyway, this part, checking imap ssl/tls certificates, could be 
+improved from my side by including well known certificates 
+directly in imapsync. 
+
+If the imap servers don't honor ssl nor tls, then logins, passwords 
+and everything will go clear text during the imap transfers. 
+That's not good at all but what "comforts" me is that if the 
+imap servers do only clear text transfer, then it is also true 
+for all imap sessions the owner of the accounts encounter, 
+imapsync is just one of them.
+
+Last point, who could be sure no cracker cracked the online host and 
+currently sniffs the credentials? No one, I'm not sure myself, even 
+if I do take  care of that possibility.
+
+=====================================================================
+Q. Will I have any issues with browser timing out? What happens
+   if the browser connection is closed for whatever reason?
 
 R. It should be ok
 
-With the /X interface there is two connections (three connections in
-fact but let simplify the picture), 1 is the Browser-WebServer
-connection, 2 is the WebServer-ImapServers connections (imapsync
-stuff).
+When using the /X interface there are three connections. 
+One connection is the Browser-WebServer connection, the
+two others are the WebServer-ImapServers connections (imapsync stuff).
 
 If the Browser-WebServer connection is timeout (but it shouldn't
 because of the log refresh), the imapsync sync might continue
 anyway. To see if it continues or not, just do a sync again and the
 interface will tell you that a sync is already going on, if the
-"Sync!" button is grey/inactive then just reload the page (F5 or
-similar).
+"Sync!" button is gray/inactive then just reload the page (F5 or
+similar), and reenter the credentials.
 
-Anyway, on the /X you can try to do several parallel runs on the same
+By the way, on the /X you can try to do several parallel runs on the same
 mailbox even if there is no timeout, open a new tab/windows with /X
 and start a same sync, it's safe, the /X will say, if any, that there
 is already a current sync.
@@ -34,3 +103,6 @@ You can stop this sync with the "Abort!" button from any /X
 tab/window, even from another browser or place. To doing this with
 success, you have to give the same account parameters, same
 credentials, or imapsync will ignore the demand.
+
+=====================================================================
+=====================================================================

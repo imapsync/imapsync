@@ -1,5 +1,5 @@
 
-$Id: FAQ.Exchange.txt,v 1.34 2017/07/18 21:27:18 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.38 2018/03/21 16:26:23 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -7,7 +7,7 @@ This documentation is also at http://imapsync.lamiral.info/#doc
   Imapsync tips for Exchange 20xx and Office365. Specific issues and solutions.
 =================================================================================
 
-Questions anwswered in this FAQ are:
+Questions answered in this FAQ are:
 
 Q. Can I use imapsync to transfer from or to Exchange or Office365 accounts?
 
@@ -58,12 +58,18 @@ Q. How to sync from any to Exchange2007?
 
 Q. How to sync from Microsoft Exchange 2000 IMAP4rev1 server?
 
+
+Now the questions again with their answers.
+
 =======================================================================
 Q. Can I use imapsync to transfer from or to Exchange or Office365 accounts?
 
 R. Yes. But IMAP access to a Exchange or Office365 account is not always 
    allowed by default so it has to be allowed in the server configuration 
-   part:
+   part.
+
+   Exchange:  https://technet.microsoft.com/en-us/library/bb124489(v=exchg.150).aspx
+   Office365: https://support.microsoft.com/en-us/help/2416434/how-to-enable-or-disable-pop3-imap-mapi-outlook-web-app-or-exchange-ac
 
 =======================================================================
 Q. How to sync from XXX to Exchange 2010/2013/2016
@@ -71,11 +77,17 @@ Q. How to sync from XXX to Exchange 2010/2013/2016
 R0. IMAP is not enable by default on Exchange, see how to enable it:
 https://technet.microsoft.com/en-us/library/bb124489(v=exchg.150).aspx
 
+
 R1. Following is a command line resume that solves most encountered 
     issues when migrating to Exchange. To fully understand or change 
     the details you have to read the next Q/R sections.
 
-On Windows:
+
+On Windows, use:
+
+  imapsync.exe ... --exchange2
+
+or use (before imapsync release 1.836):
 
   imapsync.exe ... ^
     --maxsize 10000000 ^
@@ -84,7 +96,11 @@ On Windows:
     --disarmreadreceipts ^
     --regexmess "s,(.{9900}),$1\r\n,g"
 
-On Unix:
+On Unix, use:
+
+  imapsync ... --exchange2
+
+or use (before imapsync release 1.836):
 
   imapsync ... \
     --maxsize 10000000 \
@@ -102,14 +118,22 @@ instead of --maxlinelengthcmd 'reformime -r7'
 =======================================================================
 Q. How to sync from XXX to Office365
 
+R0. IMAP is not enable by default on Office365, see how to enable it:
+https://support.microsoft.com/en-us/help/2416434/how-to-enable-or-disable-pop3-imap-mapi-outlook-web-app-or-exchange-ac
+https://technet.microsoft.com/en-us/library/gg298947(v=exchg.150).aspx
+https://support.context.io/hc/en-us/articles/213586243-Enabling-IMAP-for-Office365
+
 R. Here is a command line resume that solves most encountered issues when 
    migrating to Office365. It's similar with Exchange except for some 
    values. To understand or change the details you have to read 
    next Q/R sections.
 
 
-On Windows:
+On Windows, use:
 
+  imapsync.exe ... --office2
+
+or use (before imapsync release 1.836):
   imapsync.exe ... ^
     --maxsize 45000000 ^
     --maxmessagespersecond 4 ^
@@ -117,7 +141,11 @@ On Windows:
     --disarmreadreceipts ^
     --regexmess "s,(.{10500}),$1\r\n,g"
 
-On Unix:
+On Unix, use:
+
+  imapsync ... --office2
+
+or use (before imapsync release 1.836):
 
   imapsync ... \
     --maxsize 45000000 \

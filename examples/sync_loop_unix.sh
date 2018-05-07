@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: sync_loop_unix.sh,v 1.6 2015/11/04 18:23:04 gilles Exp gilles $
+# $Id: sync_loop_unix.sh,v 1.8 2018/02/12 21:53:40 gilles Exp gilles $
 
 # Example for imapsync massive migration on Unix systems.
 # See also http://imapsync.lamiral.info/FAQ.d/FAQ.Massive.txt
@@ -12,11 +12,11 @@
 # in the while loop below.
 # # Each line contains 6 columns, columns are parameter values for 
 # --host1 --user1 --password1 --host2 --user2 --password2
-# and a trailing empty fake column to avaid CR LF part going 
+# and a trailing empty fake column to avoid CR LF part going 
 # in the 6th parameter password2. Don't forget the last semicolon.
 #
 # You can add extra options after the variable "$@" 
-# Use character backslash \ at the end of each suplementary line, except for the last one.
+# Use character backslash \ at the end of each supplementary line, except for the last one.
 # You can also pass extra options via the parameters of this script since
 # they will be in "$@"
 
@@ -29,7 +29,7 @@ echo
 
 { while IFS=';' read  h1 u1 p1 h2 u2 p2 fake
     do 
-        { echo "$h1" | egrep "^#" ; } > /dev/null && continue # this skip commented lines in file.txt
+        { echo "$h1" | tr -d '\r' | egrep '^#|^ *$' ; } > /dev/null && continue # this skip commented lines in file.txt
         echo "==== Starting imapsync from host1 $h1 user1 $u1 to host2 $h2 user2 $u2 ===="
         imapsync --host1 "$h1" --user1 "$u1" --password1 "$p1" \
                  --host2 "$h2" --user2 "$u2" --password2 "$p2" \

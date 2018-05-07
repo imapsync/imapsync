@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.66 2017/04/12 20:57:37 gilles Exp gilles $
+# $Id: memo,v 1.67 2018/05/06 15:01:46 gilles Exp gilles $
 
 count_nice() {
 
@@ -256,7 +256,8 @@ statistics_VERSION_getstats() {
 		#echo "$b"
 		test -f ${b}.imapsync_VERSION && continue
 		echo NOT DONE ${b}.imapsync_VERSION
-		zgrep -h /prj/imapsync/VERSION "$f" > ${b}.imapsync_VERSION
+                # To remove NULL characters: tr -d '\000'
+		zgrep -h /prj/imapsync/VERSION "$f" | tr -d '\000' > ${b}.imapsync_VERSION
 	done
 	)
 }

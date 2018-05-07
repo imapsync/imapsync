@@ -1,5 +1,5 @@
 
-@REM $Id: install_module_ssl.bat,v 1.2 2015/12/14 15:15:25 gilles Exp gilles $
+@REM $Id: install_module_ssl.bat,v 1.4 2018/05/06 15:09:42 gilles Exp gilles $
 
 @ECHO OFF 
 SET SHELL=
@@ -17,6 +17,8 @@ IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://stra
 
 FOR %%M in ( 
               IO::Socket::SSL ^         
+	      Crypt::OpenSSL::RSA ^
+	      File::Copy::Recursive ^
              ) DO perl -m%%M -e "print qq{Updating %%M $%%M::VERSION \n}" ^
    & cpanm --force %%M
 

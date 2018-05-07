@@ -1,0 +1,1356 @@
+#!/usr/bin/perl -T
+
+use strict ;
+use warnings ;
+use Getopt::Long (  ) ;
+use LWP::UserAgent (  ) ;
+use English qw( -no_match_vars ) ;
+use Readonly ;
+use Data::Dumper ;
+use Test::More ;
+use Digest::HMAC_SHA1 qw( hmac_sha1_hex ) ;
+use Sys::Hostname ;
+use Sys::MemInfo ;
+use IPC::Open3 (  ) ;
+
+Readonly my  $RCS     = q{$Id: proximapsync,v 1.9 2018/05/06 12:16:00 gilles Exp gilles $} ;
+Readonly our $VERSION = version_from_rcs( $RCS ) ;
+
+Readonly my $EX_OK          => 0  ; #/* successful termination */
+Readonly my $EX_USAGE       => 64 ; #/* command line usage error */
+
+Readonly my $KIBI => 1024 ;
+Readonly my $EXIT_TESTS_FAILED           => 254 ; # Like Test::More API
+
+Readonly my $nb_attempts_max    => 5 ;
+
+main( @ARGV ) ;
+
+
+sub main { 
+        my @options = @ARG ;
+        
+        
+        my $sync = init( @options ) ;
+        
+        # 
+        cgibuildheader( $sync ) ;
+        myprint( output( $sync ) ) ;
+        output_reset_with( $sync ) ;
+        # Header is printed so now we can use myprint
+        presentation( $sync ) ;
+        # Unit tests if asked, then exit.
+        testsexit( $sync ) ;
+        # The real stuff
+        loop_until_done_or_abort( $sync ) ;
+        
+        
+        myprint( debugmemory( $sync, '  after' ) ) ;
+        return ;
+}
+
+sub loop_until_done_or_abort{
+        my $mysync = shift ;
+        
+        $mysync->{ nb_attempts_max } = $nb_attempts_max ;
+        $mysync->{ nb_attempts } = 0 ;
+        
+        while ( can_and_have_to_sync( $mysync ) ) {
+        # ideas:
+        #    * Warn if http instead of https
+        
+                my $url = choose_remote( $mysync ) ;
+                myprint( "\nGonna delegate the imap sync to $url\n" ) ;
+                my $response = proximapsync( $mysync, $url ) ;
+                
+                if ( ! $response->is_success ) {
+                        myprint( "Failure with $url\n" ) ;
+                        my $removed = remove_remote( $mysync ) ;
+                        myprint( "Removed $removed from list of proxies\n" ) ;
+                        #$mysync->{ sync_done } = 1 ;
+                }else{
+                        myprint( "Success with $url\n" ) ;
+                        $mysync->{ sync_done } = 1 ;
+                }
+        }
+        myprint( "No more things to do\n" ) ;
+        return ;
+}
+
+sub tests_can_and_have_to_sync {
+        note( 'Entering tests_can_and_have_to_sync()' ) ;
+        is( undef, can_and_have_to_sync(  ),  'can_and_have_to_sync: no args => undef' ) ;
+        my $mysync ;
+        is( undef, can_and_have_to_sync( $mysync ),  'can_and_have_to_sync: undef => undef' ) ;
+        $mysync = {  } ;
+        is( undef, can_and_have_to_sync( $mysync ),  'can_and_have_to_sync: undef => undef' ) ;
+        
+        $mysync->{ nb_attempts_max } = 1 ;
+        $mysync->{ nb_attempts } = 1 ;
+        $mysync->{ remote } = [  ] ;
+        is( 0, can_and_have_to_sync( $mysync ),  'can_and_have_to_sync: nb_attempts_max reached => 0' ) ;
+        
+        
+        
+        
+        note( 'Leaving  tests_can_and_have_to_sync()' ) ;
+	return ;
+}
+
+
+sub can_and_have_to_sync {
+        my $mysync = shift ;
+        
+        if ( ! defined( $mysync ) ) { return ; }
+        
+        if ( ! all_defined( 
+                $mysync->{ nb_attempts }, 
+                $mysync->{ nb_attempts_max },
+                $mysync->{ remote },
+                ) 
+           ) {
+                myprint( "One or more parameters are missing: nb_attempts  nb_attempts_max  remote\n" ) ;
+                return ; 
+        }
+        
+        if ( $mysync->{ nb_attempts } >= $mysync->{ nb_attempts_max } ) {
+                # stop 
+                myprint( "Max attempts " . $mysync->{ nb_attempts } . " reached!\n" ) ;
+                return 0 ;
+        }
+
+        my $nb_proxies = scalar( @{ $mysync->{ remote } } ) ;
+        
+        if ( $nb_proxies <= 0 ) {
+                myprint( "No more remote to delegate the sync to!\n" ) ;
+                return ; 
+        }
+        
+        # It will be more elaborate later
+        if ( $mysync->{ sync_done } ) {
+                # stop 
+                return 0 ;
+        }else{
+                # try again 
+                return 1 ;
+        }
+}
+
+# This filter_param sub is here just during the development process
+# in order to find and modify it along the way
+sub filter_param { 
+        my $mysync = shift ;
+      
+        # copy the $mysync elements needed for the remote
+        
+        my $remote = {} ;
+        for my $key ( qw( 
+                        host1 user1 password1
+                        host2 user2 password2
+                        abort
+                        testslive tests
+                        simulong
+                        )
+                ) {
+                if ( exists(  $mysync->{ $key } ) 
+                     and defined(  $mysync->{ $key } ) ) {
+                        $remote->{ $key } = $mysync->{ $key } ;
+                }
+        }
+        
+        return $remote ;
+}
+
+sub presentation { 
+        my $mysync = shift ;
+        
+        my( $infos ) = join( q{},
+                "Here is proximapsync ", software_version( $mysync ),
+                " on host ", hostname(),
+                ", a $OSNAME system with ",
+                ram_memory_info(  ),
+                "\n",
+        ) ;
+
+        myprint( $infos ) ;
+        myprint( debugmemory( $mysync, ' before' ) ) ;
+        myprint( "PID is $PROCESS_ID\n" ) ;
+        myprint( "cookie_jar file: " . $mysync->{ cookie_jar } . "\n" ) ;
+        
+        #my $uri = new URI ;
+        #$uri->query_form( [ qw( remote https://lamiral.info/cgi-bin/imapsync ) ] ) ;
+        #myprint( "uri: $uri\n" ) ;
+        return ;
+}
+
+sub init { 
+        my @options = @ARG ;
+        my $mysync = {  } ;
+
+        $mysync->{ timestart } = time ; # Is a float because of use Time::HiRres
+        $mysync->{ rcs } = $RCS ; 
+        $mysync->{ memory_consumption_at_start } = memory_consumption(  ) || 0 ;
+
+        my @loadavg = loadavg(  ) ;
+
+        $mysync->{ cpu_number } = cpu_number(  ) ;
+        $mysync->{ loaddelay } = load_and_delay( $mysync->{ cpu_number }, @loadavg ) ;
+        $mysync->{ loadavg } = join( q{ }, $loadavg[ 0 ] ) 
+                   . " on $mysync->{cpu_number} cores and "
+                   . ram_memory_info(  ) ;
+
+        # Just create a CGI object if under cgi context only. Needed for get_options() call
+        cgibegin( $mysync ) ;
+        
+        my $options_good = get_options( $mysync, @options ) ;
+
+        if ( ! defined $options_good ) { exit $EX_USAGE ; }
+
+        $mysync->{ debugmemory } = 1 ;
+
+        set_cookie_jar( $mysync ) ;
+        
+        #set_default_remote( $mysync ) ;
+
+        #myprint( Data::Dumper->Dump( [ $mysync ] )  ) ;
+        return $mysync ;
+}
+
+sub set_default_remote {
+        my $mysync = shift ;
+
+        $mysync->{ remote } = ( $mysync->{ remote } ) 
+                ? $mysync->{ remote } 
+                : [ 'http://lamiral.info/cgi-bin/imapsync', 
+                    'http://lamiral.info/cgi-bin/imapsyncQQ', 
+                    'http://lamiral.info/cgi-bin/imapsyncXX', 
+                    'http://lamiral.info/cgi-bin/imapsyncKK', 
+                  ] ;
+        
+        return ;
+}
+
+sub set_cookie_jar {
+        my $mysync = shift ;
+        
+        if ( -d -w "$ENV{HOME}/" ) { 
+                $mysync->{ cookie_jar } = "$ENV{HOME}/.imapsync_cookies.txt" ;
+                return ;
+        }
+        
+        if ( -d -w "/var/tmp/euid_$EFFECTIVE_USER_ID" ) {
+                $mysync->{ cookie_jar } = "/var/tmp/euid_$EFFECTIVE_USER_ID/imapsync_cookies.txt" ;
+                return ;
+        }
+        
+        if ( -d -w '/var/tmp' ) {
+                mkdir "/var/tmp/euid_$EFFECTIVE_USER_ID" || return ;
+                $mysync->{ cookie_jar } = "/var/tmp/euid_$EFFECTIVE_USER_ID/imapsync_cookies.txt" ;
+        }
+
+        return ;
+}
+
+sub proximapsync { 
+        my $mysync = shift ;
+        my $url = shift || return ;
+        my $response = post_to_url( $mysync, $url ) ;
+        $mysync->{ nb_attempts } += 1 ;
+        return $response ;
+}
+
+{
+        # This block is because of the lexical variable
+        # $status_printed that has to be initialized
+        # each time, even in mod_perl perl-registry context
+        # (the sub-function issue) 
+
+        my $status_printed ;
+        sub post_to_url {
+                my $mysync = shift ;
+                my $url    = shift ;
+        
+                my $sync_remote = filter_param( $mysync ) ;
+                
+                my $ua = LWP::UserAgent->new ;
+                push @{ $ua->requests_redirectable }, 'POST' ;
+                
+                my $agent = 'proximapsync/' . software_version( $mysync ) ;
+                $ua->agent("$agent ") ; # append the default to the end
+                $ua->protocols_allowed( [ 'http', 'https'] ) ;
+                $ua->timeout( 10 ) ; # secondes
+                $ua->max_redirect( 7 ) ;
+                $ua->env_proxy; # Load proxy settings from *_proxy environment variables.
+                $ua->cookie_jar( { file => $mysync->{ cookie_jar }, autosave => 1, } ) ;
+                #myprint( Data::Dumper->Dump( [ $sync_remote ] ) ) ;
+                
+                $status_printed = 0 ;
+                my $response = $ua->post( $url, ':content_cb' => \&post_callback, $sync_remote ) ;
+                myprint( "Remote request on $url is now finished using " . $response->redirects . " redirects by following this reverse history:\n" ) ;
+                myprint( response_results( $response ) ) ;
+                return $response ;
+        }
+
+        sub post_callback {
+                my ( $chunk, $response, $protocol ) = @_ ;
+                if ( ! $status_printed ) {
+                        myprint( $response->status_line, " in post_callback\n" ) ; 
+                        $status_printed = 1 ;
+                }
+                #Do whatever you like with $chunk
+                myprint( $chunk ) ;
+                return ;
+        }
+
+}
+
+sub response_results {
+        my $response = shift ;
+
+        my $string = q{} ;
+        
+        while ( $response  ) {
+                $string .= $response->base . ' => ' . $response->status_line . "\n" ;
+                $response = $response->previous ;
+        }
+        return "$string" ;
+}
+
+sub cgibuildheader {
+	my $mysync = shift ;
+	if ( ! under_cgi_context( $mysync ) ) { return ; }
+
+	my $proximapsync_runs = $mysync->{cgi}->cookie( 'proximapsync_runs' ) || 0 ;
+	my $cookie = $mysync->{cgi}->cookie(
+			-name => 'proximapsync_runs',
+			-value => 1 + $proximapsync_runs,
+			-expires => '+20y',
+			-path    => '/cgi-bin/proximapsync',
+		) ;
+	my $httpheader ;
+	if( $mysync->{ loaddelay } ) {
+		$httpheader = $mysync->{cgi}->header(
+			-type   => 'text/plain',
+			-status => '503 Service Unavailable' . ". Be back in $mysync->{ loaddelay } min. Load on " . hostname() . " is $mysync->{ loadavg }",
+		) ;
+	}else{
+		$httpheader = $mysync->{cgi}->header(
+		-type   => 'text/plain',
+		-status => '200 OK to proximapsync. ' . "Load on " . hostname() . " is $mysync->{ loadavg }",
+		-cookie => $cookie,
+		) ;
+	}
+	output_start( $mysync, $httpheader ) ;
+	return ;
+}
+
+
+sub tests_remote_from_credentials {
+        note( 'Entering tests_remote_from_credentials()' ) ;
+
+        is( undef, remote_from_credentials(  ) ,  'remote_from_credentials: no args => undef' ) ;
+        my $mysync = {} ;
+        
+        is( undef, remote_from_credentials( $mysync ) ,  'remote_from_credentials: undef => undef' ) ;
+        
+        $mysync->{ remote } = [ 'http://def/xxx' ] ;
+        is( 'http://def/xxx', remote_from_credentials( $mysync ) ,  'remote_from_credentials: http://def/xxx => http://def/xxx' ) ;
+        
+        $mysync->{ remote } = [ 'http://abc/xxx' ] ;
+        is( 'http://abc/xxx', remote_from_credentials( $mysync ) ,  'remote_from_credentials: http://abc/xxx => http://abc/xxx' ) ;
+
+        $mysync->{ remote } = [ 'http://abc/xxx', 'http://def/xxx' ] ;
+        is( 'http://def/xxx', remote_from_credentials( $mysync ) ,  'remote_from_credentials: http://abc/xxx http://def/xxx => http://def/xxx' ) ;
+
+        note( 'Leaving  tests_remote_from_credentials()' ) ;
+	return ;
+}
+
+
+
+sub remote_from_credentials {
+	my $mysync  = shift ;
+
+        my $index = remote_index_from_credentials( $mysync ) ;
+        my $remote = $mysync->{ remote }->[ $index ] || undef ;
+        return( $remote ) ;
+        
+}
+
+
+
+sub tests_remote_index_from_credentials {
+        note( 'Entering tests_remote_index_from_credentials()' ) ;
+
+        is( 0, remote_index_from_credentials(  ) ,  'remote_index_from_credentials: no args => 0' ) ;
+        my $mysync = {} ;
+        
+        is( 0, remote_index_from_credentials( $mysync ) ,  'remote_index_from_credentials: undef => 0' ) ;
+        
+        $mysync->{ remote } = [ 'http://def/xxx' ] ;
+        is( 0, remote_index_from_credentials( $mysync ) ,  'remote_index_from_credentials: http://def/xxx => http://def/xxx' ) ;
+        
+        $mysync->{ remote } = [ 'http://abc/xxx' ] ;
+        is( 0, remote_index_from_credentials( $mysync ) ,  'remote_index_from_credentials: http://abc/xxx => http://abc/xxx' ) ;
+
+        $mysync->{ remote } = [ 'http://abc/xxx', 'http://def/xxx' ] ;
+        is( 1, remote_index_from_credentials( $mysync ) ,  'remote_index_from_credentials: http://abc/xxx http://def/xxx => http://def/xxx' ) ;
+
+        note( 'Leaving  tests_remote_index_from_credentials()' ) ;
+	return ;
+}
+
+
+
+sub remote_index_from_credentials {
+	my $mysync  = shift ;
+
+        my $num_proxies ;
+        if ( 'ARRAY' eq ref( $mysync->{ remote } ) ) {
+                $num_proxies = scalar( @{ $mysync->{ remote } } ) ;
+        }else{
+                $num_proxies = 0 ;
+        }
+        
+	my $string = join( q{},
+		$mysync->{ host1 }     || q{},
+		$mysync->{ user1 }     || q{},
+		$mysync->{ password1 } || q{},
+		$mysync->{ host2 }     || q{},
+		$mysync->{ user2 }     || q{},
+		$mysync->{ password2 } || q{},
+	) ;
+	
+        my $index = index_from_string_mod( $string, $num_proxies ) ;
+        #my $remote = $mysync->{ remote }->[ $index ] || undef ;
+        return( $index ) ;
+        
+}
+
+sub tests_remote_remove_index {
+        note( 'Entering tests_remote_remove_index()' ) ;
+        my $mysync = {} ;
+        is_deeply( [ ], [ remote_remove_index( $mysync, 0) ], 'remote_remove_index: [ ] 0 => [ ]' ) ;
+        is_deeply( [ ], $mysync->{ remote }, 'remote_remove_index: undef 0 => remote = [ ]' ) ;
+        
+        $mysync->{ remote } = [ ] ;
+        is_deeply( [ ], [ remote_remove_index( $mysync, 0) ], 'remote_remove_index: [ ] 0 => [ ]' ) ;
+        is_deeply( [ ], $mysync->{ remote }, 'remote_remove_index: [ ] 0 => remote = [ ]' ) ;
+        
+        $mysync->{ remote } = [ 'ABC' ] ;
+        is_deeply( [ 'ABC' ], [ remote_remove_index( $mysync, 0) ], 'remote_remove_index: [ ABC ] 0 => [ ABC ]' ) ;
+        is_deeply( [ ], $mysync->{ remote }, 'remote_remove_index: [ ABC ] 0 => remote = [ ]' ) ;
+
+        $mysync->{ remote } = [ 'ABC' ] ;
+        is_deeply( [ ], [ remote_remove_index( $mysync, 1) ], 'remote_remove_index: [ ABC ] 1 => [ ]' ) ;
+        is_deeply( [ 'ABC' ], $mysync->{ remote }, 'remote_remove_index: [ ABC ] 1 => remote = [ ABC ]' ) ;
+        
+        $mysync->{ remote } = [ 'ABC', 'DEF' ] ;
+        is_deeply( [ 'ABC' ], [ remote_remove_index( $mysync, 0) ], 'remote_remove_index: [ ABC DEF ] 0 => [ ABC ]' ) ;
+        is_deeply( [ 'DEF' ], $mysync->{ remote }, 'remote_remove_index: [ ABC DEF ] 0 => remote = [ DEF ]' ) ;
+
+        $mysync->{ remote } = [ 'ABC', 'DEF' ] ;
+        is_deeply( [ 'DEF' ], [ remote_remove_index( $mysync, 1) ], 'remote_remove_index: [ ABC DEF ] 0 => [ DEF ]' ) ;
+        is_deeply( [ 'ABC' ], $mysync->{ remote }, 'remote_remove_index: [ ABC DEF ] 0 => remote = [ ABC ]' ) ;
+        
+        note( 'Leaving  tests_remote_remove_index()' ) ;
+        return ;
+}
+
+sub remote_remove_index {
+        my $mysync = shift ;
+        my $index  = shift ;
+
+        splice @{ $mysync->{ remote } }, $index, 1 ;
+        return ;
+}
+
+
+sub tests_index_from_string_mod {
+        note( 'Entering tests_index_from_string_mod()' ) ;
+        is( 0, index_from_string_mod(  ),  'index_from_string_mod: no args => 0' ) ;
+        is( 0, index_from_string_mod( 'ABC' ),  'index_from_string_mod: ABC but no modulo (=> modulo 1) => 0' ) ;
+        is( 0, index_from_string_mod( 'DEF' ),  'index_from_string_mod: DEF but no modulo (=> modulo 1) => 0' ) ;
+        is( 0, index_from_string_mod( 'ABC', 1 ),  'index_from_string_mod: ABC modulo 1 => 0' ) ;
+        is( 0, index_from_string_mod( 'DEF', 1 ),  'index_from_string_mod: DEF modulo 1 => 0' ) ;
+        is( 0, index_from_string_mod( 'ABC', 2 ),  'index_from_string_mod: ABC modulo 2 => 0' ) ;
+        is( 1, index_from_string_mod( 'DEF', 2 ),  'index_from_string_mod: DEF modulo 2 => 1' ) ;
+
+        is( 2, index_from_string_mod( 'ABC', 3 ),  'index_from_string_mod: ABC modulo 3 => 2' ) ;
+        is( 0, index_from_string_mod( 'ABC', 4 ),  'index_from_string_mod: ABC modulo 4 => 0' ) ;
+        is( 2, index_from_string_mod( 'ABC', 5 ),  'index_from_string_mod: ABC modulo 5 => 2' ) ;
+        is( 2, index_from_string_mod( 'ABC', 6 ),  'index_from_string_mod: ABC modulo 6 => 2' ) ;
+        is( 3, index_from_string_mod( 'ABC', 7 ),  'index_from_string_mod: ABC modulo 7 => 3' ) ;
+        
+        my $str = q{} ;
+        foreach my $int ( 1 .. 31 ) { $str .= '_' . index_from_string_mod( 'ABC', $int ) ; }
+        is( '_0_0_2_0_2_2_3_4_2_2_4_8_1_10_2_12_9_2_1_12_17_4_16_20_7_14_2_24_13_2_21', 
+        $str, 'index_from_string_mod: ABC modulo 1 .. 31 => ' ) ;
+
+        $str = q{} ;
+        foreach my $int ( 1 .. 31 ) { $str .= '_' . index_from_string_mod( 'DEF', $int ) ; }
+        is( '_0_1_0_1_0_3_5_1_0_5_1_9_9_5_0_1_5_9_17_5_12_1_3_9_15_9_18_5_13_15_7', 
+        $str, 'index_from_string_mod: DEF modulo 1 .. 31 => ' ) ;
+
+        $str = q{} ;
+        foreach my $int ( 1 .. 31 ) { $str .= '' . index_from_string_mod( $str, 8 ) ; }
+        is( '3141012455013656157247430216425', $str, 'index_from_string_mod: 1 .. 31 modulo 8 => 3141012455013656157247430216425' ) ;
+        
+        note( 'Leaving  tests_index_from_string_mod()' ) ;
+	return ;
+}
+
+
+sub index_from_string_mod {
+        my $string = shift || q{} ;
+        my $modulo = shift || 1 ;
+        # from the $string, do a hash in hexa, keep the first 8 hexa "chars",
+        # convert this to a decimal in the range 0 2^32-1,
+        # and return the rest of division by $modulo
+        my $index = hex( substr( hmac_sha1_hex( $string ), 0, 8 ) ) % $modulo ;
+        #myprint( "[$index] from [$string] modulo [$modulo]\n" ) ;
+        
+        return( $index ) ;
+}
+
+
+
+sub tests_choose_remote {
+        note( 'Entering tests_choose_remote()' ) ;
+        
+        is( undef, choose_remote(  ),  'choose_remote: no args => undef' ) ;
+
+        my $mysync ;
+        is( undef, choose_remote( $mysync ),  'choose_remote: undef => undef' ) ;
+        
+        $mysync->{ remote } = [] ;
+        is( undef, choose_remote( $mysync ),  'choose_remote: [] => undef' ) ;
+        
+        $mysync->{ remote } = [ 'A' ] ;
+        is( 'A', choose_remote( $mysync ),  'choose_remote: [ "A" ] => "A"' ) ;
+
+        $mysync->{ remote } = [qw(A B C)] ;
+        is( 'B', choose_remote( $mysync ),  'choose_remote: [ A B C ] => B' ) ;
+
+        $mysync->{ remote } = [qw(C A B)] ;
+        is( 'A', choose_remote( $mysync ),  'choose_remote: [ C A B ] => A' ) ;
+
+        $mysync->{ remote } = [qw(B C A)] ;
+        is( 'C', choose_remote( $mysync ),  'choose_remote: [ B C A ] => C' ) ;
+
+        note( 'Leaving  tests_choose_remote()' ) ;
+	return ;
+}
+
+
+sub choose_remote {
+        # This intermediate function is there for allowing
+        # different way to choose a remote
+        my $mysync = shift ;
+        
+        # anyone at random 
+        # A preferable way could be to get a random index
+        # and inform of it (for an abort later)
+        # my $elected_index = randindex( @{ $mysync->{ remote } } ) ;
+        # 
+        #my $elected = randelem( @{ $mysync->{ remote } } ) ;
+        
+        # same credentials => same remote (if all proxies are presented in same number and order)
+        # The aim is to be able to send an abort request later to the same remote
+        my $elected = remote_from_credentials( $mysync ) ;
+        
+        return( $elected ) ;
+
+}
+
+
+sub tests_remove_remote {
+        note( 'Entering tests_remove_remote()' ) ;
+        
+        is( undef, remove_remote(  ),  'remove_remote: no args => undef' ) ;
+
+        my $mysync ;
+        is( undef, remove_remote( $mysync ),  'remove_remote: undef => undef' ) ;
+        
+        $mysync->{ remote } = [] ;
+        is( undef, remove_remote( $mysync ),  'remove_remote: [] => undef' ) ;
+        is_deeply( [ ], $mysync->{ remote }, 'remove_remote: [] => remote = []' ) ;
+        
+        $mysync->{ remote } = [ 'A' ] ;
+        is( 'A', remove_remote( $mysync ),  'remove_remote: [ A ] => A' ) ;
+        is_deeply( [ ], $mysync->{ remote }, 'remove_remote: [ A ] => remote = [ ]' ) ;
+
+        $mysync->{ remote } = [qw(A B C)] ;
+        is( 'B', remove_remote( $mysync ),  'remove_remote: [ A B C ] => B' ) ;
+        is_deeply( [ qw(A C) ], $mysync->{ remote }, 'remove_remote: [ A B C ] => remote = [ A C ]' ) ;
+
+        $mysync->{ remote } = [qw(C A B)] ;
+        is( 'A', remove_remote( $mysync ),  'remove_remote: [ C A B ] => A' ) ;
+        is_deeply( [ qw(C B) ], $mysync->{ remote }, 'remove_remote: [ C A B ] => remote = [ C B ]' ) ;
+
+        $mysync->{ remote } = [qw(B C A)] ;
+        is( 'C', remove_remote( $mysync ),  'remove_remote: [ B C A ] => C' ) ;
+        is_deeply( [ qw(B A) ], $mysync->{ remote }, 'remove_remote: [B C A ] => remote = [ B A ]' ) ;
+        
+        note( 'Leaving  tests_remove_remote()' ) ;
+	return ;
+}
+
+
+
+sub remove_remote {
+        my $mysync = shift ;
+        
+        my $index = remote_index_from_credentials( $mysync ) ;
+        my ( $removed ) = remote_remove_index( $mysync, $index ) ;
+        return $removed ;
+}
+
+sub tests_randelem {
+        note( 'Entering tests_randelem()' ) ;
+        is( undef, randelem(  ),  'randelem: no args => undef' ) ;
+        is( 1, randelem( 1 ),  'randelem: 1 => 1' ) ;
+        is( 0, randelem( 0 ),  'randelem: 0 => 0' ) ;
+        is( '', randelem( '' ),  'randelem: "" => ""' ) ;
+        is( 'A', randelem( 'A' ),  'randelem: "A" => "A"' ) ;
+        my $AorB = randelem( 'A', 'B' ) ;
+        ok( (('A' eq $AorB) or ('B' eq $AorB)), 'randelem: "A" "B" => "A" or "B"' ) ;
+        
+        note( 'Leaving  tests_randelem()' ) ;
+	return ;
+}
+
+sub randelem {
+        return( $ARG[ rand( @ARG ) ] ) ;
+}
+
+# from imapsync
+
+sub myprint  { return print  @ARG ; }
+sub myprintf { return printf @ARG ; }
+sub mysprintf {
+        my( $format, @list ) = @ARG ;
+        return sprintf $format, @list ;
+}
+
+sub firstline {
+        # extract the first line of a file (without \n)
+
+        my( $file ) = @_ ;
+        my $line  = q{} ;
+
+	if ( ! -e $file ) {
+                myprint( "Cannot open file $file since it does not exist\n" ) ;
+                return ;
+	}
+
+        open my $FILE, '<', $file or do {
+                myprint( "Error opening file $file : $OS_ERROR\n" ) ;
+                return ;
+        } ;
+        $line = <$FILE> || q{} ;
+        close $FILE ;
+        chomp $line ;
+        return $line ;
+}
+
+
+sub memory_consumption {
+        # memory consumed by imapsync until now in bytes
+        return( ( memory_consumption_of_pids(  ) )[0] );
+}
+
+sub debugmemory {
+        my $mysync = shift ;
+        if ( ! $mysync->{debugmemory} ) { return q{} ; }
+        
+        my $precision = shift ;
+        return( mysprintf( "Memory consumption$precision: %.1f MiB\n", memory_consumption(  ) / $KIBI / $KIBI ) ) ;
+}
+
+sub memory_consumption_of_pids {
+
+        my @pid = @_;
+        @pid = ( @pid ) ? @pid : ( $PROCESS_ID ) ;
+
+        my @val ;
+        if ( 'MSWin32' eq $OSNAME ) {
+                # MSWin32 later...
+                # @val = memory_consumption_of_pids_win32( @pid ) ;
+        }else{
+                # Unix
+                local $ENV{PATH} = '/bin';
+                # Use IPC::Open3 from perlcrit -3
+                my @ps = backtick( "ps -o vsz -p @pid" ) ;
+                shift @ps; # First line is column name "VSZ"
+                chomp @ps;
+                # convert to octets
+                @val = map { $_ * $KIBI } @ps ;
+        }
+        return( @val ) ;
+}
+
+sub backtick {
+        my $command = shift ;
+
+	if ( ! $command ) { return ; }
+
+        my ( $writer, $reader, $err ) ;
+        my @output ;
+        my $pid ;
+	my $eval = eval {
+		$pid = IPC::Open3::open3( $writer, $reader, $err, $command ) ;
+	} ;
+        if ( $EVAL_ERROR  ) {
+                myprint( $EVAL_ERROR ) ;
+                return ; 
+        }
+        if ( ! $eval  ) { return ; }
+	if ( ! $pid  )  { return ; }
+	waitpid( $pid, 0 ) ;
+        @output = <$reader>;  # Output here
+	#
+        #my @errors = <$err>;    #Errors here, instead of the console
+	if ( not @output ) { return ; }
+        #myprint( @output  ) ;
+
+	if ( $output[0] =~ /\Qopen3: exec of $command failed\E/mxs ) { return ; }
+	if ( wantarray ) {
+		return( @output ) ;
+	} else {
+		return( join( q{}, @output) ) ;
+	}
+}
+
+
+sub cgibegin {
+	if ( ! under_cgi_context(  ) ) { return ; }
+	my $mysync = shift ;
+	require CGI ;
+	CGI->import( qw( -no_debug ) ) ;
+	require CGI::Carp ;
+	CGI::Carp->import( qw( fatalsToBrowser ) ) ;
+	$mysync->{cgi} = CGI->new( ) ;
+	return ;
+}
+
+
+sub myGetOptions {
+
+        # Started as a copy of Luke Ross Getopt::Long::CGI
+        # https://metacpan.org/release/Getopt-Long-CGI
+        # So this sub function is under the same license as Getopt-Long-CGI Luke Ross wants it,
+        # which was Perl 5.6 or later licenses at the date of the copy.
+
+        my $mysync         = shift @ARG ;
+        my $arguments_ref  = shift @ARG ;
+        my %options        = @ARG ;
+        
+        if ( not under_cgi_context( $mysync ) ) {
+                # Not CGI - pass upstream for normal command line handling
+                return Getopt::Long::GetOptionsFromArray( $arguments_ref, %options ) ;
+        }
+        
+        my $mycgi             = $mysync->{cgi}  ;
+
+        # We must be in CGI context now
+        if ( !defined( $mycgi ) ) { return ; }
+
+        my $badthings = 0 ;
+        foreach my $key ( sort keys %options ) {
+                my $val = $options{$key} ;
+
+                if ( $key !~ m/^([\w\d\|]+)([=:][isf])?([\+!\@\%])?$/mxs ) {
+                        $badthings++ ;
+                        next ;    # Unknown item
+                }
+
+                my $name = [ split '|', $1, 1 ]->[0] ;
+
+                if ( ( $3 || q{} ) eq '+' ) {
+                        ${$val} = $mycgi->param( $name ) ;    # "Incremental" integer
+                }
+                elsif ( $2 ) {
+                        my @values = $mycgi->multi_param( $name ) ;
+                        my $type   = $2 ;
+
+                        #myprint( "type[$type]values[@values]\$3[", $3 || q{}, "]val[$val]ref(val)[", ref($val), "]\n" ) ;
+                        if ( ( $3 || q{} ) eq '%' or ref( $val ) eq 'HASH' ) {
+                                my %values = map { split /=/mxs, $_ } @values ;
+
+                                if ( $type =~ m/i$/mxs ) {
+                                        foreach my $k ( keys %values ) {
+                                                $values{$k} = int $values{$k} ;
+                                        }
+                                }
+                                elsif ( $type =~ m/f$/mxs ) {
+                                        foreach my $k ( keys %values ) {
+                                                $values{$k} = 0 + $values{$k};
+                                        }
+                                }
+                                if ( 'REF' eq ref $val ) {
+                                        %{ ${$val} } = %values ;
+                                }
+                                else {
+                                        %{$val} = %values ;
+                                }
+                        }
+                        else {
+                                if ( $type =~ m/i$/mxs ) {
+                                        @values = map { q{} ne $_ ? int $_ : undef } @values ;
+                                }
+                                elsif ( $type =~ m/f$/mxs ) {
+                                        @values = map { 0 + $_ } @values ;
+                                }
+                                if ( ( $3 || q{} ) eq '@' ) {
+                                        @{ ${$val} } = @values ;
+                                }
+                                elsif ( ref( $val ) eq 'ARRAY' ) {
+                                        @{$val} = @values ;
+                                }
+                                else {
+                                        ${$val} = $values[0] ;
+                                }
+                        }
+                }
+                else {
+                        # Checkbox
+                        # Considers only --name
+                        # Should consider also --no-name and --noname
+                        ${$val} = $mycgi->param( $name ) ? 1 : undef ;
+                }
+        }
+        if ( $badthings ) {
+                return ;
+        }
+        else {
+                return ( 1 ) ;
+        }
+}
+
+
+sub tests_get_options_cgi  {
+	note( 'Entering tests_get_options_cgi()' ) ;
+
+# Temporary, have to think harder about testing CGI context in command line --tests
+	# API:
+	# * input arguments: two ways, command line or CGI
+	#    * the program arguments
+	#    * QUERY_STRING env variable
+	# * return
+	#   * QUERY_STRING length
+
+	# CGI context
+	local $ENV{SERVER_SOFTWARE} = 'Votre serviteur' ;
+
+	# Real full test
+	# = 'host1=test1.lamiral.info&user1=test1&password1=secret1&host2=test2.lamiral.info&user2=test2&password2=secret2&debugenv=on'
+	my $mysync ;
+	is( undef, get_options_cgi( $mysync ), 'get_options_cgi: no CGI module => undef' ) ;
+
+	require CGI ;
+	CGI->import( qw( -no_debug ) ) ;
+
+	is( undef, get_options_cgi( $mysync ), 'get_options_cgi: no CGI param => undef' ) ;
+	# Testing boolean
+	$mysync->{cgi} = CGI->new( 'version=on&debugenv=on' ) ;
+	local $ENV{'QUERY_STRING'} = 'version=on&debugenv=on' ;
+	is( 22,   get_options_cgi( $mysync ), 'get_options_cgi: QUERY_STRING => 22' ) ;
+	is(  1,   $mysync->{ version },        'get_options_cgi: --version => 1' ) ;
+	# debugenv is not allowed in cgi context
+	is(  undef,   $mysync->{debugenv},        'get_options_cgi: $mysync->{debugenv} => undef' ) ;
+
+	# QUERY_STRING in this test is only for return value of get_options_cgi
+	# Have to think harder, GET/POST context, is this return value a good thing?
+	local $ENV{'QUERY_STRING'} = 'host1=test1.lamiral.info&user1=test1' ;
+	$mysync->{cgi} = CGI->new( 'host1=test1.lamiral.info&user1=test1' ) ;
+	is( 36,      get_options_cgi( $mysync,  ), 'get_options_cgi: QUERY_STRING => 36' ) ;
+	is( 'test1',  $mysync->{user1},    'get_options_cgi: $mysync->{user1} => test1' ) ;
+        #local $ENV{'QUERY_STRING'} = undef ;
+        
+
+	# Testing s@ as ref
+	$mysync->{cgi} = CGI->new( 'folder=fd1' ) ;
+	get_options_cgi( $mysync ) ;
+	is_deeply( [ 'fd1' ],  $mysync->{folder},    'get_options_cgi: $mysync->{folder} => fd1' ) ;
+	$mysync->{cgi} = CGI->new( 'folder=fd1&folder=fd2' ) ;
+	get_options_cgi( $mysync ) ;
+	is_deeply( [ 'fd1', 'fd2' ], $mysync->{folder},    'get_options_cgi: $mysync->{folder} => fd1, fd2' ) ;
+
+
+	# Testing boolean ! with --noxxx, does not work
+	$mysync->{cgi} = CGI->new( 'nodry=on' ) ;
+        get_options_cgi( $mysync ) ;
+	is( undef,  $mysync->{dry},    'get_options_cgi: --nodry => $mysync->{dry} => undef' ) ;
+
+	$mysync->{cgi} = CGI->new( 'host1=example.com' ) ;
+        get_options_cgi( $mysync ) ;
+	is( 'example.com',  $mysync->{host1},    'get_options_cgi: --host1=example.com => $mysync->{host1} => example.com' ) ;
+        
+        
+	$mysync->{cgi} = CGI->new( 'simulong=' ) ;
+        get_options_cgi( $mysync ) ;
+	is( undef,  $mysync->{simulong},    'get_options_cgi: --simulong= => $mysync->{simulong} => undef' ) ;
+        
+	$mysync->{cgi} = CGI->new( 'simulong' ) ;
+        get_options_cgi( $mysync ) ;
+	is( undef,  $mysync->{simulong},    'get_options_cgi: --simulong => $mysync->{simulong} => undef' ) ;
+        
+	$mysync->{cgi} = CGI->new( 'simulong=4' ) ;
+        get_options_cgi( $mysync ) ;
+	is( 4,  $mysync->{simulong},    'get_options_cgi: --simulong=4 => $mysync->{simulong} => 4' ) ;
+
+	note( 'Leaving  tests_get_options_cgi()' ) ;
+	return ;
+}
+
+
+sub get_options_cgi {
+        # In CGI context arguments are not in @ARGV but in QUERY_STRING variable (with GET).
+	my $mysync = shift @ARG ;
+        my $mycgi ;
+        if ( under_cgi_context(  ) ) {
+                $mycgi = $mysync->{cgi}  ;
+        }
+	my @arguments = @ARG ;
+	# final 0 is used to print usage when no option is given
+        my $numopt = length $ENV{'QUERY_STRING'} || 1 ;
+        my $opt_ret = myGetOptions(
+	$mysync,
+	\@arguments,
+	'abort!'           => \$mysync->{abort},
+        'host1=s'          => \$mysync->{host1},
+        'host2=s'          => \$mysync->{host2},
+        'user1=s'          => \$mysync->{user1},
+        'user2=s'          => \$mysync->{user2},
+        'password1=s'      => \$mysync->{password1},
+        'password2=s'      => \$mysync->{password2},
+        'dry!'             => \$mysync->{dry},
+        'version'          => \$mysync->{version},
+        'ssl1!'            => \$mysync->{ssl1},
+        'ssl2!'            => \$mysync->{ssl2},
+        'tls1!'            => \$mysync->{tls1},
+        'tls2!'            => \$mysync->{tls2},
+        'justlogin!'       => \$mysync->{justlogin},
+        'justconnect!'     => \$mysync->{justconnect},
+        'addheader!'       => \$mysync->{addheader},
+        'automap!'         => \$mysync->{automap},
+        'justautomap!'     => \$mysync->{justautomap},
+	'gmail1'           => \$mysync->{gmail1},
+	'gmail2'           => \$mysync->{gmail2},
+	'office1'          => \$mysync->{office1},
+	'office2'          => \$mysync->{office2},
+	'exchange1'        => \$mysync->{exchange1},
+	'exchange2'        => \$mysync->{exchange2},
+	'domino1'          => \$mysync->{domino1},
+	'domino2'          => \$mysync->{domino2},
+        'f1f2=s@'          => \$mysync->{f1f2},
+        'folder=s@'        => \$mysync->{folder},
+        'testslive!'       => \$mysync->{testslive},
+        'testslive6!'      => \$mysync->{testslive6},
+        'releasecheck!'    => \$mysync->{releasecheck},
+        'simulong=i'       => \$mysync->{simulong},
+        'remote=s@'         => \$mysync->{remote},
+	'debugmemory!'     => \$mysync->{debugmemory},
+	'debug!'           => \$mysync->{debug},
+	'tests'            => \$mysync->{tests},
+	'testsunit=s@'     => \$mysync->{testsunit},
+        ) ;
+
+        $mysync->{debug} and output( $mysync, "get options: [$opt_ret][$numopt]\n"  ) ;
+        my $numopt_after = scalar @arguments ;
+        
+        if ( $numopt_after ) {
+                myprint( "Extra arguments found: @arguments\n", "It usually means a quoting issue in the command line\n" ) ;
+                return ;
+        }
+
+	if ( ! $opt_ret ) {
+		return ;
+	}
+	return $numopt ;
+}
+
+sub tests_get_options {
+	note( 'Entering tests_get_options()' ) ;
+
+	# API:
+	# * input arguments: two ways, command line or CGI
+	#    * the program arguments
+	#    * QUERY_STRING env variable
+	# * return
+	#   * undef if bad things happened like
+	#     * options not known
+	#   * number of arguments or QUERY_STRING length
+	my $mysync3 = {  } ;
+	is( undef, get_options( $mysync3, qw( --noexist ) ),                   'get_options: --noexist  => undef' ) ;
+        is( undef, $mysync3->{ noexist },  'get_options: --noexist  => undef' ) ;
+	is( undef, get_options( $mysync3, qw( --lalala --noexist --version ) ), 'get_options: --lalala --noexist --version  => undef' ) ;
+        is( 1,     $mysync3->{ version }, 'get_options: --version => 1' ) ;
+        is( undef, $mysync3->{ noexist },  'get_options: --noexist  => undef' ) ;
+        $mysync3 = {  } ;
+	get_options( $mysync3, qw( --host1 HOST_01)  ) ;
+        is( 'HOST_01',  $mysync3->{ host1 }, 'get_options: --host1 HOST_01 => HOST_01' ) ;
+        is( undef,     $mysync3->{ version }, 'get_options: --version => 1' ) ;
+	get_options( $mysync3, "--version" ) ;
+        is( 1,     $mysync3->{ version }, 'get_options: --version => 1' ) ;
+	is( undef, get_options( $mysync3, qw( --help --noexist --version ) ), 'get_options: --help --noexist --version  => undef' ) ;
+	is( undef, get_options( $mysync3, qw( extra ) ), 'get_options: extra => undef' ) ;
+	is( undef, get_options( $mysync3, qw( --help extra1 --version extra2 ) ), 'get_options: --help extra1 --version extra2 => undef' ) ;
+        #myprint( Data::Dumper->Dump( [ $mysync3 ] )  ) ;
+	note( 'Leaving  tests_get_options()' ) ;
+	return ;
+}
+
+
+sub get_options  {
+	my $mysync = shift @ARG ;
+	my @arguments = @ARG ;
+
+	my $ret = get_options_cgi( $mysync, @arguments )  ;
+        foreach my $key ( sort keys %{ $mysync } ) {
+                if ( ! defined $mysync->{$key} ) {
+                        delete $mysync->{$key} ;
+                        next ;
+                }
+                if ( 'ARRAY' eq ref( $mysync->{$key} ) 
+                     and 0 == scalar( @{ $mysync->{$key} } ) ) {
+                        delete $mysync->{$key} ;
+                }
+        }
+	return $ret ;
+}
+
+
+sub output {
+	my $mysync = shift @ARG ;
+
+	if ( not $mysync ) { return ; }
+
+	my @output = @ARG ;
+	$mysync->{ output } .= join( q{}, @output ) ;
+	return $mysync->{ output } ;
+}
+
+sub output_start {
+	my $mysync = shift @ARG ;
+
+	if ( not $mysync ) { return ; }
+
+	my @output = @ARG ;
+	$mysync->{ output } = join( q{}, @output ) . ( $mysync->{ output } || q{} ) ;
+	return $mysync->{ output } ;
+}
+
+
+sub output_reset_with {
+	my $mysync = shift @ARG ;
+
+	if ( not $mysync ) { return ; }
+
+	my @output = @ARG ;
+	$mysync->{ output } = join( q{}, @output ) ;
+	return $mysync->{ output } ;
+}
+
+
+
+
+sub under_cgi_context {
+
+	# Under cgi context
+	if ( $ENV{SERVER_SOFTWARE} ) {
+		return 1 ;
+	}
+	# Not in cgi context
+	return ;
+}
+
+sub loadavg {
+	if ( 'linux' eq $OSNAME ) {
+		return ( loadavg_linux( @ARG ) ) ;
+	}
+	return( 'unknown' ) ;
+
+}
+
+sub loadavg_linux {
+	my $line = shift ;
+
+	if ( ! $line ) {
+                $line = firstline( '/proc/loadavg'  ) or return ;
+	}
+
+	my ( $avg_1_min, $avg_5_min, $avg_15_min, $current_runs ) = split /\s/mxs, $line ;
+	if ( all_defined( $avg_1_min, $avg_5_min, $avg_15_min ) ) {
+		#myprint( "System load: $avg_1_min $avg_5_min $avg_15_min $current_runs\n" ) ;
+		return ( $avg_1_min, $avg_5_min, $avg_15_min, $current_runs ) ;
+	}
+	return ;
+}
+
+sub all_defined {
+        if ( not @ARG ) {
+                return 0 ;
+        }
+        foreach my $elem ( @ARG ) {
+                if ( not defined $elem ) {
+                        return 0 ;
+                }
+        }
+        return 1 ;
+}
+
+
+sub load_and_delay {
+	# Basically return 0 if load is not heavy, ie <= 1 per processor
+
+	if ( 4 > scalar @ARG ) { return ; }
+
+	my ( $cpu_num, $avg_1_min, $avg_5_min, $avg_15_min ) = @ARG ;
+
+	if ( 0 == $cpu_num ) { return ; }
+
+	# Let divide by number of cores
+	( $avg_1_min, $avg_5_min, $avg_15_min ) = map { $_ / $cpu_num } ( $avg_1_min, $avg_5_min, $avg_15_min ) ;
+	# One of avg ok => ok, for now it is a OR
+	if ( $avg_1_min <= 1 ) { return 0 ; }
+	if ( $avg_5_min <= 1 ) { return 1 ; } # Retry in 1 minute
+	if ( $avg_15_min <= 1 ) { return 5 ; } # Retry in 5 minutes
+	return 15 ; # Retry in 15 minutes
+}
+
+sub ram_memory_info {
+        # In GigaBytes so division by 1024 * 1024 * 1024
+	# 
+	return(
+		sprintf( "%.1f/%.1f free GiB of RAM", 
+                Sys::MemInfo::get("freemem") / ( $KIBI ** 3 ),
+                Sys::MemInfo::get("totalmem") / ( $KIBI ** 3 ),
+                )
+	) ;
+}
+
+sub cpu_number {
+
+        my $cpu_number_forced = shift ;
+	# Well, here 1 is better than 0 or undef
+	my $cpu_number = 1 ; # Default value, erased if better found
+
+        my @cpuinfo ;
+	if ( $ENV{"NUMBER_OF_PROCESSORS"} ) {
+		# might be under a Windows system
+		$cpu_number = $ENV{"NUMBER_OF_PROCESSORS"} ;
+		#$debug and myprint( "Number of processors found by env var NUMBER_OF_PROCESSORS: $cpu_number\n" ) ;
+	}elsif ( 'darwin' eq $OSNAME ) {
+		$cpu_number = backtick( "sysctl -n hw.ncpu" ) ;
+		chomp( $cpu_number ) ;
+                #$debug and myprint( "Number of processors found by cmd 'sysctl -n hw.ncpu': $cpu_number\n" ) ;
+	}elsif ( ! -e '/proc/cpuinfo' ) {
+		#$debug and myprint( "Number of processors not found so I might assume there is only 1\n" ) ;
+		$cpu_number = 1 ;
+	}elsif( @cpuinfo = file_to_array( '/proc/cpuinfo' ) ) {
+                $cpu_number = grep { /^processor/mxs } @cpuinfo ;
+                #$debug and myprint( "Number of processors found via /proc/cpuinfo: $cpu_number\n" ) ;
+	}
+	
+        if ( defined $cpu_number_forced ) {
+                $cpu_number = $cpu_number_forced ;
+        }
+	return( integer_or_1( $cpu_number ) ) ;
+}
+
+sub integer_or_1 {
+        my $number = shift ;
+        if ( is_an_integer( $number  ) ) { 
+                return $number ; 
+        }
+        # else
+        return 1 ;
+}
+
+
+sub is_an_integer {
+        my $number = shift ;
+        if ( ! defined $number ) { return ; }
+        return( $number =~ m{^\d+$}xo ) ;
+}
+
+sub file_to_array {
+
+        my( $file ) = shift ;
+        my @string ;
+
+        open my $FILE, '<', $file or do {
+		myprint( "Error reading file $file : $OS_ERROR" ) ;
+		return ;
+	} ;
+        @string = <$FILE> ;
+        close $FILE ;
+        return( @string ) ;
+}
+
+sub software_version  {
+        my $mysync = shift ;
+        my $rcs = $mysync->{rcs} ;
+        my $version ;
+
+        $version = version_from_rcs( $rcs ) ;
+        return( $version ) ;
+}
+
+
+sub version_from_rcs {
+
+        my $rcs = shift ;
+        if ( ! $rcs ) { return ; }
+        
+        my $version = 'UNKNOWN' ;
+
+        if ( $rcs =~ m{,v\s+(\d+\.\d+)}mxso ) {
+                $version = $1
+        }
+        
+        return( $version ) ;
+}
+
+
+
+sub testsexit {
+	my $mysync = shift ;
+        if ( ! ( $mysync->{ tests }  or $mysync->{ testsunit } ) ) {
+		return ;
+	}
+        my $test_builder = Test::More->builder ;
+        tests( $mysync ) ; 
+	testunitsession( $mysync ) ;
+
+	my @summary = $test_builder->summary() ;
+	my @details = $test_builder->details() ;
+	my $nb_tests_run = scalar( @summary ) ;
+	my $nb_tests_expected = $test_builder->expected_tests() ;
+	my $nb_tests_failed = count_0s( @summary ) ;
+	my $tests_failed = report_failures( @details ) ;
+	if ( $nb_tests_failed or ( $nb_tests_run != $nb_tests_expected ) ) {
+		#$test_builder->reset(  ) ;
+		myprint( "Summary of tests: failed $nb_tests_failed tests, run $nb_tests_run tests, expected to run $nb_tests_expected tests.\n",
+                "List of failed tests:\n", $tests_failed ) ;
+		exit $EXIT_TESTS_FAILED ;
+	}
+        exit ;
+}
+
+
+sub testunitsession {
+	my $mysync = shift ;
+	
+	if ( ! $mysync ) { return ; }
+	if ( ! $mysync->{ testsunit } ) { return ; }
+
+	my @functions = @{ $mysync->{ testsunit } } ;
+	
+	if ( ! @functions ) { return ; }
+
+	SKIP: {
+		if ( ! @functions ) { skip( 'No test in normal run' ) ; }
+		testsunit( @functions ) ;
+                done_testing(  ) ;
+	}
+	return ;
+}
+
+
+sub count_0s {
+	my @array = @ARG ;
+	
+	if ( ! @array ) { return 0 ; }
+	my $nb_zeros = 0 ;
+	map { $_ == 0 and $nb_zeros += 1 } @array ;
+	return $nb_zeros ;
+}
+
+
+sub report_failures {
+	my @details = @ARG ;
+	
+	if ( ! @details ) { return ; }
+	
+	my $counter = 1 ;
+	my $report  = q{} ;
+	foreach my $details ( @details ) {
+		if ( ! $details->{ 'ok' } ) {
+			my $name = $details->{ 'name' } || 'NONAME' ;
+			$report .= "nb $counter - $name\n" ;
+		}
+		$counter += 1 ;
+	}
+	return $report ;
+
+}
+
+
+sub testsunit {
+	my @functions = @ARG ;
+	
+	if ( ! @functions ) { #
+                myprint( "testsunit warning: no argument given\n" ) ;
+                return ; 
+        }
+			
+	foreach my $function ( @functions ) {
+		if ( ! $function ) {
+                        myprint( "testsunit warning: argument is empty\n" ) ;
+                        next ; 
+                }
+		if ( ! exists &$function ) {
+                        myprint( "testsunit warning: function $function does not exist\n" ) ;
+                        next ; 
+                }
+		if ( ! defined &$function ) {
+                        myprint( "testsunit warning: function $function is not defined\n" ) ;
+                        next ; 
+                }
+		my $function_ref = \&{ $function } ;
+		&$function_ref() ; 
+	}
+	return ;
+}
+
+sub tests_template {
+        note( 'Entering tests_template()' ) ;
+        is( undef, undef,  'template: undef is undef' ) ;
+        like(   'aBCd', qr/BC/, 'template: aBCd is like BC' ) ;
+        unlike( 'aCBd', qr/BC/, 'template: aCBd is not like BC' ) ;
+        is_deeply( {}, {}, 'template: a hash is a hash' ) ;
+        is_deeply( [], [], 'template: an array is an array' ) ;
+        note( 'Leaving  tests_template()' ) ;
+	return ;
+}
+
+
+
+sub tests {
+	my $mysync = shift ;
+	if ( ! $mysync->{ tests } ) { return ; }
+
+	SKIP: {
+                if ( ! $mysync->{ tests } ) {
+                        skip( 'No test in normal run' ) 
+                }
+		note( 'Entering tests()' ) ;
+		tests_get_options(  ) ;
+		tests_get_options_cgi(  ) ;
+                tests_randelem(  ) ;
+                tests_index_from_string_mod(  ) ;
+                tests_remote_from_credentials(  ) ;
+                tests_choose_remote(  ) ;
+                tests_remote_index_from_credentials(  ) ;
+                tests_remote_remove_index(  ) ;
+                tests_remove_remote(  ) ;
+                tests_can_and_have_to_sync(  ) ;
+		done_testing( 91 ) ;
+		note( 'Leaving  tests()' ) ;
+        }
+        return ;
+}
+

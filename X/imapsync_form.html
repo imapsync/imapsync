@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<!-- $Id: imapsync_form.html,v 1.42 2017/09/07 00:58:48 gilles Exp gilles $ -->
+<!-- $Id: imapsync_form.html,v 1.51 2018/04/12 11:16:03 gilles Exp gilles $ -->
 
 <html lang="en" id="top">
-
+ 
 <head>
     <title>Imapsync online</title>
     <meta charset="utf-8">
@@ -13,6 +13,8 @@
 	
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" 
 	integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+        
+        <link rel="stylesheet" href="imapsync_form.css">
 
     <link rel="license" href="../NOLIMIT">
     <!-- 
@@ -36,10 +38,10 @@
     <div class="row">
         <div class="text-center">
             <a href="../">
-                <img alt="Imapsync home" src="../S/images/logo_imapsync_Xn.png" height="38" width="60">
+            <img alt="Imapsync home" src="../S/images/logo_imapsync_Xn.png" height="38" width="60">
             </a>
             <a href="#top"      class="btn btn-info active" role="button">Top</a>
-			<a href="#payment"  class="btn btn-warning" data-toggle="collapse">Pricing</a>
+            <!-- <a href="#payment"  class="btn btn-warning" data-toggle="collapse">Pricing</a> -->
             <a href="#buttons"  class="btn btn-info scripton"  role="button">Consoles</a>
             <a href="#bottom"   class="btn btn-info"        role="button">Bottom</a>
         </div>
@@ -52,24 +54,25 @@ new: NDGMR6TLFZ926
 old: H2YTURNFT4XT4
 -->
 
-        <!-- A button above the pricing form, not very beautiful...
+        <!-- A button above the pricing form, not very beautiful... 
+        I should give it a try anyway because nearly no one buy this service...
 	<div class="text-center">
 	<a href="#payment" class="btn btn-warning btn-lg" data-toggle="collapse">Pricing</a>
 	</div>
-	-->
-	
-    <div id="payment" class="well text-center collapse " >
+        -->
+        
+<!-- the "in" makes the form not collapsed by default 
+     <div id="payment" class="well text-center collapse in" > -->
+     <div id="payment" class="well text-center collapse" >
         <p class="lead">Pay by usage type</p>
         <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
             <input type="hidden" name="cmd" value="_s-xclick" />
             <input type="hidden" name="hosted_button_id" value="H2YTURNFT4XT4" />
             <input type="hidden" name="on0" value="imapsync choice" />
             <fieldset>
-            <!--
-            <label data-toggle="tooltip" data-placement="top" title="A try"
+            <label data-toggle="tooltip" data-placement="top" title="Fair enough"
             class="radio-inline"><input type="radio" name="os0" value="Tiny"          > €1,00     </label>
-            -->
-            <label data-toggle="tooltip" data-placement="top" title="A whole mailbox"
+            <label data-toggle="tooltip" data-placement="top" title="A big mailbox"
             class="radio-inline"><input type="radio" name="os0" value="Small" checked > €5,00    </label>
             <label data-toggle="tooltip" data-placement="top" title="Several mailboxes to migrate"
             class="radio-inline"><input type="radio" name="os0" value="Normal"        > €25,00  </label>
@@ -80,7 +83,8 @@ old: H2YTURNFT4XT4
             <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" name="submit" alt="PayPal - A safe, easy way to pay online!" />
             </fieldset>
         <p>
-            <strong><em>Payment only after the job is well done are ok!</em></strong>
+            <br>
+            <strong><em>Thanks in advance!<br></em></strong>
         </p>
         </form>
     </div>
@@ -89,7 +93,7 @@ old: H2YTURNFT4XT4
 	
     <form id="form" action="/cgi-bin/imapsync" method="post" autocomplete="on">
         <div class="row">
-            <div class="col-md-6" style="background-color: DodgerBlue;" >
+            <div id="account1" class="col-md-6" >
 				<fieldset>
 				<legend class="text-center h2">Source account</legend>
 
@@ -137,7 +141,7 @@ old: H2YTURNFT4XT4
             </div>
 
 
-            <div class="col-md-6" style="background-color:DarkTurquoise;">
+            <div id="account2" class="col-md-6" >
 				<fieldset>
 				<legend class="text-center h2">Destination account</legend>
 
@@ -188,8 +192,9 @@ old: H2YTURNFT4XT4
         <!--
         <input type="hidden" name="simulong" value="3600">
         -->
-
-        <hr id="buttons">
+        <a name="buttons"></a>
+        <hr> 
+        
         <!-- Classical button to go to the log only -->
         <noscript>
 			<button type="submit" class="btn btn-success btn-lg center-block btn-block">Go sync!</button> 
@@ -197,9 +202,7 @@ old: H2YTURNFT4XT4
 
 		<!-- Javascript buttons using xhr -->
         <div class="row scripton">
-            <div class="col-sm-6"
-                style="padding-left: 0px; padding-right: 0px;"
-            >
+            <div class="col-sm-6 padd0" >
             <button id="bt-sync" type="button"
                     class="btn btn-success btn-lg center-block btn-block"
                     tabindex="11"
@@ -211,22 +214,17 @@ old: H2YTURNFT4XT4
                 <span class="glyphicon glyphicon-envelope"></span>
             </button>
             </div>
-            <div class="col-sm-6"
-                style="padding-left: 0px; padding-right: 0px;"
-            >
+            <div class="col-sm-6 padd0" >
             <button id="bt-abort" type="button" 
                     class="btn btn-danger btn-lg center-block  btn-block" tabindex="12"
                     data-toggle="tooltip" data-placement="top" title="You can abort and restart the sync later, no duplicates should happen"
-
             >
-                Abort!<br>
+            Abort!<br>
                 <span class="glyphicon glyphicon-scissors"></span>
             </button>
             </div>
         </div>
     </form>
-
-
 
 	
     <div class="row scripton" id="consoles">
@@ -275,8 +273,8 @@ old: H2YTURNFT4XT4
 
 </pre>
 
-
-<hr id="bottom">
+<a name="bottom"></a>
+<hr>
 
     <p class="text-center">Feel free to contact 
     <strong><a  href="../#AUTHOR" target="_blank">Gilles LAMIRAL</a></strong>
@@ -293,7 +291,7 @@ old: H2YTURNFT4XT4
             <a href="#buttons"  class="btn btn-info scripton" role="button">Consoles</a>
             <a href="#bottom"   class="btn btn-info active"   role="button">Bottom</a>
             <br>
-        <small> ($Id: imapsync_form.html,v 1.42 2017/09/07 00:58:48 gilles Exp gilles $) </small><br>
+        <small> ($Id: imapsync_form.html,v 1.51 2018/04/12 11:16:03 gilles Exp gilles $) </small><br>
         Terms and conditions for anything: <a href="../LICENSE">No limits to do anything with this work and this license!</a><br>
         </div>
     </div>
@@ -304,159 +302,21 @@ old: H2YTURNFT4XT4
 src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"
 integrity="sha384-xBuQ/xzmlsLoJpyjoggmTEz8OWUFM0/RC5BsqQBDX2v5cMvDHcMakNTNrHIW2I5f"
 crossorigin="anonymous"
-></script>
+>
+</script>
 
 <script 
 src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
 integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" 
 crossorigin="anonymous"
-></script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<script>
-/*jslint browser: true*/ /*global  $*/
-$(document).ready(function () {
-    "use strict";
-    // Bootstrap popover and tooltip
-    $("[data-toggle='tooltip']").tooltip();
-
-    var readyStateStr = {
-        "0": "Request not initialized",
-        "1": "Server connection established",
-        "2": "Response headers received",
-        "3": "Processing request",
-        "4": "Finished and response is ready"
-    };
-
-    function refreshLog(xhr) {
-        $("#output").html(xhr.responseText);
-    }
-
-    function handleRun(xhr, timerRefreshLog) {
-
-        $("#console").text("Status: " + xhr.status + " " + xhr.statusText + "\n"
-                + "State: " + readyStateStr[xhr.readyState] + "\n");
-
-        if (xhr.readyState === 4) {
-            // var headers = xhr.getAllResponseHeaders();
-            // $("#console").append(headers);
-            // $("#console").append("See the completed log\n");
-            $("#link_to_bottom").show();
-            clearInterval(timerRefreshLog);
-            refreshLog(xhr); // a last time
-            $("#bt-sync").prop("disabled", false); // back to enable state for next run
-        }
-    }
-
-    function imapsync() {
-        var querystring = $("#form").serialize();
-        $("#abort").text("\n\n"); // clean abort console
-        $("#output").text("Here comes the log!\n\n");
-        if ("imap.gmail.com" === $("#host1").val()) {
-            querystring = querystring + "&gmail1=on";
-        }
-        if ("imap.gmail.com" === $("#host2").val()) {
-            querystring = querystring + "&gmail2=on";
-        }
-        var xhr;
-        xhr = new XMLHttpRequest();
-        var timerRefreshLog = setInterval(function () {
-            refreshLog(xhr);
-        }, 5000);
-        xhr.onreadystatechange = function () {
-            handleRun(xhr, timerRefreshLog);
-        };
-        xhr.open("POST", "/cgi-bin/imapsync", true);
-        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        xhr.send(querystring);
-    }
-
-
-    function handleAbort(xhr) {
-
-        $("#abort").text("Status: " + xhr.status + " " + xhr.statusText + "\n"
-                + "State: " + readyStateStr[xhr.readyState] + "\n\n");
-
-        if (xhr.readyState === 4) {
-            $("#abort").append(xhr.responseText);
-            $("#bt-sync").prop("disabled", false);
-            $("#bt-abort").prop("disabled", false); // back for next abort
-        }
-    }
-
-    function abort() {
-        var querystring = $("#form").serialize() + "&abort=on";
-        var xhr;
-        xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function () {
-            handleAbort(xhr);
-        };
-        xhr.open("POST", "/cgi-bin/imapsync", true);
-        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        xhr.send(querystring);
-    }
-
-
-    // in case of a manual refresh, start
-    $("#bt-sync").prop("disabled", false);
-    $("#bt-abort").prop("disabled", false);
-    $("#link_to_bottom").hide();
-
-    $("#bt-sync").click(function () {
-        $("#bt-sync").prop("disabled", true);
-        $("#bt-abort").prop("disabled", false);
-        $("#link_to_bottom").hide();
-        imapsync();
-    });
-
-    $("#bt-abort").click(function () {
-        $("#bt-sync").prop("disabled", true);
-        $("#bt-abort").prop("disabled", true);
-        abort();
-    });
-
-});
-
+>
 </script>
+
+
+<script
+  src="imapsync_form.js"
+>
+</script>
+
 </body>
 </html>

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: sync_loop_darwin.sh,v 1.1 2015/12/10 22:24:57 gilles Exp gilles $
+# $Id: sync_loop_darwin.sh,v 1.2 2018/02/12 21:54:59 gilles Exp gilles $
 
 # Example for imapsync massive migration on Unix systems.
 # See also http://imapsync.lamiral.info/FAQ.d/FAQ.Massive.txt
@@ -29,7 +29,7 @@ echo
 
 { while IFS=';' read  h1 u1 p1 h2 u2 p2 fake
     do 
-        { echo "$h1" | egrep "^#" ; } > /dev/null && continue # this skip commented lines in file.txt
+        { echo "$h1" | egrep '^#|^ *$' ; } > /dev/null && continue # this skip commented lines in file.txt
         echo "==== Starting imapsync from host1 $h1 user1 $u1 to host2 $h2 user2 $u2 ===="
         ../imapsync_bin_Darwin --host1 "$h1" --user1 "$u1" --password1 "$p1" \
                  --host2 "$h2" --user2 "$u2" --password2 "$p2" \
