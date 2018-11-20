@@ -29,7 +29,7 @@ IF %PROCESSOR_ARCHITECTURE% == x86 (
 	CALL     pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll --link libcrypto-1_1_.dll --link libssl-1_1_.dll .\imapsync
 	REM CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll  .\imapsync
 ) ELSE (
-	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  .\imapsync
+	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1__.dll --link libcrypto-1_1-x64__.dll --link libssl-1_1-x64__.dll .\imapsync
 )
 @ENDLOCAL
 EXIT /B
