@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: sync_parallel_unix.sh,v 1.2 2018/02/12 21:53:16 gilles Exp gilles $
+# $Id: sync_parallel_unix.sh,v 1.7 2018/12/06 10:09:03 gilles Exp gilles $
 
 # Example for imapsync massive migration on Unix systems.
 # See also http://imapsync.lamiral.info/FAQ.d/FAQ.Massive.txt
@@ -15,10 +15,9 @@
 # and a trailing empty fake column to avoid CR LF part going 
 # in the 6th parameter password2. Don't forget the last semicolon.
 #
-# You can add extra options after the variable "$@" 
+# You can add extra options after the last line 
 # Use character backslash \ at the end of each supplementary line, except for the last one.
-# You can also pass extra options via the parameters of this script since
-# they will be in "$@"
+
 
 # The credentials filename "file.txt" used for the loop can be renamed 
 # by changing "file.txt" below.
@@ -26,13 +25,29 @@
 # The part 'echo {1} | egrep "^#" > /dev/null ||' is just there to skip commented lines in file.txt
 # It can be removed if there is no comment lines in file.txt
 
+# --max-procs 7 means parallel will parallelize up to 7 jobs at a time,
+# adjust this value by monitoring your system capacity.
+
+# --delay 2 means parallel will pause 2 seconds after starting each job.
+
+check_parallel_is_here() {
+        parallel --version > /dev/null || { echo "parallel command is not installed. Install it first."; return 1; }
+}
+
+check_parallel_is_here || exit 1 ;
+
 echo Looping with parallel on account credentials found in file.txt
 echo
 
 DRYRUN=echo
-#DRYRUN=
+# Comment the next line if you want to see the imapsync command instead of running it
+DRYRUN=
 
-parallel --colsep ';' -a file.txt 'echo {1} | egrep "^#|^ *$" > /dev/null ||' \
+parallel --max-procs 7 --delay 2 --colsep ';' --arg-file file.txt --line-buffer --tagstring "from {2} to {5} : " \
+        'echo {1} | egrep "^#|^ *$" > /dev/null ||' \
         $DRYRUN imapsync --host1 {1} --user1 {2} --password1 {3} \
-        --host2 {4} --user2 {5} --password2 {6} {=7=} "$@" 
+        --host2 {4} --user2 {5} --password2 {6} 
 
+
+
+# {=7=} "$@" 

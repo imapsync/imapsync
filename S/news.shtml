@@ -39,16 +39,25 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 
 <!-- 
 <ul>
-<li><b>1.882</b></li>
+<li><b>1.920</b></li>
+<li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 
+
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
 <li><b>Usability</b>: </li>
 <li><b>Usability</b>: </li>
 <li><b>Usability</b>: </li>
 
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
 <li><b>Bug fix</b>: </li>
 <li><b>Bug fix</b>: </li>
 <li><b>Bug fix</b>: </li>
@@ -59,25 +68,118 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 <li><b>Refactoring</b>: </li>
 
 <li><b>Security</b>: </li>
+<li><b>Security</b>: </li>
+
+<li><b>Portability</b>: </li>
+<li><b>Portability</b>: </li>
+
 <li><b>Dependency removed</b>: </li>
-<li><b>Dependency added</b>: </li>
+<li><b>Dependency added</b>: Perl module IO::Prompt</li>
+
+<li><b>Roadmap</b>: </li>
 
 </ul>
  -->
 
+ 
+ <ul>
+<li><b>1.920</b></li>
+<li><b>Enhancement</b>: Script <a href="../examples/sync_parallel_unix.sh">sync_parallel_unix.sh</a> to parallelize massive syncs. 
+It uses the powerful GNU <tt>parallel</tt> command.
+</li>
+
+<li><b>Enhancement</b>: Added option <tt>--synclabels</tt> to sync Gmail labels. It should speed up Gmail to Gmail syncs. 
+  The option <tt>--synclabels</tt> applies only during a copy of a message for now. Resyncing Gmail labels will be coded later.
+</li>
+<li><b>Enhancement</b>: Option <tt>--synclabels</tt> is activated with <tt>--gmail1 --gmail2</tt> used together.</li>
+
+<li><b>Portability</b>: The imapsync script <a href="https://en.wikipedia.org/wiki/Shebang_(Unix)">Shebang</a> (first line of imapsync) uses <tt>env</tt> now,
+ instead of direct perl path. 
+ I'm not sure it's a good change that 
+ <tt>#!/usr/bin/perl</tt> becomes <tt>#!/usr/bin/env perl</tt></li>
+
+<li><b>Enhancement</b>: Final stats:
+        <ul>
+        <li>Added a counter of crossduplicates on host2 ( a crossduplicate is a message found accross different folders )</li>
+        <li>Added counter of "Messages found in host1 not in host2"</li>
+        <li>Added counter of "Messages found in host2 not in host1"</li>
+        <li>Added stat "Load end is"</li>
+        <li>Added comment on final stat about messages in host1 not in host2</li>
+        <li>Added comment on final stat about messages in host2 not in host1</li>
+        <li>Added comment on final stat about unidentified messages and an --addheader suggestion</li>
+        <li>Removed counters of "Total bytes duplicate host1" and "Total bytes duplicate host2"</li>
+        <li>Removed counter of "Total bytes error"</li>
+        </ul>
+</li>
+
+<li><b>Enhancement</b>: Added authmech X-MASTERAUTH. To be used for Kerio with --authmech1 X-MASTERAUTH or --authmech2 X-MASTERAUTH ( Patch from https://github.com/imapsync/imapsync/pull/53/files )</li>
+
+<li><b>Enhancement</b>: Added --sigprint HUP (signal HUP by default) in order to allow some asynchronous prints (with, for example, a <tt>kill -HUP IMAPSYNC_PID</tt>) in CGI mode and avoid timeouts from browser</li>
+<li><b>Enhancement</b>: <tt>--skipcrossduplicates</tt> activated with <tt>--gmail1</tt> alone</li>
+<li><b>Enhancement</b>: <tt>--skipcrossduplicates</tt> is NOT activated with <tt>--gmail2</tt> alone or with <tt>--gmail1 --gmail2</tt> together used.</li>
+<li><b>Enhancement</b>: Speed. Deletions on host1 are done by batch during a resync.</li>
+<li><b>Enhancement</b>: Added automatic <tt>--maxsize</tt> from <tt>"CAPABILITY  APPENDLIMIT=xxxx"</tt> (Gmail)</li>
+<li><b>Enhancement</b>: Added <tt>--folderlast '[Gmail]/All Mail'</tt> with <tt>--gmail1 --gmail2</tt></li>
+
+<li><b>Enhancement</b>: With <tt>--office1</tt> option, folder "Files" is excluded because it's a "special" folder. Like <tt>--exclude "^Files$"</tt>. 
+                        Unless <tt>--noexclude</tt> is used.</li>
+<li><b>Enhancement</b>: With <tt>--office2</tt> option, folder "Files" on host1 is renamed like <tt>--f1f2 "Files=Files_renamed_by_imapsync"</tt>. 
+                        Unless <tt>--nof1f2</tt> is used.</li>
+<li><b>Enhancement</b>: Added <tt>--exclude '^Files$'</tt> with <tt>--office2</tt> option.</li>
+<li><b>Enhancement</b>: Added inline explanations for the options <tt>--office1 --office2 --exchange1 --exchange2</tt> (what they set and how to avoid what they set).</li>
+<li><b>Enhancement</b>: Added <tt>--noregexmess</tt> to avoid the regexmess setting with <tt>--office2</tt> and <tt>--exchange2</tt> (wrap long lines >= 10500 char).</li>
+<li><b>Enhancement</b>: Added <tt>--noregexflag</tt> to avoid the regexflag set by <tt>--exchange2</tt> (remove <tt>\Flagged</tt> flag).</li>
+
+<li><b>Enhancement</b>: Added <tt>IO::Socket::IP</tt> and <tt>CGI</tt> in the list of the modules versions.</li>
+
+
+
+<li><b>Usability</b>: Added PPID info where PID is printed. Can be useful in some contextes, CGI, embeded, debugging etc.</li>
+
+
+
+<li><b>Bug fix</b>: Now split the deletion of messages in several chunks (using --split1)</li>
+<li><b>Bug fix</b>:  --debugssl 0 was impossible and equivalent to --debugssl 1</li>
+
+<li><b>Bug fix</b>: Removed <tt>--nosubscribed</tt> usage since it is not coded and useless anyway.</li>
+<li><b>Bug fix</b>: Option <tt>--maxsleep</tt> override variable <tt>$MAX_SLEEP</tt> in <tt>gmail*()</tt> subroutines.</li>
+<li><b>Bug fix</b>: Do not create host2 folder when no messages are found on this folder on host1 
+       (See <a href="https://github.com/imapsync/imapsync/issues/95">https://github.com/imapsync/imapsync/issues/95</a>)</li>
+<li><b>Bug fix</b>: The regex to remove the flag <tt>\Flagged</tt> was wrong. It worked because of another filter run after.</li>
+<li><b>Bug fix</b>: The options <tt>--exchange1</tt> and <tt>--exchange2</tt> were not options! No one complained...</li>
+<li><b>Bug fix</b>: A pid can be up to 99999 on FreeBSD</li>
+
+<li><b>Refactoring</b>: Deglobarised some global variables</li>
+<li><b>Refactoring</b>: Refactored <tt>sub appendlimit()</tt> to use <tt>Mail::IMAPClient::capability</tt> like the API. 
+                        No hack from internal <tt>$imap->{ APPENDLIMIT }</tt></li>
+<li><b>Refactoring</b>: Fixed some perl critics.</li>
+
+
+<li><b>Portability</b>: Added freebsd support for loadavg and cpu_cores.</li>
+<li><b>Portability</b>: Calls memory_consumption_of_pids_win32() within Cygwin environment (https://github.com/imapsync/imapsync/pull/22)</li>
+
+
+<li><b>Dependency removed</b>: None.</li>
+<li><b>Dependency added</b>: None.</li>
+
+<li><b>Roadmap</b>:  Proxy mode abandoned. Will be another lighter memory tool (since less memory consumption is the goal).</li>
+
+</ul>
+
+ 
 <ul>
 <li><b>1.882</b> (2018/05/06) On the road to a proxy mode! (not done yet)</li>
 <li><b>Enhancement</b>: Added option --nocheckfoldersexist ( Default is like --checkfoldersexist )</li>
 <li><b>Enhancement</b>: Added option --noresyncflags     : Do not resync flags for already transfered messages.
                         May be useful when a user has already started to play with its host2 account.</li>
 <li><b>Enhancement</b>: Option --abort now creates a log too, in order to see if imapsync ended by signal comes from option --abort or something else.</li>
-<li><b>Enhancement</b>: Added option --sigexit; For example --sigexit QUIT --sigexit TERM to exit when receiving QUIT or TERM signals.<br>
-Added option --sigreconnect. For example --sigreconnect INT to reconnect to both imap servers when receiving INT signal.<br>
-Added option --sigignore. For example --sigignore TERM to "ignore" the TERM signal. In fact print stats during the sync.<br>
+<li><b>Enhancement</b>: Added option --sigexit; For example --sigexit QUIT --sigexit TERM to exit when receiving QUIT or TERM signals.<br/>
+Added option --sigreconnect. For example --sigreconnect INT to reconnect to both imap servers when receiving INT signal.<br/>
+Added option --sigignore. For example --sigignore TERM to "ignore" the TERM signal. In fact print stats during the sync.<br/>
 Default is like:  --sigexit QUIT --sigexit TERM --sigreconnect INT 
 </li>
-<li><b>Enhancement</b>: Moved the hostname printing at first line. The goal is for clarity when in proxy mode.<br>
-Added free RAM info in the banner.<br>
+<li><b>Enhancement</b>: Moved the hostname printing at first line. The goal is for clarity when in proxy mode.<br/>
+Added free RAM info in the banner.<br/>
 </li>
 <li><b>Enhancement</b>: When using sleeping behavior, a signal USR1 toggles sleep from 2s to 0s (back to 2s with on next USR1 signal). Unix only.</li>
 
@@ -583,15 +685,15 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 
 <hr />
 <div>
-<a  href="http://validator.w3.org/check?uri=referer">
+<a  href="https://validator.w3.org/check?uri=referer">
   <img  width="88"  height="31"  alt="Valid XHTML 1.0 Strict"  src="../S/images/valid-xhtml10" />
 </a>
 
-<a  href="http://jigsaw.w3.org/css-validator/check/referer">
+<a  href="https://jigsaw.w3.org/css-validator/check/referer">
   <img  alt="CSS Valide !"  src="../S/images/vcss-blue"  style="border:0;width:88px;height:31px" />
 </a>
 
-<a  href="http://www.anybrowser.org/campaign/">
+<a  href="https://www.anybrowser.org/campaign/">
 <img  alt="Viewable With Any Browser"  src="../S/images/ab_jlh.png"  style="border:0;width:88px;height:31px" />
 </a>
 </div>
@@ -601,7 +703,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.54 2018/05/06 15:03:59 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.59 2019/02/17 14:34:36 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

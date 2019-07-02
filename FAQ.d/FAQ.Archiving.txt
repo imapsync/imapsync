@@ -1,11 +1,13 @@
 #!/bin/cat
-$Id: FAQ.Archiving.txt,v 1.7 2018/04/24 00:16:21 gilles Exp gilles $
+$Id: FAQ.Archiving.txt,v 1.13 2018/12/09 21:26:25 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Archiving.txt
 
-============================================
-   Imapsync issues and tips about archiving.
-============================================
+=======================================================================
+          Imapsync issues and tips about archiving
+=======================================================================
 
 Questions answered in this FAQ are:
 
@@ -28,10 +30,10 @@ Q. Can I archive different accounts on the same destination account,
 
 R. Yes. Use --subfolder2 
 
---subfolder2 str : Move whole host1 folders hierarchy under the
-                   host2 folder str.
-                   It is done it by adding two --regextrans2 options before
-                   all others. Add --debug to see what's really going on.
+ --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
+                       host2 given folder str.
+                       (It does it internally by adding two --regextrans2 
+                       options before all others.)
 
 Example:
 
@@ -48,17 +50,19 @@ in the right place, ie, the subfolder "foo".
 =======================================================================
 Q. How to move emails from one IMAP folder to another either on the 
   same IMAP server or a different one?
-  For example, all messages older than 1 year, move from INBOX to Archive.
+  For example, move all messages older than 1 year from INBOX to Archive.
  
 R1. Solution:
 
-  imapsync ... --minage 365 --folder Inbox --f1f2 INBOX=Archive --delete --noexpungeaftereach
+  imapsync ... --minage 365 --folder Inbox --f1f2 INBOX=Archive --delete1 --noexpungeaftereach
 
 Add option --noexpungeaftereach if speed is a concern.
-Add option --delete if you want to move messages, instead of just copy/sync them.
+Add option --delete1 if you want to move messages, instead of just copy/sync them.
 
 R2. See also file FAQ.Folders_Mapping.txt
 
+
+https://imapsync.lamiral.info/FAQ.d/FAQ.Archiving.txt
 =======================================================================
 Q. Can imapsync be used to maintain a local offline copy of a 
    mailbox from host1, eg for backup purposes, so that if the 
@@ -71,14 +75,16 @@ R2. Imapsync can't but rick-sanders-imap-tools can!
     See https://github.com/andrewnimmo/rick-sanders-imap-tools
     
     Back up and restore IMAP accounts with imapdump.pl and dumptoIMAP.pl
+    It looks like imapdump.pl has options to avoid duplicates and be
+    in an update mode. There are options -u -U
+    [-u] Don't dump messages already dumped
+    [-U] Don't dump message if it already exists in the dump directory
+    I wonder the difference, I've never used Rick's tools.
+
+    Remember that doing backups without trying the restore process
+    is more dangerous than doing no backups at all. No backups makes
+    people act in a safer way, well, usually...
     
-
-
-
-
-
-
-=======================================================================
 =======================================================================
 =======================================================================
 

@@ -5,7 +5,7 @@ NAME
 
 VERSION
 
-    This documentation refers to Imapsync $Revision: 1.882 $
+    This documentation refers to Imapsync $Revision: 1.920 $
 
 USAGE
 
@@ -84,19 +84,19 @@ OPTIONS
      reg means regular expression
      cmd means command
 
-     --dry               : Makes imapsync doing nothing for real, just print what 
+     --dry               : Makes imapsync doing nothing for real, just print what
                            would be done without --dry.
 
   OPTIONS/credentials
 
      --host1        str  : Source or "from" imap server. Mandatory.
-     --port1        int  : Port to connect on host1. 
+     --port1        int  : Port to connect on host1.
                            Optional since default port is 143 or 993 if --ssl1
      --user1        str  : User to login on host1. Mandatory.
      --password1    str  : Password for the user1.
 
      --host2        str  : "destination" imap server. Mandatory.
-     --port2        int  : Port to connect on host2. 
+     --port2        int  : Port to connect on host2.
                            Optional since default port is 143 or 993 if --ssl2
      --user2        str  : User to login on host2. Mandatory.
      --password2    str  : Password for the user2.
@@ -109,6 +109,9 @@ OPTIONS
                            password on the first line. This option avoids to show
                            the password on the command line like --password1 does.
      --passfile2    str  : Password file for the user2. Contains the password.
+
+    You can also pass the passwords in the environment variables
+    IMAPSYNC_PASSWORD1 and IMAPSYNC_PASSWORD2
 
   OPTIONS/encryption
 
@@ -191,10 +194,11 @@ OPTIONS
      --f1f2    str1=str2 : Force folder str1 to be synced to str2,
                            --f1f2 overrides --automap and --regextrans2.
 
-     --subfolder2   str  : Move whole host1 folders hierarchy under this
-                           host2 folder  str    .
-                           It does it by adding two --regextrans2 options before
-                           all others. Add --debug to see what's really going on.
+     --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
+                           host2 folder named str.
+                           (It does it internally by adding two
+                           --regextrans2 options before all others.
+                           Add --debug to see what's really going on.)
 
      --subscribed        : Transfers subscribed folders.
      --subscribe         : Subscribe to the folders transferred on the
@@ -224,7 +228,7 @@ OPTIONS
 
      --nofoldersizes     : Do not calculate the size of each folder at the
                            beginning of the sync. Default is to calculate them.
-     --nofoldersizesatend: Do not calculate the size of each folder at the 
+     --nofoldersizesatend: Do not calculate the size of each folder at the
                            end of the sync. Default is to calculate them.
      --justfoldersizes   : Exit after having printed the initial folder sizes.
 
@@ -273,7 +277,7 @@ OPTIONS
      --resyncflags       : Resync flags for already transferred messages.
                            On by default.
      --noresyncflags     : Do not resync flags for already transferred messages.
-                           May be useful when a user has already started to play 
+                           May be useful when a user has already started to play
                            with its host2 account.
 
   OPTIONS/deletions
@@ -342,7 +346,7 @@ OPTIONS
                            command. Applied on both sides.
                            For a complete of what can be search see
                            https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
-                       
+
      --search1      str  : Same as --search but for selecting host1 messages only.
      --search2      str  : Same as --search but for selecting host2 messages only.
                            --search CRIT equals --search1 CRIT --search2 CRIT
@@ -367,6 +371,10 @@ OPTIONS
      --syncacls          : Synchronizes acls (Access Control Lists).
      --nosyncacls        : Does not synchronize acls. This is the default.
                            Acls in IMAP are not standardized, be careful.
+     --addheader         : When a message has no headers to be identified, 
+                           --addheader adds a "Message-Id" header,
+                           like "Message-Id: 12345@imapsync", where 12345
+                           is the imap UID of the message on the host1 folder.
 
   OPTIONS/debugging
 
@@ -391,28 +399,28 @@ OPTIONS
 
       --gmail1           : sets --host1 to Gmail and options from FAQ.Gmail.txt
       --gmail2           : sets --host2 to Gmail and options from FAQ.Gmail.txt
-  
+
       --office1          : sets --host1 to Office365 options from FAQ.Exchange.txt
       --office2          : sets --host2 to Office365 options from FAQ.Exchange.txt
 
       --exchange1        : sets options from FAQ.Exchange.txt, account1 part
       --exchange2        : sets options from FAQ.Exchange.txt, account2 part
-  
+
       --domino1          : sets options from FAQ.Domino.txt, account1 part
       --domino2          : sets options from FAQ.Domino.txt, account2 part
 
   OPTIONS/behavior
 
      --maxmessagespersecond int : limits the number of messages transferred per second.
- 
+
      --maxbytespersecond int : limits the average transfer rate per second.
-     --maxbytesafter     int : starts --maxbytespersecond limitation only after 
+     --maxbytesafter     int : starts --maxbytespersecond limitation only after
                                --maxbytesafter amount of data transferred.
- 
+
      --maxsleep      int : do not sleep more than int seconds.
                            On by default, 2 seconds max, like --maxsleep 2
 
-     --abort             : terminates a previous call still running. 
+     --abort             : terminates a previous call still running.
                            It uses the pidfile to know what process to abort.
 
      --exitwhenover int  : Stop syncing when total bytes transferred reached.
@@ -542,13 +550,13 @@ HUGE MIGRATION
 INSTALL
 
      Imapsync works under any Unix with perl.
- 
+
      Imapsync works under most Windows (2000, XP, Vista, Seven, Eight, Ten
      and all Server releases 2000, 2003, 2008 and R2, 2012 and R2)
      as a standalone binary software called imapsync.exe,
-     usually launched from a batch file in order to avoid always typing 
+     usually launched from a batch file in order to avoid always typing
      the options.
- 
+
      Imapsync works under OS X as a standalone binary
      software called imapsync_bin_Darwin
 
@@ -584,7 +592,7 @@ SIMILAR SOFTWARE
 
       imap_tools    : https://github.com/andrewnimmo/rick-sanders-imap-tools
       offlineimap   : https://github.com/nicolas33/offlineimap
-      Doveadm-Sync  : http://wiki2.dovecot.org/Tools/Doveadm/Sync 
+      Doveadm-Sync  : http://wiki2.dovecot.org/Tools/Doveadm/Sync
                       ( Dovecot sync tool )
       mbsync        : http://isync.sourceforge.net/
       mailsync      : http://mailsync.sourceforge.net/

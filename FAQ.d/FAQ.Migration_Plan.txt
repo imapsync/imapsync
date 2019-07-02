@@ -1,49 +1,140 @@
 #!/bin/cat
-$Id: FAQ.Migration_Plan.txt,v 1.2 2018/03/07 04:28:00 gilles Exp gilles $
+$Id: FAQ.Migration_Plan.txt,v 1.5 2019/01/11 13:13:55 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Migration_Plan.txt
+
 
 =====================================================================
    Imapsync. Suggestions for a good, low impact on users, 
    well executed email migration plan.
 =====================================================================
 
-A good migration plan:
+There is two main different scenarios depending on the response to the
+following question:
 
- * Create the new mailboxes on the destination server.
- * Decrease the TTL of the MX, as well as the imap hostname resolution,
-   to 5 minutes (or even less). See FAQ.TTL.txt to understand why.
- * Presync all the mailboxes from the old to the new server, using different name
-   that the ones used by the imap software clients (use their IP for example).
-   Presyncs can usefully be done with --delete2 but never use --delete2 once users
-   started playing with their new account on host2.
+Will the imap software tools used by the users use the exact same
+credentials triplet for both imap servers, the old server host1 and
+the new server host2?
 
- * Decide a migration day/hour
- * repeat the presyncs (--delete2) daily until the migration hour.
-   This repeated process will show how long should take the last sync.
+The credentials triplet is hostname/username/password.
+
+If the answer is yes, ie, clients email tools use the exact same
+triplet credentials, then it is possible to perform a migration
+without changing anything on the users side. This may be a very time
+saving option. But it's a rare condition so I'll describe this
+scenario later in this document.
+
+
+=====================================================================
+Classical scenario, credentials triplets are different on both sides
+=====================================================================
+
+ * Decrease the TTL of the MX, to 5 minutes (or even less).  See
+   FAQ.TTL.txt to understand why it's an advantage.  If you can't
+   decrease the TTL, the migration will span a little more but that's
+   ok, the situation is not that bad.
+
+ * Create the new mailboxes on the destination server host2.  If the
+   users are already playing with the new mailboxes on host2, don't
+   follow this scenario.
+
+ * Presync all the mailboxes from the old server host1 to the new
+   server host2.  Presyncs can usefully be done with --delete2 in
+   order to get an exact sync. But never use the option --delete2 once
+   users have started to play with their new account on host2, their
+   play will be lost on the next presync, or when the MX is changed,
+   since INBOX will start to receive new messages that are not on
+   host1.
+
+ * Decide a migration day/hour.
+
+ * Repeat the presyncs (with the --delete2 options) daily until the
+   migration hour. This repeated process will show how long should
+   take the last sync.
 
  * At the migration hour, cut access to the users to the old server
-   (by changing the imap hostname to a non-imap server for example).
- * Change also the MX (for the new messages arriving in the new imap server).
- * Wait 5 minutes.
- * Do a last sync exactly like the presyncs, not using the imap hostname.
- * Shutdown the old imap server.
+   host1, if you can. Or tell them to not use it anymore.
 
- Now a fork in the process, depending on the response to the following question:
- Will the imap software clients use the exact same
- triplet credentials as the old server? hostname/username/password
+ * Do a last presync exactly like previous ones.
 
-If the answer is yes (clients use the exact same triplet credentials):
- * Change the user imap hostname resolution from the old to the new imap server
+ * Change the MX, the new messages should start to arrive in the new
+   imap server host2.
+
+ * Wait the TTL value, aka 5 minutes. Now, new messages should 
+   not arrive to the old server host1.
+
+ * Tell the users that the old imap server host1 is down and no 
+   longer available.
+
+ * Do a postsync. A postsync is a sync with the following options 
+   --maxage 1 --delete1 --folder INBOX
+
+   This postsync will move the last new messages arrived on host1 to
+   host2 during the TTL interval and delete them on host1. Do not use
+   the option --delete2 in a postsync.
+
+ * Give access to new accounts to the users with their new credential
+   triplet hostname/username/password.  If the way to contact users is
+   email then you should give this long before shutting down the old
+   server.
+
  * Migration done.
 
-If the answer is no (clients use a different triplet credentials):
- * Tell the users the old imap server is down and no longer available.
- * Give access to new accounts to the users with their new credential triplet
-   hostname/username/password (the most similar the best for them).
-   If the way to contact users is email then you should give this long before
-   shutting down the old server.
- * Migration Done 
+ * In case there are still messages arriving at the old imap server
+   host1, you can perform more postsyncs, ie, syncs every day 
+   with the options:
+   --maxage 1 --delete1 --folder INBOX.
+
+
+=====================================================================
+Lucky scenario, credentials triplets are the same on both sides
+=====================================================================
  
+ * Decrease the TTL of the MX, as well as the imap hostname resolution,
+   to 5 minutes (or even less). See FAQ.TTL.txt to understand why.
+
+ * Create the new mailboxes on the destination server host2.
  
+ * Presync all the mailboxes from the old host1 to the new server host2, 
+   using different names that the ones used by the imap software 
+   clients (use their IP for example).
+   Presyncs have to be done with --delete2 but never use --delete2 
+   once users have started playing with their new account on host2.
+ 
+ * Decide a migration day/hour.
+
+ * repeat the presyncs (with the --delete2 options) daily until the 
+   migration hour. This repeated process will show how long should 
+   take the last sync.
+
+ * At the migration hour, cut access to the users to the old server.
+   You can do this by changing the imap host1 hostname to a non-imap 
+   server for example, or by changing their password on host1.
+
+ * Do a last sync exactly like the presyncs, not using the imap hostname.
+
+ * Change also the MX resolution, the new messages should start 
+   to arrive in the new imap server very soon.
+ 
+ * Wait the TTL value, aka 5 minutes. Now, new messages should 
+   not arrive to the old server host1.
+ 
+ * Do a postsync. A postsync is a sync with the following options 
+   --maxage 1 --delete1 --folder INBOX
+
+   This postsync will move the last new messages arrived on host1 to
+   host2 during the TTL interval and delete them on host1. Do not use
+   the option --delete2 in a postsync.
+
+ * Shutdown the old imap server.
+
+ * Change the user imap hostname resolution from the old IP of host1
+   to the IP of the new imap server host2.
+
+ * Migration done.
+
+ =======================================================================
+ =======================================================================
  

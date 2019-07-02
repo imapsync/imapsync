@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- $Id: imapsync_form.html,v 1.51 2018/04/12 11:16:03 gilles Exp gilles $ -->
+<!-- $Id: imapsync_form.html,v 1.62 2019/02/01 21:34:28 gilles Exp gilles $ -->
 
 <html lang="en" id="top">
  
@@ -16,11 +16,8 @@
         
         <link rel="stylesheet" href="imapsync_form.css">
 
-    <link rel="license" href="../NOLIMIT">
-    <!-- 
-	Terms and conditions for copying, distribution, modification or anything else: 
-    No limits to do anything with this work and this license. 
-	-->
+    <link rel="license" href="https://imapsync.lamiral.info/NOLIMIT">
+
 
 	<noscript>
 	<style>
@@ -37,11 +34,11 @@
 
     <div class="row">
         <div class="text-center">
-            <a href="../">
-            <img alt="Imapsync home" src="../S/images/logo_imapsync_Xn.png" height="38" width="60">
+            <a href="https://imapsync.lamiral.info/">
+            <img alt="Imapsync home" src="https://imapsync.lamiral.info/X/logo_imapsync_Xn.png" height="38" width="60">
             </a>
             <a href="#top"      class="btn btn-info active" role="button">Top</a>
-            <!-- <a href="#payment"  class="btn btn-warning" data-toggle="collapse">Pricing</a> -->
+            <!-- <a href="#payment"  class="btn btn-success" data-toggle="collapse">Pricing</a> -->
             <a href="#buttons"  class="btn btn-info scripton"  role="button">Consoles</a>
             <a href="#bottom"   class="btn btn-info"        role="button">Bottom</a>
         </div>
@@ -62,29 +59,34 @@ old: H2YTURNFT4XT4
         -->
         
 <!-- the "in" makes the form not collapsed by default 
+     Remove the in in order to mask the pricing section 
      <div id="payment" class="well text-center collapse in" > -->
-     <div id="payment" class="well text-center collapse" >
+     <div id="payment" class="well text-center collapse in" >
         <p class="lead">Pay by usage type</p>
         <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
             <input type="hidden" name="cmd" value="_s-xclick" />
             <input type="hidden" name="hosted_button_id" value="H2YTURNFT4XT4" />
             <input type="hidden" name="on0" value="imapsync choice" />
             <fieldset>
+            <!--
             <label data-toggle="tooltip" data-placement="top" title="Fair enough"
             class="radio-inline"><input type="radio" name="os0" value="Tiny"          > €1,00     </label>
+            -->
             <label data-toggle="tooltip" data-placement="top" title="A big mailbox"
-            class="radio-inline"><input type="radio" name="os0" value="Small" checked > €5,00    </label>
+            class="radio-inline"><input type="radio" name="os0" value="Small" > €6,00    </label>
             <label data-toggle="tooltip" data-placement="top" title="Several mailboxes to migrate"
-            class="radio-inline"><input type="radio" name="os0" value="Normal"        > €25,00  </label>
+            class="radio-inline"><input type="radio" name="os0" value="Normal" checked > €59,00  </label>
+            <!--
             <label data-toggle="tooltip" data-placement="top" title="Tons of gigabytes to copy"
             class="radio-inline"><input type="radio" name="os0" value="High"          > €125,00   </label>
+            -->
             <br>
             <input type="hidden" name="currency_code" value="EUR" />
             <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" name="submit" alt="PayPal - A safe, easy way to pay online!" />
             </fieldset>
         <p>
-            <br>
-            <strong><em>Thanks in advance!<br></em></strong>
+                <strong>30-day money back guarantee!</strong> <br>
+                <em>No question nor condition to get a refund, really, just request it and you'll sure get a refund!</em>
         </p>
         </form>
     </div>
@@ -118,7 +120,9 @@ old: H2YTURNFT4XT4
                 <label for="host1">--host1</label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-cloud"></i></span>
-                    <input list="servers1" type="text" class="form-control input-lg" id="host1" name="host1" tabindex="3"
+                    <input
+                     data-toggle="tooltip" data-placement="top" title="IMAP transfers are done with encryption if the servers support it."
+                     list="servers1" type="text" class="form-control input-lg" id="host1" name="host1" tabindex="3"
                      placeholder="Enter imap source server name or IP address">
                         <datalist id="servers1">
                         <option value="imap.gmail.com">
@@ -165,7 +169,9 @@ old: H2YTURNFT4XT4
                 <label for="host2">--host2</label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-cloud"></i></span>
-                    <input list="servers2" type="text" class="form-control input-lg" id="host2" name="host2" tabindex="8"
+                    <input
+                    data-toggle="tooltip" data-placement="top" title="IMAP transfers are done with encryption if the servers support it."
+                    list="servers2" type="text" class="form-control input-lg" id="host2" name="host2" tabindex="8"
                      placeholder="Enter imap destination server name or IP address">
                      <datalist id="servers2">
                         <option value="imap.gmail.com">
@@ -206,7 +212,7 @@ old: H2YTURNFT4XT4
             <button id="bt-sync" type="button"
                     class="btn btn-success btn-lg center-block btn-block"
                     tabindex="11"
-                    data-toggle="tooltip" data-placement="top" title="IMAP transfers are done with encryption if servers support it"
+                    data-toggle="tooltip" data-placement="top" title="Launch the sync! You can abort the sync with the red Abort button nearby or by closing the tab/window."
                     >
                 Sync or resync!<br>
                 <span class="glyphicon glyphicon-envelope"></span>
@@ -275,24 +281,30 @@ old: H2YTURNFT4XT4
 
 <a name="bottom"></a>
 <hr>
+<p class="text-center">
+        Local bandwidth statistics <br>
+            <a href="/vnstat/vnstati.html">
+                <img alt="Local bandwidth statistics" src="/vnstat/vnstat_vs.png" >
+            </a>
+</p>
 
     <p class="text-center">Feel free to contact 
-    <strong><a  href="../#AUTHOR" target="_blank">Gilles LAMIRAL</a></strong>
+    <strong><a  href="https://imapsync.lamiral.info/#AUTHOR" target="_blank">Gilles LAMIRAL</a></strong>
     </p>
 
 
 <div class="container-fluid" >
     <div class="row">
         <div class="text-center">
-            <a href="../">
-                <img alt="Imapsync home" src="../S/images/logo_imapsync_Xn.png" height="38" width="60">
+            <a href="https://imapsync.lamiral.info/">
+                <img alt="Imapsync home" src="https://imapsync.lamiral.info/X/logo_imapsync_Xn.png" height="38" width="60">
             </a>
             <a href="#top"      class="btn btn-info "         role="button">Top</a>
             <a href="#buttons"  class="btn btn-info scripton" role="button">Consoles</a>
             <a href="#bottom"   class="btn btn-info active"   role="button">Bottom</a>
             <br>
-        <small> ($Id: imapsync_form.html,v 1.51 2018/04/12 11:16:03 gilles Exp gilles $) </small><br>
-        Terms and conditions for anything: <a href="../LICENSE">No limits to do anything with this work and this license!</a><br>
+        <small> ($Id: imapsync_form.html,v 1.62 2019/02/01 21:34:28 gilles Exp gilles $) </small><br>
+        Terms and conditions for anything: <a href="https://imapsync.lamiral.info/LICENSE">No limits to do anything with this work and this license!</a><br>
         </div>
     </div>
 </div>

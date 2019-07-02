@@ -1,6 +1,12 @@
 #!/bin/sh
 
-# $Id: memo,v 1.67 2018/05/06 15:01:46 gilles Exp gilles $
+# $Id: memo,v 1.69 2019/01/30 06:53:58 gilles Exp gilles $
+
+if test -n "$1"; then 
+        echoq() { echo "$@" ; } # not quiet mode
+else
+        echoq() { : ; } # quiet mode: nop
+fi
 
 count_nice() {
 
@@ -105,7 +111,7 @@ statistics_VERSION_monthly_ip() {
 	statistics_VERSION_getstats
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
-	ls linux-france.org.??-${month}-${year}.imapsync_VERSION || return 1
+	ls linux-france.org.??-${month}-${year}.imapsync_VERSION > /dev/null || return 1
 	cut -d ' ' -f 1,12,13,18,19 linux-france.org.??-${month}-${year}.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
 }
 
@@ -116,7 +122,7 @@ verify_month_year() {
 	(
 	cd $HOME/imapsync_stats
 	fmy="stats_imapsync_${year}_${month}.ip"
-	test -f "$fmy" || { echo "No $fmy" ; statistics_VERSION_monthly_ip ${month} ${year} ; }
+	test -f "$fmy" || { echo "No $fmy" ; touch "$fmy" ; }
 	test -f "$fmy" || { echo "No $fmy" ; return 1 ; }
 	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
 	diff_month=`expr $fmy_YYYYmm - ${year}${month}` || :
@@ -133,7 +139,8 @@ verify_year() {
 	now_yearmonth=`date '+%Y%m'`
 	for month in `count_nice 01 12`; do
 		test "$now_yearmonth" -ge "$year$month" && \
-		verify_month_year $month $year
+		( verify_month_year $month $year ) && \
+                ( statistics_VERSION_monthly_runs $month $year )
 	done
 	statistics_VERSION_yearly_ip $year
 	statistics_VERSION_synthesis $year
@@ -247,7 +254,7 @@ statistics_VERSION_ks() {
 TMPDIR=.
 export TMPDIR
 
-echo statistics_VERSION_getstats
+echoq statistics_VERSION_getstats
 statistics_VERSION_getstats() {
 	(
 	cd $HOME/imapsync_stats
@@ -262,26 +269,26 @@ statistics_VERSION_getstats() {
 	)
 }
 
-echo "statistics_VERSION_monthly_ip 02 2012 # long"
+echoq "statistics_VERSION_monthly_ip 02 2012 # long"
 statistics_VERSION_monthly_ip() {
 	statistics_VERSION_getstats
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
-	ls access.log_${year}${month}??.imapsync_VERSION || return 1
+	ls access.log_${year}${month}??.imapsync_VERSION > /dev/null || return 1
 	cut -d ' ' -f 1,12,13,15,16,18,19 access.log_${year}${month}??.imapsync_VERSION |sort -n |uniq -c|sort -n > stats_imapsync_${year}_${month}.ip
 	)
 }
 
-echo "verify_month_year 02 2015"
+echoq "verify_month_year 02 2015"
 verify_month_year() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
 	fmy="stats_imapsync_${year}_${month}.ip"
-	test -f "$fmy" || { echo "No $fmy" ; statistics_VERSION_monthly_ip ${month} ${year} ; }
+	test -f "$fmy" || { echo "No $fmy" ; touch "$fmy" ; }
 	test -f "$fmy" || { echo "No $fmy" ; return 0 ; }
 	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
 	diff_month=`expr $fmy_YYYYmm - ${year}${month}` || :
@@ -292,7 +299,7 @@ verify_month_year() {
 	)
 }
 
-echo "verify_year 2015"
+echoq "verify_year 2015"
 verify_year() {
 	year=${1:-`date '+%Y'`}
 	now_yearmonth=`date '+%Y%m'`
@@ -304,7 +311,7 @@ verify_year() {
 	statistics_VERSION_synthesis $year
 }
 
-echo "statistics_VERSION_monthly_os 08 2012 # short"
+echoq "statistics_VERSION_monthly_os 08 2012 # short"
 statistics_VERSION_monthly_os() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
@@ -327,7 +334,7 @@ statistics_VERSION_monthly_os() {
 	)
 }
 
-echo "statistics_VERSION_yearly_os 2012 # short"
+echoq "statistics_VERSION_yearly_os 2012 # short"
 statistics_VERSION_yearly_os() {
 	year=${1:-`date '+%Y'`}
 	(
@@ -351,7 +358,7 @@ statistics_VERSION_yearly_os() {
 }
 
 
-echo "statistics_VERSION_monthly_ip_wc 02 2012 # short"
+echoq "statistics_VERSION_monthly_ip_wc 02 2012 # short"
 statistics_VERSION_monthly_ip_wc() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
@@ -362,7 +369,7 @@ statistics_VERSION_monthly_ip_wc() {
 	)
 }
 
-echo "statistics_VERSION_monthly_runs 02 2012 # short"
+echoq "statistics_VERSION_monthly_runs 02 2012 # short"
 statistics_VERSION_monthly_runs() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
@@ -373,8 +380,8 @@ statistics_VERSION_monthly_runs() {
 	)
 }
 
-echo
-echo "statistics_VERSION_monthly 02 2012 # long, good choice"
+echoq
+echoq "statistics_VERSION_monthly 02 2012 # long, good choice"
 statistics_VERSION_monthly() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
@@ -387,7 +394,7 @@ statistics_VERSION_monthly() {
 }
 
 
-echo "statistics_VERSION_yearly_ip 2015 # very long"
+echoq "statistics_VERSION_yearly_ip 2015 # very long"
 statistics_VERSION_yearly_ip() {
 	year=${1:-`date '+%Y'`}
 	(
@@ -397,7 +404,7 @@ statistics_VERSION_yearly_ip() {
 	)
 }
 
-echo "statistics_VERSION_yearly_ip_resolved 2015 # very long"
+echoq "statistics_VERSION_yearly_ip_resolved 2015 # very long"
 statistics_VERSION_yearly_ip_resolved() {
 	year=${1:-`date '+%Y'`}
 	today=`date +%Y_%m_%d`
@@ -422,7 +429,7 @@ sudo mv GeoIP.dat GeoIPASNum.dat GeoLiteCity.dat /usr/share/GeoIP/
 EOF
 }
 
-echo "statistics_VERSION_yearly_ip_geo 2015 # long"
+echoq "statistics_VERSION_yearly_ip_geo 2015 # long"
 statistics_VERSION_yearly_ip_geo() {
 	year=${1:-`date '+%Y'`}
 	today=`date +%Y_%m_%d`
@@ -436,7 +443,7 @@ statistics_VERSION_yearly_ip_geo() {
 	)
 }
 
-echo "statistics_VERSION_all_years_ip_geo # long"
+echoq "statistics_VERSION_all_years_ip_geo # long"
 statistics_VERSION_all_years_ip_geo() {
 	(
 	cd $HOME/imapsync_stats
@@ -501,7 +508,12 @@ statistics_releases_all_times() {
 	)
 }
 
-statistics_perl_monthly() {
+statistics_perl_number_of_data_in_files()
+{
+        grep -o -P 'perl ''(\.|\d)+' "$@" | wc -l
+}
+
+statistics_perl_monthly_old() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
 	(
@@ -512,7 +524,37 @@ statistics_perl_monthly() {
 	)
 }
 
-statistics_perl_yearly() {
+statistics_perl_monthly() {
+	month=${1:-`date '+%m'`}
+	year=${2:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}_${month}.ip \
+        && statistics_perl_from_files stats_imapsync_${year}_${month}.ip
+	)
+}
+
+statistics_perl_from_files()
+{
+        total_nb_of_users=`statistics_perl_number_of_data_in_files "$@"`
+        echo $total_nb_of_users
+        statistics_perl_from_files_cumul_percentage $total_nb_of_users "$@"
+}
+
+statistics_perl_from_files_cumul_percentage()
+{
+        sum=$1
+        shift
+        echo statistics_perl_from_files_cumul_percentage $sum "$@"
+        grep -o -P 'perl ''(\.|\d)+' "$@" \
+        | grep -o -P '5\.\d+' \
+        | sort \
+        | datamash -g 1 count 1 \
+        | awk -v sum=$sum '{ printf "%s %d%%\n", $1, 100*$2/sum }'
+}
+
+
+statistics_perl_yearly_old() {
 	year=${1:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
@@ -522,16 +564,36 @@ statistics_perl_yearly() {
 	)
 }
 
-statistics_perl_all_times() {
+statistics_perl_yearly() {
+	year=${1:-`date '+%Y'`}
+	(
+	cd $HOME/imapsync_stats
+	test -f stats_imapsync_${year}.ip \
+	&& statistics_perl_from_files  stats_imapsync_${year}.ip
+	)
+}
+
+
+statistics_perl_all_times_old() {
 	(
 	cd $HOME/imapsync_stats
 	ls -d stats_imapsync_????.ip > /dev/null || return
 	grep -h -o -P 'perl ''(\.|\d)+' stats_imapsync_20??.ip \
-	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -nr
+	|  grep -o -P '(\.|\d)+' | sort -n | uniq -c | sort -n
 	)
 }
 
-echo statistics_Mail_IMAPClient_monthly
+statistics_perl_all_times() {
+	(
+	cd $HOME/imapsync_stats
+	ls -d stats_imapsync_????.ip > /dev/null || return
+	statistics_perl_from_files  stats_imapsync_20??.ip
+	)
+}
+
+
+
+echoq statistics_Mail_IMAPClient_monthly
 statistics_Mail_IMAPClient_monthly() {
 	month=${1:-`date '+%m'`}
 	year=${2:-`date '+%Y'`}
@@ -543,7 +605,7 @@ statistics_Mail_IMAPClient_monthly() {
 	)
 }
 
-echo statistics_Mail_IMAPClient_yearly
+echoq statistics_Mail_IMAPClient_yearly
 statistics_Mail_IMAPClient_yearly() {
 	year=${1:-`date '+%Y'`}
 	(
@@ -568,7 +630,7 @@ statistics_Mail_IMAPClient_all_times() {
 
 
 
-echo "statistics_VERSION_synthesis 2012 # short"
+echoq "statistics_VERSION_synthesis 2012 # short"
 statistics_VERSION_synthesis() {
 	year=${1:-`date '+%Y'`}
 	year_now=`date '+%Y'`

@@ -1,17 +1,209 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.882
+head: 1.920
 branch:
 locks: strict
-	gilles: 1.882
+	gilles: 1.920
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 882;	selected revisions: 882
+total revisions: 920;	selected revisions: 920
 description:
 ----------------------------
-revision 1.882	locked by: gilles;
+revision 1.920	locked by: gilles;
+date: 2019/02/09 15:45:31;  author: gilles;  state: Exp;  lines: +37 -33
+Better "Extra arguments found" error message, added "or some misspelling options"
+----------------------------
+revision 1.919
+date: 2019/02/09 14:20:41;  author: gilles;  state: Exp;  lines: +74 -32
+Added authmech X-MASTERAUTH. To be used for Kerio with --authmech1 X-MASTERAUTH or --authmech2 X-MASTERAUTH
+Patch from https://github.com/imapsync/imapsync/pull/53/files
+----------------------------
+revision 1.918
+date: 2019/02/07 12:16:28;  author: gilles;  state: Exp;  lines: +79 -44
+Fixed test since macosx.polarhome.com can not do ipv6 these days.
+Allow --tests --testslive for cover analyse
+----------------------------
+revision 1.917
+date: 2019/02/06 12:13:44;  author: gilles;  state: Exp;  lines: +279 -110
+Added --addheader description in the README part.
+Bugfix --debugssl 0 was impossible and equivalent to --debugssl 1
+Deglobalized $justfolders now $sync->{ justfolders }
+Deglobalized %h2_folders_of_md5 it's now $sync->{ h2_folders_of_md5 }
+Bugfix. Now split the deletion of messages in several chunks (--split)
+Added stat "Messages found in host1 not in host2"
+Added stat "Messages found in host2 not in host1"
+Removed stat "Total bytes duplicate hostX"
+Removed stat "Total bytes error"
+Added stat "Load end is"
+Added comments on final stat about messages in 1 not in 2
+Added comments on final stat about messages in 2 not in 1
+Added comment on final stat about unidentified messages
+1264 unit tests.
+----------------------------
+revision 1.916
+date: 2019/01/05 14:45:10;  author: gilles;  state: Exp;  lines: +550 -470
+Added missing "Entering tests_..." and "Leaving  tests_..." in tests_* subroutines.
+Some perlcritic fixes.
+----------------------------
+revision 1.915
+date: 2019/01/04 12:39:56;  author: gilles;  state: Exp;  lines: +12 -15
+Remove the unit test $imap->new() $imap->connect() because IO::Socket::IP kills us on this.
+----------------------------
+revision 1.914
+date: 2019/01/03 04:38:10;  author: gilles;  state: Exp;  lines: +10 -10
+unit test revised for match_a_pid_number()
+----------------------------
+revision 1.913
+date: 2019/01/03 04:31:11;  author: gilles;  state: Exp;  lines: +9 -8
+A pid can be up to 99999 on FreeBSD
+----------------------------
+revision 1.912
+date: 2019/01/03 04:18:54;  author: gilles;  state: Exp;  lines: +14 -14
+Added prints in sub remove_pidfile_not_running() in order to debug bad behavior on freeBSD
+----------------------------
+revision 1.911
+date: 2019/01/03 02:52:43;  author: gilles;  state: Exp;  lines: +29 -11
+Added --sigprint HUP in order to allow some asynchronous prints in CGI mode and avoid timeouts from browser
+----------------------------
+revision 1.910
+date: 2018/12/25 18:20:48;  author: gilles;  state: Exp;  lines: +77 -38
+Added --addheader suggestion at the final stats.
+Added a counter of crossduplicates on host2, presented on final stats.
+----------------------------
+revision 1.909
+date: 2018/12/09 21:23:54;  author: gilles;  state: Exp;  lines: +8 -8
+Typo. loose lose
+----------------------------
+revision 1.908
+date: 2018/11/20 13:22:07;  author: gilles;  state: Exp;  lines: +80 -39
+Played with IO::Prompt and IO::Prompter to remove <STDIN> perl critic. Failed...
+Deglobalized $passfile1 and $passfile2
+----------------------------
+revision 1.907
+date: 2018/11/16 10:08:11;  author: gilles;  state: Exp;  lines: +142 -135
+Localized %SIG
+Fixed Host1 Host2 prints to be more homogene
+----------------------------
+revision 1.906
+date: 2018/11/08 18:37:18;  author: gilles;  state: Exp;  lines: +120 -47
+Added tests_operators_and_exclam_precedence()
+Added tests_teelaunch()
+Added tests_logfileprepa()
+----------------------------
+revision 1.905
+date: 2018/10/22 17:28:02;  author: gilles;  state: Exp;  lines: +10 -9
+Added IO::Socket::IP in the list of modules versions.
+----------------------------
+revision 1.904
+date: 2018/10/19 11:57:24;  author: gilles;  state: Exp;  lines: +157 -59
+1238 unit tests
+Refactored appendlimit() to use Mail::IMAPClient::capability like the API. No hack from internal $imap->{ APPENDLIMIT }
+With --office1 option, folder "Files" is excluded because it's a "special" folder. Like --exclude "^Files$". Unless --noexclude is used.
+With --office2 option, folder "Files" on host1 is renamed like --f1f2 "Files=Files_renamed_by_imapsync". Unless --nof1f2 is used.
+----------------------------
+revision 1.903
+date: 2018/10/06 09:16:57;  author: gilles;  state: Exp;  lines: +9 -9
+--noskipcrossduplicates with --gmail12
+----------------------------
+revision 1.902
+date: 2018/10/05 19:50:23;  author: gilles;  state: Exp;  lines: +12 -10
+Added --folderlast '[Gmail]/All Mail' within --gmail12
+----------------------------
+revision 1.901
+date: 2018/10/03 23:49:51;  author: gilles;  state: Exp;  lines: +815 -412
+Removed --maxsize 25_000_000 from --gmail2 because now it's get from APPENDLIMIT in CAPABILITY (and it is currently 35651584, greater than 25_000_000)
+Moved opening { in all sub to next line.
+----------------------------
+revision 1.900
+date: 2018/10/03 23:17:11;  author: gilles;  state: Exp;  lines: +16 -16
+Deglobalized $maxsize
+----------------------------
+revision 1.899
+date: 2018/10/03 22:50:23;  author: gilles;  state: Exp;  lines: +332 -14
+Added automatic --maxsize from CAPABILITY  APPENDLIMIT=xxxx (Gmail)
+----------------------------
+revision 1.898
+date: 2018/09/28 14:12:21;  author: gilles;  state: Exp;  lines: +89 -29
+Added --maxsize 35_651_584 with --gmail2 
+(Should me replaced by automatic APPEND_LIMIT in CAPABILITY). Soon.
+Added --exclude '^Files$' with --office2
+----------------------------
+revision 1.897
+date: 2018/09/19 14:54:26;  author: gilles;  state: Exp;  lines: +96 -74
+Deglobalized $delete1, $delete2, $delete2duplicates, $expunge2, $uidexpunge2
+Started sub tests_uidexpunge_or_expunge() sub uidexpunge_or_expunge()
+----------------------------
+revision 1.896
+date: 2018/09/19 11:51:17;  author: gilles;  state: Exp;  lines: +81 -60
+Deletions on host1 are done by batch during a resync.
+----------------------------
+revision 1.895
+date: 2018/09/13 17:38:53;  author: gilles;  state: Exp;  lines: +97 -87
+Refactor. Deglobarized variable
+  * $exitwhenover,
+  * $total_bytes_skipped
+  * $nb_msg_skipped
+----------------------------
+revision 1.894
+date: 2018/09/11 13:59:54;  author: gilles;  state: Exp;  lines: +19 -14
+Commented test for @regexflag = ( 's/\\Flagged/X/g' ) since \F is new and was a bug anyway.
+----------------------------
+revision 1.893
+date: 2018/09/11 09:09:34;  author: gilles;  state: Exp;  lines: +89 -75
+Bugfix. --exchange1 and --exchange2 were not options! No one complained...
+Added inline explanations for --office1 --office2 --exchange1 --exchange2 (what they set and how to unset)
+Added --noregexmess to avoid the regexmess setting with --office2 and --exchange2 (wrap long lines >= 10500 char)
+Added --noregexflag to avoid the regexflag set by exchange2 (remove \Flagged flag)
+Bugfix. The regex to remove flag \Flagged was wrong. It worked because of another filter run after...
+----------------------------
+revision 1.892
+date: 2018/09/04 04:04:34;  author: gilles;  state: Exp;  lines: +9 -9
+--skipcrossduplicates activated with --gmail1 --gmail2
+----------------------------
+revision 1.891
+date: 2018/09/04 03:28:09;  author: gilles;  state: Exp;  lines: +175 -123
+Enhancement. Added option --synclabels to sync Gmail labels. It should speed up Gmail to Gmail syncs. 
+  --synclabels applies only during a copy of a message for now. resyncing labels will be coded later.
+----------------------------
+revision 1.890
+date: 2018/09/01 21:45:41;  author: gilles;  state: Exp;  lines: +117 -114
+Refactoring. Replaced $imap1 and $imap2 by $sync->{imap1} and $sync->{imap2}
+----------------------------
+revision 1.889
+date: 2018/08/31 01:02:06;  author: gilles;  state: Exp;  lines: +19 -7
+Applied https://github.com/imapsync/imapsync/issues/95
+Thanks jh1995!
+----------------------------
+revision 1.888
+date: 2018/08/29 11:02:59;  author: gilles;  state: Exp;  lines: +9 -9
+Gives CGI.pm release.
+Calls memory_consumption_of_pids_win32() with Cygwin (https://github.com/imapsync/imapsync/pull/22)
+----------------------------
+revision 1.887
+date: 2018/08/23 19:10:44;  author: gilles;  state: Exp;  lines: +11 -10
+--maxsleep override $MAX_SLEEP in gmail*() subroutines.
+Default  $sync->{ sigignore } to empty list.
+----------------------------
+revision 1.886
+date: 2018/08/06 15:02:51;  author: gilles;  state: Exp;  lines: +28 -11
+Added mygetppid because USR1 no available on Windows.
+Removed --nosubscribed since it is not coded and useless anyway.
+----------------------------
+revision 1.885
+date: 2018/07/07 04:14:26;  author: gilles;  state: Exp;  lines: +8 -8
+Sheband uses env now. Fed up to change freebsd /usr/local/bin/perl
+----------------------------
+revision 1.884
+date: 2018/07/07 03:40:54;  author: gilles;  state: Exp;  lines: +18 -15
+Added PPID info where PID is printed.
+----------------------------
+revision 1.883
+date: 2018/07/03 03:55:03;  author: gilles;  state: Exp;  lines: +32 -8
+Added freebsd support for loadavg and cpu_cores
+----------------------------
+revision 1.882
 date: 2018/05/05 21:10:43;  author: gilles;  state: Exp;  lines: +8 -8
 typo
 ----------------------------

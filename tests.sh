@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.312 2018/05/05 22:45:17 gilles Exp gilles $  
+# $Id: tests.sh,v 1.324 2019/02/10 12:16:41 gilles Exp gilles $  
 
 # general tests start
 # general tests end
@@ -25,7 +25,7 @@ echo HOST2=$HOST2
 # most tests use:
 
 # few debugging tests use:
-CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.39/lib'
+CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.40/lib'
 
 CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
 
@@ -150,9 +150,9 @@ sendtestmessage() {
 
 can_send() {
     return 1
+    test X`hostname` = X"petite" && return 0;
     test X`hostname` = X"plume" && return 0;
     test X`hostname` = X"vadrouille" && return 0;
-    test X`hostname` = X"petite" && return 0;
     return 1
 }
 
@@ -293,6 +293,37 @@ ll() {
          --passfile2 ../../var/pass/secret.titi 
 }
 
+ll_INBOX() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX
+}
+
+
+
+ll_diff() {
+        # sendtestmessage        
+        CMD_IMAPSYNC=./imapsync_old ll_tee LOG_imapsync/ll_diff_1.txt
+        # sendtestmessage
+        CMD_IMAPSYNC=./imapsync     ll_tee LOG_imapsync/ll_diff_2.txt
+         
+         diff LOG_imapsync/ll_diff_1.txt LOG_imapsync/ll_diff_2.txt
+}
+
+
+ll_tee() {
+        logfile=${1:-"LOG_imapsync/ll_tee.txt"}
+         $CMD_PERL  $CMD_IMAPSYNC  \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX.few_emails --folder INBOX | tee $logfile
+}
+
 ll_minsize() {
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
@@ -381,10 +412,6 @@ ll_sigignore_TERM() {
 }
 
 
-
-
-
-
 ll_abort_nopidfile() {
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
@@ -429,9 +456,6 @@ ll_abort() { # send QUIT signal
         grep 'Ended by a signal' LOG_imapsync/imapsync_abortme.log
 }
 
-
-
-
 ll_nouid1() {
         can_send && sendtestmessage
         $CMD_PERL  ./imapsync \
@@ -452,9 +476,19 @@ ll_eta() {
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-	 --foldersizes --folder INBOX
+	 --folder INBOX
 }
 
+ll_final_diff() {
+        can_send && sendtestmessage
+        can_send && sendtestmessage
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+	 --folder INBOX --f1f2 INBOX=INBOX.final_diff --maxage 30 
+}
 
 
 ll_errors() {
@@ -487,9 +521,8 @@ ll_debugcontent() {
 }
 
 
-
 ll_debugmemory() {
-        can_send && sendtestmessage
+        sendtestmessage
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -694,9 +727,6 @@ ll_timeout_timeout1() {
 }
 
 
-
-
-
 ll_timeout_ssl() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
@@ -781,6 +811,14 @@ lks_doublequote_rev() {
                 --foldersizes --ssl1 --ssl2 --justfolders 
 }
 
+ksks_password_doublequote() {
+        $CMD_PERL ./imapsync \
+                --host1 ks.lamiral.info  --user1 test1 \
+                --password1 'secret1' \
+                --host2 ks.lamiral.info --user2 test1 \
+                --password2 '"secret1"' \
+                --debugimap --justlogin --showpasswords
+}
 
 
 ll_folder_noexist() {
@@ -1021,7 +1059,7 @@ ll_addheader() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.addheader --delete2 --expunge2 --addheader
+                --folder INBOX.addheader --delete2  --addheader
 }
 
 
@@ -1182,15 +1220,20 @@ ll_delete1_delete1emptyfolders() {
 
 
 
-ll_justfolders_skipemptyfolders() {
+ll_justfolders_skipemptyfolders()  {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --justfolders  --skipemptyfolders
+                --justfolders  --skipemptyfolders \
+                --folder INBOX.empty --folder INBOX.notempty --minage 3660 
+                
                 echo "sudo rm -rf /home/vmail/titi/.new_folder/"
 }
+
+
+
 
 ll_justfolders_folderfirst_noexist() {
                 $CMD_PERL ./imapsync \
@@ -1357,7 +1400,7 @@ ll_nosyncinternaldates() {
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
          --folder INBOX  \
-         --nosyncinternaldates  --delete2 --expunge2 
+         --nosyncinternaldates  --delete2  
 }
 # bug:
 # $d=""; # no bug with $d=undef
@@ -1695,6 +1738,17 @@ ll_maxage_0()
         --maxage 0 --folder INBOX
 }
 
+ll_minage_0() 
+{
+        can_send && sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --minage 0 --folder INBOX
+}
+
 ll_maxage_10000_minage_9999() 
 {
 	# INTERSECTION: 0 messages
@@ -1990,15 +2044,15 @@ ll_search_UID()
 
 ll_exitwhenover()
 {
-        can_send && sendtestmessage
-        can_send && sendtestmessage
+        sendtestmessage
+        sendtestmessage
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --maxage 1 --folder INBOX --nofoldersizes \
-	--exitwhenover 300
+	--exitwhenover 100
 }
 
 
@@ -2011,7 +2065,7 @@ ll_folder_INBOX()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX  --noreleasecheck --usecache --delete2 --expunge2
+        --folder INBOX  --noreleasecheck --usecache --delete2 
 }
 
 ll_dry_folder_missing()
@@ -2561,7 +2615,7 @@ ll_useheader_noheader()
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
                 --useheader 'NoExist' \
-                --debug --delete2 --expunge2
+                --debug --delete2 
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
@@ -2823,6 +2877,22 @@ ll_resyncflags()
                 
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
+
+ll_syncflagsaftercopy() 
+{
+# courier doesn't gives the flags just after an copy
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap --nofoldersizes \
+                --debugflags --syncflagsaftercopy # | grep 'replacing h2 flags' || return 1
+                                                  # | grep 'could not get its flags' || return 1
+                echo 'sudo rm /home/vmail/titi/.yop.yap/cur/*'
+}
+
+
 
 ll_noresyncflags() 
 {
@@ -3275,10 +3345,19 @@ ll_authmech_NTLM_2() {
 }
 
 
+ll_authmech_X_MASTERAUTH()
+{
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --authmech1 'X-MASTERAUTH' # --debugimap1
+}
 
-ll_authuser() {
-
-                $CMD_PERL ./imapsync \
+ll_authuser()
+{
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -3287,9 +3366,9 @@ ll_authuser() {
                 --authuser2 titi 
 }
 
-ll_authuser_2() {
-
-                $CMD_PERL ./imapsync \
+ll_authuser_2()
+{
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 anything \
@@ -3320,6 +3399,99 @@ ll_authmech_CRAMMD5() {
                 --authmech1 CRAM-MD5 --authmech2 CRAM-MD5
 }
 
+ll_delete1() {
+        # Sync done
+        test -f /home/vmail/tata/.oneemail3/cur/* || return 1
+	#test -f /home/vmail/titi/.oneemail3/cur/* || return 1
+	echo 11111111111111111111111 tata titi
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.oneemail3 --delete1
+
+	#find /home/vmail/titi/.oneemail3/ || :
+	echo After first sync, tata has none, titi has one message
+        ! test -f /home/vmail/tata/.oneemail3/cur/* || return 1
+	test -f /home/vmail/titi/.oneemail3/cur/*   || return 1
+
+	echo 222222222222222222222222 back: titi tata
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --folder INBOX.oneemail3 --delete1
+        
+        test -f /home/vmail/tata/.oneemail3/cur/*   || return 1
+        ! test -f /home/vmail/titi/.oneemail3/cur/* || return 1
+        
+	echo 3333333333333333333333333 initial state
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.oneemail3
+
+	#find /home/vmail/titi/.oneemail3/ || :
+	echo ll_delete1 finished
+}
+
+ll_delete1_twoemails()
+{
+        # initial 
+        ls /home/vmail/tata/.twoemails/cur/* || return 1
+
+	echo 11111111111111111111111 tata titi
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.twoemails --delete1
+
+	#find /home/vmail/titi/.twoemails/ || :
+	echo After first sync, tata has none, titi has two messages
+        ! ls  /home/vmail/tata/.twoemails/cur/* || return 1
+	ls /home/vmail/titi/.twoemails/cur/*    || return 1
+
+	echo 222222222222222222222222 back: titi tata
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --folder INBOX.twoemails --delete1
+        
+        ls   /home/vmail/tata/.twoemails/cur/* || return 1
+        ! ls /home/vmail/titi/.twoemails/cur/* || return 1
+        
+	echo 3333333333333333333333333 initial state
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.twoemails
+
+	#find /home/vmail/titi/.twoemails/ || :
+	echo ll_delete1_twoemails finished
+}
+
+
+
+ll_delete1_delete2() {
+        ! $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 titi \
+        --passfile1 ../../var/pass/secret.titi \
+        --host2 $HOST2 --user2 tata \
+        --passfile2 ../../var/pass/secret.tata \
+        --delete1 --delete2
+}
+
+
 ll_delete2() {
         #can_send && sendtestmessage titi
         $CMD_PERL ./imapsync \
@@ -3328,7 +3500,7 @@ ll_delete2() {
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX \
-        --delete2 --expunge2 --expunge1 
+        --delete2
 }
 
 ll_delete2_reverse() {
@@ -3338,31 +3510,35 @@ ll_delete2_reverse() {
         --host2 $HOST2 --user2 tata \
         --passfile2 ../../var/pass/secret.tata \
         --folder INBOX \
-        --delete2 --expunge2 
+        --delete2  
 }
 
 
 
 ll_delete1_reverse() {
+        ll_INBOX
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
         --host2 $HOST2 --user2 tata \
         --passfile2 ../../var/pass/secret.tata \
         --folder INBOX \
-        --delete1 --minage 100 --maxage 300 --noexpungeaftereach --nofoldersizes
+        --delete1 --minage 600 --maxage 999 # --dry
+
 }
 
 ll_delete1_reverse_useuid() {
+        ll_INBOX
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
         --host2 $HOST2 --user2 tata \
         --passfile2 ../../var/pass/secret.tata \
         --folder INBOX \
-        --delete1 --minage 100 --maxage 300 --noexpungeaftereach \
+        --delete1 --minage 100 --maxage 600 \
 	--useuid
 }
+
 
 ll_delself() {
         $CMD_PERL ./imapsync \
@@ -3385,41 +3561,13 @@ ll_delself() {
         --passfile2 ../../var/pass/secret.delme \
         --justfolders --delete2folders --regextrans2 "s/.*/INBOX/" --foldersizes
 
-
-}
-
-
-ll_maxmessagespersecond() {
-	ll_delete1_reverse
         $CMD_PERL ./imapsync \
-        --host1 $HOST1 --user1 tata \
-        --passfile1 ../../var/pass/secret.tata \
-        --host2 $HOST2 --user2 titi \
-        --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX \
-	--maxmessagespersecond 3.3
-}
+        --host1 $HOST1 --user1 delme \
+        --passfile1 ../../var/pass/secret.delme \
+        --host2 $HOST2 --user2 delme \
+        --passfile2 ../../var/pass/secret.delme \
+        --justfoldersizes
 
-ll_maxbytespersecond() {
-	ll_delete1_reverse
-        $CMD_PERL ./imapsync \
-        --host1 $HOST1 --user1 tata \
-        --passfile1 ../../var/pass/secret.tata \
-        --host2 $HOST2 --user2 titi \
-        --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX \
-	--maxbytespersecond 2000 --nofoldersizes
-}
-
-ll_maxbytesafter() {
-	ll_delete1_reverse
-        $CMD_PERL ./imapsync \
-        --host1 $HOST1 --user1 tata \
-        --passfile1 ../../var/pass/secret.tata \
-        --host2 $HOST2 --user2 titi \
-        --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX \
-	--maxbytespersecond 1000 --maxbytesafter 20000 --nofoldersizes
 }
 
 
@@ -3432,7 +3580,7 @@ ll_delete2_minage() {
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX \
-        --delete2 --expunge2 --minage 1
+        --delete2  --minage 1
 }
 
 ll_delete2_minage_useuid() {
@@ -3482,9 +3630,6 @@ ll_duplicates_across_folders() {
         --skipcrossduplicates --debugcrossduplicates 
 }
 
-
-
-
 ll_delete2_dev() {
         can_send && sendtestmessage titi
         can_send && sendtestmessage
@@ -3498,53 +3643,39 @@ ll_delete2_dev() {
 }
 
 
-ll_delete() { 
-	echo 11111111111111111111111
+ll_maxmessagespersecond() {
+	ll_delete1_reverse
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX.oneemail3 --delete1
-
-	#find /home/vmail/titi/.oneemail3/ || :
-	echo After first sync
-	test -f /home/vmail/titi/.oneemail3/cur/* || return 1
-
-	echo 222222222222222222222222
-        $CMD_PERL ./imapsync \
-        --host1 $HOST1 --user1 titi \
-        --passfile1 ../../var/pass/secret.titi \
-        --host2 $HOST2 --user2 tata \
-        --passfile2 ../../var/pass/secret.tata \
-        --folder INBOX.oneemail3 \
-        --delete1
-
-	echo 3333333333333333333333333
-        $CMD_PERL ./imapsync \
-        --host1 $HOST1 --user1 titi \
-        --passfile1 ../../var/pass/secret.titi \
-        --host2 $HOST2 --user2 tata \
-        --passfile2 ../../var/pass/secret.tata \
-        --folder INBOX.oneemail3 \
-        --justfoldersizes
-
-	#find /home/vmail/titi/.oneemail3/ || :
-	echo After delete
-	! test -f /home/vmail/titi/.oneemail3/cur/* || return 1
-	
+        --folder INBOX \
+	--maxmessagespersecond 3.3
 }
 
-
-
-ll_delete_delete2() {
-        ! $CMD_PERL ./imapsync \
-        --host1 $HOST1 --user1 titi \
-        --passfile1 ../../var/pass/secret.titi \
-        --host2 $HOST2 --user2 tata \
-        --passfile2 ../../var/pass/secret.tata \
-        --delete1 --delete2
+ll_maxbytespersecond() {
+	ll_delete1_reverse
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX \
+	--maxbytespersecond 2000 --nofoldersizes
 }
+
+ll_maxbytesafter() {
+	ll_delete1_reverse
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX \
+	--maxbytespersecond 1000 --maxbytesafter 20000 --nofoldersizes
+}
+
 
 
 ll_bigmail() {
@@ -4052,6 +4183,8 @@ gmail_gmail_ipv6() {
                 --justlogin
 }
 
+
+
 gmail_gmail_automap() {
                 $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
@@ -4111,18 +4244,28 @@ gmail_gmail_justlogin() {
 
 
 
-gmail_gl_gl2() {
+gmail_gl_gl2_justfolders() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
-                --ssl1 \
                 --user1 imapsync.gl@gmail.com \
                 --passfile1 ../../var/pass/secret.imapsync.gl_gmail \
                 --host2 imap.gmail.com \
-                --ssl2 \
                 --user2 imapsync.gl2@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --justfolders --exclude Gmail  --exclude "blanc\ $" --dry
+}
+
+gmail_gl_gl2() {
+
+                $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --user1 imapsync.gl@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl_gmail \
+                --host2 imap.gmail.com \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+                --folder INBOX --dry
 }
 
 
@@ -4138,6 +4281,19 @@ gmail_gl_gl2_SUB() {
                 --user2 imapsync.gl2@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --justfolders --nofoldersizes --exclude Gmail --regextrans2 "s,(.*),SUB/\$1,"
+}
+
+gmail_gl2_gl2_selectable()
+{
+
+        $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --user1 imapsync.gl2@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl2_gmail \
+                --host2 imap.gmail.com \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+                --dry --justautomap
 }
 
 
@@ -4158,10 +4314,7 @@ gmail_gl_gl2_create_folder_old() {
 }
 
 
-
-
 gmail_gmail_folderfirst() {
-
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
                 --ssl1 \
@@ -4173,21 +4326,18 @@ gmail_gmail_folderfirst() {
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
 		--exclude "blanc\ $" --exclude Gmail \
                 --justfolders --folderfirst INBOX --folderfirst zz  --folderlast "[Gmail]/All Mail" --debug
-
 }
 
 
 gmail_gmail_INBOX() {
-                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
-                --ssl1 \
                 --user1 gilles.lamiral@gmail.com \
                 --passfile1 ../../var/pass/secret.gilles_gmail \
                 --host2 imap.gmail.com \
-                --ssl2 \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
-                --folder INBOX 
+                --folder INBOX
 		#--dry # --debug --debugimap # --authmech1 LOGIN
 }
 
@@ -4257,7 +4407,7 @@ gmail_gmail_7_search() {
                 --folder "[Gmail]/All Mail" --search 'X-GM-RAW "Analysez lalala performances"' 
 }
 
-gmail_gmail_8_search() {
+gmail_gmail_8_search() { 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --gmail1 \
                 --user1 gilles.lamiral@gmail.com \
@@ -4265,14 +4415,29 @@ gmail_gmail_8_search() {
                 --gmail2 \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --folder Test --nofoldersizes --debugimap \
                 --search 'X-GM-RAW "label:Important label:Test"' 
+
+}
+
+gmail_gmail_9_search_X_GM_LABELS() {
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --gmail1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --gmail2 \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --folder Test --nofoldersizes --debugimap \
+                --search 'X-GM-LABELS "Important"'  
 }
 
 
 
 
-gmail_gl_gl2_sslargs() {
-                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+gmail_gl_gl2_sslargs()
+{
+        $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
                 --ssl1 \
                 --user1 imapsync.gl@gmail.com \
@@ -4284,10 +4449,70 @@ gmail_gl_gl2_sslargs() {
                 --justlogin --sslargs1 SSL_version=SSLv3 --sslargs1 SSL_verify_mode=0
 }
 
+sendtestmessage_gl1()
+{
+        sendtestmessage imapsync.gl1@gmail.com
+}
+
+gmail_gl1_gl2_labels()
+{
+        #sendtestmessage imapsync.gl1@gmail.com
+        $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --user1 imapsync.gl1@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl1_gmail \
+                --host2 imap.gmail.com \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+                --gmail1 --gmail2 --synclabels --delete2  # --folderfirst INBOX
+}
+
+gmail_gl1_gl2_appendlimit()
+{
+        #sendtestmessage imapsync.gl1@gmail.com
+        $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --user1 imapsync.gl1@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl1_gmail \
+                --host2 imap.gmail.com \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+                --gmail1 --gmail2 --nofoldersizes --justlogin
+}
 
 
 
-yahoo_xxxx_login() {
+gmail_gl1_gl2_maxsize_over_appendlimit()
+{
+        #sendtestmessage imapsync.gl1@gmail.com
+        $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --user1 imapsync.gl1@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl1_gmail \
+                --host2 imap.gmail.com \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+                --gmail1 --gmail2 --nofoldersizes \
+                --justlogin --maxsize 999_999_999_999
+}
+
+gmail_gl2_gl2_move_All_Mail_Trash()
+{
+        #sendtestmessage imapsync.gl1@gmail.com
+        $CMD_PERL ./imapsync \
+                --user1 imapsync.gl2@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl2_gmail \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+                --gmail1 --gmail2 \
+                --folder '[Gmail]/Tous les messages' \
+                --f1f2 '[Gmail]/Tous les messages=[Gmail]/Corbeille'
+}
+
+
+
+yahoo_xxxx_login()
+{
                 ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
                 --host1 imap.mail.yahoo.com \
                 --ssl1 \
@@ -4626,19 +4851,74 @@ l_office365()
         --passfile1 ../../var/pass/secret.tata \
         --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
-        --folder INBOX --tmpdir /var/tmp --usecache --regextrans2 's/INBOX/tata/' --delete2 --expunge2
+        --folder INBOX --tmpdir /var/tmp --usecache --regextrans2 's/INBOX/tata/' --delete2 
 }
 
-l_office365_deleted_flag()
+l_office365_deleted_flag() 
 {
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
-        --folder INBOX.flags --tmpdir /var/tmp --usecache --regextrans2 's/INBOX/tata/'  --debugflags
+        --folder INBOX.flags --tmpdir /var/tmp --regextrans2 's/INBOX/tata/'  --debugflags
 }
 
+l_office365_flagged_flag() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --office2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --folder INBOX.flags --tmpdir /var/tmp --regextrans2 's/INBOX/tata/'  --debugflags
+}
+
+l_office365_noregexmess() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --office2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --justbanner  --noregexmess
+}
+
+
+l_exchange2_flagged_flag() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 outlook.office365.com \
+        --exchange2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --regextrans2 's/INBOX/tata/' --nofoldersizes \
+        --folder INBOX.flags  --debugflags 
+}
+
+l_exchange2_flagged_noregexflag() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 outlook.office365.com \
+        --exchange2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --regextrans2 's/INBOX/tata/' --nofoldersizes \
+        --folder INBOX.flags  --debugflags --noregexflag
+}
+
+l_exchange2_noregexmess_noregexflag() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 outlook.office365.com \
+        --exchange2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --justbanner  --noregexmess --noregexflag
+}
 
 
 l_office365_SSL_verify_mode()
@@ -4662,6 +4942,19 @@ office1_office2()
         --passfile2 ../../var/pass/secret.outlook.com \
 	--justfolders
 }
+
+office1_office2_noexclude()
+{
+        $CMD_PERL ./imapsync \
+        --office1   \
+	--user1 gilles.lamiral@outlook.com \
+	--passfile1 ../../var/pass/secret.outlook.com \
+        --office2   \
+	--user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+	--justfolders --noexclude
+}
+
 
 
 office365_justconnect_tls_SSL_verify_mode_1()
@@ -4696,22 +4989,54 @@ office365_justlogin_tls()
 }
 
 
-office365_justlogin_2()
+office365_justlogin_tls2_office365()
 {
         $CMD_PERL ./imapsync \
         --host1 imap-mail.outlook.com  --ssl1 --user1 gilles.lamiral@outlook.com \
         --passfile1 ../../var/pass/secret.outlook.com \
         --host2 outlook.office365.com  --tls2 --user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
+        --justlogin --ssl2 
+}
+
+office365_justlogin_ssl2_tls2_office365()
+{
+# Should produce "BAD Command received in Invalid state."
+        ! $CMD_PERL ./imapsync \
+        --host1 imap-mail.outlook.com  --ssl1        --user1 gilles.lamiral@outlook.com \
+        --passfile1 ../../var/pass/secret.outlook.com \
+        --host2 outlook.office365.com  --tls2 --ssl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
         --justlogin 
 }
 
-office365_justconnect_stunnel() {
+office365_justlogin_nossl2_notls2_office365()
+{
+# Should also produce "BAD Command received in Invalid state."
+        ! $CMD_PERL ./imapsync \
+        --host1 imap-mail.outlook.com  --ssl1        --user1 gilles.lamiral@outlook.com \
+        --passfile1 ../../var/pass/secret.outlook.com \
+        --host2 outlook.office365.com  --notls2 --nossl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --justlogin 
+}
+
+
+
+office365_justconnect_stunnel_ks() {
         $CMD_PERL ./imapsync \
         --host1 outlook.office365.com --ssl1 \
         --host2 ks.lamiral.info --port2 144 \
         --justconnect
 }
+
+office365_justconnect_stunnel_i005() {
+        $CMD_PERL ./imapsync \
+        --host1 outlook.office365.com --ssl1 \
+        --host2 i005.lamiral.info --port2 144 \
+        --justconnect
+}
+
 
 office365_justconnect_inet4_inet6()
 {
@@ -4753,15 +5078,30 @@ office365_justconnect_inet4_inet6()
         --justconnect
 }
 
-inet4_inet6()
+inet4_inet6() 
 {
 		echo
         # outlook.office365.com gives ipv6 2603:1026:4:50::2
+        # outlook.office365.com gives ipv4 52.97.129.66
+
         echo this one should succeed
-        ! $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
         --host1 2603:1026:4:50::2  \
-        --host2 imap-mail.outlook.com  \
-        --justconnect --ssl1
+        --host2 52.97.129.66  \
+        --justconnect 
+
+        echo this one should do ipv6
+        $CMD_PERL ./imapsync \
+        --host1 outlook.office365.com  \
+        --host2 outlook.office365.com  \
+        --justconnect --inet6
+        
+        echo this one should do ipv4
+        $CMD_PERL ./imapsync \
+        --host1 outlook.office365.com  \
+        --host2 outlook.office365.com  \
+        --justconnect --inet4
+        
 }
 
 
@@ -4848,7 +5188,7 @@ mail2World() {
 	--host2 mail.emailsrvr.com  --user2 jessica@champlaindoor.com \
 	--passfile2 ../../var/pass/secret.mail2World \
 	--sep1 / --prefix1 "" \
-	--noabletosearch --fetch_hash_set "1:*" --delete2 --expunge2 --expunge1 --useuid
+	--noabletosearch --fetch_hash_set "1:*" --delete2  --expunge1 --useuid
 }
 
 xgenplus() {
@@ -5006,7 +5346,7 @@ dbmail_uid() {
 	--passfile1 ../../var/pass/secret.tata \
 	--host2 182.236.127.31 --user2 imapsynctest \
 	--passfile2 ../../var/pass/secret.dbmail \
-	--folder INBOX --fast --delete2  --expunge2 \
+	--folder INBOX --fast --delete2   \
         --usecache --useuid --nocacheaftercopy
 
 
@@ -5019,7 +5359,7 @@ dbmail_nocacheaftercopy() {
 	--passfile1 ../../var/pass/secret.tata \
 	--host2 182.236.127.31 --user2 imapsynctest \
 	--passfile2 ../../var/pass/secret.dbmail \
-	--folder INBOX --fast --delete2  --expunge2 --usecache --nocacheaftercopy
+	--folder INBOX --fast --delete2   --usecache --nocacheaftercopy
 }
 
 dbmail_nocache() {
@@ -5029,7 +5369,7 @@ dbmail_nocache() {
 	--passfile1 ../../var/pass/secret.tata \
 	--host2 182.236.127.31 --user2 imapsynctest \
 	--passfile2 ../../var/pass/secret.dbmail \
-	--folder INBOX --fast --delete2  --expunge2
+	--folder INBOX --fast --delete2  
 }
 
 
@@ -5064,7 +5404,7 @@ b2btech_1() {
 	--host2 pod51008.outlook.com \
 	--user2 TestGilles@uncc.edu \
 	--passfile2 ../../var/pass/secret.b2btech --tls2 \
-	--useheader Message-Id --useheader Message-ID --fast --delete2 --expunge2 \
+	--useheader Message-Id --useheader Message-ID --fast --delete2  \
 	--folder INBOX.oneemail --folder INBOX.few_emails --folder INBOX.Junk
 
 
@@ -5137,7 +5477,7 @@ mailenable_1() {
 	--passfile2 ../../var/pass/secret.avonvalley  \
 	--sep2 / --prefix2 ''  --useuid \
 	--folder INBOX --folder INBOX.Junk --folder INBOX.few_emails \
-	--delete2 --expunge2
+	--delete2 
 }
 
 mailenable_2_justfolders() {
@@ -5159,7 +5499,7 @@ mailenable_3_reverse() {
 	--passfile1 ../../var/pass/secret.avonvalley  \
 	--sep1 / --prefix1 ''  \
 	--folder few_emails  \
-	--delete2 --expunge2 --debug --useuid
+	--delete2  --debug --useuid
 }
 
 
@@ -5175,7 +5515,7 @@ mailenable_21_host1() {
 	--host2 $HOST1  --user2 zzz \
 	--passfile2 ../../var/pass/secret.zzz \
 	--sep1 / --prefix1 '' \
-	--delete2 --expunge2 --useuid
+	--delete2  --useuid
 
 }
 
@@ -5201,148 +5541,6 @@ bug_zero_byte() {
 	--folder INBOX --regextrans2 s/INBOX/INBOX.rafaeltovar/
 }
 
-exchange_1() {
-	$CMD_PERL ./imapsync \
-	--host1 $HOST1  --user1 tata \
-	--passfile1 ../../var/pass/secret.tata \
-	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
-	--passfile2 ../../var/pass/secret.ethz.ch \
-	--folder INBOX.few_emails \
-	--debugflags  \
-	--useheader 'MESSAGE-ID' --delete2 --expunge2 \
-	--nofilterflags \
-
-	#--regexflag 's/\$\w+//g'
-        #-maxage 1
-}
-
-exchange_2() {
-	$CMD_PERL ./imapsync \
-	--host1 $HOST1  --user1 tata \
-	--passfile1 ../../var/pass/secret.tata \
-	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
-	--passfile2 ../../var/pass/secret.ethz.ch \
-	--folder INBOX.Junk --useuid
-}
-
-exchange_3_delete2() {
-	$CMD_PERL ./imapsync \
-	--host1 $HOST1  --user1 tata \
-	--passfile1 ../../var/pass/secret.tata \
-	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
-	--passfile2 ../../var/pass/secret.ethz.ch \
-	--folder INBOX.Junk --useuid --delete2
-}
-
-
-exchange_4_useheader_Received() {
-	$CMD_PERL ./imapsync \
-	--host1 $HOST1  --user1 tata \
-	--passfile1 ../../var/pass/secret.tata \
-	--host2 mail.ethz.ch --ssl2 --user2 glamiral \
-	--passfile2 ../../var/pass/secret.ethz.ch \
-	--folder INBOX.yop.yap \
-	--delete2 --expunge2 \
-	--useheader 'Received'
-
-
-# --useheader 'Received'
-
-	#--regexflag 's/\$\w+//g'
-        #-maxage 1
-}
-
-
-jong_1() {
-$CMD_PERL ./imapsync \
-    --host1 mail.y-publicaties.nl --user1 gillesl --passfile1 ../../var/pass/secret.jong \
-    --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi --sep1 /  --prefix1 '' \
-    --delete2 --expunge2 --expunge1 \
-    --foldersizes --folder Junk/2009 --useuid
-# --debugimap1 --dry
-}
-
-jong_1_reverse() {
-$CMD_PERL ./imapsync \
-    --host2 mail.y-publicaties.nl --user2 gillesl --passfile2 ../../var/pass/secret.jong \
-    --host1 $HOST2 --user1 gilles@est.belle --passfile1 ../../var/pass/secret.gilles_mbox \
-    --sep2 /  --prefix2 ''  \
-    --folder INBOX.Junk.2009 --delete2 --expunge2 --expunge1 --useuid
-#--nofoldersizes 
-# --debugimap1 --dry
-}
-
-jong_1_lastuid()
-{
-        can_send && sendtestmessage
-        $CMD_PERL ./imapsync \
-        --host1 $HOST1 --user1 tata \
-        --passfile1 ../../var/pass/secret.tata \
-        --host2 mail.y-publicaties.nl --user2 gillesl \
-        --passfile2 ../../var/pass/secret.jong \
-	--sep2 /  --prefix2 '' \
-        --folder INBOX --nofoldersizes --maxage 1
-}
-
-
-
-jong_2_delete() {
-$CMD_PERL ./imapsync \
-    --host1 mail.y-publicaties.nl --user1 gillesl --passfile1 ../../var/pass/secret.jong \
-    --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi --sep1 /  --prefix1 '' \
-    --delete1 --folder INBOX
-# --debugimap1 --dry
-}
-
-gigamail_1() {
-$CMD_PERL ./imapsync \
-    --host1 mail.gigamail.nl --user1 testbox@gigamail.nl --passfile1 ../../var/pass/secret.gigamail \
-    --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi \
-    --sep1 . --prefix1 ''
-
-}
-
-gigamail_2() {
-$CMD_PERL ./imapsync \
-    --host1 mail.gigamail.nl --user1 testbox@gigamail.nl --passfile1 ../../var/pass/secret.gigamail \
-    --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi
-}
-
-gigamail_3() {
-$CMD_PERL ./imapsync \
-    --host1 mail.gigamail.nl --user1 testbox@gigamail.nl --passfile1 ../../var/pass/secret.gigamail \
-    --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi --sep1 .
-}
-
-sunone_gmail()
-{
-    date1=`date`
-    { $CMD_PERL ./imapsync \
-        --host1 mailhost.marymount.edu --ssl1 --user1 adoe \
-        --passfile1 ../../var/pass/secret.adoe \
-        --host2 imap.googlemail.com --ssl2 --user2 adoe@marymount.edu \
-        --passfile2 ../../var/pass/secret.adoegmail \
-        --useheader Message-ID --no-authmd5 \
-	--exclude Trash
-    }
-    date2=`date`
-    echo3 "[$date1] [$date2]"
-}
-
-sunone_gmail_2()
-{
-    date1=`date`
-    { $CMD_PERL ./imapsync \
-        --host1 mailhost.marymount.edu --ssl1 --user1 jharsh@marymount.edu \
-        --passfile1 ../../var/pass/secret.jharsh \
-        --host2 imap.googlemail.com --ssl2 --user2 jharsh@marymount.edu \
-        --passfile2 ../../var/pass/secret.jharsh \
-        --useheader Message-ID --no-authmd5 \
-	--folder bug
-    }
-    date2=`date`
-    echo3 "[$date1] [$date2]"
-}
 
 huge_folder()
 {
@@ -5376,6 +5574,22 @@ huge_folder_headers_ALL()
     echo3 "[$date1] [$date2]"
 }
 
+huge_folder_2018()
+{
+    date1=`date`
+    { $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 gilles@est.belle \
+        --passfile2 ../../var/pass/secret.gilles_mbox \
+        --folder INBOX.Junk \
+        --f1f2 INBOX.Junk=INBOX.Junk.2018 \
+        --search "SENTBEFORE 1-Jan-2019" \
+        --tmpdir /var/tmp --usecache  --delete1
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+}
 
 
 huge_message_ks()
@@ -5509,7 +5723,7 @@ dprof_bigfolder()
         --passfile1 ../../var/pass/secret.gilles_mbox \
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
-        --nofoldersizes  --folder INBOX.15_imapsync.imapsync-list || \
+        --nofoldersizes  --folder INBOX.03_imapsync.imapsync_list || \
     true
     }
     date2=`date`
@@ -5519,7 +5733,7 @@ dprof_bigfolder()
     dprofpp -O 30 -I dprof_bigfolder_tmon.out
 }
 
-dprof_bigmail()
+dprof_bigmail() 
 {
     date1=`date`
     { $CMD_PERL -d:DProf ./imapsync \
@@ -5527,7 +5741,7 @@ dprof_bigmail()
       --passfile1 ../../var/pass/secret.tata \
       --host2 $HOST2 --user2 titi \
       --passfile2 ../../var/pass/secret.titi \
-      --folder INBOX.bigmail
+      --folder INBOX.bigmail --dry --maxlinelength 8888
       echo 'sudo sh -c "rm -v /home/vmail/titi/.bigmail/cur/*"' || \
     true
     }
@@ -5537,6 +5751,37 @@ dprof_bigmail()
     dprofpp -O 30    W/dprof_bigmail_tmon.out
     dprofpp -O 30 -I W/dprof_bigmail_tmon.out
 }
+
+nytprof_bigmail() 
+{
+    date1=`date`
+    { $CMD_PERL -d:NYTProf ./imapsync \
+      --host1 $HOST1  --user1 tata \
+      --passfile1 ../../var/pass/secret.tata \
+      --host2 $HOST2 --user2 titi \
+      --passfile2 ../../var/pass/secret.titi \
+      --folder INBOX.bigmail --dry --maxlinelength 8888
+      echo 'sudo sh -c "rm -v /home/vmail/titi/.bigmail/cur/*"' || \
+    true
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+}
+
+ll_nytprof() 
+{
+    date1=`date`
+    { $CMD_PERL -d:NYTProf ./imapsync \
+      --host1 $HOST1  --user1 tata \
+      --passfile1 ../../var/pass/secret.tata \
+      --host2 $HOST2 --user2 titi \
+      --passfile2 ../../var/pass/secret.titi
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+}
+
+
 
 dprof2_bigmail()
 {
@@ -5653,6 +5898,7 @@ ll_pipemess_catcat
 ll_flags
 ll_resyncflags
 ll_noresyncflags
+ll_syncflagsaftercopy
 ll_regex_flag 
 ll_regex_flag_bad
 ll_regex_flag_keep_only 
@@ -5677,9 +5923,10 @@ ll_authmech_LOGIN
 ll_authmech_CRAMMD5 
 ll_authmech_PREAUTH
 ll_authuser 
-ll_delete_delete2
+ll_delete1_delete2
 ll_delete2 
-ll_delete 
+ll_delete1
+ll_delete1_twoemails
 ll_folderrec 
 ll_memory_consumption
 ll_newmessage

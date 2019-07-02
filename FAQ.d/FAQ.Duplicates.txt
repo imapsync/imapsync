@@ -1,17 +1,13 @@
 #!/bin/cat
-$Id: FAQ.Duplicates.txt,v 1.14 2018/05/02 12:21:54 gilles Exp gilles $
+$Id: FAQ.Duplicates.txt,v 1.18 2019/02/14 17:22:10 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
-
-=======================================================================
-                Imapsync tips about duplicated messages issues.
-=======================================================================
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Duplicates.txt
 
 =======================================================================
-Q. How can I remove duplicates in a lone account?
-
-R. Just run imapsync on the same account with option --delete2duplicates,
-   ie, with host1 == host2 and user1 == user2
+            Imapsync tips about duplicated messages issues.
+=======================================================================
 
 =======================================================================
 Q. How can I know if imapsync will generate duplicates on a second run?
@@ -37,7 +33,7 @@ Messages skipped                  : 1555
 =======================================================================
 Q: Multiple copies, duplicates, when I run imapsync twice ore more. 
 
-R0. 
+R0. First, some explanations to understand the issue. 
 Normally and by default, imapsync doesn't generate duplicates.
 So if it does  generate duplicates it means a problem occurs
 with message identification. It happens sometimes with IMAP 
@@ -46,8 +42,39 @@ of the "Received:" header lines in the header part of messages.
 By default, Imapsync uses "Message-Id" header line and 
 "Received:" header lines to identify messages on both sides.
 
-R1. 
-A first solution is to use option --useuid. 
+R1. This solution is R3 simplified.
+A quick practical solution is to change the way imapsync
+identify messages that works most of the time. But since
+you're reading this because you encountered duplicates issue,
+let's check this solution in a safe way.
+
+First use the same commmand with additionnal options:
+
+     imapsync ... --useheader "Message-Id" --dry 
+
+The previous command does nothing real but it will show you
+if imapsync handles duplicates in a better way.
+The criterium is to search at the end of the sync for a line
+like this one:
+Messages skipped                  : 1555
+where 1555 is an example but reflects mostly the number
+of all messages already transferred.
+
+If you end with: 
+Messages skipped                  : 0
+don't go on, it means imapsync is still suffering to
+identify messages.
+
+If you end with many messages skipped then it's very
+good and now you can safely resync the mailboxe
+and get rid of the dupplicates messages on host2 with:
+
+    imapsync ... --useheader "Message-Id" --delete2duplicates
+
+End of the problem!
+
+R2. 
+A second solution is to use option --useuid. 
 With option --useuid, imapsync  doesn't use header lines 
 to identify and compare messages in folders.
 Instead of some headers,  --useuid tell imapsync to use 
@@ -63,7 +90,7 @@ used from the first time but it does generate duplicates after a previous
 run without --useuid (because it then uses a different method to identify 
 the messages). 
 
-A solution? Two solutions. 
+A solution? Two solutions.
 
 The easiest is --delete2 if you are permitted to use it. 
 Option --delete2 removes messages on host2
@@ -74,7 +101,7 @@ So --useuid --delete2 is easy to remove duplicates but not for
 all contexts. The host2 account must be considered as a strict
 replication of the host1 account, ie, not active.
 
-A second solution, better if R2 works (see R2 below), is to build 
+A second solution, better if R3 works (see R3 below), is to build
 the cache before using --useuid
 
 First sync:
@@ -87,7 +114,7 @@ Next syncs:
   imapsync ... --useuid
   ...
 
-R2. 
+R3. 
 Best way if you can follow it. 
 Multiple copies of the emails on the destination server. Some IMAP
 servers (Domino for example) change some headers for each message
@@ -160,6 +187,12 @@ The result is that you can have more messages on host1 than on host2.
 R2. With option --useuid imapsync doesn't use headers to identify
     messages on both sides but it uses their imap uid identifier.
     In that case duplicates on host1 are also transferred on host2.
+
+=======================================================================
+Q. How can I remove duplicates in a lone account?
+
+R. Just run imapsync on the same account with option --delete2duplicates,
+   ie, with host1 == host2, user1 == user2, password1 == password2
 
 =======================================================================
 =======================================================================

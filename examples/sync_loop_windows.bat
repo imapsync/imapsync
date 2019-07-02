@@ -1,5 +1,5 @@
 @REM
-@REM $Id: sync_loop_windows.bat,v 1.17 2018/03/22 12:46:58 gilles Exp gilles $
+@REM $Id: sync_loop_windows.bat,v 1.18 2018/05/24 11:45:42 gilles Exp gilles $
 @REM
 @REM imapsync massive sync example batch for Windows users
 @REM lines beginning with @REM are just comments 
@@ -83,7 +83,7 @@ SET csvfile=file.txt
 
 @FOR /F "tokens=1,2,3,4,5,6,7 delims=; eol=#" %%G IN (%csvfile%) DO (
 @REM Blank lines are usually ignored. Dumping the tokens in [] in case debugging is needed
-@ECHO GOT from %csvfile% (values are inside brackets) [%%G] [%%H] [%%I] [%%J] [%%K] [%%L] [%%M]
+@ECHO GOT those values from %csvfile%  presented inside brackets: [%%G] [%%H] [%%I] [%%J] [%%K] [%%L] [%%M]
 @REM You can add extra arguments to imapsync after the variable named %arguments% 
 @ECHO ==== Starting imapsync from --host1 %%G --user1 %%H to --host2 %%J --user2 %%K ====
 @imapsync ^

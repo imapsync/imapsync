@@ -1,3 +1,5 @@
+sig_install_toggle_sleep
+	sig_install
 myprint
 	print
 	tee
@@ -195,14 +197,18 @@ debugsleep
 	debugsleep
 foldersizes_on_h1h2
 	myprint
+	imap1
 	abletosearch1
+	imap2
 	abletosearch2
 	errors_incr
 	h2
 	quota_limit_bytes
 	errors_incr
 total_bytes_max_reached
+	exitwhenover
 	total_bytes_transferred
+	exitwhenover
 	myprint
 all_defined
 tests_all_defined
@@ -407,6 +413,7 @@ special_from_folders_hash
 	myprint
 tests_special_from_folders_hash
 	note
+	require_ok
 	is
 	undef
 	is_deeply
@@ -446,8 +453,13 @@ tests_live_result
 	note
 foldersizesatend
 	timenext
+	imap1
+	imap2
+	imap2
 	uc
+	imap1
 	abletosearch1
+	imap2
 	abletosearch2
 	errors_incr
 size_filtered_flag
@@ -456,9 +468,13 @@ size_filtered_flag
 sync_flags_fir
 	sync_flags
 sync_flags_after_copy
+	imap2
 	sync_flags
+	myprint
 sync_flags
 	dry
+	imap2
+	imap2
 	errors_incr
 _filter
 lost_connection
@@ -675,6 +691,7 @@ here_twice
 	lastcatch
 	lastcatch
 justconnect
+	imap1
 	host1
 	port1
 	ssl1
@@ -682,6 +699,7 @@ justconnect
 	h1
 	timeout
 	h1
+	imap2
 	host2
 	port2
 	ssl2
@@ -689,6 +707,8 @@ justconnect
 	h2
 	timeout
 	h2
+	imap1
+	imap2
 tests_mailimapclient_connect
 	note
 	ok
@@ -1347,29 +1367,22 @@ tests_flags_regex
 	ok
 	ok
 	ok
-	ok
-	ok
-	ok
-	ok
-	ok
-	ok
-	ok
-	ok
-	ok
-	ok
-	ok
-	ok
+	is
+	is
 	note
 flags_regex
 	defined
 	myprint
 	undef
 acls_sync
+	imap1
+	imap2
 	keys
 	sort
 	myprint
 	dry
 	myprint
+	imap2
 tests_permanentflags
 	note
 	ok
@@ -1455,21 +1468,34 @@ lastuid
 size_filtered
 	defined
 	myprint
+	total_bytes_skipped
+	nb_msg_skipped
 	defined
 	myprint
+	total_bytes_skipped
+	nb_msg_skipped
 message_exists
+stats_update_skip_message
+	total_bytes_skipped
+	nb_msg_skipped
+	h1_nb_msg_processed
 copy_message
 	dry
 	size_filtered
+	h1_nb_msg_processed
 	debugsleep
 	myprint
+	imap1
+	stats_update_skip_message
 	myprint
 	debugmemory
 	myprint
 	debugmemory
 	myprint
+	stats_update_skip_message
 	defined
 	defined
+	stats_update_skip_message
 	sync_flags_after_copy
 	myprint
 	debugmemory
@@ -1486,7 +1512,9 @@ message_for_host2
 	myprint
 	debugmemory
 	defined
+	imap1
 	errors_incr
+	h1_nb_msg_processed
 	defined
 	myprint
 	myprint
@@ -1503,6 +1531,7 @@ tests_message_for_host2
 	undef
 	is
 	undef
+	require_ok
 	imap1
 	is
 	is
@@ -1521,6 +1550,34 @@ tests_message_for_host2
 	is
 	undef
 	note
+labels
+tests_labels
+	is
+	undef
+	is
+	undef
+	undef
+	require_ok
+	is
+	undef
+	is
+synclabels
+tests_synclabels
+	is
+	undef
+	is
+	undef
+	undef
+	is
+	undef
+	require_ok
+	imap1
+	imap2
+	is
+	undef
+	is
+	undef
+	is
 length_ref
 tests_length_ref
 	note
@@ -1530,6 +1587,7 @@ tests_length_ref
 	is
 	note
 date_for_host2
+	imap1
 flags_for_host2
 subject
 tests_subject
@@ -1547,20 +1605,31 @@ append_message_on_host2
 	myprint
 	debugmemory
 	dry
+	imap2
 	myprint
 	debugmemory
+	imap2
 	errors_incr
+	h1_nb_msg_processed
+	imap2
+	synclabels
+	synclabels
 	total_bytes_transferred
 	nb_msg_transferred
+	h1_nb_msg_processed
 	begin_transfer_time
 	total_bytes_transferred
+	h1_nb_msg_processed
 	nb_msg_transferred
 	total_bytes_transferred
 	myprintf
 	nb_msg_transferred
 	sleep_if_needed
 	touch
+	delete1
 	delete_message_on_host1
+	expungeaftereach
+	h1_nb_msg_processed
 tests_sleep_if_needed
 	note
 	is
@@ -1626,8 +1695,34 @@ tests_sleep_max_bytes
 	ok
 	note
 delete_message_on_host1
+	delete1
+	delete_messages_on_any
+	imap1
+delete_messages_on_any
+	dry_message
 	myprint
 	dry
+	h1_nb_msg_deleted
+	uidexpunge_or_expunge
+tests_uidexpunge_or_expunge
+	is
+	undef
+	is
+	undef
+	is
+	undef
+	is
+	undef
+	require_ok
+	is
+	undef
+	is
+	undef
+	is
+	undef
+	is
+	is
+uidexpunge_or_expunge
 eta
 	time
 	mysprintf
@@ -2023,6 +2118,8 @@ stats
 	myprintf
 	myprintf
 	myprintf
+	total_bytes_skipped
+	total_bytes_skipped
 	myprintf
 	myprintf
 	nb_msg_transferred
@@ -2357,10 +2454,14 @@ tests_loadavg
 	note
 loadavg
 	loadavg_linux
+	loadavg_freebsd
 	loadavg_darwin
 	loadavg_windows
 loadavg_linux
 	all_defined
+loadavg_freebsd
+	eval
+	myprint
 loadavg_darwin
 	eval
 	myprint
@@ -2594,7 +2695,9 @@ delete_folders_in_2_not_in_1
 	defined
 	myprint
 	dry
+	imap2
 	dry
+	imap2
 	dry
 	myprint
 	myprint
@@ -2634,6 +2737,7 @@ tests_delete1emptyfolders
 	imap1
 	is
 	undef
+	require_ok
 	imap1
 	is
 	undef
@@ -2847,6 +2951,10 @@ easyany
 	office1
 	office2
 	office2
+	exchange1
+	exchange1
+	exchange2
+	exchange2
 	domino1
 	domino1
 	domino2
@@ -2869,6 +2977,14 @@ gmail12
 	automap
 	automap
 	maxsleep
+	defined
+	maxsleep
+	maxsleep
+	defined
+	synclabels
+	defined
+	synclabels
+	synclabels
 	push
 gmail1
 	host1
@@ -2882,8 +2998,11 @@ gmail1
 	defined
 	automap
 	automap
+	maxsleep
 	defined
 	maxsleep
+	maxsleep
+	defined
 	push
 	push
 	push
@@ -2899,12 +3018,17 @@ gmail2
 	defined
 	automap
 	automap
+	expunge1
 	defined
-	defined
+	expunge1
+	expunge1
 	addheader
 	defined
 	addheader
 	addheader
+	maxsleep
+	defined
+	maxsleep
 	maxsleep
 	push
 	push
@@ -2913,26 +3037,36 @@ gmail2
 	push
 	push
 office1
+	output
 	host1
 	ssl1
 	defined
 	ssl1
 	ssl1
 office2
+	output
+	output
+	output
 	host2
 	ssl2
 	defined
 	ssl2
 	ssl2
 	maxmessagespersecond
-	push
 	defined
+	noregexmess
 	push
 exchange1
+	output
 exchange2
+	output
+	output
+	output
 	maxmessagespersecond
-	push
 	defined
+	noregexflag
+	push
+	noregexmess
 	push
 domino1
 	defined
@@ -3161,6 +3295,8 @@ sig_install
 tototo
 	myprint
 	tototo_calls
+mygetppid
+	getppid
 tests_toggle_sleep
 	note
 	is
@@ -3204,11 +3340,13 @@ toggle_sleep
 	myprint
 	maxsleep
 	maxsleep
+mypod2usage
+	pod2usage
+	-exitval
 usage
 	open
 	warn
-	pod2usage
-	-exitval
+	mypod2usage
 	close
 tests_usage
 	like
@@ -3361,8 +3499,17 @@ get_options_cmd
 	password1
 	password2
 	folder
+	noregexmess
+	noregexflag
 	resyncflags
+	synclabels
+	delete1
+	delete2
+	delete2duplicates
 	dry
+	expunge1
+	expunge2
+	uidexpunge2
 	version
 	h1
 	timeout
@@ -3398,8 +3545,10 @@ get_options_cmd
 	sigignore
 	releasecheck
 	addheader
+	exitwhenover
 	checkselectable
 	checkfoldersexist
+	expungeaftereach
 	abletosearch
 	abletosearch1
 	abletosearch2
@@ -3437,10 +3586,12 @@ tests_get_options
 	noexist
 	is
 	is
+	delete2
 	is
 	undef
 	is
 	undef
+	delete1
 	is
 	undef
 	is
@@ -3516,9 +3667,8 @@ testsdebug
 	skip
 	note
 	ok
-	tests_write_pidfile
-	tests_remove_pidfile_not_running
-	tests_match_a_pid_number
+	tests_synclabels
+	tests_uidexpunge_or_expunge
 	note
 	done_testing
 tests_template
@@ -3650,5 +3800,8 @@ tests
 	tests_template
 	tests_split_around_equal
 	tests_toggle_sleep
+	tests_labels
+	tests_synclabels
+	tests_uidexpunge_or_expunge
 	done_testing
 	note

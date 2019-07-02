@@ -1,15 +1,19 @@
 #!/bin/cat 
-# $Id: INSTALL.Centos.txt,v 1.7 2018/04/24 00:15:32 gilles Exp gilles $
+# $Id: INSTALL.Centos.txt,v 1.10 2019/02/05 18:20:42 gilles Exp gilles $
 
-=================================
-= Installing imapsync on CentOS = 
-=================================
+This documentation is also located online at 
+https://imapsync.lamiral.info/INSTALL.d/
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.Centos.txt
+
+=======================================================================
+               Installing imapsync on CentOS
+=======================================================================
 
 There is one section for Centos 7 and one for Centos 6.
 
-==============
-== Centos 7 ==
-==============
+=======================================================================
+               Centos 7
+=======================================================================
 
 First install access to the Epel repository via yum:
 
@@ -32,9 +36,9 @@ Unit tests:
 
   imapsync --tests
 
-==================================
-== Centos 7 and latest imapsync ==
-==================================
+=======================================================================
+               Centos 7 and latest imapsync
+=======================================================================
 
 At the time of this writing (April 2018), the epel repository contains 
 imapsync release 1.727, which is not the latest available release.
@@ -61,10 +65,7 @@ Then:
  perl-Test-Fatal \
  perl-Test-Mock-Guard \
  perl-Test-Requires \
- perl-Test-NoWarnings \
- perl-Test-Deep \
- perl-Test-Warn \
- perl-Try-Tiny
+ perl-Test-Deep
 
   wget https://imapsync.lamiral.info/imapsync
 
@@ -73,10 +74,16 @@ Then:
 
 Now you have the latest imapsync on Centos 7.
 
+If you want to install an online imapsync service
+like /X then you also need a recent CGI.pm,
+add with cpanm:
 
-==============
-== Centos 6 ==
-==============
+  cpanm CGI 
+
+
+=======================================================================
+               Centos 6
+=======================================================================
 
 This section has been tested with imapsync release 1.670
 
@@ -102,4 +109,40 @@ Unit tests:
 
   imapsync --tests
 
+=======================================================================
+               Centos 6 and latest imapsync
+=======================================================================
 
+Install the epel imapsync 1.670 release via yum like mentioned above.
+
+It will install many needed packages, Perl itself and Perl modules 
+for release 1.670. The latest imapsync needs more Perl modules.
+
+Then:
+
+  yum install perl-App-cpanminus \
+ perl-Dist-CheckConflicts \
+ perl-HTML-Parser \
+ perl-libwww-perl \
+ perl-Module-Implementation \
+ perl-Module-ScanDeps \
+ perl-Package-Stash \
+ perl-Package-Stash-XS \
+ perl-PAR-Packer \
+ perl-Regexp-Common \
+ perl-Sys-MemInfo \
+ perl-Test-Fatal \
+ perl-Test-Mock-Guard \
+ perl-Test-Requires \
+ perl-Test-Deep
+
+  wget https://imapsync.lamiral.info/imapsync
+
+  chmod +x imapsync
+  ./imapsync --testslive
+
+Now you have the latest imapsync on Centos 6, 
+do you?
+
+=======================================================================
+=======================================================================

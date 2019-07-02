@@ -1,10 +1,13 @@
 #!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.5 2018/05/02 12:22:13 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.19 2019/01/28 10:59:16 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.OnlineUI.txt
 
 =====================================================================
-   Imapsync tips about the online visual user interface
+   Imapsync tips about the online visual user interfaces
+   https://i005.lamiral.info/X/
    https://imapsync.lamiral.info/X/
 =====================================================================
 
@@ -27,28 +30,38 @@ R0. Well, I don't know if asking the provider whether his online
 
 R1. Some figures
 
-Date of this report: 8 March 2018.
-The online imapsync service /X started 9 January 2017 (422 days of service).
-In average, /X has 20 users per day lunching 6 different migrations, from
-one launch to many many (hundreds).
-The total volume /X transferred is 17 TiB in 48000 email imap migrations.
+Date of this report: 26 December 2018.
+
+The online imapsync service /X started 9 January 2017 
+(716 days of service).
+
+In average, /X has 20 users per day lunching in mean 6 
+different migrations, from one launch to many (hundreds).
+
+The total volume /X transferred is around 45 TiB in more 
+than 111 thousands email imap migrations, 
+157 millions email messages.
 
 R2. Pros & Cons
 
 The online imapsync service /X runs on https only, with a 
-letsencrypt certificate, a certificate overall rated "A" at
-https://www.ssllabs.com/ssltest/analyze.html?d=imapsync.lamiral.info
+letsencrypt certificate, a certificate overall rated "A+" at
+https://www.ssllabs.com/ssltest/analyze.html?d=i005.lamiral.info
 
 Because of the https usage, what the users enter in their browser,
 the imap logins and passwords, can't be eavesdropped on the network.
 
-Imapsync itself cares about encryption for the imap sessions, 
-if possible: It tries SSL first on port 993, then TLS if the 
-servers announces TLS, then no encryption. What is done with
-an imap server is independent of what is done with the other.
+Imapsync itself takes care about encryption for the imap sessions, 
+if possible: It tries SSL first on port 993, then TLS on port 143 
+if the servers announces TLS, then no encryption at all. 
+What is done with the source imap server host1 is independent 
+of what is done with the destination imap server host2.
 
-At the date of 8 March 2018, there is no security problem detected 
-or reported to me (Gilles LAMIRAL) so far.
+At the date of 26 December 2018, there is no security problem 
+detected or reported to me (Gilles LAMIRAL), so far.
+Feel free to attack the service and feel free to report any 
+hole encountered. Have in mind I can watch what you try 
+from the server side.
 
 As the owner of the service, it could have been 48 000 pairs of 
 credentials collected and nearly 17 terabytes of email messages. 
@@ -60,49 +73,62 @@ because too many  imap servers are crappy configured regarding
 certificates.
 
 This default behavior is chosen like this because users of /X 
-wants their emails transferred, instead of not trasferred because
-of an incompetent imap server sysadmin. 
-Anyway, this part, checking imap ssl/tls certificates, could be 
-improved from my side by including well known certificates 
-directly in imapsync. 
+want their emails transferred, instead of being not transferred 
+because of an incompetent imap server sysadmin.
+
+I admint that this part, checking imap ssl/tls certificates, 
+could be improved from my side by including well known 
+certificates directly in imapsync. 
 
 If the imap servers don't honor ssl nor tls, then logins, passwords 
 and everything will go clear text during the imap transfers. 
 That's not good at all but what "comforts" me is that if the 
-imap servers do only clear text transfer, then it is also true 
-for all imap sessions the owner of the accounts encounter, 
+imap servers do only clear text transfers, then it's also true 
+for all imap sessions the accounts' owner encounters, 
 imapsync is just one of them.
 
-Last point, who could be sure no cracker cracked the online host and 
-currently sniffs the credentials? No one, I'm not sure myself, even 
-if I do take  care of that possibility.
+Last point, who could be sure that no cracker cracked the online 
+hosts and that he isn't currently sniffing the credentials?
+
+No one, I'm not sure myself, even if I do take  care of that 
+possibility. So changing the imap accounts passwords after 
+a sync is a safe and recommended practice!
 
 =====================================================================
 Q. Will I have any issues with browser timing out? What happens
    if the browser connection is closed for whatever reason?
 
-R. It should be ok
+R. It stops the imapsync process, ie, the sync is ended right away.
+
+Further comments on this behavior.
 
 When using the /X interface there are three connections. 
-One connection is the Browser-WebServer connection, the
-two others are the WebServer-ImapServers connections (imapsync stuff).
+One connection is the Browser/WebServer connection, 
+the two others connections are the WebServer/ImapServers 
+connections (imapsync stuff).
 
-If the Browser-WebServer connection is timeout (but it shouldn't
-because of the log refresh), the imapsync sync might continue
-anyway. To see if it continues or not, just do a sync again and the
-interface will tell you that a sync is already going on, if the
-"Sync!" button is gray/inactive then just reload the page (F5 or
-similar), and reenter the credentials.
+If the Browser/WebServer connection is timeout or ended, 
+the imapsync sync is also ended immediately by the remote 
+Apache https server. Technically, Apache sends a TERM signal,
+to the imapsync process then wait some seconds before 
+sending a KILL signal if it is still alive.
 
-By the way, on the /X you can try to do several parallel runs on the same
-mailbox even if there is no timeout, open a new tab/windows with /X
-and start a same sync, it's safe, the /X will say, if any, that there
-is already a current sync.
+You can relaunch a sync again with "Sync!" button, at any time.
+If the "Sync!" button is gray/inactive then just reload 
+the page (F5 or similar), and reenter the credentials.
 
+If the interface tells you that a sync is already going on,
+it may be that a sync is running from another browser or place.
 You can stop this sync with the "Abort!" button from any /X
-tab/window, even from another browser or place. To doing this with
-success, you have to give the same account parameters, same
-credentials, or imapsync will ignore the demand.
+tab/window, even from another browser or place. To be able
+to abort with success, you have to give the same account 
+parameters, same credentials, or imapsync will ignore the demand.
+
+In other words, you can try safely to launch several parallel 
+runs between the same mailboxes. Open a new tab/windows with /X, 
+and start a same sync, it's safe, the /X will say, if any, that 
+there is already a current sync running.
+
 
 =====================================================================
 =====================================================================

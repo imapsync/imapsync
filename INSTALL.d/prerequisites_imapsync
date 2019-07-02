@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: prerequisites_imapsync,v 1.25 2018/04/24 00:14:23 gilles Exp gilles $
+# $Id: prerequisites_imapsync,v 1.29 2018/09/28 14:16:44 gilles Exp gilles $
 
 MODULES_MANDATORY='
 App::cpanminus
@@ -45,12 +45,14 @@ Test::MockObject
 Test::More
 Test::Pod
 Test::Requires
-Test::NoWarnings
 Test::Deep
-Test::Warn
 Try::Tiny
 Unicode::String
 URI::Escape
+'
+
+MODULES_FOR_CODERS='
+Smart::Comments
 '
 
 
@@ -62,7 +64,7 @@ test_perl() {
 		echo Ok: Found Perl $perl_version
 		return 0
 	else
-		echo Failure: Perl is not here. You have to install Perl first.
+		echo 'Failure: Perl is not here. You have to install Perl first.'
 		return 1
 	fi
 }
@@ -70,16 +72,30 @@ test_perl() {
 test_make() {
 # Second we need make to build some Perl modules
 
-	if make -v > /dev/null 2>&1 ; then
+	if echo foo: | make -f - foo ; then
 		make_version=`make -v |head -1`
 		echo Ok: Found make $make_version
 		return 0
 	else
-		echo Failure: make is not here. You have to install the make command.
+		echo 'Failure: make is not here. You have to install the "make" command.'
 		return 1
 	fi
 }
 
+
+test_cpanm() {
+# Second we need make to build some Perl modules
+        # redirect "cpanm ... < /dev/null" is there for macos buid via ssh
+        # no clue why it's necessary
+	if cpanm -h > /dev/null 2>&1 < /dev/null; then
+		cpanm_version=`cpanm --version < /dev/null | head -1`
+		echo Ok: Found cpanm $cpanm_version
+		return 0
+	else
+		echo 'Failure: cpanm is not here. You have to install the "cpanm" command.'
+		return 1
+	fi
+}
 
 
 
@@ -109,16 +125,27 @@ search_modules_any() {
 		echo "All needed modules are already installed"
 		return
 	}
+        
+        # Debian, Ubuntu & Co
 	apt-file -h > /dev/null 2>&1 && {
 		search_modules_apt "$@"
 		return
 	}
+        
+        # Centos & Co
 	yum -h > /dev/null 2>&1 && {
 		search_modules_yum  "$@"
 		return
 	}
+        
+        # ArchLinux & Co
+        pacman -h > /dev/null 2>&1 && {
+		search_modules_pacman  "$@"
+		return
+	}
+        
 	
-	# no yum, no apt-get
+	# no yum, no apt-get, no pacman
 	{
 		search_modules_cpanm "$@"
 		return
@@ -132,6 +159,31 @@ cpanm $@
 EOD
 }
 
+search_modules_pacman() {
+	echo 
+	echo Searching pacman packages names
+        #echo pacman -Fy
+        #pacman -Fy 
+        echo pacman -S --noconfirm --needed  pkgfile
+        pacman -S --noconfirm --needed  pkgfile
+        echo pkgfile --update
+        pkgfile --update
+	for M in "$@" ; do
+		echo "==== Searching pacman package name for $M"
+		F=`echo $M|tr -s ":" "/"`.pm
+                
+                # Not very good "pacman -Fs"
+		#echo pacman -Fs  "$F"
+		#echo
+		#pacman -Fs  "$F"
+                #echo
+                # Better! pkgfile --reg
+                echo "pkgfile --reg $F | grep perl-"
+                echo
+                pkgfile --reg "$F" | grep perl-
+		echo
+	done
+}
 
 search_modules_yum() {
 	echo 
@@ -181,6 +233,8 @@ test_unix() {
 	uname -a
 }
 
+
+
 test_unix
 #exit
 test_perl || exit
@@ -193,4 +247,5 @@ EXIT=$?
 search_modules_any $LIST_TO_INSTALL
 
 test "$1" = "MODULES_MANDATORY" && search_modules_any $MODULES_MANDATORY
+test_cpanm
 exit $EXIT

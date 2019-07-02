@@ -1,4 +1,4 @@
-# $Id: README_Windows.txt,v 1.11 2018/05/05 22:46:01 gilles Exp gilles $
+# $Id: README_Windows.txt,v 1.13 2019/02/14 15:50:09 gilles Exp gilles $
 # 
 # This is the README_Windows.txt file for imapsync 
 # imapsync : IMAP sync and migrate tool.
@@ -42,14 +42,15 @@ In the folder extracted imapsync_1.xxx you see 6 files and 2 directories:
 * Cook/                  is the directory to build imapsync.exe from its source, 
                          for the B) way and expert users.
 
-You can copy or rename imapsync_example.bat as you wish as long as 
-its extension remains ".bat". On Windows systems .bat extension 
-means "I'm a batch script". Same thing for sync_loop_windows.bat.
+You can copy or rename the file imapsync_example.bat as you wish,
+as long as its extension remains ".bat". 
+On Windows systems .bat extension means "I'm a batch script".
+Same thing for sync_loop_windows.bat.
 The batch scripts have to stay in the same directory than 
 imapsync.exe because of the way they call imapsync.exe, 
 they use ".\imapsync.exe", so let them be in the same directory.
 Or change the path .\ to whatever you want if you understand what 
-you're doing.
+you're doing (you have to use a pathname from the script point of view).
 
 For the rest of this documentation I assume you copied
 imapsync_example.bat to a file named imapsync_stuff.bat
@@ -72,21 +73,25 @@ A.5) Run the batch file
 To run imapsync with your values just double-click on 
 the batch file imapsync_stuff.bat
 
-You do not need to have administrator privileges to run imapsync.
+There is no need to have administrator privileges to run imapsync.
 
-A.6) Loop on A.5) A.6) edit, run, edit, run etc.
+A.6) Loop on A.4) A.5) edit, run, edit, run etc.
 
 Loop the process of editing and running imapsync until
 you solve all issues and all values suit your needs.
 
 A.7) Look the sync running. You can abort it at any time with a 
-     quick double ctrl-c, hit ctrl-c twice within one second.
-     (a single ctrl-c will reconnect to both imap servers)
+ quick double ctrl-c, hit ctrl-c twice within one second.
+ (a single ctrl-c will reconnect to both imap servers).
+ You can also abort the sync by closing the DOS window.
 
-A.8) When the sync is finished you can find the whole log of the output 
-in the folder named "LOG_imapsync", the logfile name is based
-on the launching date, hour, minute, second, miliseconds and the 
-user2 parameter. There is one logfile per run.
+A.8) When the sync is finished you can find the whole log file 
+of the output in the folder named "LOG_imapsync", 
+the logfile name is based on the launching date, 
+hour, minute, second, milliseconds and the user2 parameter. 
+
+There is one logfile per run.
+
 The logfile name is printed at the end of the imapsync run.
 If you do not want logging to a file then use option --nolog
 

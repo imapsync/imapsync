@@ -2,15 +2,18 @@
 # Usage:
 # $ bash merge-csv.sh [directory_with_csvs]
 
-# $Id: merge-csv,v 1.3 2018/04/02 18:51:32 gilles Exp gilles $
+# $Id: merge-csv,v 1.4 2018/08/28 12:29:05 gilles Exp gilles $
 
 # Merge all non-header lines into merged.csv
 merge_pattern() {
     pattern=${1:-rrrrrrrrrr}
+    > ${pattern}_merged.csv;
     for fname in `ls -r *${pattern}-stats.csv`
     do 
         test -f $fname || continue
-        tail -n+2 $fname >> ${pattern}_merged.csv;
+        echo "tail -n 2 $fname | head -1"
+        # last one is not accurate, the day is not finished.
+        tail -n 2 $fname | head -1 >> ${pattern}_merged.csv;
     done
     
     test -f ${pattern}_merged.csv || return

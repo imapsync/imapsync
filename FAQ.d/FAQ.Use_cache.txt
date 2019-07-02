@@ -1,11 +1,14 @@
 
-$Id: FAQ.Use_cache.txt,v 1.6 2018/03/07 04:12:37 gilles Exp gilles $
+$Id: FAQ.Use_cache.txt,v 1.8 2018/10/22 17:30:45 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Use_cache.txt
 
-============================================
-      Imapsync  --usecache option
-============================================
+
+=======================================================================
+               Imapsync  --usecache option
+=======================================================================
 
 Questions answered in this FAQ are:
 
@@ -89,11 +92,19 @@ filesystem devoted to the imapsync cache.
 
 # Mount this brand new filesystem
 
+  mkdir -p /var/tmp/cachedir
   mount -o loop /var/tmp/fscache /var/tmp/cachedir
+  df -i /var/tmp/cachedir # count inodes available
 
 # Tell imapsync to use it
 
   imapsync ... --tmpdir /var/tmp/cachedir/
-  
+
+# When the migration is over and the cache becomes really useless
+
+    umount /var/tmp/cachedir/
+    rm /var/tmp/fscache
+
+
 =======================================================================
 =======================================================================

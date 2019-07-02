@@ -1,7 +1,9 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.37 2018/03/23 19:07:37 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.50 2018/12/25 11:10:30 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
 =======================================================================
               Imapsync tips for Gmail accounts.
@@ -10,6 +12,8 @@ This documentation is also at http://imapsync.lamiral.info/#doc
 Questions answered in this FAQ are:
 
 Q. Can I use imapsync to transfer from or to Gmail accounts?
+
+Q. Is there special configuration tips to facilitate a Gmail transfer?
 
 Q. How many days does it take to transfer X GB?
 
@@ -24,6 +28,8 @@ Q. I can't authenticate with Gmail via IMAP
 
 Q. Can not open imap connection on [imap.gmail.com]
    Unable to connect to imap.gmail.com
+
+Q. Can I transfer "Chat" messages with imapsync?
 
 Q. Can I safely use --useuid for Gmail transfers?
 
@@ -60,6 +66,16 @@ it has to be allowed in the Gmail configuration part:
  -> Enable IMAP
 
 =======================================================================
+Q. Is there special configuration tips to facilitate a Gmail transfer?
+
+R. Turned off "Conversation views". 
+With "Conversation views" turned off, Gmail shows the exact message 
+count for each folder and it matches what imapsync shows. 
+With "Conversation views" on, a single conversation can have 
+multiple messages and it doesn't match what imapsync presents.
+(Thanks to Karthik.V for this input)
+
+=======================================================================
 Q. How many days does it take to transfer X GB?
 
 R. Basically it takes X days to transfer X GB per account.
@@ -82,46 +98,56 @@ R. Basically it takes X days to transfer X GB per account.
    This is either a disconnection with
    "BYE Session expired, please login again"
    or a very small rate, less than 1 Kib/s
+
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. How to synchronize from Gmail to Gmail?
 
 R. Use the following example:
 
-./imapsync  \
+imapsync  \
            --user1 account1@gmail.com \
            --password1 gmailsecret1 \
            --user2 account2@gmail.com \
            --password2 gmailsecret2 \
-           --gmail12 
+           --gmail1 --gmail2 
 
-Or, replacing what does --gmail12:
+Or, replacing what does --gmail1 --gmail2 (values are from imapsync 1.882):
 
-./imapsync \
+imapsync \
            --host1 imap.gmail.com \
-           --ssl1 \
            --user1 account1@gmail.com \
            --password1 gmailsecret1 \
            --host2 imap.gmail.com \
-           --ssl2 \
            --user2 account2@gmail.com \
            --password2 gmailsecret2 \
-           --maxbytespersecond 10000 \
+           --maxbytespersecond 20_000 \
+           --maxbytesafter 1_000_000_000 \
+           --maxsleep 2 \
            --automap \
            --exclude "\[Gmail\]$"   
 
+With --gmail1 --gmail2 you can override the parameters
+that are activated by them, for example:
+
+imapsync ... --gmail1 --gmail2 --maxbytespersecond 50_000
 
 Explanations:
 
---ssl1 --ssl2 are mandatory since Gmail only supports 
-imap ssl connections.
 
---maxbytespersecond 10000 ( 10 kBytes/s ) option is here to avoid 
+--maxbytespersecond 20_000 ( 20 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 10000 is not mandatory in the sense Gmail may 
+--maxbytespersecond 20_000 is not mandatory in the sense Gmail may 
 allow you to use an upper value than 1 GBytes per 24h without 
-disconnections.
+disconnections. If you count well, it should be 10_000, not 20_000.
 
+--maxbytesafter 1_000_000_000 option is there because 
+option --maxbytespersecond 20000 is unnecessarily slow if the Gmail 
+account size is less than 1 GB.
+
+--maxsleep 2 is to avoid sleeping more than 2 seconds when 
+the --maxbytespersecond value implies a long sleep between 2 copies.
 
 --automap is not mandatory but it's a feature to automatically
 map folder names based on the Gmail user configuration itself, par account.
@@ -146,9 +172,12 @@ http://stackoverflow.com/questions/2185391/localized-gmail-imap-folders/2185548#
 --exclude "\[Gmail\]$"   is just there to avoid a warning error
 when selecting this not used folder.
 
-=======================================================================
+Be aware that --gmail1 --gmail2 is a special case, it's not what
+--gmail1 does plus what --gmail2 does when they are not invoked 
+together.
 
 
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. How to synchronize from XXX to Gmail?
 
@@ -159,9 +188,9 @@ imapsync --host1 mail.oldhost.com     \
          --password1 password   \
          --user2 my_email@gmail.com \
          --password2 password \
-         --gmail2
+         --gmail2 --maxsize 35_651_584
 
-Or, replacing what does --gmail2:
+Or, replacing what does --gmail2 (values are from imapsync 1.882):
 
 imapsync --host1 mail.oldhost.com     \
          --user1 my_email@oldhost.com \
@@ -169,28 +198,40 @@ imapsync --host1 mail.oldhost.com     \
          --host2 imap.gmail.com \
          --user2 my_email@gmail.com \
          --password2 password \
-         --ssl2 \
-         --maxbytespersecond 10000 \
-         --maxsize 25000000 \
+         --maxbytespersecond 20_000 \
+         --maxbytesafter 1_000_000_000 \
+         --maxsleep 2 \
+         --maxsize 35_651_584 \
          --automap   \
          --expunge1  \
          --addheader \
          --exclude "\[Gmail\]$"      \
          --regextrans2 "s/[ ]+/_/g"  \
-         --regextrans2 "s/['\^\"\\\\]/_/g"
+         --regextrans2 "s/['\^\"\\\\]/_/g" 
+
+With --gmail2 you can override the parameters
+that are activated by them, for example:
+
+imapsync ... --gmail2 --maxbytespersecond 50_000 --noautomap --maxsleep 0
 
 Explanations:
 
---ssl2 is mandatory since Gmail only supports imap ssl connections.
-
---maxbytespersecond 10000 ( 10 kBytes/s ) option is here to avoid 
+--maxbytespersecond 20_000 ( 20 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 10000 is not mandatory in the sense Gmail may 
+--maxbytespersecond 20_000 is not mandatory in the sense Gmail may 
 allow you to use an upper value than 1 GBytes per 24h without 
-disconnections.
+disconnections. If you count well, it should be 10_000, not 20_000.
 
---maxsize 25000000 is mandatory since Gmail limits messages size
+--maxbytesafter 1_000_000_000 option is there because 
+option --maxbytespersecond 20000 is unnecessarily slow if the Gmail 
+account size is less than 1 GB. Counting well, it should 
+be 500_000_000, not 1_000_000_000, but 1GB is usually ok.
+
+--maxsleep 2 is to avoid sleeping more than 2 seconds when 
+the --maxbytespersecond value implies a long sleep between 2 copies.
+
+--maxsize 25_000_000 is mandatory since Gmail limits messages size
 up to 25 MB. This value increases over time, it was 10 MB some 
 years ago so you can try higher values. The Gmail page about
 this limit is https://support.google.com/mail/answer/6584
@@ -239,29 +280,29 @@ You can select folders exported to imap within the gmail preferences.
 Select or unselect some "System labels", depending on your needs.
 
 
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. How to synchronize from Gmail to XXX?
 
 R. Use this example:
 
-./imapsync \
+imapsync \
            --user1 gilles.lamiral@gmail.com \
            --password1 gmailsecret \
            --host2 localhost \
            --user2 tata \
            --gmail1
 
-Or, replacing what does --gmail1:
+Or, replacing what does --gmail1 (values are from imapsync 1.882):
 
-./imapsync \
+imapsync \
            --host1 imap.gmail.com \
            --user1 gilles.lamiral@gmail.com \
            --password1 gmailsecret \
            --host2 localhost \
            --user2 tata \
            --password2 tatasecret \
-           --ssl1 \
-           --maxbytespersecond 20000 \
+           --maxbytespersecond 20_000 \
            --useheader="X-Gmail-Received" \
            --useheader "Message-Id" \
            --automap \
@@ -269,15 +310,17 @@ Or, replacing what does --gmail1:
            --skipcrossduplicates \
            --folderlast  "[Gmail]/All Mail"
 
+With --gmail1 you can override the parameters
+that are activated by them, for example:
+
+imapsync ... --gmail1 --maxbytespersecond 50_000 --noskipcrossduplicates --noautomap
 
 Explanations:
 
---ssl1 is mandatory since Gmail only supports imap ssl connections.
-
---maxbytespersecond 20000 ( 20 kBytes/s ) option is here to avoid 
+--maxbytespersecond 20_000 ( 20 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 20000 is not mandatory in the sense Gmail may 
+--maxbytespersecond 20_000 is not mandatory in the sense Gmail may 
 allow you to use an upper value than 2 GBytes per 24h without 
 disconnections.
 
@@ -302,11 +345,11 @@ for example you may unselect all "System labels".
 disk memory. Within imap protocol, Gmail presents Gmail labels as 
 folders, so a message labeled "Work" "ProjectX" "Urgent" ends up 
 in three different imap folders "Work" "ProjectX" and "Urgent"
-after an imap sync. --skipcrossduplicates prevent this behavior.
+after an imap sync. Option --skipcrossduplicates prevent this behavior.
 
 An issue with --skipcrossduplicates is that the first label synced
-by imapsync goes to its corresponding folder and other labels are
-ignored. This way, at least you can choose what labels have the 
+by imapsync goes to its corresponding folder but other labels are
+then ignored. You can choose what labels have the 
 priority by using the --folderfirst option. For example
 --folderfirst "Work" will sync messages labeled "Work" before
 messages labeled "CanWait" or "Urgent". By default imapsync 
@@ -320,15 +363,15 @@ label CanWait and only it.
 the messages that are not labeled at all.
 
 
-
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. I can't authenticate with Gmail via IMAP
    and Gmail says "Please log in via your web browser"
 
-R0. My current settings on two Gmail account are made
-with 0) 1) 2)
+R0. My current settings on two Gmail accounts are made
+with three steps 0) 1) 2)
 
-0) Login via a browser to the Gmail account concerned.
+0) Login via a web browser to the Gmail account concerned.
 
 1) The 2-step verification is OFF
 https://myaccount.google.com/security?hl=en&pli=1&nlr=1#signin
@@ -343,9 +386,10 @@ https://web.archive.org/web/20150906230041/http://security.stackexchange.com/que
 R2. I had the same issue one time (mars 2015) logging to Gmail 
 with imapsync.
 The Gmail imap message error said "Please log in via your web browser"
-so I logged for this account via a web browser,
+so I logged for this account via a web browser. Then,
 it asked me to receive a code via a mobile, I said yes,
-I entered the code and everything went ok. 
+I entered the code and everything went ok on next syncs
+with imapsync. 
 
 
 =======================================================================
@@ -381,6 +425,15 @@ Or go to http://ping.eu/nslookup/ to get the resolution.
 Thanks to Chris Nolan to report, understand and fix this issue!
 
 =======================================================================
+Q. Can I transfer "Chat" messages with imapsync?
+
+R. No. 
+   Even if you think you can because the Chat folder is seen in IMAP,
+   with Chat messages in them, they won't be well transferred.
+   Chat messages are not well presented and not well transferred 
+   using the IMAP protocol.
+
+=======================================================================
 Q. Can I safely use --useuid for Gmail transfers?
 
 R. Yes, but I suggest to not use --useuid for Gmail transfers.
@@ -395,15 +448,31 @@ ends up with no duplicates on Gmail but a waste of bandwith and time,
 which is the opposite goal of --usecache implied by --useuid.
 
 
-=======================================================================
-Q. Gmail does not really delete messages in folder [Gmail]/All Mail
-   What happens? What can I do?
+======================================================================= 
+Q. Gmail does not really delete messages in folder [Gmail]/All Mail 
+   What happens? What can I do? 
 
 R. It's true and explained in Gmail documentation at
-https://support.google.com/mail/answer/78755?hl=en
+https://support.google.com/mail/answer/7401?hl=en
 
 To really remove messages in folder "[Gmail]/All Mail", they have to
 be moved to the "Trash" folder and be deleted from "Trash".
+
+Quoting the link above (25 december 2018, happy christmas by the way!)
+...
+Empty your Trash
+If you don't want a message to stay in your Trash for 30 days, 
+you can permanently delete it.
+* On your computer, go to Gmail.
+* On the left side of the page, scroll down, 
+  then click More and then Trash.
+* Check the box next to messages you want to permanently delete, 
+  then click Delete forever.
+
+* Note: The Delete forever option is only available in the Trash. 
+  You won’t be able to delete items forever from the Search result view.
+  To delete all messages in your trash, click Empty Trash now.
+
 
 =======================================================================
 Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
@@ -441,17 +510,20 @@ So you have to follow the Google recommendation and generate an
 application-specific password or normal authentication 
 or use XOAUTH or XOAUTH2.
 
+
 =======================================================================
 Q. How to use XOAUTH2 to globally authenticate gmail users?
 
 R. Yes, but really tested on Unix systems, not sure on Windows. See:
    http://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
 
+
 =======================================================================
 Q. How to use XOAUTH to globally authenticate gmail users?
 
 R0. XOAUTH is considered obsolete and superseded by XOAUTH2
     See http://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
+
 
 =======================================================================
 Q. How to use a Gmail account to backup several different imap accounts?
@@ -464,6 +536,7 @@ It syncs the account xxx under a sub-subfolder xxx/xxx. This way there
 is no supplementary label created on the multi-archive Gmail 
 destination account. No labels all over the place and all original
 xxx sub-folders show up nested within xxx/xxx.
+
 
 =======================================================================
 Q. How to migrate email from gmail to google apps?

@@ -1,5 +1,5 @@
 
-REM $Id: build_exe.bat,v 1.48 2018/02/06 13:12:47 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.49 2019/02/10 23:45:40 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO Currently running through %0 %*
@@ -25,11 +25,13 @@ EXIT /B
 :pp_exe
 @SETLOCAL
 @REM CALL pp -o imapsync.exe  --link libeay32_.dll  --link zlib1_.dll --link ssleay32_.dll .\imapsync
-IF %PROCESSOR_ARCHITECTURE% == x86 (
+IF [%PROCESSOR_ARCHITECTURE%] == [x86] (
+        @REM 32 bits
 	CALL     pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll --link libcrypto-1_1_.dll --link libssl-1_1_.dll .\imapsync
-	REM CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll  .\imapsync
+	@REM CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1_.dll  .\imapsync
 ) ELSE (
-	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info  --link zlib1__.dll --link libcrypto-1_1-x64__.dll --link libssl-1_1-x64__.dll .\imapsync
+	@REM 64 bits
+	CALL pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event -M Test2::Event::Info -M Test2::EventFacet -M Test2::Event::Pass -M Test2::Event::Fail -M Test2::Event::V2 .\imapsync
 )
 @ENDLOCAL
 EXIT /B

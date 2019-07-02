@@ -1,13 +1,18 @@
 #!/bin/cat
-$Id: FAQ.Massive.txt,v 1.17 2017/12/20 03:38:07 gilles Exp gilles $
+$Id: FAQ.Massive.txt,v 1.24 2018/12/30 21:28:03 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Massive.txt
+
 
 =======================================================================
               Imapsync tips for massive/bulk migrations.
 =======================================================================
 
 Questions answered here are:
+
+Q. How long will take the whole migration?
 
 Q. I need to migrate hundred accounts, how can I do?
 
@@ -16,18 +21,30 @@ Q. I have to migrate 500k users using 400 TB of disk space.
 
 Q. How to determine where is the bottleneck in an imapsync process?
 
-Q. Can I run more instances of imapsync in parallel on a Windows host?
+Q. Can I run several instances of imapsync in parallel on a Windows host?
 
 Q. I run multiple imapsync applications at the same time then get a
    warning "imapsync.pid already exists, overwriting it".
    Is this a potential problem when trying to sync multiple 
    IMAP account in parallel?
 
+=======================================================================
+Q. How long will take the whole migration?
 
+R. Consider the mean imapsync transfer rate to be around 340 Kbytes/s,
+   ie, 2.8 Mbps, no matter the local link bandwidth. 
+   It's a mean, measured upon various different syncs, coming from 
+   the online interface /X.
+   
+   With 1 TB to transfer and one sync at a time it will end in 35 days.
+   At 10 transfers at a time, 1 TB will take 3.5 days.
+   Double the time because best scenario never happens.
+   Triple because, well, real world is like that.
+   
 =======================================================================
 Q. I need to migrate hundred accounts, how can I do?
 
-R. If you have many mailboxes to migrate think about a little
+R. If you have many mailboxes to migrate, think about a little
 script program. Write a file called file.txt (for example)
 containing hosts, users and passwords on both sides.
 The separator used in this example is ";"
@@ -118,27 +135,39 @@ How many syncs can we run in parallel? here comes measurements.
    Since adding this way is not so easy, just look at the overall 
    network rate of the imapsync host.
 
-   On Linux, nload is good candidate to measure this overall 
-   network rate, every 6 seconds, on eth0 interface, values in Kbytes:
+   On Linux and FreeBSD, nload is a good candidate to measure this overall
+   network rate, every 6 seconds (-t 6000), on eth0 or em0 interface, 
+   values in Kbytes (-u K):
    
-     nload -t 6000 eth0 -u K
+     nload -t 6000 eth0 -u K  # Linux
+     nload -t 6000 em0  -u K  # FreeBSD
 
-   Another good network tool is dstat:
+   During nload, press the h to see the display commands available, 
+   every single feature is useful! Press h again and try each one.
+     
+   On Linux only, another very good network tool is dstat:
    
-     dstat -n -N eth0 6
+     dstat -n -N eth0 6  # Linux only (in 2018)
 
    A excellent tool for this purpose is iftop, the following
    command will monitor imap and imaps connexions
    on interfce eth0, only them, and sum them up:
    
-     iftop -i eth0 -f 'port imap or port imaps' -B
+     iftop -i eth0 -f 'port imap or port imaps' -B # Linux
+     iftop -i em0  -f 'port imap or port imaps' -B # FreeBSD
 
 
-   On Windows, get the overall network rate with the classical
-   task manager (Ctrl-Alt-Sup), there is a network tab in it.
-   Don't hesitate to send me free good tools to measure the
-   overall transfer rate (the best would be one to sum up only 
-   imap traffic but that's not mandatory at all).
+
+   On Windows 8.1 Windows 10 Windows 2012 R2 Windows 2016,
+   get the overall network rate with the classical
+   task manager (Ctrl-Shift-Esc), there is a Performance tab
+   in it where resides a Network grap monitor.
+
+   On Windows 7, get the overall network rate with the classical
+   task manager (Ctrl-Shift-Esc), there is a Network tab in it.
+
+   I'm looking for a free and simple tool on Windows that could 
+   sum up only the imap traffic.
 
 2) Launch new parallel runs, one by one, as long as the total 
    transfer rate increase.
@@ -190,7 +219,7 @@ Possible bottlenecks:
   Usually available bandwidth is NOT a bottleneck.
   Meanwhile, it can be a bottleneck on small Internet connexions.
   Imapsync downloads messages from host1 and upload messages to host2,
-  consider this in case the connexion are asymetric.
+  consider this in case the connexion are asymmetric.
   
 - I/O on disks. 
   I/O are a classical bottleneck, almost always forgotten.
@@ -225,7 +254,7 @@ Other possible bottlenecks:
 
 
 =======================================================================
-Q. Can I run more instances of imapsync in parallel on a Windows host?
+Q. Can I run several instances of imapsync in parallel on a Windows host?
 
 R. Yes!
 

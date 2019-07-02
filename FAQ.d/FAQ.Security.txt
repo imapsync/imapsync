@@ -1,7 +1,10 @@
 #!/bin/cat
-# $Id: FAQ.Security.txt,v 1.16 2017/04/26 21:50:00 gilles Exp gilles $
+# $Id: FAQ.Security.txt,v 1.19 2018/09/13 17:53:45 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Security.txt
+
 
 =======================================================================
       Imapsync tips about security. Issues and solutions.
@@ -88,14 +91,18 @@ a) Use native --ssl1 and/or --ssl2 options
 
 b) Use stunnel
    http://www.stunnel.org/
+   Use stunnel3 command since stunnel now usually calls
+   stunnel4 or stunnel5 and the command line options syntax 
+   has changed (option "-c" not recognized for example).
+   
    Assuming there is an imaps (993) server on imap.foo.org,
    on your localhost machine (or bar machine), run:
 
-     stunnel -c -d imap -r imap.foo.org:imaps
+     stunnel3 -c -d imap -r imap.foo.org:imaps -f 
 
    or using numbers instead of names:
 
-     stunnel -c -d 143 -r imap.foo.org:993
+     stunnel3 -c -d 143 -r imap.foo.org:993  -f
 
    then use imapsync on localhost (or bar machine) imap (143) port.
    If the local port 143 is already taken then use a free one, 
@@ -104,7 +111,7 @@ b) Use stunnel
 c) Other example for accessing gmail with no local root access 
    to open port 143
 
-   stunnel -f -P '' -c -d 9993 -r imap.gmail.com:993
+   stunnel3 -P '' -c -d 9993 -r imap.gmail.com:993 -f 
 
 Then, to access gmail as host2 use:
 
@@ -192,24 +199,6 @@ It might be possible you need an extra:
 to help the ssl software verifying the server certificate.
 The file ca-certificates.crt may be elsewhere on your system, even 
 named differently.
-
-=======================================================================
-Q. How can I manually test a login via ssl?
-
-R. Use ncat or telnet-ssl like in this example:
-
-ncat --ssl -C  imap.gmail.com 993
-* OK Gimap ready for requests from 78.196.254.58 q1mb175739668wix
-a LOGIN "gilles.lamiral@gmail.com" "secret" 
-* CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE ... ESEARCH
-a OK gilles.lamiral@gmail.com Gilles Lamiral authenticated (Success)
-b LOGOUT
-* BYE LOGOUT Requested
-b OK 73 good day (Success)
-
-The client part to type is "a LOGIN ..." and "b LOGOUT" without
-the double-quotes. 
-
 
 =======================================================================
 Q: How to have an imaps server?

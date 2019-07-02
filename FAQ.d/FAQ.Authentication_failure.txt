@@ -1,25 +1,37 @@
 #!/bin/cat
-$Id: FAQ.Authentication_failure.txt,v 1.5 2017/09/04 11:03:57 gilles Exp gilles $
+$Id: FAQ.Authentication_failure.txt,v 1.9 2019/01/11 13:13:08 gilles Exp gilles $
 
-This documentation is also at http://imapsync.lamiral.info/#doc
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Admin_Authentication.txt
 
 =======================================================================
               Imapsync authentication issues
 =======================================================================
 
+Questions answered in this FAQ are:
 
+Q. Imapsync fails with the following error, what can I do?
+Host1 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 NO [AUTHENTICATIONFAILED] Authentication failed
+
+Q. Imapsync fails with the following error, what can I do?
+   Host2 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 BAD Invalid characters in atom 
+
+
+=======================================================================
+Q. Imapsync fails with the following error, what can I do?
 Host1 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 NO [AUTHENTICATIONFAILED] Authentication failed
 
 
-One over four imapsync syncs ends up quickly with the error message 
-"Authentication failed" or "NO LOGIN failed" or similar. 
-Authentication failure is the primary failure with imapsync
-and since nothing tangible can be done without authentication, 
-this stage must succeed to go further.
+R. One over four imapsync syncs ends up quickly with the error message 
+   "Authentication failed" or "NO LOGIN failed" or similar. 
+   Authentication failure is the primary failure with imapsync
+   and since nothing tangible can be done without authentication, 
+   this stage must succeed to go further.
 
 Here are some advices to get you pass this difficult stage of authentication:
 
-  * Triple check each credendial parameter, there are three parameters at each side:
+  * Triple check each credential parameter, there are three parameters at each side:
      * triple check --host1
      * triple check --user1
      * triple check --password1
@@ -40,15 +52,44 @@ Here are some advices to get you pass this difficult stage of authentication:
      Option --showpasswords shows passwords again when the IMAP dialog
      is dumped by --debugimap option. Search for a line like 
      "Sending: 2 LOGIN test1 secret1" (secret1 is the password here)
-     
-     
+
+
    * It is sometimes very hard to quote correctly unusual characters,
      especially on Windows. See 
      https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
      https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
-     The quicker trick might be to change the password temporarilly
+     The quickest trick may be to change the password temporally
      with easy characters like the classical alphabet, a long
-     string will still ensure strong security.
+     string still ensure strong security.
+
+   * Sometimes some servers announce they support LOGIN but it
+     actually fails because the authentication mechanism
+     working is something else like CRAM-MD5 or PLAIN. 
+     So:
+       * Try --authmech1 CRAM-MD5 (or --authmech2 CRAM-MD5)
+       * Try --authmech1 PLAIN    (or --authmech2 PLAIN)
+
+   * If you want to play manually the IMAP protocol on your server, 
+     here is an example with the command telnet, user test1
+     and password secret1 on the host test.lamiral.info.
+
+     telnet test.lamiral.info 143
+     c1 LOGIN test1 "secret1" 
+     c2 LOGOUT
+
+     Same example using an ssl conneection:
      
-     
+     telnet-ssl -z ssl test.lamiral.info 993
+     c1 LOGIN test1 "secret1" 
+     c2 LOGOUT
+   
+=======================================================================
+Q. Imapsync fails with the following error, what can I do?
+   Host2 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 BAD Invalid characters in atom 
+
+R. It might be a Dovecot imap server. The password string might 
+   contain special characters that Dovecot doesn't like. Change them.
+ 
+ =======================================================================
+ =======================================================================
  
