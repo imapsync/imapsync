@@ -1,9 +1,10 @@
 #!/bin/cat
-$Id: FAQ.Emptying.txt,v 1.6 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.Emptying.txt,v 1.8 2019/04/30 12:52:10 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
-https://imapsync.lamiral.info/FAQ.d/
+
+https://imapsync.lamiral.info/FAQ.d/FAQ.Emptying.txt
 
 =======================================================================
                Imapsync tip to empty an account.
@@ -12,27 +13,28 @@ https://imapsync.lamiral.info/FAQ.d/
 =======================================================================
 Q. How to delete all emails of all folders of an account with imapsync?
 
-R. Use the same account on both sides with option --delete
+R. Use the same account on both sides with option --delete1
    --noexpungeaftereach
 
-Option --noexpungeaftereach is just to speed up the deletion.
+Option --noexpungeaftereach is just to speed up the deletions.
 
-Example:
+Example (real example):
 
   ./imapsync \
-    --host1 test.lamiral.info --user1 test --password1 secret \
-    --host2 test.lamiral.info --user2 test --password2 secret \
-    --delete --noexpungeaftereach
+    --host1 test.lamiral.info --user1 empty --password1 secret \
+    --host2 test.lamiral.info --user2 empty --password2 secret \
+    --delete1 --noexpungeaftereach
 
 =======================================================================
 Q. How to delete all folders of an account with imapsync?
 
-R. Use an already empty account as source and sync this account
-   to the account you want to clear, with --delete2folders 
+R. Use the same account on both sides with the options 
+    --delete1 --noexpungeaftereach --delete1emptyfolders
+    
+  ./imapsync ... --delete1 --noexpungeaftereach --delete1emptyfolders
 
-Example:
+It won't delete the folder INBOX since INBOX is mandatory in imap.
 
-  ./imapsync ... --delete2folders --foldersizes
 
 =======================================================================
 =======================================================================

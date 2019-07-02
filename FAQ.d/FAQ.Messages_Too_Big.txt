@@ -1,0 +1,51 @@
+#!/bin/cat
+$Id: FAQ.Messages_Too_Big.txt,v 1.3 2019/06/18 16:37:39 gilles Exp gilles $
+
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Too_Big.txt
+
+=======================================================================
+              Dealing with too big messages with Imapsync.
+=======================================================================
+
+Questions answered in this FAQ are:
+
+Q. What can I do to transfer messages bigger than what allows the 
+   imap destination server?
+
+R1. A solution is to truncate the message to the maximum size allowed 
+    before copying it to host2. That's a little dirty but it's ok
+    if you prefer having a truncated message than no message 
+    at all. The attachments after the truncation won't be available 
+    but everything before should be ok. It may also depends
+    on the software tool reading the email message.
+
+For example, 
+Gmail currently limits messages to 35651584 bytes (May 2019),
+
+Starting with imapsync release 1.938 option --truncmess xxxx truncates
+messages bigger than the  given size xxxx.
+
+  imapsync --truncmess 35651584 --appendlimit 1000000000000
+
+Prior to imapsync release 1.938, instead of --truncmess:
+
+On Linux, use:
+
+   imapsync ... --pipemess  'perl -0ne "print substr \$_,0,35651584" '
+   
+On windows, use:
+
+   I'm not sure of (not tested yet):
+   
+   imapsync ... --pipemess  "perl -0ne 'print substr $_,0,35651584' "
+
+   
+R2. A not so dirty solution would be to transform the message and 
+    include links to the big attachments, instead of the attachments. 
+    Well, not done yet and too much complicted compared to the simple 
+    solution which is to allow big messages on the destination account.
+
+=======================================================================
+=======================================================================

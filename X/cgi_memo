@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: cgi_memo,v 1.45 2019/02/10 14:28:53 gilles Exp gilles $
+# $Id: cgi_memo,v 1.48 2019/06/25 16:49:11 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -149,7 +149,7 @@ grep_any() {
 
 grep_load() {
     echo G_Load.txt
-    egrep -o 'Load is ..?\... ..?\... ..?\...' grep_stats.txt > G_Load.txt
+    egrep -o 'Load is ..?\... ..?\... ..?\... .*' grep_stats.txt > G_Load.txt
 }
 
 grep_all2() {
@@ -169,15 +169,20 @@ stat_patterns_list() {
 }
 
 
-echoq stat_load
-stat_load() {
-    echo -n 'Load min:    ' ; datamash --format=%6.1f -W min    3 min    4 min    5 < G_Load.txt
-    echo -n 'Load q1:     ' ; datamash --format=%6.1f -W q1     3 q1     4 q1     5 < G_Load.txt
-    echo -n 'Load median: ' ; datamash --format=%6.1f -W median 3 median 4 median 5 < G_Load.txt
-    echo -n 'Load mean:   ' ; datamash --format=%6.1f -W mean   3 mean   4 mean   5 < G_Load.txt
-    echo -n 'Load q3:     ' ; datamash --format=%6.1f -W q3     3 q3     4 q3     5 < G_Load.txt
-    echo -n 'Load max:    ' ; datamash --format=%6.1f -W max    3 max    4 max    5 < G_Load.txt
+
+
+stat_load()
+{
+    echo -n 'Load        1 min      5 min   15 min ' ; grep -o 'on.*cores' G_Load.txt|uniq
+    echo -n 'Load min:    ' ; datamash --format=%3.1f -W min    3 min    4 min    5 < G_Load.txt
+    echo -n 'Load q1:     ' ; datamash --format=%3.1f -W q1     3 q1     4 q1     5 < G_Load.txt
+    echo -n 'Load median: ' ; datamash --format=%3.1f -W median 3 median 4 median 5 < G_Load.txt
+    echo -n 'Load mean:   ' ; datamash --format=%3.1f -W mean   3 mean   4 mean   5 < G_Load.txt
+    echo -n 'Load q3:     ' ; datamash --format=%3.1f -W q3     3 q3     4 q3     5 < G_Load.txt
+    echo -n 'Load max:    ' ; datamash --format=%3.1f -W max    3 max    4 max    5 < G_Load.txt
 }
+
+
 
 datamash_file_op_index() {
     file="$1"
@@ -205,7 +210,8 @@ stat_any() {
 }
 
 echoq stat_all
-stat_all() {
+stat_all() 
+{
     stat_load ; echo
     # stat_any  G_REMOTE_ADDR.txt
     # stat_any  G_REMOTE_HOST.txt
@@ -225,7 +231,30 @@ stat_all() {
     stat_any  G_Detected_errors.txt 2 
     stat_any  G_Exiting_with_return_value.txt 5 # GROUP
     stat_any  G_Memory_consumption_at_the_end.txt 7
+    stat_any  G_Messages_found_in_host1_not_in_host2.txt 9
+    stat_any  G_Messages_found_in_host2_not_in_host1.txt 9
     #stat_any  G_failure_Error_login.txt
+    echo "Data made at" `date -r grep_stats.txt`
+}
+
+stat_transfer_time_mean()
+{
+        datamash_file_op_index G_Transfer_time.txt mean
+}
+
+stat_throuput_since_day_one_in_days()
+{
+        number_of_syncs=`number_of_syncs`
+        days_since_first_use=`days_since_first_use`
+        c "$number_of_syncs / $days_since_first_use"
+}
+
+stat_queue_mean()
+{
+        stat_throuput_since_day_one_in_days=`stat_throuput_since_day_one_in_days`
+        stat_transfer_time_mean=`stat_transfer_time_mean`
+        stat_queue_mean_raw=`c "$stat_throuput_since_day_one_in_days * $stat_transfer_time_mean / 3600 / 24"`
+        printf "%2.2f\n" $stat_queue_mean_raw
 }
 
 echoq dirs_of_syncs_finished_recently
@@ -257,7 +286,7 @@ logfiles_finished_recently()
 
 last_dirs_written()
 {
-        ls -tr | tail -800 
+        ls -tr | tail -1800
 }
 
 last_file_written_in_dir()
@@ -268,7 +297,7 @@ last_file_written_in_dir()
 is_dir_running_imapsync()
 {
         test -d "$1" || return 1
-        test -f  "$1/imapsync.pid"  && PID=`cat "$1/imapsync.pid"` &&
+        test -f  "$1/imapsync.pid"  && PID=`head -1 "$1/imapsync.pid"` &&
         ps -p $PID -o comm= > /dev/null
 }
 
@@ -318,7 +347,7 @@ pids_of_imapsync_not_writing_since_x_secondes()
         do
                 is_dir_running_imapsync "$d" && 
                 is_file_older_than `last_file_written_in_dir "$d"` "$x_secondes" &&
-                cat "$d/imapsync.pid" && echo -n " "
+                head -1 "$d/imapsync.pid" | tr  '\n' ' ' 
                         
         done
 
@@ -327,7 +356,7 @@ pids_of_imapsync_not_writing_since_x_secondes()
 kill_HUP_pids_of_imapsync_not_writing_since_x_secondes()
 {
         pids_not_writing=`pids_of_imapsync_not_writing_since_x_secondes ${1:-900}` 
-        test -n "$pids_not_writing" && echo kill -HUP "$pids_not_writing" && kill -HUP "$pids_not_writing"
+        test -n "$pids_not_writing" && echo kill -HUP "$pids_not_writing" # && kill -HUP "$pids_not_writing"
 }
 
 
@@ -385,7 +414,7 @@ watch_new_runs() {
         inotifywait  . -e create 2>/dev/null | { read path action f 
         echo $f
         sleep 2
-        test -f  $f/imapsync.pid  && PID=`cat $f/imapsync.pid` && echo PID $PID
+        test -f  $f/imapsync.pid  && PID=`head -1 $f/imapsync.pid` && echo PID $PID
         echo -e '\a'  
         }
     done
@@ -394,7 +423,7 @@ watch_new_runs() {
 echoq pidfiles_running_and_not_running
 pidfiles_running_and_not_running() {
     ls -tr | while read f; do
-        test -f  $f/imapsync.pid  && PID=`cat $f/imapsync.pid` && echo -n "$PID " &&
+        test -f  $f/imapsync.pid  && PID=`head -1 $f/imapsync.pid` && echo -n "$PID " &&
         { ps -p $PID -o comm= | tr  '\n' ' '  && { test -f /proc/$PID/oom_score &&  
             { echo -12 > /proc/$PID/oom_adj ; } && echo -n "oom_score " && cat /proc/$PID/oom_score | tr  '\n' ' ' ; : ; }  
         } &&
@@ -406,7 +435,7 @@ pidfile_dandling() {
         pidfile_dandling_DIR=$1
         test -d $pidfile_dandling_DIR || return 2
         test -f  $pidfile_dandling_DIR/imapsync.pid || return 3
-        pidfile_dandling_PID=`cat $pidfile_dandling_DIR/imapsync.pid` 
+        pidfile_dandling_PID=`head -1 $pidfile_dandling_DIR/imapsync.pid` 
         #echo "$pidfile_dandling_PID"
         test -n "$pidfile_dandling_PID" || return 4
         test "$pidfile_dandling_PID" -ge 1 || return 5
@@ -423,10 +452,11 @@ echoq pidfiles_not_running
 pidfiles_not_running() {
     ls -tr | while read f; do
         if  pidfile_dandling "$f" ; then
-            pidfiles_not_running_PID=`cat $f/imapsync.pid`
+            pidfiles_not_running_PID=`head -1 $f/imapsync.pid`
             echo -n "rm $f/imapsync.pid # "
             { ls -tr $f/LOG_imapsync/* 2>/dev/null |tail -1 ;  } | tr  '\n' ' ' 
             echo "# PID $pidfiles_not_running_PID"
+            #head -2 $f/imapsync.pid
 	fi
     done
 }
@@ -464,7 +494,11 @@ seconds_to_days_hours_echo() {
     date --date="1 day ago" > /dev/null && echo "echo $(date -ud "@${1:-0}" +'$((%s/3600/24)) days %_H hours %_M min %_S sec')" && return
 }
 
-
+printf_this_one_div10()
+{ 
+        num=$1
+        printf "% $((num/10))s\n" $1
+}
 
 echoq 'runs_per_day 7 # last 7 days'
 runs_per_day() {
@@ -472,7 +506,10 @@ runs_per_day() {
     start=${1:-$historic_start}
     for cc in `count 0 $start`; do
         DATE=`date_x_days_ago $cc`
-        echo -n "$DATE $cc days ago: "; find . -maxdepth 1 -mtime $cc   -ls |wc -l 
+        # find on FreeBSD finds nothing with -mtime 0
+        test FreeBSD = `uname -s` && cc=`expr 1 + $cc`
+        runs_this_day=`find . -maxdepth 1 -mtime $cc   -ls |wc -l`
+        echo -n "$DATE $cc days ago: " ; printf_this_one_div10 $runs_this_day
     done
 }
 
@@ -556,7 +593,8 @@ nb_syncs_badly_finished() {
 	nb_syncs_badly_finished=`echo $logfiles_finished_recently | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' | wc -l `
 	echo $nb_syncs_badly_finished / $nb_logfiles_finished_recently 
 cat <<EOF
-logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' 
+logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0'
+logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' | grep -o 'Exiting with return value.*' | sort | uniq -c | sort -n
 EOF
 }
 
@@ -593,13 +631,18 @@ summary_compute2() {
         && summary_display
 }
 
+number_of_syncs()
+{
+        list_all_logs | wc -l
+}
+
 echoq summary_display
 summary_display() {
     vnstat_gen > /dev/null
     echo    "Start date of /X (aaaa mm dd):  `first_use` (`days_since_first_use` days of service)"
     echo -n "Number of /X users:            " ; number_of_X_users
     echo -n "Number of /X accounts synced:  " ; nb_migrations_launched
-    echo -n "Number of /X syncs:            " ; list_all_logs| grep -v abort.txt | wc -l
+    echo -n "Number of /X syncs:            " ; number_of_syncs
     echo -n "Total volume /X transferred:   " ; total_volume_transferred
     echo -n "Total messages /X transferred: " ; total_messages_transferred
     echo -n "Biggest transfer:              " ; biggest_transfer
@@ -607,6 +650,8 @@ summary_display() {
     echo -n "Biggest message transferred:   " ; biggest_message_transferred
     echo -n "Biggest bandwidth rate:        " ; biggest_bandwidth_rate  
     echo -n "Longest transfer:              " ; seconds_to_days_hours `longest_transfer`
+    echo -n "Queue length mean is:          " ; stat_queue_mean
+    echo "Data made at" `date -r grep_stats.txt`
 }
 
 echoq sync_ks2_i005
@@ -623,8 +668,9 @@ sync_ks2_i005()
   && summary_compute2 \
   && echo sending txt back to ks2 \
   && rsync -av /home/imapsync_cgi_ks2/*txt root@ks2:/var/tmp/imapsync_cgi/ \
+  && summary_display \
   && date \
-  && pwd
+  && pwd 
 }
 
 echoq watch_number_of_imapsync_running

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Flags.txt,v 1.20 2019/02/14 16:01:41 gilles Exp gilles $
+$Id: FAQ.Flags.txt,v 1.21 2019/03/08 19:04:32 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -149,22 +149,22 @@ Add the \Seen flag to all messages like this:
 
 On Winwows:
 
-  imapsync.exe ... --regexflag "s,^((?!\\Seen)).*$,$1 \\Seen,"
+  imapsync.exe ... --regexflag "s,\\Seen,," --regexflag "s,,\\Seen ,"
+                   
+On Unix:
+
+  imapsync ... --regexflag 's,\\Seen,,' --regexflag 's,,\\Seen ,'
+
+R2. You can also filter with --search1 UNSEEN and use only one
+    of the regexes:
 
 On Unix:
 
-  imapsync ... --regexflag 's,^((?!\\Seen)).*$,$1 \\Seen,' 
-
-R2. You can also filter with --search1 UNSEEN and use a simpler
-    regex:
+  imapsync ... --search1 UNSEEN --regexflag 's,,\\Seen ,'
 
 On Winwows:
 
-  imapsync.exe ... --search1 UNSEEN --regexflag "s/(.*)/$1 \\Seen/"
-
-On Unix:
-
-  imapsync ... --search1 UNSEEN --regexflag 's/(.*)/$1 \\Seen/'
+  imapsync.exe ... --search1 UNSEEN  --regexflag "s,,\\Seen ,"
 
 R3. Fix it on the server Exchange:
 Google translate: 

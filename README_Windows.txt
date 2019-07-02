@@ -1,4 +1,4 @@
-# $Id: README_Windows.txt,v 1.13 2019/02/14 15:50:09 gilles Exp gilles $
+# $Id: README_Windows.txt,v 1.14 2019/06/26 22:32:28 gilles Exp gilles $
 # 
 # This is the README_Windows.txt file for imapsync 
 # imapsync : IMAP sync and migrate tool.
@@ -38,19 +38,23 @@ In the folder extracted imapsync_1.xxx you see 6 files and 2 directories:
 * imapsync_example.bat   is a simple batch file example you will copy and edit.
 * sync_loop_windows.bat  is a batch file example for syncing many accounts.
 * file.txt               is an input file example for syncing many accounts.
-* imapsync.exe           is the imapsync binary. You don't have to run it directly.
+* imapsync.exe           is the imapsync 32bit binary. You don't have to run it directly.
+* imapsync_64bit.exe     is the imapsync 64bit binary. You don't have to run it directly.
 * Cook/                  is the directory to build imapsync.exe from its source, 
                          for the B) way and expert users.
 
 You can copy or rename the file imapsync_example.bat as you wish,
-as long as its extension remains ".bat". 
+as long as its extension remains ".bat".
+
 On Windows systems .bat extension means "I'm a batch script".
-Same thing for sync_loop_windows.bat.
+It's the same for sync_loop_windows.bat.
+
 The batch scripts have to stay in the same directory than 
-imapsync.exe because of the way they call imapsync.exe, 
-they use ".\imapsync.exe", so let them be in the same directory.
-Or change the path .\ to whatever you want if you understand what 
-you're doing (you have to use a pathname from the script point of view).
+imapsync.exe because of the way they call imapsync.exe.
+They use ".\imapsync.exe", so let them be in the same directory.
+
+Or you can change the path .\ to whatever you want if you understand what
+you are doing (you have to use a pathname from the script point of view).
 
 For the rest of this documentation I assume you copied
 imapsync_example.bat to a file named imapsync_stuff.bat

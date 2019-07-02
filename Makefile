@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.290 2019/02/18 12:02:32 gilles Exp gilles $	
+# $Id: Makefile,v 1.301 2019/05/28 14:25:35 gilles Exp gilles $	
 
 .PHONY: help usage all doc
 
@@ -26,8 +26,9 @@ usage:
 	@echo "make W/test_exe_2.bat      # run W/test_exe_2.bat on win32"
 	@echo "make examples/sync_loop_windows.bat # run examples/sync_loop_windows.bat on win32"
         
-	@echo "make win32_prereq # run W/install_modules.bat on win32"
-	@echo "make win32_update_ssl # run W/install_module_ssl.bat on win32"
+	@echo "make W/install_modules.bat # run W/install_modules.bat on win32"
+	@echo "make W/install_module_one.bat # run W/install_module_one.bat on win32"
+	@echo "make W/install_module_ssl.bat # run W/install_module_ssl.bat on win32"
 	@echo "make all     "
 	@echo "make upload_tests # upload tests.sh"
 	@echo "make upload_index"
@@ -62,7 +63,7 @@ VERSION := $(shell perl ./imapsync --version 2>/dev/null || cat VERSION)
 VERSION_PREVIOUS := $(shell perl ./$(DIST_PATH)/imapsync --version 2>/dev/null || echo ERROR)
 VERSION_EXE := $(shell cat ./VERSION_EXE)
 
-IMAPClient_3xx := ./W/Mail-IMAPClient-3.40/lib
+IMAPClient_3xx := ./W/Mail-IMAPClient-3.42/lib
 IMAPClient := $(IMAPClient_3xx)
 
 
@@ -186,7 +187,16 @@ install: testp W/imapsync.1
 dev: test crit cover nytprof bin
 
 docker:
-	ssh ks3 'cd docker/imapsync && . memo'
+	ssh ks3 'cd docker/imapsync && . memo_docker'
+	@echo "make docker_copy_to_ks3 # copy imapsync Dockerfile memo_docker to ks3"
+	@echo "make docker_upload_docker_hub  # upload last build to https://hub.docker.com/r/gilleslamiral/imapsync"
+
+
+docker_copy_to_ks3:
+	rsync -av imapsync INSTALL.d/Dockerfile INSTALL.d/memo_docker ks3:docker/imapsync/
+
+docker_upload_docker_hub:
+	ssh ks3 'cd docker/imapsync && . memo_docker && imapsync_docker_upload'
 
 nytprof:
 	sh tests.sh ll_nytprof
@@ -378,8 +388,6 @@ W/learn_func.bat:
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/learn_func.bat'
 	./W/check_winerr learn_func.bat
 
-win32_prereq: W/install_modules.bat
-
 W/install_modules.bat:
 	unix2dos W/install_modules.bat
 	scp W/install_modules.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
@@ -387,7 +395,7 @@ W/install_modules.bat:
 	./W/check_winerr install_modules.bat
 
 
-win32_update_ssl:
+W/install_module_ssl.bat:
 	scp W/install_module_ssl.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/install_module_ssl.bat'
 
@@ -413,6 +421,7 @@ imapsync.exe: imapsync
 	./W/check_winerr test_exe.bat
 	rm -f imapsync.exe
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
+	chmod a+r+x imapsync.exe
 	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
 exe: imapsync
@@ -423,20 +432,40 @@ exe: imapsync
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/imapsync.exe --justbanner'
 	rm -f imapsync.exe
 	scp Admin@c:'C:/msys/1.0/home/Admin/imapsync/imapsync.exe' .
+	chmod a+r+x imapsync.exe
 	(date "+%s"| tr "\n" " "; echo -n "END   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
 zzz:
 	unix2dos W/build_exe.bat W/install_module_one.bat
-	scp imapsync W/build_exe.bat W/install_module_one.bat pc_HP_DV7_p24:'Desktop/imapsync_build'
-#	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
-#	./W/check_win64err build_exe.bat
+	scp imapsync W/build_exe.bat W/install_module_one.bat W/test_exe_testsdebug.bat pc_HP_DV7_p24:'Desktop/imapsync_build'
+	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
+	./W/check_win64err build_exe.bat
+
+zzz2:
+	unix2dos W/test_exe_testsdebug.bat W/test_exe_tests.bat
+	scp W/test_exe_testsdebug.bat W/test_exe_tests.bat pc_HP_DV7_p24:'Desktop/imapsync_build'
+	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/test_exe_testsdebug.bat'
+	./W/check_win64err test_exe_testsdebug.bat
+	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/test_exe_tests.bat'
+	./W/check_win64err test_exe_tests.bat
+
+W/test4.bat:
+	unix2dos W/test4.bat
+	scp W/test4.bat pc_HP_DV7_p24:'Desktop/imapsync_build'
+	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/test4.bat'
+
+W/test5.bat:
+	unix2dos W/test5.bat
+	scp W/test5.bat pc_HP_DV7_p24:'Desktop/imapsync_build'
+	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/test5.bat'
+
 
 imapsync_64bit.exe: imapsync
 	(date "+%s"| tr "\n" " "; echo -n "BEGIN 64bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 	ssh 'pc HP DV7'@p24 'perl -V'
 	unix2dos W/build_exe.bat W/test_exe.bat W/install_modules.bat W/install_module_one.bat
 	scp imapsync W/build_exe.bat W/install_modules.bat W/install_module_one.bat \
-	W/test_exe_tests.bat W/test_exe.bat \
+	W/test_exe_tests.bat W/test_exe_testsdebug.bat W/test_exe.bat \
 	pc_HP_DV7_p24:'Desktop/imapsync_build'
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
 	./W/check_win64err build_exe.bat
@@ -444,6 +473,7 @@ imapsync_64bit.exe: imapsync
 	./W/check_win64err test_exe.bat
 	rm -f imapsync_64bit.exe
 	scp pc_HP_DV7_p24:'Desktop/imapsync_build/imapsync.exe' imapsync_64bit.exe
+	chmod a+r+x imapsync_64bit.exe
 	(date "+%s"| tr "\n" " "; echo -n "END 64bit   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
 
@@ -486,6 +516,10 @@ mactestslive:
 	rsync -p -e 'ssh -4 -p 995' imapsync gilleslamira@gate.polarhome.com:
 	ssh -4 -p 995 gilleslamira@gate.polarhome.com '. .bash_profile; perl imapsync --testslive'
 
+mactestslive6:
+	rsync -p -e 'ssh -4 -p 995' imapsync gilleslamira@gate.polarhome.com:
+	ssh -4 -p 995 gilleslamira@gate.polarhome.com '. .bash_profile; perl imapsync --testslive6'
+
 
 bin: lin mac win win64
 
@@ -510,7 +544,6 @@ $(BIN_NAME): imapsync
 	./$(BIN_NAME) --justbanner
 
 
-
 lfo: upload_lfo 
 
 .PHONY: tarball cidone ci
@@ -529,6 +562,7 @@ ci: cidone
 
 cidone:
 	rcsdiff RCS/*
+	rcsdiff X/cgi_memo X/stat_patterns.txt X/imapsync_form.html X/imapsync_form.js X/imapsync_form.css X/noscript.css
 	rcsdiff W/*.bat W/*.sh W/*.txt W/*.txt W/*.htaccess
 	cd W && rcsdiff RCS/*
 	rcsdiff doc/*.t2t
@@ -537,7 +571,7 @@ cidone:
 	rcsdiff examples/*.sh examples/*.bat examples/*.txt 
 	cd examples && rcsdiff RCS/*
 	rcsdiff W/tools/backup_old_dist W/tools/gen_README_dist W/tools/validate_html4 W/tools/validate_xml_html5 W/tools/fix_email_for_exchange.py
-	rcsdiff S/*.txt S/*.shtml S/*.html 
+	rcsdiff S/*.txt S/*.shtml S/*.html
 
 
 dist: cidone test clean all perlcritic dist_prepa dist_zip README_dist
@@ -616,7 +650,7 @@ ks2tests_root:
 	ssh root@ks.lamiral.info './imapsync --tests'
 
 i005tests_root:
-	rsync -P imapsync root@i005.lamiral.info:
+	rsync -P imapsync INSTALL.d/prerequisites_imapsync root@i005.lamiral.info:
 	ssh root@i005.lamiral.info './imapsync --tests'
 
 ks2testslive:
@@ -703,7 +737,7 @@ ci_imapsync:
 	rcsdiff imapsync
 
 upload_latest: unitests ci_imapsync bin
-	rsync -a imapsync imapsync_bin_Linux_i686 imapsync_bin_Darwin imapsync.exe ./INSTALL.d/prerequisites_imapsync ../imapsync_website/
+	rsync -a imapsync imapsync_bin_Linux_i686 imapsync_bin_Darwin imapsync.exe imapsync_64bit.exe ./INSTALL.d/prerequisites_imapsync ../imapsync_website/
 	rsync -aHvz --delete ../imapsync_website/ root@ks.lamiral.info:/var/www/imapsync/
 	ssh root@ks.lamiral.info 'apachectl configtest && /etc/init.d/apache2 reload'
 

@@ -215,8 +215,7 @@ Here are some examples:
       Password => $pass,
       Clear    => 5,   # Unnecessary since '5' is the default
       # ...            # Other key=>value pairs go here
-  )
-    or die "Cannot connect to $host as $id: $@";
+  ) or die "Cannot connect to $host as $id: $@";
 
 See also L</Parameters>, L</connect> and L</login> for more
 information on how to manually connect and login after B<new>.
@@ -604,7 +603,7 @@ before the date supplied as the argument to the B<before> method.
 Example:
 
   my $string = $imap->body_string($msgId)
-    or die "Could not body_string: ", $imap->LastError;
+    or die "body_string failed: ", $imap->LastError;
 
 The B<body_string> method accepts a message sequence number (or a
 message UID, if the L</Uid> parameter is set to true) as an argument
@@ -644,13 +643,13 @@ Example:
   my $features = $imap->capability
     or die "Could not determine capability: ", $imap->LastError;
 
-The B<capability> method returns an array of capabilities as returned
-by the CAPABILITY IMAP Client command, or a reference to an array of
-capabilities if called in scalar context.  If the CAPABILITY IMAP
-Client command fails for any reason then the B<capability> method will
-return C<undef>.  Supported capabilities are cached by the client,
-however, this cache is deleted after a connection is set to
-I<Authenticated> and when L</starttls> is called.
+The B<capability> method returns an array (or arrayref in scalar
+context) of capabilities as returned by the CAPABILITY IMAP client
+command.  If the CAPABILITY IMAP client command fails for any reason
+then the B<capability> method will return C<undef>.  Supported
+capabilities are cached by the client, however, this cache is deleted
+after a connection is set to I<Authenticated> and when L</starttls> is
+called.
 
 See also L</has_capability>.
 
@@ -1107,8 +1106,8 @@ raw values back in this case.
 
 Example:
 
-  my @flags = $imap->flags($msgid)
-    or die "Could not flags: $@\n";
+  my $flags = $imap->flags($msgid)
+    or die "flags failed: $@\n";
 
 The B<flags> method implements the FETCH IMAP client command to list a
 single message's flags.  It accepts one argument, a message sequence
@@ -1295,11 +1294,48 @@ Example:
   my $has_feature = $imap->has_capability($feature)
     or die "Could not do has_capability($feature): $@\n";
 
-Returns true if the IMAP server to which the IMAPClient object is
-connected has the capability specified as an argument to
-B<has_capability>.  If the server does not have the capability then
-the empty string "" is returned, if the underlying L</capability>
-calls fails then undef is returned.
+Returns:
+
+=over 4
+
+=item C<undef>
+
+If the underlying L</capability> calls fails then C<undef> is
+returned.
+
+=item C<""> or C<()>
+
+If the server does not have the requested capability, then either an
+empty string (C<""> in scalar context) or an empty list (C<()> in list
+context) is returned.
+
+=item a I<true> value
+
+If the server has the requested capability, then a I<true> value is
+returned.  The I<true> value depends upon the server response for the
+capability requested.  The value will be an array reference in scalar
+context or an array in list context. The returned data is useful for
+understanding more about specific capabilities.  For example, consider
+the following server CAPABILITY response:
+
+  * CAPABILITY IMAP4rev1 SORT SORT=DISPLAY I18NLEVEL=1 AUTH=PLAIN AUTH=XTEST
+
+Results are returned as shown by the trailing comments:
+
+  $c = $imap->has_capability("IMAP4rev1");    # [ "IMAP4rev1" ]
+  @c = $imap->has_capability("IMAP4rev1");    # ( "IMAP4rev1" )
+  $c = $imap->has_capability("SORT");         # [ "DISPLAY" ]
+  @c = $imap->has_capability("SORT=DISPLAY"); # ( "SORT=DISPLAY" )
+  $c = $imap->has_capability("AUTH");         # [ "PLAIN", "XTEST" ]
+  @c = $imap->has_capability("AUTH");         # ( "PLAIN", "XTEST" )
+  $c = $imap->has_capability("AUTH=XTEST");   # [ "AUTH=XTEST" ]
+  @c = $imap->has_capability("AUTH=XTEST");   # ( "AUTH=XTEST" )
+  $c = $imap->has_capability("AUTH=NADA");    # ''
+  @c = $imap->has_capability("AUTH=NADA");    # ()
+  $c = $imap->has_capability("NADA");         # ''
+  @c = $imap->has_capability("NADA");         # ()
+
+=back
 
 =head2 idle
 
@@ -1385,7 +1421,7 @@ L</capability> calls fails then undef is returned.
 Example:
 
   my $msg_internal_date = $imap->internaldate($msgid)
-    or die "Could not internaldate: $@\n";
+    or die "internaldate failed: $@\n";
 
 B<internaldate> accepts one argument, a message id (or UID if the
 L</Uid> parameter is true), and returns that message's internal date
@@ -1736,7 +1772,7 @@ you.
 Example:
 
   my $msgcount = $imap->message_count($folder);
-  defined($msgcount) or die "Could not message_count: $@\n";
+  defined($msgcount) or die "message_count failed: $@\n";
 
 The B<message_count> method accepts the name of a folder as an
 argument and returns the number of messages in that folder.
@@ -1760,7 +1796,7 @@ mileage may vary.
 Example:
 
   my $string = $imap->message_string($msgid)
-    or die "Could not message_string: $@\n";
+    or die "message_string failed: $@\n";
 
 The B<message_string> method accepts a message sequence number (or
 message UID if L</Uid> is true) as an argument and returns the message
@@ -1774,7 +1810,7 @@ I<Peek> is set to a true value.
 Example:
 
   $imap->message_to_file( $file, @msgs )
-    or die "Could not message_to_file: $@\n";
+    or die "message_to_file failed: $@\n";
 
 The B<message_to_file> method accepts a filename or file handle and
 one or more message sequence numbers (or message UIDs if L</Uid> is
@@ -1816,17 +1852,18 @@ it.
 Example:
 
   # Get a list of messages in the current folder:
-  my @msgs = $imap->messages or die "Could not messages: $@\n";
+  my @msgs = $imap->messages or warn "Could not list messages\n";
   # Get a reference to an array of messages in the current folder:
-  my $msgs = $imap->messages or die "Could not messages: $@\n";
+  my $msgs = $imap->messages or die "Get messages failed: $@\n";
 
 If called in list context, the B<messages> method returns a list of
 all the messages in the currently selected folder.  If called in
 scalar context, it returns a reference to an array containing all the
-messages in the folder.  If you have the L</Uid> parameter turned off,
-then this is the same as specifying C<1 ... $imap-E<gt>L<message_count>>;
-if you have UID set to true then this is the same as specifying
+messages in the folder.  This is the same as specifying
 C<$imap-E<gt>L</search>("ALL")>.
+
+An empty list is returned when no messages are found.  On failure
+<undef> is returned and L</LastError> is set.
 
 =head2 migrate
 
@@ -1943,7 +1980,7 @@ original message you will need to run L</expunge> (or L</close>).
 Example:
 
   my $refs = $imap->namespace
-    or die "Could not namespace: $@\n";
+    or die "namespace failed: $@\n";
 
 The namespace method runs the NAMESPACE IMAP command (as defined in
 RFC 2342).  When called in a list context, it returns a list of three
@@ -2007,16 +2044,18 @@ as the date supplied as the argument.
 
 Example:
 
-  my $hashref = $imap->parse_headers($msg||\@msgs, "Date", "Subject")
+  my $hashref = $imap->parse_headers( $msg || \@msgs, "Date", "Subject" )
     or die "Could not parse_headers: $@\n";
 
 The B<parse_headers> method accepts as arguments a message sequence
 number and a list of header fields.  It returns a hash reference in
 which the keys are the header field names (without the colon) and the
-values are references to arrays of values.  A picture would look
-something like this:
+values are references to arrays of values.  On failure <undef> is
+returned and L</LastError> is set.
 
-  $hashref = $imap->parse_headers(1,"Date","Received","Subject","To");
+A picture would look something like this:
+
+  $hashref = $imap->parse_headers( 1, "Date", "Received", "Subject", "To");
   $hashref = {
       "Date"     => [ "Thu, 09 Sep 1999 09:49:04 -0400" ]  ,
       "Received" => [ q/
@@ -2063,7 +2102,7 @@ sequence number (or UID) and the value is a reference to a hash as
 described above.
 
 An example of using B<parse_headers> to print the date and subject of
-every message in your smut folder could look like this:
+every message in your demo folder could look like this:
 
   use Mail::IMAPClient;
   my $imap = Mail::IMAPClient->new(
@@ -2108,7 +2147,7 @@ Example:
 
   my $count = 0;
   defined($count = $imap->recent_count($folder))
-    or die "Could not recent_count: $@\n";
+    or die "recent_count failed: $@\n";
 
 The B<recent_count> method accepts as an argument a folder name.  It
 returns the number of recent messages in the folder (as returned by
@@ -2148,8 +2187,8 @@ Version note: method added in Mail::IMAPClient 3.17
 
 Example:
 
-  $imap->rename($oldname,$nedwname)
-    or die "Could not rename: $@\n";
+  $imap->rename( $oldname, $nedwname )
+    or die "rename failed: $@\n";
 
 The B<rename> method accepts two arguments: the name of an existing
 folder, and a new name for the folder.  The existing folder will be
@@ -2161,7 +2200,7 @@ unsuccessful.
 
 Example:
 
-  $imap->restore_message(@msgs) or die "Could not restore_message: $@\n";
+  $imap->restore_message(@msgs) or die "restore_message failed: $@\n";
 
 The B<restore_message> method is used to undo a previous
 L</delete_message> operation (but not if there has been an intervening
@@ -2220,14 +2259,14 @@ returns a (slightly) more meaningful value. Also it's easier to type.
 
 Example:
 
-  $imap->run(@args) or die "Could not run: $@\n";
+  $imap->run(@args) or die "run failed: $@\n";
 
 The B<run> method is provided to make those uncommon things
 possible... however, we would like you to contribute the knowledge of
 missing features with us.
 
 The B<run> method excepts one or two arguments.  The first argument is
-a string containing an IMAP Client command, including a tag and all
+a string containing an IMAP client command, including a tag and all
 required arguments.  The optional second argument is a string to look
 for that will indicate success.  (The default is C</OK.*/>).  The
 B<run> method returns an array (or arrayref in scalar context) of
@@ -2253,7 +2292,7 @@ tags then see L</"tag_and_run">, below.
 Example:
 
   my $msgs1 = $imap->search(@args);
-  if ($msgs) {
+  if ($msgs1) {
       print "search matches: @$msgs1";
   }
   else {
@@ -2321,7 +2360,7 @@ response to the I<SEARCH> command.
 
 Example:
 
-  $imap->see(@msgs) or die "Could not see: $@\n";
+  $imap->see(@msgs) or die "see failed: $@\n";
 
 The B<see> method accepts a list of one or more messages sequence
 numbers, or a single reference to an array of one or more message
@@ -2350,7 +2389,7 @@ array (rather than the array itself) will be returned.
 
 Example:
 
-  $imap->select($folder) or die "Could not select: $@\n";
+  $imap->select($folder) or die "select failed: $@\n";
 
 The B<select> method selects a folder and changes the object's state
 to I<Selected>.  It accepts one argument, which is the name of the
@@ -2541,7 +2580,7 @@ Example:
 
 The B<sort> method is just like the L</search> method, only different.
 It implements the SORT extension as described in
-F<http://search.ietf.org/internet-drafts/draft-ietf-imapext-sort-10.txt>.
+F<https://tools.ietf.org/html/rfc5256>.
 It would be wise to use the L</has_capability> method to verify that
 the SORT capability is available on your server before trying to use
 the B<sort> method.  If you forget to check and you're connecting to a
@@ -2680,7 +2719,7 @@ Example:
     or die "Could not tag_and_run: $@\n";
 
 The B<tag_and_run> method accepts one or two arguments.  The first
-argument is a string containing an IMAP Client command, without a tag
+argument is a string containing an IMAP client command, without a tag
 but with all required arguments.  The optional second argument is a
 string to look for that will indicate success (without pattern
 delimiters).  The default is C<OK.*>.
@@ -2715,7 +2754,7 @@ returns undef.
 
 Example:
 
-  my $nextUid = $imap->uidnext($folder) or die "Could not uidnext: $@\n";
+  my $nextUid = $imap->uidnext($folder) or die "uidnext failed: $@\n";
 
 The B<uidnext> method accepts one argument, the name of a folder, and
 returns the numeric string that is the next available message UID for
@@ -2725,7 +2764,7 @@ that folder.
 
 Example:
 
-  my $thread = $imap->thread($algorithm, $charset, @search_args );
+  my $thread = $imap->thread( $algorithm, $charset, @search_args );
 
 The B<thread> method accepts zero to three arguments.  The first
 argument is the threading algorithm to use, generally either
@@ -2746,7 +2785,7 @@ not support the THREADS extension then the B<thread> method will
 return C<undef>.
 
 The B<threads> method will issue the I<THREAD> command as defined in
-F<http://www.ietf.org/internet-drafts/draft-ietf-imapext-thread-11.txt>.
+F<https://tools.ietf.org/html/rfc5256>.
 It returns an array of threads.  Each element in the array is either a
 message id or a reference to another array of (sub)threads.
 
@@ -2759,7 +2798,7 @@ they will be message sequence numbers.
 Example:
 
   my $validity = $imap->uidvalidity($folder)
-    or die "Could not uidvalidity: $@\n";
+    or die "uidvalidity failed: $@\n";
 
 The B<uidvalidity> method accepts one argument, the name of a folder,
 and returns the numeric string that is the unique identifier validity
@@ -2801,9 +2840,6 @@ the L</Uid> parameter is true then an array of message UID's will be
 returned instead.  If called in scalar context than a pointer to the
 array (rather than the array itself) will be returned.
 
-Note that when specifying the flag in question, the preceding
-backslash (\) is entirely optional.
-
 =head2 unseen_count
 
 Example:
@@ -2823,7 +2859,7 @@ messages in the currently selected Folder.
 Example:
 
   $imap->unset_flag( "\Seen", @msgs )
-    or die "Could not unset_flag: $@\n";
+    or die "unset_flag failed: $@\n";
 
 The B<unset_flag> method accepts the name of a flag as its first
 argument and a list of one or more messages sequence numbers, or a
@@ -3655,7 +3691,7 @@ Example 2:
   }
 
 In the second example, we used the default method to issue the UID
-IMAP Client command, being careful to use an all-uppercase method name
+IMAP client command, being careful to use an all-uppercase method name
 so as not to inadvertently call the L</Uid> accessor method.  Then we
 parsed out the message UIDs manually, since we don't have the benefit
 of the built-in L</search> method doing it for us.
@@ -3978,13 +4014,13 @@ See L</Prewritemethod> and L</Readmethod> for details.
 =head1 REPORTING BUGS
 
 Please send bug reports to C<bug-Mail-IMAPClient@rt.cpan.org> or
-http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient
+https://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient
 
 =head1 COPYRIGHT AND LICENSE
 
   Copyright (C) 1999-2003 The Kernen Group, Inc.
   Copyright (C) 2007-2009 Mark Overmeer
-  Copyright (C) 2010-2017 Phil Pearl (Lobbes)
+  Copyright (C) 2010-2019 Phil Pearl (Lobbes)
   All rights reserved.
 
 This library is free software; you can redistribute it and/or modify

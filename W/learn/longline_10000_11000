@@ -1,12 +1,18 @@
 #!/bin/sh
 
-# $Id: longline_10000_11000,v 1.2 2014/01/15 02:21:38 gilles Exp gilles $
+# $Id: longline_10000_11000,v 1.5 2019/06/17 12:21:28 gilles Exp gilles $
 
 # Test Exchange limit for maxlinelenght
 # Generate messages with line lenght of 10000 10100 ... up to 10990 characters
-for M in `count 10 99`; do 
+for M in `count 00 99`; do 
 	echo $M
-	{ echo Hello Guys; echo ; perl -e "print 'L' x 10${M}0" ; echo; echo END; }  \
-	| mail.mailutils -s "line of 10${M}0 characters" tata@localhost.
+	{ 
+                echo Hello Guys
+                echo
+                echo Take a line of 10${M}0 characters:
+                perl -e "print 'L' x 10${M}0" ; 
+                echo
+                echo "END of 10${M}0 characters line message" ; }  \
+        | mail.mailutils -s "Can you take a line of 10${M}0 characters?" longlines@localhost.
 done
 

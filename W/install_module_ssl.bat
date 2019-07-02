@@ -1,5 +1,5 @@
 
-@REM $Id: install_module_ssl.bat,v 1.4 2018/05/06 15:09:42 gilles Exp gilles $
+@REM $Id: install_module_ssl.bat,v 1.5 2019/04/28 03:09:53 gilles Exp gilles $
 
 @ECHO OFF 
 SET SHELL=
@@ -16,12 +16,11 @@ IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://stra
 @ECHO perl is here
 
 FOR %%M in ( 
-              IO::Socket::SSL ^         
-	      Crypt::OpenSSL::RSA ^
-	      File::Copy::Recursive ^
+              IO::Socket::SSL 
              ) DO perl -m%%M -e "print qq{Updating %%M $%%M::VERSION \n}" ^
-   & cpanm --force %%M
+   & cpanm  %%M
 
+REM cpanm --force %%M
 REM IO::Socket::SSL
 
 @ECHO Perl modules for imapsync installed

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: build_mac.sh,v 1.9 2018/04/20 18:39:58 gilles Exp gilles $
+# $Id: build_mac.sh,v 1.12 2019/04/13 22:16:04 gilles Exp gilles $
 
 # exit on any failure
 set -e
@@ -21,16 +21,20 @@ sh prerequisites_imapsync
 VERSION=`./imapsync --version`
 
 # Update important Perl modules
-cpanm Mail::IMAPClient IO::Socket::SSL Net::SSLeay PAR::Packer
+OPENSSL_PREFIX=/sw cpanm Mail::IMAPClient IO::Socket::SSL Net::SSLeay PAR::Packer
 
 pp -o $BIN_NAME  \
-	-M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
-	-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
-	-M Authen::NTLM \
-	-M Crypt::OpenSSL::RSA -M JSON -M JSON::WebToken -M LWP -M HTML::Entities \
-	-M Sys::MemInfo \
-	imapsync
+        -M Mail::IMAPClient -M IO::Socket -M IO::Socket::SSL \
+        -M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
+        -M Authen::NTLM \
+        -M Crypt::OpenSSL::RSA -M JSON -M JSON::WebToken -M LWP -M HTML::Entities \
+        -M Sys::MemInfo -M Net::SSLeay \
+        --link /sw/lib/libssl.1.0.0.dylib \
+        --link /sw/lib/libcrypto.1.0.0.dylib \
+        imapsync
 
 ./imapsync_bin_Darwin 
 ./imapsync_bin_Darwin --tests
 ./imapsync_bin_Darwin --testslive
+./imapsync_bin_Darwin --testslive6
+

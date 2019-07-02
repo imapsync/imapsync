@@ -1,4 +1,4 @@
-@REM $Id: test_exe_tests.bat,v 1.2 2017/05/02 08:43:02 gilles Exp gilles $
+@REM $Id: test_exe_tests.bat,v 1.3 2019/05/28 13:20:08 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO OFF
@@ -15,6 +15,8 @@ CALL :handle_error .\imapsync.exe --tests
 
 @REM @PAUSE
 @ENDLOCAL
+@REM Do a PAUSE if run by double-click, aka, explorer (then ). No PAUSE in a DOS window or via ssh.
+IF %0 EQU "%~dpnx0" IF "%SSH_CLIENT%"=="" PAUSE
 @EXIT /B
 
 

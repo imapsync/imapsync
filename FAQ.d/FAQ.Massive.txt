@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Massive.txt,v 1.24 2018/12/30 21:28:03 gilles Exp gilles $
+$Id: FAQ.Massive.txt,v 1.29 2019/06/18 16:38:06 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -29,18 +29,46 @@ Q. I run multiple imapsync applications at the same time then get a
    IMAP account in parallel?
 
 =======================================================================
-Q. How long will take the whole migration?
+Q. How long will take the whole migration? 
 
-R. Consider the mean imapsync transfer rate to be around 340 Kbytes/s,
-   ie, 2.8 Mbps, no matter the local link bandwidth. 
-   It's a mean, measured upon various different syncs, coming from 
-   the online interface /X.
+R1. First you have to consider several periods. There is the global 
+    period, from when the migration process is decided to the final end
+    where all mailboxes are migrated. This global period can be divided
+    into three smaller periods.
+    
+    The first period is the analyse period: you play with the tools 
+    available, you estimate the volume to be transferred, the number of
+    accounts, you measure how long it takes for one account under
+    your context.
+    
+    The second period is the presync period. The users are still using
+    the old accounts but nothing prevents you from starting to sync
+    the old accounts, as they are, to the new accounts.
+    With tons of gigabytes to transfer, this period may be the longest one. 
+    There is nothing more to launch the presyncs and watch until
+    the round is finished.
+    
+    The last period is the final sync period where only the last 
+    changes of the mailboxes need to be synced in order to switch
+    the users to their new mailboxes.
+
+R2. To estimate the presync period, consider the mean imapsync transfer
+    rate to be around 340 Kbytes/s, ie, 2.8 Mbps, no matter the local 
+    link bandwidth. 
+    It's a mean, measured upon various different syncs, coming from 
+    the online interface /X.
    
-   With 1 TB to transfer and one sync at a time it will end in 35 days.
-   At 10 transfers at a time, 1 TB will take 3.5 days.
-   Double the time because best scenario never happens.
-   Triple because, well, real world is like that.
-   
+    At 340 Kbytes/s,
+    1 TB to transfer and one sync at a time will end in 35 days (1024^3/340/3600/24).
+    At  10 transfers at a time, 1 TB will take 3.5 days.
+    At 100 transfers at a time, 1 TB will take 8 hours.
+    Double the time because the best scenario never happens.
+    Triple the time because, well, real world is like that.
+
+R3. To estimate the last period, just rerun a complete presync,
+    ie, resync all the mailboxes, the final sync should take 
+    the same amount of time.
+    
 =======================================================================
 Q. I need to migrate hundred accounts, how can I do?
 
@@ -119,43 +147,43 @@ of sync_loop_windows.bat
 Q. I have to migrate 500k users using 400 TB of disk space. 
    How do I proceed? How about speed?
 
-R. Solution to this issue is two words: parallelism and measurements.  
+R. A good solution to this issue is two words: parallelism and measurements.  
 
 Since all mailboxes are functionnaly independent, they can be processed 
-independently, here comes parallelism, lunching several imapsync 
+independently, here comes the parallelism, ie, lunching several imapsync 
 processes in parallel.
 
-Meanwhile, mailboxes usually belong to the same server and syncs
+Meanwhile, mailboxes usually belong to the same server and the syncs
 share the same imapsync host via the same bandwidth, here come 
 some limitations and bottlenecks.
 
-How many syncs can we run in parallel? here comes measurements.
+How many syncs can we run in parallel in your context?
+Here comes some measurements.
 
 1) Measure the total transfer rate by adding each one printed in each run.
    Since adding this way is not so easy, just look at the overall 
    network rate of the imapsync host.
 
    On Linux and FreeBSD, nload is a good candidate to measure this overall
-   network rate, every 6 seconds (-t 6000), on eth0 or em0 interface, 
-   values in Kbytes (-u K):
+   network rate. For example, to measure the rate every 6 seconds (-t 6000), 
+   on eth0 or em0 interface, with values in Kbytes (-u K), use:
    
      nload -t 6000 eth0 -u K  # Linux
      nload -t 6000 em0  -u K  # FreeBSD
 
-   During nload, press the h to see the display commands available, 
-   every single feature is useful! Press h again and try each one.
-     
    On Linux only, another very good network tool is dstat:
    
      dstat -n -N eth0 6  # Linux only (in 2018)
 
-   A excellent tool for this purpose is iftop, the following
-   command will monitor imap and imaps connexions
+   Another excellent tool to measure the network trafic is iftop.
+   The following command will monitor imap and imaps connexions
    on interfce eth0, only them, and sum them up:
    
      iftop -i eth0 -f 'port imap or port imaps' -B # Linux
      iftop -i em0  -f 'port imap or port imaps' -B # FreeBSD
 
+   During iftop, press the h to see the display commands available, 
+   every single feature is useful! Press h again and try each one.
 
 
    On Windows 8.1 Windows 10 Windows 2012 R2 Windows 2016,
@@ -232,9 +260,11 @@ Possible bottlenecks:
 
 
 - RAM memory.
-  On all sides, monitor that your systems don't swap on disk,
-  because swapping memory on disks decreases performance by 
-  a factor of 20, at least.
+  On all sides, monitor that your systems don't swap its 
+  running processes on disk, because swapping running processes 
+  on disks decreases performance by a factor of 20, at least.
+  It's not because the swap memory is used that your
+  system swaps processes on disk.
 
 - CPU.
   100% CPU during a whole transfer means the system is busy.
@@ -245,8 +275,9 @@ Possible bottlenecks:
 Other possible bottlenecks:
 - Number of hosts available to run imapsync processes.
 - Imapsync itself.
-- Errors management.
+- Management of errors.
 - MX domains, DNS.
+- Incompetence.
 - Money.
 - Time.
 - Bad luck.
@@ -263,7 +294,7 @@ Q. Any performance issue?
 You have to try and check the transfer rates, sum them up to
 have a uniq numeric criteria. 
 There is always a limit, depending on remote imap servers 
-and the one running imapsync;
+and the one running imapsync.
 CPU, memory, Inputs/Outputs are the classical bottlenecks, 
 the worst bottleneck is the winner that sets the limit.
 

@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 package Mail::IMAPClient;
-our $VERSION = '3.40';
+our $VERSION = '3.42';
 
 use Mail::IMAPClient::MessageSet;
 
@@ -331,7 +331,8 @@ sub connect(@) {
         push( @sockargs, @{ $self->Socketargs } );
     }
 
-    my $server = $self->Server;
+    # if no server, use " " to induce a non-fatal error
+    my $server = $self->Server || " ";
     my $port = $self->Port || $self->Port( $self->Ssl ? "993" : "143" );
     my ( $ioclass, $sock );
 
@@ -717,6 +718,7 @@ sub _folders_or_subscribed {
             foreach my $resp (@list) {
                 my $rec = $self->_list_or_lsub_response_parse($resp);
                 next unless defined $rec->{name};
+                next if first { lc($_) eq '\noselect' } @{ $rec->{attrs} };
                 push @folders, $rec;
             }
         }
@@ -2248,6 +2250,11 @@ sub fetch_hash {
         while ( $l and $l !~ m/\G\s*\)\s*$/gc ) {
             if ( $l =~ m/\G\s*([^\s\[]+(?:\[[^\]]*\])?(?:<[^>]*>)?)\s*/gc ) {
                 $key = uc($1);
+
+                # strip quotes around header names - seen w/outlook.com
+                if ( $key =~ /^BODY\[HEADER\.FIELDS \("[^"]+".*?\)\]$/ ) {
+                    $key =~ s/"//g;
+                }
             }
             elsif ( !defined $key ) {
 
@@ -2537,8 +2544,7 @@ sub parse_headers {
         {    # start new message header
             ( $msgid, my $msgattrs ) = ( $1, $2 );
             $h = {};
-            if ( $self->Uid )    # undef when win2003
-            {
+            if ( $self->Uid ) {    # undef when win2003
                 $msgid = $msgattrs =~ m/\b UID \s+ (\d+)/x ? $1 : undef;
             }
             $headers{$msgid} = $h if $msgid;
@@ -2821,6 +2827,7 @@ sub uidnext {
     defined $line && $line =~ /\(UIDNEXT\s+([^\)]+)/ ? $1 : undef;
 }
 
+# sort @caps for consistency?
 sub capability {
     my $self = shift;
 
@@ -2832,10 +2839,18 @@ sub capability {
     $self->_imap_command('CAPABILITY')
       or return undef;
 
-    my @caps = map { split } grep s/^\*\s+CAPABILITY\s+//, $self->History;
-    foreach (@caps) {
-        $self->{CAPABILITY}{ uc $_ }++;
-        $self->{ uc $1 } = uc $2 if /(.*?)\=(.*)/;
+    my @caps = map { split } grep /^\*\s+CAPABILITY\s+/, $self->History;
+    splice( @caps, 0, 2 );    # remove * CAPABILITY from array
+
+    # use iterator as we may append to @caps for CAPA=VALUE
+    for ( my $i = 0 ; $i < @caps ; $i++ ) {
+        $self->{CAPABILITY}->{ uc $caps[$i] } ||= [];
+        my ( $capa, $cval ) = split( /=/, $caps[$i], 2 );
+        if ( defined $cval ) {
+            $capa = uc $capa;
+            push( @caps, $capa ) unless exists $self->{CAPABILITY}->{$capa};
+            push( @{ $self->{CAPABILITY}->{$capa} }, $cval );
+        }
     }
 
     return wantarray ? @caps : \@caps;
@@ -2846,7 +2861,23 @@ sub capability {
 sub has_capability {
     my ( $self, $which ) = @_;
     $self->capability or return undef;
-    $which ? $self->{CAPABILITY}{ uc $which } : "";
+    my $aref = [];
+
+    # exists in CAPABILITIES? possibly in CAPA=VALUE format?
+    if ( defined $which ) {
+        $which = uc $which;
+        if ( exists $self->{CAPABILITY}{$which} ) {
+            if ( @{ $self->{CAPABILITY}{$which} } ) {
+                $aref = $self->{CAPABILITY}{$which};
+            }
+            else {
+                $aref = [$which];
+            }
+        }
+    }
+
+    return @$aref if wantarray;
+    return scalar @$aref ? $aref : "";
 }
 
 sub imap4rev1 {
@@ -2926,9 +2957,9 @@ sub is_parent {
     }
 
     if ($attrs) {
-        return undef if grep { /\A\\NoInferiors\Z/i } @$attrs;
-        return 1     if grep { /\A\\HasChildren\Z/i } @$attrs;
-        return 0     if grep { /\A\\HasNoChildren\Z/i } @$attrs;
+        return undef if first { lc($_) eq '\noinferiors' } @$attrs;
+        return 1     if first { lc($_) eq '\haschildren' } @$attrs;
+        return 0     if first { lc($_) eq '\hasnochildren' } @$attrs;
     }
     else {
         $self->_debug( join( "\n\t", "no attrs for '$folder' in:", @$list ) );

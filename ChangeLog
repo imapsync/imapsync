@@ -1,17 +1,164 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.921
+head: 1.945
 branch:
 locks: strict
-	gilles: 1.921
+	gilles: 1.945
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 921;	selected revisions: 921
+total revisions: 945;	selected revisions: 945
 description:
 ----------------------------
-revision 1.921	locked by: gilles;
+revision 1.945	locked by: gilles;
+date: 2019/06/26 19:30:56;  author: gilles;  state: Exp;  lines: +151 -94
+Proofread the documentation part, what will go to README.
+The pod at the beginning.
+----------------------------
+revision 1.944
+date: 2019/06/25 16:44:08;  author: gilles;  state: Exp;  lines: +8 -8
+Bugfix. Readonly syntax. "Readonly my %EXIT_TXT => ("
+----------------------------
+revision 1.943
+date: 2019/06/25 08:34:51;  author: gilles;  state: Exp;  lines: +47 -30
+Usability. Added the error message text after "Exiting with return value xx". Example: Exiting with return value 16 (EXIT_AUTHENTICATION_FAILURE)
+Usability. Added what function is called when installing a signal. Example: "kill -QUIT 19839 # special behavior: call to sub catch_exit"
+----------------------------
+revision 1.942
+date: 2019/06/24 20:43:43;  author: gilles;  state: Exp;  lines: +51 -37
+Bugfix. USR1 signal for toggle_sleep call was never installed.
+Usability. Now --justfolders will activate --foldersizesatend
+Enhancement. Added PROCESS_ID when "Tail -f finished."
+Bugfix. The number of messages deleted was not accurate at all.
+Usability. masked the warning "no header by parse_headers so taking whole header with BODY.PEEK[HEADER]" to --debug mode.
+Usability. Moved the warning "no header found so adding our own" to --debug mode.
+Tests. Added ETA simulation with --simulong (for the progress info on /X)
+Bugfix. Change the longest line in --exchange2 and --office from 10500 to 10239. (\n inserted for those long lines)
+Enhancement. --maxage and --minage can take float as value in order to filter with less than a day. (Need --noabletosearch also).
+----------------------------
+revision 1.941
+date: 2019/06/04 22:55:24;  author: gilles;  state: Exp;  lines: +54 -19
+Usability. Now "imapsync --host1 ks" or "imapsync --host2" is ok and do like a --justconnect on servers. Useful to cjeck rapidely a imap server.
+----------------------------
+revision 1.940
+date: 2019/06/04 06:29:31;  author: gilles;  state: Exp;  lines: +14 -9
+Added 'junk', 'Junk E-Mail', 'Junk Email' as possible_special of \Junk
+Added 'Deleted Messages' as possible_special of \Trash
+----------------------------
+revision 1.939
+date: 2019/05/27 21:58:33;  author: gilles;  state: Exp;  lines: +10 -9
+Back to a test  Mail::IMAPClient 3.40 failed but  Mail::IMAPClient 3.42 succeed.
+----------------------------
+revision 1.938
+date: 2019/05/27 18:45:06;  author: gilles;  state: Exp;  lines: +111 -33
+CGI context. --addheader is on by default.
+Added option --appendlimit xxxx in order to override the value got by APPENDLIMIT in CAPABILITY.
+Added option --truncmess to allow transfer of too big messages. When you think it's better to have a truncated message than no message at all.
+1453 regression tests.
+----------------------------
+revision 1.937
+date: 2019/05/01 22:14:00;  author: gilles;  state: Exp;  lines: +328 -326
+CGI context. Only Message-Id to identify messages, instead of Message-Id Received.
+Fixed perl critic about blanks.
+Fixed tests comments
+----------------------------
+revision 1.936
+date: 2019/04/29 05:26:19;  author: gilles;  state: Exp;  lines: +26 -23
+Bugfix. Do not tail when abort.
+Usability. --testslive values can be overwritten like --testslive --user1 empty
+           Same thing for --testslive6
+----------------------------
+revision 1.935
+date: 2019/04/28 02:10:24;  author: gilles;  state: Exp;  lines: +293 -44
+Added File::Tail dependency.
+Added --tail option. Will do like a tail -f on the logfile of another imapsync with the same pidfile. 
+    Good in CGI context. Maybe...
+    We'll see. It was one of my first whishes for cgi behaviour
+1441 unit tests.
+----------------------------
+revision 1.934
+date: 2019/04/26 08:23:24;  author: gilles;  state: Exp;  lines: +134 -52
+Added following options available in cgi context:
+--subfolder1
+--subfolder2
+--justfolders
+--justfoldersizes
+--delete1
+--delete2
+
+CGI context. Added the equivalent command line parameters like:
+Command line used, run by /usr/bin/perl:
+/usr/lib/cgi-bin/imapsync --host1 test1.lamiral.info 
+Usability. Turns off --automap when --subfolder1 or --subfolder2 is used.
+----------------------------
+revision 1.933
+date: 2019/04/23 11:42:42;  author: gilles;  state: Exp;  lines: +47 -98
+CGI context. Added default like --maxsize 1_000_000_000 (Out of memory prevention?)
+Usability. maxsize is the minimum of --maxsize and APPENDLIMIT=xxx or each one if the other no exists.
+----------------------------
+revision 1.932
+date: 2019/04/13 22:09:04;  author: gilles;  state: Exp;  lines: +93 -24
+Added --sanitize to remove egding blanks on host1 user1 password1 etc.
+--sanitize on by default. Use --noanitize to avoid it
+----------------------------
+revision 1.931
+date: 2019/04/13 16:10:24;  author: gilles;  state: Exp;  lines: +109 -22
+Added test tests_check_binary_embed_all_dyn_libs to detect non embedded dynamic libraries in binaries Darwin and Win32
+----------------------------
+revision 1.930
+date: 2019/04/11 22:32:38;  author: gilles;  state: Exp;  lines: +467 -211
+All exits are now done with a specific return code related to the error causing the exit.
+Removed sub die_clean()
+die_clean() calls replaced by exit_clean() calls
+----------------------------
+revision 1.929
+date: 2019/04/08 09:14:13;  author: gilles;  state: Exp;  lines: +425 -300
+Bug fix. With --gmail1 or --gmail2 do not sync [Gmail]/All Mail if it is not requested.
+Bug fix. When asked to terminate by a signal, kill myself by the signal instead of an exit call.
+         Applied Martin Cracauer's advice on https://www.cons.org/cracauer/sigint.html 
+         "Proper handling of SIGINT/SIGQUIT" 
+         I hope it fixes the not always working double-ctrl-c to end the sync.
+         See bug report https://github.com/imapsync/imapsync/issues/142
+----------------------------
+revision 1.928
+date: 2019/03/28 11:12:44;  author: gilles;  state: Exp;  lines: +648 -317
+Added --subfolder1 Foo/Bar option in order to restore a backup made with --subfolder2 Foo/Bar
+  --folderrec Foo/Bar is imply by --subfolder1 Foo/Bar because it's the most common purpose.
+Deglobalized $debug @regextrans2 $sep1 $sep2 $fixslash2 
+Added --resynclabels to resync the Gmail labels X-GM-LABELS
+Bugfix. --synclabels now create sublabels with --subfolder2
+Bugfix. --subfolder2 Pf2/Sub2 and --subfolder2 Sub2 perform the same when Pf2 is the --prefix2
+1336 non-regression tests
+----------------------------
+revision 1.927
+date: 2019/03/22 14:45:55;  author: gilles;  state: Exp;  lines: +9 -8
+Active --resynclabels when --gmail1 --gmail2
+----------------------------
+revision 1.926
+date: 2019/03/22 14:06:38;  author: gilles;  state: Exp;  lines: +283 -88
+Call abort() before simulong() to be able to abort a long simulong.
+Bugfix. --synclabels --subfolder2 create sublabels only and not a mixture.
+Enhancement. Added --resynclabels
+1286 non-regression tests
+----------------------------
+revision 1.925
+date: 2019/03/03 12:25:02;  author: gilles;  state: Exp;  lines: +8 -8
+1268 tests
+----------------------------
+revision 1.924
+date: 2019/03/03 12:22:37;  author: gilles;  state: Exp;  lines: +50 -27
+Tolerate more load. Double the threshold. accept load at 2 per core instead of 1 per core
+----------------------------
+revision 1.923
+date: 2019/03/03 12:00:05;  author: gilles;  state: Exp;  lines: +29 -20
+Moved cgiload( $sync ) in order to log exites on heavy load
+----------------------------
+revision 1.922
+date: 2019/02/26 13:03:58;  author: gilles;  state: Exp;  lines: +43 -35
+Fixed tests to pass under the docker image
+----------------------------
+revision 1.921
 date: 2019/02/18 10:21:03;  author: gilles;  state: Exp;  lines: +10 -8
 Bugfix. Errors of APPEND were not counted as missing messages on host2!
 ----------------------------
@@ -192,7 +339,7 @@ Default  $sync->{ sigignore } to empty list.
 ----------------------------
 revision 1.886
 date: 2018/08/06 15:02:51;  author: gilles;  state: Exp;  lines: +28 -11
-Added mygetppid because USR1 no available on Windows.
+Added mygetppid because getppid is not available on Windows.
 Removed --nosubscribed since it is not coded and useless anyway.
 ----------------------------
 revision 1.885

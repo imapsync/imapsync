@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- $Id: imapsync_form.html,v 1.62 2019/02/01 21:34:28 gilles Exp gilles $ -->
+<!-- $Id: imapsync_form.html,v 1.75 2019/06/27 05:27:13 gilles Exp gilles $ -->
 
 <html lang="en" id="top">
  
@@ -20,9 +20,7 @@
 
 
 	<noscript>
-	<style>
-	.scripton {display:none;}
-	</style>
+        <link rel="stylesheet" href="noscript.css">
 	</noscript>
 	
 </head>
@@ -30,22 +28,33 @@
 <body>
 
 
+<div class="hidden scripton">
+<pre id="tests">
+</pre>
+<input type="checkbox" id="test_checkbox">
+<input type="text" id="test_text">
+<input type="radio" id="test_radio" name="test_radio" value="first" >
+<input type="radio" id="test_radio" name="test_radio" value="second" >
+</div>
+
 <div class="container-fluid" >
 
     <div class="row">
         <div class="text-center">
             <a href="https://imapsync.lamiral.info/">
-            <img alt="Imapsync home" src="https://imapsync.lamiral.info/X/logo_imapsync_Xn.png" height="38" width="60">
+            <img alt="Imapsync home" title="Imapsync home page" src="https://imapsync.lamiral.info/X/logo_imapsync_Xn.png" height="38" width="60">
             </a>
-            <a href="#top"      class="btn btn-info active" role="button">Top</a>
+            <a href="#top" title="Top of the page" class="btn btn-info " role="button">Top</a>
             <!-- <a href="#payment"  class="btn btn-success" data-toggle="collapse">Pricing</a> -->
-            <a href="#buttons"  class="btn btn-info scripton"  role="button">Consoles</a>
-            <a href="#bottom"   class="btn btn-info"        role="button">Bottom</a>
+            <!-- <a href="#buttons"  class="btn btn-info scripton"  role="button">Consoles</a> -->
+            <a href="#bottom" title="Bottom of the page" class="btn btn-info active" role="button">Bottom</a>
         </div>
     </div>
 
     <h1 class="text-center">Imapsync online</h1>
 
+    <p class="text-center"> <strong>Copy</strong>/synchronize a <strong>complete</strong> mailbox to another, without <strong>duplicates!</strong></p>
+    
 <!-- Paypal part start 
 new: NDGMR6TLFZ926
 old: H2YTURNFT4XT4
@@ -57,11 +66,11 @@ old: H2YTURNFT4XT4
 	<a href="#payment" class="btn btn-warning btn-lg" data-toggle="collapse">Pricing</a>
 	</div>
         -->
-        
+
 <!-- the "in" makes the form not collapsed by default 
      Remove the in in order to mask the pricing section 
      <div id="payment" class="well text-center collapse in" > -->
-     <div id="payment" class="well text-center collapse in" >
+     <div id="payment" class="well text-center collapse out" >
         <p class="lead">Pay by usage type</p>
         <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
             <input type="hidden" name="cmd" value="_s-xclick" />
@@ -91,37 +100,40 @@ old: H2YTURNFT4XT4
         </form>
     </div>
 <!-- Paypal part end -->
-	
-	
+
+
     <form id="form" action="/cgi-bin/imapsync" method="post" autocomplete="on">
         <div class="row">
             <div id="account1" class="col-md-6" >
-				<fieldset>
-				<legend class="text-center h2">Source account</legend>
+                <fieldset>
+                <legend class="text-center h2">IMAP source mailbox</legend>
 
-                <label for="user1">--user1</label>
+                <label for="user1">Login</label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"> </i></span>
                     <input
-                    data-toggle="tooltip" data-placement="top" title="It is usually an email address or its left part before @"
+                    data-toggle="tooltip" data-placement="bottom" title="It is usually an email address or its left part before @"
                     type="text" class="form-control input-lg" id="user1" name="user1" tabindex="1"
-                    placeholder="Enter source login name">
+                    placeholder="Enter login name">
                 </div>
 
-                <label for="password1">--password1</label>
+                <label for="password1">Password</label>
+                <label class="checkbox-inline out">
+                    <input type="checkbox" id="showpassword1"> show password
+                </label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
                     <input
-                    data-toggle="tooltip" data-placement="top" title="Passwords are not stored on the server"
+                    data-toggle="tooltip" data-placement="bottom" title="Passwords are not stored on the server"
                     type="password" class="form-control input-lg" id="password1" name="password1" tabindex="2"
                      placeholder="Enter password">
                 </div>
 
-                <label for="host1">--host1</label>
+                <label for="host1">Server</label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-cloud"></i></span>
                     <input
-                     data-toggle="tooltip" data-placement="top" title="IMAP transfers are done with encryption if the servers support it."
+                     data-toggle="tooltip" data-placement="bottom" title="IMAP transfers are done with encryption if the servers support it."
                      list="servers1" type="text" class="form-control input-lg" id="host1" name="host1" tabindex="3"
                      placeholder="Enter imap source server name or IP address">
                         <datalist id="servers1">
@@ -141,36 +153,39 @@ old: H2YTURNFT4XT4
                 <div>
                     <br>
                 </div>
-				</fieldset>
+                </fieldset>
             </div>
 
 
             <div id="account2" class="col-md-6" >
-				<fieldset>
-				<legend class="text-center h2">Destination account</legend>
+                <fieldset>
+                <legend class="text-center h2">IMAP destination mailbox</legend>
 
-                <label for="user2">--user2</label>
+                <label for="user2">Login</label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
                     <input
-                    data-toggle="tooltip" data-placement="top" title="It is usually an email address or its left part before @"
+                    data-toggle="tooltip" data-placement="bottom" title="It is usually an email address or its left part before @"
                     type="text" class="form-control input-lg" id="user2" name="user2" tabindex="6"
-                    placeholder="Enter destination login name">
+                    placeholder="Enter login name">
                 </div>
-                <label for="password2">--password2</label>
+                <label for="password2">Password</label>
+                <label class="checkbox-inline out">
+                    <input type="checkbox" id="showpassword2"> show password
+                </label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
                     <input
-                    data-toggle="tooltip" data-placement="top" title="Passwords are not stored on the server"
+                    data-toggle="tooltip" data-placement="bottom" title="Passwords are not stored on the server"
                     type="password" class="form-control input-lg" id="password2" name="password2" tabindex="7"
                      placeholder="Enter password">
                 </div>
 
-                <label for="host2">--host2</label>
+                <label for="host2">Server</label>
                 <div class="input-group form-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-cloud"></i></span>
                     <input
-                    data-toggle="tooltip" data-placement="top" title="IMAP transfers are done with encryption if the servers support it."
+                    data-toggle="tooltip" data-placement="bottom" title="IMAP transfers are done with encryption if the servers support it."
                     list="servers2" type="text" class="form-control input-lg" id="host2" name="host2" tabindex="8"
                      placeholder="Enter imap destination server name or IP address">
                      <datalist id="servers2">
@@ -189,30 +204,31 @@ old: H2YTURNFT4XT4
                  <div>
                     <br>
                 </div>
-				</fieldset>
+                </fieldset>
            </div>
           
         </div>
         <input type="hidden" name="automap"   value="on">
         <input type="hidden" name="addheader" value="on">
-        <!--
-        <input type="hidden" name="simulong" value="3600">
-        -->
+        <!-- --#>
+        <input type="hidden" name="simulong" value="360">
+        <#!-- -->
         <a name="buttons"></a>
         <hr> 
         
         <!-- Classical button to go to the log only -->
         <noscript>
-			<button type="submit" class="btn btn-success btn-lg center-block btn-block">Go sync!</button> 
+                <button type="submit" class="btn btn-success btn-lg center-block btn-block">Go sync!</button> 
         </noscript>
 
-		<!-- Javascript buttons using xhr -->
+        <!-- Javascript buttons using xhr -->
         <div class="row scripton">
             <div class="col-sm-6 padd0" >
             <button id="bt-sync" type="button"
                     class="btn btn-success btn-lg center-block btn-block"
                     tabindex="11"
-                    data-toggle="tooltip" data-placement="top" title="Launch the sync! You can abort the sync with the red Abort button nearby or by closing the tab/window."
+                    data-toggle="tooltip" data-placement="top" 
+                    title="Launch the sync! You can abort the sync with the red Abort button nearby or by closing the tab/window."
                     >
                 Sync or resync!<br>
                 <span class="glyphicon glyphicon-envelope"></span>
@@ -223,7 +239,8 @@ old: H2YTURNFT4XT4
             <div class="col-sm-6 padd0" >
             <button id="bt-abort" type="button" 
                     class="btn btn-danger btn-lg center-block  btn-block" tabindex="12"
-                    data-toggle="tooltip" data-placement="top" title="You can abort and restart the sync later, no duplicates should happen"
+                    data-toggle="tooltip" data-placement="top" 
+                    title="Abort the sync! You can restart the sync later, no duplicates should happen."
             >
             Abort!<br>
                 <span class="glyphicon glyphicon-scissors"></span>
@@ -232,8 +249,11 @@ old: H2YTURNFT4XT4
         </div>
     </form>
 
-	
+
     <div class="row scripton" id="consoles">
+    
+        <pre id="progress" ></pre>
+        
         <div class="col-sm-6 well">
             <h2 class="text-center">Console of imapsync run</h2>
             <pre id="console">
@@ -297,13 +317,13 @@ old: H2YTURNFT4XT4
     <div class="row">
         <div class="text-center">
             <a href="https://imapsync.lamiral.info/">
-                <img alt="Imapsync home" src="https://imapsync.lamiral.info/X/logo_imapsync_Xn.png" height="38" width="60">
+                <img alt="Imapsync home page" src="https://imapsync.lamiral.info/X/logo_imapsync_Xn.png" height="38" width="60">
             </a>
-            <a href="#top"      class="btn btn-info "         role="button">Top</a>
-            <a href="#buttons"  class="btn btn-info scripton" role="button">Consoles</a>
-            <a href="#bottom"   class="btn btn-info active"   role="button">Bottom</a>
+            <a href="#top" title="Top of the page" class="btn btn-info " role="button">Top</a>
+            <!-- <a href="#buttons"  class="btn btn-info scripton" role="button">Consoles</a> -->
+            <a href="#bottom" title="Bottom of the page" class="btn btn-info active" role="button">Bottom</a>
             <br>
-        <small> ($Id: imapsync_form.html,v 1.62 2019/02/01 21:34:28 gilles Exp gilles $) </small><br>
+        <small> ($Id: imapsync_form.html,v 1.75 2019/06/27 05:27:13 gilles Exp gilles $) </small><br>
         Terms and conditions for anything: <a href="https://imapsync.lamiral.info/LICENSE">No limits to do anything with this work and this license!</a><br>
         </div>
     </div>
@@ -326,7 +346,7 @@ crossorigin="anonymous"
 
 
 <script
-  src="imapsync_form.js"
+src="imapsync_form.js"
 >
 </script>
 

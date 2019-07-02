@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.69 2019/01/30 06:53:58 gilles Exp gilles $
+# $Id: memo,v 1.70 2019/04/28 03:11:49 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -168,14 +168,14 @@ statistics_VERSION_yearly_os() {
 	year=${1:-`date '+%Y'`}
 	(
 	cd /home/lf/glamiral/imapsync_stats
-	Linux=`grep -i linux     stats_imapsync_${year}.ip | wc -l`
-	Win32=`grep -i MSWin32   stats_imapsync_${year}.ip | wc -l`
-	Darwin=`grep -i darwin   stats_imapsync_${year}.ip | wc -l`
-	FreeBSD=`grep -i freebsd stats_imapsync_${year}.ip | wc -l`
-	Solaris=`grep -i solaris stats_imapsync_${year}.ip | wc -l`
-	OpenBSD=`grep -i openbsd stats_imapsync_${year}.ip | wc -l`
-	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd'    stats_imapsync_${year}.ip |wc -l`
-	Nb_All=`cat           stats_imapsync_${year}.ip | wc -l`
+	Linux=`grep -i linux     stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Win32=`grep -i MSWin32   stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Darwin=`grep -i darwin   stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	FreeBSD=`grep -i freebsd stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Solaris=`grep -i solaris stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	OpenBSD=`grep -i openbsd stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd'    stats_imapsync_${year}.ip | grep imapsync |wc -l`
+	Nb_All=`cat           stats_imapsync_${year}.ip | grep imapsync | wc -l`
 	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD Other; do
 		#echo $OS `eval "echo \\$$OS"` / $Nb_All
 		Nb_OS=`eval "echo \\$$OS"`
@@ -339,16 +339,17 @@ statistics_VERSION_yearly_os() {
 	year=${1:-`date '+%Y'`}
 	(
 	cd $HOME/imapsync_stats
-	Linux=`grep -i linux     stats_imapsync_${year}.ip | wc -l`
-	Win32=`grep -i MSWin32   stats_imapsync_${year}.ip | wc -l`
-	Darwin=`grep -i darwin   stats_imapsync_${year}.ip | wc -l`
-	FreeBSD=`grep -i freebsd stats_imapsync_${year}.ip | wc -l`
-	Solaris=`grep -i solaris stats_imapsync_${year}.ip | wc -l`
-	OpenBSD=`grep -i openbsd stats_imapsync_${year}.ip | wc -l`
-	Unknown=`grep -i '"-"'   stats_imapsync_${year}.ip | wc -l`
-	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd|"-"'  stats_imapsync_${year}.ip |wc -l`
-	Nb_All=`cat stats_imapsync_${year}.ip | wc -l`
-	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD Unknown Other; do
+	Linux=`grep -i linux     stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Win32=`grep -i MSWin32   stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Darwin=`grep -i darwin   stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	FreeBSD=`grep -i freebsd stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Solaris=`grep -i solaris stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	OpenBSD=`grep -i openbsd stats_imapsync_${year}.ip | grep imapsync | wc -l`
+        Cygwin=`grep -i cygwin   stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Unknown=`grep -i '"-"'   stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	Other=`egrep -i -v 'linux|MSWin32|darwin|freebsd|solaris|openbsd|cygwin|"-"'  stats_imapsync_${year}.ip | grep imapsync |wc -l`
+	Nb_All=`cat stats_imapsync_${year}.ip | grep imapsync | wc -l`
+	for OS in Linux Win32 Darwin FreeBSD Solaris OpenBSD Cygwin Unknown Other; do
 		#echo $OS `eval "echo \\$$OS"` / $Nb_All
 		Nb_OS=`eval "echo \\$$OS"`
 		PerCent=`echo "scale=2; 100*$Nb_OS/$Nb_All" | bc -l`

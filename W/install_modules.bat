@@ -1,4 +1,4 @@
-REM $Id: install_modules.bat,v 1.34 2018/04/10 00:10:52 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.37 2019/05/28 13:20:08 gilles Exp gilles $
 
 ::------------------------------------------------------
 ::--------------- Main of install_modules.bat ----------
@@ -17,7 +17,11 @@ CALL :handle_error CALL :detect_perl
 CALL :handle_error CALL :update_modules
 
 @ENDLOCAL
+@REM Do a PAUSE if run by double-click, aka, explorer (then ). No PAUSE in a DOS window or via ssh.
+IF %0 EQU "%~dpnx0" IF "%SSH_CLIENT%"=="" PAUSE
 EXIT /B
+
+
 ::------------------------------------------------------
 
 
@@ -39,6 +43,7 @@ EXIT /B
 :update_modules
 @SETLOCAL
 FOR %%M in ( ^
+ File::Tail ^
  Regexp::Common ^
  Sys::MemInfo ^
  Test::MockObject ^
@@ -52,6 +57,7 @@ FOR %%M in ( ^
  File::Copy::Recursive ^
  Getopt::ArgvFile ^
  Socket6 ^
+ Net::SSLeay ^
  IO::Socket::INET ^
  IO::Socket::INET6 ^
  IO::Socket::SSL ^
@@ -75,7 +81,7 @@ FOR %%M in ( ^
 
 ECHO Perl modules for imapsync updated
 REM PAUSE
-@ECHO Net::SSLeay not updated
+@REM @ECHO Net::SSLeay not updated
 
 @ENDLOCAL
 EXIT /B

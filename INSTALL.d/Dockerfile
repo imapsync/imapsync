@@ -1,6 +1,6 @@
 ## Dockerfile for building a docker imapsync image
 
-# $Id: Dockerfile,v 1.14 2018/09/16 10:42:11 gilles Exp gilles $
+# $Id: Dockerfile,v 1.15 2019/02/26 11:39:31 gilles Exp gilles $
 # I use the following command to build the image:
 #
 #  docker build -t gilleslamiral/imapsync . 
@@ -20,7 +20,8 @@ LABEL maintainer "gilles@lamiral.info"
 # Put a copy of the Dockerfile in the image itself
 # It can help future maintenance, isn't it?
 
-COPY Dockerfile /
+# Also put my last imapsync on / for testing purpose
+COPY Dockerfile imapsync /
 
 RUN apt-get update \
   && apt-get install -y \

@@ -30,9 +30,8 @@ if (@missing) {
 
     print <<'MSG';
 Optional modules are available from any CPAN mirror, reference:
-  http://search.cpan.org/
-  http://www.perl.com/CPAN/modules/by-module
-  http://www.perl.org/CPAN/modules/by-module
+  https://metacpan.org/
+  https://www.cpan.org/modules/by-module/
 
 MSG
     sleep 3;
@@ -66,13 +65,13 @@ WriteMakefile(
         resources => {
             bugtracker => {
                 web =>
-'http://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient',
+'https://rt.cpan.org/Public/Dist/Display.html?Name=Mail-IMAPClient',
                 mailto => 'bug-Mail-IMAPClient@rt.cpan.org',
             },
-            homepage   => 'http://sourceforge.net/projects/mail-imapclient/',
+            homepage   => 'https://sourceforge.net/projects/mail-imapclient/',
             repository => {
                 url  => 'git://git.code.sf.net/p/mail-imapclient/git',
-                web  => 'http://sourceforge.net/p/mail-imapclient/git/',
+                web  => 'https://sourceforge.net/p/mail-imapclient/git/',
                 type => 'git',
             },
         },

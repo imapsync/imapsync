@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Folders_Mapping.txt,v 1.17 2018/11/20 10:26:18 gilles Exp gilles $
+$Id: FAQ.Folders_Mapping.txt,v 1.19 2019/03/04 21:21:18 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -39,16 +39,17 @@ Things to know and understand before playing with --regextrans2
 *) --regextrans2 is used to transform folders names.
 
 *) --regextrans2 applies after the default 
-   inversion prefix1 <-> prefix2 and sep1 <-> sep2
-   So when elaborating the regex you should focus on
+   inversion prefix1 <-> prefix2 and sep1 <-> sep2.
+   So, when elaborating the regex you should focus on
    the right part of the default mapping printed by
    imapsync, the part showing the host2 folder name.
-   The section to look at is within the folder loop:
+   The section to look at is either the folder size section
+   or within the folder loop located "Here" between the lines
 ++++ Looping on each folder
 Here
 ++++ End looping on each folder
-
-*) Several --regextrans2 is possible, they will be applied in the order
+   
+*) Several --regextrans2 are possible, they will be applied in the order
    of the command line, each one on the result of the previous one.
 
 *) --regextrans2 uses Perl regex mechanism so it may be hard to master
@@ -61,18 +62,19 @@ Here
 
    On Linux/Unix use single quotes ' around the regex string, it is
    easier to get what we want with single quotes since the shell 
-   won't change the inner string. Like --regextrans2 'myregex'
+   won't change the inner string. Use --regextrans2 'myregex'
 
 *) Good method to elaborate any --regextrans2 string
 
    First, elaborate the --regextrans2 string with --dry --justfolders options. 
 
-   imapsync ... --dry --justfolders
+     imapsync ... --dry --justfolders
 
    With --dry imapsync shows the transformations it will do without 
    really doing them, --dry is the "do nothing" mode.
    With --justfolders imapsync will work only with folders, 
-   messages won't be taken into account, so it will be fast.
+   messages won't be taken into account, so it will be fast
+   and focused on the folders names.
 
    When the output shows what you expect imapsync to do with folders
    names, you can remove the --dry option. Keep the --justfolders 
@@ -106,50 +108,13 @@ Examples:
 
 2b) To sync a complete account in a subfolder called FOO
 
-Since imapsync release 1.641 simply use
+With imapsync release 1.641 and former, simply use
 
   imapsync ... --subfolder2 FOO
   
-Next examples are  subfolder solutions for any release.
+Examples to this subfolder problem for any release
+can be seen below, in another Q/R section.
 
-  a) Separator is dot character "." and "INBOX" prefixes every folder
-
-On Linux/Unix:
-
-    --regextrans2 's,^INBOX(.*),INBOX.FOO$1,'
-
-On Windows:
-
-    --regextrans2 "s,^INBOX(.*),INBOX.FOO$1,"
-
-  or:
-  
-  b) Separator is the slash character "/" and there is no prefix 
-
-On Linux/Unix:
-
-   --regextrans2 's,(.*),FOO/$1,'
-
-On Windows:
-
-   --regextrans2 "s,(.*),FOO/$1,"
-   
-   or:
-
-  c) Any separator, any prefix solution, FOO is the subfolder:
-
-  It is a complicated line because every case is taken into account.
-  Type it in one line (or with the \ at the end of first line on Unix shells.
-
-On Linux/Unix:
-
-   --regextrans2 's,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
-   --regextrans2 's,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,'
-
-On Windows:
-
-  --regextrans2 "s,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1," ^
-  --regextrans2 "s,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,"
 
 3) to substitute all characters dot "." by underscores "_"
     --regextrans2 "s,\.,_,g"
@@ -164,8 +129,7 @@ On Windows:
 
   --regextrans2 s,\^",_,g
 
-3c) to substitute all characters *%. by underscores _
-You can increase the *%. list by any unwanted character.
+3c) to substitute all characters * % . and # by underscores _
 
 On Linux/Unix:
 
@@ -175,9 +139,11 @@ On Windows:
 
   --regextrans2 "tr,*%.#,_,"
 
+You can increase the *%.# list by any unwanted character,
+plus, the order doesn't count. See 3d) for &
+
 3d) It is a bad idea to substitute & characters since &
 is a character to encode non-ascii characters in IMAP folder names.
-
 
 
 4) to change folder names like this:
@@ -214,39 +180,26 @@ to folder INBOX only on host2:
 4) Remove --justfolders
 
 
-======================================================================
-Q. I have moved from Braunschweig to Graz, so I would like to have my
-   whole Braunschweig mail sorted into a sub-folder INBOX.Braunschweig 
-   of my new mail account.
-
-R.
-1) First try (safe mode):
-
-imapsync \
- ...
- --regextrans2 "s/INBOX(.*)/INBOX.Braunschweig\$1/" \
- --dry --justfolders
-
-On Windows, in the previous example containing \$1 you have to 
-replace the two \$1 by $1 (remove the \ before $).
-
-
-2) See if the output says everything you want imapsync to do, 
-   --dry option is safe and does nothing real.
-   
-3) Remove --dry 
-   Check the imap folder tree on the target side
-
-4) Remove --justfolders
-
 =======================================================================
 Q. I would like to move emails from InBox to a sub-folder called,
-   say "2010-INBOX" based on the date (Like all emails received in the
-   Year 2010 should be moved to the folder called "2010-INBOX").
+   say "2010-INBOX" based on the date. Like all emails received in the
+   year 2010 should be moved to the folder called "2010-INBOX".
 
 R. 2 ways :
 
-a) Manually:
+a) With imapsync:
+-----------------
+
+  imapsync ... \
+    --search "SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010"
+    --f1f2 "INBOX=2010-INBOX" \
+    --folder INBOX
+
+See also the FAQ FAQ.Messages_Selection.txt
+https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
+to get more examples about how to select messages.
+
+b) Manually:
 ------------
 
 1) You create a folder INBOX.2010-INBOX
@@ -257,13 +210,58 @@ a) Manually:
 
 3) Cut/paste in INBOX.2010-INBOX
 
-b) With imapsync:
------------------
 
-imapsync ... \
---search 'SENTSINCE 1-Jan-2010 SENTBEFORE 31-Dec-2010'
---regextrans2 's/^INBOX$/INBOX.2010-INBOX/' \
---folder INBOX
+=======================================================================
+Q. How to sync a complete account in a subfolder called FOO,
+   the hard way.
 
+R0. See the easy above using --subfolder2
+
+R1. Several ways to do it.
+
+  a) Separator is dot character "." and "INBOX" prefixes every folder
+
+On Linux/Unix:
+
+    --regextrans2 's,^INBOX(.*),INBOX.FOO$1,'
+
+On Windows:
+
+    --regextrans2 "s,^INBOX(.*),INBOX.FOO$1,"
+
+  or:
+  
+  b) Separator is the slash character "/" and there is no prefix 
+
+On Linux/Unix:
+
+   --regextrans2 's,(.*),FOO/$1,'
+   
+   or with doublequotes
+   
+   --regextrans2 "s,(.*),FOO/\$1,"
+
+On Windows:
+
+   --regextrans2 "s,(.*),FOO/$1,"
+   
+   or:
+
+  c) Any separator, any prefix solution, FOO is the subfolder:
+
+  It is a complicated line because every case is taken into account.
+  Type it in one line (or with the \ at the end of first line on Unix shells.
+
+On Linux/Unix:
+
+   --regextrans2 's,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
+   --regextrans2 's,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,'
+
+On Windows:
+
+  --regextrans2 "s,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1," ^
+  --regextrans2 "s,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,"
+
+  
 =======================================================================
 =======================================================================

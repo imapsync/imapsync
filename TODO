@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.203 2018/11/26 11:50:08 gilles Exp gilles $
+# $Id: TODO,v 1.215 2019/06/20 10:12:00 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -8,9 +8,50 @@ TODO file for imapsync
 ----------------------
 
 
-SUGGESTED 2018_11_20 by Gilles
-Count the messages that are on host2 but not on host1.
+SUGGESTED 2019_06_18 by Konrad Wawryn
+Add NTLMv2 support
+It shouldn't be that hard to support NTLMv2 because
+the underlying NTLM module can do it already.
+Delegate all the stuff to underlying Mail-IMAPClient.
 
+SUGGESTED 2019_06_05 by Gilles
+Code equivalent W/tools/fix_email_for_exchange.py
+inside imapsync
+
+SUGGESTED 2019_04_10 by Gilles
+With signals show also their numbers
+https://perldoc.perl.org/Config.html
+
+SUGGESTED 2019_04_03 by Katja Wolf and Gilles
+Put a summary like the one in the log file 
+in the source and the destination mailbox.
+
+SUGGESTED 2019_03_19 by Gilles
+In the final errors listing, add lines
+* Host1 banner
+* Host2 banner
+* Command line parameters
+I'm a little fade up to ask them 
+in order to understand the context
+
+
+SUGGESTED 2019_03_04 by Gilles
+Write a FAQ about deciphering with imapsync.
+Test it!
+If the encryption is made using gpg
+then the decryption via --pipemess could be just the command:
+  imapsync ... --pipemess 'gpg --decrypt --no-batch --no-tty --override-session-key 9:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+where you previously ran:
+  gpg --decrypt --no-batch --show-session-key some_rfc822_filecrypted.txt
+in order to get the session-key "9:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+SUGGESTED 2019_02_28 by Gilles
+Default tmpdir could become ./TMP_imapsync 
+for --usecache if there is no cache in the 
+historical tmpdir File::Spec->tmpdir(  )
+Why? Some systems like Windows do change
+their tmpdir upon reboot.
+Some Unixes do remove their /tmp upon reboot.
 
 
 SUGGESTED 2018_09_11 by Gilles
@@ -21,15 +62,6 @@ SUGGESTED 2018_09_11 by Gilles
 Take a look at
 Test::NoWarnings
 Test::Warn
-
-SUGGESTED 2018_09_01 by Gilles
-Count messages on host2 that are not in host1 and
-then calculate a final count saying if the sync looks complete:
-msgs1_single + msgs1_dup + msgs_copied ?== msg2s_single + msg2s_dup + msg2s_not_in1
-
-SUGGESTED 2018_06_29 by Michael Hesse
-Remove the warning on Windows
-“No such signal: SIGUSR1 at script/imapsync line 11744.”
 
 SUGGESTED 2018_05_15 by Massimo Maggi
 https://github.com/imapsync/imapsync/issues/141
@@ -46,7 +78,7 @@ See draft in sub info_date_from_uid
 
 SUGGESTED 2017_09_04 by Gilles
 STDOUT instead of STDERR with Mail::IMAPClient output.
-Shoulbe easy using $imap->Debug_fh($fileHandle);
+Shoul be easy using $imap->Debug_fh($fileHandle);
 
 
 SUGGESTED 2017_08_31 by Gilles
@@ -80,10 +112,12 @@ SUGGESTED 2017_04_26 by Franco Fassio
 Check that --maxbyteperseconds does not interfer with --timeout 
 by sleeping too long.
 
+DONE by Gilles revision 1.795 date: 2017/04/22
 SUGGESTED 2016_12_01 by Gilles
 When working under with webmin and virtualmin imapsync
 acts as a cgi, it should not. Find a way to avoid cgi mode
-even under a web server.
+even under a web server. Solution: edit the sub under_cgi_context()
+
 
 SUGGESTED 2016_11_16 by Flávio Zarur Lucarelli LucaNet Sistemas
 Getting subjects of messages for duplicates and print them.
@@ -184,15 +218,6 @@ SUGGESTED 2016_06_22 by Gilles
 Add  --quiet mode
 Make --quiet mode being switched by a signal
 
-SUGGESTED by Gilles
-Try to act as --tls if CAPABILITY allows it and if there is no --notls.
-Fallback without --tls if --tls fails.
-
-DONE      2016_07_27 by Gilles
-SUGGESTED 2016_06_15 by Gilles
-Fix sub check_lib_version and its call.
-It was ok because of the Perl line "use Mail::IMAPClient 3.30".
-
 SUGGESTED 2016_06_12 by Gilles
 Fix many perlcritic, all?
 DONE *  60 perlcritic Double-sigil dereference (Severity 2)
@@ -200,21 +225,7 @@ DONE * 627 perlcritic violations of CodeLayout::ProhibitTrailingWhitespace. (Sev
 DONE * 458 perlcritic violations of ValuesAndExpressions::ProhibitInterpolationOfLiterals. "Useless interpolation of literal string"
 DONE * 420 perlcritic violations of CodeLayout::ProhibitParensWithBuiltins. "Builtin function called with parentheses". (Severity: 1).
 
-* 304 violations of ValuesAndExpressions::ProhibitMagicNumbers.
-* 236 violations of InputOutput::RequireCheckedSyscalls. "Return value of flagged function ignored". (Severity: 1).
-* 115 violations of ControlStructures::ProhibitPostfixControls. Postfix control "if" used.  (Severity: 2).
-*  90 violations of ValuesAndExpressions::ProhibitNoisyQuotes.
-*  86 violations of ValuesAndExpressions::RequireInterpolationOfMetachars.
-*  85 violations of RegularExpressions::RequireLineBoundaryMatching.
-*  85 violations of RegularExpressions::RequireDotMatchAnything.
-*  37 violations of Variables::ProhibitPunctuationVars.
-*  30 violations of RegularExpressions::RequireExtendedFormatting.
-*  30 violations of NamingConventions::Capitalization.
-*  24 violations of ValuesAndExpressions::RequireNumberSeparators.
-*  20 violations of RegularExpressions::ProhibitEscapedMetacharacters.
-*  19 violations of ControlStructures::ProhibitUnlessBlocks.
-*  14 violations of Variables::ProhibitReusedNames.
-*  11 violations of Subroutines::ProhibitManyArgs.
+
 
 SUGGESTED 2016_06_09 by Gilles and David Carter
 In order to avoid useless headaches from --regexmess, add
@@ -353,8 +364,6 @@ http://www.microsoft.com/download/en/details.aspx?id=1329 "Microsoft Transporter
 Add --mark-as-deleted1 --mark-as-deleted2 as
 aliases for --noexpunge1 --delete1 and --noexpunge2 --delete2
 
-Move --help documentation into the man page so that description is easier to find.
-
 Fix bug found by Pavel Stano on 01/06/2012 (june) imapsync never stop login
 when login fails with a "* BYE Temp error" from server.
 
@@ -365,7 +374,7 @@ Fix long path over than 260 character on Win32 with --usecache
 Fix inode crunching with --usecache
 Think about Digest::SHA or Digest::SHA::PurePerl.
 Think about a file database like DBM instead.
-Look at https://en.wikipedia.org/wiki/Radix_tree (David M advice)
+Look at https://en.wikipedia.org/wiki/Radix_tree (David M. advice)
 Look at leveldb (Simon Th actux advice)
 Look at http://fallabs.com/kyotocabinet/ (JYB advice)
 Also Redis (Ludovic Danigo advice)
@@ -440,6 +449,38 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 Now the TODO done! (or not)
 ===========================================================================
 
+DONE 2019_04_28 by Gilles
+SUGGESTED 2016_10_03 by Gilles
+Do like tail -F on logfile when 
+"another imapsync may be curently running",
+instead of quit.
+Add --tail --notail and --tail on by default in cgi context.
+
+DONE 2019_04_27 by Gilles
+SUGGESTED 2019_04_25 by Gilles
+Add length of $cache_dir to
+Local cache directory: $cache_dir
+
+DONE 2019_04_08 by Gilles
+SUGGESTED 2019_03_06 by Gilles
+when exit by signal, exit by sending a signal to itself:
+How to be a proper program
+https://www.cons.org/cracauer/sigint.html
+
+
+DONE 2018_11_20 by Gilles
+Count the messages that are on host2 but not on host1.
+(hum... see DONE 2018_09_01)
+
+DONE 2018_09_01 by Gilles
+Count messages on host2 that are not in host1
+
+DONE 2018/04/18 revision 1.875 by Gilles
+SUGGESTED 2018_06_29 by Michael Hesse
+Remove the warning on Windows
+“No such signal: SIGUSR1 at script/imapsync line 11744.”
+
+
 DONE      2017_11_29 by Gilles
 SUGGESTED 2017_04_11 by Stefano Lo Cascio
 Add a --resyncflags on by default but allowing --noresyncflags
@@ -468,6 +509,11 @@ Add --exchange --office365 to set automatically advices from
 https://imapsync.lamiral.info/FAQ.d/FAQ.Exchange.txt
 Add --domino1 --domino2
 
+DONE by Gilles revision 1.755 date: 2017/01/12
+SUGGESTED by Gilles
+Try to act as --tls if CAPABILITY allows it and if there is no --notls.
+Fallback without --tls if --tls fails.
+
 DONE      2016_09_29 by Gilles
 SUGGESTED 2016_04_13 by Gilles
 Split --noabletosearch in --noabletosearch1 --noabletosearch2
@@ -476,6 +522,12 @@ Split --noabletosearch in --noabletosearch1 --noabletosearch2
 SUGGESTED 2016_09_29 by Gilles
 DONE with revision 1.764 2017/01/19
 Try to use TLS or SSL by default unless not asked to do so.
+
+DONE      2016_07_27 by Gilles
+SUGGESTED 2016_06_15 by Gilles
+Fix sub check_lib_version and its call.
+It was ok because of the Perl line "use Mail::IMAPClient 3.30".
+
 
 
 SUGGESTED 2016_06_22 by Gilles
@@ -501,6 +553,9 @@ DONE      2016_07_01 by Gilles
 Add exit explanation after errorsdump
 
 DONE 2016_01_06. Write a Unix tutorial, TUTORIAL_Unix.html.
+
+DONE by Gilles revision 1.677 date: 2016/01/19
+Move --help documentation into the man page so that description is easier to find.
 
 DONE 2015_12_26. WANTED 2015_03_24
 Add --sslargs with usage like:
@@ -571,7 +626,7 @@ Usage: --maxlinelength 9900 maxlinelengthcmd 'reformime -r7'
 
 DONE. Add DavMail in Similar Softwares section. http://davmail.sourceforge.net/
 
-DONE. Convert folder names to utf-8 and print them next to the uft-7 ones.
+DONE. Convert folder names to utf-8 and print them next to the utf-7 ones.
 Look at imapsync/W/learn/
 ./imap_utf7 data_utf7
 

@@ -1,8 +1,9 @@
 #!/bin/sh
 
-# $Id: prerequisites_imapsync,v 1.29 2018/09/28 14:16:44 gilles Exp gilles $
+# $Id: prerequisites_imapsync,v 1.32 2019/05/27 18:52:23 gilles Exp gilles $
 
 MODULES_MANDATORY='
+File::Tail
 App::cpanminus
 Authen::NTLM
 CGI
@@ -144,7 +145,12 @@ search_modules_any() {
 		return
 	}
         
-	
+        # FreeBSD
+	pkg version > /dev/null 2>&1 && {
+		search_modules_freebsd  "$@"
+		return
+	}
+        
 	# no yum, no apt-get, no pacman
 	{
 		search_modules_cpanm "$@"
@@ -202,16 +208,32 @@ search_modules_apt() {
 	echo 
 	echo Searching deb packages names
 	for M in "$@" ; do
-		echo "==== Searching deb package name for $M"
 		F=`echo $M|tr -s ":" "/"`.pm
+		echo "==== Searching deb package name for $M with: apt-file search /$F"
 		#echo apt-file search /$F
 		echo
 		apt-file search /$F
+                echo
+		echo "==== Searching deb package name for $M with: apt-cache search $M"
 		#apt-cache search "$M"
+                apt-cache search "$M"
 		echo
 	done
 }
 
+search_modules_freebsd()
+{
+	echo 
+	echo Searching pkg FreeBSD names
+	for M in "$@" ; do
+		F=`echo $M|tr -s ":" "-"`
+		echo "==== Searching deb package name for $M with: pkg search p5-$F"
+		echo
+		pkg search "p5-$F"
+                echo
+	done
+
+}
 
 list_to_install() {
 	test -n "$LIST_TO_INSTALL" || return 0

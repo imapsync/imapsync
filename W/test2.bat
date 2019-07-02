@@ -1,5 +1,5 @@
 
-@REM $Id: test2.bat,v 1.22 2018/09/04 03:40:16 gilles Exp gilles $
+@REM $Id: test2.bat,v 1.23 2019/03/22 18:10:31 gilles Exp gilles $
 @REM
 
 cd /D %~dp0
@@ -12,5 +12,12 @@ cd /D %~dp0
 
 @REM perl .\imapsync --host1 p --ssl1 --user1 tata --passfile1 secret.tata  --host2 p --ssl2 --user2 titi --passfile2 secret.titi --justlogin 
 
-perl -e "print join(' ', keys(%%SIG))"
-echo
+@REM perl -e "print join(' ', keys(%%SIG))"
+
+@ECHO ==== \Seen set in case unset
+perl ./imapsync --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --user2 tata --passfile2 secret.tata ^
+ --nofoldersizes --no-modulesversion  --folder INBOX.flagsetSeen --debugflags --dry --regexflag "s,\\Seen,," --regexflag "s,,\\Seen ,"
+ 
+@REM --regexflag "s,^((?!\\Seen).*)$,$1 \\Seen,"
+
+

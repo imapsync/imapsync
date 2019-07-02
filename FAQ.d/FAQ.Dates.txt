@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Dates.txt,v 1.9 2018/11/04 09:27:17 gilles Exp gilles $
+$Id: FAQ.Dates.txt,v 1.10 2019/05/27 14:26:39 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -34,15 +34,17 @@ but not with:
    - Zimbra
    - Gmail
 
-A first thing to keep in mind. 
-Imapsync does not touch any byte of messages unless told to 
-do so by special options like --regexmess or --pipemess.
-Messages on both parts should be exactly identical because
-imapsync does a verbatim sync of all messages.
+First, a thing to keep in mind. 
+
+Imapsync does not touch any byte of messages unless told to do so by
+special options like --regexmess or --pipemess.  Messages on both
+parts should be exactly identical because imapsync does a verbatim
+sync of all messages, by default.
 
 Now I explain the whole picture about dates of messages.
 
 There are several different dates attached to any message.
+
 First, there is the "Date:" header, which belongs to the message itself.
 You can see this "Date:" header line by asking "View->Message Source"
 in most email client software (Ctrl-u in Thunderbird).
@@ -52,37 +54,40 @@ MUA can be Outlook, Thunderbird, a webmail or Mutt etc.
 The "Date:" header is usually the date the message was written 
 or sent the first time, at the writer side. 
 This "Date:" header line is never changed by any transfer or copy.
-If an email reader uses the "Date:" header for displaying the date of a 
-message then no problem should arise.
 
-Another date is the internal date. In IMAP, the internal date is handled
-by the imap server and normally it corresponds to the arrival date in the mailbox.
-This date is not part of the email message itself, it's a metadata kept
-by the imap server.
-The IMAP protocol allows the internal date to be set by a email client
+If an email reader uses the "Date:" header for displaying the date of
+a message then no problem should arise.
+
+Another date is the "internal date". In IMAP, the internal date is
+handled by the imap server and normally it corresponds to the arrival
+date in the mailbox.  This date is not part of the email message
+itself, it is a metadata kept by the imap server.
+
+The IMAP protocol allows the internal date to be set by an email client
 when a message is delivered by the imap APPEND command.
 Imapsync synchronizes these internal dates, by default, so internal dates 
 on host2 should then be the same as the internal dates on host1.
-If an email reader uses the internal date for displaying the date of a 
-message then the sync date problem only occurs when the host2 server software
-ignores the internal date given by imapsync during the APPEND imap 
-command. It happens with some imap servers.
 
-There are also the "Received:" header lines. Each time a message travels
-a SMTP server, this one adds a "Received:" header line. Sometimes 
-some email clients use the last "Received:" header date as the date of the
-message. And some IMAP servers software add a "Received:" line after
-and imap transfer. If those both conditions are met then the date
-displayed become the transfer date even if imapsync 
+If an email reader uses the internal date for displaying the date of a
+message then the sync date problem only occurs when the host2 imap
+server ignores the internal date given by imapsync during the APPEND
+imap command. It happens with some imap servers. Bad luck.
+
+There are also the "Received:" header lines. Each time a message
+travels a SMTP server, this one adds a "Received:" header
+line. Sometimes some email clients use the last "Received:" header
+date as the date of the message. And some IMAP servers software add a
+"Received:" line after and imap transfer. If those both conditions are
+met then the date displayed become the transfer date even if imapsync
 has done its best to keep all the dates synchronized. Bad luck.
 
 
 Solutions: 
 a) Use another email client or configure it in order that it sorts messages
-by sent dates, the "Date:" header line.
+   by sent dates, the "Date:" header line.
 
 b) Use a imap server that respects the imap RFC and accepts 
-the internal date set by imapsync.
+   the internal date set by imapsync.
 
 c) Try to understand why the email client software shows another date 
    than the "Date:" header line.

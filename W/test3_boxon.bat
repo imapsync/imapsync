@@ -63,7 +63,7 @@ perl ./imapsync --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --use
 
 @ECHO ==== \Seen set in case unset
 perl ./imapsync --host1 p  --user1 tata --passfile1 secret.tata  --host2 p --user2 tata --passfile2 secret.tata ^
- --nofoldersizes --no-modulesversion  --folder INBOX.flagsetSeen --debugflags --dry --regexflag "s,^((?!\\Seen)).*$,$1 \\Seen,"
+ --nofoldersizes --no-modulesversion  --folder INBOX.flagsetSeen --debugflags --dry --regexflag "s,\\Seen,," --regexflag "s,,\\Seen ,"
 		
 @ECHO ==== password double-quotes within via --password1
 @REM perl ./imapsync --host1 p  --user1 tata --password1 \"ami\\\"seen\"  --host2 p --user2 titi --passfile2 secret.titi --debugimap1 --showpasswords --justlogin

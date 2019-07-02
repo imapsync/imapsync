@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Duplicates.txt,v 1.18 2019/02/14 17:22:10 gilles Exp gilles $
+$Id: FAQ.Duplicates.txt,v 1.20 2019/05/17 10:10:30 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -13,8 +13,9 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Duplicates.txt
 Q. How can I know if imapsync will generate duplicates on a second run?
 
 R. To see if imapsync will generate duplicates on a second run, start
-   a second run with --dry option added. imapsync will then show if it 
-   would mistakenly copy messages again, but without really copying them
+   a second run with --dry option added. With --dry, imapsync will 
+   show whether it would mistakenly copy messages again, but without 
+   really copying them:
 
      imapsync ... --dry 
 
@@ -35,7 +36,7 @@ Q: Multiple copies, duplicates, when I run imapsync twice ore more.
 
 R0. First, some explanations to understand the issue. 
 Normally and by default, imapsync doesn't generate duplicates.
-So if it does  generate duplicates it means a problem occurs
+So, if it does  generate duplicates it means a problem occurs
 with message identification. It happens sometimes with IMAP 
 servers changing the "Message-Id" header line or one or more
 of the "Received:" header lines in the header part of messages. 
@@ -66,7 +67,7 @@ don't go on, it means imapsync is still suffering to
 identify messages.
 
 If you end with many messages skipped then it's very
-good and now you can safely resync the mailboxe
+good and now you can safely resync the mailbox
 and get rid of the dupplicates messages on host2 with:
 
     imapsync ... --useheader "Message-Id" --delete2duplicates
@@ -80,7 +81,7 @@ to identify and compare messages in folders.
 Instead of some headers,  --useuid tell imapsync to use 
 the imap UIDs given by imap servers on both sides.
 To avoid duplicates on next runs, imapsync uses a local cache
-where it keeps UIDs already transfered. 
+where it keeps UIDs already transferred. 
 
   imapsync ... --useuid
 
@@ -95,11 +96,12 @@ A solution? Two solutions.
 The easiest is --delete2 if you are permitted to use it. 
 Option --delete2 removes messages on host2
 that are not on host1. So, with --delete2 you go for resyncing all 
-messages again but all previously transferred messages are deleted,
-but also messages previously there without imapsync. 
-So --useuid --delete2 is easy to remove duplicates but not for 
-all contexts. The host2 account must be considered as a strict
-replication of the host1 account, ie, not active.
+messages again. All previously transferred messages are deleted,
+but also messages previously there without imapsync.
+So --useuid --delete2 is an easy way to remove duplicates but it
+is not suitable in all contexts. The good context is that the host2 
+account must be considered as a strict replication of the host1 
+account, ie, host2 not active yet.
 
 A second solution, better if R3 works (see R3 below), is to build
 the cache before using --useuid
@@ -191,8 +193,11 @@ R2. With option --useuid imapsync doesn't use headers to identify
 =======================================================================
 Q. How can I remove duplicates in a lone account?
 
-R. Just run imapsync on the same account with option --delete2duplicates,
-   ie, with host1 == host2, user1 == user2, password1 == password2
+R. In order to remove duplicates in a lone account, just run imapsync 
+   on the same account as source and destination, plus the 
+   option --delete2duplicates, ie, with 
+   host1 == host2, user1 == user2, password1 == password2
+   
 
 =======================================================================
 =======================================================================

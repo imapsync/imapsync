@@ -14,7 +14,7 @@ BEGIN {
     eval { $params = MyTest->new; };
     $@
       ? plan skip_all => $@
-      : plan tests    => 107;
+      : plan tests    => 111;
 }
 
 BEGIN { use_ok('Mail::IMAPClient') or exit; }
@@ -28,6 +28,16 @@ my %new_args = (
     Uid           => $uidplus,
     Debug         => $debug,
 );
+
+{
+    my $ret;
+    eval {
+	my $imap = Mail::IMAPClient->new();
+	$ret = $imap->connect();
+    };
+    ok( !$@, "allow no args to connect()" ) or diag( '$@:' . $@ );
+    ok( !defined $ret, "connect() returns undef" ) or diag("returned($ret)");
+}
 
 # allow other options to be placed in test.txt
 %new_args = ( %new_args, %${params} );
@@ -141,6 +151,9 @@ my $append_file_size;
     my $targetno   = $target . "_noselect";
     my $targetsubf = $targetno . "${sep}subfolder";
     ok( $imap->create($targetsubf), "create target subfolder" );
+    my @f = $imap->folders();
+    ok( (!grep { $_ eq $targetno } @f), "folders() excludes /Noselect mailbox" )
+	or diag("folders() included $targetno");
     ok( !$imap->selectable($targetno),
         "not selectable (non-mailbox w/inferior)" );
     ok( $imap->delete($targetsubf), "delete target subfolder" );
@@ -266,6 +279,11 @@ ok( $imap->select($target), "select $target" );
 
 my $fields = $imap->search( "HEADER", "Message-id", "NOT_A_MESSAGE_ID" );
 is( scalar @$fields, 0, 'bogus message id does not exist' );
+
+{
+    my $geth = $imap->get_header( 123456789, "Subject" );
+    is( $geth, undef, "get_header on bogus message returns undef" );
+}
 
 my @seen = $imap->seen;
 cmp_ok( scalar @seen, '==', 1, 'have seen 1' );

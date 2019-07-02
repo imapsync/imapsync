@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Contacts_Calendars.txt,v 1.11 2018/09/26 22:25:32 gilles Exp gilles $
+$Id: FAQ.Contacts_Calendars.txt,v 1.12 2019/04/30 13:04:18 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -26,27 +26,50 @@ R. No, Imapsync can't migrate Contacts and Calendars.
   events via IMAP. In other words, messages synced by imapsync from 
   Calendars or Contacts folders are not used by email servers to set 
   or get the contacts or calendars. 
-  No way via IMAP, no way via imapsync. 
-  So it's a good idea to avoid syncing contacts and calendars.
-  But see the question below
+  No way via IMAP, no way via imapsync.
+  
+  So it's a good idea to avoid syncing contacts and calendars when
+  using imapsync. See below
+  "How can I avoid copying Calendar or Contacts folders?"
+  
+  But see also the question at the end of this document
   "How can I copy or synchronize Calendars or Contacts?".
 
 =======================================================================
 Q. Can I copy or sync Chat messages with imapsync?
 
-R. No, Imapsync can't migrate Chat messages (those in GSuite for example)
+R. No, Imapsync can't migrate Chat messages (those in GSuite for example).
    The explanation is the same as with Calendars or Contacts.
 
 =======================================================================
 Q. How can I avoid copying Calendar or Contacts folders?
 
-R1. You can avoid synchronizing Calendar or Contacts folders with
+R. You can avoid synchronizing Calendar or Contacts folders with
   the --exclude option. First you have to search what is their
   exact name. The folders listing printed by imapsync at the
   beginning of a run will surely help to find their names. 
   Assuming their names are "Calendars" and "Contacts" use then:
 
     imapsync ... --exclude "Calendar" --exclude "Contacts" 
+
+  Be aware that this syntax will exclude all folders that have
+  Calendar or Contacts in their names, as a substring,
+  like "MyCalendarZ" or "TheContactsImDoneWith". 
+  Also, case matters: "calendar" does not match "Calendar".
+  
+  To stritly avoid only "Calendar" or "Contacts" use 
+  the following
+
+  On windows:
+  
+    imapsync ... --exclude "^Calendar$" --exclude "^Contacts$" 
+
+  On Unix:
+  
+    imapsync ... --exclude '^Calendar$' --exclude '^Contacts$'
+    or
+    imapsync ... --exclude "^Calendar\$" --exclude "^Contacts\$" 
+
 
 =======================================================================
 Q. How can I copy or synchronize Calendars or Contacts?

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.51 2019/02/18 09:49:14 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.58 2019/04/25 10:41:12 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -67,6 +67,14 @@ it has to be allowed in the Gmail configuration part:
  -> IMAP Access
  -> Enable IMAP
 
+ Also:
+ 
+ -> Verify 2-step verification is OFF
+    https://myaccount.google.com/security?hl=en&pli=1&nlr=1#signin
+ -> Turn ON "Access for less secure apps"
+    https://www.google.com/settings/security/lesssecureapps
+    https://support.google.com/accounts/answer/6010255?hl=en
+
 =======================================================================
 Q. Even after several syncs the number of messages differs
    largely between imapsync and the Gmail web interface.
@@ -89,10 +97,10 @@ R. Basically it takes X days to transfer X GB per account.
    From the previous link:
 
    * it's 2X days to upload  X GB to Gmail, it's why I suggest to add
-   --maxbytespersecond 10000
+   --maxbytespersecond 10000 --maxbytesafter 1_000_000_000
    for uploading messages to Gmail
    * it's X/2 days to download X BG from Gmail, it's why I suggest to add
-   --maxbytespersecond 20000
+   --maxbytespersecond 20000 --maxbytesafter 1_000_000_000
    for downloading messages from Gmail
   
    That's theoretical values that always work in practice. Try
@@ -192,9 +200,9 @@ imapsync --host1 mail.oldhost.com     \
          --password1 password   \
          --user2 my_email@gmail.com \
          --password2 password \
-         --gmail2 --maxsize 35_651_584
+         --gmail2
 
-Or, replacing what does --gmail2 (values are from imapsync 1.882):
+Or, replacing what does --gmail2 (values are from imapsync 1.921):
 
 imapsync --host1 mail.oldhost.com     \
          --user1 my_email@oldhost.com \
@@ -209,9 +217,27 @@ imapsync --host1 mail.oldhost.com     \
          --automap   \
          --expunge1  \
          --addheader \
-         --exclude "\[Gmail\]$"      \
-         --regextrans2 "s/[ ]+/_/g"  \
-         --regextrans2 "s/['\^\"\\\\]/_/g" 
+         --exclude "\[Gmail\]$"  \
+         --regextrans2 "s/['\^\"\\\\]/_/g" \
+         --regextrans2 "s/[ ]+/_/g" 
+
+
+Starting from imapsync 1.926 the last --regextrans2 replacing 
+all blanks, which was:
+
+        --regextrans2 "s/[ ]+/_/g" 
+
+became 
+
+on Winwows, like:
+
+  imapsync.exe ... --regexflag "s,\\Seen,," --regexflag "s,,\\Seen ,"
+                   
+on Linux, like:
+
+  imapsync ...    --regexflag 's,\\Seen,,' --regexflag 's,,\\Seen ,'
+
+
 
 With --gmail2 you can override the parameters
 that are activated by them, for example:
@@ -438,9 +464,10 @@ R. No.
    using the IMAP protocol.
 
 =======================================================================
-Q. Can I safely use --useuid for Gmail transfers?
+Q. Can I safely use --useuid or --usecache for Gmail transfers?
 
-R. Yes, but I suggest to not use --useuid for Gmail transfers.
+R. Yes, but I suggest to not use --useuid nor --usecache 
+   for Gmail transfers.
 
 Using UIDs is useless with Gmail in the case of global duplicates
 (duplicates across different folders). Gmail always accept a global
@@ -546,7 +573,6 @@ xxx sub-folders show up nested within xxx/xxx.
 Q. How to migrate email from gmail to google apps?
 
 R. Take a look at:
-http://www.linux-france.org/prj/imapsync_list/msg00639.html
 
 http://biasecurities.com/2009/02/migrate-email-from-gmail-to-google-apps/
 http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.SSL_errors.txt,v 1.6 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.SSL_errors.txt,v 1.7 2019/04/05 20:04:38 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -67,14 +67,60 @@ R5. Set up a ssltunnel proxy to the host.
 Q. SSL connect attempt failed SSL 
    routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
 
-R. Use: 
+R1. Use: 
 
    imapsync ... --sslargs1 'SSL_cipher_list=DEFAULT' 
    or    
    imapsync ... --sslargs2 'SSL_cipher_list=DEFAULT' 
 
    depending on where the error occurs, host1 or host2 or both.
-   
+
+R2. If it doesn't work, I let you try other things, 
+    I quote the § "SSL_version" section of
+    https://metacpan.org/pod/IO::Socket::SSL (Module version: 2.066)
+
+    imapsync ...  --sslargs1 SSL_version=SSLv2
+    imapsync ...  --sslargs1 SSL_version=TLSv1_2
+    
+    SSLv2 and TLSv12 are just examples depending on your context
+    (--ssl1 or --tls1, and also the imap server encryption scheme)
+    
+Feedback on what worked for you (and possibly hy) is welcome!
+
+https://metacpan.org/pod/IO::Socket::SSL
+...
+SSL_version
+
+Sets the version of the SSL protocol used to transmit data.
+'SSLv23' uses a handshake compatible with SSL2.0, SSL3.0 and TLS1.x, 
+while 'SSLv2', 'SSLv3', 'TLSv1', 'TLSv1_1', 'TLSv1_2', or 'TLSv1_3' 
+restrict handshake and protocol to the specified version. 
+All values are case-insensitive. Instead of 'TLSv1_1', 'TLSv1_2', and 'TLSv1_3' 
+one can also use 'TLSv11', 'TLSv12', and 'TLSv13'.
+
+Support for 'TLSv1_1', 'TLSv1_2', and 'TLSv1_3' 
+requires recent versions of Net::SSLeay and openssl.
+
+Independent from the handshake format you can limit to set of 
+accepted SSL versions by adding !version separated by ':'.
+The default SSL_version is 'SSLv23:!SSLv3:!SSLv2' which means, 
+that the handshake format is compatible to SSL2.0 and higher, 
+but that the successful handshake is limited to TLS1.0 and higher, 
+that is no SSL2.0 or SSL3.0 because both of these versions have
+serious security issues and should not be used anymore.
+
+You can also use !TLSv1_1 and !TLSv1_2 to 
+disable TLS versions 1.1 and 1.2 while still allowing TLS version 1.0.
+
+Setting the version instead to 'TLSv1' might break interaction 
+with older clients, which need and SSL2.0 compatible handshake.
+
+On the other side some clients just close the connection 
+when they receive a TLS version 1.1 request. 
+In this case setting the version 
+to 'SSLv23:!SSLv2:!SSLv3:!TLSv1_1:!TLSv1_2' might help.
+
+
 =======================================================================
 =======================================================================
 

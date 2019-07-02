@@ -26,7 +26,7 @@
 <body>
 
 
-<h1>News about next imapsync, currently distributed <!--#exec cmd="cat ../VERSION"-->, 
+<h1>News about next imapsync, currently distributed <!--#exec cmd="cat ../VERSION | tr -d '\n'"-->, 
 next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)</small></a>
 </h1>
 
@@ -39,7 +39,7 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 
 <!-- 
 <ul>
-<li><b>1.920</b></li>
+<li><b>1.930</b></li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -74,7 +74,7 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 <li><b>Portability</b>: </li>
 
 <li><b>Dependency removed</b>: </li>
-<li><b>Dependency added</b>: Perl module IO::Prompt</li>
+<li><b>Dependency added</b>: Perl module  Text::ParseWords;</li>
 
 <li><b>Roadmap</b>: </li>
 
@@ -82,8 +82,126 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
  -->
 
  
- <ul>
-<li><b>1.920</b></li>
+<ul>
+<li><b>Roadmap</b>: Build a docker image including everything, to have a complete online /X in a single command.</li>
+</ul>
+
+
+<ul>
+<li><b>1.944</b> (2019/06/25) </li>
+<li><b>Enhancement</b>: A new /X including: 
+        <ul>
+        <li>Options like <tt>--dry --justlogin --justfolders --justfoldersizes</tt>,</li>
+        <li>An extra mode with <tt>--delete1 --delete2 --subfolder1 --subfolder2</tt> in order to make backup/restore syncs online,</li>
+        <li>A button to reverse source and destination parameters.</li>
+        </ul>
+</li>
+
+
+<li><b>Usability</b>: Now "imapsync --host1 imap.lamiral.info" or "imapsync --host2 127.0.0.1" is ok and do like a --justconnect on servers. 
+                      Useful to check rapidely an imap server.
+</li>
+
+<li><b>Usability</b>: Added some error message texts explaining the exit numbers. Example: "Exiting with return value 16 (EXIT_AUTHENTICATION_FAILURE)"</li>
+<li><b>Usability</b>: Added what function is called when installing a signal. Example: "kill -QUIT 19839 # special behavior: call to sub catch_exit"</li>
+<li><b>Usability</b>: Now --justfolders activates --foldersizesatend</li>
+<li><b>Usability</b>: Moved the warning "no header by parse_headers so taking whole header with BODY.PEEK[HEADER]" to --debug mode.</li>
+<li><b>Usability</b>: Moved the warning "no header found so adding our own" to --debug mode.</li>
+
+
+<li><b>Bug fix</b>: USR1 signal for toggle_sleep call was never installed.</li>
+<li><b>Bug fix</b>: The number of messages deleted reported at the end was not accurate at all.</li>
+<li><b>Bug fix</b>: Change the longest line in --exchange2 and --office from 10500 to 10239. (\n inserted for those long lines)</li>
+
+
+<li><b>Enhancement</b>: Added PROCESS_ID after "Tail -f finished."</li>
+<li><b>Enhancement</b>: --maxage and --minage can take float as value in order to filter part of a day. (Need --noabletosearch also).</li>
+
+<li><b>Enhancement</b>: Gmail context. Added <tt>--resynclabels</tt> to resync the Gmail labels <tt>X-GM-LABELS</tt>.
+</li>
+
+<li><b>Enhancement</b>: Backup/Restore context. Added <tt>--subfolder1 "Foo/Bar"</tt> option 
+                        in order to restore a backup made with <tt>--subfolder2 "Foo/Bar"</tt>.
+                        The option <tt>--folderrec "Foo/Bar"</tt> is implied by <tt>--subfolder1 "Foo/Bar"</tt> 
+                        because it's the most common purpose.
+                        Also, options <tt>--subfolder1</tt> and <tt>--subfolder2</tt> turn off --automap 
+                        if it is set because no one would have it set in this context.
+</li>
+                        
+<li><b>Enhancement</b>: All exits are now done with a specific return code related to the error causing the exit. 
+                        Here is the list of the exit code values (an integer between 0 and 255),
+                        the names reflects their meaning:
+<pre>
+     EX_OK          => 0  ; #/* successful termination */
+     EX_USAGE       => 64 ; #/* command line usage error */
+     EX_NOINPUT     => 66 ; #/* cannot open input */
+     EX_UNAVAILABLE => 69 ; #/* service unavailable */
+     EX_SOFTWARE    => 70 ; #/* internal software error */
+     EXIT_CATCH_ALL              =>   1 ; # Any other error
+     EXIT_BY_SIGNAL              =>   6 ; # Should be 128+n where n is the sig_num
+     EXIT_PID_FILE_ERROR         =>   8 ;
+     EXIT_CONNECTION_FAILURE     =>  10 ;
+     EXIT_TLS_FAILURE            =>  12 ;
+     EXIT_AUTHENTICATION_FAILURE =>  16 ;
+     EXIT_SUBFOLDER1_NO_EXISTS   =>  21 ;
+     EXIT_WITH_ERRORS            => 111 ;
+     EXIT_WITH_ERRORS_MAX        => 112 ;
+     EXIT_TESTS_FAILED           => 254 ; # Like Test::More API
+</pre>
+</li>
+<li><b>Usability</b>: Gmail context. Activate --resynclabels by default with <tt>--gmail1 --gmail2</tt></li>
+
+<li><b>Usability</b>: The maximum size of a message is the minimum of --maxsize and APPENDLIMIT=xxx (given the imap servers) or each one if the other no exists.</li>
+<li><b>Usability</b>: CGI context. Added default like --maxsize 1_000_000_000 (Out of memory prevention?).</li>
+<li><b>Usability</b>: CGI context. Only use "Message-Id" to identify messages, instead of "Message-Id" + "Received". We'll see.</li>
+<li><b>Usability</b>: CGI context. --addheader on by default. In order to remove it from the /X call. Still allow it as an option.</li>
+
+
+<li><b>Enhancement</b>: Added option --appendlimit xxxx in order to override the value got by APPENDLIMIT in CAPABILITY.
+                        The goal is to permit --truncmess of large messages.</li>
+<li><b>Enhancement</b>: Added option --truncmess to allow transfer of too big messages. 
+                        Use it if you think it's better to have a truncated message than no message at all.</li>
+
+
+<li><b>Usability</b>: CGI context. Instead of quit with "another imapsync may be curently running", 
+                      do like a tail -f on the other running sync, if the standart (crendentials) parameters are the same.</li>
+<li><b>Usability</b>: CGI context. A heavy load is now logged.</li>
+<li><b>Usability</b>: CGI context. Tolerate more load. Double the threshold. Now accept load at 2 per core instead of 1 per core</li>
+<li><b>Usability</b>: CGI context. Remove edging blanks of the 6 options <tt>--hostX --userX --passwordX</tt> (where X = 1 or 2).
+                      It will solve some login failures on /X just because blanks are not visible but sometimes there, 
+                      copy/paste my friend you're not always my friend... use <tt>--nosanitize</tt> to avoid it.</li>
+
+<li><b>Bug fix</b>: With <tt>--gmail1</tt> or <tt>--gmail2</tt> do not sync <tt>[Gmail]/All Mail</tt> if it is not requested. </li>
+<li><b>Bug fix</b>: When asked to terminate by a signal, kill myself by the signal instead of an exit call.
+       Applied Martin Cracauer's advice on <a href="https://www.cons.org/cracauer/sigint.html">Proper handling of SIGINT/SIGQUIT</a>.
+       I hope it fixes the <a href="https://github.com/imapsync/imapsync/issues/142">not always working double-ctrl-c</a> 
+       to end the sync.</li>
+<li><b>Bug fix</b>: Fixed tests to pass <tt>imapsync --tests</tt> under the docker image.</li>
+<li><b>Bug fix</b>: Gmail context. <tt>--synclabels --subfolder2 "Foo"</tt> create only sublabels under <tt>"Foo"</tt> and not a mixture with root labels.</li>
+<li><b>Bug fix</b>: <tt>--subfolder2 "Pf2/Sub2"</tt> and <tt>--subfolder2 "Sub2"</tt> perform the same when <tt>"Pf2"</tt> is the prefix of host2</li>
+<li><b>Bug fix</b>: imapsync now syncs messages whatever their proclaimed size are.
+                   (ProtonMail Bridge 1.1.3
+                   <a href="https://github.com/imapsync/imapsync/issues/163#issuecomment-480800242"
+                   >does RFC822.SIZE null for all messages</a>).</li>
+
+<li><b>Refactoring</b>: Fixed some perl critics.</li>
+<li><b>Refactoring</b>: Deglobalized some variables</li>
+
+<li><b>Security</b>: Sanitized --subfolder1 and --subfolder2 values.</li>
+
+
+<li><b>Portability</b>: Upgraded Mac binary to handle TLSv1.2</li>
+
+<li><b>Dependency added</b>: Perl modules  Text::ParseWords and File::Tail
+
+</li>
+
+<li><b>Roadmap</b>: Will add <tt>--subfolder1</tt> and <tt>--subfolder2</tt> parameters to /X in order to make backup/restore syncs.</li>
+
+</ul>
+
+<ul>
+<li><b>1.921</b> (2019/02/18) </li>
 <li><b>Enhancement</b>: Script <a href="../examples/sync_parallel_unix.sh">sync_parallel_unix.sh</a> to parallelize massive syncs. 
 It uses the powerful GNU <tt>parallel</tt> command.
 </li>
@@ -93,8 +211,8 @@ It uses the powerful GNU <tt>parallel</tt> command.
 </li>
 <li><b>Enhancement</b>: Option <tt>--synclabels</tt> is activated with <tt>--gmail1 --gmail2</tt> used together.</li>
 
-<li><b>Portability</b>: The imapsync script <a href="https://en.wikipedia.org/wiki/Shebang_(Unix)">Shebang</a> (first line of imapsync) uses <tt>env</tt> now,
- instead of direct perl path. 
+<li><b>Portability</b>: The imapsync script <a href="https://en.wikipedia.org/wiki/Shebang_(Unix)">Shebang</a> 
+(first line of imapsync) uses <tt>env</tt> now, instead of direct perl path. 
  I'm not sure it's a good change that 
  <tt>#!/usr/bin/perl</tt> becomes <tt>#!/usr/bin/env perl</tt></li>
 
@@ -134,7 +252,7 @@ It uses the powerful GNU <tt>parallel</tt> command.
 
 
 
-<li><b>Usability</b>: Added PPID info where PID is printed. Can be useful in some contextes, CGI, embeded, debugging etc.</li>
+<li><b>Usability</b>: Added PPID info where PID is printed. Unix only. Can be useful in some contextes, CGI, embeded, debugging etc.</li>
 
 
 
@@ -703,7 +821,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.59 2019/02/17 14:34:36 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.67 2019/06/25 21:33:09 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

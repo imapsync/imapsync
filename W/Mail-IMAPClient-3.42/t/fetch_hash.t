@@ -8,7 +8,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 27;
+use Test::More tests => 28;
 
 BEGIN { use_ok('Mail::IMAPClient') or exit; }
 
@@ -149,6 +149,31 @@ my @tests = (
         "non-escaped BODY[HEADER.FIELDS (...)]",
         [
 q{* 1 FETCH (FLAGS () BODY[HEADER.FIELDS (TO FROM SUBJECT DATE)]},
+            'From: Phil Pearl (Lobbes) <phil+from@perkpartners.com>
+To: phil+to@perkpartners.com
+Subject: foo "bar\" (baz\)
+Date: Sat, 22 Jan 2011 20:43:58 -0500
+
+'
+        ],
+        [ [1], ( qw(FLAGS), 'BODY[HEADER.FIELDS (TO FROM SUBJECT DATE)]' ) ],
+        {
+            '1' => {
+                'BODY[HEADER.FIELDS (TO FROM SUBJECT DATE)]' =>
+                  'From: Phil Pearl (Lobbes) <phil+from@perkpartners.com>
+To: phil+to@perkpartners.com
+Subject: foo "bar\" (baz\)
+Date: Sat, 22 Jan 2011 20:43:58 -0500
+
+',
+                'FLAGS' => '',
+            },
+        },
+    ],
+    [
+        "with quotes BODY[HEADER.FIELDS (...)]",
+        [
+q{* 1 FETCH (FLAGS () BODY[HEADER.FIELDS ("TO" "FROM" "SUBJECT" "DATE")]},
             'From: Phil Pearl (Lobbes) <phil+from@perkpartners.com>
 To: phil+to@perkpartners.com
 Subject: foo "bar\" (baz\)
