@@ -1,0 +1,684 @@
+#!/bin/sh
+
+# $Id: cgi_memo,v 1.45 2019/02/10 14:28:53 gilles Exp gilles $
+
+if test -n "$1"; then 
+        echoq() { echo "$@" ; } # not quiet mode
+else
+        echoq() { : ; } # quiet mode: nop
+fi
+
+echoq list_all_logs
+list_all_logs() {
+    cat list_all_logs.txt
+}
+
+echoq list_all_logs_generate
+list_all_logs_generate() {
+    echo Result in list_all_logs.txt
+    sortmtimef . | grep -v 385d7a4d8d428d7aa2b57c8982629e2bd67698ed/ | grep /LOG_imapsync/ > list_all_logs.txt.tmp
+    mv list_all_logs.txt.tmp list_all_logs.txt
+}
+
+
+echoq biggest_transfer
+biggest_transfer() {
+    bytestohuman `datamash_file_op_index G_Total_bytes_transferred.txt max 5`
+}
+
+echoq total_bytes_transferred
+total_bytes_transferred() {
+    datamash_file_op_index G_Total_bytes_transferred.txt sum  5
+}
+	
+# Total volume transferred
+echoq total_volume_transferred
+total_volume_transferred() {
+    #echo -n 'numfmt --to=iec-i '
+    bytestohuman `total_bytes_transferred`
+}
+
+echoq mean_bytes_transferred
+mean_bytes_transferred() {
+    nb_transfers_ended=`wc -l < transfers_sizes_in_bytes.txt`
+    total_bytes_transferred=`total_bytes_transferred`
+    echo "$total_bytes_transferred / $nb_transfers_ended" | bc 
+}
+
+echoq mean_volume_transferred
+mean_volume_transferred() {
+    bytestohuman `mean_bytes_transferred`
+
+}
+
+echoq total_messages_transferred
+total_messages_transferred() {
+    datamash_file_op_index G_Messages_transferred.txt sum  4 %16.0f | tr -d ' '
+}
+
+
+longest_transfer() {
+    printf "%.0f\n" `datamash_file_op_index G_Transfer_time.txt max 4`
+}
+
+echoq number_and_pids_of_imapsync_running
+number_and_pids_of_imapsync_running() {
+    echo "`number_of_imapsync_running` : `pids_of_imapsync_running`"
+    : # always return true
+}
+
+echoq number_of_imapsync_running
+number_of_imapsync_running() {
+    pids_of_imapsync_running | wc -w
+    : # always return true
+}
+
+echoq pids_of_imapsync_running
+pids_of_imapsync_running() {
+    pgrep  -d ' ' -f   cgi-bin/imapsync
+    : # always return true
+}
+
+echoq oom_immune_imapsync_running
+oom_immune_imapsync_running() {
+    for pid in  `pids_of_imapsync_running` 
+    do
+        test -f /proc/$pid/oom_adj || continue
+        echo -n "$pid "
+        cat /proc/$pid/oom_* | tr '\n' ' '
+        { test -f /proc/$pid/oom_adj && echo -12 > /proc/$pid/oom_adj && echo -n ">>> " && cat /proc/$pid/oom_adj ; }
+    done
+}
+
+echoq nb_migrations_launched
+nb_migrations_launched() {
+    /bin/ls . | egrep [a-f0-9]{40} | wc -l
+}
+
+echoq current_stats
+current_stats() {
+    echo -n "Nb accounts: "; nb_migrations_launched
+    echo -n "Nb imapsync running: "; number_and_pids_of_imapsync_running
+    # dstat, Linux 
+    dstat --version > /dev/null 2>&1 && dstat -l -n -cdgyms 60 1 && return
+    # no dstat, FreeBSD
+    dstat --version > /dev/null 2>&1 || vmstat 2 15 && return
+    #clear
+}
+
+echoq watch_current_stats
+watch_current_stats() {
+    export -f current_stats
+    # watch -n 120 current_stats
+    while : ; do 
+        clear
+        oom_immune_imapsync_running
+        current_stats
+    done
+}
+
+
+echoq 'grep_in_all_logs str1 str2 ... # up to str5. Results in mtime order of logfiles'
+grep_in_all_logs() {
+    grep_file=grep_`echo "$1 $2 $3 $4 $5" | tr ' ' '_' | tr -cd '0-9a-zA-Z_.\n'`.txt
+    echo results in "${grep_file}"
+    list_all_logs | tr '\n' '\000'| xargs -0 egrep -E -i "$1" | egrep -i "$2" | egrep -i "$3" | egrep -i "$4" | egrep -i "$5" | tee "${grep_file}.tmp"
+    mv "${grep_file}.tmp" "${grep_file}"
+}
+
+echoq grep_in_logs_manual
+grep_in_logs_manual() {
+cat << EOF
+list_all_logs | tail -500 |  tr '\n' '\000'| xargs -0 egrep -i LALALA | tee grep_LALALA.txt
+EOF
+}
+
+echoq 'grep_stats_from_list_all_logs # long'
+grep_stats_from_list_all_logs() {
+    echo results in grep_stats.txt
+    list_all_logs | tr '\n' '\000'| xargs -0 egrep -i -f stat_patterns.txt > grep_stats.txt.tmp 
+    mv grep_stats.txt.tmp grep_stats.txt
+}
+
+grep_any() {
+    file=G_`echo "$1" | tr ' .' '__' | tr -cd '0-9a-zA-Z_.\n'`.txt
+    echo $file
+    egrep -i "$1" grep_stats.txt > $file.tmp
+    mv $file.tmp $file
+}
+
+grep_load() {
+    echo G_Load.txt
+    egrep -o 'Load is ..?\... ..?\... ..?\...' grep_stats.txt > G_Load.txt
+}
+
+grep_all2() {
+   for k in "$@" ; do 
+       grep_any "$k"
+   done
+}
+
+echoq 'grep_all_stat_from_patterns_list # long'
+grep_all_stat_from_patterns_list() {
+    grep_load
+    stat_patterns_list | while read k; do grep_all2 "$k" ; done
+}
+
+stat_patterns_list() {
+   cat stat_patterns.txt | tr -d '^'
+}
+
+
+echoq stat_load
+stat_load() {
+    echo -n 'Load min:    ' ; datamash --format=%6.1f -W min    3 min    4 min    5 < G_Load.txt
+    echo -n 'Load q1:     ' ; datamash --format=%6.1f -W q1     3 q1     4 q1     5 < G_Load.txt
+    echo -n 'Load median: ' ; datamash --format=%6.1f -W median 3 median 4 median 5 < G_Load.txt
+    echo -n 'Load mean:   ' ; datamash --format=%6.1f -W mean   3 mean   4 mean   5 < G_Load.txt
+    echo -n 'Load q3:     ' ; datamash --format=%6.1f -W q3     3 q3     4 q3     5 < G_Load.txt
+    echo -n 'Load max:    ' ; datamash --format=%6.1f -W max    3 max    4 max    5 < G_Load.txt
+}
+
+datamash_file_op_index() {
+    file="$1"
+    op="${2:-mean}"
+    index="${3:-4}" # the four field by default
+    format="${4:-%16.1f}" # --format=%16.1f by default
+    datamash --format="$format" -W "$op" "$index" < "$file"
+}
+
+stat_any() {
+    file="$1"
+    index=${2:-4} # the four field by default
+    for op in \
+        "min   " \
+        "q1    " \
+        "median" \
+        "mean  " \
+        "q3    " \
+        "max   " \
+        
+    do
+        echo -n "$file $index $op " ; datamash_file_op_index $file $op $index
+    done
+    echo
+}
+
+echoq stat_all
+stat_all() {
+    stat_load ; echo
+    # stat_any  G_REMOTE_ADDR.txt
+    # stat_any  G_REMOTE_HOST.txt
+    # stat_any  G_HTTP_COOKIE.txt
+    # stat_any  G_HTTP_USER_AGENT.txt
+    # stat_any  G_HTTP_REFERER.txt
+    # stat_any  G_Host__IMAP_server.txt
+    # stat_any  G_Host__banner.txt
+    stat_any  G_Messages_transferred.txt
+    stat_any  G_Messages_skipped.txt
+    # stat_any  G_Folders_synced.txt
+    stat_any  G_Transfer_time.txt
+    stat_any  G_Total_bytes_transferred.txt 5
+    stat_any  G_Message_rate.txt
+    stat_any  G_Average_bandwidth_rate.txt 5
+    stat_any  G_Biggest_message.txt
+    stat_any  G_Detected_errors.txt 2 
+    stat_any  G_Exiting_with_return_value.txt 5 # GROUP
+    stat_any  G_Memory_consumption_at_the_end.txt 7
+    #stat_any  G_failure_Error_login.txt
+}
+
+echoq dirs_of_syncs_finished_recently
+dirs_of_syncs_finished_recently() {
+    find .  -maxdepth 1 -mtime "${1:--1}" | grep -v "385d7a4d8d428d7aa2b57c8982629e2bd67698ed" | egrep [a-f0-9]{40} | while read d; do
+        test -f "$d" && continue
+        test -f  $d/imapsync.pid  && continue
+        echo $d
+    done
+}
+
+echoq 'logfiles_finished_recently -3 # less than 3 days, default is like -1'
+logfiles_finished_recently()
+{
+    {
+    # +2 more than 2 days ago
+    # -3 less than 3 days ago
+    #  7 exactly   7 days ago
+    #set -x
+    find .  -maxdepth 1 -mtime "${1:--1}" | grep -v "385d7a4d8d428d7aa2b57c8982629e2bd67698ed" |  egrep [a-f0-9]{40} | while read f; do
+        test -f "$f" && continue
+        test -f  $f/imapsync.pid  && continue
+        test -d $f/LOG_imapsync || continue
+        # { ls -trb $f/LOG_imapsync/* ;  }
+	find $f/LOG_imapsync/ -type f -mtime "${1:--1}" 
+    done
+    } 
+}
+
+last_dirs_written()
+{
+        ls -tr | tail -800 
+}
+
+last_file_written_in_dir()
+{
+        ls -trd $1/LOG_imapsync/* |tail -1
+}
+
+is_dir_running_imapsync()
+{
+        test -d "$1" || return 1
+        test -f  "$1/imapsync.pid"  && PID=`cat "$1/imapsync.pid"` &&
+        ps -p $PID -o comm= > /dev/null
+}
+
+echoq logfiles_running
+logfiles_running()
+{
+        last_dirs_written | while read d
+        do
+                is_dir_running_imapsync "$d" && 
+                        last_file_written_in_dir "$d"
+        done
+}
+
+epoch_of_file()
+{
+        date -r "$1" +%s 
+}
+
+epoch_of_now()
+{
+        date +%s 
+}
+
+is_file_older_than()
+{
+        # return 1 if not exist or recent
+        # return 0 if older than "$2" seconds or 15 minutes (900 secondes)
+        test -f "$1" || return 1
+        epoch_file=`epoch_of_file "$1"`
+        epoch_now=`epoch_of_now`
+        epoch_diff=`expr $epoch_now - $epoch_file`
+        #echo "$epoch_now - $epoch_file = $epoch_diff"
+        if test "${2:-900}" -lt "$epoch_diff" 
+        then
+                #echo older than $2
+                return 0
+        else
+                #echo newer than $2
+                return 1
+        fi
+}
+
+pids_of_imapsync_not_writing_since_x_secondes()
+{
+        x_secondes=${1:-900} # 15 minutes by default
+        last_dirs_written | while read d
+        do
+                is_dir_running_imapsync "$d" && 
+                is_file_older_than `last_file_written_in_dir "$d"` "$x_secondes" &&
+                cat "$d/imapsync.pid" && echo -n " "
+                        
+        done
+
+}
+
+kill_HUP_pids_of_imapsync_not_writing_since_x_secondes()
+{
+        pids_not_writing=`pids_of_imapsync_not_writing_since_x_secondes ${1:-900}` 
+        test -n "$pids_not_writing" && echo kill -HUP "$pids_not_writing" && kill -HUP "$pids_not_writing"
+}
+
+
+watch_logfiles_running_old() {
+    # the "tail --pid=" option does not exist on FreeBSD, it's GNU/Linux
+    while date; do
+        inotifywait /var/tmp/imapsync_cgi -e create 2>/dev/null &
+        PID_inotifywait=$!
+        logfiles_running | xargs -d'\n' tail --pid=$PID_inotifywait -f -v
+        echo "NEW SYNC IS RUNNING"
+        echo "Syncs running: "; number_and_pids_of_imapsync_running
+        sleep 3
+    done
+}
+
+watch_logfiles_running_old2() {
+    while date; do
+        kill $PID_inotifywait
+        inotifywait /var/tmp/imapsync_cgi -e create 2>/dev/null &
+        PID_inotifywait=$!
+        kill_tail_logfiles_running
+        tail_logfiles_running
+        wait $PID_inotifywait 
+        kill_tail_logfiles_running 
+        echo "NEW SYNC IS RUNNING"
+        echo "Syncs running: "; number_and_pids_of_imapsync_running
+        sleep 3
+    done
+}
+
+
+
+
+tail_logfiles_running() {
+        logfiles_running=`logfiles_running`
+        test -n "$logfiles_running" && tail -f $logfiles_running
+        #PID_tail_logfiles_running=$!
+        #fg
+}
+
+echoq watch_logfiles_running
+watch_logfiles_running() {
+        tail_logfiles_running
+}
+
+kill_tail_logfiles_running() {
+        kill $PID_tail_logfiles_running
+}
+
+
+
+echoq watch_new_runs
+watch_new_runs() {
+    while { date; echo -n "Nb syncs currently: " ;  number_and_pids_of_imapsync_running ; } do
+        inotifywait  . -e create 2>/dev/null | { read path action f 
+        echo $f
+        sleep 2
+        test -f  $f/imapsync.pid  && PID=`cat $f/imapsync.pid` && echo PID $PID
+        echo -e '\a'  
+        }
+    done
+}
+
+echoq pidfiles_running_and_not_running
+pidfiles_running_and_not_running() {
+    ls -tr | while read f; do
+        test -f  $f/imapsync.pid  && PID=`cat $f/imapsync.pid` && echo -n "$PID " &&
+        { ps -p $PID -o comm= | tr  '\n' ' '  && { test -f /proc/$PID/oom_score &&  
+            { echo -12 > /proc/$PID/oom_adj ; } && echo -n "oom_score " && cat /proc/$PID/oom_score | tr  '\n' ' ' ; : ; }  
+        } &&
+        { ls -tr $f/LOG_imapsync/* |tail -1 ;  } 
+     done
+}
+
+pidfile_dandling() {
+        pidfile_dandling_DIR=$1
+        test -d $pidfile_dandling_DIR || return 2
+        test -f  $pidfile_dandling_DIR/imapsync.pid || return 3
+        pidfile_dandling_PID=`cat $pidfile_dandling_DIR/imapsync.pid` 
+        #echo "$pidfile_dandling_PID"
+        test -n "$pidfile_dandling_PID" || return 4
+        test "$pidfile_dandling_PID" -ge 1 || return 5
+        if ! ps -p "$pidfile_dandling_PID" -o comm= > /dev/null ; then
+            #echo -n "DANDLING $pidfile_dandling_DIR/imapsync.pid "
+            #echo "# PID $pidfile_dandling_PID"
+            return 0
+	fi
+        return 99
+
+}
+
+echoq pidfiles_not_running
+pidfiles_not_running() {
+    ls -tr | while read f; do
+        if  pidfile_dandling "$f" ; then
+            pidfiles_not_running_PID=`cat $f/imapsync.pid`
+            echo -n "rm $f/imapsync.pid # "
+            { ls -tr $f/LOG_imapsync/* 2>/dev/null |tail -1 ;  } | tr  '\n' ' ' 
+            echo "# PID $pidfiles_not_running_PID"
+	fi
+    done
+}
+
+
+first_use() {
+    test -f first_use && cat first_use && return
+    echo "${1:-2017} ${2:-01} ${3:-09}"
+}
+
+days_since_first_use() {
+    first_use=`first_use "$@"`
+    #echo $[$[$(date +%s)-$(epoch_of_y_m_d_h_m_s 2017 01 09 00 00 00)]/60/60/24]
+    echo $[$[$(date +%s)-$(epoch_of_y_m_d_h_m_s $first_use 00 00 00)]/60/60/24]
+}
+
+epoch_of_y_m_d_h_m_s() {
+        date -v -1d > /dev/null 2>&1 && date -u -v ${1:-1970}y -v ${2:-1}m -v ${3:-1}d -v ${4:-0}H -v ${5:-0}M -v ${6:-0}S +%s && return
+        date --date="1 day ago" > /dev/null && date -u -d "${1:-1970}-${2:-1}-${3:-1} ${4:-0}:${5:-0}:${6:-0}" +%s && return
+}
+
+date_x_days_ago() {
+        date -v -1d > /dev/null 2>&1 && date -u -v -${1:-0}d "+%Y-%m-%d %a" && return
+        date --date="1 day ago" > /dev/null && date -u --date="${1:-0} day ago" "+%Y-%m-%d %a" && return
+}
+
+seconds_to_days_hours() {
+    #eval "echo $(date -ud "@${1:-0}" +'$((%s/3600/24)) days %_H hours %_M min %_S sec')"
+    date -v -1d > /dev/null 2>&1        && eval "echo $(date -ur "${1:-0}" +'$((%s/3600/24)) days %_H hours %_M min %_S sec')" && return
+    date --date="1 day ago" > /dev/null && eval "echo $(date -ud "@${1:-0}" +'$((%s/3600/24)) days %_H hours %_M min %_S sec')" && return
+}
+
+seconds_to_days_hours_echo() {
+    date -v -1d > /dev/null 2>&1        && echo "echo $(date -ur "${1:-0}" +'$((%s/3600/24)) days %_H hours %_M min %_S sec')" && return
+    date --date="1 day ago" > /dev/null && echo "echo $(date -ud "@${1:-0}" +'$((%s/3600/24)) days %_H hours %_M min %_S sec')" && return
+}
+
+
+
+echoq 'runs_per_day 7 # last 7 days'
+runs_per_day() {
+    historic_start=`days_since_first_use`
+    start=${1:-$historic_start}
+    for cc in `count 0 $start`; do
+        DATE=`date_x_days_ago $cc`
+        echo -n "$DATE $cc days ago: "; find . -maxdepth 1 -mtime $cc   -ls |wc -l 
+    done
+}
+
+echoq summary_run
+summary_run() {
+    for summary_run_DIR in "$@"; do
+        echo Analysing $summary_run_DIR
+        echo -n "Nb logs: "; ls $summary_run_DIR/LOG_imapsync/*.txt | wc -l 
+        summary_run_LOGS_LIST=`ls $summary_run_DIR/LOG_imapsync/*.txt`
+        echo -n "List logs: "; echo $summary_run_LOGS_LIST
+        #echo connect failure
+        summary_run_CONNECT_FAIL=`grep -i 'failure: can not open imap connection on' $summary_run_DIR/LOG_imapsync/*.txt|wc -l`
+	echo CONN $summary_run_CONNECT_FAIL
+        #echo login failure
+        grep -i 'failure: Error login on' $summary_run_DIR/LOG_imapsync/*.txt
+        #echo Differences 
+        grep -i "difference host2 - host1" $summary_run_DIR/LOG_imapsync/*.txt
+    done
+}
+
+
+
+logs_nb() {
+    logs_nb_DIR="$1"
+    logs_nb_LOGS_LIST="$logs_nb_DIR"/LOG_imapsync/*.txt
+}
+
+
+
+vnstat_init() {
+        test FreeBSD = `uname -s` && VNSTATI_DIR=/usr/local/www/apache24/data/vnstat/
+        test Linux = `uname -s` && VNSTATI_DIR=/var/www/vnstat/
+        test -d $VNSTATI_DIR || mkdir -p $VNSTATI_DIR
+}
+
+echoq vnstat_gen
+vnstat_gen() {
+        vnstat_init || return 
+        for opt in s h hg hs d m y t vs 5 ; do
+                test "$1" && echo vnstati -$opt -o $VNSTATI_DIR/vnstat_${opt}.png
+                vnstati -$opt -o $VNSTATI_DIR/vnstat_${opt}.png
+        done
+}
+
+echoq vnstat_archive
+vnstat_archive() {
+        (
+        vnstat_gen "$1" || return 
+        
+        now_ymdhms=`date +%Y_%m_%d_%H_%M_%S` || return 
+        mkdir $VNSTATI_DIR/$now_ymdhms/ || return 
+        cd $VNSTATI_DIR/$now_ymdhms/ || return 
+        test "$1" && pwd
+        ln ../*.png ../*.html .
+        )
+        test "$1" && pwd
+}
+
+
+
+echoq dstat_csv
+dstat_csv() {
+    #dstat   -l -n -cdgyms 60 1
+    dstat -t -l -n -cdgyms --output dstat.csv 60
+}
+
+echoq 'ratio_killed_by_TERM -3 # last 3 days'
+ratio_killed_by_TERM() {
+	logfiles_finished_recently=`logfiles_finished_recently $1`
+        nb_logfiles_finished_recently=`echo $logfiles_finished_recently | wc -w`
+	echo -n "Got a signal TERM: " && echo $logfiles_finished_recently | xargs grep -i 'Got a signal TERM' | wc -l
+	echo -n "Got a signal     : " && echo $logfiles_finished_recently | xargs grep -i 'Got a signal'      | wc -l
+	echo -n "Among finished   : " && echo $nb_logfiles_finished_recently
+        echo "logfiles_finished_recently $1 | xargs grep -i 'Got a signal TERM' "
+}
+
+echoq 'nb_syncs_badly_finished -1 # last 1 day'
+nb_syncs_badly_finished() {
+	logfiles_finished_recently=`logfiles_finished_recently $1`
+	nb_logfiles_finished_recently=`echo $logfiles_finished_recently | wc -w`
+	nb_syncs_badly_finished=`echo $logfiles_finished_recently | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' | wc -l `
+	echo $nb_syncs_badly_finished / $nb_logfiles_finished_recently 
+cat <<EOF
+logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' 
+EOF
+}
+
+echoq 'referrer_of_x /var/log/apache2/imapsync_access.log /var/log/apache/httpd-access.log  | sort | uniq -c | sort -n'
+referrer_of_x() {
+        zegrep -h -s -o 'GET /X/? .*http[^"]+'  "${@:-/var/log/apache2/imapsync_access.log}" | grep -o 'http.*'
+}
+
+biggest_message_seen() {
+    datamash -W max 4 < G_Biggest_message.txt | xargs bytestohuman
+}
+
+biggest_message_transferred() {
+    grep 'Host2 Biggest message' < G_Biggest_message.txt | datamash -W max 4  | xargs bytestohuman
+}
+
+
+
+biggest_bandwidth_rate() {
+    datamash_file_op_index G_Average_bandwidth_rate.txt max 5 | tr -d ' ' | tr '\n' ' '
+    echo KiB/s
+}
+
+echoq number_of_X_users
+number_of_X_users() {
+    datamash_file_op_index G_REMOTE_ADDR.txt unique 3 | tr , '\n'  | wc -l
+}
+
+echoq summary_compute2
+summary_compute2() {
+        list_all_logs_generate \
+        && grep_stats_from_list_all_logs \
+        && grep_all_stat_from_patterns_list \
+        && summary_display
+}
+
+echoq summary_display
+summary_display() {
+    vnstat_gen > /dev/null
+    echo    "Start date of /X (aaaa mm dd):  `first_use` (`days_since_first_use` days of service)"
+    echo -n "Number of /X users:            " ; number_of_X_users
+    echo -n "Number of /X accounts synced:  " ; nb_migrations_launched
+    echo -n "Number of /X syncs:            " ; list_all_logs| grep -v abort.txt | wc -l
+    echo -n "Total volume /X transferred:   " ; total_volume_transferred
+    echo -n "Total messages /X transferred: " ; total_messages_transferred
+    echo -n "Biggest transfer:              " ; biggest_transfer
+    echo -n "Biggest message seen:          " ; biggest_message_seen
+    echo -n "Biggest message transferred:   " ; biggest_message_transferred
+    echo -n "Biggest bandwidth rate:        " ; biggest_bandwidth_rate  
+    echo -n "Longest transfer:              " ; seconds_to_days_hours `longest_transfer`
+}
+
+echoq sync_ks2_i005
+sync_ks2_i005() 
+{
+  test "Xks2" = "X`hostname`" \
+  && echo Here is ks2 nothing to do \
+  && return
+  
+  test "Xi005" = "X`hostname`" && echo Here is i005 \
+  && date \
+  && cd /home/imapsync_cgi_ks2/ \
+  && rsync -a root@ks2:/var/tmp/imapsync_cgi/ /home/imapsync_cgi_ks2/ \
+  && summary_compute2 \
+  && echo sending txt back to ks2 \
+  && rsync -av /home/imapsync_cgi_ks2/*txt root@ks2:/var/tmp/imapsync_cgi/ \
+  && date \
+  && pwd
+}
+
+echoq watch_number_of_imapsync_running
+watch_number_of_imapsync_running()
+{
+        date_space
+        while number_of_imapsync_running | tr -d ' \n'
+        do 
+                sleep 6
+                date_if_new_hour
+        done
+
+}
+
+#echoq date_if_new_hour
+date_if_new_hour() 
+{
+        min=`date +%M`
+        sec=`date +%S`
+        #echo $min $sec
+        if test "00" = "$min" && test 6 -ge $sec 
+        then 
+                echo
+                date_space
+                sleep 1
+        fi
+}
+
+date_space() 
+{
+        date | tr -d '\n'
+        echo -n " "
+ 
+}
+
+
+echoq various_usefull
+various_usefull() {
+cat <<'EOF'
+sort  -k5 -n  grep_Messages_transferred____.txt
+sort  -k5 -n  grep_Memory_consumption___.txt
+sort  -k5 -n  grep_Average_bandwidth_rate__.txt
+sort  -k4 -n  grep_Transfer_time____.txt
+strace -e trace=signal -f `pgrep apache | xargs -n1 echo -n  " -p "` 2>&1 
+logfiles_finished_recently -1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0'
+egrep -o 'Host1: IMAP server \[[^]]+\]' G_Host__IMAP_server.txt  | sort | uniq -c | sort -n | tail -15
+egrep -o 'Host2: IMAP server \[[^]]+\]' G_Host__IMAP_server.txt  | sort | uniq -c | sort -n | tail -15
+
+egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | sort -n
+EOF
+}
+
+# hosts used and counted
+# grep Host  grep_success_login_on_with_user.txt | egrep -o 'on \[[^[]+]' | sort | uniq -c | sort -n
+# grep Host1 grep_success_login_on_with_user.txt | egrep -o 'on \[[^[]+]' | sort | uniq -c | sort -n
+# grep Host2 grep_success_login_on_with_user.txt | egrep -o 'on \[[^[]+]' | sort | uniq -c | sort -n
+

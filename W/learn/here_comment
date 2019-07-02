@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+use strict ;
+use warnings ;
+
+
+0 and <<'COMMENT';
+This is a multiline comment.
+Based on David Carter discussion, to do:
+* Call parameters stay the same.
+* Now always "return( $string, $error )". Descriptions below.
+OK * Still    capture STDOUT via "1> $output_tmpfile" to finish in $string and "return( $string, $error )"
+OK * Now also capture STDERR via "2> $error_tmpfile"  to finish in $error  and "return( $string, $error )"
+OK * in case of CHILD_ERROR, return( undef, $error )
+  and print $error, with folder/UID/maybeSubject context,
+  on console and at the end with the final error listing. Count this as a sync error.
+* in case of good command, take final $string as is, unless void. In case $error with value then print it.
+* in case of good command and final $string empty, consider it like CHILD_ERROR =>
+  return( undef, $error ) and print $error, with folder/UID/maybeSubject context,
+  on console and at the end with the final error listing. Count this as a sync error.
+COMMENT
+# End of multiline comment.
+
+

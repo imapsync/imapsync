@@ -1,0 +1,67 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use English;
+use Mail::IMAPClient;
+
+my $rcs = '$Id: append,v 1.1 2011/07/14 16:49:02 gilles Exp gilles $ ';
+
+
+main();
+
+sub main {
+        $ARGV[4] or die "usage: $0 host user password folder file\n";
+
+        my $host     = $ARGV[0];
+        my $user     = $ARGV[1];
+        my $password = $ARGV[2];
+        my $folder   = $ARGV[3];
+        my $file     = $ARGV[4];
+
+        my $imap = Mail::IMAPClient->new();
+        $imap->Debug(1);
+        $imap->Server($host);
+        #$imap->Ssl(1);
+        $imap->connect() or die;
+        $imap->User($user);
+        $imap->Password($password);
+        $imap->login() or die;
+        $imap->Uid(1);
+        $imap->Peek(1);
+        $imap->Clear(0);
+
+        print map {"$_\n"} $imap->folders();
+
+        $imap->select($folder) or $imap->create($folder) or die;
+        $imap->select($folder) ;
+        my @msgs = $imap->messages ;
+        print "LIST: @msgs\n";
+
+        my $msgtext = file_to_string( $file ) || die ;
+
+        my $new_id_1b = $imap->append_string( $folder, $msgtext ) ;
+        print "==== OK 1b $new_id_1b\n" if $new_id_1b ;
+        @msgs = $imap->messages ;
+        print "LIST: @msgs\n";
+
+        $imap->close();
+}
+
+sub file_to_string {
+        my  $file  = shift ;
+	if ( ! $file ) { return ; }
+	if ( ! -e $file ) { return ; }
+	if ( ! -f $file ) { return ; }
+	if ( ! -r $file ) { return ; }
+        my @string ;
+        if ( open my $FILE, '<', $file ) {
+		@string = <$FILE> ;
+		close $FILE ;
+		return( join q{}, @string ) ;
+	}else{
+		myprint( "Error reading file $file : $OS_ERROR\n" ) ;
+		return ;
+	}
+}
+

@@ -1,0 +1,72 @@
+#!/bin/sh
+
+
+printf_this_one()
+{
+        #echo "[$1]"
+        printf "%s %s %0${1}s \n" $prj $date $1
+}
+
+printf_this_one_div10()
+{
+        num=$1
+        printf "%s %s %0$((num/10))s \n" $prj $date $1
+}
+
+
+echo graph_clones_uniq
+graph_clones_uniq()
+{
+        cat csv/imapsync_github_stats_clone.csv \
+        | tr '\r\n' ',\n' \
+        | while IFS=, read -r prj date all uniq
+        do 
+                #echo -n "[$prj $date $all $uniq]"
+                #printf_this_one $all
+                printf_this_one $uniq
+        done
+}
+
+echo graph_clones_all
+graph_clones_all()
+{
+        cat csv/imapsync_github_stats_clone.csv \
+        | tr '\r\n' ',\n' \
+        | while IFS=, read -r prj date all uniq
+        do 
+                #echo -n "[$prj $date $all $uniq]"
+                printf_this_one $all
+                #printf_this_one $uniq
+        done
+}
+
+
+
+echo graph_visitors_uniq
+graph_visitors_uniq()
+{
+        cat csv/imapsync_github_stats_traffic.csv \
+        | tr '\r\n' ',\n' \
+        | while IFS=, read -r prj date all uniq
+        do 
+                #echo -n "[$prj $date $all $uniq]"
+                #printf_this_one_div10 $all
+                printf_this_one_div10 $uniq
+        done
+}
+
+echo graph_visitors_views
+graph_visitors_views()
+{
+        cat csv/imapsync_github_stats_traffic.csv \
+        | tr '\r\n' ',\n' \
+        | while IFS=, read -r prj date all uniq
+        do 
+                #echo -n "[$prj $date $all $uniq]"
+                printf_this_one_div10 $all
+                #printf_this_one_div10 $uniq
+        done
+}
+
+
+

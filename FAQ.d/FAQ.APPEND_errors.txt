@@ -1,0 +1,81 @@
+#!/bin/cat
+$Id: FAQ.APPEND_errors.txt,v 1.6 2019/02/16 22:38:49 gilles Exp gilles $
+
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.APPEND_errors.txt
+
+=======================================================================
+              Dealing with Imapsync APPEND errors.
+=======================================================================
+
+Questions answered in this FAQ are:
+
+Q. For some messages, the imapsync log says 
+   "could not append", sometimes followed by an explicit message 
+   describing what went wrong, or sometimes followed by a not very
+   useful message "socket closed while reading data from server"
+   What can I do?
+
+R0. Well, the problem is that the "socket closed ..." error message happens
+    in several different issues. So I list here several potential issues
+    and their solutions if they exist.
+
+R1. On Windows, add --regexmess "s,(.{9900}),$1\r\n,g"
+
+Some messages have too long lines; for example, 
+Exchange supports only 9900 characters line length.
+Use this option to add "new line" characters (also called CRLF)
+to wrap lines longer than 9900 characters. 
+The regex means "add one CRLF every 9900".
+
+  imapsync.exe ... --regexmess "s,(.{9900}),$1\r\n,g"
+
+R2. On Unix, add --pipemess "reformime -r7". The command reformime
+    usually belongs to the package called "maildrop".
+
+  imapsync ... --pipemess "reformime -r7"
+
+I reproduce here the "reformime" manual part explaining what does 
+the option "-r7" 
+
+$ man reformime |more
+REFORMIME(1)                Double Precision, Inc.                REFORMIME(1)
+
+NAME
+       reformime - MIME E-mail reformatting tool
+
+SYNOPSIS
+       reformime [options...]
+
+DESCRIPTION
+       reformime is a utility for reformatting MIME messages.
+
+       Generally, reformime expects to see an RFC 2045[1] compliant message on
+       standard input
+...
+OPTIONS
+...
+       -r
+           Rewrite message, adding or standardizing RFC 2045[1] MIME headers.
+
+       -r7
+           Like -r but also convert 8bit-encoded MIME sections to
+           quoted-printable.
+...
+   Adding RFC 2045 MIME headers
+       The -r option performs the following actions:
+
+       If there is no Mime-Version:, Content-Type:, or
+       Content-Transfer-Encoding: header, reformime adds one.
+
+       If the Content-Transfer-Encoding: header contains 8bit or raw, but only
+       seven-bit data is found, reformime changes the
+       Content-Transfer-Encoding header to 7bit.
+
+       -r7 does the same thing, but also converts 8bit-encoded content that
+       contains eight-bit characters to quoted-printable encoding.
+
+       
+R2. 
+       

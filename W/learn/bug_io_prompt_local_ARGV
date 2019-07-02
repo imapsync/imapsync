@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use IO::Prompt;
+
+# The defect is when used with a pipe, like the following on the command line example,
+# prompt() does not print the prompt string 'Say something: '
+# however the variable @ARGV is locally empty.
+# The output is then only:
+#
+# $ echo bla bla bla | ./bug_io_prompt_local_ARGV param1 param2
+# ARGV are param1 param2
+# You said: bla bla bla
+
+# I tried also 
+# prompt( \*STDOUT, 'Say something: ');
+
+# The behavior is ok without the pipe:
+# ./bug_io_prompt_local_ARGV param1 param2
+
+print "$IO::Prompt::VERSION\n" ;
+print "ARGV are @ARGV\n" ;
+
+my $input = get_stdin();
+
+print "You said: $input\n" ;
+
+sub get_stdin
+{
+        local(@ARGV) ;
+        my $input = prompt( 
+                -prompt => 'Say it: ', 
+                -echo => '*', 
+                -newline => "\nGot it\n" 
+        ) ;
+        return $input ;
+}

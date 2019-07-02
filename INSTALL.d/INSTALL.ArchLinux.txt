@@ -1,0 +1,92 @@
+#!/bin/cat 
+# $Id: INSTALL.ArchLinux.txt,v 1.3 2018/09/03 02:00:22 gilles Exp gilles $
+
+This documentation is also located online at 
+https://imapsync.lamiral.info/INSTALL.d/
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.ArchLinux.txt
+
+==========================================
+===  Installing imapsync on ArchLinux  ===
+==========================================
+
+Thanks to Aldo Villagra!
+
+---------------------------------
+With yaourt and AUR repositories
+---------------------------------
+
+  pacman -S --needed  base-devel git
+
+  git clone https://aur.archlinux.org/package-query.git
+  cd package-query
+  makepkg -si
+  cd ..
+  git clone https://aur.archlinux.org/yaourt.git
+  cd yaourt
+  makepkg -si
+  cd ..
+
+After you have installed Yaourt, you can install imapsync:
+
+  yaourt -S --needed imapsync
+
+That's all folks!
+
+-----------------------------------------------
+With the "pacman" and the standard repositories
+community/
+extra/
+-----------------------------------------------
+
+Commands to run:
+
+  pacman -S --needed make lsb-release cpanminus wget
+  
+  pacman -S --needed community/perl-cgi \
+   extra/perl-crypt-openssl-rsa \
+   extra/perl-data-uniqid \
+   extra/perl-digest-hmac \
+   community/perl-dist-checkconflicts \
+   extra/perl-file-copy-recursive \
+   extra/perl-io-socket-inet6 \
+   extra/perl-io-socket-ssl \
+   community/perl-io-tee \
+   community/perl-json \
+   extra/perl-html-parser \
+   extra/perl-libwww \
+   community/perl-module-implementation \
+   community/perl-module-runtime \
+   community/perl-module-scandeps \
+   extra/perl-net-ssleay \
+   community/perl-package-stash \
+   community/perl-package-stash-xs \
+   community/perl-parse-recdescent \
+   community/perl-readonly \
+   community/perl-regexp-common \
+   extra/perl-term-readkey \
+   community/perl-test-fatal \
+   community/perl-test-mockobject \
+   extra/perl-test-pod \
+   community/perl-test-requires \
+   community/perl-test-nowarnings \
+   community/perl-test-deep \
+   extra/perl-try-tiny \
+   extra/perl-uri 
+
+Mandatory Perl modules via cpanm:
+
+  cpanm Mail::IMAPClient \
+   Unicode::String \
+   Sys::MemInfo \
+
+Other Perl modules, needed sometimes:
+
+  cpanm Authen::NTLM  \
+   JSON::WebToken \
+   JSON::WebToken::Crypt::RSA \
+   Test::Mock::Guard \
+   Test::Warn \
+   PAR::Packer
+
+  
+  

@@ -1,0 +1,66 @@
+#!/bin/sh
+
+echo imapsync_docker_timestamp_dockerfile
+imapsync_docker_timestamp_dockerfile() {
+	DATE_CURRENT=`date +%Y_%m_%d_%H_%M_%S`
+	echo $DATE_CURRENT
+	sed -i -e "/just_a_comment_to_force_update/s/comment_to_force_update.*/comment_to_force_update $DATE_CURRENT/" Dockerfile
+	ci -l -f -m"Changing timestamp to $DATE_CURRENT with imapsync_docker_timestamp_dockerfile" Dockerfile
+}
+
+echo imapsync_docker_build
+imapsync_docker_build() {
+    docker build -t gilleslamiral/imapsync .
+    docker images
+    echo 
+    #docker run gilleslamiral/imapsync imapsync --testslive
+    #docker run gilleslamiral/imapsync imapsync --testslive6
+    # docker run gilleslamiral/imapsync imapsync --testslive6 --nossl2
+}
+
+echo imapsync_docker_testslive
+imapsync_docker_testslive() {
+    docker run gilleslamiral/imapsync imapsync --testslive
+}
+
+echo imapsync_docker_testslive6
+imapsync_docker_testslive6() {
+    docker run gilleslamiral/imapsync imapsync --testslive6 --ssl1 --ssl2
+}
+
+echo imapsync_docker_tests
+imapsync_docker_tests() {
+    docker run gilleslamiral/imapsync imapsync --tests
+}
+
+echo docker_delete_all_images
+docker_delete_all_images() {
+    docker rm `docker ps -a -q`
+    docker rmi `docker images -q`
+}
+
+echo docker_delete_dandling_images
+docker_delete_dandling_images() {
+	docker images
+	dandling_images=`docker images -f dangling=true -q`
+	exited_containers=`docker ps -a -f status=exited -q`
+	test -n "$exited_containers" && docker rm $exited_containers
+	test -n "$dandling_images"   && docker rmi $dandling_images
+	docker images
+}
+
+
+echo imapsync_docker_rebuild_from_scratch
+imapsync_docker_rebuild_from_scratch() {
+    delete_all_images
+    docker images
+    imapsync_docker_build
+}
+
+echo imapsync_docker_upload
+imapsync_docker_upload() {
+    docker login --username=gilleslamiral --password=`cat $HOME/var/pass/secret.docker` \
+    && docker push gilleslamiral/imapsync
+}
+
+
