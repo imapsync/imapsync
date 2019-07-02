@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# $Id: imapsync,v 1.920 2019/02/09 15:45:31 gilles Exp gilles $
+# $Id: imapsync,v 1.921 2019/02/18 10:21:03 gilles Exp gilles $
 # structure
 # pod documentation
 # use pragmas
@@ -25,7 +25,7 @@ and without duplicates.
 
 =head1 VERSION
 
-This documentation refers to Imapsync $Revision: 1.920 $
+This documentation refers to Imapsync $Revision: 1.921 $
 
 =head1 USAGE
 
@@ -926,7 +926,7 @@ my(
 
 $sync->{timestart} = time ; # Is a float because of use Time::HiRres
 
-$sync->{rcs} = q{$Id: imapsync,v 1.920 2019/02/09 15:45:31 gilles Exp gilles $} ;
+$sync->{rcs} = q{$Id: imapsync,v 1.921 2019/02/18 10:21:03 gilles Exp gilles $} ;
 
 $sync->{ memory_consumption_at_start } = memory_consumption(  ) || 0 ;
 
@@ -1005,8 +1005,8 @@ if ( ! defined $options_good ) { exit $EX_USAGE ; }
 # the second line (ending with "1 ;") can then stay active or be commented,
 # the result will be the same: no releasecheck by default (because 0 is then the defined value).
 
-$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 0 ;
-#$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 1 ;
+#$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 0 ;
+$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 1 ;
 
 # just the version
 if ( $sync->{ version } ) {
@@ -2199,7 +2199,9 @@ FOLDER: foreach my $h1_fold ( @h1_folders_wanted ) {
                                 push @h1_msgs_to_delete, $h1_msg ;
                         }
 
-                        if ( not $sync->{ dry } )
+                        # A bug here with imapsync 1.920, fixed in 1.921
+                        # Added $h2_msg in the condition. Errors of APPEND were not counted as missing messages on host2!
+                        if ( $h2_msg and not $sync->{ dry } )
                         { 
                                 $sync->{ h2_folders_of_md5 }->{ $m_id }->{ $h2_fold } ++ ;
                         }
@@ -3505,7 +3507,7 @@ sub imapsync_id
                 vendor        => 'Gilles LAMIRAL',
                 'support-url' => 'https://imapsync.lamiral.info/',
                 # Example of date-time:  19-Sep-2015 08:56:07
-                date          => date_from_rcs( q{$Date: 2019/02/09 15:45:31 $ } ),
+                date          => date_from_rcs( q{$Date: 2019/02/18 10:21:03 $ } ),
         } ;
 
         my $imapsync_id_github  = {
@@ -3514,7 +3516,7 @@ sub imapsync_id
                 os            => $OSNAME,
                 vendor        => 'github',
                 'support-url' => 'https://github.com/imapsync/imapsync',
-                date          => date_from_rcs( q{$Date: 2019/02/09 15:45:31 $ } ),
+                date          => date_from_rcs( q{$Date: 2019/02/18 10:21:03 $ } ),
         } ;
 
         $imapsync_id = $imapsync_id_lamiral ;
@@ -5458,8 +5460,8 @@ sub banner_imapsync
 
         my $banner_imapsync = join q{},
                 q{$RCSfile: imapsync,v $ },
-                q{$Revision: 1.920 $ },
-                q{$Date: 2019/02/09 15:45:31 $ },
+                q{$Revision: 1.921 $ },
+                q{$Date: 2019/02/18 10:21:03 $ },
                 "\n",
                 "Command line used:\n",
                 "$PROGRAM_NAME ", command_line_nopassword( @argv ), "\n" ;

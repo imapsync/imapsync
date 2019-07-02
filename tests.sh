@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.324 2019/02/10 12:16:41 gilles Exp gilles $  
+# $Id: tests.sh,v 1.325 2019/02/19 08:28:23 gilles Exp gilles $  
 
 # general tests start
 # general tests end
@@ -489,6 +489,19 @@ ll_final_diff() {
          --passfile2 ../../var/pass/secret.titi \
 	 --folder INBOX --f1f2 INBOX=INBOX.final_diff --maxage 30 
 }
+
+ll_with_errors() {
+        can_send && sendtestmessage
+        can_send && sendtestmessage
+        $CMD_PERL  ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --maxage 30 \
+        --regexflag 's/.*/PasGlop \\PasGlopRe/'
+}
+
 
 
 ll_errors() {

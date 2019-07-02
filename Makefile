@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.289 2019/02/17 15:25:37 gilles Exp gilles $	
+# $Id: Makefile,v 1.290 2019/02/18 12:02:32 gilles Exp gilles $	
 
 .PHONY: help usage all doc
 
@@ -440,6 +440,8 @@ imapsync_64bit.exe: imapsync
 	pc_HP_DV7_p24:'Desktop/imapsync_build'
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
 	./W/check_win64err build_exe.bat
+	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/test_exe.bat'
+	./W/check_win64err test_exe.bat
 	rm -f imapsync_64bit.exe
 	scp pc_HP_DV7_p24:'Desktop/imapsync_build/imapsync.exe' imapsync_64bit.exe
 	(date "+%s"| tr "\n" " "; echo -n "END 64bit   " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
