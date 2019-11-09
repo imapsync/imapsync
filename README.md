@@ -1,4 +1,4 @@
-# Imapsync payment
+# Imapsync sponsoring
 
 Help the imapsync author, Gilles, to maintain free and gratis imapsync and its online services;
 My business is that I earn my living from imapsync buyers and from the word of mouth of others
@@ -9,10 +9,11 @@ you will get also a regular invoice for your company.
 
 If 60 EUR is too much, then consider a smaller donation:
 
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=TUENPW59U9LL2)
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=TUENPW59U9LL2) or on a regular monthly basis via the new github sponsoring campaign https://github.com/sponsors/gilleslamiral
 
-Thanks in any case, even no money, I'm ok with that!
+**Thanks in any case, even no money, I'm ok with that!**
 
+# README
 ````
 NAME
 
