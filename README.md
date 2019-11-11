@@ -1,7 +1,6 @@
 # Imapsync sponsoring
 
-Help the imapsync author, Gilles, to maintain free and gratis imapsync and its online services;
-My business is that I earn my living from imapsync buyers and from the word of mouth of others
+There are 12000 imapsync github clones done per year (33 per day) and 48000 uniq visitors (132 per day). The paradox to get imapsync stay free and and gratis for anyone is that the imapsync author needs to be paid for maintening and improving it.
 
 In case you're using imapsync in a professional context, 
 then consider buying imapsync at https://imapsync.lamiral.info/#buy_all, 
