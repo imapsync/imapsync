@@ -1,13 +1,13 @@
 # Imapsync sponsoring
 
-You are a great imapsync user or perhaps future one! I thank you for that, very much.
+You are a great imapsync user or perhaps a future one! I thank you for that, very much.
 The paradox to get imapsync stay free and gratis for anyone is that the imapsync author needs to be paid for maintening and improving it.
 
 In case you're using imapsync in a professional context, 
-then consider buying imapsync at https://imapsync.lamiral.info/#buy_all, 
+then consider buying imapsync and support at https://imapsync.lamiral.info/#buy_all, 
 you will get also a regular invoice for your company.
 
-If 60 EUR is too much, then consider a smaller donation:
+If it's too much, then consider a smaller donation:
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=TUENPW59U9LL2) or on regular monthly donation via the new github sponsoring campaign https://github.com/sponsors/gilleslamiral
 
