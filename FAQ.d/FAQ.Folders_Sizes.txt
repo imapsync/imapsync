@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Folders_Sizes.txt,v 1.2 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.Folders_Sizes.txt,v 1.3 2019/07/25 15:57:04 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -9,6 +9,15 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Sizes.txt
   Imapsync tips to know folders sizes.
 =======================================================================
 
+Questions answered in this FAQ are:
+
+Q. How can I know the size of all folders before launching a sync?
+
+Q. The folders sizes and the number of messages don't match between
+   the source mailbox and the destination mailbox.
+   Why and what can I do?
+
+Now the questions again with their answers.
 
 
 =======================================================================
@@ -16,11 +25,54 @@ Q. How can I know the size of all folders before launching a sync?
 
 R. Use --justfoldersizes option.
 
-With --justfoldersizes option, imapsync displays the folder size
-part of a run and then exits without doing any transfer:
+With the --justfoldersizes option, imapsync evaluates and displays the 
+folders sizes on both sides and then exits without doing any transfer.
+Example:
 
   imapsync ... --justfoldersizes
 
+=======================================================================
+Q. The folders sizes and the number of messages don't match between
+   the source mailbox on host1 and the destination mailbox on host2.
+   Why and what can I do?
+
+R. There are several reasons to explain the different counts between
+   source and destination after a sync.
+   
+1) The sync ended prematurely, before syncing all wanted folders.
+   Solution: run new syncs until completion.
+
+2) There are messages on host2 that are not on host1, so host2 is
+   bigger than host1. Imapsync doesn't delete any message by default. 
+   Solution: use --delete2 to have a strict sync by folder, ie, 
+   delete messages on host2 that are not on host1.
+   
+3) There are folders on host2 that are not on host1, so host2 is 
+   bigger. Imapsync doesn't delete any folder by default.
+   Solution: use --delete2folders to have a strict sync, ie, 
+   delete folders on host2 that are not on host1.
+
+4) There are duplicate messages on host1. Imapsync doesn't sync 
+   duplicates by default. But it counts them and presents the number
+   found at the end on the line "Messages found duplicate on host1". 
+   To sync duplicates, use option --useuid
+   --useuid has some caveats. See the documant FAQ.Duplicates.txt
+   for details about it at
+   https://imapsync.lamiral.info/FAQ.d/FAQ.Duplicates.txt
+
+5) There are duplicate messages on host2 so host2 is
+   bigger than host1. Solution: use --delete2duplicates to delete
+   the host2 duplicates.
+
+6) Cosmic rays...
+
+The important part to take into account is the last lines of imapsync
+if you encounter the line:
+"The sync looks good, all X identified messages in host1 are on host2."
+and also no unidentified messages.
+
 
 =======================================================================
 =======================================================================
+
+ 

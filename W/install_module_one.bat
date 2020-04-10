@@ -1,5 +1,5 @@
 
-@REM $Id: install_module_one.bat,v 1.9 2019/05/28 13:20:08 gilles Exp gilles $
+@REM $Id: install_module_one.bat,v 1.11 2019/12/11 18:57:04 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO OFF 
@@ -18,11 +18,12 @@ IF ERRORLEVEL 1 ECHO Perl needed. Install Strawberry Perl. Get it at http://stra
 @REM PAUSE
 @REM EXIT
 FOR %%M in ( 
-              Crypt::OpenSSL::RSA ^         
+               IO::Tee   ^         
              ) DO perl -m%%M -e "print qq{Updating %%M $%%M::VERSION \n}" ^
    & cpanm --force %%M
 
-REM IO::Socket::SSL Net::SSLeay PAR::Packer IO::Tee Crypt::OpenSSL::RSA
+REM & cpanm --force %%M 
+REM IO::Socket::SSL Net::SSLeay PAR::Packer IO::Tee Crypt::OpenSSL::RSA Encode::IMAPUTF7 IO::Socket::IP
 
 @ECHO Perl modules for imapsync installed
 @REM Do a PAUSE if run by double-click, aka, explorer (then ). No PAUSE in a DOS window or via ssh.

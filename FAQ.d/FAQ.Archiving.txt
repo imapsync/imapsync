@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Archiving.txt,v 1.14 2019/03/22 11:50:36 gilles Exp gilles $
+$Id: FAQ.Archiving.txt,v 1.18 2019/10/23 17:56:28 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -11,49 +11,82 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Archiving.txt
 
 Questions answered in this FAQ are:
 
-Q. Can I archive different accounts on the same destination account,
+Q. How can I archive different accounts on the same destination account,
    each account on a separate folder?
 
+Q. How can I restore a complete account archived in a subfolder, like
+   with the option --subfolder2?
+
 Q. How to move emails from one IMAP folder to another either on the 
-  same IMAP server or a different one?
-  For example, all messages older than 1 year, move from INBOX to Archive.
+   same IMAP server or a different one?
+   For example, all messages older than 1 year, move from INBOX to Archive.
 
-Q. Can imapsync be used to maintain a local offline copy of a 
-   mailbox from host1, eg for backup purposes, so that if the 
-   server fails, then the mailbox could be reinstated,
-   ideally without requiring a second IMAP host?
+Q. Can imapsync be used to maintain and restore a local offline copy 
+   of a mailbox, eg for backup purposes, using Mbox or Maildir 
+   format, so that if the server fails, then the mailbox could be 
+   reinstated?
 
+Q. How to archive a whole year in a subfolder?
 
+Q. How to archive a whole year in subfolders but without subsubfolders?
 
 https://imapsync.lamiral.info/FAQ.d/FAQ.Archiving.txt
 =======================================================================
-Q. Can I archive different accounts on the same destination account,
+Q. How can I archive different accounts on the same destination account,
    each account on a separate folder?
 
-R. Yes. Use --subfolder2 
+R. Use --subfolder2 
 
  --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
                        host2 given folder str.
                        (It does it internally by adding two --regextrans2 
                        options before all others.)
 
-Example:
+Examples:
 
-  imapsync ... --user1 Foo --subfolder2 FooArch
+  imapsync ... --user1 Foo --subfolder2 FooArchiv
 
-  imapsync ... --user1 Bar --subfolder2 BarArch
+  imapsync ... --user1 Bar --subfolder2 BarArchiv
 
-In case you need a strict sync, add --delete2 --delete2foldersonly "FooArch"
-(or "BarArch" for the second example); it will delete on account2 
-what is not on account1 but only in the right place, ie, the subfolder "foo".
-Example:
+In case you need a very strict sync, add options 
+--delete2 --delete2foldersonly "FooArchiv"
+(or "BarArchiv" for the second example).
+It will delete on account2 what is not on account1 but only in the right place, 
+ie, the subfolder "FooArchiv".
+
+Examples:
   
-  imapsync ... --user1 Foo --subfolder2 FooArch --delete2 --delete2foldersonly "FooArch" 
-  
+  imapsync ... --user1 Foo --subfolder2 FooArchiv --delete2 --delete2foldersonly "FooArchiv" 
+
+  imapsync ... --user1 Bar --subfolder2 BarArchiv --delete2 --delete2foldersonly "BarArchiv" 
+
+=======================================================================
+Q. How can I restore a complete account archived in a subfolder, like
+   with the option --subfolder2?
+
+R. Use --subfolder1
+
+ --subfolder1   str  : Syncs the host1 folders hierarchy under folder str
+                        to the root hierarchy of host2.
+                        It's the couterpart of a sync done by --subfolder2
+                        when doing it in the reverse order. 
+                        Backup/Restore scenario:
+                        Use --subfolder2 str for a backup to the folder str
+                        on host2. Then use --subfolder1 str for restoring 
+                        from the folder str, after inverting 
+                        host1/host2 user1/user2 values.
+
+Examples:
+
+  imapsync ... --user2 Foo --subfolder1 FooArchiv
+
+  imapsync ... --user2 Bar --subfolder1 BarArchiv
+
+
 =======================================================================
 Q. How to move emails from one IMAP folder to another either on the 
-  same IMAP server or a different one?
-  For example, move all messages older than 1 year from INBOX to Archive.
+   same IMAP server or a different one?
+   For example, all messages older than 1 year, move from INBOX to Archive.
  
 R1. Solution:
 
@@ -67,12 +100,12 @@ R2. See also file FAQ.Folders_Mapping.txt
 
 https://imapsync.lamiral.info/FAQ.d/FAQ.Archiving.txt
 =======================================================================
-Q. Can imapsync be used to maintain a local offline copy of a 
-   mailbox from host1, eg for backup purposes, so that if the 
-   server fails, then the mailbox could be reinstated,
-   ideally without requiring a second IMAP host?
+Q. Can imapsync be used to maintain and restore a local offline copy 
+   of a mailbox, eg for backup purposes, using Mbox or Maildir 
+   format, so that if the server fails, then the mailbox could be 
+   reinstated?
 
-R1. No. Imapsync plays with imap servers only.
+R1. No. Imapsync plays with IMAP servers only.
 
 R2. Imapsync can't but rick-sanders-imap-tools can!
     See https://github.com/andrewnimmo/rick-sanders-imap-tools
@@ -88,6 +121,23 @@ R2. Imapsync can't but rick-sanders-imap-tools can!
     is more dangerous than doing no backups at all. No backups makes
     people act in a safer way, well, usually...
     
-=======================================================================
-=======================================================================
+R3. Use ImportExportTools for Mozilla Thunderbird by Paolo Kaosmos. 
+    ImportExportTools does not do IMAP as a destination.
 
+=======================================================================
+Q. How to archive a whole year in a subfolder?
+
+R.
+
+  imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018" \
+      --folder2 ARCHIVE_2018 --justfolders --dry
+
+=======================================================================
+Q. How to archive a whole year in subfolders but without subsubfolders?
+
+
+  imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018" \
+             --sep2 _ --regextrans2 's{(.*)}{Archive_$1_2018}' --justfolders --dry
+
+=======================================================================
+=======================================================================

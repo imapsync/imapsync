@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.POP3.txt,v 1.3 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.POP3.txt,v 1.5 2019/07/27 20:18:37 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -25,11 +25,12 @@ Q. Can I use imapsync to migrate emails from pop3 server to imap server?
 R1. No, but you can migrate emails from a pop3 server to an imap server 
 with the command line tool pop2imap:
 http://www.linux-france.org/prj/pop2imap/
+http://www.linux-france.org/prj/pop2imap/README
 
 R2. Yes, sometimes, because many pop3 servers runs in parallel
 with an imap server on exactly the same mailboxes. They serve 
-the same INBOX (imap serves INBOX and several other folders, 
-pop3 serves only INBOX).
+the same INBOX, ie, imap serves INBOX and several other folders, 
+pop3 serves only INBOX.
 So have a try with imapsync on the same host1.
 
 =======================================================================
@@ -38,25 +39,80 @@ Q. How can I handle those terrible POP-leaving-a-copy users?
    their emails after a migration, which is a big pain and 
    causes hundreds of support calls. 
 
+R1. Context and condition: you have access to the POP email client tool
+and the user WILL STAY using POP.
 
-R. A discussion about this issue
+POP email client tools can leave or delete the messages after pulling 
+them. It's very often a configurable behavior. Configure the email client
+tool to delete the messages already pulled and then they won't never 
+be pulled again from the server to the client. 
+
+If you can't access to the POP email client tool, see R2 below.
+
+Problem in the future: INBOX will be seen as empty when the email client
+go to IMAP (unless the email client tool allows then an upload
+synchronization, but don't count on that...)
+
+
+R2. Context and condition: you know which users use POP.
+
+If the pop mailboxes are known then all the INBOX messages can be moved 
+in an subfolder called INBOX_backup for example. Ti help you do this,
+the tool pop2imap transfers messages from POP to IMAP, without duplicates, 
+without deleting the messages transferred, by default, and can put them 
+in any subfolder you want to. It can also delete them and, that way,
+do what the email client tool don't or can't do, for any reason. 
+We're here to do a good job with what we have, do we?
+
+In case of Dovecot for example, the magic can be there since already 
+fetched messages via POP are seen as \Seen in IMAP but the new messages are 
+seen as new messages, thanks to the Dovecot developper Timo's cleverness!. 
+So it is possible to sync back only the new messages to INBOX, 
+with "imapsync ... --search UNSEEN ...", and then  POP users won't see the old 
+messages come back but they will see the new messages and fetch them via POP.
+
+
+R3. Context and condition: you know nothing
+
+Do R2 without the sync back of UNSEEN messages. It can't hurt to have a backup
+of INBOX in a subfolder for IMAP or POP users.
+
+R4. Here are some points, an analyse that made me purpose the not 
+to bad but not very good R2 answer.
+
+There was a discussion about this issue on the imapsync mailing-list:
 http://www.linux-france.org/prj/imapsync_list/msg02622.html
 http://www.linux-france.org/prj/imapsync_list/msg02623.html
 My reply was not very good
 http://www.linux-france.org/prj/imapsync_list/msg02624.html
 It's because I wrote pop2imap and it uses a stateless
-mechanism to avoid duplicates, I wasn't aware of UIDL.
-
-Here is a better response to handle and fix this problem, I hope:
-If the pop mailboxes are known and known to be regularly fetched, then
-all the INBOX messages, or at least the "old" ones, can be moved in an
-subfolder INBOX_back. It requires to have "access" to the POP
-sessions. The POP server log file is usually enough to know which
-account opened a pop connection, and when.
+mechanism to avoid duplicates, I wasn't aware of UIDL when I wrote pop2imap,
+and later when I entered the discussion.
 
 See also Rick Sanders discussion about this issue:
 https://www.emailquestions.com/threads/how-to-prevent-duplicate-emails-after-server-migration-for-pop3-users-with-leave-mail-on-server.8109/
 
+Quoting Timo Sirainen on
+https://wiki2.dovecot.org/Migration
+
+"If a client already saw changed UIDLs and decided to start
+re-downloading mails, it's unlikely there is anything you can do to
+stop it. Even going back to your old server is unlikely to help at
+that point."
+
+"Some (many?) POP3 clients also require that the message ordering is
+preserved."
+
+"Some clients re-download all mails if you change the hostname in the
+client configuration. Be aware of this when testing."
+
+Quoting 
+https://wiki.dovecot.org/POP3Server
+
+"Flag changes
+By default when a message is RETRed, \Seen flag is added to it. 
+POP3 itself doesn't support flags, but if the mailbox is opened 
+with IMAP (eg. from webmail) it's shown as seen."
 
 =======================================================================
 =======================================================================

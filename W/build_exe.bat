@@ -1,5 +1,5 @@
 
-REM $Id: build_exe.bat,v 1.54 2019/05/28 13:20:08 gilles Exp gilles $
+REM $Id: build_exe.bat,v 1.56 2019/12/11 18:57:20 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO Currently running through %0 %*
@@ -19,9 +19,9 @@ CALL :handle_error CALL :rename_to_old
 CALL :handle_error CALL :pp_exe
 CALL :handle_error CALL :copy_with_architecture_name
 
-@ENDLOCAL
 @REM Do a PAUSE if run by double-click, aka, explorer (then ). No PAUSE in a DOS window or via ssh.
 IF %0 EQU "%~dpnx0" IF "%SSH_CLIENT%"=="" PAUSE
+@ENDLOCAL
 EXIT /B
 
 
@@ -42,8 +42,7 @@ EXIT /B
         @REM 32 bits
         @REM Do not add command after this one since it will anihilate the %ERRORLEVEL% of pp
         ECHO Building 32 bits binary PROCESSOR_ARCHITECTURE = %PROCESSOR_ARCHITECTURE%
-        CALL     pp -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event ^
-                                -M Test2::Event::Info  ^
+        CALL pp -u -x -o imapsync.exe -M Test2::Formatter -M Test2::Formatter::TAP -M Test2::Event ^
                                 --link zlib1_.dll ^
                                 --link libcrypto-1_1_.dll ^
                                 --link libssl-1_1_.dll ^
@@ -52,8 +51,8 @@ EXIT /B
         @REM 64 bits
         @REM Do not add command after this one since it will anihilate the %ERRORLEVEL% of pp
         ECHO Building 64 bits binary PROCESSOR_ARCHITECTURE = %PROCESSOR_ARCHITECTURE%
-        CALL pp -o imapsync.exe -M Test2::Formatter   -M Test2::Formatter::TAP -M Test2::Event ^
-                                -M Test2::Event::Info -M Test2::EventFacet     -M Test2::Event::Pass ^
+        CALL pp -u -x -o imapsync.exe -M Test2::Formatter   -M Test2::Formatter::TAP -M Test2::Event ^
+                                -M Test2::EventFacet     -M Test2::Event::Pass ^
                                 -M Test2::Event::Fail -M Test2::Event::V2 ^
                                 --link  libcrypto-1_1-x64__.dll ^
                                 --link  zlib1__.dll ^
@@ -62,6 +61,8 @@ EXIT /B
 )
 @ENDLOCAL
 EXIT /B
+
+@REM -M Test2::Event::Info 
 
 
 ::------------------------------------------------------
@@ -84,7 +85,7 @@ EXIT /B
 :rename_to_old
 @SETLOCAL
 IF EXIST imapsync_old.exe DEL imapsync_old.exe
-RENAME imapsync.exe imapsync_old.exe
+IF EXIST imapsync.exe RENAME imapsync.exe imapsync_old.exe
 @ENDLOCAL
 EXIT /B
 ::------------------------------------------------------
@@ -106,6 +107,7 @@ EXIT /B
 :check_modules
 @SETLOCAL
 perl ^
+     -mApp::cpanminus ^
      -mTest::MockObject ^
      -mPAR::Packer ^
      -mReadonly ^
@@ -135,8 +137,47 @@ perl ^
      -mCrypt::OpenSSL::RSA ^
      -mEncode::Byte ^
      -mFile::Tail ^
+     -mEncode ^
+     -mEncode::IMAPUTF7 ^
+     -mMIME::Base64 ^
      -e ''
 IF ERRORLEVEL 1 CALL .\install_modules.bat
+@ECHO Calling a second time to check all modules are now installed
+perl ^
+     -mApp::cpanminus ^
+     -mTest::MockObject ^
+     -mPAR::Packer ^
+     -mReadonly ^
+     -mAuthen::NTLM ^
+     -mData::Dumper ^
+     -mData::Uniqid ^
+     -mDigest::HMAC_MD5 ^
+     -mDigest::HMAC_SHA1 ^
+     -mDigest::MD5 ^
+     -mFile::Copy::Recursive  ^
+     -mFile::Spec ^
+     -mIO::Socket ^
+     -mIO::Socket::INET ^
+     -mIO::Socket::IP ^
+     -mIO::Socket::SSL ^
+     -mIO::Tee ^
+     -mMail::IMAPClient ^
+     -mRegexp::Common ^
+     -mTerm::ReadKey ^
+     -mTime::Local ^
+     -mUnicode::String ^
+     -mURI::Escape ^
+     -mJSON::WebToken ^
+     -mLWP::UserAgent ^
+     -mHTML::Entities ^
+     -mJSON ^
+     -mCrypt::OpenSSL::RSA ^
+     -mEncode::Byte ^
+     -mFile::Tail ^
+     -mEncode ^
+     -mEncode::IMAPUTF7 ^
+     -mMIME::Base64 ^
+     -e ''
 @ENDLOCAL
 EXIT /B
 ::------------------------------------------------------
@@ -144,10 +185,11 @@ EXIT /B
 
 
 
+
 ::------------------------------------------------------
 ::--------------- Handle error -------------------------
 :handle_error
-SETLOCAL
+@SETLOCAL
 ECHO IN %0 with parameters %*
 %*
 SET CMD_RETURN=%ERRORLEVEL%
@@ -159,6 +201,6 @@ IF %CMD_RETURN% EQU 0 (
         IF NOT EXIST LOG_bat MKDIR LOG_bat
         ECHO Failure calling: %* >> LOG_bat\%~nx0.txt
 )
-ENDLOCAL
+@ENDLOCAL
 EXIT /B
 ::------------------------------------------------------

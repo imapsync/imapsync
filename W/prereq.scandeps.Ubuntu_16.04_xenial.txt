@@ -1,11 +1,11 @@
 Name:
 
- imapsync - Email IMAP tool for syncing, copying and migrating email
- mailboxes between two imap servers, one way, and without duplicates.
+ imapsync - Email IMAP tool for syncing, copying, migrating and archiving
+ email mailboxes between two imap servers, one way, and without duplicates.
 
 Version:
 
- This documentation refers to Imapsync $Revision: 1.5 $
+ This documentation refers to Imapsync $Revision: 1.7 $
 
 Usage:
 
@@ -23,11 +23,11 @@ Options:
 
   usage: imapsync [options]
 
- Standard options are the six values forming the credentials, three on each
- sides, needed to log in into the IMAP servers, ie, a host, a username, and
- a password, two times.
+ The standard options are the six values forming the credentials. Three
+ values on each side are needed in order to log in into the IMAP servers.
+ These six values are a host, a username, and a password, two times.
 
- Conventions used:
+ Conventions used in the following descriptions of the options:
 
   str means string
   int means integer
@@ -41,8 +41,8 @@ Options/credentials:
 
   --host1        str  : Source or "from" imap server.
   --port1        int  : Port to connect on host1.
-                        Optional since default ports are the 
-                        well known ports 143 or 993.
+                        Optional since default ports are the
+                        well known ports imap/143 or imaps/993.
   --user1        str  : User to login on host1.
   --password1    str  : Password for the user1.
 
@@ -52,10 +52,10 @@ Options/credentials:
   --password2    str  : Password for the user2.
 
   --showpasswords     : Shows passwords on output instead of "MASKED".
-                        Useful to restart a complete run by just reading 
+                        Useful to restart a complete run by just reading
                         the command line used in the log,
                         or to debug passwords.
-                        It's not a secure practice.
+                        It's not a secure practice at all.
 
   --passfile1    str  : Password file for the user1. It must contain the
                         password on the first line. This option avoids showing
@@ -119,14 +119,14 @@ Options/folders:
   --folderrec    str  : Sync this folder recursively.
   --folderrec    str  : and this one, etc.
 
-  --folderfirst  str  : Sync this folder first. --folderfirst "Work"
+  --folderfirst  str  : Sync this folder first. Ex. --folderfirst "INBOX"
   --folderfirst  str  : then this one, etc.
   --folderlast   str  : Sync this folder last. --folderlast "[Gmail]/All Mail"
   --folderlast   str  : then this one, etc.
 
   --nomixfolders      : Do not merge folders when host1 is case-sensitive
                         while host2 is not (like Exchange). Only the first
-                        similar folder is synced (example: with folders 
+                        similar folder is synced (example: with folders
                         "Sent", "SENT" and "sent"
                         on host1 only "Sent" will be synced to host2).
 
@@ -153,14 +153,14 @@ Options/folders:
                         --regextrans2 options before all others.
                         Add --debug to see what's really going on.
 
-  --subfolder1   str  : Syncs the host1 folders hierarchy under str
-                        to the root hierarchy of host2.
+  --subfolder1   str  : Syncs the host1 folders hierarchy which is under folder
+                        str to the root hierarchy of host2.
                         It's the couterpart of a sync done by --subfolder2
-                        when doing it in the reverse order. 
+                        when doing it in the reverse order.
                         Backup/Restore scenario:
                         Use --subfolder2 str for a backup to the folder str
-                        on host2. Then use --subfolder1 str for restoring 
-                        from the folder str, after inverting 
+                        on host2. Then use --subfolder1 str for restoring
+                        from the folder str, after inverting
                         host1/host2 user1/user2 values.
 
 
@@ -174,25 +174,26 @@ Options/folders:
                         usually "INBOX." or "INBOX/" or an empty string "".
                         imapsync guesses the prefix if host1 imap server
                         does not have NAMESPACE capability. So this option
-                        should not be used, most of the time.
+                        should not be used most of the time.
   --prefix2      str  : Add prefix to all host2 folders. See --prefix1
 
-  --sep1         str  : Host1 separator. This option should not be used, 
+  --sep1         str  : Host1 separator. This option should not be used
                         most of the time.
                         Imapsync gets the separator from the server itself,
                         by using NAMESPACE, or it tries to guess it
                         from the folders listing (it counts
                         characters / . \\ \ in folder names and choose the
                         more frequent, or finally / if nothing is found.
-  --sep2         str  : Host2 separator.
+  --sep2         str  : Host2 separator. See --sep1
 
   --regextrans2  reg  : Apply the whole regex to each destination folders.
   --regextrans2  reg  : and this one. etc.
                         When you play with the --regextrans2 option, first
                         add also the safe options --dry --justfolders
-                        Then, when happy, remove --dry, remove --justfolders.
-                        Have in mind that --regextrans2 is applied after 
-                        the automatic prefix and separator inversion. 
+                        Then, when happy, remove --dry for a run, then 
+                        remove --justfolders for the next ones.
+                        Have in mind that --regextrans2 is applied after
+                        the automatic prefix and separator inversion.
                         For examples see:
                         https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
 
@@ -223,6 +224,18 @@ Options/log:
   --logfile      str  : Change the default log filename (can be dirname/filename).
   --logdir       str  : Change the default log directory. Default is LOG_imapsync/
 
+ The default logfile name is for example
+
+  LOG_imapsync/2019_12_22_23_57_59_532_user1_user2.txt
+
+ where:
+
+  2019_12_22_23_57_59_532 is nearly the date of the start
+  YYYY_MM_DD_HH_MM_SS_mmm 
+  year_month_day_hour_minute_seconde_millisecond
+
+ and user1 user2 are the --user1 --user2 values.
+
 Options/messages:
 
   --skipmess     reg  : Skips messages matching the regex.
@@ -230,13 +243,22 @@ Options/messages:
                         --skipmess is applied before --regexmess
   --skipmess     reg  : or this one, etc.
 
+  --skipcrossduplicates : Avoid copying messages that are already copied
+                          in another folder,  good from Gmail to X when
+                          X is not also Gmail.
+                          Activated with --gmail1 unless --noskipcrossduplicates
+
+  --debugcrossduplicates : Prints which messages (UIDs) are skipped with
+                           --skipcrossduplicates (and in what other folders
+                           they are).
+
   --pipemess     cmd  : Apply this cmd command to each message content
                         before the copy.
-  --pipemess     cmd  : and this one, etc. 
+  --pipemess     cmd  : and this one, etc.
                         With several --pipemess, the output of each cmd
-                        command (STDOUT) is given to the input (STDIN) 
+                        command (STDOUT) is given to the input (STDIN)
                         of the next command.
-                        For example, 
+                        For example,
                         --pipemess cmd1 --pipemess cmd2 --pipemess cmd3
                         is like a Unix pipe:
                         "cat message | cmd1 | cmd2 | cmd3"
@@ -246,6 +268,23 @@ Options/messages:
   --regexmess    reg  : Apply the whole regex to each message before transfer.
                         Example: 's/\000/ /g' # to replace null by space.
   --regexmess    reg  : and this one, etc.
+
+Options/labels:
+
+ Gmail present labels as folders in imap. Imapsync can accelerate the sync
+ by syncing X-GM-LABELS, it will avoid to transfer messages when they are
+ already on host2.
+
+  --synclabels        : Syncs also Gmail labels when a message is copied to host2.
+                        Activated by default with --gmail1 --gmail2 unless
+                        --nosynclabels is added.
+                       
+  --resynclabels      : Resyncs Gmail labels when a message is already on host2.
+                        Activated by default with --gmail1 --gmail2 unless
+                        --noresynclabels is added.
+
+ For Gmail syncs, see also:
+ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
 Options/flags:
 
@@ -271,7 +310,7 @@ Options/deletions:
                         EXPUNGE IMAP command. If expunging after each message
                         slows down too much the sync then use
                         --noexpungeaftereach to speed up, expunging will then be
-                        done only twice per folder, one at the beginning and 
+                        done only twice per folder, one at the beginning and
                         one at the end of a folder sync.
 
   --expunge1          : Expunge messages on host1 just before syncing a folder.
@@ -297,12 +336,15 @@ Options/deletions:
   --delete2folders    : Delete folders in host2 that are not in host1 server.
                         For safety, first try it like this (it is safe):
                         --delete2folders --dry --justfolders --nofoldersizes
+                        and see what folders will be deleted.
 
-  --delete2foldersonly   reg : Deleted only folders matching regex.
+  --delete2foldersonly   reg : Delete only folders matching the regex reg.
                                Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+                               This option activates --delete2folders
 
-  --delete2foldersbutnot reg : Do not delete folders matching regex.
+  --delete2foldersbutnot reg : Do not delete folders matching the regex rex.
                                Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
+                               This option activates --delete2folders
 
   --noexpunge2        : Do not expunge messages on host2.
   --nouidexpunge2     : Do not uidexpunge messages on the host2 account
@@ -328,7 +370,7 @@ Options/message selection:
                         see also --minage
   --minage       int  : Skip messages newer than  int  days.
                         final stats (skipped) don't count newer messages
-                        You can do (+ are the messages selected):
+                        You can do (+ zone are the messages selected):
                         past|----maxage+++++++++++++++>now
                         past|+++++++++++++++minage---->now
                         past|----maxage+++++minage---->now (intersection)
@@ -336,22 +378,23 @@ Options/message selection:
 
   --search       str  : Selects only messages returned by this IMAP SEARCH
                         command. Applied on both sides.
-                        For a complete of what can be search see
+                        For a complete set of what can be search see
                         https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
 
   --search1      str  : Same as --search but for selecting host1 messages only.
   --search2      str  : Same as --search but for selecting host2 messages only.
-                        --search CRIT equals --search1 CRIT --search2 CRIT
+                        So --search CRIT equals --search1 CRIT --search2 CRIT
 
   --maxlinelength int : skip messages with a line length longer than  int  bytes.
-                        RFC 2822 says it must be no more than 1000 bytes.
+                        RFC 2822 says it must be no more than 1000 bytes but
+                        real life servers and email clients do more.
 
 
   --useheader    str  : Use this header to compare messages on both sides.
                         Ex: Message-ID or Subject or Date.
   --useheader    str    and this one, etc.
 
-  --usecache          : Use cache to speed up the sync.
+  --usecache          : Use cache to speed up next syncs. Not set by default.
   --nousecache        : Do not use cache. Caveat: --useuid --nousecache creates
                         duplicates on multiple runs.
   --useuid            : Use UIDs instead of headers as a criterion to recognize
@@ -361,10 +404,10 @@ Options/message selection:
 Options/miscellaneous:
 
   --syncacls          : Synchronizes acls (Access Control Lists).
-  --nosyncacls        : Does not synchronize acls. This is the default.
                         Acls in IMAP are not standardized, be careful
                         since one acl code on one side may signify something
                         else on the other one.
+  --nosyncacls        : Does not synchronize acls. This is the default.
 
   --addheader         : When a message has no headers to be identified,
                         --addheader adds a "Message-Id" header,
@@ -392,17 +435,17 @@ Options/debugging:
 
 Options/specific:
 
-   --gmail1           : sets --host1 to Gmail and options from FAQ.Gmail.txt
-   --gmail2           : sets --host2 to Gmail and options from FAQ.Gmail.txt
+   --gmail1           : sets --host1 to Gmail and other options. See FAQ.Gmail.txt
+   --gmail2           : sets --host2 to Gmail and other options. See FAQ.Gmail.txt
 
-   --office1          : sets --host1 to Office365 options from FAQ.Exchange.txt
-   --office2          : sets --host2 to Office365 options from FAQ.Exchange.txt
+   --office1          : sets --host1 to Office365 and other options. See FAQ.Exchange.txt
+   --office2          : sets --host2 to Office365 and other options. See FAQ.Exchange.txt
 
-   --exchange1        : sets options from FAQ.Exchange.txt, account1 part
-   --exchange2        : sets options from FAQ.Exchange.txt, account2 part
+   --exchange1        : sets options for Exchange. See FAQ.Exchange.txt
+   --exchange2        : sets options for Exchange. See FAQ.Exchange.txt
 
-   --domino1          : sets options from FAQ.Domino.txt, account1 part
-   --domino2          : sets options from FAQ.Domino.txt, account2 part
+   --domino1          : sets options for Domino. See FAQ.Domino.txt
+   --domino2          : sets options for Domino. See FAQ.Domino.txt
 
 Options/behavior:
 
@@ -418,11 +461,11 @@ Options/behavior:
   --abort             : terminates a previous call still running.
                         It uses the pidfile to know what process to abort.
 
-  --exitwhenover int  : Stop syncing and exits when int total bytes 
+  --exitwhenover int  : Stop syncing and exits when int total bytes
                         transferred is reached.
 
   --version           : Print only software version.
-  --noreleasecheck    : Do not check for new imapsync release 
+  --noreleasecheck    : Do not check for any new imapsync release.
   --releasecheck      : Check for new imapsync release.
                         it's an http request to
                         http://imapsync.lamiral.info/prj/imapsync/VERSION
@@ -433,7 +476,7 @@ Options/behavior:
                         information. Need only --host1 and --host2 options.
                         Obsolete since "imapsync --host1 imaphost" alone
                         implies --justconnect
-                       
+
   --justlogin         : Just login to both host1 and host2 with users
                         credentials, then exit.
 
@@ -450,271 +493,284 @@ Options/behavior:
      --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
      --host2 test2.lamiral.info --user2 test2 --password2 secret2
 
-Here is imapsync 1.945 on host petite, a linux system with 1.1/2.0 free GiB of RAM
+Here is imapsync 1.977 on host petite, a linux system with 0.2/2.0 free GiB of RAM
 with Perl 5.22.1 and Mail::IMAPClient 3.38
-$Id: prereq.scandeps.Ubuntu_16.04_xenial.txt,v 1.5 2019/06/26 23:17:16 gilles Exp gilles $
-This imapsync is up to date. ( local 1.945 >= official 1.921 )( Use --noreleasecheck to avoid this release check. )
+$Id: prereq.scandeps.Ubuntu_16.04_xenial.txt,v 1.7 2020/01/03 22:44:51 gilles Exp gilles $
+This imapsync is up to date. ( local 1.977 >= official 1.945 )( Use --noreleasecheck to avoid this release check. )
 Homepage: https://imapsync.lamiral.info/
-'Tie::Hash::NamedCapture'          => '0.09',
-'APR'                              => '0.009000',
-'APR::XSLoader'                    => 'undef',
-'Apache2::XSLoader'                => 'undef',
-'Authen::NTLM::DES'                => '1.02',
-'Authen::NTLM::MD4'                => '1.02',
-'GSSAPI'                           => '0.28',
-'Crypt::Random::Seed'              => '0.03',
-'Math::Random::ISAAC'              => '1.003',
-'CGI::Cookie'                      => '4.26',
-'CGI::File::Temp'                  => '4.26',
-'APR::Pool'                        => '0.009000',
-'Apache2::RequestIO'               => '2.000009',
-'Apache2::RequestRec'              => '2.000009',
-'Apache2::Response'                => '2.000009',
-'Apache2::RequestUtil'             => '2.000009',
-'CGI::Util'                        => '4.26',
-'ModPerl::Util'                    => '2.000009',
-'APR::Table'                       => '0.009000',
-'Fh'                               => '4.26',
-'Convert::ASN1::IO'                => '0.27',
-'Convert::ASN1::_decode'           => '0.27',
-'Convert::ASN1::_encode'           => '0.27',
-'Convert::ASN1::parser'            => '0.27',
-'Bytes::Random::Secure'            => '0.28',
-'Crypt::SSLeay::X509'              => 'undef',
-'Crypt::SSLeay::CTX'               => 'undef',
-'Digest::HMAC'                     => '1.03',
-'Digest::Perl::MD5'                => '1.9',
-'Encode::HanExtra'                 => '0.23',
-'HTML::Parser'                     => '3.72',
-'HTTP::Headers'                    => '6.11',
-'HTTP::Cookies::Netscape'          => '6.00',
-'IO::Compress::Bzip2'              => '2.069',
-'IO::Compress::Deflate'            => '2.069',
-'IO::Compress::Gzip'               => '2.069',
-'IO::HTML'                         => '1.001',
-'IO::Uncompress::Bunzip2'          => '2.069',
-'IO::Uncompress::Inflate'          => '2.069',
-'IO::Uncompress::RawInflate'       => '2.069',
-'IO::Uncompress::Gunzip'           => '2.069',
-'HTTP::Message'                    => '6.11',
-'Compress::Raw::Bzip2'             => '2.069',
-'File::GlobMapper'                 => '1.000',
-'IO::Compress::Adapter::Bzip2'     => '2.069',
-'IO::Compress::Base'               => '2.069',
-'IO::Compress::RawDeflate'         => '2.069',
-'IO::Compress::Adapter::Deflate'   => '2.069',
-'IO::Compress::Base::Common'       => '2.069',
-'IO::Compress::Zlib::Constants'    => '2.069',
-'IO::Compress::Zlib::Extra'        => '2.069',
-'IO::Compress::Gzip::Constants'    => '2.069',
-'IO::Socket::SSL::PublicSuffix'    => 'undef',
-'Net::SSLeay'                      => '1.72',
-'Socket6'                          => '0.25',
-'IO::Uncompress::Adapter::Bunzip2' => '2.069',
-'IO::Uncompress::Base'             => '2.069',
-'IO::Uncompress::Adapter::Inflate' => '2.069',
-'JSON::WebToken::Constants'        => 'undef',
-'JSON::WebToken::Exception'        => 'undef',
-'Module::Runtime'                  => '0.014',
-'JSON::WebToken::Crypt'            => 'undef',
-'Types::Serialiser'                => '1.0',
-'common::sense'                    => '3.74',
-'CPAN::Config'                     => 'undef',
-'URI::_foreign'                    => '1.71',
-'URI::mailto'                      => '1.71',
-'URI::data'                        => '1.71',
-'URI::_query'                      => '1.71',
-'URI'                              => '1.71',
-'URI::QueryParam'                  => '1.71',
-'URI::Split'                       => '1.71',
-'URI::_segment'                    => '1.71',
-'URI::file::FAT'                   => '1.71',
-'URI::file::Mac'                   => '1.71',
-'URI::file::OS2'                   => '1.71',
-'URI::file::QNX'                   => '1.71',
-'URI::ftp'                         => '1.71',
-'URI::gopher'                      => '1.71',
-'URI::https'                       => '1.71',
-'URI::ldapi'                       => '1.71',
-'URI::ldaps'                       => '1.71',
-'URI::mms'                         => '1.71',
-'URI::nntp'                        => '1.71',
-'URI::pop'                         => '1.71',
-'URI::rlogin'                      => '1.71',
-'URI::rsync'                       => '1.71',
-'URI::rtspu'                       => '1.71',
-'URI::sftp'                        => '1.71',
-'URI::sips'                        => '1.71',
-'URI::snews'                       => '1.71',
-'URI::telnet'                      => '1.71',
-'URI::tn3270'                      => '1.71',
-'URI::_punycode'                   => '1.71',
-'URI::file::Win32'                 => '1.71',
-'URI::file::Unix'                  => '1.71',
-'URI::file::Base'                  => '1.71',
-'URI::_ldap'                       => '1.71',
-'URI::ldap'                        => '1.71',
-'URI::rtsp'                        => '1.71',
-'URI::ssh'                         => '1.71',
-'URI::sip'                         => '1.71',
-'URI::news'                        => '1.71',
-'URI::IRI'                         => '1.71',
-'URI::Heuristic'                   => '4.20',
-'URI::_generic'                    => '1.71',
-'URI::_login'                      => '1.71',
-'URI::_idna'                       => '1.71',
-'URI::_userpass'                   => '1.71',
-'LWP::MediaTypes'                  => '6.02',
-'File::Listing'                    => '6.04',
-'HTTP::Negotiate'                  => '6.00',
-'Net::HTTP'                        => '6.09',
-'HTTP::Status'                     => '6.11',
-'Net::HTTPS'                       => '6.09',
-'Net::SSL'                         => '2.88',
-'Net::LDAP::DSML'                  => '0.16',
-'Net::LDAP'                        => '0.65',
-'Net::LDAP::LDIF'                  => '0.26',
-'Mail::Internet'                   => '2.13',
-'HTML::HeadParser'                 => '3.71',
-'HTTP::Config'                     => '6.11',
-'HTTP::Request::Common'            => '6.11',
-'LWP::ConnCache'                   => '6.15',
-'HTTP::Cookies'                    => '6.01',
-'Encode::Locale'                   => '1.05',
-'HTTP::Headers::Util'              => '6.11',
-'LWP::MemberMixin'                 => 'undef',
-'LWP'                              => '6.15',
-'HTTP::Date'                       => '6.02',
-'HTTP::Request'                    => '6.11',
-'LWP::Protocol'                    => '6.15',
-'HTTP::Response'                   => '6.11',
-'Mail::IMAPClient::MessageSet'     => 'undef',
-'Digest::HMAC_MD5'                 => '1.01',
-'Authen::NTLM'                     => '1.09',
-'Authen::SASL'                     => '2.16',
-'Authen::SASL::CRAM_MD5'           => '2.14',
-'Authen::SASL::EXTERNAL'           => '2.14',
-'Authen::SASL::Perl'               => '2.14',
-'Authen::SASL::Perl::ANONYMOUS'    => '2.14',
-'Authen::SASL::Perl::CRAM_MD5'     => '2.14',
-'Authen::SASL::Perl::DIGEST_MD5'   => '2.14',
-'Authen::SASL::Perl::EXTERNAL'     => '2.14',
-'Authen::SASL::Perl::GSSAPI'       => '0.05',
-'Authen::SASL::Perl::LOGIN'        => '2.14',
-'Authen::SASL::Perl::PLAIN'        => '2.14',
-'Mail::Address'                    => '2.13',
-'Mail::Header'                     => '2.13',
-'Mail::Mailer'                     => '2.13',
-'Mail::Util'                       => '2.13',
-'Math::Random::ISAAC::PP'          => '1.003',
-'Math::Random::ISAAC::XS'          => '1.004',
-'Net::HTTP::Methods'               => '6.09',
-'Compress::Raw::Zlib'              => '2.069',
-'Net::LDAP::Bind'                  => '1.05',
-'Net::LDAP::Extension'             => '1.04',
-'Net::LDAP::RootDSE'               => '0.02',
-'Net::LDAP::Search'                => '0.14',
-'Convert::ASN1::Debug'             => '0.27',
-'Convert::ASN1'                    => '0.27',
-'Net::LDAP::Message'               => '1.12',
-'Net::LDAP::ASN'                   => '0.12',
-'Net::LDAP::Constant'              => '0.23',
-'Net::LDAP::Filter'                => '0.20',
-'XML::SAX::Base'                   => '1.07',
-'Net::LDAP::Schema'                => '0.9908',
-'Net::LDAP::Entry'                 => '0.27',
-'Net::LDAP::Control'               => '0.18',
-'Net::LDAP::Util'                  => '0.19',
-'Net::LDAP::Intermediate'          => '0.04',
-'Crypt::SSLeay::MainContext'       => 'undef',
-'Crypt::SSLeay'                    => '0.73_04',
-'Email::Address'                   => '1.908',
-'Test::Builder::IO::Scalar'        => '2.113',
-'UNIVERSAL::can'                   => '1.20140328',
-'UNIVERSAL::isa'                   => '1.20150614',
-'Test::Builder'                    => '1.001014',
-'Test::Builder::Module'            => '1.001014',
-'URI::WithBase'                    => '2.20',
-'URI::file'                        => '4.21',
-'URI::_server'                     => '1.71',
-'Unicode::CharName'                => '1.07',
-'XML::SAX::Exception'              => '1.07',
-'CGI::Carp'                        => '4.26',
-'Data::Uniqid'                     => '0.12',
-'Digest::HMAC_SHA1'                => '1.03',
-'File::Copy::Recursive'            => '0.38',
-'File::Tail'                       => '1.3',
-'IO::Tee'                          => '0.64',
-'JSON::WebToken'                   => '0.10',
-'JSON::WebToken::Crypt::RSA'       => 'undef',
-'Mail::IMAPClient'                 => '3.38',
-'Readonly'                         => '2.00',
-'Sys::MemInfo'                     => '0.98',
-'Term::ReadKey'                    => '2.33',
-'Test::MockObject'                 => '1.20150527',
-'Test::More'                       => '1.001014',
-'Unicode::String'                  => '2.09',
-'HTML::Entities'                   => '3.69',
-'CGI'                              => '4.26',
-'LWP::Authen::Digest'              => 'undef',
-'LWP::Authen::Ntlm'                => '6.15',
-'LWP::Protocol::GHTTP'             => 'undef',
-'LWP::Protocol::cpan'              => 'undef',
-'LWP::Protocol::data'              => 'undef',
-'LWP::Protocol::file'              => 'undef',
-'LWP::Protocol::ftp'               => 'undef',
-'LWP::Protocol::gopher'            => 'undef',
-'LWP::Protocol::https'             => '6.06',
-'LWP::Protocol::ldapi'             => 'undef',
-'LWP::Protocol::ldaps'             => 'undef',
-'LWP::Protocol::loopback'          => 'undef',
-'LWP::Protocol::mailto'            => 'undef',
-'LWP::Protocol::nntp'              => 'undef',
-'LWP::UserAgent'                   => '6.15',
-'JSON::XS'                         => '3.01',
-'JSON'                             => '2.90',
-'JSON::XS::Boolean'                => 'undef',
-'Crypt::OpenSSL::RSA'              => '0.28',
-'LWP::Authen::Basic'               => 'undef',
-'URI::URL'                         => '5.04',
-'URI::http'                        => '1.71',
-'URI::Escape'                      => '3.31',
-'LWP::Protocol::http'              => 'undef',
-'IO::Socket::SSL'                  => '2.047',
-'LWP::Protocol::ldap'              => '1.25',
-'LWP::Protocol::nogo'              => 'undef',
-'IO::Socket::INET6'                => '2.72',
-'Regexp::Common::comment'          => '2016020301',
-'Regexp::Common::lingua'           => '2016020301',
-'Regexp::Common::zip'              => '2016020301',
-'Regexp::Common::net'              => '2016020301',
-'Regexp::Common::list'             => '2016020301',
-'Regexp::Common::URI::news'        => '2016020301',
-'Regexp::Common::URI::pop'         => '2016020301',
-'Regexp::Common::URI::tel'         => '2016020301',
-'Regexp::Common::profanity'        => '2016020301',
-'Regexp::Common::URI::ftp'         => '2016020301',
-'Regexp::Common::URI::fax'         => '2016020301',
-'Regexp::Common::URI::wais'        => '2016020301',
-'Regexp::Common::URI::RFC2396'     => '2016020301',
-'Regexp::Common::URI::prospero'    => '2016020301',
-'Regexp::Common::URI::tv'          => '2016020301',
-'Regexp::Common::URI::telnet'      => '2016020301',
-'Regexp::Common::Email::Address'   => '1.01',
-'Regexp::Common'                   => '2016020301',
-'Regexp::Common::URI::RFC1808'     => '2016020301',
-'Regexp::Common::URI::RFC2806'     => '2016020301',
-'Regexp::Common::_support'         => '2016020301',
-'Regexp::Common::URI::gopher'      => '2016020301',
-'Regexp::Common::URI::RFC2384'     => '2016020301',
-'Regexp::Common::URI::RFC1738'     => '2016020301',
-'Regexp::Common::URI::RFC1035'     => '2016020301',
-'Regexp::Common::URI::file'        => '2016020301',
-'Regexp::Common::URI::http'        => '2016020301',
-'Regexp::Common::delimited'        => '2016020301',
-'Regexp::Common::SEN'              => '2016020301',
-'Regexp::Common::whitespace'       => '2016020301',
-'Regexp::Common::number'           => '2016020301',
-'Regexp::Common::balanced'         => '2016020301',
-'Regexp::Common::CC'               => '2016020301',
-'Regexp::Common::URI'              => '2016020301',
+'Encode::Unicode'                                         => '2.09',
+'Tie::Hash::NamedCapture'                                 => '0.09',
+'APR'                                                     => '0.009000',
+'APR::XSLoader'                                           => 'undef',
+'Apache2::XSLoader'                                       => 'undef',
+'Authen::NTLM::DES'                                       => '1.02',
+'Authen::NTLM::MD4'                                       => '1.02',
+'GSSAPI'                                                  => '0.28',
+'Crypt::Random::Seed'                                     => '0.03',
+'Math::Random::ISAAC'                                     => '1.003',
+'CGI::Cookie'                                             => '4.26',
+'CGI::File::Temp'                                         => '4.26',
+'APR::Pool'                                               => '0.009000',
+'Apache2::RequestIO'                                      => '2.000009',
+'Apache2::RequestRec'                                     => '2.000009',
+'Apache2::Response'                                       => '2.000009',
+'Apache2::RequestUtil'                                    => '2.000009',
+'CGI::Util'                                               => '4.26',
+'ModPerl::Util'                                           => '2.000009',
+'APR::Table'                                              => '0.009000',
+'Fh'                                                      => '4.26',
+'Convert::ASN1::IO'                                       => '0.27',
+'Convert::ASN1::_decode'                                  => '0.27',
+'Convert::ASN1::_encode'                                  => '0.27',
+'Convert::ASN1::parser'                                   => '0.27',
+'Bytes::Random::Secure'                                   => '0.28',
+'Crypt::SSLeay::X509'                                     => 'undef',
+'Crypt::SSLeay::CTX'                                      => 'undef',
+'Digest::HMAC'                                            => '1.03',
+'Digest::Perl::MD5'                                       => '1.9',
+'Encode::HanExtra'                                        => '0.23',
+'HTML::Parser'                                            => '3.72',
+'HTTP::Cookies::Netscape'                                 => '6.00',
+'IO::Compress::Bzip2'                                     => '2.069',
+'IO::Compress::Deflate'                                   => '2.069',
+'IO::Compress::Gzip'                                      => '2.069',
+'IO::HTML'                                                => '1.001',
+'IO::Uncompress::Bunzip2'                                 => '2.069',
+'IO::Uncompress::Inflate'                                 => '2.069',
+'IO::Uncompress::RawInflate'                              => '2.069',
+'IO::Uncompress::Gunzip'                                  => '2.069',
+'HTTP::Headers'                                           => '6.11',
+'HTTP::Message'                                           => '6.11',
+'Compress::Raw::Bzip2'                                    => '2.069',
+'File::GlobMapper'                                        => '1.000',
+'IO::Compress::Adapter::Bzip2'                            => '2.069',
+'IO::Compress::Base'                                      => '2.069',
+'IO::Compress::RawDeflate'                                => '2.069',
+'IO::Compress::Adapter::Deflate'                          => '2.069',
+'IO::Compress::Zlib::Constants'                           => '2.069',
+'Socket6'                                                 => '0.25',
+'IO::Socket::SSL::PublicSuffix'                           => 'undef',
+'Net::SSLeay'                                             => '1.72',
+'IO::Uncompress::Adapter::Bunzip2'                        => '2.069',
+'IO::Compress::Zlib::Extra'                               => '2.069',
+'IO::Compress::Gzip::Constants'                           => '2.069',
+'IO::Compress::Base::Common'                              => '2.069',
+'IO::Uncompress::Adapter::Inflate'                        => '2.069',
+'IO::Uncompress::Base'                                    => '2.069',
+'JSON::WebToken::Constants'                               => 'undef',
+'JSON::WebToken::Exception'                               => 'undef',
+'Module::Runtime'                                         => '0.014',
+'JSON::WebToken::Crypt'                                   => 'undef',
+'Types::Serialiser'                                       => '1.0',
+'common::sense'                                           => '3.74',
+'Authen::NTLM'                                            => '1.09',
+'HTTP::Request::Common'                                   => '6.11',
+'URI::data'                                               => '1.71',
+'URI::_idna'                                              => '1.71',
+'URI::_foreign'                                           => '1.71',
+'URI::mailto'                                             => '1.71',
+'URI::_query'                                             => '1.71',
+'URI'                                                     => '1.71',
+'URI::QueryParam'                                         => '1.71',
+'URI::Split'                                              => '1.71',
+'URI::_segment'                                           => '1.71',
+'URI::file::FAT'                                          => '1.71',
+'URI::file::Mac'                                          => '1.71',
+'URI::file::OS2'                                          => '1.71',
+'URI::file::QNX'                                          => '1.71',
+'URI::ftp'                                                => '1.71',
+'URI::gopher'                                             => '1.71',
+'URI::https'                                              => '1.71',
+'URI::ldapi'                                              => '1.71',
+'URI::ldaps'                                              => '1.71',
+'URI::mms'                                                => '1.71',
+'URI::nntp'                                               => '1.71',
+'URI::pop'                                                => '1.71',
+'URI::rlogin'                                             => '1.71',
+'URI::rsync'                                              => '1.71',
+'URI::rtspu'                                              => '1.71',
+'URI::sftp'                                               => '1.71',
+'URI::sips'                                               => '1.71',
+'URI::snews'                                              => '1.71',
+'URI::telnet'                                             => '1.71',
+'URI::tn3270'                                             => '1.71',
+'URI::file::Win32'                                        => '1.71',
+'URI::file::Unix'                                         => '1.71',
+'URI::file::Base'                                         => '1.71',
+'URI::_punycode'                                          => '1.71',
+'URI::IRI'                                                => '1.71',
+'URI::ldap'                                               => '1.71',
+'URI::news'                                               => '1.71',
+'URI::ssh'                                                => '1.71',
+'URI::rtsp'                                               => '1.71',
+'URI::sip'                                                => '1.71',
+'URI::_userpass'                                          => '1.71',
+'URI::_login'                                             => '1.71',
+'URI::Heuristic'                                          => '4.20',
+'URI::_ldap'                                              => '1.71',
+'URI::_generic'                                           => '1.71',
+'URI::_server'                                            => '1.71',
+'HTTP::Status'                                            => '6.11',
+'LWP::Protocol'                                           => '6.15',
+'HTTP::Response'                                          => '6.11',
+'CPAN::Config'                                            => 'undef',
+'HTTP::Date'                                              => '6.02',
+'LWP'                                                     => '6.15',
+'LWP::MediaTypes'                                         => '6.02',
+'HTTP::Request'                                           => '6.11',
+'File::Listing'                                           => '6.04',
+'HTTP::Negotiate'                                         => '6.00',
+'Net::HTTP'                                               => '6.09',
+'Net::HTTPS'                                              => '6.09',
+'Net::SSL'                                                => '2.88',
+'Net::LDAP::DSML'                                         => '0.16',
+'Net::LDAP'                                               => '0.65',
+'Net::LDAP::LDIF'                                         => '0.26',
+'Mail::Internet'                                          => '2.13',
+'HTML::HeadParser'                                        => '3.71',
+'HTTP::Config'                                            => '6.11',
+'LWP::ConnCache'                                          => '6.15',
+'HTTP::Cookies'                                           => '6.01',
+'Encode::Locale'                                          => '1.05',
+'HTTP::Headers::Util'                                     => '6.11',
+'LWP::MemberMixin'                                        => 'undef',
+'Mail::IMAPClient::MessageSet'                            => 'undef',
+'Digest::HMAC_MD5'                                        => '1.01',
+'Authen::SASL'                                            => '2.16',
+'Authen::SASL::CRAM_MD5'                                  => '2.14',
+'Authen::SASL::EXTERNAL'                                  => '2.14',
+'Authen::SASL::Perl'                                      => '2.14',
+'Authen::SASL::Perl::ANONYMOUS'                           => '2.14',
+'Authen::SASL::Perl::CRAM_MD5'                            => '2.14',
+'Authen::SASL::Perl::DIGEST_MD5'                          => '2.14',
+'Authen::SASL::Perl::EXTERNAL'                            => '2.14',
+'Authen::SASL::Perl::GSSAPI'                              => '0.05',
+'Authen::SASL::Perl::LOGIN'                               => '2.14',
+'Authen::SASL::Perl::PLAIN'                               => '2.14',
+'Mail::Address'                                           => '2.13',
+'Mail::Header'                                            => '2.13',
+'Mail::Mailer'                                            => '2.13',
+'Mail::Util'                                              => '2.13',
+'Math::Random::ISAAC::PP'                                 => '1.003',
+'Math::Random::ISAAC::XS'                                 => '1.004',
+'Compress::Raw::Zlib'                                     => '2.069',
+'Net::HTTP::Methods'                                      => '6.09',
+'Net::LDAP::Bind'                                         => '1.05',
+'Net::LDAP::Extension'                                    => '1.04',
+'Net::LDAP::RootDSE'                                      => '0.02',
+'Net::LDAP::Search'                                       => '0.14',
+'Convert::ASN1::Debug'                                    => '0.27',
+'Convert::ASN1'                                           => '0.27',
+'Net::LDAP::Schema'                                       => '0.9908',
+'Net::LDAP::ASN'                                          => '0.12',
+'Net::LDAP::Entry'                                        => '0.27',
+'Net::LDAP::Filter'                                       => '0.20',
+'Net::LDAP::Message'                                      => '1.12',
+'Net::LDAP::Constant'                                     => '0.23',
+'XML::SAX::Base'                                          => '1.07',
+'Net::LDAP::Control'                                      => '0.18',
+'Net::LDAP::Util'                                         => '0.19',
+'Net::LDAP::Intermediate'                                 => '0.04',
+'Crypt::SSLeay::MainContext'                              => 'undef',
+'Crypt::SSLeay'                                           => '0.73_04',
+'Email::Address'                                          => '1.908',
+'Test::Builder::IO::Scalar'                               => '2.113',
+'UNIVERSAL::can'                                          => '1.20140328',
+'UNIVERSAL::isa'                                          => '1.20150614',
+'Test::Builder'                                           => '1.001014',
+'Test::Builder::Module'                                   => '1.001014',
+'URI::file'                                               => '4.21',
+'URI::WithBase'                                           => '2.20',
+'Unicode::CharName'                                       => '1.07',
+'XML::SAX::Exception'                                     => '1.07',
+'CGI::Carp'                                               => '4.26',
+'Data::Uniqid'                                            => '0.12',
+'Digest::HMAC_SHA1'                                       => '1.03',
+'Encode::IMAPUTF7'                                        => '1.05',
+'File::Copy::Recursive'                                   => '0.38',
+'File::Tail'                                              => '1.3',
+'IO::Tee'                                                 => '0.64',
+'JSON::WebToken'                                          => '0.10',
+'JSON::WebToken::Crypt::RSA'                              => 'undef',
+'Mail::IMAPClient'                                        => '3.38',
+'Readonly'                                                => '2.00',
+'Sys::MemInfo'                                            => '0.98',
+'Term::ReadKey'                                           => '2.33',
+'Test::MockObject'                                        => '1.20150527',
+'Test::More'                                              => '1.001014',
+'Unicode::String'                                         => '2.09',
+'HTML::Entities'                                          => '3.69',
+'CGI'                                                     => '4.26',
+'Crypt::OpenSSL::RSA'                                     => '0.28',
+'LWP::Authen::OAuth2'                                     => '0.16',
+'LWP::Authen::Basic'                                      => 'undef',
+'LWP::Authen::Digest'                                     => 'undef',
+'LWP::Authen::Ntlm'                                       => '6.15',
+'LWP::Authen::OAuth2::ServiceProvider::Dwolla'            => 'undef',
+'LWP::Authen::OAuth2::ServiceProvider::Google'            => '0.02',
+'LWP::Authen::OAuth2::ServiceProvider::Line'              => 'undef',
+'LWP::Authen::OAuth2::ServiceProvider::Line::AccessToken' => 'undef',
+'LWP::Authen::OAuth2::ServiceProvider::Strava'            => '0.02',
+'LWP::Authen::OAuth2::ServiceProvider::Yahoo'             => '0.01',
+'LWP::Protocol::GHTTP'                                    => 'undef',
+'LWP::Protocol::cpan'                                     => 'undef',
+'LWP::Protocol::data'                                     => 'undef',
+'LWP::Protocol::file'                                     => 'undef',
+'LWP::Protocol::ftp'                                      => 'undef',
+'LWP::Protocol::gopher'                                   => 'undef',
+'LWP::Protocol::https'                                    => '6.06',
+'LWP::Protocol::ldapi'                                    => 'undef',
+'LWP::Protocol::ldaps'                                    => 'undef',
+'LWP::Protocol::loopback'                                 => 'undef',
+'LWP::Protocol::mailto'                                   => 'undef',
+'LWP::Protocol::nntp'                                     => 'undef',
+'LWP::UserAgent'                                          => '6.15',
+'LWP::Protocol::nogo'                                     => 'undef',
+'LWP::Authen::OAuth2::AccessToken'                        => '0.02',
+'LWP::Authen::OAuth2::Args'                               => 'undef',
+'JSON::XS'                                                => '3.01',
+'JSON'                                                    => '2.90',
+'JSON::XS::Boolean'                                       => 'undef',
+'URI::URL'                                                => '5.04',
+'URI::http'                                               => '1.71',
+'LWP::Authen::OAuth2::ServiceProvider'                    => '0.02',
+'LWP::Authen::OAuth2::AccessToken::Bearer'                => '0.02',
+'LWP::Protocol::http'                                     => 'undef',
+'IO::Socket::SSL'                                         => '2.047',
+'LWP::Protocol::ldap'                                     => '1.25',
+'IO::Socket::INET6'                                       => '2.72',
+'Regexp::Common::URI::pop'                                => '2016020301',
+'Regexp::Common::URI::tel'                                => '2016020301',
+'Regexp::Common::URI::ftp'                                => '2016020301',
+'Regexp::Common::URI::fax'                                => '2016020301',
+'Regexp::Common::URI::wais'                               => '2016020301',
+'Regexp::Common::URI::RFC2396'                            => '2016020301',
+'Regexp::Common::URI::prospero'                           => '2016020301',
+'Regexp::Common::URI::tv'                                 => '2016020301',
+'Regexp::Common::URI::telnet'                             => '2016020301',
+'Regexp::Common::profanity'                               => '2016020301',
+'Regexp::Common::comment'                                 => '2016020301',
+'Regexp::Common::lingua'                                  => '2016020301',
+'Regexp::Common::zip'                                     => '2016020301',
+'Regexp::Common::net'                                     => '2016020301',
+'Regexp::Common::list'                                    => '2016020301',
+'Regexp::Common::URI::news'                               => '2016020301',
+'Regexp::Common::URI::http'                               => '2016020301',
+'Regexp::Common'                                          => '2016020301',
+'Regexp::Common::URI::RFC1808'                            => '2016020301',
+'Regexp::Common::URI::RFC2806'                            => '2016020301',
+'Regexp::Common::_support'                                => '2016020301',
+'Regexp::Common::delimited'                               => '2016020301',
+'Regexp::Common::SEN'                                     => '2016020301',
+'Regexp::Common::whitespace'                              => '2016020301',
+'Regexp::Common::number'                                  => '2016020301',
+'Regexp::Common::balanced'                                => '2016020301',
+'Regexp::Common::CC'                                      => '2016020301',
+'Regexp::Common::URI'                                     => '2016020301',
+'Regexp::Common::Email::Address'                          => '1.01',
+'Regexp::Common::URI::gopher'                             => '2016020301',
+'Regexp::Common::URI::RFC2384'                            => '2016020301',
+'Regexp::Common::URI::RFC1738'                            => '2016020301',
+'Regexp::Common::URI::RFC1035'                            => '2016020301',
+'Regexp::Common::URI::file'                               => '2016020301',
+'URI::Escape'                                             => '3.31',

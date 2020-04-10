@@ -1,0 +1,65 @@
+$Id: FAQ.GDPR.txt,v 1.4 2019/09/12 10:07:27 gilles Exp gilles $
+
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.GDPR.txt
+
+=======================================================================
+ Imapsync and the GDPR, General Data Protection Regulation UE 2016/679
+=======================================================================
+
+Questions answered in this FAQ are:
+
+Q. Can you explain the compliance of imapsync with GDPR?
+   [General Data Protection Regulation UE 2016/679]
+
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. Can you explain the compliance of imapsync with GDPR?
+   [General Data Protection Regulation UE 2016/679]
+
+R. 1) To know whether a newer imapsync exists or not, 
+      imapsync does a http GET to the file VERSION at
+      http://imapsync.lamiral.info/VERSION
+      
+ Via the HTTP User-agent header it also sends:
+  * the imapsync release
+  * the Perl version
+  * the Mail::IMAPClient version
+  * the Operating System
+  * the context ( Standard, CGI, or Docker )
+
+  You can remove this behavior by adding the option --noreleasecheck
+  on the command line or by setting $releasecheck = 0 in the source code. 
+  Check also https://nvd.nist.gov/vuln/detail/CVE-2013-4279
+
+  See also https://imapsync.lamiral.info/#NUMBERS
+
+2) Each imapsync run generates a logfile that corresponds exactly 
+   to the output printed on the console during the run. 
+   This log file contains data from the mailboxes, 
+   not the content messages, not the passwords but 
+   it contains the folders names and the login names.
+   Remove the log or use the option --nolog to avoid logging.
+
+3) In case you purchase imapsync:
+
+3.1) the data collected during the purchase,
+   Name, Company Name, Postal Address, VAT number, Price,
+   will be used to edit the invoice. I (Gilles LAMIRAL) keep a copy
+   of the invoice for accounting.
+   
+3.2)  Once in a while, I send an email to the buyers announcing 
+      a new imapsync is released and where to get it.
+   
+3.3) If the customer is a professional inside the EU, 
+   I also use his company VAT number and the amount to declare it
+   to the Customs each month, before the 10th of the month, at
+   https://pro.douane.gouv.fr/ 
+   It's mandatory, it's the law inside EU and the fine is 750 EUR/month
+   when it is not done or not well done a month.
+
+=======================================================================
+=======================================================================

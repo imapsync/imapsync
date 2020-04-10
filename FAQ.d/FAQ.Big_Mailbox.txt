@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Big_Mailbox.txt,v 1.2 2018/07/25 10:37:30 gilles Exp gilles $
+$Id: FAQ.Big_Mailbox.txt,v 1.4 2019/07/31 10:37:15 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -10,24 +10,36 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Big_Mailbox.txt
             Imapsync tips to deal with huge mailboxes
 =====================================================================
 
-
 Questions answered in this FAQ are:
 
 Q. How to deal with huge mailboxes, whose size is over dozens of GB?
-
-
 
 Now the questions again with their answers.
 
 =====================================================================
 Q. How to deal with huge mailboxes, whose size is over dozens of GB?
 
-R. It should be ok with imapsync. In case imapsync seems to stall
-   when sizing the folders or before syncing a huge folder and 
-   you wander if it is doing something or just frozen, you can
-   add option --debugimap. Option  --debugimap will show what is 
-   currently done, it's quite a big output but it helps waiting, 
-   saying to ourself
-   "ok it's long but it's working, let's wait a little more".
-   The real purpose of --debugimap is to show genuine IMAP 
-   commands used and their responses.
+R1. It should be ok with imapsync.  
+
+In case imapsync seems to stall when sizing the folders or before
+syncing a huge folder and you wander wether it is doing something or
+just frozen, you can add option --debugimap. Option --debugimap shows
+what is currently done, it's quite a big output but it helps waiting,
+saying to ourselves "ok it's long but it's working, let's wait a
+little more".  The real purpose of --debugimap is to show genuine IMAP
+commands used and their responses. The problem with --debugimap is
+that it is very verbose and so with a big mailbox it generates a very
+BIG logfile.
+
+R2. If it is not ok with imapsync then consider spliting the whole 
+sync into smaller chunks using --search
+
+For example, select messages only for a given year:
+
+...
+..imapsync ... --search "SENTSINCE 1-Jan-2017 SENTBEFORE 31-Dec-2017"
+  imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018"
+  imapsync ... --search "SENTSINCE 1-Jan-2019 SENTBEFORE 31-Dec-2019"
+
+=====================================================================
+=====================================================================

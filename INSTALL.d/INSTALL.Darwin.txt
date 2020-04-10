@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: INSTALL.Darwin.txt,v 1.19 2018/12/06 10:07:58 gilles Exp gilles $
+# $Id: INSTALL.Darwin.txt,v 1.24 2019/11/28 14:42:52 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -8,6 +8,21 @@ https://imapsync.lamiral.info/INSTALL.d/INSTALL.Darwin.txt
 =======================================================================
                Installing imapsync binary on Darwin / Mac OS X
 =======================================================================
+
+Caveat Catalina: The binary imapsync_bin_Darwin is detected as a malware
+or similar on the latest Mac OS X named Catalina.
+It's Catalina new security policy. I'm working on it.
+All other Mac OS X releases are ok.
+So far I found 
+https://www.quora.com/What-does-Can-t-be-opened-because-it-s-integrity-cannot-be-verified-mean-on-OSX-Catalina
+https://github.com/fastlane/fastlane/issues/15186#issuecomment-532047545
+https://github.com/neovim/neovim/issues/11011#issuecomment-531369505
+Other way, on the binary: Control + Right Click -> Open 
+(I don't know if it adds imapsync in the ok apps)
+See also the last section of https://support.apple.com/en-us/HT202491
+"How to open an app that hasn’t been notarized or is from an unidentified developer"
+
+Now, let's forget Catalina for the rest of this document 
 
 There is a standalone imapsync binary for Mac OS X 
 called "imapsync_bin_Darwin" (without the quotes),
@@ -42,8 +57,8 @@ real IMAP server accounts:
 If this sync works fine then imapsync_bin_Darwin is ready for any 
 imap account synchronization. 
 
-When reading the documentation with imapsync command lines 
-examples, you have to replace the command "imapsync" by "imapsync_bin_Darwin"
+When reading the documentation with imapsync command lines examples, 
+you have to replace the command "imapsync" by "imapsync_bin_Darwin"
 For example, instead of the command:
 
   ./imapsync \
@@ -55,6 +70,33 @@ you have to use:
   ./imapsync_bin_Darwin \
     --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
     --host2 test2.lamiral.info --user2 test2 --password2 secret2
+
+You also may have to edit the examples you use, like
+examples/imapsync_example.sh
+and replace in there the command ./imapsync by ./imapsync_bin_Darwin
+in case it is not already done.
+
+Be careful the way you edit the files, use a text editor. 
+Do not use a word processor because word processors add 
+or use special formating characters that will break the shell
+scripts. If you use TextEdit, use the text mode.
+
+
+The script examples/imapsync_example_darwin.sh is ready to use,
+it is a copy of examples/imapsync_example.sh adapted to Mac users.
+
+The script examples/sync_loop_darwin.sh is also ready to use.
+Try:
+
+  sh examples/sync_loop_darwin.sh
+
+or
+
+  cp examples/sync_loop_darwin.sh mysync.sh
+  sh mysync.sh
+
+Now read on the tutorial
+https://imapsync.lamiral.info/doc/TUTORIAL_Unix.html
 
 =======================================================================
     Installing imapsync script on Darwin / Mac OS X with brew

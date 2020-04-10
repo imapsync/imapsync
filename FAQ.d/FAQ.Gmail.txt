@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.58 2019/04/25 10:41:12 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.65 2019/12/04 18:26:00 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -67,13 +67,42 @@ it has to be allowed in the Gmail configuration part:
  -> IMAP Access
  -> Enable IMAP
 
- Also:
+Also, there is the authentication issue to consider.
+There are three different ways to authenticate to Gmail with Imapsync,
+either:
+
+* "Access for less secure apps"
+* "2-step verification"
+* XOauth
+
+For the last one, XOauth, see the document 
+https://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
+
+1) "Access for less secure apps" is turned ON
  
  -> Verify 2-step verification is OFF
     https://myaccount.google.com/security?hl=en&pli=1&nlr=1#signin
  -> Turn ON "Access for less secure apps"
     https://www.google.com/settings/security/lesssecureapps
     https://support.google.com/accounts/answer/6010255?hl=en
+
+Sometimes, with Gsuite, the login for the users are ok with imapsync
+for a while then they become forbidden with 
+"failure: Error login on [imap.gmail.com] with user [xxx] auth [LOGIN]: 
+2 NO [AUTHENTICATIONFAILED] Invalid credentials (Failure)"
+
+In that case, use:
+https://admin.google.com/AdminHome?hl=fr#ServiceSettings/notab=1&service=securitysetting&subtab=lesssecureappsaccess
+to allow "Access for less secure apps to all users"
+(Thanks to Sébastien R. for this input)
+
+2) "2-step verification" is turned ON
+
+Follow
+https://support.google.com/accounts/answer/185833?hl=en
+Even if Google says "Every App Password is only used once",
+it's false and the password can be used many times.
+
 
 =======================================================================
 Q. Even after several syncs the number of messages differs
@@ -91,7 +120,7 @@ multiple messages and it doesn't match what imapsync presents.
 Q. How many days does it take to transfer X GB?
 
 R. Basically it takes X days to transfer X GB per account.
-   Gmail has usage limits per day and use throttlers when
+   Gmail has usage limits per day and use throttles when
    they are overtaken
    http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
    From the previous link:
@@ -124,25 +153,30 @@ imapsync  \
            --password2 gmailsecret2 \
            --gmail1 --gmail2 
 
-Or, replacing what does --gmail1 --gmail2 (values are from imapsync 1.882):
+Or, replacing what does --gmail1 --gmail2 (values are from imapsync 1.970):
 
 imapsync \
            --host1 imap.gmail.com \
+           --ssl1 \
            --user1 account1@gmail.com \
            --password1 gmailsecret1 \
            --host2 imap.gmail.com \
+           --ssl2 \
            --user2 account2@gmail.com \
            --password2 gmailsecret2 \
            --maxbytespersecond 20_000 \
            --maxbytesafter 1_000_000_000 \
-           --maxsleep 2 \
            --automap \
-           --exclude "\[Gmail\]$"   
+           --maxsleep 2 \
+           --synclabels \
+           --resynclabels \
+           --exclude "\[Gmail\]$" \
+           --folderlast  "[Gmail]/All Mail"
 
 With --gmail1 --gmail2 you can override the parameters
 that are activated by them, for example:
 
-imapsync ... --gmail1 --gmail2 --maxbytespersecond 50_000
+imapsync ... --gmail1 --gmail2 --maxbytespersecond 50_000 --noautomap
 
 Explanations:
 
@@ -197,47 +231,39 @@ R. Use the following example:
 
 imapsync --host1 mail.oldhost.com     \
          --user1 my_email@oldhost.com \
-         --password1 password   \
+         --password1 passwordold   \
          --user2 my_email@gmail.com \
-         --password2 password \
+         --password2 gmailsecret \
          --gmail2
 
-Or, replacing what does --gmail2 (values are from imapsync 1.921):
+Or, replacing what does --gmail2 (values are from imapsync 1.970):
+(For Linux only because of the quotes)
 
 imapsync --host1 mail.oldhost.com     \
          --user1 my_email@oldhost.com \
-         --password1 password   \
+         --password1 passwordold   \
          --host2 imap.gmail.com \
+         --ssl2 \
          --user2 my_email@gmail.com \
-         --password2 password \
+         --password2 gmailsecret \
          --maxbytespersecond 20_000 \
          --maxbytesafter 1_000_000_000 \
+         --automap    \
+         --expunge1   \
+         --addheader  \
          --maxsleep 2 \
-         --maxsize 35_651_584 \
-         --automap   \
-         --expunge1  \
-         --addheader \
          --exclude "\[Gmail\]$"  \
-         --regextrans2 "s/['\^\"\\\\]/_/g" \
-         --regextrans2 "s/[ ]+/_/g" 
+         --regextrans2 's,\[Gmail\].,,' \
+         --regextrans2 's,^ +| +$,,g'
+         --regextrans2 's,/ +| +/,/,g'
+         --regextrans2 's/['"'"'\\^"]/_/g'
+         --folderlast  "[Gmail]/All Mail"
 
 
-Starting from imapsync 1.926 the last --regextrans2 replacing 
-all blanks, which was:
+Starting from imapsync 1.926 a --regextrans2 replacing 
+all blanks, was:
 
         --regextrans2 "s/[ ]+/_/g" 
-
-became 
-
-on Winwows, like:
-
-  imapsync.exe ... --regexflag "s,\\Seen,," --regexflag "s,,\\Seen ,"
-                   
-on Linux, like:
-
-  imapsync ...    --regexflag 's,\\Seen,,' --regexflag 's,,\\Seen ,'
-
-
 
 With --gmail2 you can override the parameters
 that are activated by them, for example:
@@ -317,27 +343,30 @@ Q. How to synchronize from Gmail to XXX?
 R. Use this example:
 
 imapsync \
-           --user1 gilles.lamiral@gmail.com \
+           --user1 foo@gmail.com \
            --password1 gmailsecret \
            --host2 localhost \
            --user2 tata \
            --gmail1
 
-Or, replacing what does --gmail1 (values are from imapsync 1.882):
+Or, replacing what does --gmail1 (values are from imapsync 1.970):
 
 imapsync \
            --host1 imap.gmail.com \
-           --user1 gilles.lamiral@gmail.com \
+           --ssl1 \
+           --user1 foo@gmail.com \
            --password1 gmailsecret \
            --host2 localhost \
            --user2 tata \
            --password2 tatasecret \
-           --maxbytespersecond 20_000 \
+           --maxbytespersecond 40_000 \
+           --maxbytesafter 2_500_000_000
+           --automap \
+           --maxsleep 2 \
+           --skipcrossduplicates \
            --useheader="X-Gmail-Received" \
            --useheader "Message-Id" \
-           --automap \
            --regextrans2 "s,\[Gmail\].,," \
-           --skipcrossduplicates \
            --folderlast  "[Gmail]/All Mail"
 
 With --gmail1 you can override the parameters
@@ -347,10 +376,10 @@ imapsync ... --gmail1 --maxbytespersecond 50_000 --noskipcrossduplicates --noaut
 
 Explanations:
 
---maxbytespersecond 20_000 ( 20 kBytes/s ) option is here to avoid 
+--maxbytespersecond 40_000 ( 40 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 20_000 is not mandatory in the sense Gmail may 
+--maxbytespersecond 40_000 is not mandatory in the sense Gmail may 
 allow you to use an upper value than 2 GBytes per 24h without 
 disconnections.
 
@@ -475,7 +504,7 @@ duplicate message as a new message, giving imapsync a new UID for this
 message, and throw it away because it already has it. Gmail
 will do this at each run so imapsync will always try to copy the
 message, and Gmail will always accept and throw away the new copy. It
-ends up with no duplicates on Gmail but a waste of bandwith and time,
+ends up with no duplicates on Gmail but a waste of bandwidth and time,
 which is the opposite goal of --usecache implied by --useuid.
 
 

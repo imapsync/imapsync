@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Docker_build.txt,v 1.8 2018/05/24 11:43:31 gilles Exp gilles $
+# $Id: INSTALL.Docker_build.txt,v 1.12 2019/11/28 14:43:48 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -9,22 +9,53 @@ https://imapsync.lamiral.info/INSTALL.d/INSTALL.Docker_build.txt
                Building an imapsync docker image from Debian
 =======================================================================
 
+Nearly verbatim copy from https://imapsync.lamiral.info/INSTALL.d/Dockerfile 
+(nearly but the Dockerfile rcs tag Id: removed, that would conflict)
 
-# Dockerfile for building a docker imapsync image
+## Dockerfile for building a docker imapsync image
 
-FROM debian:stretch
+# Dockerfile,v 1.26 2019/11/27 15:49:13 gilles Exp gilles $
+# I use the following command to build the image:
+#
+#  docker build -t gilleslamiral/imapsync . 
+#
+# where this Dockerfile is in the current directory
+# 
+# I like thanks
+# I like stars
+# I also like (and need) money
+# I thank you very much in advance
 
-LABEL maintainer "gilles@lamiral.info"
 
-RUN apt-get update \
+FROM debian:buster 
+
+LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
+        description="Imapsync" \
+        documentation="https://imapsync.lamiral.info/#doc"
+
+# Put a copy of the Dockerfile in the image itself
+# It can help future maintenance, isn't it?
+
+COPY Dockerfile /
+
+# Also put my local imapsync on /usr/bin/ for testing purpose
+# renamed imapsync_local since would be erased by the wget
+
+COPY imapsync /usr/bin/imapsync_local
+COPY prerequisites_imapsync /usr/bin/prerequisites_imapsync_local
+
+RUN set -xe && \
+  apt-get update \
   && apt-get install -y \
-  libjson-webtoken-perl \
   libauthen-ntlm-perl \
   libcgi-pm-perl \
   libcrypt-openssl-rsa-perl \
   libdata-uniqid-perl \
+  libencode-imaputf7-perl \
   libfile-copy-recursive-perl \
+  libfile-tail-perl        \
   libio-socket-ssl-perl \
+  libio-socket-inet6-perl \
   libio-tee-perl \
   libhtml-parser-perl \
   libjson-webtoken-perl \
@@ -41,20 +72,36 @@ RUN apt-get update \
   libunicode-string-perl \
   liburi-perl  \
   libwww-perl \
-  libio-socket-inet6-perl \
   procps \
   wget \
+  make \
+  cpanminus \
+  lsof \
   && rm -rf /var/lib/apt/lists/*
 
-RUN wget -N https://imapsync.lamiral.info/imapsync \
-  && cp imapsync /usr/bin/imapsync \
-  && chmod +x /usr/bin/imapsync
+RUN set -xe \
+  && pwd \
+  && wget -N https://imapsync.lamiral.info/imapsync \
+     https://imapsync.lamiral.info/prerequisites_imapsync \
+  && mv imapsync /usr/bin/imapsync \
+  && chmod +x /usr/bin/imapsync /usr/bin/imapsync_local # just_a_comment_to_force_update 2019_11_26_12_58_34
 
-USER nobody
+
+USER nobody:nogroup
+
+ENV HOME /var/tmp/
+
+WORKDIR /var/tmp/
+
+STOPSIGNAL SIGINT
 
 CMD ["/usr/bin/imapsync"]
 
-# End of Dockerfile
+# 
+# End of imapsync Dockerfile 
+
+
+
 
 =======================================================================
 =======================================================================

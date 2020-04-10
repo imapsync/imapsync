@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo,v 1.70 2019/04/28 03:11:49 gilles Exp gilles $
+# $Id: memo,v 1.73 2019/09/05 13:32:57 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -68,7 +68,7 @@ date
 statistics_ks_frequency() {
 
 cat <<EOFF
-tail -f /var/log/apache2/access.log |cat -n|grep prj/imapsync/VERSION|cat -n |grep VERSION # ks frequency
+tail -F /var/log/apache2/access.log |cat -n|grep prj/imapsync/VERSION|cat -n |grep VERSION # ks frequency
 EOFF
 }
 
@@ -292,9 +292,9 @@ verify_month_year() {
 	test -f "$fmy" || { echo "No $fmy" ; return 0 ; }
 	fmy_YYYYmm=`date -r "$fmy" +%Y%m`
 	diff_month=`expr $fmy_YYYYmm - ${year}${month}` || :
-	echo -n $diff_month
-	test "$diff_month" -ge 1 && echo " is enough" && return 0
-	echo " is not enough"
+	#echo -n $diff_month
+	test "$diff_month" -ge 1 && return 0
+	echo "$fmy_YYYYmm - ${year}${month} = $diff_month is not enough"
 	statistics_VERSION_monthly $month $year
 	)
 }
@@ -429,6 +429,20 @@ gunzip GeoLiteCity.dat.gz
 sudo mv GeoIP.dat GeoIPASNum.dat GeoLiteCity.dat /usr/share/GeoIP/
 EOF
 }
+
+maxmind_update2() {
+cat << 'EOF'
+wget https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz \
+     https://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip \
+     https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz \
+     https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip \
+     https://geolite.maxmind.com/download/geoip/database/GeoLite2-ASN.tar.gz \
+     https://geolite.maxmind.com/download/geoip/database/GeoLite2-ASN-CSV.zip
+
+
+EOF
+}
+
 
 echoq "statistics_VERSION_yearly_ip_geo 2015 # long"
 statistics_VERSION_yearly_ip_geo() {

@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Centos.txt,v 1.12 2019/05/02 12:41:07 gilles Exp gilles $
+# $Id: INSTALL.Centos.txt,v 1.14 2019/11/28 14:37:02 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -66,15 +66,18 @@ Then:
  perl-Test-Mock-Guard \
  perl-Test-Requires \
  perl-Test-Deep \
- perl-File-Tail
+ perl-File-Tail \
+ perl-Unicode-String
 
+  cpanm Encode::IMAPUTF7 # this module is not available as a rpm package
+  
   wget -N https://imapsync.lamiral.info/imapsync
   chmod +x imapsync
   ./imapsync --testslive
 
 Now you should shave the latest imapsync locally working on Centos 7.
 
-If you want to install it and replace the olf one:
+If you want to install it and replace the old one:
 
   mv /usr/bin/imapsync  /usr/bin/imapsync_old
   cp ./imapsync /usr/bin/imapsync
@@ -82,7 +85,7 @@ If you want to install it and replace the olf one:
   imapsync --version
 
 should give the latest release number instead of 1.727
-(1.937 at the time of this writing)
+(It is 1.964 at the time of this writing)
 
 If you want to install an online imapsync service
 like /X then you also need a recent decent CGI.pm,
@@ -145,7 +148,8 @@ Then:
  perl-Test-Mock-Guard \
  perl-Test-Requires \
  perl-Test-Deep \
- perl-File-Tail
+ perl-File-Tail \
+ perl-Unicode-String
 
   wget https://imapsync.lamiral.info/imapsync
 

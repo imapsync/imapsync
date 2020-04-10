@@ -1,5 +1,5 @@
 
-$Id: FAQ.Exchange.txt,v 1.50 2019/04/02 09:29:38 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.57 2019/12/04 18:26:28 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -52,10 +52,6 @@ Q. From XXX to Exchange 2010/2013 or Office365 I get this error message
 Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
    not seem to be well synced. What can I do?
 
-Q. Exchange and Office365 have throttle mechanisms to limit any huge 
-   usage. Sometimes imapsync transfers are too stressful for servers. 
-   How to deal with that?
-
 Q. How to migrate from or to Exchange 2007/2010/2013 with an 
    admin/authuser account?
 
@@ -71,7 +67,10 @@ Q. Couldn't create folder [trash] "Mailbox already exists".
 Q. Migrating to Exchange 201O, messages get date of the transfer,
    this is bad for sorting and listing. What can I do?
 
-Q. How to sync from any to Exchange2007?
+Q. How to sync from any to Exchange 2007?
+
+Q. Exchange 2007 folders ending with a space cause an imapsync crash.
+   "Could not select: socket closed while reading data from server"
 
 Q. How to sync from Microsoft Exchange 2000 IMAP4rev1 server?
 
@@ -104,33 +103,37 @@ On Windows, use:
 
   imapsync.exe ... --exchange2
 
-or use (before imapsync release 1.836):
+which is equivalent in imapsync release 1.970 to:
 
   imapsync.exe ... ^
-    --maxsize 10000000 ^
+    --maxsize 10_000_000 ^
     --maxmessagespersecond 4 ^
-    --regexflag "s/\\Flagged//g" ^
     --disarmreadreceipts ^
-    --regexmess "s,(.{9900}),$1\r\n,g"
+    --regexflag "s/\\Flagged//g" ^
+    --regexmess "s,(.{10239}),$1\r\n,g"
 
 On Unix, use:
 
   imapsync ... --exchange2
 
-or use (before imapsync release 1.836):
+which is equivalent in imapsync release 1.970 to:
 
   imapsync ... \
-    --maxsize 10000000 \
-    --maxlinelength 9900 \
+    --maxsize 10_000_000 \
     --maxmessagespersecond 4 \
+    --maxlinelength 10239 \
     --regexflag 's/\\Flagged//g' \
     --disarmreadreceipts \
-    --maxlinelengthcmd 'reformime -r7' 
-    
-On Linux, to get the "reformime" command, install the "maildrop" package.
-In case you don't have it you can still use 
-  --regexmess 's,(.{9900}),$1\r\n,g'
-instead of --maxlinelengthcmd 'reformime -r7' 
+    --regexmess 's,(.{10239}),$1\r\n,g'
+
+
+
+On Linux, you can also try the "reformime" command 
+that can be used like:
+
+  imapsync ... --maxlinelengthcmd "reformime -r7"
+
+To get reformime, install the "maildrop" package.
 
 =======================================================================
 Q. How to sync from Office365 to XXX?
@@ -143,7 +146,12 @@ On Unix, use:
 
   imapsync ... --office1
 
-
+Option --office1 is like (release 1.970):
+  
+  imapsync ... --host1 outlook.office365.com \
+               --ssl1 \
+               --exclude "^Files$" 
+  
 =======================================================================
 Q. How to sync from XXX to Office365
 
@@ -158,36 +166,27 @@ R. Here is a command line resume that solves most encountered issues when
    next Q/R sections.
 
 
-On Windows, use:
-
-  imapsync.exe ... --office2
-
-or use (before imapsync release 1.836):
-  imapsync.exe ... ^
-    --maxsize 45000000 ^
-    --maxmessagespersecond 2 ^
-    --regexflag "s/\\Flagged//g" ^
-    --disarmreadreceipts ^
-    --regexmess "s,(.{10500}),$1\r\n,g"
-
-On Unix, use:
-
   imapsync ... --office2
 
-or use (before imapsync release 1.836):
+which is equivalent to (in imapsync release 1.870):
 
   imapsync ... \
+    --host2 outlook.office365.com \
+    --ssl2 \
     --maxsize 45000000 \
-    --maxlinelength 10500 \
-    --maxmessagespersecond 2 \
-    --regexflag 's/\\Flagged//g' \
+    --maxmessagespersecond 4 \
     --disarmreadreceipts \
-    --maxlinelengthcmd 'reformime -r7' 
-    
-On Linux, to get the "reformime" command, install the "maildrop" package.
-In case you don't have it you can use 
-  --regexmess 's,(.{10500}),$1\r\n,g'
-instead of --maxlinelengthcmd 'reformime -r7' 
+    --regexmess "s,(.{10239}),$1\r\n,g" \
+    --f1f2 "Files=Files_renamed_by_imapsync"
+
+
+On Linux, you can also try the "reformime" command 
+that can be used like:
+
+  imapsync ... --maxlinelengthcmd "reformime -r7"
+
+To get reformime, install the "maildrop" package.
+
 
 =======================================================================
 Q. For Office365 I have double and triple checked the username and 
@@ -288,13 +287,23 @@ Q. Office365 throttles the sync and says:
    "Request is throttled. Suggested Backoff Time: 299961 milliseconds".
    What can I do with that?
    
-R. To solve the throttles issues from 0365, there's two solutions:
+
+R. Exchange and Office365 have throttle mechanisms to limit any huge 
+   usage. Sometimes imapsync transfers are too stressful for servers.
+   The message 
+   "Request is throttled. Suggested Backoff Time: 299961 milliseconds"
+   comes from the imap Office365 server, imapsync just reports it
+   before being disconnected from it.
+
+   To solve the throttles issues from 0365, there are two solutions
+   at least:
 
 R1. Call Microsoft Office365 and ask them to remove the limits on your 
   mailboxes. That's not a joke, they do it for 90 days usually, 
   sometimes only after you reach the second technician you call, 
-  the first one been not enough competent to understand what you're
-  talking about.
+  the first one usually been not enough competent to understand 
+  what you're talking about (I would be glad to remove this bad
+  fact).
 
 R2. Play with options --maxbytespersecond or --maxmessagespersecond
     or --exitwhenover
@@ -307,6 +316,14 @@ R2. Play with options --maxbytespersecond or --maxmessagespersecond
 
 I don't know the upper value that avoid the default throttling from 0365
 and I guess it changes over time.
+
+R3. For Exchange, in case throttle appears anyway, fix them with:
+  https://technet.microsoft.com/en-us/library/jj863577(v=exchg.150).aspx
+  See also:
+  http://www.linux-france.org/prj/imapsync_list/msg02072.html
+
+  Sometimes restarting the Exchange server is needed to take
+  into account the change in the configuration.
 
 =======================================================================
 Q. Office365 refuses to create the folder named "Files" with the error
@@ -322,6 +339,19 @@ Q. Office365 users complain that a folder named "Files" contains
 R0. To fix this, add --exclude Files
 
   imapsync ... --exclude Files
+
+  If you use --office1 then imapsync will add this exclusion 
+  automatically like using  the option:
+  
+  imapsync ... --exclude "^Files$" 
+
+  If you use --office2 then imapsync will add a renaming of any
+  "Files" folder on host1, like using the option:
+  
+  imapsync ... --f1f2 "Files=Files_renamed_by_imapsync"
+
+  The host2 account ends up with a folder named 
+  "Files_renamed_by_imapsync", but no complaining.
 
 R1. This folder "Files" seems to be a standard folder in Exchange Online, 
    but it is not. The folder contains all attachments in every email 
@@ -455,7 +485,7 @@ encountered so you might also see "BYE Connection closed" errors from
 Exchange, which means Exchange leaves the session and say goodbye,
 come back later. Rerun a sync then.
 
-If on Linux, there is a good Python script in the tarball that can 
+On Linux, there is a good Python script in the tarball that can 
 fix several things that Exchange or O365 have issues with.
 
 Use it like this:
@@ -485,24 +515,6 @@ With STORE it sets and gets the "\Flagged" flag everywhere.
 
 Thanks to Dave Murray and Simon Savva for reporting and solving 
 this issue.
-
-======================================================================
-Q. Exchange and Office365 have throttle mechanisms to limit any huge 
-   usage. Sometimes imapsync transfers are too stressful for servers. 
-   How to deal with that?
-
-R. It looks like limiting 4 messages per second is enough to avoid 
-   the throttle limits.
-
-  imapsync ... --maxmessagespersecond 4
-
-In case throttle appears anyway, fix them with:
-https://technet.microsoft.com/en-us/library/jj863577(v=exchg.150).aspx
-See also:
-http://www.linux-france.org/prj/imapsync_list/msg02072.html
-
-Sometimes restarting the Exchange server is needed to take
-into account the change in the configuration.
 
 ======================================================================
 Q. How to migrate from or to Exchange 2007/2010/2013 with an 
@@ -579,6 +591,22 @@ you want to sync which you can setup in the gui or via powershell
 and again - don't use administrator@domain.com - as that will never 
 work because IMAP LOGIN is disabled for that account apparently
 under all circumstances.
+
+Note from Noxyron
+https://github.com/imapsync/imapsync/issues/136#issuecomment-543761463
+
+Hi guys. For a long time I could not start synchronization, I use admin rights 
+and the --authuser2 switch when I migrated from Mdaemon to Exchange2016. 
+I always got the error:
+"Host2 failure: Error login on [my.exchange.com] with user [mydomainuser] auth [PLAIN]: 2 NO AUTHENTICATE failed."
+In order for ImapSync to login to the user’s mailbox using administrator rights,
+you need to give for the administrator the permissions to the mailbox of this
+user with the command:
+“Add-MailboxPermission -Identity DomainUser -User DomainAdmin -AccessRights FullAccess -InheritanceType All -AutoMapping $false”
+using Exchange Management Shell. 
+Without this, synchronization will not work. 
+Please, add this comment to the FAQ.Exchange.txt
+(done!)
 
 ======================================================================
 Q. How to migrate from or to Office 365 with an admin/authuser account?
@@ -690,7 +718,7 @@ It's often shorter to change one server than thousands clients
 so R1 might be easier to do.
 
 ======================================================================
-Q. How to sync from any to Exchange2007?
+Q. How to sync from any to Exchange 2007?
 
 Several problems:
 - Big messages: increase the "send- and receive-connector" 
@@ -701,12 +729,21 @@ R. 2 solutions
 R1. With imapsync (only partial success)
 --skipheader 'Received' \
 --regexmess 's{\A(.*?(?!^$))^Date:(.*?)$}{$1Date:$2\nReceived: From; $2}gxms'
-Any user having time to spend to debug Exchange2007 with imapsync
+Any user having time to spend to debug Exchange 2007 with imapsync
 is welcome.
 
 R2. Other solution
 Two users succeeded by using "MS Transporter Suite" (which is closed
 expensive non-free software).
+
+=======================================================================
+Q. Exchange 2007 folders ending with a space cause an imapsync crash.
+   "Could not select: socket closed while reading data from server"
+
+R. Using another imap tool like Thunderbird or Outlook, change the 
+   folder name to exclude the trailing space.
+
+See  https://github.com/imapsync/imapsync/issues/154
 
 ======================================================================
 Q. How to sync from Microsoft Exchange 2000 IMAP4rev1 server?

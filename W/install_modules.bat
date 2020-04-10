@@ -1,4 +1,4 @@
-REM $Id: install_modules.bat,v 1.37 2019/05/28 13:20:08 gilles Exp gilles $
+REM $Id: install_modules.bat,v 1.39 2019/12/11 18:56:54 gilles Exp gilles $
 
 ::------------------------------------------------------
 ::--------------- Main of install_modules.bat ----------
@@ -16,9 +16,9 @@ CD /D %~dp0
 CALL :handle_error CALL :detect_perl
 CALL :handle_error CALL :update_modules
 
-@ENDLOCAL
 @REM Do a PAUSE if run by double-click, aka, explorer (then ). No PAUSE in a DOS window or via ssh.
 IF %0 EQU "%~dpnx0" IF "%SSH_CLIENT%"=="" PAUSE
+@ENDLOCAL
 EXIT /B
 
 
@@ -43,6 +43,10 @@ EXIT /B
 :update_modules
 @SETLOCAL
 FOR %%M in ( ^
+ App::cpanminus ^
+ MIME::Base64 ^
+ Encode ^
+ Encode::IMAPUTF7 ^
  File::Tail ^
  Regexp::Common ^
  Sys::MemInfo ^
@@ -58,6 +62,7 @@ FOR %%M in ( ^
  Getopt::ArgvFile ^
  Socket6 ^
  Net::SSLeay ^
+ IO::Socket::IP ^
  IO::Socket::INET ^
  IO::Socket::INET6 ^
  IO::Socket::SSL ^
@@ -77,7 +82,7 @@ FOR %%M in ( ^
  HTML::Entities ^
  Encode::Byte ^
  ) DO @perl -m%%M -e "print qq{Updating %%M $%%M::VERSION \n}" ^
-   & cpanm %%M
+   & ECHO DOING cpanm %%M & cpanm %%M & ECHO DONE cpanm %%M 
 
 ECHO Perl modules for imapsync updated
 REM PAUSE

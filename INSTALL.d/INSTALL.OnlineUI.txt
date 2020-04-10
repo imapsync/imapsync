@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.OnlineUI.txt,v 1.30 2019/03/06 17:36:50 gilles Exp gilles $
+# $Id: INSTALL.OnlineUI.txt,v 1.32 2019/11/28 14:42:17 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -9,17 +9,17 @@ https://imapsync.lamiral.info/INSTALL.d/INSTALL.OnlineUI.txt
                Installing imapsync online
 =======================================================================
 
-Please consider this as relatively new and experimental.
+Please consider this as relatively experimental.
 However, to a certain extent, I'm now confident with /X 
 since the /X service is up and running quite well since January 2017.
 
 =======================================================================
                     Hardware consideration
-                    
 
 RAM used per imapsync process, mean value: 230 MB.
 Average_bandwidth_rate: 345 KiB/s ~ 2.8 Mbps.
 Load mean: 0.8 on a CPU 4 cores "Intel(R) i5-2320 3.00GHz K8-class"
+
 
 
 
@@ -29,18 +29,23 @@ Load mean: 0.8 on a CPU 4 cores "Intel(R) i5-2320 3.00GHz K8-class"
 You have to be a little familiar with what a CGI script is
 and how to activate a CGI script on the Apache 
 HTTP server, or any other HTTP server. Linux is also a 
-preferred platform. 
+preferred platform (I run /X service on Linux and FreeBSD).
 
-I haven't tested yet this visual interface on Windows nor Mac,
-feedback is welcome from successes or failures on those platforms.
-Like imapsync is written, it should fail on Windows because of
-some hard coded Unix paths.
+I have tested yet this visual interface on Mac. It works
+but for now it demands some skills few Mac users have.
+
+I have tested this visual interface on Windows,
+it fails on Windows because of some hard coded Unix paths.
+I'm working on it to be Windows ok but it's not done yet (october 2019).
+
+Some users have successfully installed a /X visual interface 
+on Windows using a Linux VM machine.
 
 The web visual user interface frontend /X is compounded in four
 files: a html5 file, a css file, a javascript file and
 a logo image:
 
-* https://i005.lamiral.info/X/imapsync_form.html
+* https://i005.lamiral.info/X/imapsync_form_extra.html
 * https://i005.lamiral.info/X/imapsync_form.css
 * https://i005.lamiral.info/X/imapsync_form.js
 * https://i005.lamiral.info/X/logo_imapsync_Xn.png
@@ -54,11 +59,11 @@ with wget.
 Those four files can be put anywhere on a web server,
 as long as they stand in the same directory. If you
 want to put them in different directories, just change
-the content of imapsync_form.html to reflect the change,
+the content of imapsync_form_extra.html to reflect the change,
 ie, change the two lines referencing imapsync_form.css and imapsync_form.js 
-  href="imapsync_form.css" (near the beginning of imapsync_form.html)
-  src="imapsync_form.js"   (near the end of imapsync_form.html)
-I let you changing the image logo as an exercise.
+  href="imapsync_form.css" (near the beginning of imapsync_form_extra.html)
+  src="imapsync_form.js"   (near the end of imapsync_form_extra.html)
+I let you changing the image logo as an exercise, it's safe if you fail.
 
 The actual imap syncing work is done by imapsync acting as a CGI,
 the visual interface is only there to give imapsync the parameters
@@ -78,7 +83,7 @@ If it is under release 4.08 (2014-10-18) then upgrade it with
   cpanm CGI
 
 It is a good thing to remove the old one if it was installed
-by a distribution package, I let you this part as an exercise.
+by a distribution package, I let you this part as an exercise too.
 
 To check and fix the Perl modules dependencies, run:
 
@@ -88,20 +93,21 @@ To check and fix the Perl modules dependencies, run:
 
 In order to make imapsync work as a cgi, there is two conditions.
 First, imapsync has to work by itself on the web host.
+
 If imapsync doesn't work by itself, as a command line, 
 then it won't work as a cgi.
-Second, imapsync has to work by itself on the web host using
-the Unix user running the web server.
-Detailed examples to verify that will be provided further 
-in this document.
 
-The imapsync_form.html file in action calls the CGI location
+Second, imapsync has to work by itself on the web host using
+the Unix user running the web server. Detailed examples to 
+verify that will be provided further in this document.
+
+The imapsync_form_extra.html file in action calls the CGI location
 /cgi-bin/imapsync
 which has to be imapsync itself, the file script (not the directory).
 
 The very latest and relatively stable imapsync is at
 https://imapsync.lamiral.info/imapsync
-It is the program file used verbatim for the service given at
+This file is the program file used verbatim for the service given at
 https://i005.lamiral.info/X/
 
 Copy the three files imapsync_form.* on a directory that is exported 
@@ -111,9 +117,14 @@ allowing CGIs and you'll have your own imapsync visual interface
 and service. The cgi-bin/ directory is usually outside the 
 hierarchy exported to anybody by the HTTP server.
 
+Now that I have explained the general context for any system,
+I'll describe concrete examples on several systems, 
+Debian/Ubuntu and Centos. Feedbacks show that the Centos
+process is easier in case you know just a little of the
+linux distributions.
 
-
-Concrete example on a Debian server with Apache:
+=============================================================================
+A) Concrete example on a Debian server with Apache:
 
 Imapsync script place on the server disk:
 /usr/lib/cgi-bin/imapsync
@@ -165,18 +176,18 @@ ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
 
 The UI front-end file place on the server disk in
 this example is
-/var/www/html/X/imapsync_form.html
+/var/www/html/X/imapsync_form_extra.html
 but it can be placed it anywhere on disk, the important
 thing is that it has to be served by the web server. 
 
   mkdir /var/www/html/X/
   cd /var/www/html/X/
   wget -N \
-  https://i005.lamiral.info/X/imapsync_form.html \
+  https://i005.lamiral.info/X/imapsync_form_extra.html \
   https://i005.lamiral.info/X/imapsync_form.css \
   https://i005.lamiral.info/X/imapsync_form.js \
   https://i005.lamiral.info/X/logo_imapsync_Xn.png
-  ln -s imapsync_form.html index.html
+  ln -s imapsync_form_extra.html index.html
 
 The imapsync process working directory in cgi mode is
 /var/tmp/imapsync_cgi/
@@ -186,23 +197,23 @@ In this directory will go the log files and
 the pid files.
 
 Check 
-   http://yourhost/X/imapsync_form.html
+   http://yourhost/X/imapsync_form_extra.html
 or the safer
-  https://yourhost/X/imapsync_form.html
+  https://yourhost/X/imapsync_form_extra.html
 
 That's all for installing a /X service on Debian.
 
-
-Example on a Centos 7 server with httpd Apache:
+=============================================================================
+B) Concrete example on a Centos 7 server with httpd Apache:
 
   mkdir /var/www/html/X/
   cd /var/www/html/X/
   wget -N \
-  https://i005.lamiral.info/X/imapsync_form.html \
+  https://i005.lamiral.info/X/imapsync_form_extra.html \
   https://i005.lamiral.info/X/imapsync_form.css \
   https://i005.lamiral.info/X/imapsync_form.js \
   https://i005.lamiral.info/X/logo_imapsync_Xn.png
-  ln -s imapsync_form.html index.html
+  ln -s imapsync_form_extra.html index.html
   
   cd
   wget -N https://imapsync.lamiral.info/imapsync
@@ -217,9 +228,9 @@ Example on a Centos 7 server with httpd Apache:
 
 
 Check 
-   http://yourhost/X/imapsync_form.html
+   http://yourhost/X/imapsync_form_extra.html
 or the safer
-  https://yourhost/X/imapsync_form.html
+  https://yourhost/X/imapsync_form_extra.html
 
 That's all for installing a /X service on Centos 7.
 

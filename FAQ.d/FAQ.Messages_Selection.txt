@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Messages_Selection.txt,v 1.14 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.Messages_Selection.txt,v 1.15 2019/07/24 12:02:11 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -172,10 +172,34 @@ Q. What are the selection criteria available with --search option?
 
 R. The list of search criteria are listed below, an excerpt from RFC3501.
 
-http://www.faqs.org/rfcs/rfc3501.html
 
-6.4.4.  SEARCH Command
+https://tools.ietf.org/html/rfc3501#section-6.4.4
 ...
+      The SEARCH command searches the mailbox for messages that match
+      the given searching criteria.  Searching criteria consist of one
+      or more search keys.  The untagged SEARCH response from the server
+      contains a listing of message sequence numbers corresponding to
+      those messages that match the searching criteria.
+      When multiple keys are specified, the result is the intersection
+      (AND function) of all the messages that match those keys.  For
+      example, the criteria DELETED FROM "SMITH" SINCE 1-Feb-1994 refers
+      to all deleted messages from Smith that were placed in the mailbox
+      since February 1, 1994.  A search key can also be a parenthesized
+      list of one or more search keys (e.g., for use with the OR and NOT
+      keys).
+
+      In all search keys that use strings, a message matches the key if
+      the string is a substring of the field.  The matching is
+      case-insensitive.
+
+      The defined search keys are as follows.  Refer to the Formal
+      Syntax section for the precise syntactic definitions of the
+      arguments.
+
+      <sequence set>
+         Messages with message sequence numbers corresponding to the
+         specified message sequence number set.
+
       ALL
          All messages in the mailbox; the default initial key for
          ANDing.
@@ -306,6 +330,89 @@ http://www.faqs.org/rfcs/rfc3501.html
       UNSEEN
          Messages that do not have the \Seen flag set. 
 
+...
+
+search          = "SEARCH" [SP "CHARSET" SP astring] 1*(SP search-key)
+                    ; CHARSET argument to MUST be registered with IANA
+...
+
+search-key      = "ALL" / "ANSWERED" / "BCC" SP astring /
+                  "BEFORE" SP date / "BODY" SP astring /
+                  "CC" SP astring / "DELETED" / "FLAGGED" /
+                  "FROM" SP astring / "KEYWORD" SP flag-keyword /
+                  "NEW" / "OLD" / "ON" SP date / "RECENT" / "SEEN" /
+                  "SINCE" SP date / "SUBJECT" SP astring /
+                  "TEXT" SP astring / "TO" SP astring /
+                  "UNANSWERED" / "UNDELETED" / "UNFLAGGED" /
+                  "UNKEYWORD" SP flag-keyword / "UNSEEN" /
+                    ; Above this line were in [IMAP2]
+                  "DRAFT" / "HEADER" SP header-fld-name SP astring /
+                  "LARGER" SP number / "NOT" SP search-key /
+                  "OR" SP search-key SP search-key /
+                  "SENTBEFORE" SP date / "SENTON" SP date /
+                  "SENTSINCE" SP date / "SMALLER" SP number /
+                  "UID" SP sequence-set / "UNDRAFT" / sequence-set /
+                  "(" search-key *(SP search-key) ")"
+
+seq-number      = nz-number / "*"
+                    ; message sequence number (COPY, FETCH, STORE
+                    ; commands) or unique identifier (UID COPY,
+                    ; UID FETCH, UID STORE commands).
+                    ; * represents the largest number in use.  In
+                    ; the case of message sequence numbers, it is
+                    ; the number of messages in a non-empty mailbox.
+                    ; In the case of unique identifiers, it is the
+                    ; unique identifier of the last message in the
+                    ; mailbox or, if the mailbox is empty, the
+                    ; mailbox's current UIDNEXT value.
+                    ; The server should respond with a tagged BAD
+                    ; response to a command that uses a message
+                    ; sequence number greater than the number of
+                    ; messages in the selected mailbox.  This
+                    ; includes "*" if the selected mailbox is empty.
+
+seq-range       = seq-number ":" seq-number
+                    ; two seq-number values and all values between
+                    ; these two regardless of order.
+                    ; Example: 2:4 and 4:2 are equivalent and indicate
+                    ; values 2, 3, and 4.
+                    ; Example: a unique identifier sequence range of
+                    ; 3291:* includes the UID of the last message in
+                    ; the mailbox, even if that value is less than 3291.
+
+sequence-set    = (seq-number / seq-range) *("," sequence-set)
+                    ; set of seq-number values, regardless of order.
+                    ; Servers MAY coalesce overlaps and/or execute the
+                    ; sequence in any order.
+                    ; Example: a message sequence number set of
+                    ; 2,4:7,9,12:* for a mailbox with 15 messages is
+                    ; equivalent to 2,4,5,6,7,9,12,13,14,15
+                    ; Example: a message sequence number set of *:4,5:7
+                    ; for a mailbox with 10 messages is equivalent to
+                    ; 10,9,8,7,6,5,4,5,6,7 and MAY be reordered and
+                    ; overlap coalesced to be 4,5,6,7,8,9,10.
+
+
+See also the excellent "Introduction to IMAP" by Nick Babcock
+https://nbsoftsolutions.com/blog/introduction-to-imap
+
+
+
+See also "WITHIN Search Extension to the IMAP Protocol"
+https://tools.ietf.org/html/rfc5032
+
+...
+   search-key =/ ( "OLDER" / "YOUNGER" ) SP nz-number
+                  ; search-key defined in RFC 3501
+
+4.  Example
+
+   C: a1 SEARCH UNSEEN YOUNGER 259200
+   S: a1 * SEARCH 4 8 15 16 23 42
+
+   Search for all unseen messages within the past 3 days, or 259200
+   seconds, according to the server's current time.
+   
 =======================================================================
 =======================================================================
 

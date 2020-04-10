@@ -1,17 +1,178 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.945
+head: 1.977
 branch:
 locks: strict
-	gilles: 1.945
+	gilles: 1.977
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 945;	selected revisions: 945
+total revisions: 977;	selected revisions: 977
 description:
 ----------------------------
-revision 1.945	locked by: gilles;
+revision 1.977	locked by: gilles;
+date: 2019/12/23 20:18:02;  author: gilles;  state: Exp;  lines: +10 -10
+No tests_resolv(  ) since resolv is not really used and tests_resolv(  ) fails on mac (I do not have write to /etc/hosts)
+----------------------------
+revision 1.976
+date: 2019/12/19 15:37:33;  author: gilles;  state: Exp;  lines: +16 -12
+Moved tests tests_probe_imapssl  tests_mailimapclient_connect tests_resolv at the end.
+----------------------------
+revision 1.975
+date: 2019/12/19 10:44:23;  author: gilles;  state: Exp;  lines: +21 -13
+Commented the tests_kill* tests
+Added a resolv petiteipv6.lamiral.info before check it (frequent failure)
+----------------------------
+revision 1.974
+date: 2019/12/16 13:01:18;  author: gilles;  state: Exp;  lines: +18 -9
+Enhancement, internal. Use Debug_fh to set where go the --debugimap outputs.
+----------------------------
+revision 1.973
+date: 2019/12/15 00:27:10;  author: gilles;  state: Exp;  lines: +8 -8
+Bugfix. Upgraded ks2 Dovecot and now logout in ssl does not cause failure
+----------------------------
+revision 1.972
+date: 2019/12/14 23:45:12;  author: gilles;  state: Exp;  lines: +9 -9
+Added -utf8 when requiring CGI. Hope it will allow utf8 characters in passwords.
+----------------------------
+revision 1.971
+date: 2019/12/14 23:41:41;  author: gilles;  state: Exp;  lines: +8 -8
+Bugfix. CGI context. charset was  charset=ISO-8859-1 in header (CGI.pm default). Now "text/plain; charset=UTF-8"
+----------------------------
+revision 1.970
+date: 2019/12/09 23:09:05;  author: gilles;  state: Exp;  lines: +297 -259
+Reread README part.
+Change tests. ks2ipv6.lamiral.info replaced by petiteipv6.lamiral.info
+1510 unit tests
+----------------------------
+revision 1.969
+date: 2019/11/29 13:00:32;  author: gilles;  state: Exp;  lines: +9 -9
+1509 unit tests
+----------------------------
+revision 1.968
+date: 2019/11/29 12:42:13;  author: gilles;  state: Exp;  lines: +29 -19
+Bugfix. binmode UTF-8 for log and output.
+----------------------------
+revision 1.967
+date: 2019/11/27 20:41:34;  author: gilles;  state: Exp;  lines: +9 -9
+Bugfix. Bad tests count under docker
+----------------------------
+revision 1.966
+date: 2019/11/27 20:23:08;  author: gilles;  state: Exp;  lines: +10 -9
+Commented test probe_imapssl: ks2ipv6.lamiral.info
+----------------------------
+revision 1.965
+date: 2019/11/27 20:16:32;  author: gilles;  state: Exp;  lines: +13 -11
+Removed some tests that take time and sometimes fail (ipv6 related)
+----------------------------
+revision 1.964
+date: 2019/11/27 15:50:39;  author: gilles;  state: Exp;  lines: +52 -27
+CGI context. Adaptation to a local http server webserver. pidfile and cgidir.
+Added Encode Encode::IMAPUTF7 and MIME::Base64 modules versions.
+Removed doublon "use MIME::Base64".
+Bugfix. Make --tests pass on docker context and under root.
+----------------------------
+revision 1.963
+date: 2019/11/25 12:38:44;  author: gilles;  state: Exp;  lines: +52 -18
+Skip tests under Win Win64 and Mac that fail. ipv6 related or fork ones.
+----------------------------
+revision 1.962
+date: 2019/11/22 09:51:29;  author: gilles;  state: Exp;  lines: +19 -9
+Added dependencies:
+* MIME::Base64
+* Encode
+Added test for Encode::find_encoding that fails with the binaries not cmpiled with perl -x
+----------------------------
+revision 1.961
+date: 2019/11/19 19:45:02;  author: gilles;  state: Exp;  lines: +117 -47
+Added module dependency to Encode::IMAPUTF7
+Bugfix. Folders names with + characters must stay as they are.
+Bugfix. When using --subfolder2 SUB --delete2folders, do not delete the folder SUB.
+----------------------------
+revision 1.960
+date: 2019/10/31 23:08:18;  author: gilles;  state: Exp;  lines: +54 -7
+Added test to remove header bad.
+----------------------------
+revision 1.959
+date: 2019/10/07 21:21:45;  author: gilles;  state: Exp;  lines: +318 -92
+Added tests:
+tests_kill_zero()
+tests_killpid_by_parent()
+tests_killpid_by_brother()
+tests_abort()
+
+cgidir is . when used by Net::Server::HTTP
+
+Bugfix. Added SSL_cipher_list => 'DEFAULT:!DH' to tests with ssl
+Bugfix. PIDs can be negative under Windows.
+Bugfix. --resynclabels was not on with --gmail1 --gmail2
+1502 unit tests under Unix
+----------------------------
+revision 1.958
+date: 2019/09/11 21:16:40;  author: gilles;  state: Exp;  lines: +40 -37
+cgi context is now set on with env variables SERVER_SOFTWARE and SERVER_PORT
+it is because Net::Server::HTTP does not set SERVER_SOFTWARE but SERVER_PORT
+It is a preparation to a homemade web server to serve on imapsync as a cgi and
+get free from Apache or a complicated web server stuff configuration.
+----------------------------
+revision 1.957
+date: 2019/08/29 17:40:13;  author: gilles;  state: Exp;  lines: +34 -25
+Bugfix. Do not compute a folder size if the folder does not exist. Happened with --skipemptyfolders
+----------------------------
+revision 1.956
+date: 2019/08/02 20:18:52;  author: gilles;  state: Exp;  lines: +118 -55
+Bugfix. Reviewed all exit_clean to include a final CR on the error message.
+Bugfix. New foldersize tried to select non existent folder that caused a premature exit
+when host2 account is mostly empty.
+Bugfix. --justconnect did not show the line "IP address:"
+----------------------------
+revision 1.955
+date: 2019/07/31 20:30:27;  author: gilles;  state: Exp;  lines: +69 -36
+Bugfix in docker context. killing myself in docker context doesn't seem to work well, as well as sending signals several times.
+So just install catch_exit with INT (ctr-c on terminals) and exits if still alive after killing myself.
+----------------------------
+revision 1.954
+date: 2019/07/29 18:04:07;  author: gilles;  state: Exp;  lines: +19 -14
+Bufix. In docker context, print "context detected" only with --debug. imapsync --version printed the release on the third line instead of the first.
+----------------------------
+revision 1.953
+date: 2019/07/29 05:12:18;  author: gilles;  state: Exp;  lines: +9 -9
+Bugfix. tests_imapsync_context under Docker bugfix.
+----------------------------
+revision 1.952
+date: 2019/07/29 04:52:52;  author: gilles;  state: Exp;  lines: +8 -8
+1477 regression tests
+----------------------------
+revision 1.951
+date: 2019/07/29 04:40:48;  author: gilles;  state: Exp;  lines: +66 -9
+Added context in --releasecheck user_agent. CGI or Docker or Standard.
+----------------------------
+revision 1.950
+date: 2019/07/28 02:24:17;  author: gilles;  state: Exp;  lines: +604 -189
+Folders sizes are now presented per folder from host1 and host2 as well as the differrences between them.
+----------------------------
+revision 1.949
+date: 2019/07/18 03:44:00;  author: gilles;  state: Exp;  lines: +59 -32
+Refactor. timenext() deglobalized. 
+Added tests_timenext().
+----------------------------
+revision 1.948
+date: 2019/07/17 16:51:50;  author: gilles;  state: Exp;  lines: +153 -128
+Refactor. Moved main instructions into sub single_sync(). Goal is to prepare multiple different syncs.
+----------------------------
+revision 1.947
+date: 2019/07/15 01:10:05;  author: gilles;  state: Exp;  lines: +119 -45
+Bugfix. Count all fatal errors.
+----------------------------
+revision 1.946
+date: 2019/07/09 18:01:42;  author: gilles;  state: Exp;  lines: +136 -48
+Usability. Added the number of errors and the max number of errors allowed at the final line "Exiting with return value xx"
+Deglobalized $foldersizes to $sync->{ foldersizes }
+Usability. Added ETA at the beginning of a folder process.
+1467 regression tests
+----------------------------
+revision 1.945
 date: 2019/06/26 19:30:56;  author: gilles;  state: Exp;  lines: +151 -94
 Proofread the documentation part, what will go to README.
 The pod at the beginning.

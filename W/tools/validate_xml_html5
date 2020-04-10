@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: validate_xml_html5,v 1.4 2017/09/11 02:19:00 gilles Exp gilles $
+# $Id: validate_xml_html5,v 1.6 2019/11/25 12:51:40 gilles Exp gilles $
 
 #set -x
 
@@ -9,7 +9,8 @@ validate_xml_html5_one() {
         echo $1 : $type
         if expr match "$type" '.*text/html.*' > /dev/null; then
                 echo html5check.py -h "$1"
-                html5check.py -h "$1"
+                html5check.py -h "$1" 
+                html5check.py -h "$1" | grep 'The document is valid HTML5' > /dev/null
                 return $?
         fi
         if expr match "$type" '.*application/xml.*' > /dev/null; then
@@ -19,17 +20,26 @@ validate_xml_html5_one() {
                 xmllint --noout "$1"
                 return $?
         fi
+        if expr match "$type" '.*inode/symlink.*' > /dev/null; then
+                echo ignore $1 since it is a symlink
+                return 0
+        fi
         echo Unknown type
         return 1
 }
 
-
+nb_failures=0
 for f in "$@"; do
         validate_xml_html5_one "$f"
         cmd_status=$?
         echo cmd_status = $cmd_status
-        test 0 != $cmd_status && return $cmd_status
+        test 0 != $cmd_status && { 
+                nb_failures=`expr 1 + $nb_failures`
+                files_failed="$files_failed $f"
+        }
 done
+echo Found $nb_failures failures $files_failed
+return $nb_failures
 
 : # if here then good return
 

@@ -1,11 +1,146 @@
 #!/bin/cat
-# $Id: TODO,v 1.215 2019/06/20 10:12:00 gilles Exp gilles $
+# $Id: TODO,v 1.230 2020/01/03 22:39:22 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
 ===========================================================================
 TODO file for imapsync
 ----------------------
+
+
+SUGGESTED 2020_01_03 by Gilles
+Bugfix. When running ./imapsync --tests --testslive
+Host Nb folders are 0, which is false.
+
+
+SUGGESTED 2020_01_03 by Gilles
+https://lamiral.info/~gilles/imapsync/cover_db/imapsync.html
+is result of ./imapsync --tests --testslive
+Increase the subroutine coverage to 100% by
+removing unused ones or add a test call for the remaining. 
+
+SUGGESTED 2019_12_26 by Gilles
+For /X Look at 
+https://en.wikipedia.org/wiki/ModSecurity
+
+
+SUGGESTED 2019_12_26 by Gilles
+Look at 
+https://metacpan.org/pod/Test::Warnings
+
+
+SUGGESTED 2019_12_26 by https://github.com/masbaehr
+Add the "throttle" word in the README about 
+--maxmessagespersecond --maxbytespersecond
+See https://github.com/imapsync/imapsync/issues/204
+
+
+SUGGESTED 2016_07_12 by Fronik
+With --automap apply the mapping to subfolders of mapped folders.
+If
+Sent => Envoyes
+then
+Sent.Foo     =>  Envoyes.Foo
+Sent.Foo.Bar =>  Envoyes.Foo.bar
+
+
+SUGGESTED 2019_10_22 by Gilles
+Add the download link in imapsync itself, with --releasecheck
+
+SUGGESTED 2019_10_20 by Olav Seyfarth
+One suggestion/request regarding INSTALL.OnlineUI.txt: Please add a
+typical NGINX setup since NGINX is used very often now and requires a
+quite different setup: one has to set up a fcgi service.
+
+SUGGESTED 2019_10_02 by Joel from Blue Net Box
+Fix this issue:
+“imapsync_bin_Darwin” can’t be opened because its integrity cannot be verified.
+This software needs to be updated. Contact the developer for more information.
+MacOS 10.15 is the new macOS Catalina (in the last beta phase)
+This error message happens in a shell window.
+Same imapsync_bin_Darwin in macOS 10.14 works fine.
+
+SUGGESTED 2019_10_02 by Gilles
+Look at Traefik to automatic ssl services (webserver).
+
+
+RE_SUGGESTED 2019_09_26 by Andre Adrian (rotlaus)
+Allow @ in subfolder names #195
+https://github.com/imapsync/imapsync/issues/195
+Allow also & (imap_utf7 character)
+Or add a --nosanetizesubfolder option.
+
+SUGGESTED 2019_07_01 by Jeffrey Thatplayer
+https://github.com/imapsync/imapsync/issues/181
+Make sanitizing an option for --subfolder1 --subfolder2
+Two options? --nosanitize1 --nosanitize2 
+Reflecting more I wonder if sanitizing  for --subfolder1 is just stupid.
+It's not, it's good from the usage point of view, same string to point out
+the destination backup/restore folder
+
+
+SUGGESTED 2019_09_23 by Celko Michal.
+My proposal is to create a status file.
+it would be a command line option, ex. 
+  imapsync ... --status-file /var/www/hosting/tmp/xyz.json
+When I start imapsync process with this option, it would generate
+and update this status file every few seconds, so any application
+can access it and see what's going on with this process without
+parsing logs or keeping up with the log format when it changes.
+Example of such status file would be:
+In progress
+{
+"status": "In progress",
+"progress": "245/5000",
+"Message": "",
+"Debug": "",
+"Process ID": "pid123456"
+}
+On error example
+{
+"status": "Fail",
+"progress": "245/5000",
+"Message": "ERRCODE:123",
+"Debug": "LOG_imapsync/2019_09_22_09_01_42_058_abc@example.com_JDoe@example.com.txt",
+"Process ID": "pid123456"
+}
+On complete example*
+{
+"status": "Completed",
+"progress": "5000/5000",
+"Message": "",
+"Debug": "LOG_imapsync/2019_09_22_09_01_42_058_abc@example.com_JDoe@example.com.txt",
+"Process ID": ""
+}
+
+
+SUGGESTED 2019_07_30 by Gilles
+Only since imapsync 1.774 the release check is done with 
+\r\n to end lines, instead of the not RFC compliant \n.
+If I upgrade Apache on imapsync.lamiral.info
+ii  apache2-mpm-worker     2.2.22-13+deb7u7 amd64            Apache HTTP Server - high speed threaded model
+then any imapsync prior to 1.774 will fail to GET the VERSION file.
+Release check life with names:
+
+PeerAddr "linux-france.org"      in release 1.350
+"Host: www.linux-france.org\n\n" in release 1.350 to 1.466
+
+PeerAddr "imapsync.lamiral.info" in release 1.374 and upper
+"Host: www.linux-france.org\n\n" in release 1.464 but not after
+"Host: ks.lamiral.info\n\n"      in release 1.467 and upper
+
+"Host: ks.lamiral.info\r\n\r\n"  in release  1.836 and upper
+
+Solution to test: Use the directive 
+HttpProtocolOptions Unsafe # available from 2.2.32 or 2.4.24 
+http://httpd.apache.org/docs/2.4/mod/core.html#httpprotocoloptions
+ks5 should be ok: Server Version: Apache/2.4.33 (FreeBSD)
+
+
+
+SUGGESTED on 31 Jan 2017 by tibbsbrookside
+Try this code XOAUTH2
+https://github.com/imapsync/imapsync/issues/87#issuecomment-276298841
 
 
 SUGGESTED 2019_06_18 by Konrad Wawryn
@@ -63,11 +198,6 @@ Take a look at
 Test::NoWarnings
 Test::Warn
 
-SUGGESTED 2018_05_15 by Massimo Maggi
-https://github.com/imapsync/imapsync/issues/141
-Document --skipcrossduplicates and --debugcrossduplicates in imapsync --help
-Document all other useful missing options.
-
 SUGGESTED 2018_05_08 by James B. Byrne
 Sync also the quota with SETQUOTA
 https://tools.ietf.org/html/rfc2087
@@ -75,10 +205,6 @@ https://tools.ietf.org/html/rfc2087
 SUGGESTED 2017_12_19 by Gilles
 In foldersizes, add info about the oldest message found: INTERNALDATE EPOCH DAYS_FROM_NOW 
 See draft in sub info_date_from_uid
-
-SUGGESTED 2017_09_04 by Gilles
-STDOUT instead of STDERR with Mail::IMAPClient output.
-Shoul be easy using $imap->Debug_fh($fileHandle);
 
 
 SUGGESTED 2017_08_31 by Gilles
@@ -107,16 +233,6 @@ Review the "make install" in Makefile
 
 SUGGESTED 2017_04_26 by Franco Fassio
 --usecache with trailing dots foo... in folder name breaks on NTFS.
-
-SUGGESTED 2017_04_26 by Franco Fassio
-Check that --maxbyteperseconds does not interfer with --timeout 
-by sleeping too long.
-
-DONE by Gilles revision 1.795 date: 2017/04/22
-SUGGESTED 2016_12_01 by Gilles
-When working under with webmin and virtualmin imapsync
-acts as a cgi, it should not. Find a way to avoid cgi mode
-even under a web server. Solution: edit the sub under_cgi_context()
 
 
 SUGGESTED 2016_11_16 by Flávio Zarur Lucarelli LucaNet Sistemas
@@ -158,28 +274,11 @@ Exchange Online errors that need a relogin:
 SUGGESTED 2016_08_31 by Gilles
 Rename $expungeaftereach $expungeaftereach1 or $expunge1aftereach
 
-SUGGESTED 2016_08_31 by Gilles & David Carter
-Detect equivalent folders by upper/lower case on host1
-and add a way to not merge them when host2 is case insensitive.
+
 
 SUGGESTED 2016_08_19 by Gilles
 Go back to SSL_VERIFY_PEER but include
 SSL_ca_file inside imapsync or near.
-
-SUGGESTED 2016_08_07 by Gilles
-Add a meaningful exit value to all die:
-  * fatal software dependency, Perl modules
-  * fatal parameter issue
-  * fatal connect issue
-  * fatal login issue
-  * fatal permission file issue (open)
-  * fatal IMAP issue
-  * fatal IMAP disconnection
-Maybe replace all die by exit
-Add a meaningful exit value to all exit
-  * exit at end but with errors
-  * exit at middle because of errormax
-  * exit by signal
 
 
 SUGGESTED 2016_07_29 by Gilles from CSS3 Coursera course
@@ -189,14 +288,6 @@ https://modernizr.com/
 SUGGESTED 2016_07_29 by Gilles
 Move website to HTML5
 https://about.validator.nu/
-
-SUGGESTED 2016_07_12 by Fronik
-With --automap apply the mapping to subfolders of mapped folders.
-If
-Sent => Envoyes
-then
-Sent.Foo     =>  Envoyes.Foo
-Sent.Foo.Bar =>  Envoyes.Foo.bar
 
 SUGGESTED 2016_07_07 by Jean-Dominique Delyon.
 Add a way to know easily which account transfers went wrong.
@@ -244,10 +335,6 @@ no header found so adding our own [Message-Id: <151648@imapsync>]
 
 SUGGESTED 2016_04_17 by Gilles
 Add a --passfile to allow user=>password style file.
-
-WANTED 2016_03_11
-Add a FAQ about Authentication failures and quoting.
-
 
 WANTED 2016_02_10
 Add stats about "Messages found crossduplicate on host1"
@@ -449,6 +536,41 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 Now the TODO done! (or not)
 ===========================================================================
 
+DONE      2019/12/16 revision 1.974 by Gilles
+Use Debug_fh to set where go the --debugimap outputs.
+SUGGESTED 2017_09_04 by Gilles
+STDOUT + logfile instead of STDERR with Mail::IMAPClient output.
+Should be easy using $imap->Debug_fh( $fileHandle ) ;
+
+DONE      2019_12_11 by Gilles
+SUGGESTED 2019_11_28 by Gilles
+Find a place to add this advice:
+https://github.com/imapsync/imapsync/issues/201#issuecomment-559500077
+Place: https://imapsync.lamiral.info/FAQ.d/FAQ.Docker.txt
+
+
+DONE      2019_11_27 by Gilles 
+SUGGESTED 2019_09_30 by Gilles
+Update the docker build 
+Mail::IMAPClient 3.38 to latest
+Ok Mail::IMAPClient 3.42 in docker gilleslamiral/imapsync 1.967 a82b5d5ff2f0
+
+DONE      2019_11_19 by Gilles revision 1.961 
+SUGGESTED 2019_11_13 by Flavio
+Are --delete2foldersonly or --delete2folders or --delete2foldersbutnot
+compatible with --subfolder2 ? 
+Yes but fix this
+--delete2foldersonly SUB --subfolder SUB    deletes SUB
+while 
+--delete2foldersonly SUB. --subfolder SUB   does not delete SUB
+(seen the dot?)
+
+
+DONE      2019_07_30 by Gilles release 1.955
+SUGGESTED 2018_05_15 by Massimo Maggi
+https://github.com/imapsync/imapsync/issues/141
+Document --skipcrossduplicates and --debugcrossduplicates in imapsync --help
+
 DONE 2019_04_28 by Gilles
 SUGGESTED 2016_10_03 by Gilles
 Do like tail -F on logfile when 
@@ -460,6 +582,43 @@ DONE 2019_04_27 by Gilles
 SUGGESTED 2019_04_25 by Gilles
 Add length of $cache_dir to
 Local cache directory: $cache_dir
+
+
+DONE      2019/04/11  by Gilles revision 1.930
+SUGGESTED 2016_08_07 by Gilles
+Add a meaningful exit value to all die:
+  * fatal software dependency, Perl modules
+  * fatal parameter issue
+  * fatal connect issue
+  * fatal login issue
+  * fatal permission file issue (open)
+  * fatal IMAP issue
+  * fatal IMAP disconnection
+Maybe replace all die by exit
+Add a meaningful exit value to all exit
+  * exit at end but with errors
+  * exit at middle because of errormax
+  * exit by signal
+
+
+DONE      2017_07_13
+SUGGESTED 2016_03_11
+Add a FAQ about Authentication failures and quoting.
+FAQ.d/FAQ.Authentication_failure.txt
+FAQ.d/FAQ.Passwords_on_Unix.txt  
+FAQ.d/FAQ.Passwords_on_Windows.txt
+
+DONE      2017/05/24 by Gilles revision 1.813
+SUGGESTED 2017_04_26 by Franco Fassio
+Check that --maxbyteperseconds does not interfer with --timeout 
+by sleeping too long.
+
+
+DONE by Gilles revision 1.795 date: 2017/04/22
+SUGGESTED 2016_12_01 by Gilles
+When working under with webmin and virtualmin imapsync
+acts as a cgi, it should not. Find a way to avoid cgi mode
+even under a web server. Solution: edit the sub under_cgi_context()
 
 DONE 2019_04_08 by Gilles
 SUGGESTED 2019_03_06 by Gilles
@@ -583,6 +742,12 @@ instead of forcing the user to guess and set them.
 DONE 2015_08_03. WANTED 2015_07_21
 Fix W/learn/imap_utf7_encode
 --regextrans2 "s,El&AOk-ments,&AMk-l&AOk-ments,"
+
+DONE      2014/10/06 by Gilles revision 1.597
+SUGGESTED 2016_08_31 by Gilles & David Carter
+(I don't know why the DONE date older than the SUGGESTED date)
+Detect equivalent folders by upper/lower case on host1
+and add a way to not merge them when host2 is case insensitive.
 
 DONE. Add a FAQ entry about long path over than 260 character on Win32.
 

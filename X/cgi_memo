@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: cgi_memo,v 1.48 2019/06/25 16:49:11 gilles Exp gilles $
+# $Id: cgi_memo,v 1.54 2020/01/04 00:13:49 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -38,18 +38,6 @@ total_volume_transferred() {
     bytestohuman `total_bytes_transferred`
 }
 
-echoq mean_bytes_transferred
-mean_bytes_transferred() {
-    nb_transfers_ended=`wc -l < transfers_sizes_in_bytes.txt`
-    total_bytes_transferred=`total_bytes_transferred`
-    echo "$total_bytes_transferred / $nb_transfers_ended" | bc 
-}
-
-echoq mean_volume_transferred
-mean_volume_transferred() {
-    bytestohuman `mean_bytes_transferred`
-
-}
 
 echoq total_messages_transferred
 total_messages_transferred() {
@@ -86,9 +74,12 @@ oom_immune_imapsync_running() {
         test -f /proc/$pid/oom_adj || continue
         echo -n "$pid "
         cat /proc/$pid/oom_* | tr '\n' ' '
-        { test -f /proc/$pid/oom_adj && echo -12 > /proc/$pid/oom_adj && echo -n ">>> " && cat /proc/$pid/oom_adj ; }
+        { test -f /proc/$pid/oom_adj && echo ${1:-"-12"} > /proc/$pid/oom_adj && echo -n ">>> " && cat /proc/$pid/oom_adj ; }
     done
 }
+
+
+
 
 echoq nb_migrations_launched
 nb_migrations_launched() {
@@ -169,7 +160,13 @@ stat_patterns_list() {
 }
 
 
-
+stat_useragent_X()
+{
+         grep -o 'HTTP_USER_AGENT.*' G_HTTP_USER_AGENT.txt \
+         | tail -10000000 | sort | egrep -o -w 'Mozilla/5.0 \([^;]+' \
+         | sort | egrep -o '\([a-zA-Z]+' | sort  | uniq -c | sort -g \
+         | grep -v KHTML | tr -d '('
+}
 
 stat_load()
 {
@@ -180,6 +177,23 @@ stat_load()
     echo -n 'Load mean:   ' ; datamash --format=%3.1f -W mean   3 mean   4 mean   5 < G_Load.txt
     echo -n 'Load q3:     ' ; datamash --format=%3.1f -W q3     3 q3     4 q3     5 < G_Load.txt
     echo -n 'Load max:    ' ; datamash --format=%3.1f -W max    3 max    4 max    5 < G_Load.txt
+}
+
+echoq stat_exit_value
+stat_exit_value()
+{
+        good_lines=`grep '(EX' G_Exiting_with_return_value.txt | wc -l | tr -d ' '`
+        grep '(EX' G_Exiting_with_return_value.txt \
+        | datamash  --sort groupby 6 -W count 5 \
+        | awk -v good_lines=$good_lines  \
+                '{ printf "%.2g%%  %s\n",  100*$2/good_lines,  $1 }' \
+        | sort -n
+}
+
+echoq stat_exit_value_by_value
+stat_exit_value_by_value()
+{
+        datamash  --sort groupby 5 -W count 5 < G_Exiting_with_return_value.txt
 }
 
 
@@ -209,20 +223,39 @@ stat_any() {
     echo
 }
 
+
+
 echoq stat_all
-stat_all() 
+stat_all()
 {
     stat_load ; echo
+    stat_useragent_X ; echo
     # stat_any  G_REMOTE_ADDR.txt
     # stat_any  G_REMOTE_HOST.txt
     # stat_any  G_HTTP_COOKIE.txt
-    # stat_any  G_HTTP_USER_AGENT.txt
     # stat_any  G_HTTP_REFERER.txt
-    # stat_any  G_Host__IMAP_server.txt
-    # stat_any  G_Host__banner.txt
+    
+    # See various_usefull()
+    # stat_any  G_Host1_IMAP_server.txt
+    # stat_any  G_Host2_IMAP_server.txt
+
+    # stat_any  G_Host1_banner.txt
+    # stat_any  G_Host2_banner.txt
+    
+    stat_any  G_Host1_Nb_messages.txt
+    stat_any  G_Host2_Nb_messages.txt
     stat_any  G_Messages_transferred.txt
     stat_any  G_Messages_skipped.txt
+    stat_any  G_Messages_found_in_host1_not_in_host2.txt 9
+    stat_any  G_Messages_found_in_host2_not_in_host1.txt 9
+    
     # stat_any  G_Folders_synced.txt
+    egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | egrep -o '^[0-9]+' > G_Folders_synced_.txt
+    egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | egrep -o '[0-9]+$' > G_Folders_total_seen.txt
+    stat_any  G_Folders_synced_.txt 1
+    stat_any  G_Folders_total_seen.txt 1
+
+    #
     stat_any  G_Transfer_time.txt
     stat_any  G_Total_bytes_transferred.txt 5
     stat_any  G_Message_rate.txt
@@ -231,9 +264,9 @@ stat_all()
     stat_any  G_Detected_errors.txt 2 
     stat_any  G_Exiting_with_return_value.txt 5 # GROUP
     stat_any  G_Memory_consumption_at_the_end.txt 7
-    stat_any  G_Messages_found_in_host1_not_in_host2.txt 9
-    stat_any  G_Messages_found_in_host2_not_in_host1.txt 9
     #stat_any  G_failure_Error_login.txt
+    stat_exit_value
+    
     echo "Data made at" `date -r grep_stats.txt`
 }
 
@@ -274,12 +307,12 @@ logfiles_finished_recently()
     # -3 less than 3 days ago
     #  7 exactly   7 days ago
     #set -x
-    find .  -maxdepth 1 -mtime "${1:--1}" | grep -v "385d7a4d8d428d7aa2b57c8982629e2bd67698ed" |  egrep [a-f0-9]{40} | while read f; do
-        test -f "$f" && continue
-        test -f  $f/imapsync.pid  && continue
-        test -d $f/LOG_imapsync || continue
+    find .  -maxdepth 1 -mtime "${1:--1}" | grep -v "385d7a4d8d428d7aa2b57c8982629e2bd67698ed" |  egrep [a-f0-9]{40} | while read d; do
+        test -f "$d" && continue
+        test -f  $d/imapsync.pid  && continue
+        test -d $d/LOG_imapsync || continue
         # { ls -trb $f/LOG_imapsync/* ;  }
-	find $f/LOG_imapsync/ -type f -mtime "${1:--1}" 
+        ls -trb `find $d/LOG_imapsync/ -type f -mtime "${1:--1}"`
     done
     } 
 }
@@ -587,14 +620,21 @@ ratio_killed_by_TERM() {
 }
 
 echoq 'nb_syncs_badly_finished -1 # last 1 day'
-nb_syncs_badly_finished() {
-	logfiles_finished_recently=`logfiles_finished_recently $1`
-	nb_logfiles_finished_recently=`echo $logfiles_finished_recently | wc -w`
-	nb_syncs_badly_finished=`echo $logfiles_finished_recently | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' | wc -l `
-	echo $nb_syncs_badly_finished / $nb_logfiles_finished_recently 
+nb_syncs_badly_finished()
+{
+        logfiles_finished_recently=`logfiles_finished_recently $1`
+        nb_logfiles_finished_recently=`echo $logfiles_finished_recently | wc -w | tr -d ' '`
+        nb_syncs_badly_finished=`echo $logfiles_finished_recently | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' | wc -l `
+        echo $nb_syncs_badly_finished / $nb_logfiles_finished_recently \
+        | awk '{ printf "%s %.2g%%  %s\n", "Total:", 100*$1/$3,  $0 }'
+        
+        echo $logfiles_finished_recently | xargs grep -i 'Exiting with return value' \
+        | grep -v 'return value 0' | grep -o 'Exiting with return value.*)' \
+        | sort | uniq -c | sort -n \
+        | awk -v nb_logfiles_finished_recently=$nb_logfiles_finished_recently \
+        '{ printf "%.2g%%  %s\n",  100*$1/nb_logfiles_finished_recently,  $0 }'
 cat <<EOF
 logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0'
-logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0' | grep -o 'Exiting with return value.*' | sort | uniq -c | sort -n
 EOF
 }
 
@@ -636,6 +676,126 @@ number_of_syncs()
         list_all_logs | wc -l
 }
 
+
+count_expression()
+{
+        #echo count_expression "[$1]" "[$2]"
+        egrep -- "$1" "$2" | wc -l
+}
+
+
+patterns_alone_file_generate()
+{
+        patterns_file="$1"
+        patterns_alone_file="$2"
+        
+        > $patterns_alone_file
+        cat $patterns_file | 
+                while read imap_server pattern
+                do
+                        echo "$pattern" >> $patterns_alone_file
+                done
+
+}
+
+count_imap_server_all()
+{
+        count_imap_server_all=0
+        cat $patterns_file | 
+                while read imap_server pattern
+                do
+                        #echo count_imap_server "$pattern" "$banners_files"
+                        count_imap_server=`count_expression "$pattern" "$banners_files"`
+                        count_imap_server_all=`expr $count_imap_server_all + $count_imap_server`
+                        echo $count_imap_server_all
+                done
+
+}
+
+echoq server_survey_percent
+server_survey_percent()
+{
+        
+        banners_files=${1:-G_Host1_banner.txt}
+        patterns_file=${2:-server_survey_patterns.txt}
+        
+        patterns_alone_file=${patterns_file}.alone.txt
+        
+        patterns_alone_file_generate $patterns_file $patterns_alone_file
+                
+        banners_counted=`egrep        -f $patterns_alone_file  $banners_files | wc -l | tr -d ' \n'`
+        banners_not_counted=`egrep -v -f $patterns_alone_file  $banners_files | wc -l | tr -d ' \n'`
+        banners_all=`cat $banners_files | wc -l | tr -d ' \n'`
+        banners_all_verif=`expr $banners_not_counted + $banners_counted`
+        cat $patterns_file | 
+                while read imap_server pattern
+                do
+                        #echo count_imap_server "$pattern" "$banners_files"
+                        count_imap_server=`count_expression "$pattern" "$banners_files"`
+                        percent_imap_server=`echo "scale=2; 100 * $count_imap_server/$banners_all" | bc -l`
+                        echo $percent_imap_server% : $count_imap_server " : $imap_server : " "[$pattern]"
+                done | sort -n
+
+}
+
+echoq server_survey
+server_survey()
+{
+        banners_files=${1:-G_Host1_banner.txt}
+        patterns_file=${2:-server_survey_patterns.txt}
+
+        server_survey_percent $banners_files $patterns_file
+        
+        count_imap_server_all=`count_imap_server_all | tail -1`
+
+        echo  $banners_files
+        echo  "Banners counted sum  $count_imap_server_all"
+        echo  "Banners counted      $banners_counted"
+        echo  "Banners not counted  $banners_not_counted"
+        echo  "Banners all          $banners_all"
+        echo  "Banners all verif    $banners_all_verif = $banners_not_counted + $banners_counted"
+        if test $count_imap_server_all != $banners_counted
+                then echo WARNING count_imap_server_all $count_imap_server_all != $banners_counted banners_counted \
+                        diff `expr $count_imap_server_all - $banners_counted`
+        fi
+        echo "server_survey $banners_files # finished"
+}
+
+echoq server_survey_next_pattern
+server_survey_next_pattern()
+{
+        patterns_alone_file_generate  server_survey_patterns.txt  server_survey_patterns.txt.alone.txt
+        grep -h -o 'banner:.*' G_Host?_banner.txt |sort | uniq -c | sort -g > banner_counted_sorted.txt
+        egrep -v -f server_survey_patterns.txt.alone.txt banner_counted_sorted.txt
+
+}
+
+echoq server_survey_last_pattern
+server_survey_last_pattern()
+{
+        banners_files1=${1:-G_Host1_banner.txt}
+        banners_files2=${2:-G_Host2_banner.txt}
+        
+        tail -1 server_survey_patterns.txt > pattern_alone_file.txt
+        server_survey $banners_files1 pattern_alone_file.txt
+        server_survey $banners_files2 pattern_alone_file.txt
+}
+
+echoq server_survey_host1
+server_survey_host1()
+{
+        server_survey G_Host1_banner.txt
+}
+
+echoq server_survey_host2
+server_survey_host2()
+{
+        server_survey G_Host2_banner.txt
+}
+
+
+
+
 echoq summary_display
 summary_display() {
     vnstat_gen > /dev/null
@@ -673,16 +833,12 @@ sync_ks2_i005()
   && pwd 
 }
 
-echoq watch_number_of_imapsync_running
-watch_number_of_imapsync_running()
-{
-        date_space
-        while number_of_imapsync_running | tr -d ' \n'
-        do 
-                sleep 6
-                date_if_new_hour
-        done
 
+date_space() 
+{
+        date | tr -d '\n'
+        echo -n " "
+ 
 }
 
 #echoq date_if_new_hour
@@ -699,32 +855,49 @@ date_if_new_hour()
         fi
 }
 
-date_space() 
+echoq watch_number_of_imapsync_running
+watch_number_of_imapsync_running()
 {
-        date | tr -d '\n'
-        echo -n " "
- 
+        date_space
+        while number_of_imapsync_running | tr -d ' \n'
+        do 
+                sleep 6
+                date_if_new_hour
+        done
+
 }
 
 
 echoq various_usefull
 various_usefull() {
 cat <<'EOF'
-sort  -k5 -n  grep_Messages_transferred____.txt
-sort  -k5 -n  grep_Memory_consumption___.txt
-sort  -k5 -n  grep_Average_bandwidth_rate__.txt
-sort  -k4 -n  grep_Transfer_time____.txt
-strace -e trace=signal -f `pgrep apache | xargs -n1 echo -n  " -p "` 2>&1 
-logfiles_finished_recently -1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0'
-egrep -o 'Host1: IMAP server \[[^]]+\]' G_Host__IMAP_server.txt  | sort | uniq -c | sort -n | tail -15
-egrep -o 'Host2: IMAP server \[[^]]+\]' G_Host__IMAP_server.txt  | sort | uniq -c | sort -n | tail -15
-
-egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | sort -n
+strace -e trace=signal -f `pgrep /usr/sbin/apach | xargs -n1 echo -n  " -p "` 2>&1
+egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | sort -g
+egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | sort -t/ -g -k2 | uniq -c
+egrep -o '* ID .*' G_Read___ID.txt | sort | uniq -c | sort -n
+egrep -o 'imapsync_runs=[0-9]+'  G_HTTP_COOKIE.txt  | egrep -o '[0-9]+' | sort -n | uniq -c | sort -g -k1,2
+egrep -o 'HTTP_REFERER is .*' G_HTTP_REFERER.txt | sort -g |  uniq -c | sort -g
+egrep -o 'REMOTE_HOST is .*' G_REMOTE_HOST.txt | sort -g |  uniq -c | sort -g
+egrep -o 'REMOTE_ADDR is .*' G_REMOTE_ADDR.txt | sort -g |  uniq -c | sort -g
+datamash -s -W -g 4 count 4 < G_Host1_IMAP_server.txt | awk '{ print $2 " " $1 }' | sort -g | tail -22
+datamash -s -W -g 4 count 4 < G_Host2_IMAP_server.txt | awk '{ print $2 " " $1 }' | sort -g | tail -22
+egrep -o '* ID .*' G_Read___ID.txt | sort |  awk '{ print $1 " " $2 " "  $3 " NIL" }' | datamash -s -W -g 3 count 3 | awk '{ print $2 " " $1 }' | sort -g
+locate perl.core | xargs -n 1 gdb -q -x /tmp/gdb_quit.txt -c
 EOF
 }
 
-# hosts used and counted
-# grep Host  grep_success_login_on_with_user.txt | egrep -o 'on \[[^[]+]' | sort | uniq -c | sort -n
-# grep Host1 grep_success_login_on_with_user.txt | egrep -o 'on \[[^[]+]' | sort | uniq -c | sort -n
-# grep Host2 grep_success_login_on_with_user.txt | egrep -o 'on \[[^[]+]' | sort | uniq -c | sort -n
 
+echoq perf_help
+perf_help() {
+        test FreeBSD = `uname -s` && { 
+                echo FreeBSD here
+                echo "nload -t 6000 em0  -u K"
+                echo "iftop -i em0  -f 'port imap or port imaps' -B #  t p >"
+        }
+        
+        test Linux = `uname -s`  && { 
+                echo Linux here
+                echo "nload -t 6000 eth0 -u K  # Linux"
+                echo "iftop -i eth0 -f 'port imap or port imaps' -B #  t p >"
+        }
+}

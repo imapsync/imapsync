@@ -1,9 +1,8 @@
 #!/bin/sh
 
-# $Id: prerequisites_imapsync,v 1.32 2019/05/27 18:52:23 gilles Exp gilles $
+# $Id: prerequisites_imapsync,v 1.35 2019/11/27 15:58:46 gilles Exp gilles $
 
 MODULES_MANDATORY='
-File::Tail
 App::cpanminus
 Authen::NTLM
 CGI
@@ -15,8 +14,11 @@ Digest::HMAC
 Digest::HMAC_MD5
 Digest::MD5
 Dist::CheckConflicts
+Encode
 Encode::Byte
+Encode::IMAPUTF7
 File::Copy::Recursive
+File::Tail
 IO::Socket::INET
 IO::Socket::INET6
 IO::Socket::SSL
@@ -27,6 +29,7 @@ JSON::WebToken::Crypt::RSA
 HTML::Entities
 LWP::UserAgent
 Mail::IMAPClient
+MIME::Base64
 Module::Implementation
 Module::Runtime
 Module::ScanDeps
@@ -47,6 +50,7 @@ Test::More
 Test::Pod
 Test::Requires
 Test::Deep
+Text::ParseWords
 Try::Tiny
 Unicode::String
 URI::Escape
@@ -128,7 +132,7 @@ search_modules_any() {
 	}
         
         # Debian, Ubuntu & Co
-	apt-file -h > /dev/null 2>&1 && {
+	apt-cache -h > /dev/null 2>&1 && {
 		search_modules_apt "$@"
 		return
 	}
@@ -212,7 +216,12 @@ search_modules_apt() {
 		echo "==== Searching deb package name for $M with: apt-file search /$F"
 		#echo apt-file search /$F
 		echo
-		apt-file search /$F
+                if apt-file -h > /dev/null 2>&1
+                then
+                        apt-file search /$F
+                else
+                        echo "apt-file is not installed. Suggestion: apt-get install apt-file; apt-file update"
+                fi
                 echo
 		echo "==== Searching deb package name for $M with: apt-cache search $M"
 		#apt-cache search "$M"
@@ -259,7 +268,7 @@ test_unix() {
 
 test_unix
 #exit
-test_perl || exit
+test_perl || exit 1
 test_make || exit
 test_mandatory_modules
 list_to_install
@@ -268,6 +277,13 @@ EXIT=$?
 # Help the user to install missing modules
 search_modules_any $LIST_TO_INSTALL
 
-test "$1" = "MODULES_MANDATORY" && search_modules_any $MODULES_MANDATORY
+if test "$1" = "MODULES_MANDATORY"
+then
+        search_modules_any $MODULES_MANDATORY
+elif test -n "$1" 
+then
+        search_modules_any "$@"
+fi
+
 test_cpanm
 exit $EXIT

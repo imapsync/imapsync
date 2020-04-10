@@ -39,44 +39,47 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 
 <!-- 
 <ul>
-<li><b>1.930</b></li>
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-
-
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-
-<li><b>Refactoring</b>: </li>
-<li><b>Refactoring</b>: </li>
-<li><b>Refactoring</b>: </li>
-<li><b>Refactoring</b>: </li>
-
-<li><b>Security</b>: </li>
-<li><b>Security</b>: </li>
-
-<li><b>Portability</b>: </li>
-<li><b>Portability</b>: </li>
-
-<li><b>Dependency removed</b>: </li>
-<li><b>Dependency added</b>: Perl module  Text::ParseWords;</li>
-
 <li><b>Roadmap</b>: </li>
+</ul>
+
+<ul>
+<li><b>1.964</b></li>
+<li><b>Dependencies removed</b>: </li>
+<li><b>Dependencies added</b>: Perl modules </li>
+
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+
+
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+
+<li><b>Refactoring</b>: </li>
+<li><b>Refactoring</b>: </li>
+<li><b>Refactoring</b>: </li>
+<li><b>Refactoring</b>: </li>
+
+<li><b>Security</b>: </li>
+<li><b>Security</b>: </li>
+
+<li><b>Portability</b>: </li>
+<li><b>Portability</b>: </li>
+
 
 </ul>
  -->
@@ -84,11 +87,65 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
  
 <ul>
 <li><b>Roadmap</b>: Build a docker image including everything, to have a complete online /X in a single command.</li>
+<li><b>Roadmap</b>: Or better: Include a webserver in imapsync to have an online /X integrated.</li>
+<li><b>Roadmap</b>: Add the sync of multiple accounts inside imapsync itself instead of via an external shell script doing the loop from a csv file.</li>
 </ul>
 
+<ul>
+<li><b>1.977</b></li>
+<li><b>Dependencies removed</b>: None.</li>
+<li><b>Dependencies added</b>: Perl modules Encode::IMAPUTF7</li>
+
+<li><b>Enhancement</b>: Folders sizes are now presented per folder for host1 and host2,
+                        as well as the differrences between them.
+                        Comparing folders is now easier</li>
+
+<li><b>Enhancement</b>: cgidir is . when used by Net::Server::HTTP</li>
+<li><b>Enhancement</b>: Added context in --releasecheck user_agent. CGI or Docker or Standard.</li>
+
+
+<li><b>Usability</b>: Added ETA at the beginning of a folder process (it is also to improve the /X progress bar accuracy).</li>
+
+<li><b>Usability</b>: Added the number of errors and the max number of errors allowed at the final line.
+                      Example: "Exiting with return value 0 (EX_OK: successful termination) 0/50 nb_errors/max_errors"</li>
+
+
+<li><b>Bug fix</b>: Folders names with + characters must keep their + as they are when prensenting them in uft8 (in folders listings [] = [], right part)</li>
+<li><b>Bug fix</b>: PIDs can be negative under Windows.</li>
+<li><b>Bug fix</b>: --resynclabels was not on with --gmail1 --gmail2</li>
+<li><b>Bug fix</b>: Count a fatal error as a error before presenting the count errors when exiting.</li>
+
+<li><b>Bug fix</b>: Docker context. Killing myself in docker context doesn't seem to work well,
+                    as well as sending signals several times.
+                    So just install catch_exit with INT (ctr-c on terminals) 
+                    and exits if still alive after killing myself.</li>
+                    
+<li><b>Bug fix</b>: Option --justconnect did not show the line "IP address:"</li>
+<li><b>Bug fix</b>: Reviewed all exit_clean to include a final CR on the error message.</li>
+<li><b>Bug fix</b>: Added SSL_cipher_list => 'DEFAULT:!DH' to tests with ssl.</li>
+<li><b>Bug fix</b>: When using --subfolder2 SUB and --delete2folders, do not delete the folder SUB (even it is not on host1).</li>
+
+<li><b>Bug fix</b>: CGI context. charset was  charset=ISO-8859-1 in header (CGI.pm default). Now "text/plain; charset=UTF-8"</li>
+<li><b>Bug fix</b>: </li>
+
+
+
+<li><b>Refactoring</b>: Moved main instructions into sub single_sync(). The goal is to prepare multiple different syncs in imapsync.</li>
+<li><b>Refactoring</b>: Cgi context is now set on with env variables SERVER_SOFTWARE and SERVER_PORT (was only SERVER_SOFTWARE).
+                        It is because Net::Server::HTTP does not set SERVER_SOFTWARE but SERVER_PORT.
+                        It is a preparation to a homemade web server to serve on imapsync as a cgi and
+                        get free from Apache or a complicated web server stuff configuration.
+</li>
+
+
+
+</ul>
 
 <ul>
-<li><b>1.944</b> (2019/06/25) </li>
+<li><b>1.945</b> (2019/06/25) </li>
+
+<li><b>Dependency added</b>: Perl modules  Text::ParseWords and File::Tail </li>
+
 <li><b>Enhancement</b>: A new /X including: 
         <ul>
         <li>Options like <tt>--dry --justlogin --justfolders --justfoldersizes</tt>,</li>
@@ -97,9 +154,11 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
         </ul>
 </li>
 
+<li><b>Usability</b>: Added the error message text after "Exiting with return value xx".
+                      Example: Exiting with return value 16 (EXIT_AUTHENTICATION_FAILURE)</li>
 
-<li><b>Usability</b>: Now "imapsync --host1 imap.lamiral.info" or "imapsync --host2 127.0.0.1" is ok and do like a --justconnect on servers. 
-                      Useful to check rapidely an imap server.
+<li><b>Usability</b>: Now "imapsync --host1 imap.lamiral.info" or "imapsync --host2 127.0.0.1" or both do like a --justconnect on servers. 
+                      Useful to check rapidely an imap server. Caveat: no longer a command line error.
 </li>
 
 <li><b>Usability</b>: Added some error message texts explaining the exit numbers. Example: "Exiting with return value 16 (EXIT_AUTHENTICATION_FAILURE)"</li>
@@ -192,9 +251,6 @@ next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)
 
 <li><b>Portability</b>: Upgraded Mac binary to handle TLSv1.2</li>
 
-<li><b>Dependency added</b>: Perl modules  Text::ParseWords and File::Tail
-
-</li>
 
 <li><b>Roadmap</b>: Will add <tt>--subfolder1</tt> and <tt>--subfolder2</tt> parameters to /X in order to make backup/restore syncs.</li>
 
@@ -821,7 +877,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.67 2019/06/25 21:33:09 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.74 2020/01/01 21:07:13 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

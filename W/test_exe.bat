@@ -1,4 +1,4 @@
-REM $Id: test_exe.bat,v 1.22 2019/05/28 13:20:08 gilles Exp gilles $
+REM $Id: test_exe.bat,v 1.24 2019/12/11 18:56:40 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO OFF
@@ -39,14 +39,14 @@ CALL :handle_error CALL :launch_imapsync --ssl1 --ssl2 --delete2
 CALL :handle_error CALL :launch_imapsync --ssl1 --ssl2 --delete2 --folder INBOX 
 CALL :handle_error CALL :launch_imapsync --ssl1 --ssl2 --delete2 --folder INBOX --usecache
 
-ENDLOCAL
 @REM Do a PAUSE if run by double-click, aka, explorer (then ). No PAUSE in a DOS window or via ssh.
 IF %0 EQU "%~dpnx0" IF "%SSH_CLIENT%"=="" PAUSE
+@ENDLOCAL
 EXIT /B
 
 
 :handle_error
-SETLOCAL
+@SETLOCAL
 ECHO IN %0 %*
 %*
 SET CMD_RETURN=%ERRORLEVEL%
@@ -58,11 +58,11 @@ IF %CMD_RETURN% EQU 0 (
         IF NOT EXIST LOG_bat MKDIR LOG_bat
         ECHO Failure calling %* >> LOG_bat\%~nx0.txt
 )
-ENDLOCAL
+@ENDLOCAL
 EXIT /B
 
 :handle_bad_success
-SETLOCAL
+@SETLOCAL
 ECHO IN %0 %*
 %*
 SET CMD_RETURN=%ERRORLEVEL%
@@ -74,7 +74,7 @@ IF %CMD_RETURN% NEQ 0 (
         IF NOT EXIST LOG_bat MKDIR LOG_bat
         ECHO No failure calling %* >> LOG_bat\%~nx0.txt
 )
-ENDLOCAL
+@ENDLOCAL
 EXIT /B
 
 

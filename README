@@ -1,11 +1,12 @@
 NAME
 
-    imapsync - Email IMAP tool for syncing, copying and migrating email
-    mailboxes between two imap servers, one way, and without duplicates.
+    imapsync - Email IMAP tool for syncing, copying, migrating and archiving
+    email mailboxes between two imap servers, one way, and without
+    duplicates.
 
 VERSION
 
-    This documentation refers to Imapsync $Revision: 1.945 $
+    This documentation refers to Imapsync $Revision: 1.977 $
 
 USAGE
 
@@ -52,15 +53,15 @@ DESCRIPTION
     servers.
 
     A classical scenario is synchronizing a mailbox B from another mailbox A
-    in case you just want to keep a strict copy of A in B. Strict meaning
-    all messages in A will be in B but no more.
+    where you just want to keep a strict copy of A in B. Strict meaning all
+    messages in A will be in B but no more.
 
     For this, option --delete2 has to be used, it deletes messages in host2
     folder B that are not in host1 folder A. If you also need to destroy
     host2 folders that are not in host1 then use --delete2folders. See also
     --delete2foldersonly and --delete2foldersbutnot to set up exceptions on
-    folders to destroy (INBOX will never be destroy, it's a mandatory folder
-    in IMAP).
+    folders to destroy. INBOX will never be destroy, it's a mandatory folder
+    in IMAP.
 
     A different scenario is to delete the messages from the source mailbox
     after a successful transfer, it can be a good feature when migrating
@@ -88,11 +89,11 @@ OPTIONS
 
      usage: imapsync [options]
 
-    Standard options are the six values forming the credentials, three on
-    each sides, needed to log in into the IMAP servers, ie, a host, a
-    username, and a password, two times.
+    The standard options are the six values forming the credentials. Three
+    values on each side are needed in order to log in into the IMAP servers.
+    These six values are a host, a username, and a password, two times.
 
-    Conventions used:
+    Conventions used in the following descriptions of the options:
 
      str means string
      int means integer
@@ -106,8 +107,8 @@ OPTIONS
 
      --host1        str  : Source or "from" imap server.
      --port1        int  : Port to connect on host1.
-                           Optional since default ports are the 
-                           well known ports 143 or 993.
+                           Optional since default ports are the
+                           well known ports imap/143 or imaps/993.
      --user1        str  : User to login on host1.
      --password1    str  : Password for the user1.
 
@@ -117,10 +118,10 @@ OPTIONS
      --password2    str  : Password for the user2.
 
      --showpasswords     : Shows passwords on output instead of "MASKED".
-                           Useful to restart a complete run by just reading 
+                           Useful to restart a complete run by just reading
                            the command line used in the log,
                            or to debug passwords.
-                           It's not a secure practice.
+                           It's not a secure practice at all.
 
      --passfile1    str  : Password file for the user1. It must contain the
                            password on the first line. This option avoids showing
@@ -184,14 +185,14 @@ OPTIONS
      --folderrec    str  : Sync this folder recursively.
      --folderrec    str  : and this one, etc.
 
-     --folderfirst  str  : Sync this folder first. --folderfirst "Work"
+     --folderfirst  str  : Sync this folder first. Ex. --folderfirst "INBOX"
      --folderfirst  str  : then this one, etc.
      --folderlast   str  : Sync this folder last. --folderlast "[Gmail]/All Mail"
      --folderlast   str  : then this one, etc.
 
      --nomixfolders      : Do not merge folders when host1 is case-sensitive
                            while host2 is not (like Exchange). Only the first
-                           similar folder is synced (example: with folders 
+                           similar folder is synced (example: with folders
                            "Sent", "SENT" and "sent"
                            on host1 only "Sent" will be synced to host2).
 
@@ -218,14 +219,14 @@ OPTIONS
                            --regextrans2 options before all others.
                            Add --debug to see what's really going on.
 
-     --subfolder1   str  : Syncs the host1 folders hierarchy under str
-                           to the root hierarchy of host2.
+     --subfolder1   str  : Syncs the host1 folders hierarchy which is under folder
+                           str to the root hierarchy of host2.
                            It's the couterpart of a sync done by --subfolder2
-                           when doing it in the reverse order. 
+                           when doing it in the reverse order.
                            Backup/Restore scenario:
                            Use --subfolder2 str for a backup to the folder str
-                           on host2. Then use --subfolder1 str for restoring 
-                           from the folder str, after inverting 
+                           on host2. Then use --subfolder1 str for restoring
+                           from the folder str, after inverting
                            host1/host2 user1/user2 values.
 
 
@@ -239,25 +240,26 @@ OPTIONS
                            usually "INBOX." or "INBOX/" or an empty string "".
                            imapsync guesses the prefix if host1 imap server
                            does not have NAMESPACE capability. So this option
-                           should not be used, most of the time.
+                           should not be used most of the time.
      --prefix2      str  : Add prefix to all host2 folders. See --prefix1
 
-     --sep1         str  : Host1 separator. This option should not be used, 
+     --sep1         str  : Host1 separator. This option should not be used
                            most of the time.
                            Imapsync gets the separator from the server itself,
                            by using NAMESPACE, or it tries to guess it
                            from the folders listing (it counts
                            characters / . \\ \ in folder names and choose the
                            more frequent, or finally / if nothing is found.
-     --sep2         str  : Host2 separator.
+     --sep2         str  : Host2 separator. See --sep1
 
      --regextrans2  reg  : Apply the whole regex to each destination folders.
      --regextrans2  reg  : and this one. etc.
                            When you play with the --regextrans2 option, first
                            add also the safe options --dry --justfolders
-                           Then, when happy, remove --dry, remove --justfolders.
-                           Have in mind that --regextrans2 is applied after 
-                           the automatic prefix and separator inversion. 
+                           Then, when happy, remove --dry for a run, then 
+                           remove --justfolders for the next ones.
+                           Have in mind that --regextrans2 is applied after
+                           the automatic prefix and separator inversion.
                            For examples see:
                            https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
 
@@ -288,6 +290,18 @@ OPTIONS
      --logfile      str  : Change the default log filename (can be dirname/filename).
      --logdir       str  : Change the default log directory. Default is LOG_imapsync/
 
+    The default logfile name is for example
+
+     LOG_imapsync/2019_12_22_23_57_59_532_user1_user2.txt
+
+    where:
+
+     2019_12_22_23_57_59_532 is nearly the date of the start
+     YYYY_MM_DD_HH_MM_SS_mmm 
+     year_month_day_hour_minute_seconde_millisecond
+
+    and user1 user2 are the --user1 --user2 values.
+
   OPTIONS/messages
 
      --skipmess     reg  : Skips messages matching the regex.
@@ -295,13 +309,22 @@ OPTIONS
                            --skipmess is applied before --regexmess
      --skipmess     reg  : or this one, etc.
 
+     --skipcrossduplicates : Avoid copying messages that are already copied
+                             in another folder,  good from Gmail to X when
+                             X is not also Gmail.
+                             Activated with --gmail1 unless --noskipcrossduplicates
+
+     --debugcrossduplicates : Prints which messages (UIDs) are skipped with
+                              --skipcrossduplicates (and in what other folders
+                              they are).
+
      --pipemess     cmd  : Apply this cmd command to each message content
                            before the copy.
-     --pipemess     cmd  : and this one, etc. 
+     --pipemess     cmd  : and this one, etc.
                            With several --pipemess, the output of each cmd
-                           command (STDOUT) is given to the input (STDIN) 
+                           command (STDOUT) is given to the input (STDIN)
                            of the next command.
-                           For example, 
+                           For example,
                            --pipemess cmd1 --pipemess cmd2 --pipemess cmd3
                            is like a Unix pipe:
                            "cat message | cmd1 | cmd2 | cmd3"
@@ -311,6 +334,23 @@ OPTIONS
      --regexmess    reg  : Apply the whole regex to each message before transfer.
                            Example: 's/\000/ /g' # to replace null by space.
      --regexmess    reg  : and this one, etc.
+
+  OPTIONS/labels
+
+    Gmail present labels as folders in imap. Imapsync can accelerate the
+    sync by syncing X-GM-LABELS, it will avoid to transfer messages when
+    they are already on host2.
+
+     --synclabels        : Syncs also Gmail labels when a message is copied to host2.
+                           Activated by default with --gmail1 --gmail2 unless
+                           --nosynclabels is added.
+                       
+     --resynclabels      : Resyncs Gmail labels when a message is already on host2.
+                           Activated by default with --gmail1 --gmail2 unless
+                           --noresynclabels is added.
+
+    For Gmail syncs, see also:
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
   OPTIONS/flags
 
@@ -336,7 +376,7 @@ OPTIONS
                            EXPUNGE IMAP command. If expunging after each message
                            slows down too much the sync then use
                            --noexpungeaftereach to speed up, expunging will then be
-                           done only twice per folder, one at the beginning and 
+                           done only twice per folder, one at the beginning and
                            one at the end of a folder sync.
 
      --expunge1          : Expunge messages on host1 just before syncing a folder.
@@ -362,12 +402,15 @@ OPTIONS
      --delete2folders    : Delete folders in host2 that are not in host1 server.
                            For safety, first try it like this (it is safe):
                            --delete2folders --dry --justfolders --nofoldersizes
+                           and see what folders will be deleted.
 
-     --delete2foldersonly   reg : Deleted only folders matching regex.
+     --delete2foldersonly   reg : Delete only folders matching the regex reg.
                                   Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+                                  This option activates --delete2folders
 
-     --delete2foldersbutnot reg : Do not delete folders matching regex.
+     --delete2foldersbutnot reg : Do not delete folders matching the regex rex.
                                   Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
+                                  This option activates --delete2folders
 
      --noexpunge2        : Do not expunge messages on host2.
      --nouidexpunge2     : Do not uidexpunge messages on the host2 account
@@ -393,7 +436,7 @@ OPTIONS
                            see also --minage
      --minage       int  : Skip messages newer than  int  days.
                            final stats (skipped) don't count newer messages
-                           You can do (+ are the messages selected):
+                           You can do (+ zone are the messages selected):
                            past|----maxage+++++++++++++++>now
                            past|+++++++++++++++minage---->now
                            past|----maxage+++++minage---->now (intersection)
@@ -401,22 +444,23 @@ OPTIONS
 
      --search       str  : Selects only messages returned by this IMAP SEARCH
                            command. Applied on both sides.
-                           For a complete of what can be search see
+                           For a complete set of what can be search see
                            https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
 
      --search1      str  : Same as --search but for selecting host1 messages only.
      --search2      str  : Same as --search but for selecting host2 messages only.
-                           --search CRIT equals --search1 CRIT --search2 CRIT
+                           So --search CRIT equals --search1 CRIT --search2 CRIT
 
      --maxlinelength int : skip messages with a line length longer than  int  bytes.
-                           RFC 2822 says it must be no more than 1000 bytes.
+                           RFC 2822 says it must be no more than 1000 bytes but
+                           real life servers and email clients do more.
 
 
      --useheader    str  : Use this header to compare messages on both sides.
                            Ex: Message-ID or Subject or Date.
      --useheader    str    and this one, etc.
 
-     --usecache          : Use cache to speed up the sync.
+     --usecache          : Use cache to speed up next syncs. Not set by default.
      --nousecache        : Do not use cache. Caveat: --useuid --nousecache creates
                            duplicates on multiple runs.
      --useuid            : Use UIDs instead of headers as a criterion to recognize
@@ -426,10 +470,10 @@ OPTIONS
   OPTIONS/miscellaneous
 
      --syncacls          : Synchronizes acls (Access Control Lists).
-     --nosyncacls        : Does not synchronize acls. This is the default.
                            Acls in IMAP are not standardized, be careful
                            since one acl code on one side may signify something
                            else on the other one.
+     --nosyncacls        : Does not synchronize acls. This is the default.
 
      --addheader         : When a message has no headers to be identified,
                            --addheader adds a "Message-Id" header,
@@ -457,17 +501,17 @@ OPTIONS
 
   OPTIONS/specific
 
-      --gmail1           : sets --host1 to Gmail and options from FAQ.Gmail.txt
-      --gmail2           : sets --host2 to Gmail and options from FAQ.Gmail.txt
+      --gmail1           : sets --host1 to Gmail and other options. See FAQ.Gmail.txt
+      --gmail2           : sets --host2 to Gmail and other options. See FAQ.Gmail.txt
 
-      --office1          : sets --host1 to Office365 options from FAQ.Exchange.txt
-      --office2          : sets --host2 to Office365 options from FAQ.Exchange.txt
+      --office1          : sets --host1 to Office365 and other options. See FAQ.Exchange.txt
+      --office2          : sets --host2 to Office365 and other options. See FAQ.Exchange.txt
 
-      --exchange1        : sets options from FAQ.Exchange.txt, account1 part
-      --exchange2        : sets options from FAQ.Exchange.txt, account2 part
+      --exchange1        : sets options for Exchange. See FAQ.Exchange.txt
+      --exchange2        : sets options for Exchange. See FAQ.Exchange.txt
 
-      --domino1          : sets options from FAQ.Domino.txt, account1 part
-      --domino2          : sets options from FAQ.Domino.txt, account2 part
+      --domino1          : sets options for Domino. See FAQ.Domino.txt
+      --domino2          : sets options for Domino. See FAQ.Domino.txt
 
   OPTIONS/behavior
 
@@ -483,11 +527,11 @@ OPTIONS
      --abort             : terminates a previous call still running.
                            It uses the pidfile to know what process to abort.
 
-     --exitwhenover int  : Stop syncing and exits when int total bytes 
+     --exitwhenover int  : Stop syncing and exits when int total bytes
                            transferred is reached.
 
      --version           : Print only software version.
-     --noreleasecheck    : Do not check for new imapsync release 
+     --noreleasecheck    : Do not check for any new imapsync release.
      --releasecheck      : Check for new imapsync release.
                            it's an http request to
                            http://imapsync.lamiral.info/prj/imapsync/VERSION
@@ -498,7 +542,7 @@ OPTIONS
                            information. Need only --host1 and --host2 options.
                            Obsolete since "imapsync --host1 imaphost" alone
                            implies --justconnect
-                       
+
      --justlogin         : Just login to both host1 and host2 with users
                            credentials, then exit.
 
@@ -534,8 +578,9 @@ SECURITY
     CAPABILITY list of the servers. If TLS is supported then imapsync goes
     to encryption.
 
-    If the automatic ssl/tls detection fails then imapsync will not protect
-    against sniffing activities on the network, especially for passwords.
+    If the automatic ssl and the tls detections fail then imapsync will not
+    protect against sniffing activities on the network, especially for
+    passwords.
 
     If you want to force ssl or tls just use --ssl1 --ssl2 or --tls1 --tls2
 
@@ -545,9 +590,9 @@ SECURITY
 EXIT STATUS
 
     Imapsync will exit with a 0 status (return code) if everything went
-    good. Otherwise, it exits with a non-zero status. Here is the list of
-    the exit code values (an integer between 0 and 255), the names reflects
-    their meaning:
+    good. Otherwise, it exits with a non-zero status. That's classical Unix
+    behavior. Here is the list of the exit code values (an integer between 0
+    and 255). The names reflect their meaning:
 
          EX_OK          => 0  ; #/* successful termination */
          EX_USAGE       => 64 ; #/* command line usage error */
@@ -568,9 +613,9 @@ EXIT STATUS
 LICENSE AND COPYRIGHT
 
     Imapsync is free, open, public but not always gratis software cover by
-    the NOLIMIT Public License. See the LICENSE file included in the
-    distribution or just read this simple sentence as it IS the licence
-    text:
+    the NOLIMIT Public License, now called NLPL. See the LICENSE file
+    included in the distribution or just read this simple sentence as it IS
+    the licence text:
 
      "No limits to do anything with this work and this license."
 
@@ -584,8 +629,7 @@ AUTHOR
 
     Gilles LAMIRAL <gilles@lamiral.info>
 
-    Good feedback good is always welcome. Bad feedback is very often
-    welcome.
+    Good feedback is always welcome. Bad feedback is very often welcome.
 
     Gilles LAMIRAL earns his living by writing, installing, configuring and
     teaching free, open and often gratis software. Imapsync used to be
@@ -642,8 +686,8 @@ INSTALL
      and all Server releases 2000, 2003, 2008 and R2, 2012 and R2, 2016)
      as a standalone binary software called imapsync.exe,
      usually launched from a batch file in order to avoid always typing
-     the options.
-
+     the options. There is also a 64bit binary called imapsync_64bit.exe
+ 
      Imapsync works under OS X as a standalone binary
      software called imapsync_bin_Darwin
 
@@ -677,48 +721,46 @@ SIMILAR SOFTWARE
       See also https://imapsync.lamiral.info/S/external.shtml
       for a better up to date list.
 
-    Last updated and verified on Thu Apr 11, 2019.
+    Last updated and verified on Sun Dec 8, 2019.
 
-      imapsync         : https://github.com/imapsync/imapsync
-                         (this is an imapsync copy, sometimes delayed,
-                         with --noreleasecheck by default since release 1.592, 2014/05/22)
-      imap_tools       : https://web.archive.org/web/20161228145952/http://www.athensfbc.com/imap_tools/
-                         The imap_tools code is now at
-                         https://github.com/andrewnimmo/rick-sanders-imap-tools
-      imaputils        : https://github.com/mtsatsenko/imaputils (very old imap_tools fork)
-      Doveadm-Sync     : https://wiki2.dovecot.org/Tools/Doveadm/Sync ( Dovecot sync tool )
-      davmail          : http://davmail.sourceforge.net/
-      offlineimap      : http://offlineimap.org/
-      mbsync           : http://isync.sourceforge.net/
-      mailsync         : http://mailsync.sourceforge.net/
-      mailutil         : http://www.washington.edu/imap/ part of the UW IMAP tookit.
-      imaprepl         : https://bl0rg.net/software/ http://freecode.com/projects/imap-repl/
-      imapcopy (Pascal): http://www.ardiehl.de/imapcopy/
-      imapcopy (Java)  : https://code.google.com/archive/p/imapcopy/
-      imapsize         : http://www.broobles.com/imapsize/
-      migrationtool    : http://sourceforge.net/projects/migrationtool/
-      imapmigrate      : http://sourceforge.net/projects/cyrus-utils/
-      larch            : https://github.com/rgrove/larch (derived from wonko_imapsync, good at Gmail)
-      wonko_imapsync   : http://wonko.com/article/554 (superseded by larch)
-      pop2imap         : http://www.linux-france.org/prj/pop2imap/ (I wrote that too)
-      exchange-away    : http://exchange-away.sourceforge.net/
-      SyncBackPro      : http://www.2brightsparks.com/syncback/sbpro.html
-      ImapSyncClient   : https://github.com/ridaamirini/ImapSyncClient
-      MailStore        : https://www.mailstore.com/en/products/mailstore-home/
-      mnIMAPSync       : https://github.com/manusa/mnIMAPSync
-      imap-upload      : http://imap-upload.sourceforge.net/
-                         (a tool for uploading a local mbox file to IMAP4 server)
+     imapsync: https://github.com/imapsync/imapsync (this is an imapsync copy, sometimes delayed, with --noreleasecheck by default since release 1.592, 2014/05/22)
+     imap_tools: https://web.archive.org/web/20161228145952/http://www.athensfbc.com/imap_tools/. The imap_tools code is now at https://github.com/andrewnimmo/rick-sanders-imap-tools
+     imaputils: https://github.com/mtsatsenko/imaputils (very old imap_tools fork)
+     Doveadm-Sync: https://wiki2.dovecot.org/Tools/Doveadm/Sync ( Dovecot sync tool )
+     davmail: http://davmail.sourceforge.net/
+     offlineimap: http://offlineimap.org/
+     mbsync: http://isync.sourceforge.net/
+     mailsync: http://mailsync.sourceforge.net/
+     mailutil: https://www.washington.edu/imap/ part of the UW IMAP toolkit. (well, seems abandoned now)
+     imaprepl: https://bl0rg.net/software/ http://freecode.com/projects/imap-repl/
+     imapcopy (Pascal): http://www.ardiehl.de/imapcopy/
+     imapcopy (Java): https://code.google.com/archive/p/imapcopy/
+     imapsize: http://www.broobles.com/imapsize/
+     migrationtool: http://sourceforge.net/projects/migrationtool/
+     imapmigrate: http://sourceforge.net/projects/cyrus-utils/
+     larch: https://github.com/rgrove/larch (derived from wonko_imapsync, good at Gmail)
+     wonko_imapsync: http://wonko.com/article/554 (superseded by larch)
+     pop2imap: http://www.linux-france.org/prj/pop2imap/ (I wrote that too)
+     exchange-away: http://exchange-away.sourceforge.net/
+     SyncBackPro: http://www.2brightsparks.com/syncback/sbpro.html
+     ImapSyncClient: https://github.com/ridaamirini/ImapSyncClient
+     MailStore: https://www.mailstore.com/en/products/mailstore-home/
+     mnIMAPSync: https://github.com/manusa/mnIMAPSync
+     imap-upload: http://imap-upload.sourceforge.net/ (A tool for uploading a local mbox file to IMAP4 server)
+     imapbackup: https://github.com/rcarmo/imapbackup (A Python script for incremental backups of IMAP mailboxes)
+     BitRecover email-backup 99 USD, 299 USD https://www.bitrecover.com/email-backup/.
+     ImportExportTools: https://addons.thunderbird.net/en-us/thunderbird/addon/importexporttools/ ImportExportTools for Mozilla Thunderbird by Paolo Kaosmos. ImportExportTools does not do IMAP.
 
 HISTORY
 
-    I initially wrote imapsync in July 2001 because an enterprise,
-    basystemes, paid me to install a new imap server without losing huge old
+    I initially wrote imapsync in July 2001 because an enterprise, called
+    BaSystemes, paid me to install a new imap server without losing huge old
     mailboxes located in a far away remote imap server, accessible by an
     often broken low-bandwidth ISDN link.
 
     I had to verify every mailbox was well transferred, all folders, all
     messages, without wasting bandwidth or creating duplicates upon resyncs.
-    The design was made with the beautiful rsync command in mind.
+    The imapsync design was made with the beautiful rsync command in mind.
 
     Imapsync started its life as a patch of the copy_folder.pl script. The
     script copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl module

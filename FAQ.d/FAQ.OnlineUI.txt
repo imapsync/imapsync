@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.19 2019/01/28 10:59:16 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.20 2019/12/06 14:51:03 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -30,17 +30,17 @@ R0. Well, I don't know if asking the provider whether his online
 
 R1. Some figures
 
-Date of this report: 26 December 2018.
+Date of this report: 6 December 2019.
 
 The online imapsync service /X started 9 January 2017 
-(716 days of service).
+(1061 days of service).
 
-In average, /X has 20 users per day lunching in mean 6 
-different migrations, from one launch to many (hundreds).
+In average, /X has 50 users per day lunching in mean 6 
+different migrations, from just one launch to many (hundreds).
 
-The total volume /X transferred is around 45 TiB in more 
-than 111 thousands email imap migrations, 
-157 millions email messages.
+The total volume /X transferred is around 101 TiB in more 
+than 219 thousands email imap migrations, 
+340 millions email messages.
 
 R2. Pros & Cons
 
@@ -54,23 +54,24 @@ the imap logins and passwords, can't be eavesdropped on the network.
 Imapsync itself takes care about encryption for the imap sessions, 
 if possible: It tries SSL first on port 993, then TLS on port 143 
 if the servers announces TLS, then no encryption at all. 
-What is done with the source imap server host1 is independent 
-of what is done with the destination imap server host2.
+Concerning encryption, what is done with the source imap server host1 
+is independent of what is done with the destination imap server host2.
 
-At the date of 26 December 2018, there is no security problem 
+At the date of 6 December 2019, there is no security problem 
 detected or reported to me (Gilles LAMIRAL), so far.
 Feel free to attack the service and feel free to report any 
 hole encountered. Have in mind I can watch what you try 
-from the server side.
+from the server side and take measure if the service suffers from
+your acts.
 
-As the owner of the service, it could have been 48 000 pairs of 
-credentials collected and nearly 17 terabytes of email messages. 
+As the owner of the service, it could have been 219 000 pairs of 
+credentials collected and nearly 101 terabytes of email messages. 
 I haven't kept them but I can't prove I haven't. It's just trust, 
 like nearly every online service in the universe.
 
-The imap server certificates are not checked (by default) 
-because too many  imap servers are crappy configured regarding 
-certificates.
+The imap server certificates are not checked for authenticity 
+(by default) because too many  imap servers are crappy configured 
+regarding certified certificates.
 
 This default behavior is chosen like this because users of /X 
 want their emails transferred, instead of being not transferred 
@@ -90,7 +91,7 @@ imapsync is just one of them.
 Last point, who could be sure that no cracker cracked the online 
 hosts and that he isn't currently sniffing the credentials?
 
-No one, I'm not sure myself, even if I do take  care of that 
+No one, I'm not sure myself, even if I do take care of that 
 possibility. So changing the imap accounts passwords after 
 a sync is a safe and recommended practice!
 
@@ -109,8 +110,8 @@ connections (imapsync stuff).
 
 If the Browser/WebServer connection is timeout or ended, 
 the imapsync sync is also ended immediately by the remote 
-Apache https server. Technically, Apache sends a TERM signal,
-to the imapsync process then wait some seconds before 
+Apache https server. Technically, Apache sends a TERM signal
+to the imapsync process, then wait some seconds before 
 sending a KILL signal if it is still alive.
 
 You can relaunch a sync again with "Sync!" button, at any time.
@@ -126,8 +127,9 @@ parameters, same credentials, or imapsync will ignore the demand.
 
 In other words, you can try safely to launch several parallel 
 runs between the same mailboxes. Open a new tab/windows with /X, 
-and start a same sync, it's safe, the /X will say, if any, that 
-there is already a current sync running.
+and start the exact same sync. It's safe, the /X will say, if any, that 
+there is already a current sync running on them and it will present
+the logfile running the sync like a "tail -f" command (isn't that magic?).
 
 
 =====================================================================

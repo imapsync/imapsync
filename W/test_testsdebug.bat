@@ -1,4 +1,4 @@
-@REM $Id: test_testsdebug.bat,v 1.3 2017/07/08 00:02:13 gilles Exp gilles $
+@REM $Id: test_testsdebug.bat,v 1.4 2019/11/25 12:44:59 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO OFF

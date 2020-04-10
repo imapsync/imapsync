@@ -10,26 +10,42 @@ imapsync_docker_timestamp_dockerfile() {
 
 echo imapsync_docker_build
 imapsync_docker_build() {
-    docker build -t gilleslamiral/imapsync .
-    docker images
-    echo 
+    docker build -t gilleslamiral/imapsync . \
+        && imapsync_docker_add_tag_version && echo Build SUCCEEDED || echo Build FAILED
+
+    echo
     #docker run gilleslamiral/imapsync imapsync --testslive
     #docker run gilleslamiral/imapsync imapsync --testslive6
     # docker run gilleslamiral/imapsync imapsync --testslive6 --nossl2
 }
 
+echo imapsync_docker_add_tag_version
+imapsync_docker_add_tag_version() {
+    docker images gilleslamiral/imapsync
+    echo 
+    version=`docker run gilleslamiral/imapsync imapsync --version`
+    echo $version
+    docker tag gilleslamiral/imapsync:latest gilleslamiral/imapsync:$version
+    docker images gilleslamiral/imapsync
+}
+
+
+
 echo imapsync_docker_testslive
 imapsync_docker_testslive() {
+    echo docker run gilleslamiral/imapsync imapsync --testslive
     docker run gilleslamiral/imapsync imapsync --testslive
 }
 
 echo imapsync_docker_testslive6
 imapsync_docker_testslive6() {
+    echo docker run gilleslamiral/imapsync imapsync --testslive6 --ssl1 --ssl2
     docker run gilleslamiral/imapsync imapsync --testslive6 --ssl1 --ssl2
 }
 
 echo imapsync_docker_tests
 imapsync_docker_tests() {
+    echo docker run gilleslamiral/imapsync imapsync --tests
     docker run gilleslamiral/imapsync imapsync --tests
 }
 
@@ -37,6 +53,12 @@ echo docker_delete_all_images
 docker_delete_all_images() {
     docker rm `docker ps -a -q`
     docker rmi `docker images -q`
+}
+
+echo docker_system_prune
+docker_system_prune()
+{
+        docker system prune
 }
 
 echo docker_delete_dandling_images
@@ -59,8 +81,15 @@ imapsync_docker_rebuild_from_scratch() {
 
 echo imapsync_docker_upload
 imapsync_docker_upload() {
-    docker login --username=gilleslamiral --password=`cat $HOME/var/pass/secret.docker` \
-    && docker push gilleslamiral/imapsync
+    # upload only after successful tests
+    set -x \
+    && imapsync_docker_testslive \
+    && imapsync_docker_tests \
+    && docker run gilleslamiral/imapsync true \
+    && docker login --username=gilleslamiral --password=`cat $HOME/var/pass/secret.docker` \
+    && docker push gilleslamiral/imapsync:latest \
+    && set +x && echo imapsync push SUCCEEDED || echo imapsync push FAILED
+    set +x
 }
 
 

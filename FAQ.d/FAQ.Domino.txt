@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Domino.txt,v 1.10 2018/05/24 11:34:30 gilles Exp gilles $
+# $Id: FAQ.Domino.txt,v 1.12 2019/10/31 23:13:31 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -10,9 +10,23 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Domino.txt
                Imapsync tips for Domino.
 =======================================================================
 
+Questions answered in this FAQ are:
+
+Q. How to use imapsync from Domino Notes to XXX?
+
+Q. How to use imapsync from XXX to Domino Notes?
+
+Q. Whan I use --maxage imapsync sees no messages at all.
+   What can I do?
+
+Q. My usual email software client like Thunderbird sees more messages
+   than imapsync. How can it be possible?
+
+Now the questions again with their answers:
+
 
 =======================================================================
-Q. From Domino Notes to XXX
+Q. How to use imapsync from Domino Notes to XXX?
 
 R1. Use --domino1, like this:
 
@@ -30,7 +44,7 @@ On Unix use:
   imapsync ... --sep1 '\' --prefix1 '' --messageidnodomain
 
 =======================================================================
-Q. From XXX to Domino Notes
+Q. How to use imapsync from XXX to Domino Notes
 
 R1. Use --domino2, like this:
 
@@ -89,6 +103,28 @@ For Domino 853FP6 on Linux, we used this command on Unix:
   --prefix2 ""  --sep2 "\/" --messageidnodomain \
   --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Migratedbyus:$2\nx-MailDate:$2}gxms'
 
+=======================================================================
+Q. Whan I use --maxage imapsync sees no messages at all.
+   What can I do?
+
+R. Use --noabletosearch
+
+  imapsync ... --noabletosearch
+
+Same thing with --minage
 
 =======================================================================
+Q. My usual email software client like Thunderbird sees more messages
+   than imapsync. How can it be possible?
+
+R. (Issue given and solved by Falko Veith)
+   "As you might know, it is possible to replicate databases, aka mailboxes,
+   across domino servers. THAT is the explanation. Thunderbird and some Notes 
+   clients may be connected to one server and imapsync to another.
+   As funny and simply the solution is, as mysterious is why those two 
+   databases are not completely in sync - new emails are replicated but not
+   the old ones. One mystery solved - and a new one to go.
+
+Thanks to Falko Veith for this question and the answer!
+
 =======================================================================

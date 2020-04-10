@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: imapsync_example.sh,v 1.6 2016/01/21 03:35:15 gilles Exp gilles $
+# $Id: imapsync_example.sh,v 1.7 2019/11/06 09:58:42 gilles Exp gilles $
 
 # imapsync example shell for Unix users
 # lines beginning with # are just comments 
@@ -45,4 +45,15 @@
            --host2 test2.lamiral.info   --user2 test2   --password2 'secret2' \
            --automap --justfolders --dry "$@"
 
+
+# Warning to Mac users using the binary imapsync_bin_Darwin,
+# this example is not ready to play.
+# You have replace the command above
+# ./imapsync
+# by
+# ./imapsync_bin_Darwin
+#
+# an easier way is to use the ready to use example script named
+# examples/imapsync_example_darwin.sh
+# 
 
