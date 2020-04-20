@@ -10190,7 +10190,7 @@ sub append_message_on_host2
                 $max_msg_size_in_bytes = max( $string_len, $max_msg_size_in_bytes ) ;
                 $new_id = $mysync->{imap2}->append_string( $h2_fold, ${ $string_ref }, $h1_flags, $h1_date ) ;
                 myprint( debugmemory( $mysync, " at A2" ) ) ;
-                if ( ! $new_id){
+                if ( ! defined $new_id){
                         my $subject = subject( ${ $string_ref } ) ;
                         my $error_imap = $mysync->{imap2}->LastError || q{} ;
                         my $error = "- msg $h1_fold/$h1_msg {$string_len} could not append ( Subject:[$subject], Date:[$h1_date], Size:[$h1_size], Flags:[$h1_flags] ) to folder $h2_fold: $error_imap\n" ;
