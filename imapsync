@@ -2127,12 +2127,12 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
                 }
         }
 
-        if ( ( ( $subscribe and exists $h1_subscribed_folder{ $h1_fold } ) or $subscribeall )
-             and not exists  $h2_subscribed_folder{ $h2_fold }  )
-        {
-                myprint( "Host2: Subscribing to folder $h2_fold\n"  ) ;
-                if ( ! $sync->{dry} ) { $sync->{imap2}->subscribe( $h2_fold ) } ;
-        }
+        #if ( ( ( $subscribe and exists $h1_subscribed_folder{ $h1_fold } ) or $subscribeall )
+        #     and not exists  $h2_subscribed_folder{ $h2_fold }  )
+        #{
+        #        myprint( "Host2: Subscribing to folder $h2_fold\n"  ) ;
+        #        if ( ! $sync->{dry} ) { $sync->{imap2}->subscribe( $h2_fold ) } ;
+        #}
 
         next FOLDER if ( $sync->{ justfolders } ) ;
 
@@ -6043,7 +6043,7 @@ sub tests_mailimapclient_connect
 
         # ipv6 + ssl
         # Fails often on ks2ipv6.lamiral.info
-        
+
         ok( $imap = Mail::IMAPClient->new(  ), 'mailimapclient_connect ipv6 + ssl: new' ) ;
         is( 'petiteipv6.lamiral.info', $imap->Server( 'petiteipv6.lamiral.info' ), 'mailimapclient_connect ipv6 + ssl: setting Server petiteipv6.lamiral.info' ) ;
         is( 3, $imap->Timeout( 3 ), 'mailimapclient_connect ipv4: setting Timout( 3 )' ) ;
@@ -6062,9 +6062,9 @@ sub tests_mailimapclient_connect
         {
                 skip( 'Tests avoided on CUILLERE/pcHPDV7-HP/macosx.polarhome.com/docker cannot do ipv6', 4 ) ;
         }
-        
+
         is( 1, $imap->Debug( 1 ), 'mailimapclient_connect ipv4 + ssl: setting Debug( 1 )' ) ;
-        
+
         # It sounds stupid but it avoids failures on the next test about $imap->connect
         is( '2a01:e34:ecde:70d0:223:54ff:fec2:36d7', resolv( 'petiteipv6.lamiral.info' ), 'resolv: petiteipv6.lamiral.info => 2001:41d0:8:bebd::1' ) ;
 
@@ -6219,7 +6219,7 @@ sub tests_probe_imapssl
                 #like( probe_imapssl( 'ks2ipv6.lamiral.info' ), qr/^\* OK/, 'probe_imapssl: ks2ipv6.lamiral.info matches "* OK"' ) ;
         } ;
 
-        
+
         # It sounds stupid but it avoids failures on the next test about $imap->connect
         ok( resolv( 'imap.gmail.com' ), 'resolv: imap.gmail.com => something' ) ;
         like( probe_imapssl( 'imap.gmail.com' ),       qr/^\* OK/, 'probe_imapssl: imap.gmail.com matches "* OK"' ) ;
@@ -6259,7 +6259,7 @@ sub connect_imap
 {
         my( $host, $port, $mydebugimap, $ssl, $tls, $Side, $mytimeout, $h ) = @_ ;
         my $imap = Mail::IMAPClient->new(  ) ;
-        
+
         if ( $ssl ) { set_ssl( $imap, $h ) }
         $imap->Server( $host ) ;
         $imap->Port( $port ) ;
@@ -6536,7 +6536,7 @@ sub set_tls
 
 
 
-sub init_imap 
+sub init_imap
 {
         my(
            $host, $port, $user, $domain, $password,
@@ -6547,14 +6547,14 @@ sub init_imap
         my ( $imap ) ;
 
         $imap = Mail::IMAPClient->new() ;
-        
-        if ( $mysync->{ tee } ) 
+
+        if ( $mysync->{ tee } )
         {
                 # Well, it does not change anything, does it?
-                # It does when suppressing the hack with *STDERR 
+                # It does when suppressing the hack with *STDERR
                 $imap->Debug_fh( $mysync->{ tee } ) ;
         }
-        
+
         if ( $ssl ) { set_ssl( $imap, $h ) }
         if ( $tls ) {  } # can not do set_tls() here because connect() will directly do a STARTTLS
         $imap->Clear(1);
@@ -7506,6 +7506,8 @@ sub create_folder_old
                 }else{
                         #create succeeded
                         myprint( "Created ( the old way ) folder [$h2_fold] on host2\n"  ) ;
+                        subscribe_to_folder($mysync, $imap, $h2_fold, $h1_fold);
+
                         return( 1 ) ;
                 }
         }else{
@@ -7569,6 +7571,8 @@ sub create_folder
                 }else{
                         #create succeeded
                         myprint( "Created folder [$h2_fold] on host2\n"  ) ;
+                        subscribe_to_folder($mysync, $myimap2, $h2_fold, $h1_fold);
+
                         return( 1 ) ;
                 }
         }else{
@@ -7582,6 +7586,21 @@ sub create_folder
         }
 }
 
+# Subscribe to folder sub
+# arguments: $mysync, $myimap2, $subscribed_h2_fold, $h1_fold
+
+sub subscribe_to_folder
+{
+    my $mysync = shift @ARG ;
+    my( $myimap2 , $subscribed_h2_fold, $h1_fold ) = @ARG ;
+
+    if ( ( ( $subscribe and exists $h1_subscribed_folder{ $h1_fold } ) or $subscribeall )
+    and not exists  $h2_subscribed_folder{ $subscribed_h2_fold }  )
+    {
+        myprint( "Host2: Subscribing to folder $subscribed_h2_fold\n"  ) ;
+        if ( ! $mysync->{dry} ) { $myimap2->subscribe( $subscribed_h2_fold ) } ;
+    }
+}
 
 
 sub tests_folder_routines
