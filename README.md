@@ -331,9 +331,13 @@ OPTIONS
                              X is not also Gmail.
                              Activated with --gmail1 unless --noskipcrossduplicates
 
+   --skipallmailduplicates : Used when host1 is GMail.  Skips messages in 
+                             [Gmail]/All Mail that are also in some other folder.
+
      --debugcrossduplicates : Prints which messages (UIDs) are skipped with
                               --skipcrossduplicates (and in what other folders
-                              they are).
+                              they are).  Also prints messages skipped by
+                              --skipallmailduplicates.
 
      --pipemess     cmd  : Apply this cmd command to each message content
                            before the copy.

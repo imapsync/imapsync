@@ -345,10 +345,14 @@ and user1 user2 are the --user1 --user2 values.
                          in another folder,  good from Gmail to X when
                          X is not also Gmail.
                          Activated with --gmail1 unless --noskipcrossduplicates
+                         
+--skipallmailduplicates : Used when host1 is GMail.  Skips messages in 
+                          [Gmail]/All Mail that are also in some other folder.
 
  --debugcrossduplicates : Prints which messages (UIDs) are skipped with
                           --skipcrossduplicates (and in what other folders
-                          they are).
+                          they are).  Also prints messages skipped by
+                          --skipallmailduplicates.
 
  --pipemess     cmd  : Apply this cmd command to each message content
                        before the copy.
@@ -1104,7 +1108,7 @@ my(
         $uidnext_default,
         $fixcolonbug,
         $create_folder_old,
-        $skipcrossduplicates, $debugcrossduplicates,
+        $skipcrossduplicates, $debugcrossduplicates, $skipallmailduplicates,
         $disarmreadreceipts,
         $mixfolders,
         $fetch_hash_set,
@@ -2487,7 +2491,9 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
 
                 if ( ( not exists  $h2_hash{ $m_id }  )
                         and ( not ( exists $sync->{ h2_folders_of_md5 }->{ $m_id } )
-                              or not $skipcrossduplicates ) )
+                              or ( not $skipcrossduplicates 
+                                   and ( not $skipallmailduplicates 
+                                         or $h1_fold ne "[Gmail]/All Mail" ) ) ) )
                 {
                         # copy
                         my $h2_msg = copy_message( $sync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
@@ -16802,6 +16808,7 @@ sub get_options_cmd
         'maxsleep=f'             => \$mysync->{maxsleep},
         'skipcrossduplicates!'   => \$skipcrossduplicates,
         'debugcrossduplicates!'  => \$debugcrossduplicates,
+        'skipallmailduplicates!' => \$skipallmailduplicates,
         'log!'                   => \$mysync->{log},
         'tail!'                  => \$mysync->{tail},
         'logfile=s'        => \$mysync->{logfile},
