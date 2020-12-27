@@ -24,7 +24,8 @@ LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
         description="Imapsync" \
         documentation="https://imapsync.lamiral.info/#doc"
 
-RUN apt-get update && \
+RUN set -xe && \
+  apt-get update && \
   apt-get install -y \
   libauthen-ntlm-perl     \
   libclass-load-perl      \
