@@ -18,55 +18,48 @@
 
 # Ubuntu latest points to current LTS release
 
-FROM ubuntu:latest
+FROM debian:buster
 
 LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
         description="Imapsync" \
         documentation="https://imapsync.lamiral.info/#doc"
 
-RUN set -xe && \
-  apt-get update && \
-  apt-get install -y \
-  libauthen-ntlm-perl     \
-  libclass-load-perl      \
-  libcrypt-ssleay-perl    \
-  libdata-uniqid-perl     \
-  libdigest-hmac-perl     \
-  libdist-checkconflicts-perl \
-  libencode-imaputf7-perl     \
-  libfile-copy-recursive-perl \
-  libfile-tail-perl       \
-  libio-compress-perl     \
-  libio-socket-inet6-perl \
-  libio-socket-ssl-perl   \
-  libio-tee-perl          \
-  libjson-webtoken-perl   \
-  libmail-imapclient-perl \
-  libmodule-scandeps-perl \
-  libnet-dbus-perl        \
-  libnet-ssleay-perl      \
-  libpar-packer-perl      \
-  libreadonly-perl        \
-  libregexp-common-perl   \
-  libsys-meminfo-perl     \
-  libterm-readkey-perl    \
-  libtest-fatal-perl      \
-  libtest-mock-guard-perl \
-  libtest-mockobject-perl \
-  libtest-pod-perl        \
-  libtest-requires-perl   \
-  libtest-simple-perl     \
-  libunicode-string-perl  \
-  liburi-perl             \
-  libtest-nowarnings-perl \
-  libtest-deep-perl       \
-  libtest-warn-perl       \
-  make                    \
-  cpanminus               \
+RUN set -xe                 && \
+  apt-get update            && \
+  apt-get install -y           \
+  libauthen-ntlm-perl          \
+  libcgi-pm-perl               \
+  libcrypt-openssl-rsa-perl    \
+  libdata-uniqid-perl          \
+  libencode-imaputf7-perl      \
+  libfile-copy-recursive-perl  \
+  libfile-tail-perl            \
+  libio-socket-inet6-perl      \
+  libio-socket-ssl-perl        \
+  libio-tee-perl               \
+  libhtml-parser-perl          \
+  libjson-webtoken-perl        \
+  libmail-imapclient-perl      \
+  libparse-recdescent-perl     \
+  libmodule-scandeps-perl      \
+  libreadonly-perl             \
+  libregexp-common-perl        \
+  libsys-meminfo-perl          \
+  libterm-readkey-perl         \
+  libtest-mockobject-perl      \
+  libtest-pod-perl             \
+  libunicode-string-perl       \
+  liburi-perl                  \
+  libwww-perl                  \
+  libtest-nowarnings-perl      \
+  libtest-deep-perl            \
+  libtest-warn-perl            \
+  make                         \
+  cpanminus                    \
   wget
 
 RUN wget -N https://imapsync.lamiral.info/imapsync && \
-  mv imapsync /usr/bin/imapsync && \
+  mv imapsync /usr/bin/imapsync                    && \
   chmod +x /usr/bin/imapsync
 
 USER nobody:nogroup
