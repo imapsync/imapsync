@@ -56,6 +56,7 @@ RUN set -xe                 && \
   libtest-warn-perl            \
   make                         \
   cpanminus                    \
+  procps                       \
   wget
 
 RUN wget -N https://imapsync.lamiral.info/imapsync && \
