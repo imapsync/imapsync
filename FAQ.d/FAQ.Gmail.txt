@@ -170,8 +170,7 @@ imapsync \
            --maxsleep 2 \
            --synclabels \
            --resynclabels \
-           --exclude "\[Gmail\]$" \
-           --folderlast  "[Gmail]/All Mail"
+           --folder  "[Gmail]/All Mail"
 
 With --gmail1 --gmail2 you can override the parameters
 that are activated by them, for example:
@@ -215,8 +214,12 @@ incomprehensible alphabets, a headache for imap sysadmins.
 See a listing here:
 http://stackoverflow.com/questions/2185391/localized-gmail-imap-folders/2185548#2185548
 
---exclude "\[Gmail\]$"   is just there to avoid a warning error
-when selecting this not used folder.
+--synclabels and --resynclabels  causes messages to all have the
+same labels on host2 as they have on host1
+
+--folder  "[Gmail]/All Mail" makes imapsync process only the All Mail
+folder.  Since it is syncing all labels this will sync all messages with
+their correct labels.
 
 Be aware that --gmail1 --gmail2 is a special case, it's not what
 --gmail1 does plus what --gmail2 does when they are not invoked 
@@ -252,7 +255,9 @@ imapsync --host1 mail.oldhost.com     \
          --expunge1   \
          --addheader  \
          --maxsleep 2 \
+         --maxsize 35_651_584 \
          --exclude "\[Gmail\]$"  \
+         --useheader='Message-Id'
          --regextrans2 's,\[Gmail\].,,' \
          --regextrans2 's,^ +| +$,,g'
          --regextrans2 's,/ +| +/,/,g'
@@ -287,8 +292,8 @@ be 500_000_000, not 1_000_000_000, but 1GB is usually ok.
 --maxsleep 2 is to avoid sleeping more than 2 seconds when 
 the --maxbytespersecond value implies a long sleep between 2 copies.
 
---maxsize 25_000_000 is mandatory since Gmail limits messages size
-up to 25 MB. This value increases over time, it was 10 MB some 
+--maxsize 35_651_584 is mandatory since Gmail limits messages size
+up to 35 MB. This value increases over time, it was 10 MB some 
 years ago so you can try higher values. The Gmail page about
 this limit is https://support.google.com/mail/answer/6584
 
@@ -301,7 +306,6 @@ marked \Deleted but deletes or moves them just after.
 Option --expunge1 really removes messages marked \Deleted on host1 
 so they are not synced at all.
 
-
 The --addheader option is there because "Sent" folder messages 
 sometimes lack the "Message-Id:" and "Received:" headers needed 
 by imapsync to identify messages (only when --useuid is not used). 
@@ -312,6 +316,9 @@ the imap UID of the message on the host1 folder, like
 --exclude "\[Gmail\]$" is there to avoid a small examine/select error:
 "Could not examine: 43 NO [NONEXISTENT] Unknown Mailbox: [Gmail] 
 (now in authenticated state) (Failure)".
+
+--useheader='Message-Id' causes imapsync to use the Message-Id header
+to uniquely identify a message for dtecting duplicates.
 
 --regextrans2 "s/[ ]+/_/g" is there to convert blank characters not 
 accepted by gmail to character _ underscore. In fact only leading
@@ -331,6 +338,9 @@ not accepted by gmail, character ^ to character _ underscore.
 
 --regextrans2 "s/['\"\\\\]/_/g" is optional. It converts 
 characters ' or " or \ to character _ underscore.
+
+--folderlast  "[Gmail]/All Mail" makes imapsync leave the All Aail
+folder until the last.
 
 You can select folders exported to imap within the gmail preferences.
 Select or unselect some "System labels", depending on your needs.
@@ -363,7 +373,7 @@ imapsync \
            --maxbytesafter 2_500_000_000
            --automap \
            --maxsleep 2 \
-           --skipcrossduplicates \
+           --noskipcrossduplicates --skipallmailduplicates \
            --useheader="X-Gmail-Received" \
            --useheader "Message-Id" \
            --regextrans2 "s,\[Gmail\].,," \
@@ -420,6 +430,11 @@ label CanWait and only it.
 --folderlast "[Gmail]/All Mail", in conjunction with option 
 --skipcrossduplicates, will only put in "[Gmail]/All Mail"
 the messages that are not labeled at all.
+
+--skipallmailduplicates is similar to --skipcrossduplicates but it only
+skips messages in the [GMAIL]/All Mail folder.  Messages with two or
+more other labels are copied to all the corresponding IMAP folders on
+the destination.  --skipallmailduplicates is the default with --gmail1.
 
 
 https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt

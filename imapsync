@@ -345,10 +345,14 @@ and user1 user2 are the --user1 --user2 values.
                          in another folder,  good from Gmail to X when
                          X is not also Gmail.
                          Activated with --gmail1 unless --noskipcrossduplicates
+                         
+--skipallmailduplicates : Used when host1 is GMail.  Skips messages in 
+                          [Gmail]/All Mail that are also in some other folder.
 
  --debugcrossduplicates : Prints which messages (UIDs) are skipped with
                           --skipcrossduplicates (and in what other folders
-                          they are).
+                          they are).  Also prints messages skipped by
+                          --skipallmailduplicates.
 
  --pipemess     cmd  : Apply this cmd command to each message content
                        before the copy.
@@ -1104,7 +1108,7 @@ my(
         $uidnext_default,
         $fixcolonbug,
         $create_folder_old,
-        $skipcrossduplicates, $debugcrossduplicates,
+        $skipcrossduplicates, $debugcrossduplicates, $skipallmailduplicates,
         $disarmreadreceipts,
         $mixfolders,
         $fetch_hash_set,
@@ -2487,7 +2491,9 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
 
                 if ( ( not exists  $h2_hash{ $m_id }  )
                         and ( not ( exists $sync->{ h2_folders_of_md5 }->{ $m_id } )
-                              or not $skipcrossduplicates ) )
+                              or ( not $skipcrossduplicates 
+                                   and ( not $skipallmailduplicates 
+                                         or $h1_fold ne "[Gmail]/All Mail" ) ) ) )
                 {
                         # copy
                         my $h2_msg = copy_message( $sync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
@@ -15480,11 +15486,11 @@ sub gmail12
 	$mysync->{maxbytesafter} ||= 1_000_000_000 ;
 	$mysync->{automap}   = ( defined $mysync->{automap} )  ? $mysync->{automap} : 1 ;
 	$mysync->{maxsleep}  = ( defined $mysync->{maxsleep} ) ? $mysync->{maxsleep} : $MAX_SLEEP ; ;
-	$skipcrossduplicates = ( defined $skipcrossduplicates ) ? $skipcrossduplicates : 0 ;
         $mysync->{ synclabels  }   = ( defined $mysync->{ synclabels } )  ? $mysync->{ synclabels } : 1 ;
         $mysync->{ resynclabels }   = ( defined $mysync->{ resynclabels } )  ? $mysync->{ resynclabels } : 1 ;
-	push @exclude, '\[Gmail\]$' ;
-        push @folderlast, '[Gmail]/All Mail' ;
+        # If we resync labels then we only need to do the All Mail folder since all messages
+        # will be in it and all will get their correct labels in the destination.
+        push @{ $mysync->{ folder } }, '[Gmail]/All Mail' ;
 	return ;
 }
 
@@ -15499,7 +15505,11 @@ sub gmail1
 	$mysync->{maxbytesafter} ||= 2_500_000_000 ;
 	$mysync->{automap}   = ( defined $mysync->{automap} ) ? $mysync->{automap} : 1 ;
 	$mysync->{maxsleep}  = ( defined $mysync->{maxsleep} ) ? $mysync->{maxsleep} : $MAX_SLEEP ; ;
-	$skipcrossduplicates = ( defined $skipcrossduplicates ) ? $skipcrossduplicates : 1 ;
+	if ( not defined $skipcrossduplicates 
+	     and not defined $skipallmailduplicates ) {
+	        $skipcrossduplicates = 0;
+	        $skipallmailduplicates = 1;
+	}
 
 	push @useheader, 'X-Gmail-Received', 'Message-Id' ;
 	push @{ $mysync->{ regextrans2 } }, 's,\[Gmail\].,,' ;
@@ -15517,7 +15527,6 @@ sub gmail2
 	$mysync->{maxbytesafter} ||= 1_000_000_000 ; # In fact it is documented as half: 500_000_000
 
 	$mysync->{automap} = ( defined $mysync->{automap} ) ? $mysync->{automap} : 1 ;
-	#$skipcrossduplicates = ( defined $skipcrossduplicates ) ? $skipcrossduplicates : 1 ;
 	$mysync->{ expunge1 }  = ( defined $mysync->{ expunge1 } )  ? $mysync->{ expunge1 }  : 1 ;
 	$mysync->{addheader} = ( defined $mysync->{addheader} ) ? $mysync->{addheader} : 1 ;
 	$mysync->{maxsleep}  = ( defined $mysync->{maxsleep} )  ? $mysync->{maxsleep} : $MAX_SLEEP ; ;
@@ -16802,6 +16811,7 @@ sub get_options_cmd
         'maxsleep=f'             => \$mysync->{maxsleep},
         'skipcrossduplicates!'   => \$skipcrossduplicates,
         'debugcrossduplicates!'  => \$debugcrossduplicates,
+        'skipallmailduplicates!' => \$skipallmailduplicates,
         'log!'                   => \$mysync->{log},
         'tail!'                  => \$mysync->{tail},
         'logfile=s'        => \$mysync->{logfile},
