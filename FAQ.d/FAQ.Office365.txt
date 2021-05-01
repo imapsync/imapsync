@@ -1,0 +1,510 @@
+
+$Id: FAQ.Office365.txt,v 1.20 2021/03/17 20:42:35 gilles Exp gilles $
+
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Office365.txt
+
+
+=======================================================================
+            Imapsync tips for Office365.
+=======================================================================
+
+Questions answered in this FAQ are:
+
+Q. Can I use imapsync to transfer from or to Office365 accounts?
+
+Q. Does IMAPSync support OAUTH2 authentication in Office 365?
+
+Q. How to sync from Office365 to XXX?
+
+Q. How to sync from XXX to Office365
+
+Q. For Office365 I have double and triple-checked the username and
+   password spelling but I still get a "LOGIN failed". Any clue?
+
+Q. I see "NO Maximum size of appendable message has been exceeded"
+   What can I do with that?
+
+Q. The imap connection to Office365 is not working very efficiently,
+   is there a solution to fix that?
+
+Q. Office365 throttles the sync and says: 
+   "Request is throttled. Suggested Backoff Time: 299961 milliseconds".
+   What can I do with that?
+
+Q. The sync fails with many "Trying command when NOT connected!".
+   What can I do?
+
+Q. How to see or migrate public folders on Office365?
+R. https://docs.microsoft.com/en-us/exchange/collaboration/public-folders/migrate-to-exchange-online?view=exchserver-2019
+   https://www.exchangesavvy.com/moving-your-public-folders-to-office-365-what-you-need-to-know/
+
+Q. Office365 refuses to create the folder named "Files" with the error
+   "NO Folder name is reserved". What happens?
+
+Q. Office365 users complain that a folder named "Files" contains 
+   messages with no sender.
+
+Q. From XXX to Office365, read receipts are all resent again after sync.
+   Even for old messages. How can I fix that?
+
+Q. DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error
+   DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error   
+
+Q. From XXX Office365 I get this error message sometimes: 
+   "BAD Command Argument Error 11". What does it mean?
+
+Q. From XXX to Office365 the flag Flagged does not seem to be well synced. 
+   What can I do?
+
+Q. How to migrate from or to Office 365 with an admin/authuser account?
+
+Q. Couldn't create folder [trash] "Mailbox already exists".
+
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. Can I use imapsync to transfer from or to Office365 accounts?
+
+R. Yes. But IMAP access to Office365 account is not always allowed by default 
+   so it has to be allowed in the server configuration part.
+   
+https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access
+https://docs.microsoft.com/en-us/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365
+
+=======================================================================
+Q. Does imapsync support OAUTH2 authentication for Office365 accounts?
+
+R. No. But I plan to add it during the year 2021.
+
+=======================================================================
+Q. How to sync from Office365 to XXX?
+
+R. On Windows, use:
+
+  imapsync.exe ... --office1
+
+On Unix, use:
+
+  imapsync ... --office1
+
+Option --office1 is like (release 1.970):
+  
+  imapsync ... --host1 outlook.office365.com \
+               --ssl1 \
+               --exclude "^Files$" 
+  
+=======================================================================
+Q. How to sync from XXX to Office365
+
+R0. IMAP is not enabled by default on Office365, see how to enable it:
+https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access
+https://docs.microsoft.com/en-us/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365
+
+If IMAP cannot be enabled or if it doesn't work well, you can try DavMail 
+(http://davmail.sourceforge.net/) which acts as an IMAP gateway 
+through Outlook Web Access.
+
+R. Here is a command-line resume that solves most encountered issues when 
+   migrating to Office365.
+
+    imapsync ... --office2
+
+which is equivalent to (in imapsync release 1.870):
+
+  imapsync ... \
+    --host2 outlook.office365.com \
+    --ssl2 \
+    --maxsize 45000000 \
+    --maxmessagespersecond 4 \
+    --disarmreadreceipts \
+    --regexmess "s,(.{10239}),$1\r\n,g" \
+    --f1f2 "Files=Files_renamed_by_imapsync"
+
+
+On Linux, you can also try the "reformime" command 
+that can be used like:
+
+  imapsync ... --maxlinelengthcmd "reformime -r7"
+
+To get reformime, install the "maildrop" package.
+
+On Linux again, there is a good Python script in the tarball that can 
+fix several things that Exchange or O365 have issues with.
+
+Use it like this:
+
+  ./imapsync ... --pipemess W/tools/fix_email_for_exchange.py
+
+It often does some miracles on messages.
+
+=======================================================================
+Q. For Office365 I have double and triple-checked the username and
+   password spelling but I still get a "LOGIN failed". Any clue?
+
+R0. Imapsync doesn't support OAUTH2 authentication for Office365 accounts yet.
+
+R1. Disable double-step authentication, also known as 2-factor,
+    2-step authentication on the Azure/Active Directory portal.
+
+R2. Also, check a license is assigned to that account in Office365.
+
+R3. Microsoft introduced something called "security defaults" which is enabled
+by default for new tenants. One of the rules blocks IMAP access as of imapsync. 
+The funny thing is that you can't disable single rules of this security 
+package without buying additional licenses.
+Switching the whole thing off allows the login.0
+Also, disable double-step authentication on the Azure/Active Directory portal.
+See here:
+https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/concept-fundamentals-security-defaults
+Thanks to Stephan Buhre for this R3 answer.
+
+R4. Are there special characters in the password?
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Authentication_failure.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Mac.txt
+
+R5. Triple check the hostname then. Try all of these:
+ * outlook.office365.com
+ * imap-mail.outlook.com
+ * imap.outlook.com
+
+=======================================================================
+Q. I see "NO Maximum size of appendable message has been exceeded"
+   What can I do with that?
+
+
+R. Office365 supports send/receive max message sizes of up to 150MB 
+   but you need to make changes in your tenant(s) to support it.
+
+The following PowerShell command will increase the message sizes that 
+can be sent/received.  The trick in getting IMAPSync to work is to 
+apply these settings to the accounts performing the migration,
+NOT the accounts associated with the target mailbox (assuming you're
+using service accounts to perform transfers on behalf of users).
+
+  Set-mailbox -Identity $UPN -MaxReceiveSize 150mb -MaxSendSize 150mb
+
+e.g. 
+
+  Set-mailbox -Identity "migrationaccount@testtenant.onmicrosoft.com" -MaxReceiveSize 150mb -MaxSendSize 150mb
+
+We're transferring data between Office 365 tenants so we set these 
+values on the migration accounts in the source and target tenants.
+
+Thanks to Sean McDougall, Ian Thomas & Matt Wilks from Toronto 
+for this FAQ item.
+
+=======================================================================
+Q. The imap connection to Office365 is not working very efficiently,
+   is there a solution to fix that?
+
+R. Yes. Try DavMail
+   http://davmail.sourceforge.net/
+   I don't use it myself but a user, Yannick Palanque,  reported great results using it.
+
+=======================================================================
+Q. The sync fails with many "Trying command when NOT connected!".
+   What can I do?
+
+R. The --debugimap option can show you more details, especially some
+   message like:
+   "BAD Request is throttled. Suggested Backoff Time: 178755 milliseconds"
+   In that case, see the next faq item and its fixes.
+
+=======================================================================
+Q. Office365 throttles the sync and says: 
+   "Request is throttled. Suggested Backoff Time: 299961 milliseconds".
+   What can I do with that?
+
+R. Office365 has throttle mechanisms to limit any huge usage.
+   Sometimes imapsync transfers are too stressful for servers.
+   The following message 
+   "Request is throttled. Suggested Backoff Time: 299961 milliseconds"
+   comes from the imap Office365 server, imapsync just reports it
+   before being disconnected from it.
+
+   To solve the throttles issues from 0365, there are two solutions
+   at least:
+
+R1. Call Microsoft Office365 and ask them to remove the limits on your 
+  mailboxes. That's not a joke, they do it for 90 days usually, 
+  sometimes only after you reach the second technician you call, 
+  the first one usually be not enough competent to understand 
+  what you're talking about (I would be glad to remove this bad
+  fact).
+
+R2. Play with options --maxbytespersecond or --maxmessagespersecond
+    or --exitwhenover
+
+  imapsync ... --maxbytespersecond 100_000
+
+  imapsync ... --maxmessagespersecond 2
+
+  imapsync ... --exitwhenover 1_000_000_000
+
+I don't know the upper value that avoids the default throttling from 0365
+and I guess it changes over time.
+
+=======================================================================
+Q. Office365 refuses to create the folder named "Files" with the error
+   "NO Folder name is reserved". What happens?
+
+R. The folder Files is a standard folder in Office365.
+   It should not be synced in IMAP. See the next question.
+
+=======================================================================
+Q. Office365 users complain that a folder named "Files" contains 
+   messages with no sender.
+
+R0. To fix this, add --exclude Files
+
+  imapsync ... --exclude Files
+
+  If you use --office1 then imapsync will add this exclusion 
+  automatically like using  the option:
+  
+  imapsync ... --exclude "^Files$" 
+
+  If you use --office2 then imapsync will add a renaming of any
+  "Files" folder on host1, like using the option:
+  
+  imapsync ... --f1f2 "Files=Files_renamed_by_imapsync"
+
+  The host2 account ends up with a folder named 
+  "Files_renamed_by_imapsync", but no complaining.
+
+R1. This folder "Files" seems to be a standard folder in Exchange Online, 
+   but it is not. This folder contains all attachments in every email 
+   that is in the mailbox but without any headers.
+   This causes some confusion for users as these appear in their search
+   results as duplicate lines but without the sender details or even
+   the message body.
+
+   This folder seems to be usually hidden so IMAP clients can’t see it, 
+   but for some reason sometimes it becomes visible.
+
+R2. It looks to be a common problem with Exchange Online. 
+    I’m not sure what causes the folder to appear.
+
+   More info here:
+https://answers.microsoft.com/en-us/msoffice/forum/msoffice_o365admin-mso_exchon-mso_o365b/exclude-the-exchange-online-system-folder-called/2adbdf84-db4a-4c7f-ac29-738757980a0d
+https://answers.microsoft.com/en-us/msoffice/forum/msoffice_o365admin-mso_dep365-mso_o365b/no-sender-emails-in-files-folder/534bae8f-a7d7-4f5f-8ed7-5bad0d5fa23f
+
+  (This question/answer is taken quasi verbatim from Perttu Aaltonen)
+
+=======================================================================
+Q. From XXX to Office365, read receipts are all resent again after sync.
+   Even for old messages. How can I fix that?
+
+R. Imapsync can remove the header containing this read-receipt request.
+
+On Unix or Windows use:
+
+  imapsync ... --disarmreadreceipts
+
+Since read receipts should be sent for unseen messages that will go 
+to a seen state after the migration, you could be strict and apply 
+the regex only to seen messages. 
+Selecting seen message can be done with:
+
+  imapsync ... --search1 "SEEN" --disarmreadreceipts
+
+A second run has to be run without the --disarmreadreceipts
+for unseen messages:
+
+  imapsync ... --search1 "UNSEEN" 
+
+If fact --disarmreadreceipts is just an option equivalent to:
+
+  --regexmess 's{\A(.*?(?! ^$))^Disposition-Notification-To:(.*?)$}{$1X-Disposition-Notification-To:$2}igxms' 
+
+That regex changes the header Disposition-Notification-To. It prefixes
+it with an X- so that it becomes inactive.
+Disposition-Notification-To: blabla
+becomes
+X-Disposition-Notification-To: blabla
+
+Thanks to David Karnowski for pointing and solving this issue.
+
+=======================================================================
+Q. DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error
+   DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error   
+
+R1. "SSL read or write error" happens sometimes, it isn't related to 
+    imapsync directly but to the ssl underlying library when communicating
+    with Exchange in TLS/SSL encrypted mode. 
+    Next runs should put the sync further, so rerun the syncs 
+    until it is well completed.
+
+R2. Another solution is to remove --tls or --ssl options for Exchange
+    and accept clear text syncs.
+
+R3. See also the FAQ FAQ.SSL_errors.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.SSL_errors.txt
+
+=======================================================================
+Q. From XXX Office365 I get this error message sometimes: 
+   "BAD Command Argument Error 11". What does it mean?
+
+R. This error message comes from the Office365 IMAP server when it 
+   encounters any problem. Most of the time it is one of the following:
+
+  * Some messages are bigger than the size limit. 
+    45 MB by default on Office365.
+    I don't know if it can be upped by configuration for Office365.
+    If you can't fix this limit on Office365 then use the option
+    --maxsize 45000000 for 45 MB to tell imapsync to skip those messages.
+
+  imapsync ... --maxsize 45000000 # 45 MB for Office365
+  
+
+  * Quota reached. The whole account is full.
+    It can be upped by configuration.
+
+  * You use --synclabels --resynclabels from a previous command line 
+    related to syncing from Gmail to Gmail. Remove them.
+
+  * Some messages have some lines too long. Use option --maxlinelength
+    to skip messages whose max line length is over some bytes.
+    --maxlinelength 1000 is an RFC2822 must but most servers support
+    higher values. Exchange supports 9900 characters line length:
+
+  imapsync ... --maxlinelength 9900 
+
+    Office365 supports 10500 characters line length:
+
+  imapsync ... --maxlinelength 10500
+
+  In case you prefer fixing messages with long lines the hard way,
+  instead of skipping them with --maxlinelength 9900, just use:
+
+  On Windows
+  imapsync ... --regexmess "s,(.{9900}),$1\r\n,g"
+
+  On Unix
+  imapsync ... --regexmess 's,(.{9900}),$1\r\n,g'
+  
+Have also in mind that Exchange closes the connection after 10 errors
+encountered so you might also see "BYE Connection closed" errors from
+Exchange, which means Exchange leaves the session and says goodbye,
+come back later. Redo some sync then.
+
+On Linux, there is a good Python script in the tarball that can 
+fix several things that Office365 has issues with.
+
+Use it like this:
+
+  ./imapsync ... --pipemess W/tools/fix_email_for_exchange.py
+
+It often does some miracles on messages.
+It's called fix_email_for_exchange because Office365 is Exchange,
+or at least started to be an Exchange server with the same issues.
+
+=======================================================================
+Q. From XXX to Office365 the flag Flagged does not seem to be well synced. 
+   What can I do?
+
+R. Use the following trick. Run imapsync twice, one with --regexflag
+   and one without, like this:
+
+1) imapsync ... --regexflag "s/\\Flagged//g"
+2) imapsync ...
+
+You can add --debugflags if you want to see what imapsync gets and 
+does in detail with flags.
+
+The magic of this trick is on ignoring the \Flagged flag on the first 
+sync and setting it on the second sync, with STORE instead of APPEND.
+This Exchange bug seems that Exchange gets and sets well the Flagged 
+flag with APPEND in IMAP but then it forgets it with other protocols;
+With STORE it sets and gets the "\Flagged" flag everywhere.
+
+Thanks to Dave Murray and Simon Savva for reporting and solving 
+this issue.
+
+======================================================================
+Q. How to migrate from or to Office 365 with an admin/authuser account?
+
+Note from Yago Torres Fernandez:
+(a working command using admin/authuser on host2 Office 365)
+
+  imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
+               --password2 XXXX --ssl2  ^
+
+but previously in Office365, you must do something like the following, using Powershell:
+
+  Add-MailboxPermission -identity user_to_be_migrated@domain.com -user user_admin@domain.com -accessrights fullaccess -inheritancetype all
+
+
+Note from Betsy Lawlor: You can use global modern authentication with two factor 
+on Exchange Online (M365) but you must have "AllowBasicAuthImap" on the admin account you are using to migrate the mail.
+
+Remark: PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
+Same behavior with the --authuser2 option.
+
+Note from Rafael Alvarez Ballesteros:
+When you get an Office365 license you will receive an admin user to handle
+your licenses and products like admin@yourcompanyname.onmicrosoft.com.
+This account is the administrator account; some weeks or months ago Microsoft 
+has decided you need to use two-factor authentication by default, 
+so if two factors authentication is enabled you will no be able to sync 
+the mail (it will not connect to host2).
+OWA (I think this is the two-factor authentication) needs to be disabled 
+globally and enabled individually on the users you want to.
+One account can have the rights to access other mailboxes no matter if admin or 
+any other account but needs to have OWA disabled to be able to connect 
+to the office365 server.
+
+Note from Martin Paulucci:
+I had to remove the domain part for the user
+but not for the admin.  Example:
+
+  imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated
+
+See also:
+http://www.linux-france.org/prj/imapsync_list/msg02203.html
+Subject: RE: [imapsync] Office 365 - 'Master User'?
+Date:    Mon, 1 Jun 2015 17:53:54 +0000
+
+
+=======================================================================
+Q. Couldn't create folder [trash] "Mailbox already exists".
+
+R. Some servers take care of character cases in folder names, 
+   some servers do not, like Exchange. Since not respecting the case can merge
+   two different folders into one then imapsync respects the case. 
+
+   For example, if a host1 server has a folder name called "trash"
+   and the host2 server already has a folder "Trash" or "TRASH"
+   then imapsync will try to create the folder "trash" on host2
+   because trash and Trash are different strings. But if host2
+   does not respect character case it will consider folder "trash"
+   already exists and will say it. That's the error message reported
+   by imapsync: "Mailbox already exists". This message comes from the server.
+
+   The folder creation fails but messages are well transferred in
+   so take a look at this warning, understand why it happens
+   and it should be fine most of the time.
+
+   To avoid this warning use --regextrans2 to map the folder names
+
+   imapsync ...  --regextrans2 "s/^trash$/Trash/"
+
+   If there are two folders Trash and trash on host1 then both
+   will be merged into only one Trash folder on host2. 
+   In case of the option --delete2 is used the regextans2 above becomes
+   mandatory, otherwise imapsync will sync messages from the
+   first Trash and then delete them when syncing trash.
+
+   If you want to avoid merging folders that are considered different 
+   on host1 but are considered the same on destination host2 because of
+   case sensitivities and insensitivities, use  --nomixfolders
+
+=======================================================================
+=======================================================================

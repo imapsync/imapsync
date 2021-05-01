@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Dovecot.txt,v 1.7 2019/09/25 09:25:52 gilles Exp gilles $
+$Id: FAQ.Dovecot.txt,v 1.12 2021/04/30 13:02:06 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -18,7 +18,16 @@ Q. Subfolders are not created by imapsync and the error is
 
 Q. How to migrate to Dovecot with an admin/MasterUser account?
 
+Q. I have a mailbox that "dovecot backup" gives errors on that
+   I can't get rid of: "UID inserted in the middle of mailbox".
+   What can I do?
+
+Q. Imapsync encounters timeouts and Dovecot log says
+   "mailpiler dovecot: imap(xxx): Error: Timeout (180s) while waiting for dotlock for transaction log file ..."
+   What can I do?
+
 Now the questions again with their answers.
+
 
 =======================================================================
 Q. How to migrate to Dovecot with an admin/MasterUser account?
@@ -27,8 +36,22 @@ R. Dovecot uses the same syntax as uw-imap
 
   imapsync ... --user2="loginuser*admin_user" --password2 "admin_user_password"
 
-To setup a Dovecot MasterUser see 
-http://wiki2.dovecot.org/Authentication/MasterUsers
+To setup a Dovecot MasterUser follow the document
+https://doc.dovecot.org/configuration_manual/authentication/master_users/
+
+=======================================================================
+Q. I have a mailbox that "dovecot backup" gives errors on that
+   I can't get rid of: "UID inserted in the middle of mailbox".
+   What can I do?
+
+Q. Solution, run:
+
+  doveadm -v deduplicate -m -u martin mailbox A/Posted
+
+it will get rid of the duplicates (I can also be run without "-m")
+and this also allows "dovecot backup" to work.
+
+Thanks to Martin Ward for this input!
 
 =======================================================================
 Q. Subfolders are not created by imapsync and the error is
@@ -47,6 +70,15 @@ https://superuser.com/questions/813362/sub-folders-in-dovecot
 https://wiki2.dovecot.org/MailLocation/Maildir
 
 
+=======================================================================
+Q. Imapsync encounters timeouts and Dovecot log says
+   "mailpiler dovecot: imap(xxx): Error: Timeout (180s) while waiting for dotlock for transaction log file ..."
+   What can I do?
+
+R. It looks like an NFS issue with Dovecot. 
+   Solve it with Dovecot support or use something else than NFS.
+   I'll be glad to share here any solution you find.
+   (Thanks to Mate Skoblar for reporting this issue)
 
 =======================================================================
 =======================================================================

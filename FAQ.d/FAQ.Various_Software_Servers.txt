@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Various_Software_Servers.txt,v 1.13 2019/07/04 09:26:28 gilles Exp gilles $
+$Id: FAQ.Various_Software_Servers.txt,v 1.19 2021/01/26 14:05:23 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -17,6 +17,13 @@ Q. From or to Zimbra
 
 R. Read the FAQ.Zimbra.txt 
    https://imapsync.lamiral.info/FAQ.d/FAQ.Zimbra.txt
+
+=======================================================================
+Q. From Emailchemy (https://weirdkid.com/emailchemy/)
+
+R. Use option  --noabletosearch :
+
+  imapsync ... --noabletosearch
 
 =======================================================================
 Q. From or to HMailServer version 4.4.1.
@@ -51,60 +58,10 @@ Parallells Plesk Panel for Windows requires --sep2 / --prefix2 ""
 Parallells Plesk Panel for Linux works with default parameters.
 
 =======================================================================
-Q. I'm migrating from WU to Cyrus, and the mail folders are under
-   /home/user/mail but the tool copies everything in /home/user, how
-   can i avoid that?
+Q. Migrating from or to the Cyrus imap server
 
-Two solutions:
-
-R. Use
-   imapsync ... --include '^mail'
-
-R. or (better)
-   imapsync ... --subscribed --subscribe
-
-
-=======================================================================
-Q. I'm migrating from WU to Cyrus, and the mail folders are under
-   /home/user/mail directory.  When imapsync creates the folders in
-   the new cyrus imap server, it makes a folder "mail" and below that
-   folder puts all the mail folders the user have in /home/user/mail,
-   i would like to have all those folders directly under INBOX.
-
-R. Use 
-   imapsync ... --regextrans2 's/^mail/INBOX/' --dry
-   look at the simulation and if all transformations seem
-   good then remove the --dry option.
-
-
-=======================================================================
-Q. Migrating from Groupwise to Cyrus
-
-R. By Jamie Neil:
-
-I eventually managed to get the mail to migrate without errors using the 
-following options:
-
---maxage 3650
-  - some messages just don't seem to want to transfer and produce the 
-    perl errors I mentioned before. This prevents the errors, but the
-    bad messages don't transfer.
-
-Even though the mail migrated OK, there are a couple of gotchas with 
-Groupwise IMAP:
-
-1) Some of the GW folders are not real folders and are not available
-to IMAP, the main problem one being "Sent Items". I could find no way
-of coping the contents of these folders. The nearest I got was to
-create a "real" folder and copy/move the sent items into it, but
-imapsync still didn't see the messages (I think because there is
-something funny about the reported dates/sizes).
-
-It think this problem has been rectified in GW6.5.
-
-2) Version 6.0.1 of the Groupwise Internet Connector sucks. I was 
-getting server aborts when I pushed it a bit hard! I eventually had to
-upgrade to 6.0.4 which seems to be a lot more stable.
+R. Read the dedicated 
+   https://imapsync.lamiral.info/FAQ.d/FAQ.Cyrus.txt
 
 =======================================================================
 Q. Migrating from iPlanet Messaging Server
@@ -131,15 +88,6 @@ You have to extract users logins and passwords in a csv file.
 See the "HUGE MIGRATION" section in the README file.
 
 
-======================================================================
-Q: From MailEnable 1.75
-R: --sep1 "/" --prefix1 ""
-
-Q: From MailEnable 2.2
-R: --sep1 "." --prefix1 ""
-
-Q: To MailEnable
-R: --sep2 / --prefix2 "" --addheader --messageidnodomain --syncflagsaftercopy
 
 ======================================================================
 Q. From GMX IMAP4 StreamProxy
@@ -173,53 +121,6 @@ imapsync ... --sep1 '.' --prefix1 '' \
 Q. From or to QQMail IMAP4Server
 
 R. imapsync ... --noabletosearch1
-
-======================================================================
-Q. From FirstClass to XXX
-   http://www.firstclass.com/
-
-R. Migrating from FirstClass is not easy because FirstClass, strangely, 
-   does not show all messages via IMAP. To make it show all messages,
-   a trick, painful to follow by hand, is moving emails 
-   out and back in, for each folder. May be it can be done by a script.
-
-  FirstClass releases prior to release 12 do not shows the "Sent" 
-  folder in IMAP but FirstClass release 12 shows it.
-  I advice you to upgrade to FirstClass release 12 before leaving it
-  with imapsync or another imap tool.
-
-Here is a command line used to migrate from FirtClass release 12:
-
-  imapsync ... \
-    --tmpdir /var/tmp --usecache \
-    --useheader Message-ID \
-    --idatefromheader \
-    --addheader \
-    --regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g" \
-    --regextrans2 "s/[\^]/_/g"       \
-    --regextrans2 "s/['\"\\\\]/_/g"  \
-    --regextrans2 "s,&AC8-,-,g" \
-    --regextrans2 "s,&APg-,oe,g" 
-
-On Windows:
-  imapsync.exe ... ^
-    --automap ^
-    --usecache ^
-    --useheader Message-ID ^
-    --idatefromheader ^
-    --addheader ^
-    --regextrans2 "s,(/|^) +,$1,g" ^
-    --regextrans2 "s, +(/|$),$1,g" ^
-    --regextrans2 "s/[\^]/_/g" ^
-    --regextrans2 "s/['\\]/_/g" ^
-    --regextrans2 "s,^&AC8-,-,g"  ^
-    --regextrans2 "s,^&APg-,oe,g"
-
-
-Special thanks to Kristian Wind and Joey Alexander for helping me
-writing this FAQ item. 
-See also this worth reading discussion in a Zimbra forum:
-http://www.zimbra.com/forums/migration/20349-help-needed-migrating-firstclass.html
 
 ======================================================================
 Q. From XXX to FTGate

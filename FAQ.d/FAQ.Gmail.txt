@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.65 2019/12/04 18:26:00 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.79 2021/03/31 16:20:28 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -11,6 +11,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
 Questions answered in this FAQ are:
 
+
 Q. Can I use imapsync to transfer from or to Gmail accounts?
 
 Q. Even after several syncs the number of messages differs
@@ -19,6 +20,10 @@ Q. Even after several syncs the number of messages differs
 
 Q. How many days does it take to transfer X GB?
 
+Q. What is the Gmail free maximum storage size? 
+R. 15 GB in 2020. Need more?
+   https://gsuite.google.com/pricing.html
+
 Q. How to synchronize from Gmail to Gmail?
 
 Q. How to synchronize from XXX to Gmail?
@@ -26,12 +31,25 @@ Q. How to synchronize from XXX to Gmail?
 Q. How to synchronize from Gmail to XXX?
 
 Q. I can't authenticate with Gmail via IMAP
-   and Gmail says "Please log in via your web browser"
+   and Gmail says 
+   "Please log in via your web browser"
+   or it says 
+   "Application-specific password required: https://support.google.com/accounts/answer/185833 (Failure)"
 
 Q. Can not open imap connection on [imap.gmail.com]
    Unable to connect to imap.gmail.com
 
-Q. Can I transfer "Chat" messages with imapsync?
+Q. I want to sync the Sent folder only, what is it on Gmail?
+
+Q. The context is a Gmail account at the source, but not Gmail at the
+destination. I want cross-duplicates, different Gmail folders/labels
+generating duplicate messages across folders on the destination,
+except for the "All Mail" folder.
+
+Q. What are the Gmail imap names of the folders 
+   "Sent" "Trash" "Drafts" "Junk" "Flagged" and "All"?
+
+Q. Can I transfer Gmail "Chat" messages with imapsync?
 
 Q. Can I safely use --useuid for Gmail transfers?
 
@@ -62,29 +80,69 @@ Q. Can I use imapsync to transfer from or to Gmail accounts?
 
 R. Yes. But IMAP access to a Gmail account is not allowed by default so 
 it has to be allowed in the Gmail configuration part:
- -> Settings
- -> Forwarding and POP/IMAP
- -> IMAP Access
- -> Enable IMAP
+ -> Do not go to "Manage your Google Account" (the upper right icon with your Google face)
+ -> Instead, go to Gmail at https://mail.google.com/
+ -> Click on Settings, the gear button on the upper right of Gmail.
+ -> Click on "See all settings" at the top of the pull down menu.
+ -> Go to the tab "Forwarding and POP/IMAP"
+ -> Go down to "IMAP Access"
+ -> Activate the radio button "Enable IMAP"
+ -> Click on the button "Save changes" at the bottom of the page.
 
-Also, there is the authentication issue to consider.
+That's not finished, there is also the authentication issue to consider.
 There are three different ways to authenticate to Gmail with Imapsync,
 either:
 
-* "Access for less secure apps"
-* "2-step verification"
-* XOauth
+1) "Access for less secure apps"
+2) "2-step verification"
+3) XOauth2 (not ready for individual Gmail authentication, only for groups)
 
-For the last one, XOauth, see the document 
+For the last one, XOauth2, see the document 
 https://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
 
-1) "Access for less secure apps" is turned ON
- 
+
+
+1) "Access for less secure apps", the first way to authenticate 
+   to Gmail with Imapsync. This is the easiest way because
+   you just have to turn one button on.
+
+Go to https://myaccount.google.com/
+Click on the Security tab on the left menu or go directly to
+https://myaccount.google.com/security?gar=1
+
  -> Verify 2-step verification is OFF
     https://myaccount.google.com/security?hl=en&pli=1&nlr=1#signin
+
+Near the end of the page,
  -> Turn ON "Access for less secure apps"
     https://www.google.com/settings/security/lesssecureapps
     https://support.google.com/accounts/answer/6010255?hl=en
+
+Here is what Google add on this "Access for less secure apps":
+"Some apps and devices use less secure sign-in technology, which makes your 
+account vulnerable. You can turn off access for these apps, which we recommend, 
+or turn it on if you want to use them despite the risks. 
+Google will automatically turn this setting OFF if it’s not being used."
+
+So after a while, this button will be turned off again.
+I suggest to turn it off once the job with imapsync is finished.
+
+If you forgot to also enable imap you end up with login failure like this one:
+"Host failure: Error login on [imap.gmail.com] with user [xxxx@gmail.com] auth [LOGIN]:
+NO [ALERT] Your account is not enabled for IMAP use. Please visit your Gmail 
+settings page and enable your account for IMAP access. (Failure)"
+
+After using imapsync on a Gmail account, sometimes you may encounter an email 
+with the title "Critical security alert for your linked Google Account"
+and the body 
+"Sign-in attempt was blocked for your linked Google Account
+xxxx@gmail.com
+Someone just used your password to try to sign in to your account from 
+a non-Google app. Google blocked them, but you should check what happened. 
+Review your account activity to make sure that no one else has access."
+Click on the button "Check Activity" and let Gmail know you were the author 
+of the sign in.
+
 
 Sometimes, with Gsuite, the login for the users are ok with imapsync
 for a while then they become forbidden with 
@@ -95,10 +153,28 @@ In that case, use:
 https://admin.google.com/AdminHome?hl=fr#ServiceSettings/notab=1&service=securitysetting&subtab=lesssecureappsaccess
 to allow "Access for less secure apps to all users"
 (Thanks to Sébastien R. for this input)
+Remark: even if the user has enabled less secure apps at Super Admin 
+ and reseller level, it still needs amended at 
+ https://myaccount.google.com/security
+ (Thanks Tony@gle for this last tip!)
 
-2) "2-step verification" is turned ON
 
-Follow
+2) "2-step verification" the second way to authenticate 
+   to Gmail with Imapsync.
+
+Go to
+https://myaccount.google.com/security
+and sign in with the account you want to transfer email to or from.
+Go to the "Signing in to Google" part of the security page and follow
+the process to activate the "2-step verification" until it is ok.
+
+Then, just below "2-step verification" click on the "App passwords"
+and follow the instruction to get a 16 characters password, on the
+pull down button "Select app", choose "Other (Custom name)" and call
+it imapsync for example.  Now use this this password to access the
+mailbox with imapsync.
+
+The following document details what I've just described:
 https://support.google.com/accounts/answer/185833?hl=en
 Even if Google says "Every App Password is only used once",
 it's false and the password can be used many times.
@@ -122,18 +198,25 @@ Q. How many days does it take to transfer X GB?
 R. Basically it takes X days to transfer X GB per account.
    Gmail has usage limits per day and use throttles when
    they are overtaken
-   http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
+   https://support.google.com/a/answer/1071518?hl=en
    From the previous link:
 
-   * it's 2X days to upload  X GB to Gmail, it's why I suggest to add
-   --maxbytespersecond 10000 --maxbytesafter 1_000_000_000
-   for uploading messages to Gmail
-   * it's X/2 days to download X BG from Gmail, it's why I suggest to add
+   * Upload with IMAP: 500 MB per day.
+   It's 2X days to upload  X GB to Gmail, it's why I suggest to add
    --maxbytespersecond 20000 --maxbytesafter 1_000_000_000
+   for uploading messages to Gmail
+   (should be --maxbytespersecond 5787 --maxbytesafter 500_000_000
+   but the higher values given work well)
+   
+   * Download with IMAP: 2500 MB per day.
+   It's X/2.5 days to download X GB from Gmail, it's why I suggest to add
+   --maxbytespersecond 40_000 --maxbytesafter 3_000_000_000
    for downloading messages from Gmail
+   (should be --maxbytespersecond 28_935 --maxbytesafter 2_500_000_000
   
-   That's theoretical values that always work in practice. Try
-   upper values and see if they still work.
+   That's empirical values that work in practice.
+   Try upper values and see if they still work. 
+   I would be grateful if you report them to me.
 
    How Gmail says limits are reached?
    This is either a disconnection with
@@ -287,12 +370,11 @@ be 500_000_000, not 1_000_000_000, but 1GB is usually ok.
 --maxsleep 2 is to avoid sleeping more than 2 seconds when 
 the --maxbytespersecond value implies a long sleep between 2 copies.
 
---maxsize 25_000_000 is mandatory since Gmail limits messages size
-up to 25 MB. This value increases over time, it was 10 MB some 
-years ago so you can try higher values. The Gmail page about
-this limit is https://support.google.com/mail/answer/6584
+--maxsleep 0 cancels any imapsync bandwidth restriction given by
+the options --maxbytespersecond or --maxmessagespersecond
+It does not cancel the imap server bandwidth restrictions.
 
---automap is optional but it will save manual folder names
+--automap is optional but it will save manual folders names
 changes or the use of --regextrans2 or --f1f2 to map folder names.
 
 --expunge1 is optional. It deletes messages marked \Deleted on host1.
@@ -343,24 +425,25 @@ Q. How to synchronize from Gmail to XXX?
 R. Use this example:
 
 imapsync \
-           --user1 foo@gmail.com \
+           --user1     foo@gmail.com \
            --password1 gmailsecret \
-           --host2 localhost \
-           --user2 tata \
+           --host2     localhost \
+           --user2     tata \
+           --password2 tatasecret \
            --gmail1
 
 Or, replacing what does --gmail1 (values are from imapsync 1.970):
 
 imapsync \
-           --host1 imap.gmail.com \
+           --host1     imap.gmail.com \
            --ssl1 \
-           --user1 foo@gmail.com \
+           --user1     foo@gmail.com \
            --password1 gmailsecret \
-           --host2 localhost \
-           --user2 tata \
+           --host2     localhost \
+           --user2     tata \
            --password2 tatasecret \
            --maxbytespersecond 40_000 \
-           --maxbytesafter 2_500_000_000
+           --maxbytesafter 2_500_000_000 \
            --automap \
            --maxsleep 2 \
            --skipcrossduplicates \
@@ -379,53 +462,56 @@ Explanations:
 --maxbytespersecond 40_000 ( 40 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 40_000 is not mandatory in the sense Gmail may 
-allow you to use an upper value than 2 GBytes per 24h without 
+--maxbytespersecond 40_000 is not mandatory in the sense Gmail may
+allow you to use an upper value than 2 GBytes per 24h without
 disconnections.
 
 --useheader="X-Gmail-Received" --useheader "Message-Id" are not
-mandatory. I use them because I found (several years ago, it may
-have changed) that Gmail always adds a different header 
-"X-Gmail-Received:" to all messages it gets. So the identification
-by imapsync can not fail using this header. "Message-Id" is there
-for safety about this Gmail rule.
+mandatory. I use them because I found (several years ago, it may have
+changed) that Gmail always adds a different header "X-Gmail-Received:"
+to all messages it gets. So the identification by imapsync can not
+fail using this header. "Message-Id" is there for safety about this
+Gmail rule.
 
---automap is optional but it will save manual folder names
-changes or the use of --regextrans2 to map folder names.
+--automap is optional but it will save manual folder names changes or
+the use of --regextrans2 to map folder names.
 
 --regextrans2 "s,\[Gmail\].,,"
-If your destination imap server doesn't like "[Gmail]" name, 
+If your destination imap server doesn't like the "[Gmail]" name, 
 get rid of this "[Gmail]" part with that.
 
-You can select folders exported to imap within the gmail preferences,
-for example you may unselect all "System labels".
+You can select folders exported to imap within the Gmail preferences,
+for example, you may unselect all "System labels".
 
 --skipcrossduplicates is optional but it can save Gigabytes of hard
-disk memory. Within imap protocol, Gmail presents Gmail labels as 
-folders, so a message labeled "Work" "ProjectX" "Urgent" ends up 
-in three different imap folders "Work" "ProjectX" and "Urgent"
-after an imap sync. Option --skipcrossduplicates prevent this behavior.
+disk memory. Within imap protocol, Gmail presents Gmail labels as
+folders, so a message labelled "Work" "ProjectX" "Urgent" ends up in
+three different imap folders "Work" "ProjectX" and "Urgent" after an
+imap sync. Option --skipcrossduplicates prevent this behavior.
 
-An issue with --skipcrossduplicates is that the first label synced
-by imapsync goes to its corresponding folder but other labels are
-then ignored. You can choose what labels have the 
-priority by using the --folderfirst option. For example
---folderfirst "Work" will sync messages labeled "Work" before
-messages labeled "CanWait" or "Urgent". By default imapsync 
-syncs folders (Gmail labels) using the classical alphanumeric order.
+An issue with --skipcrossduplicates is that the first label synced by
+imapsync goes to its corresponding folder but other labels are then
+ignored. You can choose what labels have priority by using the
+--folderfirst option. For example, --folderfirst "Work" will sync
+messages labelled "Work" before messages labelled "CanWait" or
+"Urgent". By default imapsync syncs folders (Gmail labels) using the
+classical alphanumeric order.
 
---folderlast "CanWait" will sync only messages that have the
-label CanWait and only it.
+Option --folderlast "CanWait" will sync only messages that only have
+the label CanWait.
 
---folderlast "[Gmail]/All Mail", in conjunction with option 
---skipcrossduplicates, will only put in "[Gmail]/All Mail"
-the messages that are not labeled at all.
+Option --folderlast "[Gmail]/All Mail", in conjunction with option
+--skipcrossduplicates will only put in "[Gmail]/All Mail" the messages
+that are not labelled at all.
 
 
 https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. I can't authenticate with Gmail via IMAP
-   and Gmail says "Please log in via your web browser"
+   and Gmail says 
+   "Please log in via your web browser"
+   or it says 
+   "Application-specific password required: https://support.google.com/accounts/answer/185833 (Failure)"
 
 R0. My current settings on two Gmail accounts are made
 with three steps 0) 1) 2)
@@ -441,6 +527,7 @@ https://support.google.com/accounts/answer/6010255?hl=en
 
 R1. See Coert Grobbelaar solution:
 https://web.archive.org/web/20150906230041/http://security.stackexchange.com/questions/86404/how-do-i-interact-with-google-to-import-email-via-imapsync
+https://support.google.com/accounts/answer/185833
 
 R2. I had the same issue one time (mars 2015) logging to Gmail 
 with imapsync.
@@ -449,6 +536,48 @@ so I logged for this account via a web browser. Then,
 it asked me to receive a code via a mobile, I said yes,
 I entered the code and everything went ok on next syncs
 with imapsync. 
+
+R1 again. Since people rarely follow links in a txt file, I reproduce
+Google documentation from the link
+https://support.google.com/accounts/answer/185833
+
+Sign in using App Passwords
+An App Password is a 16-digit passcode that gives a non-Google app or 
+device permission to access your Google Account. 
+App Passwords can only be used with accounts that 
+have 2-Step Verification turned on.
+
+When to use App Passwords
+To help keep your account secure, use "Sign in with Google" to 
+connect apps to your Google Account. 
+If the app you’re using doesn’t offer this option, you can either:
+
+Use App Passwords to connect to your Google Account
+Switch to a more secure app
+Create & use App Passwords
+Note: If you use 2-Step-Verification 
+( https://support.google.com/accounts/answer/185839 )
+and are seeing a "password incorrect" error when trying to access 
+your Google Account, an App Password may solve the problem.
+
+* Go to your Google Account https://myaccount.google.com/
+* On the left navigation panel, choose Security.
+* On the "Signing in to Google" panel, choose App Passwords. 
+  If you don’t see this option:
+  * 2-Step Verification is not set up for your account.
+  * 2-Step Verification is set up for security keys only.
+  * Your account is through work, school, or other organization.
+  * You’ve turned on Advanced Protection for your account.
+* At the bottom, choose Select app and choose the app you’re using.
+* Choose Select device and choose the device you’re using.
+* Choose Generate.
+* Follow the instructions to enter the App Password. 
+  The App Password is the 16-character code in the yellow bar on your device.
+* Choose Done.
+
+Most of the time, you’ll only have to enter an App Password once per 
+app or device, so don’t worry about memorizing it.
+
 
 
 =======================================================================
@@ -483,8 +612,83 @@ Or go to http://ping.eu/nslookup/ to get the resolution.
 
 Thanks to Chris Nolan to report, understand and fix this issue!
 
+
+
 =======================================================================
-Q. Can I transfer "Chat" messages with imapsync?
+Q. I want to sync the Sent folder only, what is it on Gmail?
+
+R1. Use:
+
+  imapsync ... --folder "[Gmail]/Sent Mail"
+
+R2. In fact, by configuration from the user, it can be another folder 
+    name presented in IMAP. Use --automap --dry to see this mapping.
+    See below 
+
+=======================================================================
+Q. The context is a Gmail account at the source, but not Gmail at the
+destination. I want cross-duplicates, different Gmail folders/labels
+generating duplicate messages across folders on the destination,
+except for the "All Mail" folder.
+
+R. This behavior, different Gmail labels generating duplicates across
+folders except for the "All Mail" folder, is obtained with a
+synchronization with no --gmail1 but instead --exclude "All Mail"
+followed by another synchronization with --gmail1 but without
+--exclude "All Mail".
+
+  imapsync ... --exclude "All Mail"
+  imapsync ... --gmail1
+
+This second sync is done to get the messages with no labels at all
+from the folder "All Mail", if they are some of them.
+
+Technically speaking, the first synchronization has not the option
+--skipcrossduplicates but the second one has the option
+--skipcrossduplicates and it also performs the Gmail "All Mail"
+folder/label at the end so only the messages that have no labels will
+end up in the "All Mail" destination folder (which is not Gmail,
+remember the context).
+
+Thanks to Mike Alexander for this suggestion. 
+Mike also provided a patch to implement that directly in imapsync.
+See https://github.com/imapsync/imapsync/pull/266
+(I refused it because well maintaining it will be very hard for me
+and I have other priorities).
+
+=======================================================================
+Q. What are the Gmail imap names of the folders 
+   "Sent" "Trash" "Drafts" "Junk" "Flagged" and "All"?
+
+R. By default, Gmail imap names of the folders 
+   "Sent" "Trash" "Drafts" "Junk" "Flagged" and "All"
+   are like this:
+
+Turned on automapping folders ( use --noautomap to turn off automapping )
+Host1: special [Gmail]/All Mail     = \All
+Host1: special [Gmail]/Drafts       = \Drafts
+Host1: special [Gmail]/Sent Mail    = \Sent
+Host1: special [Gmail]/Spam         = \Junk
+Host1: special [Gmail]/Starred      = \Flagged
+Host1: special [Gmail]/Trash        = \Trash
+
+Host2: special [Gmail]/All Mail     = \All
+Host2: special [Gmail]/Bin          = \Trash
+Host2: special [Gmail]/Drafts       = \Drafts
+Host2: special [Gmail]/Sent Mail    = \Sent
+Host2: special [Gmail]/Spam         = \Junk
+Host2: special [Gmail]/Starred      = \Flagged
+
+This is an excerpt from the imapsync output log done with the 
+--automap option. This listing is located just before the 
+folders listings.
+
+This mapping can be changed by configuration in the Gmail 
+web interface so the result may vary.
+
+
+=======================================================================
+Q. Can I transfer Gmail "Chat" messages with imapsync?
 
 R. No. 
    Even if you think you can because the Chat folder is seen in IMAP,

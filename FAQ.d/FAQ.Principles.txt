@@ -1,5 +1,5 @@
 
-$Id: FAQ.Principles.txt,v 1.5 2019/09/05 13:33:46 gilles Exp gilles $
+$Id: FAQ.Principles.txt,v 1.10 2021/04/18 13:00:00 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -13,29 +13,37 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Principles.txt
 
 Questions answered in this FAQ are:
 
-Q. What is the bandwidth used by imapsync?
-
+Q. Give me some design ideas of imapsync
 
 Now the questions again with their answers.
 
 =======================================================================
-Q. What is the bandwidth used by imapsync?
+Q. Give me some design ideas of imapsync
 
-R. From the host where imapsync runs, it opens two imap connections, 
-   one with the source account at host1, one with the destination 
-   account at host2.
-   
-   So, the global bandwidth used is twice the volume of the source 
-   account, one volume to download the messages from host1, 
-   one volume to upload those messages to host2.
-   
-   If the host2 is already filled with the messages, imapsync doesn't
-   transfer them and then the volume transferred is small, just the IMAP
-   commands to identify the messages on both sides.
-   
-   There is no local cache of the email messages, except when a 
-   message is very big, it is temporarly saved locally. 
-   
+R.
+
+* No configuration file
+* Stateless
+* Rsync in mind
+* Reliable
+* Robuste
+* The user is not an expert, help him with:
+  * Good behavior by default. 
+  * No harm by default. 
+  * Prefer fixing an issue in the code than documenting the issue
+  * Inline help suggestions
+
+Consequences of those design ideas:
+
+* Stateless: 
+
+   * A sync can be done by another tool before or after imapsync, it is
+   safe as long as the other tools don't modify the messages' headers 
+   "Message-Id:" and "Received:", or at least "Message-Id:".
+
+   * Ready to run in a container.
+
+
 
 =======================================================================
 =======================================================================

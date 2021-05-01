@@ -1,0 +1,68 @@
+#!/bin/cat
+$Id: FAQ.FirstClass.txt,v 1.1 2021/01/26 14:03:58 gilles Exp gilles $
+
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.FirstClass.txt
+
+
+=======================================================================
+         Imapsync tips for the FirstClass IMAP server.
+=======================================================================
+
+
+
+======================================================================
+Q. From FirstClass to XXX
+   http://www.firstclass.com/
+
+R. Migrating from FirstClass is not easy because FirstClass, strangely, 
+   does not show all messages via IMAP. To make it show all messages,
+   a trick, painful to follow by hand, is moving emails 
+   out and back in, for each folder. May be it can be done by a script.
+
+  FirstClass releases prior to release 12 do not shows the "Sent" 
+  folder in IMAP but FirstClass release 12 shows it.
+  I advice you to upgrade to FirstClass release 12 before leaving it
+  with imapsync or another imap tool.
+
+Here is a command line used to migrate from FirtClass release 12:
+
+  imapsync ... \
+    --tmpdir /var/tmp --usecache \
+    --useheader Message-ID \
+    --idatefromheader \
+    --addheader \
+    --regextrans2 "s,(/|^) +,\$1,g" --regextrans2 "s, +(/|$),\$1,g" \
+    --regextrans2 "s/[\^]/_/g"       \
+    --regextrans2 "s/['\"\\\\]/_/g"  \
+    --regextrans2 "s,&AC8-,-,g" \
+    --regextrans2 "s,&APg-,oe,g" 
+
+On Windows:
+  imapsync.exe ... ^
+    --automap ^
+    --usecache ^
+    --useheader Message-ID ^
+    --idatefromheader ^
+    --addheader ^
+    --regextrans2 "s,(/|^) +,$1,g" ^
+    --regextrans2 "s, +(/|$),$1,g" ^
+    --regextrans2 "s/[\^]/_/g" ^
+    --regextrans2 "s/['\\]/_/g" ^
+    --regextrans2 "s,^&AC8-,-,g"  ^
+    --regextrans2 "s,^&APg-,oe,g"
+
+
+Special thanks to Kristian Wind and Joey Alexander for helping me
+writing this FAQ item. 
+See also this worth reading discussion in a Zimbra forum:
+https://web.archive.org/web/20120627043731/http://www.zimbra.com/forums/migration/20349-help-needed-migrating-firstclass.html
+
+Another advice with FirstClass as host1, do not use --delete1emptyfolders since
+it will destroy all subfolders of any empty folder. This is a FirstClass bug:
+when asked to list a non-empty folder it says it has no children while it does
+have ones.
+See the details and explanations at
+https://github.com/imapsync/imapsync/issues/207
+

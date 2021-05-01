@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.General.txt,v 1.242 2019/12/11 20:28:33 gilles Exp gilles $
+# $Id: FAQ.General.txt,v 1.244 2021/02/19 13:38:39 gilles Exp gilles $
 
 =======================================================================
                      General FAQ for imapsync 
@@ -20,6 +20,8 @@ Q. What are the most important differences between the Unix shell syntax
    and the Windows batch syntax.
 
 Q. How to install imapsync?
+
+Q. How to upgrade imapsync?
 
 Q. How to use imapsync?
 
@@ -77,16 +79,9 @@ Q. Is it possible to sync also the UIDs of the IMAP server?
 
 Q. The option --subscribe does not seem to work
 
-Q. With huge account (many messages) when it comes to reading the
-   destination server it comes out this error:
-   "To   Folder [INBOX.foobar] Not connected" 
-   What can I do?
-
 Q. Can Imapsync filter Spam during the sync?
 
 Q. How to migrate from uw-imap with an admin/authuser account?
-
-Q. How to migrate from cyrus with an admin account?
 
 Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
    Netscape servers with an admin account?
@@ -102,9 +97,6 @@ Q. I want to play with headers line and --regexmess but I want to leave
 
 Q. My imap server does not accept a message and warns
    "Invalid header". What is the problem?
-
-Q. The contact folder isn't well copied. 
-   How to copy the contact folder?
 
 Q: How can I write an .rpm with imapsync
 
@@ -179,9 +171,15 @@ any \$1 by $1 (remove the \ before $).
 =======================================================================
 Q. How to install imapsync?
 
-R. Read the INSTALL files in the tarball. also available at
-   https://imapsync.lamiral.info/#doc
+R. Read the INSTALL files in the tarball. They are also available at
+   https://imapsync.lamiral.info/#install
+   and 
    https://imapsync.lamiral.info/INSTALL.d/
+
+=======================================================================
+Q. How to upgrade imapsync?
+
+R. Do like a fresh installation.
 
 =======================================================================
 Q. How to use imapsync?
@@ -416,6 +414,7 @@ R3 If you want to install the Perl module locally in a directory
 Q. How can I use imapsync with Mail::IMAPClient 2.2.9 perl module?
 
 R. Mail::IMAPClient 2.2.9 is no longer supported.
+   Help yourself.
 
 =======================================================================
 Q. How to verify imapsync.exe I got is the right file bit per bit?
@@ -512,8 +511,8 @@ R. imapsync doesn't talk POP3 but I think you mean UID in IMAP.
 Q. Is it possible to sync also the UIDs of the IMAP server?
 
 R. UIDs in IMAP are chosen and created by the server, not by the 
-   client software. imapsync is a client software. So UIDs cannot 
-   be synced by any imap method.
+   client software. imapsync is a client software command. 
+   So UIDs cannot be synced by any imap method.
 
    UIDs may be synced via a rsync command between the imap servers but
    it implies they are the same software, among other constraints.
@@ -525,16 +524,6 @@ R1. Use it with --subscribed
 
 R2. There is also the --subscribe_all option that subscribe
     to all folders on host2.
-
-=======================================================================
-Q. With huge account (many messages) when it comes to reading the
-   destination server it comes out this error:
-   "To   Folder [INBOX.foobar] Not connected" 
-   What can I do?
-
-R. May be spending too much time on the source server, the connection 
-   timed out on the destination server.
-   Try options --nofoldersizes 
 
 ======================================================================
 Q. Can Imapsync filter Spam during the sync?
@@ -559,46 +548,6 @@ R. Use the following syntax:
 
   imapsync ... --user1="loginuser*admin_user" --password1 "admin_user_password"
 
-
-======================================================================
-Q. How to migrate from cyrus with an admin account?
-
-R. Use:
- 
- imapsync ... \
-   --authuser1 admin_user  ----password1 admin_user_password \
-   --user1 foo_user --ssl1
-
-Instead of --ssl1 the alternative --tls1 can be used.
-With --authuser1, the option --authmech1 PLAIN is set
-automatically, you don't have to add it.
-
-PLAIN authentication is the only way to go with --authuser1 for now.
-So don't use --authmech1 SOMETHING with --authuser1 admin_user,
-it will not work.
-Same behavior with the --authuser2 option.
-
-Do not forget the option --ssl1 or --tls1 since PLAIN auth is only
-supported with ssl encryption most of the time. But it can
-work without --ssl1 nor --tls1 if PLAIN is permitted in clear text
-transmissions (the normal mode).
-
-Add the AdminAccount to admins line in /etc/imapd.conf
-Give AdminAccount lrswipkxtecda to the Cyrus Imap account 
-being migrated from, "joe" here.
-
-
-Here is an example:
- imapsync \
-	--host1 server1 \
-	--user1 joe \
-	--authuser1 AdminAccount \
-	--password1 AdminAccountPassword \
-	--ssl1 \
-	--host2 server2 \
-	--user2 joe \
-	--password2 joespassonserver2 \
-	--exclude "^user\."
 
 ======================================================================
 Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
@@ -716,23 +665,10 @@ Solution e) is solution a) made by imapsync itself.
 Solutions c) and d) keep "From " lines information
 (normally it's useless to keep them)
 
-Best solutions are e) or d).
-
-=======================================================================
-Q. The contact folder isn't well copied. 
-   How to copy the contact folder?
-
-R. Forget the destination server (choose the same)
-Change the script around line 1426
-       # ITSD
-       $new_id = $from->copy($t_fold,$f_msg);
-       #$new_id = $to->append_string($t_fold,$string, $flags_f, $d);
-
-and tried a copy of the mail instead an append_string. Because we are
-using the same server, we can use $from->copy Therefore we seem to not
-download and upload the message and therefore we do not have any
-format issues. And now it works fine. (Thanks to Hansjoerg.Maurer)
-
+Best solutions are e) or d). 
+I prefer the d) solution because it fixes the issue
+and keeps the old "From" value while the e) solution removes 
+the old "From" value definitively.
 
 ======================================================================
 Q: How can I write an .rpm with imapsync

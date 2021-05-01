@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.SmarterMail.txt,v 1.14 2019/10/15 14:57:19 gilles Exp gilles $
+$Id: FAQ.SmarterMail.txt,v 1.15 2021/04/30 13:02:17 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -10,6 +10,39 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.SmarterMail.txt
     Imapsync tips for SmarterMail. Specific issues and solutions.
 =======================================================================
 
+https://imapsync.lamiral.info/README
+...
+     --prefix1      str  : Remove prefix str to all destination folders,
+                           usually "INBOX." or "INBOX/" or an empty string "".
+                           imapsync guesses the prefix if host1 imap server
+                           does not have NAMESPACE capability. So this option
+                           should not be used most of the time.
+     --prefix2      str  : Add prefix to all host2 folders. See --prefix1
+
+     --sep1         str  : Host1 separator. This option should not be used
+                           most of the time.
+                           Imapsync gets the separator from the server itself,
+                           by using NAMESPACE, or it tries to guess it
+                           from the folders listing (it counts
+                           characters / . \\ \ in folder names and choose the
+                           more frequent, or finally / if nothing is found.
+     --sep2         str  : Host2 separator. See --sep1
+
+
+
+ --noabletosearch    : Makes --minage and --maxage options use the internal 
+                       dates given by a FETCH imap command instead of the 
+                       "Date:" header. Internal date is the arrival date 
+                       in the mailbox.
+                       --noabletosearch equals --noabletosearch1 --noabletosearch2
+
+ --noabletosearch1   : Like --noabletosearch but for host1.
+ --noabletosearch2   : Like --noabletosearch but for host2.
+
+ --useheader    str  : Use this header to compare messages on both sides.
+                       Example: Message-ID or Subject or Date.
+ --useheader    str    and this one, etc.
+
 
 =======================================================================
 Q. Synchronizing from SmarterMail to XXX
@@ -17,12 +50,12 @@ Q. Synchronizing from SmarterMail to XXX
 On Unix:
 imapsync --host1 imap.d1.org --user1 joe --password1 secret1 \
          --host2 imap.d2.org --user2 joe --password2 secret2 \
-         --sep1 "/" --prefix1 "" --useheader Message-Id --noabletosearch
+         --prefix1 "" --sep1 "/" --useheader Message-Id --noabletosearch
 
 On Windows:
 imapsync.exe --host1 imap.d1.org --user1 joe --password1 secret1 ^
          --host2 imap.d2.org --user2 joe --password2 secret2  ^
-         --sep1 "/" --prefix1 "" --useheader Message-Id --noabletosearch
+         --prefix1 "" --sep1 "/" --useheader Message-Id --noabletosearch
 
 
 =======================================================================
@@ -31,12 +64,12 @@ Q. Synchronizing from XXX to SmarterMail
 On Unix:
 imapsync --host1 imap.d1.org --user1 joe --password1 secret1  \
          --host2 imap.d2.org --user2 joe --password2 secret2  \
-         --sep2 "/" --prefix2 "" --useheader Message-Id --noabletosearch
+         --prefix2 "" --sep2 "/" --useheader Message-Id --noabletosearch
 
 On Windows:
 imapsync.exe --host1 imap.d1.org --user1 joe --password1 secret1 ^
              --host2 imap.d2.org --user2 joe --password2 secret2 ^
-             --sep2 "/" --prefix2 "" --useheader Message-Id --noabletosearch
+             --prefix2 "" --sep2 "/" --useheader Message-Id --noabletosearch
 
 
 =======================================================================

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Authentication_failure.txt,v 1.9 2019/01/11 13:13:08 gilles Exp gilles $
+$Id: FAQ.Authentication_failure.txt,v 1.13 2021/03/02 19:24:22 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -16,6 +16,8 @@ Host1 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2
 
 Q. Imapsync fails with the following error, what can I do?
    Host2 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 BAD Invalid characters in atom 
+
+Now the questions again with their answers.
 
 
 =======================================================================
@@ -55,9 +57,11 @@ Here are some advices to get you pass this difficult stage of authentication:
 
 
    * It is sometimes very hard to quote correctly unusual characters,
-     especially on Windows. See 
+     especially on Windows (and Mac sometimes). See 
      https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
      https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
+     https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Mac.txt
+     
      The quickest trick may be to change the password temporally
      with easy characters like the classical alphabet, a long
      string still ensure strong security.
@@ -69,20 +73,54 @@ Here are some advices to get you pass this difficult stage of authentication:
        * Try --authmech1 CRAM-MD5 (or --authmech2 CRAM-MD5)
        * Try --authmech1 PLAIN    (or --authmech2 PLAIN)
 
-   * If you want to play manually the IMAP protocol on your server, 
-     here is an example with the command telnet, user test1
-     and password secret1 on the host test.lamiral.info.
+    * Manually test a login via ssl.
+      Use either ncat or telnet-ssl or openssl commands like in the 
+      following examples with imap.gmail.com server:
 
-     telnet test.lamiral.info 143
+  ncat --ssl -C imap.gmail.com 993
+  telnet-ssl -z ssl  imap.gmail.com 993
+  openssl s_client -crlf  -connect imap.gmail.com:993
+
+Replace imap.gmail.com by your imap server.
+The three commands do the same work here.
+
+Tipical dialog for an imap LOGIN command:
+  
+* OK Gimap ready for requests from 78.196.254.58 q1mb175739668wix
+a LOGIN "gilles.lamiral@gmail.com" "secret" 
+* CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE ... ESEARCH
+a OK gilles.lamiral@gmail.com Gilles Lamiral authenticated (Success)
+b LOGOUT
+* BYE LOGOUT Requested
+b OK 73 good day (Success)
+
+The client part you have to type is 
+a LOGIN ... 
+b LOGOUT
+while replacing ... by your credentials values,
+other lines are the server responses. Letters 
+a and b are identifiers of IMAP commands, you have to 
+type them but you can chose any string instead of a or b.
+
+Some other examples:
+
+     ncat --ssl test.lamiral.info 993
+     c1 LOGIN test1 "secret1"
+     c2 LOGOUT
+
+     openssl s_client -crlf  -connect test.lamiral.info:993
      c1 LOGIN test1 "secret1" 
      c2 LOGOUT
 
-     Same example using an ssl conneection:
-     
+     ncat --ssl -C outlook.office365.com 993
+     a LOGIN gilles.lamiral@outlook.com topsecret
+     b LOGOUT
+
      telnet-ssl -z ssl test.lamiral.info 993
      c1 LOGIN test1 "secret1" 
      c2 LOGOUT
-   
+
+
 =======================================================================
 Q. Imapsync fails with the following error, what can I do?
    Host2 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 BAD Invalid characters in atom 

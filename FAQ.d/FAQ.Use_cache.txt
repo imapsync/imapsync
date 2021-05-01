@@ -1,5 +1,5 @@
 
-$Id: FAQ.Use_cache.txt,v 1.9 2019/09/13 10:43:06 gilles Exp gilles $
+$Id: FAQ.Use_cache.txt,v 1.11 2021/04/22 13:20:18 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -7,7 +7,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Use_cache.txt
 
 
 =======================================================================
-               Imapsync  --usecache option
+               Imapsync  --usecache or --useuid options
 =======================================================================
 
 Questions answered in this FAQ are:
@@ -16,6 +16,9 @@ Q. What is --usecache good for?
 
 Q. What is the technical principle of --usecache?
 
+Q. On Windows, with --useuid and after a reboot or a new login, a new
+   run generates duplicates. What can I do to avoid and fix that?
+
 Q. On Windows, with --useuid or --usecache a problem occurs with long
    nested folder names. The error message is:
    "No such file or directory; The filename or extension is too long"
@@ -23,14 +26,14 @@ Q. On Windows, with --useuid or --usecache a problem occurs with long
 Q. Inode problem with --usecache or --useuid on Linux
 
 
-Now the questions again and their answers
+Now the questions again and their answers.
 
 =======================================================================
 Q. What is --usecache good for?
 
 R. The option --usecache is useful to speed up next syncs with --usecache.
    The first sync with --usecache between two imap accounts is as low 
-   as the first sync without --usecache.
+   as the first sync without --usecache, the next syncs are faster.
 
 =======================================================================
 Q. What is the technical principle of --usecache?
@@ -49,7 +52,39 @@ R. Option --usecache creates a empty file per email message
    where <tmpdir> is the temporary directory given by the --tmpdir option
    or the one by default, /tmp on Unix, variable on Windows.
    
-   
+=======================================================================
+Q. On Windows, with --useuid and after a reboot or a new login, a new
+   run generates duplicates. What can I do to avoid and fix that?
+
+R. The cache is build in a temporary directory. Imapsync uses a system
+call to get this temporary directory, it is not hardcoded and it
+is system dependent, the call garanties a write access. Sometimes on 
+Windows this directory name changes upon reboot or for any other reason. 
+Anyway, the temporary directory used by imapsync can be set by the 
+option --tmpdir and that's the way to avoid this issue. 
+The new problem is that the temporary directory must be writable, which
+is not a big deal to found.
+
+Use for example either a) b) or c)
+
+a) The current directory:
+
+  imapsync ... --tmpdir .
+
+b) The root directory:
+
+  imapsync ... --tmpdir /
+
+c) Any directory you want, like:
+
+  imapsync ... --tmpdir "C:\TEMP"
+
+Now, to fix the duplicates on host2, have a run with the option
+--delete2duplicates
+
+  imapsync ... --delete2duplicates
+
+
 =======================================================================
 Q. On Windows, with --useuid or --usecache a problem occurs with long
    nested folder names. The error message is:
