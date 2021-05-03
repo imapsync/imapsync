@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Emptying.txt,v 1.8 2019/04/30 12:52:10 gilles Exp gilles $
+$Id: FAQ.Emptying.txt,v 1.11 2020/10/13 16:24:43 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -9,6 +9,15 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Emptying.txt
 =======================================================================
                Imapsync tip to empty an account.
 =======================================================================
+
+Questions answered in this FAQ are:
+
+Q. How to delete all emails of all folders of an account with imapsync?
+Q. How to delete all folders of an account with imapsync?
+Q. How to delete some folders of an account with imapsync?
+Q. How to revert a sync that went to the wrong account?
+
+Now the questions again with their answers.
 
 =======================================================================
 Q. How to delete all emails of all folders of an account with imapsync?
@@ -20,7 +29,7 @@ Option --noexpungeaftereach is just to speed up the deletions.
 
 Example (real example):
 
-  ./imapsync \
+  imapsync \
     --host1 test.lamiral.info --user1 empty --password1 secret \
     --host2 test.lamiral.info --user2 empty --password2 secret \
     --delete1 --noexpungeaftereach
@@ -31,10 +40,55 @@ Q. How to delete all folders of an account with imapsync?
 R. Use the same account on both sides with the options 
     --delete1 --noexpungeaftereach --delete1emptyfolders
     
-  ./imapsync ... --delete1 --noexpungeaftereach --delete1emptyfolders
+  imapsync ... --delete1 --noexpungeaftereach --delete1emptyfolders
 
 It won't delete the folder INBOX since INBOX is mandatory in imap.
 
+
+=======================================================================
+Q. How to delete some folders of an account with imapsync?
+
+R. Use the same account on both sides with the options 
+    --delete1 --noexpungeaftereach --delete1emptyfolders
+    like when deleting all folders BUT select only the folders
+    you want to delete by using options to select folders,
+    like --folder or --folderrec or --include or --exclude 
+
+Example, to delete the folder Blabla
+
+  imapsync ... --delete1 --noexpungeaftereach --delete1emptyfolders --folder Blabla
+
+To delete the four folders Kalender Kontakte Aufgaben Notizen:
+
+  imapsync ... --include 'Kalender|Kontakte|Aufgaben|Notizen' \
+                 --delete1 --noexpungeaftereach --delete1emptyfolders
+
+I strongly recommend to use --dry first!
+
+To get an overview of how to select folders, see
+https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Selection.txt
+
+=======================================================================
+Q. How to revert a sync that went to the wrong account?
+
+R. If all the wrong emails have some common characteristic that is not
+ shared by the good one, then you can search for them and delete them
+ using the same account as source and destination. For example, if all
+ the messages have the same email destination address as
+ "john_smith@example.com", then you can remove them with the following
+ command:
+   
+   imapsync ... --search "TO john_smith@example.com" --delete1 
+
+ Be very careful with deletions! Since this section deals with something
+ that was made wrong, you're in good place to make a new one!
+ 
+ There is many possibilities to select messages with different criterium.
+ See some of them by reading the document 
+ https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
+
+ If the wrongly emails messages synced have no special common 
+ characteristic then take an handkerchief and cry.
 
 =======================================================================
 =======================================================================

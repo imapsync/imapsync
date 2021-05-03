@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.SSL_errors.txt,v 1.9 2019/12/11 15:38:37 gilles Exp gilles $
+$Id: FAQ.SSL_errors.txt,v 1.14 2021/04/19 11:47:44 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -19,9 +19,13 @@ Q. What are the errors
 
 Q. What can I do to avoid those "SSL read/write errors"?
 
-Q. SSL connect attempt failed SSL 
+Q. SSL connect attempt failed SSL
    routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
+   or 
+   SSL connect attempt failed SSL
+   SSL routines:ssl_choose_client_version:unsupported protocol
 
+Q. How to see the certificate and identify problems in it?
 
 Now the questions again with their answers.
 
@@ -32,29 +36,29 @@ Q. What are the errors
   DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
 
 
-R1.Like they claim, those errors are SSL errors. SSL is not directly
-   done by imapsync but by an underlying Perl module called
-   IO::Socket::SSL. Those errors arise sometimes and sometimes
-   they form a serie that ends with imapsync auto-abortion.
-   Those errors happen with some hosts but not with others,
-   it's often Exchange or Office365. I don't know what exactly happens.
-   Those errors happen more often on Windows than on Linux.
+R1. As they claim, those errors are SSL errors. SSL is not directly
+done by imapsync but by an underlying Perl module called
+IO::Socket::SSL. Those errors arise sometimes and sometimes
+they form a series that ends with imapsync auto-abortion.
+Those errors happen with some hosts but not with others,
+it's often Exchange or Office365. I don't know what exactly happens.
+Those errors happen more often on Windows than on Linux.
 
 
 =======================================================================
 Q. What can I do to avoid those "SSL read/write errors"?
 
 R0. Windows users: upgrade to imapsync.exe release 1.836 (or next ones)
-    Those errors don't appear with recent releases, post 1.836
+Those errors don't appear with recent releases, post 1.836
 
 R1. Remove all ssl/tls encryption
 
   imapsync ...   --nossl1 --notls1 --nossl2 --notls2
 
 R2. If you don't want to quit encryption, rerun imapsync until the 
-    complete sync is over. Those errors are not at the same place 
-    each time, so imapsync will sync remaining messages at each run
-    until none remains.
+complete sync is over. Those errors are not at the same place 
+each time, so imapsync will sync the remaining messages at each run
+until none remains.
 
 R3. Run imapsync on a Linux machine, a VM is ok, there are less
     SSL errors on Unix.
@@ -67,14 +71,18 @@ R5. Set up a ssltunnel proxy to the host.
     a ssltunnel proxy.
 
 =======================================================================
-Q. SSL connect attempt failed SSL 
+Q. SSL connect attempt failed SSL
    routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
+   or 
+   SSL connect attempt failed SSL
+   SSL routines:ssl_choose_client_version:unsupported protocol
+
 
 R1. Use: 
 
-   imapsync ... --sslargs1 'SSL_cipher_list=DEFAULT' 
+   imapsync ...  --sslargs1 SSL_cipher_list=DEFAULT
    or    
-   imapsync ... --sslargs2 'SSL_cipher_list=DEFAULT' 
+   imapsync ...  --sslargs2 SSL_cipher_list=DEFAULT
 
    depending on where the error occurs, host1 or host2 or both.
 
@@ -82,13 +90,27 @@ R2. If it doesn't work, I let you try other things,
     I quote the "SSL_version" section of
     https://metacpan.org/pod/IO::Socket::SSL (Module version: 2.066)
 
+    imapsync ...  --sslargs1 SSL_cipher_list=DEFAULT
     imapsync ...  --sslargs1 SSL_version=SSLv2
+    imapsync ...  --sslargs1 SSL_version=SSLv23
+    imapsync ...  --sslargs1 SSL_version=SSLv3
+    imapsync ...  --sslargs1 SSL_version=TLSv1
+    imapsync ...  --sslargs1 SSL_version=TLSv1_1
     imapsync ...  --sslargs1 SSL_version=TLSv1_2
-    
-    SSLv2 and TLSv12 are just examples depending on your context
-    (--ssl1 or --tls1, and also the imap server encryption scheme)
-    
-Feedback on what worked for you (and possibly hy) is welcome!
+    imapsync ...  --sslargs1 SSL_version=TLSv1_3
+
+Those examples are for host1. For host2, use --sslargs2 instead.
+Feedback on what worked for you is welcome!
+
+A loop to check every version and print the good ones:
+
+for v in SSLv2 SSLv23 SSLv3 TLSv1 TLSv1_1 TLSv1_2 TLSv1_3; do
+        imapsync ...  --sslargs1 SSL_version=$v && GOOD="$GOOD $v"
+done
+echo "$GOOD"
+
+I reproduce below the documentation of the underlying Perl 
+module IO::Socket::SSL used by imapsync:
 
 https://metacpan.org/pod/IO::Socket::SSL
 ...
@@ -125,9 +147,77 @@ to 'SSLv23:!SSLv2:!SSLv3:!TLSv1_1:!TLSv1_2' might help.
 
 
 =======================================================================
+Q. How to see the certificate and identify problems in it?
+
+R. Use the command openssl like this:
+
+  echo | openssl s_client -crlf  -connect imap.gmail.com:993
+
+  echo | openssl s_client -crlf  -connect test1.lamiral.info:993
+
+and examine carefully the content, the  "verify return:" lines,
+the chain. Sometimes, the server certificate is ok but not the whole 
+chain of certificates so the certification fails.
+
+Here is an example.
+
+One of the certificate is expired:
+
+echo | openssl s_client -crlf -connect test1.lamiral.info:993
+CONNECTED(00000003)
+depth=2 O = Digital Signature Trust Co., CN = DST Root CA X3
+verify return:1
+depth=1 C = US, O = Let's Encrypt, CN = R3
+verify return:1
+depth=0 CN = test1.lamiral.info
+verify error:num=10:certificate has expired
+notAfter=Apr 11 10:14:05 2021 GMT
+verify return:1
+depth=0 CN = test1.lamiral.info
+notAfter=Apr 11 10:14:05 2021 GMT
+verify return:1
+---
+Certificate chain
+ 0 s:/CN=test1.lamiral.info
+   i:/C=US/O=Let's Encrypt/CN=R3
+ 1 s:/C=US/O=Let's Encrypt/CN=R3
+   i:/O=Digital Signature Trust Co./CN=DST Root CA X3
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIFKjCCBBKgAwIBAgISBHYZCE3qSTIlvq97HI5TpBeAMA0GCSqGSIb3DQEBCwUA
+MDIxCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQswCQYDVQQD
+EwJSMzAeFw0yMTAxMTExMDE0MDVaFw0yMTA0MTExMDE0MDVaMB0xGzAZBgNVBAMT
+EnRlc3QxLmxhbWlyYWwuaW5mbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAMUTJVdrTl86nDI2yO6Vz5l1qxMMPqJylQcgi9vDHpwsnUq5HGPv+qZNhM69
+...
+
+After an complete server update ("apt update && apt upgrade"):
+
+echo | openssl s_client -crlf -connect test1.lamiral.info:993
+CONNECTED(00000003)
+depth=2 O = Digital Signature Trust Co., CN = DST Root CA X3
+verify return:1
+depth=1 C = US, O = Let's Encrypt, CN = R3
+verify return:1
+depth=0 CN = test1.lamiral.info
+verify return:1
+---
+Certificate chain
+ 0 s:/CN=test1.lamiral.info
+   i:/C=US/O=Let's Encrypt/CN=R3
+ 1 s:/C=US/O=Let's Encrypt/CN=R3
+   i:/O=Digital Signature Trust Co./CN=DST Root CA X3
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIFKTCCBBGgAwIBAgISBD4QN3cfB1JpTm75oVrkkAElMA0GCSqGSIb3DQEBCwUA
+MDIxCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQswCQYDVQQD
+EwJSMzAeFw0yMTAzMTIxODQxMTJaFw0yMTA2MTAxODQxMTJaMB0xGzAZBgNVBAMT
+EnRlc3QxLmxhbWlyYWwuaW5mbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBANuPNbYLPMZ4vPa9NBoHAUdIXqpi0eqdXMXd2sT+qRmqxS5ihr999BHOROcr
+...
+
+
 =======================================================================
-
-
-
-
-
+=======================================================================

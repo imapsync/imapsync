@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Folders_Selection.txt,v 1.8 2019/07/27 20:04:46 gilles Exp gilles $
+$Id: FAQ.Folders_Selection.txt,v 1.11 2020/12/31 11:41:46 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -9,6 +9,34 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Selection.txt
 =======================================================================
                Imapsync tips to select folders.
 =======================================================================
+
+Questions answered in this FAQ are:
+
+Q. What is the default imapsync behaviour about folders?
+
+Q. What are the options to select folders?
+
+Q. Is it ok to use --subfolder1 and --subfolder2 to just select folders?
+
+Q. How can I sync only one folder?
+
+Q. What are --subscribe and --subscribed for, and how can they be used?
+
+Q. How to exclude a folder hierarchy like "public"?
+
+Q. How to exclude only the INBOX folder?
+
+Q. How to exclude folders matching SPAM no matter the case, 
+   aka, how to be case insensitive?
+
+Q. How to make option --folder "MyFolder" be recursive?
+
+Q. How to change folders names or move them elsewhere?
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. What is the default imapsync behaviour about folders?
 
 By default, Imapsync syncs all folders, one by one, in alphanumeric order.
 
@@ -24,6 +52,52 @@ prints the complete folder list of both sides at the beginning of each run.
 The left column is the encoding you have to use, without the first enclosing 
 square brackets [], the right column is the human utf8 view.
 
+
+=======================================================================
+Q. What are the options to select folders?
+
+R. From https://imapsync.lamiral.info/README
+
+  OPTIONS/folders
+
+     --folder       str  : Sync this folder.
+     --folder       str  : and this one, etc.
+     --folderrec    str  : Sync this folder recursively.
+     --folderrec    str  : and this one, etc.
+
+     --folderfirst  str  : Sync this folder first. Ex. --folderfirst "INBOX"
+     --folderfirst  str  : then this one, etc.
+     --folderlast   str  : Sync this folder last. --folderlast "[Gmail]/All Mail"
+     --folderlast   str  : then this one, etc.
+
+     --nomixfolders      : Do not merge folders when host1 is case-sensitive
+                           while host2 is not (like Exchange). Only the first
+                           similar folder is synced (example: with folders
+                           "Sent", "SENT" and "sent"
+                           on host1 only "Sent" will be synced to host2).
+
+     --skipemptyfolders  : Empty host1 folders are not created on host2.
+
+     --include      reg  : Sync folders matching this regular expression
+     --include      reg  : or this one, etc.
+                           If both --include --exclude options are used, then
+                           include is done before.
+     --exclude      reg  : Skips folders matching this regular expression
+                           Several folders to avoid:
+                            --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
+     --exclude      reg  : or this one, etc.
+
+
+=======================================================================
+Q. Is it ok to use --subfolder1 and --subfolder2 to just select folders?
+
+R. No.
+
+  If you do:
+  
+    imapsync ... --subfolder1 Foo --subfolder2 Foo
+  
+  then it ends up with all messages from Foo going to Foo/INBOX
 
 
 =======================================================================
@@ -56,23 +130,15 @@ R. In the IMAP protocol each user can subscribe to one or more folders.
 
 
 =======================================================================
-Q. I want to exclude a folder hierarchy like "public"
+Q. How to exclude a folder hierarchy like "public"?
 
 R. Use:
 
---exclude "^public\."
-or maybe
---exclude '^"public\.'
-
-In the example given the character "." is the folder separator, you
-can omit it. Just take the string as it appears on the imapsync
-output line :
-
-From folders list : [INBOX] [public.dreams] [etc.]
+  --exclude "public"
 
 
 =======================================================================
-Q. I want to exclude only INBOX
+Q. How to exclude only the INBOX folder?
 
 R. Use:
 
@@ -83,8 +149,8 @@ A good way to see what will be done is to first use:
   imapsync ...  --exclude "^INBOX$" --justfolders --nofoldersizes --dry
 
 =======================================================================
-Q. I want to exclude folders matching SPAM no matter the case, 
-   aka how to be case insensitive
+Q. How to exclude folders matching SPAM no matter the case, 
+   aka, how to be case insensitive?
 
 R. Use:
 
@@ -96,7 +162,7 @@ A good way to see what will be done is to first use:
 
 
 =======================================================================
-Q. I want the --folder "MyFolder" option be recursive.
+Q. How to make option --folder "MyFolder" be recursive?
 
 Two solutions:
 
@@ -107,6 +173,12 @@ R1. Use
 R2. Use --include "^MyFolder"
    Then the folder "MyFolder" and all its subfolders will be handled
    and only them.
+
+=======================================================================
+Q. How to change folders names or move them elsewhere?
+
+R. Read the document FAQ.Folders_Mapping.txt also available at
+   https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
 
 =======================================================================
 =======================================================================

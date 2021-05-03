@@ -1,50 +1,86 @@
 #!/bin/cat
-# $Id: FAQ.Docker.txt,v 1.6 2019/12/11 15:39:14 gilles Exp gilles $
+# $Id: FAQ.Docker.txt,v 1.7 2020/01/08 05:02:55 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.Docker.txt
 
-=======================================================================
+===========================================================================
             Installing and using imapsync docker image
-=======================================================================
+===========================================================================
 
 Questions answered in this FAQ are:
 
-Q. How can I install and use the imapsync Docker image on my system?
+
+Q. How can I install and use the imapsync Docker image on my amd64 system?
+
+Q. How can I install and use the imapsync Docker image on my i386 system?
 
 Q. How can I install or update only the imapsync Docker image on my system?
 
 Q. Where is the imapsync Docker hub location?
+
+Q. How can I mask the passwords on the command line without mounting
+   inside the container?
 
 Q. Any tips for the Docker Mailcow distribution?
 
 
 Now the questions again with their answers.
 
-=======================================================================
-Q. How can I install and use the imapsync Docker image on my system?
+===========================================================================
+Q. How can I install and use the imapsync Docker image on my amd64 system?
 
 R. Install Docker on your system. Once Docker is installed on your system,
    all you have to do in order to run imapsync is the command line:
 
   docker run gilleslamiral/imapsync imapsync <usual imapsync arguments>
 
-=======================================================================
+===========================================================================
+Q. How can I install and use the imapsync Docker image on my i386 system?
+
+R. You can't for now. It will throw this error when running it:
+
+  docker run gilleslamiral/imapsync imapsync
+  standard_init_linux.go:211: exec user process caused "exec format error"
+
+I plan to make the image multi-plateform. Drop me a note if you are
+eager to have it.
+
+===========================================================================
 Q. How can I install or update only the imapsync Docker image on my system?
 
 R. To install or update the imapsync image, run:
 
   docker pull gilleslamiral/imapsync
 
-=======================================================================
+===========================================================================
 Q. Where is the imapsync Docker hub location?
 
 R. Here:
 
   https://hub.docker.com/r/gilleslamiral/imapsync/
 
-=======================================================================
+===========================================================================
+Q. How can I mask the passwords on the command line without mounting 
+   anything inside the container?
+
+R. Use a file defining the environment variables 
+   IMAPSYNC_PASSWORD1 and IMAPSYNC_PASSWORD2
+
+  cat ./secret.txt
+IMAPSYNC_PASSWORD1=secret1
+IMAPSYNC_PASSWORD2=secret2
+
+Use that file like this for a run:
+
+  docker run --env-file ./secret.txt gilleslamiral/imapsync imapsync ...
+
+See:
+https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file
+https://stackoverflow.com/a/30494145/491175
+
+===========================================================================
 Q. Any tips for the Docker Mailcow distribution?
 
 R. With the Mailcow distribution, imapsync is running inside a Docker 
@@ -61,5 +97,5 @@ See the original Mathilde's comment:
 https://github.com/imapsync/imapsync/issues/201#issuecomment-559500077
 
 
-=======================================================================
-=======================================================================
+===========================================================================
+===========================================================================

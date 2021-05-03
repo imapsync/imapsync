@@ -1,66 +1,54 @@
 
-$Id: FAQ.Exchange.txt,v 1.57 2019/12/04 18:26:28 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.74 2021/03/23 14:53:33 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.Exchange.txt
 
 
+
 =======================================================================
-            Imapsync tips for Exchange 20xx and Office365.
+      Imapsync tips for Exchange 2000 2003 2007 2010 2013 2016 2019
 =======================================================================
 
 Questions answered in this FAQ are:
 
-Q. Can I use imapsync to transfer from or to Exchange or Office365 accounts?
+Q. Can I use imapsync to transfer from or to Exchange accounts?
 
-Q. How to sync from XXX to Exchange 2010/2013/2016
-
-Q. How to sync from Office365 to XXX?
-
-Q. How to sync from XXX to Office365
-
-Q. For Office365 I have double and triple checked the username and 
-   password spelling but I still get a "LOGIN failed". Any clue?
+Q. How to sync from XXX to Exchange 2010/2013/2016/2019
 
 Q. I see "NO Maximum size of appendable message has been exceeded"
-   What can I do with that? Happens with Office365 or Exchange 2016.
+   What can I do with that?
 
-Q. Office365 throttles the sync and says: 
+Q. Exchange throttles the sync and says: 
    "Request is throttled. Suggested Backoff Time: 299961 milliseconds".
    What can I do with that?
 
-Q. Office365 refuses to create the folder named "Files" with the error
-   "NO Folder name is reserved". What happens?
-
-Q. Office365 users complain that a folder named "Files" contains 
-   messages with no sender.
+Q. For Exchange I have double and triple checked the username and
+   password spelling but I still get a "LOGIN failed". Any clue?
 
 Q. Exchange fails with "User is authenticated but not connected".
 
 Q. Exchange fails with "BAD Command received in Invalid state".
 
-Q. From XXX to Exchange 2013 or Office365, read receipts are all
-   resent again after a sync. Even for old messages. How can I fix that?
+Q. From XXX to Exchange 2013, read receipts are all resent again 
+   after a sync. Even for old messages. How can I fix that?
 
 Q. DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error
    DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error   
 
-Q. From XXX to Exchange 2010/2013 or Office365 I get this error message
+Q. From XXX to Exchange 2010/2013 I get this error message
    sometimes: "BAD Command Argument Error 11". What does it mean?
 
-Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
+Q. From XXX to Exchange 2010 or 2013, the flag Flagged does 
    not seem to be well synced. What can I do?
 
-Q. How to migrate from or to Exchange 2007/2010/2013 with an 
+Q. How to migrate from or to Exchange 2007/2010/2013 with an
    admin/authuser account?
 
 Q. How to migrate from or to Exchange 2016 with an admin/authuser account?
 
-Q. How to migrate from or to Office 365 with an admin/authuser account?
-
-Q. How to migrate from or to Exchange 2003 with an admin/authuser 
-   account?
+Q. How to migrate from or to Exchange 2003 with an admin/authuser account?
 
 Q. Couldn't create folder [trash] "Mailbox already exists".
 
@@ -78,20 +66,21 @@ Q. How to sync from Microsoft Exchange 2000 IMAP4rev1 server?
 Now the questions again with their answers.
 
 =======================================================================
-Q. Can I use imapsync to transfer from or to Exchange or Office365 accounts?
+Q. Can I use imapsync to transfer from or to Exchange accounts?
 
-R. Yes. But IMAP access to a Exchange or Office365 account is not always 
+R. Yes. But IMAP access to an Exchange account is not always 
    allowed by default so it has to be allowed in the server configuration 
    part.
 
    Exchange:  https://docs.microsoft.com/en-us/exchange/enable-imap4-in-exchange-2013-exchange-2013-help
-   Office365: https://docs.microsoft.com/en-us/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365
 
 =======================================================================
-Q. How to sync from XXX to Exchange 2010/2013/2016
+Q. How to sync from XXX to Exchange 2010/2013/2016/2019
 
 R0. IMAP is not enable by default on Exchange, see how to enable it:
 https://docs.microsoft.com/en-us/exchange/enable-imap4-in-exchange-2013-exchange-2013-help
+Also read
+http://clintboessen.blogspot.com/2018/03/binding-certificate-breaks-imap-or-pop.html
 
 
 R1. Following is a command line resume that solves most encountered 
@@ -135,73 +124,66 @@ that can be used like:
 
 To get reformime, install the "maildrop" package.
 
-=======================================================================
-Q. How to sync from Office365 to XXX?
+On Linux again, there is a good Python script in the tarball that can 
+fix several things that Exchange or O365 have issues with.
 
-R. On Windows, use:
+Use it like this:
 
-  imapsync.exe ... --office1
+  ./imapsync ... --pipemess W/tools/fix_email_for_exchange.py
 
-On Unix, use:
-
-  imapsync ... --office1
-
-Option --office1 is like (release 1.970):
-  
-  imapsync ... --host1 outlook.office365.com \
-               --ssl1 \
-               --exclude "^Files$" 
-  
-=======================================================================
-Q. How to sync from XXX to Office365
-
-R0. IMAP is not enable by default on Office365, see how to enable it:
-https://docs.microsoft.com/en-us/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365
-https://docs.microsoft.com/en-us/exchange/allow-pop3-imap4-and-smtp-server-settings-to-be-viewed-by-end-users-in-outlook-web-app-exchange-2013-help
-https://support.context.io/hc/en-us/articles/213586243-Enabling-IMAP-for-Office365
-
-R. Here is a command line resume that solves most encountered issues when 
-   migrating to Office365. It's similar with Exchange except for some 
-   values. To understand or change the details you have to read 
-   next Q/R sections.
-
-
-  imapsync ... --office2
-
-which is equivalent to (in imapsync release 1.870):
-
-  imapsync ... \
-    --host2 outlook.office365.com \
-    --ssl2 \
-    --maxsize 45000000 \
-    --maxmessagespersecond 4 \
-    --disarmreadreceipts \
-    --regexmess "s,(.{10239}),$1\r\n,g" \
-    --f1f2 "Files=Files_renamed_by_imapsync"
-
-
-On Linux, you can also try the "reformime" command 
-that can be used like:
-
-  imapsync ... --maxlinelengthcmd "reformime -r7"
-
-To get reformime, install the "maildrop" package.
-
+It often does some miracles on messages.
 
 =======================================================================
-Q. For Office365 I have double and triple checked the username and 
+Q. For Exchange I have double and triple checked the username and
    password spelling but I still get a "LOGIN failed". Any clue?
 
-R1. Triple check the hostname then. Try all of these:
- * imap-mail.outlook.com
- * imap.outlook.com
- * outlook.office365.com
 
-R2. Also triple check a license is assigned to that account 
-    in Office365.
+R1. Disable double-step authentication, also known as 2-factor,
+    2-step authentication on the Azure/Active Directory portal.
 
-R3. Try with a classic email client like Thunderbird and the same
-    parameters.   
+R2. Microsoft introduced something called "security defaults" which is
+enabled by default for new tenants. One of the rules blocks IMAP
+access as of imapsync.  The funny thing is that you can't disable
+single rules of this security package without buying additional
+licenses.  Switching the whole thing off allows the login.
+
+Also, disable double-step authentication on the Azure/Active Directory
+portal.
+
+See here:
+https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/concept-fundamentals-security-defaults
+Thanks to Stephan Buhre for this R2 answer.
+
+R3. I want to migrate to Exchange 2019. I haven't been able to sync
+using admin credentials even if I've tried and made all the
+configuration mentioned in the FAQ.Exchange.
+The error was always "LOGIN failed".
+
+My problem was that I have been used an admin account which haven’t
+attached a mailbox in Exchange. This is my admin account which I use
+only for configuration in Exchange, not for emails.
+
+So, after I’ve created in Exchange a mailbox for this user, the sync
+started to work.  I can confirm that imapsync is working for Exchange
+2019, with plain authentication, and full permissions of admin account
+(this account must have mailbox attached) applied to regular user
+mailbox account.
+
+It doesn't work with the --authuser2 parameter. The syntax that
+works for me is:
+
+  imapsync ... --host2 192.168.xxx.yyy  --user2 domain.local\admin.account\regular.user --password2 "xxxxxxx"
+or 
+  imapsync ...--host2 192.168.xxx.yyy  --user2 admin.account@mycompany.com\regular.user --password2 "xxxxxxx" 
+
+Thanks to Ioan Nechita for this R3 answer.
+
+R4. Are there special characters in the password?
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Authentication_failure.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Mac.txt
+
 
 =======================================================================
 Q. Exchange fails with "User is authenticated but not connected".
@@ -220,33 +202,17 @@ R2. Miguel Alameda reported understanding and solving this issue
     "The admin user had not permission in the target mailbox."
 
 =======================================================================
-Q. I see "NO Maximum size of appendable message has been exceeded"
-   What can I do with that? Happens with Office365 or Exchange 2016
+Q. I see "NO Maximum size of appendable message has been exceeded" 
+   What can I do with that?
 
-R0. It happens with Office365 and Exchange 2016.
-    See R1 for Office365
-    See R2 for Exchange 2016
+R1.  With Exchange 2019
 
-R1. Office365 supports send/receive max message sizes of up to 150MB 
-   but you need to make changes in your tenant(s) to support it.
+Change the recipient Receive/Send size:
 
-The following PowerShell command will increase the message sizes that 
-can be sent/received.  The trick in getting IMAPSync to work is to 
-apply these settings to the accounts performing the migration,
-NOT the accounts associated with the target mailbox (assuming you're
-using service accounts to perform transfers on behalf of users).
+  Set-mailbox -Identity user@contoso.com -MaxReceiveSize 100mb -MaxSendSize 100mb
 
-  Set-mailbox -Identity $UPN -MaxReceiveSize 150mb -MaxSendSize 150mb
+Thanks to Pasternak Denis for this Exchange 2019 tip.
 
-e.g. 
-
-  Set-mailbox -Identity "migrationaccount@testtenant.onmicrosoft.com" -MaxReceiveSize 150mb -MaxSendSize 150mb
-
-We're transferring data between Office 365 tenants so we set these 
-values on the migration acounts in the source and target tenants.
-
-Thanks to Sean McDougall, Ian Thomas & Matt Wilks from Toronto 
-for this FAQ item.
 
 R2. With Exchange 2016
 
@@ -275,7 +241,8 @@ Please note that this change may be lost each time you install an
 cumulative update. After the change, restart the services exchange 
 transport role, exchange information store and exchange imap4 Backend.
 
-(Source: https://social.technet.microsoft.com/Forums/de-DE/2c07cf43-fe0e-4d22-b061-676a67c6d58d/exchange-2013-max-mailgre-per-imap?forum=exchange_serverde)
+Source in Deutch: 
+https://social.technet.microsoft.com/Forums/de-DE/2c07cf43-fe0e-4d22-b061-676a67c6d58d/exchange-2013-max-mailgre-per-imap?forum=exchange_serverde
 
 This change made our Exchange installation accept bigger e-mails 
 in order to remove the imapsync Exchange error message
@@ -283,29 +250,19 @@ in order to remove the imapsync Exchange error message
 
 
 =======================================================================
-Q. Office365 throttles the sync and says: 
+Q. Exchange throttles the sync and says: 
    "Request is throttled. Suggested Backoff Time: 299961 milliseconds".
    What can I do with that?
-   
 
-R. Exchange and Office365 have throttle mechanisms to limit any huge 
+R0. Exchange have throttle mechanisms to limit any huge 
    usage. Sometimes imapsync transfers are too stressful for servers.
    The message 
    "Request is throttled. Suggested Backoff Time: 299961 milliseconds"
    comes from the imap Office365 server, imapsync just reports it
    before being disconnected from it.
 
-   To solve the throttles issues from 0365, there are two solutions
-   at least:
 
-R1. Call Microsoft Office365 and ask them to remove the limits on your 
-  mailboxes. That's not a joke, they do it for 90 days usually, 
-  sometimes only after you reach the second technician you call, 
-  the first one usually been not enough competent to understand 
-  what you're talking about (I would be glad to remove this bad
-  fact).
-
-R2. Play with options --maxbytespersecond or --maxmessagespersecond
+R1. Play with options --maxbytespersecond or --maxmessagespersecond
     or --exitwhenover
 
   imapsync ... --maxbytespersecond 100_000
@@ -317,60 +274,16 @@ R2. Play with options --maxbytespersecond or --maxmessagespersecond
 I don't know the upper value that avoid the default throttling from 0365
 and I guess it changes over time.
 
-R3. For Exchange, in case throttle appears anyway, fix them with:
+R2. For Exchange, in case throttle appears anyway, fix them with:
   https://docs.microsoft.com/en-us/exchange/change-user-throttling-settings-for-specific-users-exchange-2013-help
   See also:
-  http://www.linux-france.org/prj/imapsync_list/msg02072.html
+  http://www.linux-france.org/prj/imapsync_list/msg02072.html 
+  (Subject: Re: [imapsync] From Exchange to Dovecot. Speed
+   Date: Mon, 03 Nov 2014 00:14:59 +0100)
 
   Sometimes restarting the Exchange server is needed to take
   into account the change in the configuration.
 
-=======================================================================
-Q. Office365 refuses to create the folder named "Files" with the error
-   "NO Folder name is reserved". What happens?
-
-R. The folder Files is a standard folder in Office365. It should not
-   be synced in IMAP. See the next question.
-
-=======================================================================
-Q. Office365 users complain that a folder named "Files" contains 
-   messages with no sender.
-
-R0. To fix this, add --exclude Files
-
-  imapsync ... --exclude Files
-
-  If you use --office1 then imapsync will add this exclusion 
-  automatically like using  the option:
-  
-  imapsync ... --exclude "^Files$" 
-
-  If you use --office2 then imapsync will add a renaming of any
-  "Files" folder on host1, like using the option:
-  
-  imapsync ... --f1f2 "Files=Files_renamed_by_imapsync"
-
-  The host2 account ends up with a folder named 
-  "Files_renamed_by_imapsync", but no complaining.
-
-R1. This folder "Files" seems to be a standard folder in Exchange Online, 
-   but it is not. The folder contains all attachments in every email 
-   that is in the mailbox, but without any headers.
-   This causes some confusion for users as these appear in their 
-   search results as duplicate lines but without the sender details 
-   or even the message body.
-
-   This folder seems to be usually hidden so IMAP clients can’t see it, 
-   but for some reason sometimes it becomes visible.
-
-R2. It looks to be a common problem with Exchange Online. 
-    I’m not sure what causes the folder to appear.
-
-   More info here:
-https://answers.microsoft.com/en-us/msoffice/forum/msoffice_o365admin-mso_exchon-mso_o365b/exclude-the-exchange-online-system-folder-called/2adbdf84-db4a-4c7f-ac29-738757980a0d
-https://answers.microsoft.com/en-us/msoffice/forum/msoffice_o365admin-mso_dep365-mso_o365b/no-sender-emails-in-files-folder/534bae8f-a7d7-4f5f-8ed7-5bad0d5fa23f
-
-  (This question/answer is taken quasi verbatim from Perttu Aaltonen)
 =======================================================================
 Q. Exchange fails with "BAD Command received in Invalid state".
 
@@ -386,8 +299,8 @@ R2. This message might also happen when authenticating with ssl and tls.
    servers allow that.
 
 =======================================================================
-Q. From XXX to Exchange 2013 or Office365, read receipts are all
-   resent again after a sync. Even for old messages. How can I fix that?
+Q. From XXX to Exchange 2013, read receipts are all resent again 
+   after a sync. Even for old messages. How can I fix that?
 
 R. imapsync can remove the header containing this read receipt request.
 
@@ -436,7 +349,7 @@ R3. See also the FAQ FAQ.SSL_errors.txt
     https://imapsync.lamiral.info/FAQ.d/FAQ.SSL_errors.txt
 
 =======================================================================
-Q. From XXX to Exchange 2010/2013 or Office365 I get this error message
+Q. From XXX to Exchange 2010/2013 I get this error message
    sometimes: "BAD Command Argument Error 11". What does it mean?
 
 R. This error message comes from Exchange IMAP server when it 
@@ -444,17 +357,14 @@ R. This error message comes from Exchange IMAP server when it
 
   * Some messages are bigger than the size limit. 10 MB by default
     on Exchange. It can be upped by configuration for Exchange.
-	Sometimes a reboot is needed to take configuration changes 
-	into account.
+    Sometimes a reboot is needed to take configuration changes 
+    into account.
     If you can't fix this limit on Exchange then use option
     --maxsize 10000000 for 10 MB, change it if needed) to tell
     imapsync to skip those messages.
-    This value is 45 MB by default for Office365
 
   imapsync ... --maxsize 10000000 # 10 MB for Exchange
 
-  imapsync ... --maxsize 45000000 # 45 MB for Office365
-  
 
   * Quota reached. The whole account is full.
     It can be upped by configuration.
@@ -466,10 +376,6 @@ R. This error message comes from Exchange IMAP server when it
     Exchange supports 9900 characters line length:
 
   imapsync ... --maxlinelength 9900 
-
-    Office365 supports 10500 characters line length:
-
-  imapsync ... --maxlinelength 10500
 
   In case you prefer fixing messages with long lines the hard way,
   instead of skipping them with --maxlinelength 9900, just use:
@@ -486,7 +392,7 @@ Exchange, which means Exchange leaves the session and say goodbye,
 come back later. Rerun a sync then.
 
 On Linux, there is a good Python script in the tarball that can 
-fix several things that Exchange or O365 have issues with.
+fix several things that Exchange have issues with.
 
 Use it like this:
 
@@ -495,7 +401,7 @@ Use it like this:
 It often does some miracles on messages.
 
 =======================================================================
-Q. From XXX to Exchange 2010 or 2013 or Office365 the flag Flagged does 
+Q. From XXX to Exchange 2010 or 2013, the flag Flagged does 
    not seem to be well synced. What can I do?
 
 R. Use the following trick. Run imapsync twice, one with --regexflag
@@ -517,15 +423,14 @@ Thanks to Dave Murray and Simon Savva for reporting and solving
 this issue.
 
 ======================================================================
-Q. How to migrate from or to Exchange 2007/2010/2013 with an 
+Q. How to migrate from or to Exchange 2007/2010/2013 with an
    admin/authuser account?
    
 R. The tricks comes from Michele Marcionelli and Benjamin Priestman:
 
-This doesn't work:
+This may works:
   imapsync ... --user2 user2 --authuser2 admin2 --password2 adminpassword2 ...
-
-This might works:
+or
   imapsync ... --user2 "domain\admin2\user2" --password2 adminpassword2 ...
 or 
   imapsync ... --user2 "admin2@domain\user2" --password2 adminpassword2 ...
@@ -554,6 +459,9 @@ and b) about a mailNickname which can be different to the username.
 As it seems you need to use the mailNickname (e.g. alias) defined 
 for user2, not the username itself.
 https://techcommunity.microsoft.com/t5/exchange-team-blog/understanding-login-strings-with-pop3-imap/ba-p/610683
+https://web.archive.org/web/20191014050543/https://techcommunity.microsoft.com/t5/Exchange-Team-Blog/Understanding-login-strings-with-POP3-IMAP/ba-p/610683
+the second link has the same content, I give it in case the first disappears,
+thanks to archive.org!
 
 A little note from John Becker.
 After you pointed out that I had issues with authorization, I realized that
@@ -599,45 +507,17 @@ Hi guys. For a long time I could not start synchronization, I use admin rights
 and the --authuser2 switch when I migrated from Mdaemon to Exchange2016. 
 I always got the error:
 "Host2 failure: Error login on [my.exchange.com] with user [mydomainuser] auth [PLAIN]: 2 NO AUTHENTICATE failed."
-In order for ImapSync to login to the user’s mailbox using administrator rights,
+In order for ImapSync to login to the user's mailbox using administrator rights,
 you need to give for the administrator the permissions to the mailbox of this
 user with the command:
-“Add-MailboxPermission -Identity DomainUser -User DomainAdmin -AccessRights FullAccess -InheritanceType All -AutoMapping $false”
+Add-MailboxPermission -Identity DomainUser -User DomainAdmin -AccessRights FullAccess -InheritanceType All -AutoMapping $false
 using Exchange Management Shell. 
 Without this, synchronization will not work. 
 Please, add this comment to the FAQ.Exchange.txt
 (done!)
 
 ======================================================================
-Q. How to migrate from or to Office 365 with an admin/authuser account?
-
-Note from Yago Torres Fernandez:
-(a working command using admin/authuser on host2 Office 365)
-
-  imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
-               --password2 XXXX --ssl2  ^
-
-but previously in Office365 you must do something like that, using powershell:
-
-  Add-MailboxPermission -identity user_to_be_migrated@domain.com -user user_admin@domain.com -accessrights fullaccess -inheritancetype all
-
-PLAIN authentication is the only way to go with --authuser1 for now.
-So don't use --authmech1 SOMETHING with --authuser1 admin_user,
-it will not work.
-Same behavior with the --authuser2 option.
-
-Note from Martin Paulucci:
-I had to remove the domain part for the user
-but not for the admin.  Example:
-
-  imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated
-
-See also:
-http://www.linux-france.org/prj/imapsync_list/msg02203.html
-
-======================================================================
-Q. How to migrate from or to Exchange 2003 with an admin/authuser 
-   account?
+Q. How to migrate from or to Exchange 2003 with an admin/authuser account?
 
 R. Thomas Edgar wrote the following
 
@@ -711,8 +591,9 @@ R1. Be sure to have at least Exchange 2010 SP2 Rollup 5
 https://tribalchicken.net/imap-sync-issues-with-exchange-2010/
 
 R2. See also the Outlook side (thanks to Martin Hochreiter for this solution)
-https://www.howto-outlook.com/faq/archivenotworking.htm
 by changing Archive to sent/receive date
+https://www.howto-outlook.com/faq/archivenotworking.htm
+https://web.archive.org/web/20190914063435/http://www.howto-outlook.com/faq/archivenotworking.htm
 
 It's often shorter to change one server than thousands clients
 so R1 might be easier to do.

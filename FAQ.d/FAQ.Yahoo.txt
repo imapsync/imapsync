@@ -1,5 +1,5 @@
 
-$Id: FAQ.Yahoo.txt,v 1.8 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.Yahoo.txt,v 1.10 2021/04/20 21:47:02 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -14,35 +14,18 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Yahoo.txt
 =======================================================================
 Q. Synchronizing from Yahoo to XXX
 
-R. Use --host1 imap.mail.yahoo.com --ssl1
+R. Use --host1 imap.mail.yahoo.com 
 
-./imapsync \
+Example:
+
+  ./imapsync \
     --host1 imap.mail.yahoo.com \
     --user1 billy \
     --password1 secret \
-    --ssl1 \
     --host2 XXX \
     --user2 billy \
     --password2 secret \
-    --noabletosearch --errorsmax 10000 
-
-SSL is mandatory for yahoo since November 2011.
-
-Why increasing --errorsmax to 10000?
-Because during the sync you may encounter several lines like this one:
-- msg Inbox/12600 {0} S[36012] F[] I[27-Nov-2015 07:08:35 +0000] could not be fetched: 190 NO [UNAVAILABLE] UID FETCH Server error while fetching messages
-- msg Inbox/12600 skipped.
-I don't know why it happens, why Yahoo server says 
-"NO [UNAVAILABLE] UID FETCH Server error while fetching messages"
-Usually another run syncs the message successfully.
-
-Why --noabletosearch option?
-Yahoo IMAP does not honor well the SEARCH imap command (Dec 2017).
-So don't use the --search option.
-You can use --minage or/and --maxage but then add also --noabletosearch
-
-Yahoo bandwidth per connection is relatively low, 50 KiB/s to 500 KiB/s max, usually 100 KiB/s.
-Consider using --useuid to speed up large accounts.
+    --noabletosearch 
 
 
 You also need to go to Yahoo, security and enable 

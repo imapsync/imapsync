@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Archiving.txt,v 1.18 2019/10/23 17:56:28 gilles Exp gilles $
+$Id: FAQ.Archiving.txt,v 1.24 2021/04/18 09:11:32 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -29,6 +29,9 @@ Q. Can imapsync be used to maintain and restore a local offline copy
 Q. How to archive a whole year in a subfolder?
 
 Q. How to archive a whole year in subfolders but without subsubfolders?
+
+
+Now the questions again with their answers.
 
 https://imapsync.lamiral.info/FAQ.d/FAQ.Archiving.txt
 =======================================================================
@@ -83,6 +86,10 @@ Examples:
   imapsync ... --user2 Bar --subfolder1 BarArchiv
 
 
+Read the previous FAQ item "How can I archive different accounts on the same 
+destination account, each account on a separate folder?"
+
+
 =======================================================================
 Q. How to move emails from one IMAP folder to another either on the 
    same IMAP server or a different one?
@@ -121,23 +128,37 @@ R2. Imapsync can't but rick-sanders-imap-tools can!
     is more dangerous than doing no backups at all. No backups makes
     people act in a safer way, well, usually...
     
-R3. Use ImportExportTools for Mozilla Thunderbird by Paolo Kaosmos. 
+R3. Use isync or mbsync
+    https://isync.sourceforge.io/
+
+R4. Use ImportExportTools for Mozilla Thunderbird by Paolo Kaosmos. 
     ImportExportTools does not do IMAP as a destination.
+
+R5. There is a free online service (French language) allowing you to do
+    a Maildir or EML or HTML backup at 
+    https://www.powermail.fr/sauvegarder-une-boite-mail/
+    Prefer Maildir or EML format if you want to be able to restore the 
+    archive. HTML format will be ok to only view the messages, not 
+    restore them to so imap server account.
+
+I have never used any of this tools so asking me for support with them 
+won't go far away.
 
 =======================================================================
 Q. How to archive a whole year in a subfolder?
 
-R.
+R. Example:
 
   imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018" \
-      --folder2 ARCHIVE_2018 --justfolders --dry
+      --folder2 ARCHIVE_2018 
 
 =======================================================================
 Q. How to archive a whole year in subfolders but without subsubfolders?
 
+R. Example:
 
   imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018" \
-             --sep2 _ --regextrans2 's{(.*)}{Archive_$1_2018}' --justfolders --dry
+             --sep2 _ --regextrans2 's{(.*)}{Archive_$1_2018}' 
 
 =======================================================================
 =======================================================================

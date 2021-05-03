@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Flags.txt,v 1.21 2019/03/08 19:04:32 gilles Exp gilles $
+$Id: FAQ.Flags.txt,v 1.26 2021/04/25 20:47:05 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -40,6 +40,8 @@ Q. Flags are resynced at each run for already synced/copied messages,
 Q. Is it possible to sync labels and stars made by Thunderbird to
    Exchange categories? Or a way in Outlook to show labels created by
    Thunderbird?
+
+Now the questions again with their answers.
 
 =======================================================================
 Q. How to debug flag issues?
@@ -205,7 +207,7 @@ On Unix:
 
   imapsync ... --regexflag 's/\\FORWARDED//gi' 
 
-or
+or (on Unix)
 
   imapsync ... --regexflag "s/\\\\FORWARDED//gi" 
 
@@ -217,11 +219,18 @@ Unix:      imapsync ...     --regexflag 's/\\Indexed//gi'
 Windows:   imapsync.exe ... --regexflag "s/\\ATTACHED//gi" 
 Unix:      imapsync ...     --regexflag 's/\\ATTACHED//gi' 
 
-All usually problematic flags in one line:
+Removing usually problematic flags in one line:
 
-Windows:   imapsync.exe ... --regexflag "s/\\FORWARDED|\\Indexed|\\ATTACHED//gi" 
-Unix:      imapsync ...     --regexflag 's/\\FORWARDED|\\Indexed|\\ATTACHED//gi' 
+Windows:   imapsync.exe ... --regexflag "s/\\FORWARDED|\\Indexed|\\ATTACHED|\\RECEIPTCHECKED//gi" 
+Unix:      imapsync     ... --regexflag 's/\\FORWARDED|\\Indexed|\\ATTACHED|\\RECEIPTCHECKED//gi' 
 
+Removing all problematic flags I've seen so far in one line:
+Windows:   imapsync.exe ... --regexflag "s/\\RECEIPTCHECKED|\\Indexed|\\X-EON-HAS-ATTACHMENT|\\UNSEEN|\\ATTACHED|\\X-HAS-ATTACH|\\FORWARDED|\\FORWARD|\\X-FORWARDED|\\\$FORWARDED|\\PRIORITY|\\READRCPT//g"
+Unix:      imapsync     ... --regexflag 's/\\RECEIPTCHECKED|\\Indexed|\\X-EON-HAS-ATTACHMENT|\\UNSEEN|\\ATTACHED|\\X-HAS-ATTACH|\\FORWARDED|\\FORWARD|\\X-FORWARDED|\\\$FORWARDED|\\PRIORITY|\\READRCPT//g'
+
+Removing all flags but the standard ones from the IMAP RFC:
+Windows:   imapsync.exe ... --regexflag "s/.*?(?:(\\(?:Answered|Flagged|Deleted|Seen|Draft)\s?)|$)/defined($1)?$1:q()/eg"
+Unix:      imapsync     ... --regexflag 's/.*?(?:(\\(?:Answered|Flagged|Deleted|Seen|Draft)\s?)|$)/defined($1)?$1:q()/eg'
 
 =======================================================================
 Q. How to convert flags with $ to \ character?

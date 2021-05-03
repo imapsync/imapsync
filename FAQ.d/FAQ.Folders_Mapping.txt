@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Folders_Mapping.txt,v 1.20 2019/07/27 20:04:57 gilles Exp gilles $
+$Id: FAQ.Folders_Mapping.txt,v 1.23 2021/04/28 23:42:04 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -11,25 +11,93 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Folders_Mapping.txt
              Imapsync tips about changing folders names.
 =======================================================================
 
-By default, imapsync syncs all folders, one by one, in alphanumeric order.
+Questions answered in this FAQ are:
 
-By default, folders names from host1 are reproduced identical on host2,
-except for the prefix and the separator which are automatically adapted
-for host2.
+Q. What is the imapsync default behaviour with folders?
 
-The IMAP protocol has a specific way to code folders names,
+Q. What encoding imapsync uses to deal with folder names?
+
+Q. How can I encode folder names for imapsync without getting a headache?
+
+Q. What are the easy ways to change folder names?
+
+Q. What should I know before playing with the --regextrans2 option?
+
+Q. How to remove the string "INBOX." in the name of destination folders?
+
+Q. How to change only INBOX name to Inbox_Migrated?
+
+Q. How to sync all folders to a single INBOX folder?
+
+Q. How to sync all folders to a single WHOLE folder?
+
+Q. How to sync a complete account in a subfolder called FOO?
+
+Q. How to substitute all characters dot "." by underscores "_" ?
+
+Q. How to substitute all doublequotes " by underscores _ ?
+
+Q. How to substitute all characters * % . and # by underscores _ ?
+
+Q. How to change folder names like this:
+[mail/Sent Items] -> [Sent]
+[mail/Test]       -> [INBOX/Test]
+[mail/Test2]      -> [INBOX/Test2]
+
+Q. Is it possible to synchronize all messages from one server to 
+   another without recreating the folder structure and the target server.
+
+Q. I would like to move emails from InBox to a sub-folder called,
+   say "2010-INBOX" based on the date. Like all emails received in the
+   year 2010 should be moved to the folder called "2010-INBOX".
+
+Q. How to sync a complete account in a subfolder called FOO,
+   the hard way?
+
+Q. How to transform all folder names to lowercase?
+
+Q. How to transform all folder names to uppercase?
+
+Q. How to transform all folder names to lowercase, except the first 
+   character in uppercase?
+
+
+Now the questions again with their answers.
+
+
+=======================================================================
+Q. What is the imapsync default behaviour with folders?
+
+R. Imapsync syncs all folders, one by one, in alphanumeric order,
+   reproducing their name identical from the source account at host1 to 
+   the destination account at host2, except for the prefix and the 
+   separator which are automatically adapted for host2.
+
+=======================================================================
+Q. What encoding imapsync uses to deal with folder names?
+
+
+R. The IMAP protocol has a specific way to code folders names,
 especially when these names use non-ascii 7bit characters.
 This encoding is called utf7imap. 
 
-Imapsync uses the same encoding as IMAP: utf7imap.
+Imapsync uses the same encoding as IMAP, it uses utf7imap.
 
-In order to well specify folders names on the command line, imapsync
-prints the complete folder list of both sides at the beginning of each run.
+=======================================================================
+Q. How can I encode folder names for imapsync without getting a headache?
+
+
+R. In order to well specify folders names on the command line, imapsync
+   prints the complete folder list of both sides at the beginning 
+   of each run.
 
 The left column is the encoding you have to use, without the first enclosing 
 square brackets [], the right column is the human utf8 view.
 
-This document gives most examples with the powerful but complex
+=======================================================================
+Q. What are the easy ways to change folder names?
+
+R. This document gives most examples with the powerful but complex
 option --regextrans2. Before using --regextrans2 you should 
 consider using --automap and --f1f2 because they are simpler 
 to understand and use.
@@ -47,8 +115,10 @@ to understand and use.
                        Add --debug to see what's really going on.)
 
 
+=======================================================================
+Q. What should I know before playing with the --regextrans2 option?
 
-Things to know and understand before playing with --regextrans2
+The things to know and understand before playing with --regextrans2 are:
 
 *) --regextrans2 is used to transform folders names.
 
@@ -101,39 +171,60 @@ Here
    ETA calculation and it's a supplementary check on folders.
 
 =======================================================================
-Q. Give examples about --regextrans2
+Q. How to remove the string "INBOX." in the name of destination folders?
 
 
-Examples: 
+R. To remove "INBOX." in the name of destination folders:
 
-1) To remove INBOX. in the name of destination folders
+On Linux:
 
   imapsync ... --regextrans2 's/^INBOX\.(.+)/$1/'
 
-2) To change only INBOX to Inbox_Migrated
+On Windows:
 
+  imapsync ... --regextrans2 "s/^INBOX\.(.+)/$1/"
+
+=======================================================================
+Q. How to change only INBOX name to Inbox_Migrated?
+
+R. 
    imapsync ... --regextrans2 's{^INBOX$}{Inbox_Migrated}'
 
 
-2a) To sync all folders to INBOX
+=======================================================================
+Q. How to sync all folders to a single INBOX folder?
+
+R. 
 
   imapsync ... --regextrans2 "s/.*/INBOX/"
 
+=======================================================================
+Q. How to sync all folders to a single WHOLE folder?
 
-2b) To sync a complete account in a subfolder called FOO
+R. 
 
-With imapsync release 1.641 and former, simply use
+  imapsync ... --regextrans2 "s,.*,WHOLE,"
+
+
+=======================================================================
+Q. How to sync a complete account in a subfolder called FOO?
+
+R. With imapsync release 1.641 and former, simply use:
 
   imapsync ... --subfolder2 FOO
-  
-Examples to this subfolder problem for any release
+
+Examples to this subfolder problem for previous releases
 can be seen below, in another Q/R section.
 
 
-3) to substitute all characters dot "." by underscores "_"
+=======================================================================
+Q. How to substitute all characters dot "." by underscores "_" ?
+
+R.
     --regextrans2 "s,\.,_,g"
 
-3b) to substitute all doublequotes " by underscores _
+=======================================================================
+Q. How to substitute all doublequotes " by underscores _ ?
 
 On Linux/Unix:
 
@@ -143,7 +234,8 @@ On Windows:
 
   --regextrans2 s,\^",_,g
 
-3c) to substitute all characters * % . and # by underscores _
+=======================================================================
+Q. How to substitute all characters * % . and # by underscores _ ?
 
 On Linux/Unix:
 
@@ -154,13 +246,14 @@ On Windows:
   --regextrans2 "tr,*%.#,_,"
 
 You can increase the *%.# list by any unwanted character,
-plus, the order doesn't count. See 3d) for &
+plus, the order doesn't count. See below for &
 
-3d) It is a bad idea to substitute & characters since &
+It is a bad idea to substitute & characters since &
 is a character to encode non-ascii characters in IMAP folder names.
 
 
-4) to change folder names like this:
+=======================================================================
+Q. How to change folder names like this:
 [mail/Sent Items] -> [Sent]
 [mail/Test]       -> [INBOX/Test]
 [mail/Test2]      -> [INBOX/Test2]
@@ -170,12 +263,56 @@ On Linux/Unix:
     --regextrans2 's,^mail/Sent Items$,Sent,' \
     --regextrans2 's,^mail/,INBOX/,'
 
+a) I want folders 'Sent', 'Sent Messages', 'Gesendet' from host1 
+    to be merged to folder 'Sent' on host2.
+
+  --regextrans2 "s{Sent|Sent Messages|Gesendet}{Sent}"
+
+b) I do not want this rule a) to apply to any subfolders,
+    e.g. 'folder/Sent' or 'folder/Sent Messages' etc. but only
+    basefolders.
+
+So you have to add an anchor character ^ meaning "beginning of the string",
+and an anchor character $ meaning "end of the string" like this:
+
+  --regextrans2 's{^Sent$|^Sent Messages$|^Gesendet$}{Sent}'
+
+c) I want just a) to be combined with a subfolder, for example:
+
+  INBOX                -> Subfolder/INBOX
+  Sent                 -> Subfolder/Sent
+  Sent Messages        -> Subfolder/Sent
+  Gesendet             -> Subfolder/Sent
+  folder/Sent          -> Subfolder/folder/Sent
+  folder/Sent Messages -> Subfolder/folder/Sent
+  folder/Gesendet      -> Subfolder/folder/Sent
+
+To achieve this, use:
+
+  --subfolder2 Subfolder --regextrans2 's{Sent|Sent Messages|Gesendet}{Sent}'
+
+d) I want a) and b) to be combined with a subfolder, for example:
+
+  INBOX                -> Subfolder/INBOX
+  Sent                 -> Subfolder/Sent
+  Sent Messages        -> Subfolder/Sent
+  Gesendet             -> Subfolder/Sent
+  folder/Sent          -> Subfolder/folder/Sent
+  folder/Sent Messages -> Subfolder/folder/Send Messages
+  folder/Gesendet      -> Subfolder/folder/Gesendet
+  ...
+
+This one is trickier to achieve:
+
+  --subfolder2 Subfolder --regextrans2 's{^Subfolder/Sent$|^Subfolder/Sent Messages$|^Subfolder/Gesendet$}{Subfolder/Sent}'
+
 
 ======================================================================
 Q. Is it possible to synchronize all messages from one server to 
-another without recreating the folder structure and the target server.
+   another without recreating the folder structure and the target server.
 
-R. Yes.
+R. Yes. This question has already been answered but a little of 
+   redundancy can't hurt, can he?
 
 For example, to synchronize all messages in all folders on host1
 to folder INBOX only on host2:
@@ -225,9 +362,10 @@ b) Manually:
 3) Cut/paste in INBOX.2010-INBOX
 
 
+
 =======================================================================
 Q. How to sync a complete account in a subfolder called FOO,
-   the hard way.
+   the hard way?
 
 R0. See the easy above using --subfolder2
 
@@ -258,24 +396,95 @@ On Linux/Unix:
 On Windows:
 
    --regextrans2 "s,(.*),FOO/$1,"
-   
-   or:
 
-  c) Any separator, any prefix solution, FOO is the subfolder:
+=======================================================================
+Q. How to transform all folder names to lowercase?
 
-  It is a complicated line because every case is taken into account.
-  Type it in one line (or with the \ at the end of first line on Unix shells.
+R. 
 
-On Linux/Unix:
+First, some documentation to understand how the regexes work.
+perldoc perlre says:
 
-   --regextrans2 's,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1,' \
-   --regextrans2 's,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,'
+  \l          lowercase next char (think vi)
+  \u          uppercase next char (think vi)
+  \L          lowercase till \E (think vi)
+  \U          uppercase till \E (think vi)
+  \E          end case modification (think vi)
+  \Q          quote (disable) pattern metacharacters till \E
+
+
+On Linux:
+
+If the separator on host2 is the character slash "/", use:
+
+  --regextrans2 's,([^/]+),\L$1\E,g'
+
+If the separator on host2 is the character dot ".", use:
+
+  --regextrans2 's,([^.]+),\L$1\E,g'
 
 On Windows:
 
-  --regextrans2 "s,${h2_prefix}(.*),${h2_prefix}FOO${h2_sep}$1," ^
-  --regextrans2 "s,^INBOX$,${h2_prefix}FOO${h2_sep}INBOX,"
+If the separator on host2 is the character slash "/", use:
 
-  
+  --regextrans2 "s,([^/]+),\L$1\E,g"
+
+If the separator on host2 is the character dot ".", use:
+
+  --regextrans2 "s,([^.]+),\L$1\E,g"
+
+
+=======================================================================
+Q. How to transform all folder names to uppercase?
+
+R. 
+
+On Linux:
+
+If the separator on host2 is the character slash "/", use:
+
+  --regextrans2 's,([^/]+),\U$1\E,g'
+
+If the separator on host2 is the character dot ".", use:
+
+  --regextrans2 's,([^.]+),\U$1\E,g'
+
+On Windows:
+
+If the separator on host2 is the character slash "/", use:
+
+  --regextrans2 "s,([^/]+),\U$1\E,g"
+
+If the separator on host2 is the character dot ".", use:
+
+  --regextrans2 "s,([^.]+),\U$1\E,g"
+
+=======================================================================
+Q. How to transform all folder names to lowercase, except the first 
+   character in uppercase?
+
+R. 
+
+On Linux:
+
+If the separator on host2 is the character slash "/", use:
+
+  --regextrans2 's,([^/]+),\u\L$1\E,g'
+
+If the separator on host2 is the character dot ".", use:
+
+  --regextrans2 's,([^.]+),\u\L$1\E,g'
+
+On Windows:
+
+If the separator on host2 is the character slash "/", use:
+
+  --regextrans2 "s,([^/]+),\u\L$1\E,g"
+
+If the separator on host2 is the character dot ".", use:
+
+  --regextrans2 "s,([^.]+),\u\L$1\E,g"
+
+
 =======================================================================
 =======================================================================

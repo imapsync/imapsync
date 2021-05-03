@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.APPEND_errors.txt,v 1.6 2019/02/16 22:38:49 gilles Exp gilles $
+$Id: FAQ.APPEND_errors.txt,v 1.12 2021/02/10 19:42:42 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -11,15 +11,71 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.APPEND_errors.txt
 
 Questions answered in this FAQ are:
 
+
+Q. I have an "could not append" error with "Message contains invalid header" at
+   the end, like:
+   Err 1/20: - msg INBOX/6 {40666} could not append ... NO Message contains invalid header
+   What can I do to transfer these emails?
+
 Q. For some messages, the imapsync log says 
    "could not append", sometimes followed by an explicit message 
    describing what went wrong, or sometimes followed by a not very
    useful message "socket closed while reading data from server"
    What can I do?
 
-R0. Well, the problem is that the "socket closed ..." error message happens
-    in several different issues. So I list here several potential issues
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. I have an "could not append" error with "Message contains invalid header" 
+   at the end, like:
+   Err 1/20: - msg INBOX/6 {40666} could not append ... NO Message contains invalid header
+   What can I do to transfer these emails?
+
+R0. Append in the IMAP protocol is the command to add a message in the folder.
+    The error string "NO. Message contains invalid header" comes from the 
+    destination IMAP server at host2, it doesn't like the message and rejects it.
+   
+R1. Header lines must be in 7bit encoding.
+   If they aren't in 7bit the IMAP server can refuse them as they break 
+   the IMAP RFC specification.
+
+   A solution is to transform all 8bit characters to the X character with:
+   
+   imapsync ... --regexmess 'tr [\x80-\xff] [X]'
+
+   Caveat: this transformation transforms both the email header and its body.
+   It's not perfect but I guess it's better than no message transferred.
+
+R2. Some crappy email systems, like virus checkers or any other crappy 
+    software tool dealing with your messages, can add headers to tell 
+    the world that they've done a great job. But sometimes they didn't,
+    and they fucked up your messages by not respecting the standard
+    and added ugly non-rfc compliant headers.
+    
+    To remove an ugly header, let's call it "X-Spam-Report", that spreads over 
+    several lines beginning or, that's the ugly part, not beginning with a space:
+
+    imapsync ... --regexmess 's{X-Spam-Report:.*?\n(^[a-zA-Z0-9\-]+:|^\r?\n)}{$1}xms'
+
+    Thanks to Damien SAUTEREAU for reporting and solving this issue.
+    
+
+=======================================================================
+Q. For some messages, the imapsync log says 
+   "could not append", sometimes followed by an explicit message 
+   describing what went wrong, or sometimes followed by a not very
+   useful message "socket closed while reading data from server"
+   What can I do?
+
+R0. Append errors are host2 problems, append is the imap term to copy 
+    a message to the destination account. 
+    A problem is that the assosiated "socket closed ..." error message happens
+    for several different issues. So I list here several potential issues
     and their solutions if they exist.
+    R1 deals about too long lines in messages on Windows.
+    R2 deals about too long lines in messages on Unix.
+    R3 deals with quota reached.
 
 R1. On Windows, add --regexmess "s,(.{9900}),$1\r\n,g"
 
@@ -77,5 +133,8 @@ OPTIONS
        contains eight-bit characters to quoted-printable encoding.
 
        
-R2. 
-       
+R3. Look for the quota limit on host2. If it is the current mailbox size, don't
+    search elsewhere. Increase the quota on the destination account.
+
+=======================================================================
+=======================================================================

@@ -1,0 +1,127 @@
+#!/bin/cat
+$Id: FAQ.Cyrus.txt,v 1.2 2021/02/19 13:39:03 gilles Exp gilles $
+
+=======================================================================
+             Imapsync tips for the Cyrus imap server
+=======================================================================
+
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Cyrus.txt
+
+
+Questions answered in this FAQ are:
+
+Q. How to migrate from cyrus with an admin account?
+
+Q. I'm migrating from WU to Cyrus, and the mail folders are under
+   /home/user/mail but the tool copies everything in /home/user, how
+   can i avoid that?
+
+Q. I'm migrating from WU to Cyrus, and the mail folders are under
+   /home/user/mail directory.  When imapsync creates the folders in
+   the new cyrus imap server, it makes a folder "mail" and below that
+   folder puts all the mail folders the user have in /home/user/mail,
+   i would like to have all those folders directly under INBOX.
+
+Q. Migrating from Groupwise to Cyrus
+
+Now the questions again with their answers.
+
+
+======================================================================
+Q. How to migrate from cyrus with an admin account?
+
+R. Use:
+ 
+ imapsync ... \
+   --authuser1 admin_user  ----password1 admin_user_password \
+   --user1 foo_user --ssl1
+
+Instead of --ssl1 the alternative --tls1 can be used.
+With --authuser1, the option --authmech1 PLAIN is set
+automatically, you don't have to add it.
+
+PLAIN authentication is the only way to go with --authuser1 for now.
+So don't use --authmech1 SOMETHING with --authuser1 admin_user,
+it will not work.
+Same behavior with the --authuser2 option.
+
+Do not forget the option --ssl1 or --tls1 since PLAIN auth is only
+supported with ssl encryption most of the time. But it can
+work without --ssl1 nor --tls1 if PLAIN is permitted in clear text
+transmissions (the normal mode).
+
+Add the AdminAccount to admins line in /etc/imapd.conf
+Give AdminAccount lrswipkxtecda to the Cyrus Imap account 
+being migrated from, "joe" here.
+
+
+Here is an example:
+ imapsync \
+	--host1 server1 \
+	--user1 joe \
+	--authuser1 AdminAccount \
+	--password1 AdminAccountPassword \
+	--ssl1 \
+	--host2 server2 \
+	--user2 joe \
+	--password2 joespassonserver2 \
+	--exclude "^user\."
+
+=======================================================================
+Q. I'm migrating from WU to Cyrus, and the mail folders are under
+   /home/user/mail but the tool copies everything in /home/user, how
+   can i avoid that?
+
+Two solutions:
+
+R. Use
+   imapsync ... --include '^mail'
+
+R. or (better)
+   imapsync ... --subscribed --subscribe
+
+=======================================================================
+Q. I'm migrating from WU to Cyrus, and the mail folders are under
+   /home/user/mail directory.  When imapsync creates the folders in
+   the new cyrus imap server, it makes a folder "mail" and below that
+   folder puts all the mail folders the user have in /home/user/mail,
+   i would like to have all those folders directly under INBOX.
+
+R. Use 
+   imapsync ... --regextrans2 's/^mail/INBOX/' --dry
+   look at the simulation and if all transformations seem
+   good then remove the --dry option.
+
+
+=======================================================================
+Q. Migrating from Groupwise to Cyrus
+
+R. By Jamie Neil:
+
+I eventually managed to get the mail to migrate without errors using the 
+following options:
+
+--maxage 3650
+  - some messages just don't seem to want to transfer and produce the 
+    perl errors I mentioned before. This prevents the errors, but the
+    bad messages don't transfer.
+
+Even though the mail migrated OK, there are a couple of gotchas with 
+Groupwise IMAP:
+
+1) Some of the GW folders are not real folders and are not available
+to IMAP, the main problem one being "Sent Items". I could find no way
+of coping the contents of these folders. The nearest I got was to
+create a "real" folder and copy/move the sent items into it, but
+imapsync still didn't see the messages (I think because there is
+something funny about the reported dates/sizes).
+
+It think this problem has been rectified in GW6.5.
+
+2) Version 6.0.1 of the Groupwise Internet Connector sucks. I was 
+getting server aborts when I pushed it a bit hard! I eventually had to
+upgrade to 6.0.4 which seems to be a lot more stable.
+
+=======================================================================

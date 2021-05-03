@@ -1,0 +1,65 @@
+$Id: FAQ.Two_Ways_Sync.txt,v 1.4 2021/02/01 15:43:33 gilles Exp gilles $
+
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Two_Ways_Sync.txt
+
+
+=======================================================================
+             Two ways sync with Imapsync 
+=======================================================================
+
+
+Questions answered in this FAQ are:
+
+Q. Can Imapsync do a good "two ways" sync? 
+   No. Why?
+
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. Can Imapsync do a good "two ways" sync? 
+   No. Why?
+
+R. Imapsync can't do good two ways syncs.
+
+A good "two ways" sync is impossible with imapsync because imapsync is
+stateless.
+
+Each time imapsync runs, it considers messages and folders as if it
+were the first time it encounters them. Imapsync looks at messages,
+flags, and folders as they are now, not considering what they were
+before. Imapsync has no memory outside the current running sync.
+
+So now, why a stateless behavior cannot handle well a two ways sync
+between an account A and an account B?
+
+The problem arises with deletions, messages deletions, folders
+deletions, or movings, messages movings across folders, folders
+movings, and also folders renamings. Deletions and moves are ambiguous
+changes when combined with creations on the opposite side.
+ 
+For example, when a message is deleted from A by a user, imapsync
+cannot know whether it is a message deleted from A that has to be
+deleted in B (what the user did) or a missing message from B that has
+to be copied to A.
+
+But if you know the answer yourself, that missing messages on one side
+A are deleted messages that have to be deleted on the other side then
+run a sync with the --delete2 option from A to B.
+
+If you know that the missing messages on A are missing messages from B
+that has to be copied to A then run a sync from B to A.
+
+If you know it's a mixed scenario then you are in trouble and so you
+end up with a not very good "two ways" sync. I suggest avoiding
+deletions in that case, which is the default imapsync behavior.
+
+With a two ways sync, the mailbox user is very surprised and
+disapointed when his actions (deletions, renamings, or movings) come
+back.
+
+=======================================================================
+=======================================================================
+

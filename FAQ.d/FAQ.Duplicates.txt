@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Duplicates.txt,v 1.20 2019/05/17 10:10:30 gilles Exp gilles $
+$Id: FAQ.Duplicates.txt,v 1.23 2021/04/22 13:28:41 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -8,6 +8,38 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Duplicates.txt
 =======================================================================
             Imapsync tips about duplicated messages issues.
 =======================================================================
+
+
+Questions answered in this FAQ are:
+
+Q. How does imapsync identify messages and duplicates?
+
+Q. How can I know if imapsync will generate duplicates on a second run?
+
+Q: I found multiple copies, duplicates, when I run imapsync twice or
+   more. What is hell is happening?
+   
+Q. imapsync calculates 479 messages in a folder but only transfers 400 
+   messages. What is happening?
+
+Q. imapsync doesn't synchronize duplicates by default but I want to.
+   How can I synchronize duplicates?
+
+Q. How can I remove duplicates in a lone account?
+
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. How does imapsync identify messages and duplicates?
+
+R. Imapsync by default identify messages by their headers "Message-Id" 
+   and "Received". Usually, for a given message, "Message-Id" appears one
+   time while multiple "Received" headers are common.
+   
+   For imapsync, messages with the same "Message-Id" and "Received" headers 
+   are consider identical, ie, duplicates.
+
 
 =======================================================================
 Q. How can I know if imapsync will generate duplicates on a second run?
@@ -32,7 +64,8 @@ Messages transferred              : 0
 Messages skipped                  : 1555
 
 =======================================================================
-Q: Multiple copies, duplicates, when I run imapsync twice ore more. 
+Q: I found multiple copies, duplicates, when I run imapsync twice or
+   more. What is hell is happening?
 
 R0. First, some explanations to understand the issue. 
 Normally and by default, imapsync doesn't generate duplicates.
@@ -172,7 +205,7 @@ trick to keep the --useheader filtering behavior is to use
 
 =======================================================================
 Q. imapsync calculates 479 messages in a folder but only transfers 400 
-   messages. What's happen?
+   messages. What is happening?
 
 R1. Unless --useuid is used, imapsync considers a header part 
    of a message to identify a message on both sides.
@@ -189,6 +222,38 @@ The result is that you can have more messages on host1 than on host2.
 R2. With option --useuid imapsync doesn't use headers to identify
     messages on both sides but it uses their imap uid identifier.
     In that case duplicates on host1 are also transferred on host2.
+
+=======================================================================
+Q. imapsync doesn't synchronize duplicates by default but I want to.
+   How can I synchronize duplicates?
+
+R. Use the option --useuid
+   If you have already synchronized two mailboxes without --useuid then
+   using it right away will generate duplicates on host2. To avoid that
+   behavior, you have to perform a first run with --usecache to build
+   the local UID cache. Then the next runs with --useuid 
+
+   There are potentially issues with --usecache. They can be solved.
+   Read the document FAQ.Use_cache.txt 
+   https://imapsync.lamiral.info/FAQ.d/FAQ.Use_cache.txt
+
+   So to finalise how to synchronize duplicates:
+   
+   imapsync ... --tmpdir . --usecache 
+
+   imapsync ... --tmpdir . --useuid
+   imapsync ... --tmpdir . --useuid
+   ...
+
+   Here --tmpdir value is the dot "." meaning "current directory".
+   Surrounding it with double-quotes is optional.
+
+   If the two mailboxes haven't been already synchronized then the
+   first run with --usecache is useless.
+
+   I shall add an option --syncduplicates that syncs duplicates 
+   without any cache needed and make it the default but it's not 
+   coded yet.
 
 =======================================================================
 Q. How can I remove duplicates in a lone account?

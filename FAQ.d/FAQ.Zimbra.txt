@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Zimbra.txt,v 1.6 2019/06/25 00:15:16 gilles Exp gilles $
+$Id: FAQ.Zimbra.txt,v 1.11 2021/04/18 09:15:45 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -15,14 +15,56 @@ https://wiki.zimbra.com/wiki/Guide_to_imapsync
 It's obsolete and it will give you, and me, more difficulties than 
 doing a standard sync without additional options.
 
+Questions answered in this FAQ are:
+
+Q. How to migrate from Zimbra to XXX?
+
+Q. How to migrate from Zimbra with an admin account?
+
+Q. I got this "NO APPEND failed" error:
+could not append ( Subject:... Flags:[\Flagged \Seen EmailswithStickyNotes:FLAG51135] ) 
+to folder XXX: 316 NO APPEND failed
+What can I do?
+
+Q. Zimbra disconnects without reason
+   Could not select: * BYE ... Zimbra IMAP4rev1 server closing connection
+
+
+Now the questions again with their answers.
+
 
 =======================================================================
-Q. From Zimbra to XXX
+Q. How to migrate from Zimbra to XXX?
 
-  imapsync ... \
-        --exclude "Conversation Action Settings" \
-        --exclude "Quick Step Settings" \
-        --exclude "News Feed"
+The basic default (only credendials) should work fine with Zimbra.
+
+
+=======================================================================
+Q. How to migrate from Zimbra with an admin account?
+
+R. Use:
+
+  imapsync ... --user1 "normal_user" --authuser1 "admin_user"  --password1 "admin_user_password"
+
+To setup or use a Zimbra admin user see:
+https://zimbra.github.io/adminguide/8.8.9/index.html#_administrator_accounts
+
+Thanks to Richard Street from thinkround for this tip.
+
+=======================================================================
+Q. I got this "NO APPEND failed" error:
+could not append ( Subject:... Flags:[\Flagged \Seen EmailswithStickyNotes:FLAG51135] ) 
+to folder XXX: 316 NO APPEND failed
+What can I do?
+
+R1.
+https://zimbra.github.io/adminguide/8.8.10/index.html
+Flagging
+Users can create flags and assign them to messages, contacts, and files in Briefcase folders.
+In the Admin Console, see COS -> Features -> Mail Features container
+
+Is Flagging on on host2? 
+If yes, see https://imapsync.lamiral.info/FAQ.d/FAQ.Flags.txt
 
 =======================================================================
 Q. Zimbra disconnects without reason
@@ -36,18 +78,6 @@ R. The cause of this problem may be that some users have a subscription
    It should work after removing the locked/shared folder.
 
    Thanks to Danny Herrlitz for this input!
-
-=======================================================================
-Q. How to migrate from Zimbra with an admin account?
-
-R. Use:
-
-  imapsync ... --user1 "normal_user" --authuser1 "admin_user"  --password1 "admin_user_password"
-
-To setup or use a Zimbra admin user see:
-https://zimbra.github.io/adminguide/8.8.9/index.html#_administrator_accounts
-
-Thanks to Richard Street from thinkround for this tip.
 
 =======================================================================
 =======================================================================

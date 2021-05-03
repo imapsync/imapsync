@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Massive.txt,v 1.30 2019/07/24 12:01:41 gilles Exp gilles $
+$Id: FAQ.Massive.txt,v 1.31 2020/10/15 01:53:52 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -67,8 +67,26 @@ R2. To estimate the presync period, consider the mean imapsync transfer
     Double the time because the best scenario never happens.
     Triple the time because, well, real world is like that.
 
-R3. To estimate the last period, just rerun a complete presync,
-    ie, resync all the mailboxes, the final sync should take 
+R3. An other way to better evaluate the end of the presync period can 
+    be based on your actual data. Just apply a simple rule of three 
+    on the mailboxes already migrated to estimate the global end.
+    If it took X hours to finish Y% of the mailboxes, then it
+    will take 100*X/Y hours to finish 100% of the mailboxes.
+
+    Following the same idea but using matematical garbage, 
+    the ETA can be estimated like this: 
+    t_0      = time of global start (the start of the first presync)
+    t_now    = time of now.
+    Nb_total = total number of mailboxes to be migrated.
+    Nb_now   = number of mailboxes already migrated.
+    
+    then
+    
+    ETA = t_end = (t_now - t_0) * (Nb_total / Nb_now) + t_0
+
+
+R4. To estimate the last period, the final sync, just rerun a complete 
+    presync, ie, resync all the mailboxes, the final sync should take 
     the same amount of time.
     
 =======================================================================
@@ -178,7 +196,7 @@ Here comes some measurements.
      dstat -n -N eth0 6  # Linux only (in 2018)
 
    Another excellent tool to measure the network trafic is iftop.
-   The following command will monitor imap and imaps connections
+   The following command will monitor imap and imaps connexions
    on interfce eth0, only them, and sum them up:
    
      iftop -i eth0 -f 'port imap or port imaps' -B # Linux
@@ -250,9 +268,9 @@ Possible bottlenecks:
 
 - Bandwidth. 
   Usually available bandwidth is NOT a bottleneck.
-  Meanwhile, it can be a bottleneck on small Internet connections.
+  Meanwhile, it can be a bottleneck on small Internet connexions.
   Imapsync downloads messages from host1 and upload messages to host2,
-  consider this in case the connections are asymmetric.
+  consider this in case the connexion are asymmetric.
   
 - I/O on disks. 
   I/O are a classical bottleneck, almost always forgotten.
