@@ -1,17 +1,33 @@
-name: Docker Image CI
+name: Docker Multi-Arch Build & Push
 
 on:
   push:
-    branches: [master]
+    branches:
+      - 'master'
+    tags:
+      - '[1-9]+.[0-9]+'
   pull_request:
-    branches: [master]
+      branches:
 
 jobs:
   buildx:
     runs-on: ubuntu-latest
     steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGENAME }}
+          tag-semver: |
+            {{version}}
+            {{major}}. {{minor}}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -19,3 +35,12 @@ jobs:
         uses: docker/setup-buildx-action@v1
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
+      - name: Build and push
+        uses: docker/build-push-action@v2      
+        with:
+          context: .
+          file: ./INSTALL.d/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm,linux/s390x
+          push: ${{ github.event_name != 'pull_request' && steps.docker_meta.outputs.version != 'master' }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
