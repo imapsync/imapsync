@@ -1,5 +1,5 @@
 
-$Id: FAQ.Yahoo.txt,v 1.10 2021/04/20 21:47:02 gilles Exp gilles $
+$Id: FAQ.Yahoo.txt,v 1.12 2021/05/04 11:04:51 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -10,6 +10,31 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Yahoo.txt
                      Imapsync tips for Yahoo.
 =======================================================================
 
+Questions answered in this FAQ are:
+
+Q. Synchronizing from Yahoo to XXX
+
+Q. Synchronizing from XXX to Yahoo
+
+Now the questions again with their answers.
+
+Some explanation about the options given later:
+
+https://imapsync.lamiral.info/README
+...
+ --noabletosearch    : Makes --minage and --maxage options use the internal 
+                       dates given by a FETCH imap command instead of the 
+                       "Date:" header. Internal date is the arrival date 
+                       in the mailbox.
+                       --noabletosearch equals --noabletosearch1 --noabletosearch2
+
+ --regexmess    reg  : Apply the whole regex to each message before transfer.
+                       Example: 's/\000/ /g' # to replace null by space.
+ --regexmess    reg  : and this one, etc.
+
+I'm not sure anymore about the need of --noabletosearch with Yahoo, maybe
+they fixed the issue about the standard imap searching command SEARCH
+they didn't honor before.
 
 =======================================================================
 Q. Synchronizing from Yahoo to XXX
@@ -20,11 +45,11 @@ Example:
 
   ./imapsync \
     --host1 imap.mail.yahoo.com \
-    --user1 billy \
-    --password1 secret \
+    --user1 Billy@yahoo.com \
+    --password1 billysecreta \
     --host2 XXX \
-    --user2 billy \
-    --password2 secret \
+    --user2 Billy@other.com \
+    --password2 billysecretb \
     --noabletosearch 
 
 
@@ -53,6 +78,28 @@ Another solution:
     since it is not in the predefined apps.
   * Use this password with imapsync.
 
+=======================================================================
+Q. Synchronizing from XXX to Yahoo
+
+R. Example:
+
+  ./imapsync \
+    --host1 XXX \
+    --user1 Billy@other.com \
+    --password1 billysecreta \
+    --host2 imap.mail.yahoo.com \
+    --user2 Billy@yahoo.com \
+    --password2 billysecretb \
+    --noabletosearch --regexmess "s{(?<![\n])\z}{\r\n}gxms"
+
+You wonder why there is this ugly regex, what it does and where does it 
+come from?
+
+It's there to get rid of the errors 
+"BAD [CLIENTBUG] Additional arguments found after last expected argument"
+when copying some messages to Yahoo.
+It adds a final \r\n on a message if a final \r\n is missing.
+See https://github.com/imapsync/imapsync/issues/209
 
 =======================================================================
 =======================================================================

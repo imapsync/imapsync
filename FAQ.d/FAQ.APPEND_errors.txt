@@ -1,19 +1,19 @@
 #!/bin/cat
-$Id: FAQ.APPEND_errors.txt,v 1.12 2021/02/10 19:42:42 gilles Exp gilles $
+$Id: FAQ.APPEND_errors.txt,v 1.13 2021/05/29 07:58:44 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.APPEND_errors.txt
 
-=======================================================================
+======================================================================
               Dealing with Imapsync APPEND errors.
-=======================================================================
+======================================================================
 
 Questions answered in this FAQ are:
 
 
-Q. I have an "could not append" error with "Message contains invalid header" at
-   the end, like:
+Q. I have an "could not append" error with 
+   "Message contains invalid header" at the end, like:
    Err 1/20: - msg INBOX/6 {40666} could not append ... NO Message contains invalid header
    What can I do to transfer these emails?
 
@@ -23,14 +23,19 @@ Q. For some messages, the imapsync log says
    useful message "socket closed while reading data from server"
    What can I do?
 
+Q. The append error message is "NO Message contains NUL characters"
+   What can I do?
+
 
 Now the questions again with their answers.
 
-=======================================================================
-Q. I have an "could not append" error with "Message contains invalid header" 
-   at the end, like:
+
+======================================================================
+Q. I have an "could not append" error with 
+   "Message contains invalid header" at the end, like:
    Err 1/20: - msg INBOX/6 {40666} could not append ... NO Message contains invalid header
    What can I do to transfer these emails?
+
 
 R0. Append in the IMAP protocol is the command to add a message in the folder.
     The error string "NO. Message contains invalid header" comes from the 
@@ -40,12 +45,16 @@ R1. Header lines must be in 7bit encoding.
    If they aren't in 7bit the IMAP server can refuse them as they break 
    the IMAP RFC specification.
 
-   A solution is to transform all 8bit characters to the X character with:
+   A solution is to transform all 8bit characters to the Z character with:
    
-   imapsync ... --regexmess 'tr [\x80-\xff] [X]'
+   imapsync ... --regexmess "tr [\x80-\xff] [Z]"
 
    Caveat: this transformation transforms both the email header and its body.
    It's not perfect but I guess it's better than no message transferred.
+   So consider using it in a second pass, not the first, as 8-bit 
+   characters in the body message are allowed and changing them when
+   not needed is not a good thing.
+
 
 R2. Some crappy email systems, like virus checkers or any other crappy 
     software tool dealing with your messages, can add headers to tell 
@@ -61,7 +70,7 @@ R2. Some crappy email systems, like virus checkers or any other crappy
     Thanks to Damien SAUTEREAU for reporting and solving this issue.
     
 
-=======================================================================
+======================================================================
 Q. For some messages, the imapsync log says 
    "could not append", sometimes followed by an explicit message 
    describing what went wrong, or sometimes followed by a not very
@@ -136,5 +145,22 @@ OPTIONS
 R3. Look for the quota limit on host2. If it is the current mailbox size, don't
     search elsewhere. Increase the quota on the destination account.
 
-=======================================================================
-=======================================================================
+======================================================================
+Q. The append error message is "NO Message contains NUL characters"
+   What can I do?
+
+R. Use:
+
+  imapsync ...  --skipmess "m/(\x00)+\Z/"
+
+The option --skipmess skips messages matching a pattern, the 
+messages are not synced, you just avoid the error messages concerning
+those messages.
+
+If you want to sync them, use instead:
+
+  imapsync ...  --regexmess "s/(\x00)+\Z//g"
+
+
+======================================================================
+======================================================================

@@ -1,0 +1,699 @@
+#!/bin/sh
+
+# $Id: imapsync_csv_wrapper,v 1.5 2020/05/01 21:26:30 gilles Exp gilles $
+
+exec 3>&1
+
+debug=/bin/true
+debug=/bin/false
+
+echo3() {
+        echo "$@" >&3
+}
+
+echodebug()
+{
+        $debug && echo3 "$@"
+}
+
+
+run_test() {
+        tests_count=`expr 1 + $tests_count`
+        # do not run anything between the two following instructions
+        "$@"; run_test_status=$?
+        # now you can run something since $? is saved
+        if test x"$run_test_status" = x"0"; then
+                echo "ok $tests_count $@"
+        else
+                echo "not ok $tests_count $@"
+                tests_failed_count=`expr 1 + $tests_failed_count`
+                tests_failed_list="$tests_failed_list $tests_count"
+        fi
+        return $run_test_status
+}
+
+
+run_tests() {
+        tests_count=0
+        tests_failed_count=0
+        tests_failed_list=
+        for t in "$@"; do
+                echo "### running $t"
+                "$t"
+        done
+        echo 
+        echo "#### ALL tests done"
+        if test 0 -eq $tests_failed_count; then
+                echo "ALL $tests_count TESTS SUCCESSFUL"
+                return 0
+        else
+                # At least one failed
+                echo "FAILED $tests_failed_count/$tests_count TESTS: $tests_failed_list"
+                return 1
+        fi
+}
+
+
+uri_unescape()
+{
+        #echo "$@" | perl -MURI::Escape -e 'print uri_unescape(<>)'
+        echo "$1" | perl -pe 's/\%(\w\w)/chr hex $1/ge' 
+}
+
+tests_uri_unescape()
+{
+        run_test test '' = ''
+        run_test test "" = ""
+        run_test test '1' = '1'
+        run_test test 'A B' = 'A B'
+        run_test test "'A B' = 'A B'"
+        run_test test '' = "`uri_unescape`"
+        run_test test "" = "`uri_unescape`"
+        run_test test 'A' = `uri_unescape A`
+        run_test test 'The cat' = "`uri_unescape The%20cat`"
+        run_test test "\r" = "\r"
+        run_test test '"\r" = "`uri_unescape %0D`"'
+        run_test test "\n" = "\n"
+        nl=`uri_unescape %0A`
+        nl="\n"
+        run_test test "_\n_" = "_${nl}_"
+        run_test test '!"#$%&'\''()' = "`uri_unescape %21%22%23%24%25%26%27%28%29`"
+        run_test test '*+,/:;=?@[]' = "`uri_unescape %2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D`"
+
+        run_test test '"_a\n\n\nz_" = "_`uri_unescape a%0A%0A%0Az`_"'
+        run_test test '"_`uri_unescape a%0A%0A%0Az`_" = "_`uri_unescape a%0A%0A%0Az`_"'
+        run_test test 'A B' = 'A B'
+        uri_unescape 'a%0A%0A%0Az'    > /tmp/$$_zzz1.txt
+        /bin/echo -e "a\n\n\nz"       > /tmp/$$_zzz2.txt
+        run_test diff /tmp/$$_zzz1.txt /tmp/$$_zzz2.txt
+        rm /tmp/$$_zzz1.txt /tmp/$$_zzz2.txt
+        z3=`uri_unescape a%0A%0A%0Az`
+        z4="a\n\n\nz"
+        run_test test '"$z3" = "$z4"'
+        run_test test '"\n" = "`uri_unescape %0A`"'
+        #run_test test '\n' = "`uri_unescape %0A`"
+        run_test test '"a\r\nz" = "a\r\nz"'
+        run_test test '"_a\r\nz_" = "`uri_unescape _a%0D%0Az_`"'
+        run_test test 'A' = `uri_unescape A`
+}
+
+
+value_of_key()
+{
+        key="$1"
+        test 1 -le "$#" && shift 
+        keyval="$1"
+        #echo "key:$key"
+        #echo "keyval:$keyval"
+        #set -x
+        echo "$keyval" | perl -ne "s/^.*$key"'=([^&]+).*$/$1/ and print'
+        #set +x
+}
+
+tests_value_of_key()
+{
+        run_test test "" = "`value_of_key`"
+        run_test test "" = "`value_of_key badkey`"
+        run_test test "" = "`value_of_key badkey mykey=myvalue`"
+        run_test test "myvalue" = "`value_of_key mykey mykey=myvalue`"
+        run_test test "myvalue" = `value_of_key mykey "mykey=myvalue"`
+        run_test test "myvalue" = `value_of_key mykey "mykey=myvalue&other=rrr"`
+        run_test test "myvalue" = `value_of_key mykey "otra=zzz&mykey=myvalue"`
+        run_test test "myvalue" = `value_of_key mykey "otra=zzz&mykey=myvalue&other=rrr"`
+        
+}
+
+
+remove_blanks_and_comments()
+{
+        /bin/echo -n ''
+        echo "$1" | perl -ne '!/^ *#.*$|^[\r ]*$/ && print'
+}
+
+tests_remove_blanks_and_comments()
+{
+        #set -x
+        run_test test "" = "`remove_blanks_and_comments`"
+        run_test test "a" = "`remove_blanks_and_comments a`"
+
+        myval="
+"
+        run_test test "" = "`remove_blanks_and_comments $myval`"
+        
+        myval="a
+"
+        run_test test "a" = "`remove_blanks_and_comments $myval`"
+        
+        myval="
+a
+"
+        run_test test "a" = "`remove_blanks_and_comments $myval`"
+        
+        myval="
+a
+"
+        run_test test "a" = "`remove_blanks_and_comments $myval`"
+        
+        myval="a
+b"
+        run_test test '"$myval" = `remove_blanks_and_comments $myval`'
+        
+        myval="# caca
+a
+"
+        run_test test '"a" = "`remove_blanks_and_comments $myval`"'
+
+        myval="# caca
+a
+
+b
+  # ooo
+  
+c
+"
+
+myval_filtered="a
+b
+c
+"
+        run_test test '"$myval_filtered" = "`remove_blanks_and_comments $myval`"'
+
+
+        run_test remove_blanks_and_comments
+        run_test remove_blanks_and_comments ' '
+        run_test remove_blanks_and_comments ' # blabla  '
+
+        run_test test "" = "`remove_blanks_and_comments ' ' `"
+        run_test test "" = "`remove_blanks_and_comments '  # blabla ' `"
+
+}
+
+is_blank_or_comment()
+{
+        test "" = "`remove_blanks_and_comments $1 `"
+}
+
+tests_is_blank_or_comment()
+{
+        run_test is_blank_or_comment
+        run_test is_blank_or_comment ''
+        run_test is_blank_or_comment '  '
+        run_test is_blank_or_comment '# blabla 1 '
+        run_test is_blank_or_comment '  # blabla 2 '
+        is_blank_or_comment 'blabla 1 ' ; run_test test 1 = $?
+        is_blank_or_comment '  blabla 2 ' ; run_test test 1 = $?
+        is_blank_or_comment '  blabla 3 # blibli ' ; run_test test 1 = $?
+}
+
+
+logfailures()
+{
+        :
+}
+
+tests_logfailures()
+{
+        :
+}
+
+
+
+run_on_each_line()
+{
+        echodebug '### Entering run_on_each_line ###'
+        test -f abort_$$.txt && { echo abort demanded so not doing normal stuff ; return ; }
+        /bin/echo -n ''
+        
+        test -z "$1" && { echo3 'First parameter is empty. Leaving run_on_each_line().' ;  return ; }
+        csv_data_multilines="$1"
+        echodebug "csv_data_multilines=[$csv_data_multilines]"
+        
+        test 1 -le "$#" && shift
+        failures_file=${1:-""}
+        echodebug failures_file="$failures_file"
+        
+        test -x "$failures_file" && { echo3 "failure file $failures_file is an executable. Leaving run_on_each_line()." ;  return ; }
+        
+        test 1 -le "$#" && shift
+        command=${1:-echo}
+        echodebug command="$command" "$@"
+
+        test 1 -le "$#" && shift
+        
+        
+        line_number=0
+        csv_number=0
+        failures_number=0
+        echo "$csv_data_multilines" | while IFS=';' read h1 u1 p1 h2 u2 p2 fake; do
+                test -f abort_$$.txt && { echo abort demanded so not doing normal stuff ; return ; }
+                line_number=`expr 1 + $line_number`
+                if is_blank_or_comment "$h1$u1$p1$h2$u2$p2$fake" ; then
+                        echo3 "Ignoring   line " $line_number "$h1$u1$p1$h2$u2$p2$fake"
+                else 
+                        csv_number=`expr 1 + $csv_number`
+                        echo3 "Processing line " $line_number run $csv_number "[$h1] [$u1] [xxx] [$h2] [$u2] [xxx] [$fake] $$"
+                        $command "$@" --host1 "$h1" --user1 "$u1" --password1 "$p1" --host2 "$h2" --user2 "$u2" --password2 "$p2"
+                        command_status=$?
+                        test "0" != "$command_status" && failures_number=`expr 1 + $failures_number`
+                        logfailures "$failures_file" "$command_status" "$line_number" "$csv_number" 
+                fi
+        done
+        echodebug Leaving run_on_each_line
+        test "0" != "$failures_number" && return 1
+        return 0
+}
+
+tests_run_on_each_line()
+{
+        # 1-4
+        run_test test '' = "`run_on_each_line`"
+        run_test test '' = "`run_on_each_line ''`"
+        run_test test '' = "`run_on_each_line '' 'log.txt'`"
+        run_test test '' = "`run_on_each_line '' 'log.txt' echo imapsync`"
+
+
+        # 5-7 blank data
+        run_test test '' = "`run_on_each_line '   '`"
+        run_test test '' = "`run_on_each_line '   ' 'log.txt'`"
+        run_test test '' = "`run_on_each_line '   ' 'log.txt' echo imapsync`"
+
+        # 8-10 comment data
+        run_test test '' = "`run_on_each_line '#   '`"
+        run_test test '' = "`run_on_each_line '#   ' 'log.txt'`"
+        run_test test '' = "`run_on_each_line '#   ' 'log.txt' echo imapsync`"
+
+        # 11-13 empty line
+        myval='
+'
+
+        myret=`run_on_each_line "$myval"`
+        run_test test "" = "$myret"
+        
+        myret=`run_on_each_line "$myval" 'log.txt'`
+        run_test test "" = "$myret"
+        
+        myret=`run_on_each_line "$myval" 'log.txt' echo imapsync`
+        run_test test "" = "$myret"
+
+
+        # 14-16 blanks or comments
+        myval='
+   
+
+# blabla 1
+    # blabla 2
+
+'
+
+        myret=`run_on_each_line "$myval"`
+        run_test test "" = "$myret"
+        
+        myret=`run_on_each_line "$myval" 'log.txt'`
+        run_test test "" = "$myret"
+        
+        myret=`run_on_each_line "$myval" 'log.txt' echo imapsync`
+        run_test test "" = "$myret"
+
+
+        # 17-21
+        # csv data no blank no comment
+        lines='a1;b1;c1;d1;e1;f1
+a2;b2;c2;d2;e2;f2
+a3;b3;c3;d3;e3;f3'
+
+        # No failure file (so /dev/null), no command (so echo)
+        lines_out='--host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
+--host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
+--host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
+        run_test test "$lines_out" = "`run_on_each_line "$lines"`"
+
+        # failure file is a command => BAD => do nothing
+        cp /bin/echo "/tmp/myecho$$"
+        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$`"
+        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo`"
+        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo imapsync blabla bla`"
+        rm "/tmp/myecho$$"
+
+        # No failure file (so /dev/null), command = echo imapsync
+        lines_out='imapsync --host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
+imapsync --host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
+imapsync --host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
+        run_test test "$lines_out" = "`run_on_each_line "$lines" '' echo imapsync`"
+
+        # 22-27
+        # csv data + blanks + comments
+        lines='a1;b1;c1;d1;e1;f1
+# blabla 2
+a2;b2;c2;d2;e2;f2
+  # bloblo 3
+a3;b3;c3;d3;e3;f3
+ # end'
+
+        # No failure file (so /dev/null), no command (so echo)
+        lines_out='--host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
+--host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
+--host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
+        run_test test "$lines_out" = "`run_on_each_line "$lines"`"
+
+        # failure file is a command => BAD => do nothing
+        cp /bin/echo "/tmp/myecho$$"
+        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$`"
+        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo`"
+        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo imapsync blabla bla`"
+        rm "/tmp/myecho$$"
+
+        # No failure file (so /dev/null), command = echo imapsync
+        lines_out='imapsync --host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
+imapsync --host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
+imapsync --host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
+        run_test test "$lines_out" = "`run_on_each_line "$lines" '' echo imapsync`"
+
+        
+
+}
+
+hashsync()
+{
+        #set -x
+        mystring=${1:-''}
+        mykey=${2:-''}
+        # impressive! is not it? quoting shit!
+        perl -MDigest::HMAC_SHA1 -e 'print Digest::HMAC_SHA1::hmac_sha1_hex( "'"$mystring"'", "'"$mykey"'" )'
+        #set +x
+}
+
+
+tests_hashsync()
+{
+        run_test test 'fbdb1d1b18aa6c08324b7d64b71fb76370690e1d' = `hashsync`
+        run_test test 'fbdb1d1b18aa6c08324b7d64b71fb76370690e1d' = `hashsync ''`
+        run_test test 'fbdb1d1b18aa6c08324b7d64b71fb76370690e1d' = `hashsync '' ''`
+        run_test test 'e86a28a3611c1e7bbaf8057cd00ae122781a11fe' = `hashsync 'zzz' ''`
+        run_test test '6a7b451ac99eab1531ad8e6cd544b32420c552ac' = `hashsync 'zzz' 'A'`
+}
+
+tests_caca()
+{
+        run_test test 'z' = ''
+        run_test test '1' = '1'
+}
+
+change_working_directory_if_under_cgi()
+{
+        test -n "$SERVER_SOFTWARE" && 
+        {
+                pwd
+                #env
+                ! test -d "$1" && {
+                        echo creating directory "$1"
+                        mkdir -p "$1"
+                }
+                echo changing current directory to "$1"
+                cd "$1"
+                pwd
+        }
+}
+
+write_my_pid()
+{
+        echo Writing my pid $$ in imapsync_csv_wrapper.pid
+        echo $$ > imapsync_csv_wrapper.pid
+}
+
+
+kill_pid_in_files()
+{
+        echo Will kill -TERM pid found in "$@"
+        for pidfile in "$@"; do
+                # FIXME add test -f $pidfile at least
+                if test -f $pidfile; then
+                        pidlist="$pidlist `head -1 $pidfile`"
+                        test -f "$pidfile" && echo Doing kill -TERM `head -1 "$pidfile"` "$pidfile"
+                        test -f "$pidfile" &&  kill -TERM `head -1 "$pidfile"`
+                else
+                        echo "No $pidfile here"
+                fi
+        done
+}
+
+abort_other_process()
+{
+        echodebug 'Entering abort_other_process()'
+        $debug && ls -ltr
+
+        # No active imapsync_csv_wrapper => nothing to abort
+        if ! test -f imapsync_csv_wrapper.pid ; then
+                echo No imapsync_csv_wrapper.pid here. Nothing to abort.
+                echodebug 'Leaving abort_other_process()'
+                return 0
+        else
+                # a message to the active imapsync_csv_wrapper
+                main_pid_to_abort=`head -1 imapsync_csv_wrapper.pid`
+                touch abort_${main_pid_to_abort}.txt
+                echodebug 'sleep 3' && sleep 3
+                kill_pid_in_files imapsync.pid 
+                echodebug 'sleep 3 again then nother try to kill' && sleep 3
+                kill_pid_in_files imapsync.pid 
+                ls -ltr
+                echodebug 'Leaving abort_other_process()'
+                return 0
+        fi
+}
+
+quit()
+{
+        echo "Leaving. I am $0 pid $$"
+        for pidfile in "$@"; do
+                test -f "$pidfile"  && echo rm "$pidfile" && rm "$pidfile"
+        done
+}
+
+tests()
+{
+        :
+
+        # All tests
+        run_tests \
+                tests_uri_unescape \
+                tests_value_of_key \
+                tests_remove_blanks_and_comments \
+                tests_run_on_each_line \
+                tests_hashsync \
+                tests_is_blank_or_comment \
+                tests_logfailures
+}
+
+
+header()
+{
+        # HTTP header, may be empty
+        echo 
+}
+
+
+getcsvdata()
+{
+        read imapsync_csv_wrapper_from_ui
+        
+        echodebug '######################################################################'
+        echodebug Here are the UI parameters, raw:
+        echodebug "var:"
+        echodebug "$imapsync_csv_wrapper_from_ui"
+        echodebug;echodebug
+
+        csv_data=`value_of_key csv_data "$imapsync_csv_wrapper_from_ui"`
+
+        echodebug '######################################################################'
+        echodebug Here csv_data:
+        echodebug "$csv_data"
+
+        csv_data_unescaped=`uri_unescape "$csv_data"`
+
+        echodebug '######################################################################'
+        echodebug Here csv_data, unescaped:
+        echodebug "$csv_data_unescaped"
+
+
+        csv_data_pure=`remove_blanks_and_comments "$csv_data_unescaped"`
+        
+        
+        echodebug '######################################################################'
+        echodebug Here csv_data no blanks nor comments:
+        echodebug "$csv_data_pure"
+}
+
+
+tests_all_verbose_if_failure()
+{
+        # Run tests silent but if failure then rerun them verbose.
+        # return 0 if all tests passed
+        # return 1 if some tests failed
+        
+        if ! tests > /dev/null 3>&1 ; then
+                tests
+                return 1
+        fi
+        return 0
+}
+
+
+abort_other_if_asked_to()
+{
+        echodebug Looking for abort
+        abort=`value_of_key abort "$imapsync_csv_wrapper_from_ui"`
+        echodebug abort=$abort
+        if test 'on' = "$abort" ; then
+                abort_other_process
+                echo "Abort done. Leaving"
+                return 0
+        else
+                echodebug 'Not asked to abort other process'
+                echodebug 'Leaving abort_other_if_asked_to()'
+                return 1
+        fi
+}
+
+is_another_running()
+{
+        # I should check that the pid is actually a running one 
+        # but that's ok for now 
+        if test -f imapsync_csv_wrapper.pid; then
+                echo Looks like another imapsync_csv_wrapper is running. Leaving
+                return 0
+        else
+                echodebug Looks like I am alone. Good. Let us go on.
+                return 1
+        fi
+}
+
+
+
+
+signal_handling()
+{
+        #  2=INT 3=QUIT 15=TERM
+        trap "quit imapsync_csv_wrapper.pid abort_$$.txt" 15 2 3 0
+        $debug && trap 
+
+        return 0
+}
+
+
+banner_round()
+{
+        banner_line='
+################################################################################'
+        banner_title=${1:-$banner_line}
+        echo3 "$banner_line$banner_title$banner_line"
+
+}
+
+justlogin()
+{
+        banner_round '
+######################## just login check round ################################'
+        date
+        test -f abort_$$.txt && { echo Abort demanded so not doing normal stuff ; return ; }
+        echo Now run imapsync --justlogin to check all credentials are ok
+        if run_on_each_line "$csv_data_unescaped" "" \
+                imapsync --no-modulesversion --justlogin --tmpdir . 
+        then
+                echo success of the just login check round
+                return 0
+        else
+                echo failure of the just login check round
+                return 1
+        fi
+}
+
+justfoldersizes()
+{
+        banner_round '
+######################## just folders sizes counting round #####################'
+        date
+        test -f abort_$$.txt && { echo Abort demanded so not doing normal stuff ; return ; }
+        echo Now run imapsync --justlogin to check all credentials are ok
+        run_on_each_line "$csv_data_unescaped" "" \
+                imapsync --no-modulesversion --justfoldersizes --tmpdir . \
+                || return 1
+}
+
+
+sync_all()
+{
+        banner_round '
+######################## now sync them all round ###############################'
+        date
+        test -f abort_$$.txt && { echo Abort demanded so not doing normal stuff ; return ; }
+        echo Now run imapsync --justlogin to check all credentials are ok
+        run_on_each_line "$csv_data_unescaped" "" \
+                imapsync --no-modulesversion --tmpdir . \
+                || return 1
+}
+
+
+
+tests_initialisation()
+{
+        #### Variables initialisation
+        tests_count=0
+        tests_failed_count=0
+        tests_failed_list=
+}
+
+main()
+{
+        header
+        # All stderr to stdin, yeah I am like that
+        exec 2>&1
+        
+        # Some tests
+        #run_tests tests_is_blank_or_comment
+        #run_tests tests_run_on_each_line
+        #run_tests tests_remove_blanks_and_comments
+        #tests_hashsync
+        #return
+
+        tests_all_verbose_if_failure || return 1
+        
+        echodebug my pid is $$
+        
+        #return
+        
+        getcsvdata
+        
+        hashsync=`hashsync $csv_data_pure`
+
+        change_working_directory_if_under_cgi /var/tmp/imapsync_cgi/$hashsync/
+
+        abort_other_if_asked_to && return 0
+
+        is_another_running && return 0
+        
+        write_my_pid
+
+        signal_handling
+        
+        SERVER_SOFTWARE_BAK="$SERVER_SOFTWARE"
+        unset SERVER_SOFTWARE
+        
+        # Now the real stuff
+        justlogin || return 1
+        
+        justfoldersizes 
+        
+        sync_all || return 1
+
+        $debug && ls -ltr
+
+        quit imapsync_csv_wrapper.pid abort_$$.txt
+        echo $0 ended at the end
+}
+
+
+tests_initialisation
+main
+return 0
+
+
+

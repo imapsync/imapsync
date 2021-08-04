@@ -1,0 +1,35 @@
+#!/usr/bin/perl
+
+use Mail::IMAPClient ;
+use MIME::Base64;
+
+my $access_token ;
+
+$access_token = $ARGV[1];
+
+my $username;
+$username = $ARGV[0]; # "imapsync.gl0@gmail.com" ;
+
+
+my $oauth_string = "user=" . $username . "\x01auth=Bearer ".  $access_token . "\x01\x01" ;
+print "oauth_string: $oauth_string\n" ;
+
+
+#my $oauth_string_base64 = $access_token ;
+my $oauth_string_base64 = encode_base64( $oauth_string , '' ) ;
+
+print "oauth_string_base64: $oauth_string_base64\n" ;
+
+my $imap = Mail::IMAPClient->new(
+Server => 'imap.gmail.com',
+Port => 993,
+Ssl => 1,
+Uid => 1,
+Showcredentials => 1,
+) or die("Can't connect to imap server.");
+
+$imap->Debug(1) ;
+$imap->authenticate('XOAUTH2', sub { return $oauth_string_base64 }) or die("Auth error: ". $imap->LastError);
+
+print join(", ",$imap->folders),".\n" or die("List folders error: ". $imap->LastError);
+

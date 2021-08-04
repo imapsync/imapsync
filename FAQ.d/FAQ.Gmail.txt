@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.79 2021/03/31 16:20:28 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.80 2021/07/06 02:30:11 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -95,11 +95,11 @@ either:
 
 1) "Access for less secure apps"
 2) "2-step verification"
-3) XOauth2 (not ready for individual Gmail authentication, only for groups)
+3) XOauth2 ready for groups on any OS or 
+   for individual Gmail authentication on Linux.
 
 For the last one, XOauth2, see the document 
 https://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
-
 
 
 1) "Access for less secure apps", the first way to authenticate 
@@ -335,6 +335,7 @@ imapsync --host1 mail.oldhost.com     \
          --expunge1   \
          --addheader  \
          --maxsleep 2 \
+         --maxsize 35_651_584
          --exclude "\[Gmail\]$"  \
          --regextrans2 's,\[Gmail\].,,' \
          --regextrans2 's,^ +| +$,,g'
@@ -411,7 +412,7 @@ On Windows:
 --regextrans2 "s/[\^]/_/g" is mandatory.  It converts, since
 not accepted by gmail, character ^ to character _ underscore.
 
---regextrans2 "s/['\"\\\\]/_/g" is optional. It converts 
+--regextrans2 's/['"'"'\\^"]/_/g' is optional. It converts 
 characters ' or " or \ to character _ underscore.
 
 You can select folders exported to imap within the gmail preferences.
@@ -443,7 +444,7 @@ imapsync \
            --user2     tata \
            --password2 tatasecret \
            --maxbytespersecond 40_000 \
-           --maxbytesafter 2_500_000_000 \
+           --maxbytesafter 3_000_000_000 \
            --automap \
            --maxsleep 2 \
            --skipcrossduplicates \

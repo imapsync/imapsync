@@ -1,0 +1,55 @@
+#!/bin/sh
+
+# $Id: imapsync_shell_wrapper,v 1.6 2020/03/26 22:24:10 gilles Exp gilles $
+
+## A pure working wrapper is like this one for example:
+## Uncomment the following lines to test it
+
+#/usr/lib/cgi-bin/imapsync
+#date
+#id
+#cal
+#exit
+
+## but the previous is a little useless and uneasy to add extra parameters
+## We need a little extra work.
+
+
+# Count characters in files, except the \r \n characters
+count_chars_but_nl()
+{
+        cat "$@" | tr -d '\r\n' | wc -c
+}
+
+# Run imapsync with parameters written in files given in arguments
+imapsync_with_extra_param()
+{
+        # Update the environment variable CONTENT_LENGTH 
+        # This update is mandatory or the augmented parameters list will be truncated by imapsync.
+        CONTENT_LENGTH=`count_chars_but_nl "$@"`
+        cat "$@" | tr -d '\r\n' | /usr/lib/cgi-bin/imapsync
+}
+
+# The actual stuff
+# Save the UI parameters in a file
+cat > /tmp/imapsync_shell_wrapper_from_ui.txt
+
+# Now run imapsync with the UI parameters and the extra parameters
+imapsync_with_extra_param /tmp/imapsync_shell_wrapper_from_ui.txt /tmp/imapsync_shell_wrapper_extra.txt 
+echo imapsync first run exited with return code $?
+echo
+who
+date
+
+# A second run with other some extra_2 parameters
+imapsync_with_extra_param /tmp/imapsync_shell_wrapper_from_ui.txt /tmp/imapsync_shell_wrapper_extra_2.txt
+echo imapsync last run exited with return code $?
+echo
+cal
+echo
+echo Bye bye
+
+# Got the picture?
+
+
+

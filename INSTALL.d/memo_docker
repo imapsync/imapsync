@@ -1,7 +1,8 @@
 #!/bin/sh
 
 echo imapsync_docker_timestamp_dockerfile
-imapsync_docker_timestamp_dockerfile() {
+imapsync_docker_timestamp_dockerfile()
+{
 	DATE_CURRENT=`date +%Y_%m_%d_%H_%M_%S`
 	echo $DATE_CURRENT
 	sed -i -e "/just_a_comment_to_force_update/s/comment_to_force_update.*/comment_to_force_update $DATE_CURRENT/" Dockerfile
@@ -9,7 +10,8 @@ imapsync_docker_timestamp_dockerfile() {
 }
 
 echo imapsync_docker_build
-imapsync_docker_build() {
+imapsync_docker_build()
+{
     docker build -t gilleslamiral/imapsync . \
         && imapsync_docker_add_tag_version && echo Build SUCCEEDED || echo Build FAILED
 
@@ -19,11 +21,18 @@ imapsync_docker_build() {
     # docker run gilleslamiral/imapsync imapsync --testslive6 --nossl2
 }
 
+echo imapsync_docker_version
+imapsync_docker_version()
+{
+        docker run gilleslamiral/imapsync imapsync --version
+}
+
 echo imapsync_docker_add_tag_version
-imapsync_docker_add_tag_version() {
+imapsync_docker_add_tag_version()
+{
     docker images gilleslamiral/imapsync
     echo 
-    version=`docker run gilleslamiral/imapsync imapsync --version`
+    version=`imapsync_docker_version`
     echo $version
     docker tag gilleslamiral/imapsync:latest gilleslamiral/imapsync:$version
     docker images gilleslamiral/imapsync
@@ -32,25 +41,37 @@ imapsync_docker_add_tag_version() {
 
 
 echo imapsync_docker_testslive
-imapsync_docker_testslive() {
+imapsync_docker_testslive()
+{
     echo docker run gilleslamiral/imapsync imapsync --testslive
     docker run gilleslamiral/imapsync imapsync --testslive
 }
 
 echo imapsync_docker_testslive6
-imapsync_docker_testslive6() {
+imapsync_docker_testslive6()
+{
     echo docker run gilleslamiral/imapsync imapsync --testslive6 --ssl1 --ssl2
     docker run gilleslamiral/imapsync imapsync --testslive6 --ssl1 --ssl2
 }
 
 echo imapsync_docker_tests
-imapsync_docker_tests() {
+imapsync_docker_tests()
+{
     echo docker run gilleslamiral/imapsync imapsync --tests
     docker run gilleslamiral/imapsync imapsync --tests
 }
 
+echo imapsync_docker_envfile
+imapsync_docker_envfile()
+{
+        docker run --env-file ./secret.txt gilleslamiral/imapsync imapsync \
+        --host1 test1.lamiral.info --user1 test1 \
+        --host2 test2.lamiral.info --user2 test2  --justlogin
+}
+
 echo docker_delete_all_images
-docker_delete_all_images() {
+docker_delete_all_images()
+{
     docker rm `docker ps -a -q`
     docker rmi `docker images -q`
 }
@@ -62,7 +83,8 @@ docker_system_prune()
 }
 
 echo docker_delete_dandling_images
-docker_delete_dandling_images() {
+docker_delete_dandling_images()
+{
 	docker images
 	dandling_images=`docker images -f dangling=true -q`
 	exited_containers=`docker ps -a -f status=exited -q`
@@ -73,23 +95,28 @@ docker_delete_dandling_images() {
 
 
 echo imapsync_docker_rebuild_from_scratch
-imapsync_docker_rebuild_from_scratch() {
+imapsync_docker_rebuild_from_scratch()
+{
     delete_all_images
     docker images
     imapsync_docker_build
 }
 
 echo imapsync_docker_upload
-imapsync_docker_upload() {
-    # upload only after successful tests
-    set -x \
-    && imapsync_docker_testslive \
-    && imapsync_docker_tests \
-    && docker run gilleslamiral/imapsync true \
-    && docker login --username=gilleslamiral --password=`cat $HOME/var/pass/secret.docker` \
-    && docker push gilleslamiral/imapsync:latest \
-    && set +x && echo imapsync push SUCCEEDED || echo imapsync push FAILED
-    set +x
+imapsync_docker_upload()
+{
+        version=`imapsync_docker_version`
+        # upload only after successful tests
+        set -x \
+        && rcsdiff imapsync \
+        && imapsync_docker_testslive \
+        && imapsync_docker_tests \
+        && docker run gilleslamiral/imapsync true \
+        && docker login --username=gilleslamiral --password=`cat $HOME/var/pass/secret.docker` \
+        && docker push gilleslamiral/imapsync:latest \
+        && docker push gilleslamiral/imapsync:$version \
+        && set +x && echo imapsync push SUCCEEDED || echo imapsync push FAILED
+        set +x
 }
 
 

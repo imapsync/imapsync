@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: sync_loop_unix.sh,v 1.8 2018/02/12 21:53:40 gilles Exp gilles $
+# $Id: sync_loop_unix.sh,v 1.10 2020/12/11 18:09:11 gilles Exp gilles $
 
 # Example for imapsync massive migration on Unix systems.
 # See also http://imapsync.lamiral.info/FAQ.d/FAQ.Massive.txt
@@ -26,14 +26,21 @@
 
 echo Looping on account credentials found in file.txt
 echo
-
+line_counter=0
+> file_failures.txt
 { while IFS=';' read  h1 u1 p1 h2 u2 p2 fake
     do 
+        line_counter=`expr 1 + $line_counter` 
         { echo "$h1" | tr -d '\r' | egrep '^#|^ *$' ; } > /dev/null && continue # this skip commented lines in file.txt
         echo "==== Starting imapsync from host1 $h1 user1 $u1 to host2 $h2 user2 $u2 ===="
-        imapsync --host1 "$h1" --user1 "$u1" --password1 "$p1" \
+        if imapsync --host1 "$h1" --user1 "$u1" --password1 "$p1" \
                  --host2 "$h2" --user2 "$u2" --password2 "$p2" \
-                 "$@"  
+                 "$@"
+        then
+                echo "success sync for line $line_counter "
+        else
+                echo "$h1;$u1;$p1;$h2;$u2;$p2;" | tee -a file_failures.txt
+        fi 
         echo "==== Ended imapsync from host1 $h1 user1 $u1 to host2 $h2 user2 $u2 ===="
         echo
     done 

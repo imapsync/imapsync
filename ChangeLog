@@ -1,17 +1,332 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 1.977
+head: 2.140
 branch:
 locks: strict
-	gilles: 1.977
+	gilles: 2.140
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 977;	selected revisions: 977
+total revisions: 1040;	selected revisions: 1040
 description:
 ----------------------------
-revision 1.977	locked by: gilles;
+revision 2.140	locked by: gilles;
+date: 2021/07/05 20:14:18;  author: gilles;  state: Exp;  lines: +14 -10
+Fixed perlcrit 4 severity 4 violations.
+----------------------------
+revision 2.139
+date: 2021/07/04 21:03:28;  author: gilles;  state: Exp;  lines: +14 -14
+Adapted to oauth2/generate_gmail_token
+----------------------------
+revision 2.138
+date: 2021/07/01 08:40:50;  author: gilles;  state: Exp;  lines: +13 -10
+Moved oauthgenerateaccess() call.
+----------------------------
+revision 2.137
+date: 2021/07/01 08:13:52;  author: gilles;  state: Exp;  lines: +32 -10
+Bugfix. imapsync did nothing with the previous change.
+----------------------------
+revision 2.136
+date: 2021/06/30 23:16:13;  author: gilles;  state: Exp;  lines: +295 -176
+Review the README part.
+Added option --filterbuggyflags to filter the well known buggy flags that generate errors "BAD Invalid system flag" or "NO APPEND Invalid flag list".
+1734 unit tests.
+Some refactoring.
+----------------------------
+revision 2.135
+date: 2021/06/29 20:38:40;  author: gilles;  state: Exp;  lines: +58 -46
+Reviewed README section until flags options.
+----------------------------
+revision 2.134
+date: 2021/06/29 12:14:49;  author: gilles;  state: Exp;  lines: +40 -14
+Avoid unit tests on polarhome macosx where "ssl3_get_server_certificate:certificate verify failed". No clue to fix that.
+----------------------------
+revision 2.133
+date: 2021/06/28 08:07:25;  author: gilles;  state: Exp;  lines: +13 -12
+Fixed some unit tests for polarhome macosx
+----------------------------
+revision 2.132
+date: 2021/06/26 23:19:40;  author: gilles;  state: Exp;  lines: +40 -17
+Added tests to test cpu_number() on Windows MacOS
+----------------------------
+revision 2.131
+date: 2021/06/25 16:20:38;  author: gilles;  state: Exp;  lines: +57 -13
+Bugfix. cpu_number was accurate only on Linux. Added Freebsd
+----------------------------
+revision 2.130
+date: 2021/06/25 11:11:03;  author: gilles;  state: Exp;  lines: +108 -36
+Added percentage of all cpu in stats
+----------------------------
+revision 2.129
+date: 2021/06/24 16:59:49;  author: gilles;  state: Exp;  lines: +8 -8
+Removed a debug print
+----------------------------
+revision 2.128
+date: 2021/06/24 16:54:00;  author: gilles;  state: Exp;  lines: +8 -8
+1702 tests
+----------------------------
+revision 2.127
+date: 2021/06/24 15:42:11;  author: gilles;  state: Exp;  lines: +46 -16
+Added statistic line "CPU time and %cpu"
+----------------------------
+revision 2.126
+date: 2021/06/24 09:37:47;  author: gilles;  state: Exp;  lines: +87 -33
+Added --loglogfile option. Append ../list_all_logs_auto.txt with the logfile name. On by default in CGI context.
+Some refactoring, file_to_array file_to_string functions.
+----------------------------
+revision 2.125
+date: 2021/06/20 16:50:46;  author: gilles;  state: Exp;  lines: +66 -25
+Do not check selectable folders for huge accounts with more than 152 folders. 98percentile of /X
+----------------------------
+revision 2.124
+date: 2021/06/17 12:29:22;  author: gilles;  state: Exp;  lines: +8 -8
+Testfix. Sometimes GMT is output UTC.
+----------------------------
+revision 2.123
+date: 2021/06/17 11:56:20;  author: gilles;  state: Exp;  lines: +30 -27
+CGI context. Sync duplicates by default in cgi context.
+----------------------------
+revision 2.122
+date: 2021/06/16 19:36:21;  author: gilles;  state: Exp;  lines: +15 -17
+Stats. Final line "Biggest message" was in fact "Biggest message" to be transferred. Now it is "Biggest message transferred".
+----------------------------
+revision 2.121
+date: 2021/06/15 22:43:18;  author: gilles;  state: Exp;  lines: +150 -89
+Refactor. Splited sub myGetOptions() into sub setvalfromcgikey sub setvalfromlist sub setvalfromhash sub setvalfromcheckbox. Not very clean but better than the huge old one.
+----------------------------
+revision 2.120
+date: 2021/06/15 22:32:28;  author: gilles;  state: Exp;  lines: +54 -38
+Change time presentation on ETA and in final stats. Example: Wednesday 16 June 2021-06-16 00:32:05 +0200 CEST
+Added the timezone and full day
+----------------------------
+revision 2.119
+date: 2021/06/06 10:21:34;  author: gilles;  state: Exp;  lines: +162 -109
+Added localtimez function to replace localtime, date and time with the timezone added. Not replaced yet.
+Remove a useless warning "File xxx.pid does not exist" in tail function.
+Made oauth2 tests dependent on oauth2_string_for_oauthdirect.txt oauth2_access_token.txt presence.
+Added info "Exiting because of --justbanner" with --justbanner
+----------------------------
+revision 2.118
+date: 2021/05/31 22:18:16;  author: gilles;  state: Exp;  lines: +16 -11
+In CGI context, the log directory is no longer ./LOG_imapsync/ but simply ./ It should fasten the searches and grep
+----------------------------
+revision 2.117
+date: 2021/05/27 18:04:12;  author: gilles;  state: Exp;  lines: +20 -16
+Load limit 3x => 6x
+----------------------------
+revision 2.116
+date: 2021/05/21 16:41:12;  author: gilles;  state: Exp;  lines: +39 -53
+load limit upped to 3
+----------------------------
+revision 2.115
+date: 2021/05/05 23:41:12;  author: gilles;  state: Exp;  lines: +11 -8
+Advantage of a file when using --oauthaccesstoken1 str
+----------------------------
+revision 2.114
+date: 2021/05/05 19:03:24;  author: gilles;  state: Exp;  lines: +48 -21
+Documented --oauthaccesstoken1 and --oauthdirect1 and the 2 sisters.
+----------------------------
+revision 2.113
+date: 2021/05/03 20:47:18;  author: gilles;  state: Exp;  lines: +118 -35
+Implemented --oauthaccesstoken1 and --oauthaccesstoken2
+1691 unit tests
+----------------------------
+revision 2.112
+date: 2021/04/30 17:55:05;  author: gilles;  state: Exp;  lines: +257 -248
+Added --noabletosearch README
+Removed trailing blanks, perlcrit "Found "\N{SPACE}" at the end of the line"
+----------------------------
+revision 2.111
+date: 2021/04/30 07:40:41;  author: gilles;  state: Exp;  lines: +615 -408
+Added options --oauthdirect1 and --oauthdirect2 
+  to support OAUTH2 authentication.
+  The parameter value is the direct string given to the XOAUTH2 imap command.
+Added option  --syncduplicates to sync duplicates.
+
+Added option --trylogin on by default. 
+  After a login failure of any king, imapsync tries to login 
+  with the LOGIN command. Use --notrylogin to avoid that.
+ 
+Reduced sub login_imap() number of parameters from 19 to 10.
+
+Added options --oauthaccesstoken1 and --oauthaccesstoken2, not implemented yet.
+
+Removed old OAUTH1 support. I hope no one will be touched by this removal, if
+  yes, I'll bring it back.
+----------------------------
+revision 2.110
+date: 2021/03/28 17:34:29;  author: gilles;  state: Exp;  lines: +25 -16
+--timeout can now be a float (was only integer). Same for --timeout1 --timeout2
+Warning about a timeout by the webserver in CGI mode.
+$timeout no longer a variable (global).
+----------------------------
+revision 2.109
+date: 2021/03/13 19:39:37;  author: gilles;  state: Exp;  lines: +59 -25
+Added message ""No log file because of option --nolog".
+Added possibility of no logging in cgi context, with log=0 or log= in the parameters
+Added possibility of float number for --simulong instead of integer.
+1672 unit tests.
+----------------------------
+revision 2.108
+date: 2021/02/25 10:35:33;  author: gilles;  state: Exp;  lines: +27 -23
+Bugfix. In sub delete_messages_on_any, the uidexpunge_or_expunge call was
+ always done with an empty array so no expunge was done there. 
+ Fortunately, expunge was done elsewhere so this bug was not disastrous.
+ There is functionnal tests to check expunge behaviour anyway.
+----------------------------
+revision 2.107
+date: 2021/02/09 20:02:55;  author: gilles;  state: Exp;  lines: +9 -9
+Back from Message-Id to Message-Id Received in cgisetcontext
+----------------------------
+revision 2.106
+date: 2021/02/09 19:59:13;  author: gilles;  state: Exp;  lines: +222 -16
+Added some tests in sub tests_regexmess to remove a buggy header on multi-lines not all starting with a blank.  's{X-Spam-Report:.*?\n(^[^\n]+:|^\r?\n)}{$1}xms'
+----------------------------
+revision 2.105
+date: 2021/02/02 11:17:15;  author: gilles;  state: Exp;  lines: +30 -14
+Added tests "Add a final \r\n if missing"  in sub tests_regexmess
+----------------------------
+revision 2.104
+date: 2021/01/27 15:14:09;  author: gilles;  state: Exp;  lines: +76 -70
+Added test to "Change 8bit characters in whole email to X characters" in sub tests_regexmess
+----------------------------
+revision 2.103
+date: 2021/01/20 16:28:06;  author: gilles;  state: Exp;  lines: +46 -20
+Removed the exit_clean call when "Can not go to tls encryption on" in sub login_imap()
+1652 tests
+----------------------------
+revision 2.102
+date: 2020/12/13 23:48:30;  author: gilles;  state: Exp;  lines: +43 -20
+Bugfix. EXIT_ERR_APPEND_VIRUS had no message upon exit.
+Bugfix. In --dry mode the final "Messages transferred : 0 (could be 1264 without dry mode)" is ok when the folders does not exist yet.
+----------------------------
+revision 2.101
+date: 2020/12/08 23:47:13;  author: gilles;  state: Exp;  lines: +171 -40
+Added EXIT_CONNECTION_FAILURE_HOST1 101 return code
+Added EXIT_CONNECTION_FAILURE_HOST2 102 return code
+Added EXIT_AUTHENTICATION_FAILURE_USER1 161 return code
+Added EXIT_AUTHENTICATION_FAILURE_USER2 162 return code
+Do both side login and authentication before exiting on falure.
+----------------------------
+revision 2.100
+date: 2020/12/07 00:45:50;  author: gilles;  state: Exp;  lines: +24 -9
+New numbering from 1.999 directly to 2.100 I want to avoid 1.1000 and sorting issues in directory listing.
+Added option --dry1 it avoids to fetch the message on host1. --dry1 is on when --dry is on. It speeds up --dry very much.
+----------------------------
+revision 1.999
+date: 2020/12/02 20:41:50;  author: gilles;  state: Exp;  lines: +69 -34
+Added a section "How do you know a sync is finished and well done?"
+When creating a directory, now the current directory is also printed.
+  It helps when the directory created is relative.
+Bugfix. resolv: imapsync.lamiral.info => 2001:41d0:2:84e0::1 (was 91.121.221.224)
+----------------------------
+revision 1.998
+date: 2020/08/17 10:18:25;  author: gilles;  state: Exp;  lines: +302 -108
+1638 regression tests.
+Added option --abortbyfile to be able to be aborted by a file presence (context: webserver on windows)
+Reviewed and fixed sub acls_sync(). Did not work and made bad things.
+Added exit value EXIT_BY_FILE => 7
+Added exit value EXIT_TRANSFER_EXCEEDED      => 118
+----------------------------
+revision 1.997
+date: 2020/07/16 10:58:14;  author: gilles;  state: Exp;  lines: +20 -17
+Gmail update
+gmail12: maxbytespersecond 20_000 maxbytesafter 1_000_000_000
+gmail1 : maxbytespersecond 40_000 maxbytesafter 3_000_000_000 (was 2_500_000_000)
+gmail2 : maxbytespersecond 20_000 maxbytesafter 1_000_000_000
+----------------------------
+revision 1.996
+date: 2020/06/19 09:53:38;  author: gilles;  state: Exp;  lines: +69 -20
+Added exit 118 EXIT_TRANSFER_EXCEEDED when "Maximum bytes transferred reached" with option --exitwhenover
+Added error type ERR_TRANSFER_EXCEEDED.
+----------------------------
+revision 1.995
+date: 2020/06/17 18:55:01;  author: gilles;  state: Exp;  lines: +9 -8
+Added exitwhenover as an option in cgi context.
+----------------------------
+revision 1.994
+date: 2020/06/14 12:10:30;  author: gilles;  state: Exp;  lines: +76 -22
+Bugfix. Fixed some "Exiting with return value  ()". Added ERR_NOTHING_REPORTED error and exit EXIT_CATCH_ALL ie 1 in case.
+----------------------------
+revision 1.993
+date: 2020/06/12 09:10:20;  author: gilles;  state: Exp;  lines: +10 -8
+Docfix. Fixed issue https://github.com/imapsync/imapsync/issues/213
+Precision about --delete2duplicates
+----------------------------
+revision 1.992
+date: 2020/05/29 12:14:53;  author: gilles;  state: Exp;  lines: +156 -34
+Bugfix. fatal string causing "Wide character in subroutine entry"
+----------------------------
+revision 1.991
+date: 2020/05/12 20:37:48;  author: gilles;  state: Exp;  lines: +86 -25
+Bugfix. --checknoabletosearch was not adaptive.
+Fix. tests sslheck now use test1.lamiral.info instead of imapsync.lamiral.info 
+Fix. tests_resolv now use ks6ipv6.lamiral.info instead of ks2ipv6.lamiral.info
+Bugfix. Better closing of logfile at the end in order to avoid in Apache error log "AH01215: print() on closed filehandle $logfile_handle"
+----------------------------
+revision 1.990
+date: 2020/05/03 17:07:36;  author: gilles;  state: Exp;  lines: +7 -7
+Bugfix. Forgot to map ERR_Host1_FETCH to EXIT_ERR_FETCH,
+----------------------------
+revision 1.989
+date: 2020/05/03 17:07:17;  author: gilles;  state: Exp;  lines: +8 -7
+*** empty log message ***
+----------------------------
+revision 1.988
+date: 2020/04/29 21:52:20;  author: gilles;  state: Exp;  lines: +37 -8
+Sanitize host1 and host2 values. Remove blanks and / characters.
+----------------------------
+revision 1.987
+date: 2020/04/29 02:34:00;  author: gilles;  state: Exp;  lines: +253 -18
+Added an analyse and classification of the errors encountered.
+Most common error encountered is printed at the end.
+Exit value 112 is now replaced by the most common error encountered exit value
+113 is EXIT_OVERQUOTA
+114 is EXIT_ERR_APPEND
+115 is EXIT_ERR_FETCH
+116 is EXIT_ERR_CREATE
+117 is EXIT_ERR_SELECT
+111 is EXIT_WITH_ERRORS ERR_UNCLASSIFIED
+----------------------------
+revision 1.986
+date: 2020/04/26 11:05:55;  author: gilles;  state: Exp;  lines: +37 -36
+Changed filter_forbidden_characters() to replace non-ascii and control characters and spaces by character _
+----------------------------
+revision 1.985
+date: 2020/04/25 14:50:30;  author: gilles;  state: Exp;  lines: +48 -23
+Added unit tests to prepare "Wide character in subroutine entry".
+----------------------------
+revision 1.984
+date: 2020/04/22 10:35:44;  author: gilles;  state: Exp;  lines: +30 -15
+Bugfix. Empty subject https://github.com/imapsync/imapsync/pull/216 added unit test regression.
+----------------------------
+revision 1.983
+date: 2020/03/19 02:08:12;  author: gilles;  state: Exp;  lines: +96 -13
+Filter flags \PRIORITY \READRCPT in cgi context.
+Now check if SEARCH ALL works on both accounts and then add --noabletosearch if one can not. Use --nochecknoabletosearch to avoid that behavior.
+----------------------------
+revision 1.982
+date: 2020/03/16 15:17:02;  author: gilles;  state: Exp;  lines: +60 -29
+Rewrote tests in tests_msgs_from_maxmin() (same ones anyway)
+----------------------------
+revision 1.981
+date: 2020/02/14 12:10:13;  author: gilles;  state: Exp;  lines: +18 -8
+Bugfix. CGI not fatal with imapsync --tests
+----------------------------
+revision 1.980
+date: 2020/01/18 20:37:27;  author: gilles;  state: Exp;  lines: +9 -9
+Updated @regexflag in cgi context.
+----------------------------
+revision 1.979
+date: 2020/01/14 22:26:11;  author: gilles;  state: Exp;  lines: +47 -30
+Added regex --regexflag from /X analyse in cgi context.
+----------------------------
+revision 1.978
+date: 2020/01/08 21:56:12;  author: gilles;  state: Exp;  lines: +11 -11
+Added single quote ' filtering in filter_forbidden_characters()
+----------------------------
+revision 1.977
 date: 2019/12/23 20:18:02;  author: gilles;  state: Exp;  lines: +10 -10
 No tests_resolv(  ) since resolv is not really used and tests_resolv(  ) fails on mac (I do not have write to /etc/hosts)
 ----------------------------

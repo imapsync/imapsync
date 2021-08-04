@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Messages_Too_Big.txt,v 1.4 2020/10/21 09:21:48 gilles Exp gilles $
+$Id: FAQ.Messages_Too_Big.txt,v 1.5 2021/06/22 15:31:39 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -21,41 +21,46 @@ Now the questions again with their answers.
 =======================================================================
 Q. What does imapsync with big messages?
 
-R. By default, imapsync checks if the host2 imap server announces a 
-   message size limit with "APPENDLIMIT=xxxx" in its CAPABILITY response.
-   Then imapsync takes this value to set automatically the --maxsize
-   option, unless --maxsize is already set on the command line
-   and has a smaller value than the APPENDLIMIT value.
+R. By default, imapsync checks if the host2 imap server announces a
+message size limit with "APPENDLIMIT=xxxx" in its CAPABILITY response.
+Then imapsync takes this value to set automatically the --maxsize
+option, unless --maxsize is already set on the command line and has a
+smaller value than the APPENDLIMIT value.
    
-   If the host2 imap server doesn't announce any message size 
-   limit then imapsync syncs messages no matter their sizes.
+If the host2 imap server doesn't announce any message size limit then
+imapsync syncs all messages no matter their sizes.
    
-   When a message is copied to the destination server, the destination 
-   server accepts it or not but it does it as a whole, it takes the 
-   full message or nothing. Nothing triggers an error in imapsync.
+When a message is copied to the destination server, the destination
+server accepts it or not but it does it as a whole, it takes the full
+message or nothing. Nothing triggers an error in imapsync.
 
-   * Gmail     announces APPENDLIMIT=35651584 (October 2020).
+   * Gmail announces APPENDLIMIT=35651584 (June 2021).
    * Office365 announces nothing.
-   * Dovecot   announces nothing.
+   * Dovecot announces nothing.
+   * Usually imap servers announce nothing.
 
 =======================================================================
 Q. What can I do to transfer messages bigger than what allows the 
    imap destination server?
 
-R1. A solution is to truncate the message to the maximum size allowed 
-    before copying it to host2. That's a little dirty but it's ok
-    if you prefer having a truncated message than no message 
-    at all. The attachments after the truncation won't be available 
-    but everything before should be ok. It may also depends
-    on the software tool reading the email message.
+R1. A solution is to truncate the message to the maximum size allowed
+before copying it to host2. That's a little dirty but it's ok if you
+prefer having a truncated message than no message at all. The
+attachments after the truncation won't be available but everything
+before should be ok. It may also depend on the software tool reading
+the email message.
 
-For example, 
-Gmail currently limits messages to 35651584 bytes (October 2020),
+For example, Gmail currently limits messages to 35651584 bytes, 
+aka 34 MiB (June 2021),
 
 Starting with imapsync release 1.938 option --truncmess xxxx truncates
-messages bigger than the  given size xxxx.
+messages bigger than the given size xxxx, size given in bytes.
 
   imapsync --truncmess 35651584 --appendlimit 1000000000000
+
+The --appendlimit option is only needed imap servers that offer the
+APPENDLIMIT capability, for example, Gmail. Using it doesn't hurt
+anyway.
 
 Prior to imapsync release 1.938, instead of --truncmess:
 
@@ -63,17 +68,20 @@ On Linux, use:
 
    imapsync ... --pipemess  'perl -0ne "print substr \$_,0,35651584" '
    
-On windows, use:
+On windows, use (I'm not sure of, not tested yet):
 
-   I'm not sure of (not tested yet):
-   
    imapsync ... --pipemess  "perl -0ne 'print substr $_,0,35651584' "
 
-   
-R2. A not so dirty solution would be to transform the message and 
-    include links to the big attachments, instead of the attachments. 
-    Well, not done yet and too much complicted compared to the simple 
-    solution which is to allow big messages on the destination account.
+
+R2. A not-so-dirty solution would be to transform the big messages,
+replace the attachments with links to the attachments stored elsewhere.
+Well, it's not done and it's too much complicated compared to a simpler
+solution which is to allow bigger messages on the destination account.
+
+As time goes on, disk space is cheaper and cheaper.  Don't make the
+new user account, the destination account, worst than his previous,
+buy disks. Monitor and rule your resources, not the users.
 
 =======================================================================
 =======================================================================
+

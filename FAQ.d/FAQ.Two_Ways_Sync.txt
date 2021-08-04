@@ -1,4 +1,4 @@
-$Id: FAQ.Two_Ways_Sync.txt,v 1.4 2021/02/01 15:43:33 gilles Exp gilles $
+$Id: FAQ.Two_Ways_Sync.txt,v 1.5 2021/06/10 11:21:09 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -13,14 +13,14 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Two_Ways_Sync.txt
 Questions answered in this FAQ are:
 
 Q. Can Imapsync do a good "two ways" sync? 
-   No. Why?
+   Short answer: no, not a good one. Why?
 
 
 Now the questions again with their answers.
 
 =======================================================================
 Q. Can Imapsync do a good "two ways" sync? 
-   No. Why?
+   Short answer: no, not a good one. Why?
 
 R. Imapsync can't do good two ways syncs.
 
@@ -40,10 +40,10 @@ deletions, or movings, messages movings across folders, folders
 movings, and also folders renamings. Deletions and moves are ambiguous
 changes when combined with creations on the opposite side.
  
-For example, when a message is deleted from A by a user, imapsync
+For example, if a message is deleted from A by a user, then imapsync
 cannot know whether it is a message deleted from A that has to be
-deleted in B (what the user did) or a missing message from B that has
-to be copied to A.
+deleted in B (what the user actually did) or a missing message on A
+that has to be copied from B.
 
 But if you know the answer yourself, that missing messages on one side
 A are deleted messages that have to be deleted on the other side then
@@ -52,13 +52,16 @@ run a sync with the --delete2 option from A to B.
 If you know that the missing messages on A are missing messages from B
 that has to be copied to A then run a sync from B to A.
 
-If you know it's a mixed scenario then you are in trouble and so you
-end up with a not very good "two ways" sync. I suggest avoiding
-deletions in that case, which is the default imapsync behavior.
+If you know it's a mixed scenario, some deletions/moves on A, 
+and some deletions/moves on B, but not the same, then you are in 
+trouble and so you end up with a not very good "two ways" sync. 
+I suggest to avoid imapsync to do deletions in that case, which is 
+the default imapsync behavior.
 
-With a two ways sync, the mailbox user is very surprised and
+With a two ways sync, the account user is very surprised and
 disapointed when his actions (deletions, renamings, or movings) come
-back.
+back: the deletions are cancelled, the renamings and movings end up
+with duplicates.
 
 =======================================================================
 =======================================================================

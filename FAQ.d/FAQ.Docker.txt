@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Docker.txt,v 1.7 2020/01/08 05:02:55 gilles Exp gilles $
+# $Id: FAQ.Docker.txt,v 1.8 2021/05/04 16:57:09 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -22,6 +22,10 @@ Q. Where is the imapsync Docker hub location?
 
 Q. How can I mask the passwords on the command line without mounting
    inside the container?
+
+===========================================================================
+Q. Why imapsync isn't logging to a file in Docker context. 
+   How can I allow it?
 
 Q. Any tips for the Docker Mailcow distribution?
 
@@ -79,6 +83,22 @@ Use that file like this for a run:
 See:
 https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file
 https://stackoverflow.com/a/30494145/491175
+
+===========================================================================
+Q. Why imapsync isn't logging to a file in Docker context. 
+   How can I allow it?
+
+R. In Docker context, writing the log is disabled by default because you 
+   don't have an easy access to the logfile after the sync. The logfile is 
+   inside the docker and no longer available after the sync, unless
+   a special mount is done before.
+
+Starting with imapsync release 2.113 the logging can be set on 
+by using the option --log. You can add access to the logfile with a mount 
+or similar. See https://docs.docker.com/storage/volumes/"
+
+See also
+https://github.com/imapsync/imapsync/issues/283
 
 ===========================================================================
 Q. Any tips for the Docker Mailcow distribution?

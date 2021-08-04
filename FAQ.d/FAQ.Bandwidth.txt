@@ -1,5 +1,5 @@
 
-$Id: FAQ.Bandwidth.txt,v 1.2 2021/04/19 11:46:47 gilles Exp gilles $
+$Id: FAQ.Bandwidth.txt,v 1.3 2021/05/20 11:46:07 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -20,26 +20,28 @@ Now the questions again with their answers.
 =======================================================================
 Q. What is the bandwidth used by imapsync?
 
-R. From the host where imapsync runs, it opens two imap connections, 
-   one with the source account at host1, one with the destination 
-   account at host2.
+R. From the host where imapsync runs, imapsync opens two imap
+connections, one with the source account at host1, one with the
+destination account at host2.
    
-   So, the global bandwidth used is twice the volume of the source 
-   account, one volume to download the messages from host1, 
-   one volume to upload those messages to host2.
+So, the global bandwidth used by an imapsync transfer is twice the
+volume of the source account, one volume to download the messages from
+host1, one volume to upload those messages to host2.
+
+If the host2 is already filled with the messages, imapsync doesn't
+transfer them and then the volume transferred is small, this volume is
+just made up of the IMAP commands needed to identify the messages on
+both sides.
    
-   If the host2 is already filled with the messages, imapsync doesn't
-   transfer them and then the volume transferred is small, this volume
-   is just the IMAP commands needed to identify the messages on both sides.
+There is no local cache of the email messages, except when a message
+is very big; it is then temporarily saved locally between the download
+and the upload.
    
-   There is no local cache of the email messages, except when the
-   message is very big, it is temporarily saved locally. 
-   
-   The biggest message seen so far on online /X is 3.08 GiB
-   while the biggest message transferred is 1.51 GiB so
-   I suspect a bug here. Drop me a note if you encounter the same
-   issue, I'll then dig into it, ie, I'll create a 2 or 3 GiB message
-   and play with it :-)
+The biggest message seen so far on the online service I call /X is
+3.08 GiB while the biggest message transferred is 1.51 GiB. So I
+suspect a bug here. Drop me a note if you encounter the same issue,
+I'll then dig into it, ie, I'll create a 2 or 3 GiB big message and
+play with it :-)
 
 
 =======================================================================

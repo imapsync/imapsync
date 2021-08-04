@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.27 2021/04/24 16:57:50 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.29 2021/05/05 21:38:32 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -15,17 +15,17 @@ Questions answered in this FAQ are:
 Q. How secure is the online visual user interface /X?
 
 Q. Does the online service store any sensitive information 
-   like my passwords?
+like my passwords?
 
-Q. Shall I have issues when the browser times out? What happens
-   if the browser connection is closed for whatever reason?
+Q. Shall I have issues when the browser times out?
+What happens if the browser connection is closed for whatever reason?
 
 Q. Shall I have issues when the webserver times out? What happens
-   if the webserver closes the connection for whatever reason?
+if the web server closes the connection for whatever reason?
 
 Q. The sync stalls at the beginning, just after a line like:
-   "Host1: xxx says it has CAPABILITY for AUTHENTICATE LOGIN"
-   What is the problem?
+"Host1: xxx says it has CAPABILITY for AUTHENTICATE LOGIN"
+What is the problem?
 
 Now the questions again with their answers.
 
@@ -33,8 +33,8 @@ Now the questions again with their answers.
 Q. How secure is the online visual user interface /X?
 
 R0. Well, I don't know if asking the provider whether his online
-   service is secure or not would be of any interest.
-   Let's do it anyway, you'll be the judge.
+service is secure or not would be of any interest.
+Let's do it anyway, you'll be the judge.
 
 R1. Some figures
 
@@ -43,11 +43,11 @@ Date of this report: 22 April 2021.
 The online imapsync service /X started 9 January 2017
 (1564 days of service).
 
-On average, /X has 51 users per day lunching in mean 6
-different migrations, from just one launch to many (hundreds).
+On average, /X has 51 users per day, each user lunches on average
+6 account migrations, from just one launch to many (hundreds).
 
-The total volume /X transferred is around 210 TiB from nearly 
-450 000 imap account migrations and 700 million email messages.
+The total volume /X transferred so far is around 210 TiB coming 
+from nearly 450 000 imap account migrations and 700 million email messages.
 
 R2. Pros & Cons
 
@@ -59,17 +59,17 @@ Because of the HTTPS usage, what the users enter in their browser,
 the imap logins and passwords, can't be eavesdropped on the network.
 
 Imapsync itself takes care of encryption for the imap sessions,
-if possible: It tries SSL first on port 993, then TLS on port 143
-if the servers announce TLS, then no encryption at all.
+if possible. First, imapsync tries to use SSL on port 993, 
+then TLS on port 143 if the servers announce TLS, then no encryption at all.
 Concerning encryption, what is done with the source imap server host1
 is independent of what is done with the destination imap server host2.
 
 On the date of 22 April 2021, there is no security problem
 detected or reported to me (Gilles LAMIRAL), so far.
 Feel free to attack the service and feel free to report any
-hole encountered. Have in mind I can watch what you try
+hole encountered. Have in mind I can watch what you do
 from the server-side and take measures if the service suffers from
-your acts.
+your acts. Drop me a note before will be fair play.
 
 As the owner of the service, it could have been 450 000 pairs of
 credentials collected and nearly 210 terabytes of email messages.
@@ -77,7 +77,7 @@ I haven't kept them but I can't prove I haven't. It's just trust,
 like nearly every online service in the universe.
 
 The imap server certificates are not checked for authenticity
-(by default) because too many  imap servers are crappy configured
+(by default) because too many imap servers are crappy configured
 regarding certified certificates.
 
 This default behavior is chosen like this because users of /X
@@ -94,7 +94,7 @@ That's not good at all but what "comforts" me is that if an
 imap server does only clear text transfers, then it's also true
 for all the imap sessions the account owner encounters,
 imapsync is just one of them; the imap servers are then always 
-unsecure for any imap software client.
+unsecured for any imap software client.
 
 
 Last point, who could be sure that no cracker cracked the online
@@ -106,24 +106,25 @@ the sync is a safe and recommended practice!
 
 =====================================================================
 Q. Does the online service store any sensitive information 
-   like my passwords?
+like my passwords?
 
 No.
 The online passwords are kept by your browser. The goal is 
 that the next time you run a sync from your browser, all the 
-parameters are there without having to re-enter them.
+parameters are already there without having to re-enter them.
 The save is done when you click on the "Sync or resync" green
-button. So, if you don't want your browser to keep your good password,
+button. So, if you don't want your browser to keep your password,
 enter a wrong one or empty the password field and click 
 on the "Sync or resync" green button, the wrong password 
-will be saved in your browser and the sync won't be done,
+will be saved in your browser and no sync will be done,
 since a good login is mandatory to do anything on your mailboxes.
 
 =====================================================================
-Q. Shall I have issues with the browser timing out? What happens
-   if the browser connection is closed for whatever reason?
+Q. Shall I have issues with the browser timing out?
+What happens if the browser connection is closed for whatever reason?
 
-R. It stops the imapsync process, ie, the sync is ended right away.
+R. A browser connection closed closes also the imapsync process, 
+ie, the sync is ended right away.
 
 Further comments on this behavior.
 
@@ -157,29 +158,29 @@ the logfile running the sync like a "tail -f" command (isn't that magic?).
 
 =====================================================================
 Q. Shall I have issues when the webserver times out? What happens
-   if the webserver closes the connection for whatever reason?
+if the web server closes the connection for whatever reason?
 
-R. If the webserver closes the connection then usually it kills 
-   imapsync process and the imap connections as well.
-   To fix this issue, see the document INSTALL.OnlineUI.txt
-   and search for "Timeout" in it.
+R. If the webserver closes the connection then usually it also 
+kills the imapsync process and the imap connections as well.
+
+To fix this issue, see the document INSTALL.OnlineUI.txt
+and search for "Timeout" in it.
    
-   Tip: If the connections close for huge folders and always after 
-   300 seconds or 60 seconds then it looks like a webserver timeout.
-   Apache 2.2 timeout is 300 seconds.
-   Apache 2.4 timeout is  60 seconds.
+Tip: If the connections close for huge folders and always after 
+300 seconds or 60 seconds then it looks like a web server timeout.
+Apache 2.2 timeout is 300 seconds.
+Apache 2.4 timeout is  60 seconds.
 
 =====================================================================
 Q. The sync stalls at the beginning, just after a line like:
-   "Host1: xxx says it has CAPABILITY for AUTHENTICATE LOGIN"
-   What is the problem?
+"Host1: xxx says it has CAPABILITY for AUTHENTICATE LOGIN"
+What is the problem?
 
 R. I've seen this issue on /X with the imap server
-   CommuniGate Pro IMAP Server 6.0.11
-   The issue looks related to special characters in the password.
-   Solution for now: change the password, keep only
-   standard (ASCII) alphanumeric characters ABC-YZ abc-yz 012-89.
-
+CommuniGate Pro IMAP Server 6.0.11
+The issue looks related to special characters in the password.
+Solution for now: change the password, keep only standard (ASCII) 
+alphanumeric characters ABC-YZ abc-yz 012-89.
 
 =====================================================================
 =====================================================================

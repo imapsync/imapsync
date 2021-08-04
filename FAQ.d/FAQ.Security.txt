@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Security.txt,v 1.22 2020/06/30 17:32:39 gilles Exp gilles $
+# $Id: FAQ.Security.txt,v 1.23 2021/06/22 15:32:10 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -15,26 +15,6 @@ SSL: going to encryption before the imap session start.
 
 TLS: going to encryption after the imap session start but before
      the credential are sent. It is on port 143.
-
-Explanation:
-
-To transfer emails over an encrypted connection, the imapsync parameters --ssl1 and ssl2 are preferred over the parameters --tls1 and --tls2.
-
-This might be confusing because the terms "SSL" and "TLS" can have different meanings in the contexts of IT security and email. Imapsync uses both terms in the context of email, not of IT security.
-
-In IT security, SSL refers to the deprecated Secure Sockets Layer protocols. SSL 2.0 has been depreated in 2011 based on RFC 6176 (see https://datatracker.ietf.org/doc/rfc6176/ ) and SSL 3.0 has been deprecated in 2015 based on RFC 7568 (see https://datatracker.ietf.org/doc/rfc7568/ ). TLS refers to the more modern Transport Layer Security protocols. TLS 1.0 and TLS 1.1 have been deprecated in 2020 with RFC 8996 (see https://datatracker.ietf.org/doc/rfc8996/ ). Current versions of TLS are TLS 1.2 (published in 2008) and TLS 1.3 (published in 2018).
-
-SSL should not be used anymore. When using TLS, only the non-deprecated versions should be used. Given this information, it might be confusing why the --ssl1 and --ssl2 parameters are preferred over the --tls1 and --tls2 parameters. The reason is that imapsync uses the terms in the context of email and not of IT security.
-
-In an email context, the parameters --ssl1 and --ssl2 refer to the protocol family of both SSL and (!) TLS. In contrast, the parameters --tls1 and --tls2 refer to the STARTTLS command based on opportunistic encryption. Opportunistic encryption means that the system attempts to encrypt the communications channel but falls back to unencrypted communications if the encryption cannot be established.
-
-The problem is that the parameters --tls1 and --tls2 seem to offer more security by seemingly referring the more modern TLS protocols, when these parameters are in fact less secure (than --ssl1 and --ssl2) because they are actually referring to STARTTLS with opportunistic enryption. Therefore the parameters --ssl1 and ssl2 are preferred over the parameters --tls1 and --tls2.
-
-Summary:
-
-Parameters --ssl1 and --ssl2: Force an encrypted connection based on the SSL/TLS protocol family. Fails if an encryption cannot be established. More secure than --tls1 and --tls2. Can be specified with --sslargs1 and --sslargs2.
-
-Parameters --tls1 and --tls2: Try to establish an encrypted connection based on STARTTLS. Does not fail if an encryption cannot be established meaning an encrypted connection cannot be garanteed [UNSURE]. Less secure than --ssl1 and --ssl2.
 
 =======================================================================
 Q. Is running this program a secure method of transferring emails?  

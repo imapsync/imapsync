@@ -1,0 +1,749 @@
+#LyX 1.5.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 276
+\begin_document
+\begin_header
+\textclass beamer
+\begin_preamble
+\usetheme{Warsaw}
+% or ...
+
+\setbeamercovered{transparent}
+% or whatever (possibly just delete it)
+\end_preamble
+\options handout
+\language french
+\inputencoding auto
+\font_roman times
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\paperfontsize default
+\spacing single
+\papersize default
+\use_geometry false
+\use_amsmath 2
+\use_esint 0
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\secnumdepth 2
+\tocdepth 2
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Imasync & pop2imap, allons aux bals
+\begin_inset OptArg
+status open
+
+\begin_layout Standard
+Imapsync & pop2imap
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subtitle
+et transférons sans douleurs des courriels en grand nombre sur de longues
+ distances
+\end_layout
+
+\begin_layout Author
+Gilles\InsetSpace ~
+Lamiral
+\end_layout
+
+\begin_layout Institute
+Informaticien indépendant
+\newline
+Baulon (35)
+\end_layout
+
+\begin_layout Date
+A l'occasion de l'Assemblée Générale de Gulliver 2010.
+\end_layout
+
+\begin_layout BeginFrame
+Où sont les boites aux lettres ?
+\end_layout
+
+\begin_layout FrameSubtitle
+Comment accèdons nous à nos messages ?
+\end_layout
+
+\begin_layout Standard
+Nous accédons à nos messages suivant le modèle classique client/serveur
+ :
+\end_layout
+
+\begin_layout Itemize
+Le serveur écoute (sur un port) et attend les requêtes du client
+\end_layout
+
+\begin_layout Itemize
+Le client envoie des demandes au serveur (sur son port d'écoute) et attend
+ les réponses
+\end_layout
+
+\begin_layout Itemize
+Le client et le serveur discute avec le même langage : le protocole 
+\end_layout
+
+\begin_layout BeginFrame
+Quels protocoles pour les boites aux lettres ?
+\end_layout
+
+\begin_layout FrameSubtitle
+Le protocole roulé dans la farine a plus de goût
+\end_layout
+
+\begin_layout Standard
+Actuellement 3x2 = 6 protocoles se partagent le gâteau de l'accès aux boites
+ aux lettres (le x2 = surcouche SSL au protocole de base) :
+\end_layout
+
+\begin_layout Itemize
+IMAP (port 143) : Internet Message Access Protocol 
+\end_layout
+
+\begin_layout Itemize
+IMAPS (port 993) : IMAP + SSL (Secure Socket Layer : chiffrement des flux)
+\end_layout
+
+\begin_layout Itemize
+POP3 (port 110) : Post Office Protocol 
+\end_layout
+
+\begin_layout Itemize
+POP3S (port 995) : POP3 + SSL
+\end_layout
+
+\begin_layout Itemize
+HTTP (port 80) : HTTP Webmail 
+\end_layout
+
+\begin_layout Itemize
+HTTPS (port 443) : HTTP Webmail + SSL
+\end_layout
+
+\begin_layout Standard
+Ces six protocoles ne sont nullement exclusifs les uns des autres, ils peuvent
+ cohabiter ensemble et le font très souvent.
+\end_layout
+
+\begin_layout BeginFrame
+Problématique
+\end_layout
+
+\begin_layout FrameSubtitle
+J'ai un problèmeu, je crois bien que je [...]
+\end_layout
+
+\begin_layout Itemize
+Comment transférer les messages d'un serveur s1 vers un autre serveur s2
+ ?
+\end_layout
+
+\begin_layout BeginFrame
+Solutions possibles
+\end_layout
+
+\begin_layout FrameSubtitle
+il y a toujours des solutions, et notemment des solutions impossibles.
+\end_layout
+
+\begin_layout Itemize
+Synchroniser l'arborescence de s1 vers s2 avec rsync ou un logiciel équivalent
+ (synchronisation de fichiers).
+ Rapide et efficace.
+ Usage limité à un même logiciel serveur imap sur le même type de système.
+ Ce cas est rare (le bal hautin n'est qu'une petite boite de crotte).
+\end_layout
+
+\begin_layout Itemize
+Exporter les données de s1 dans un fichier, suivant un certain format et
+ importer ces données sans s2.
+ Contraintes : accès direct au serveur, formats spécifiques.
+ Prise de tête assurée (un bal-trap perdant garanti).
+\end_layout
+
+\begin_layout Itemize
+Détruire les messages sur s1 : s2 est à jour sans rien faire.
+ Facile, un peu réducteur (c'est la technique du trou de bal)
+\end_layout
+
+\begin_layout Itemize
+???
+\end_layout
+
+\begin_layout BeginFrame
+Solution retenue
+\end_layout
+
+\begin_layout FrameSubtitle
+De la tenue et de la retenue s'il vous plait
+\end_layout
+
+\begin_layout Itemize
+Utiliser les protocoles en mode client (le client du modèle client/serveur)
+ et s'affranchir ainsi du format des fichiers stockés, de la technologie
+ propre à chaque logiciel serveur etc.
+ 
+\end_layout
+
+\begin_layout Itemize
+C'est le choix fait pour écrire imapsync, pop2imap (
+\size giant
+et leur équivalents concurrents que je ne nommerai pas faute de place suffisante
+ sur le reste de cette page, je citerai quand même le celèbre offlin..
+\end_layout
+
+\begin_layout BeginFrame
+Avantages d'imapsync et de pop2imap
+\end_layout
+
+\begin_layout FrameSubtitle
+en nature essentiellement
+\end_layout
+
+\begin_layout Itemize
+L'arborescence des dossiers est respectée (mode récursif)
+\end_layout
+
+\begin_layout Itemize
+Les mises à jour de s1 vers s2 sont possibles (mode incrémental)
+\end_layout
+
+\begin_layout Itemize
+L'arrêt inopiné et la reprise sont gérés
+\end_layout
+
+\begin_layout Itemize
+Les étiquettes/flags sont aussi transférées
+\end_layout
+
+\begin_layout Itemize
+Aucun format de fichier n'est à définir ou à rechercher, il s'impose de
+ lui-même, c'est celui de la messagerie d'internet : RFC 2822 - Internet
+ Message Format.
+\end_layout
+
+\begin_layout BeginFrame
+Les informations nécessaires
+\end_layout
+
+\begin_layout FrameSubtitle
+Le strict minimum pour pouvoir relever ou lire ses messages
+\end_layout
+
+\begin_layout Standard
+4 informations sont strictement nécessaires pour relever le courriel d'une
+ boite aux lettres :
+\end_layout
+
+\begin_layout Itemize
+Le protocole géré par le serveur : POP ou IMAP ou HTTP
+\end_layout
+
+\begin_layout Itemize
+Le serveur : son nom ou son adresse ip (+ le port du service unless well
+ known port, yeah) :
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+imap.truc.com
+\end_layout
+
+\begin_layout Itemize
+82.98.86.162
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Le nom de connexion au service :
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+toto
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Le mot de passe :
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+supersecret
+\end_layout
+
+\end_deeper
+\begin_layout BeginFrame
+Exemple de base avec imapsync
+\end_layout
+
+\begin_layout FrameSubtitle
+Où nous pouvons difficilement faire plus court
+\end_layout
+
+\begin_layout Itemize
+Le mode 
+\begin_inset Quotes eld
+\end_inset
+
+protégé
+\begin_inset Quotes erd
+\end_inset
+
+ pour un transfert imap vers imap :
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+imapsync 
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host1 imap.truc.org --user1 john --passfile1 /john.secret 
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host2 imap.trac.org --user2 rodo --passfile2 /rodo.secret
+\end_layout
+
+\begin_layout Itemize
+Un mode protégé de quoi ? les mots de passe de cet exemple sont dans des
+ fichiers, ils ne sont pas directement visible sur la ligne de commande
+ (visibles par la commande ps ou dans l'historique des commandes).
+\end_layout
+
+\begin_layout Itemize
+Les mots de passe passent en clair sur le réseau si AUTH-MD5 n'est pas supporté
+ par le serveur
+\end_layout
+
+\begin_layout Itemize
+Les messages passent en clair sur le réseau
+\end_layout
+
+\begin_layout Itemize
+En résumé un mode 
+\begin_inset Quotes eld
+\end_inset
+
+protégé
+\begin_inset Quotes erd
+\end_inset
+
+ contre pas grand chose
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout BeginFrame
+Exemple de base avec pop2imap
+\end_layout
+
+\begin_layout FrameSubtitle
+Où nous pouvons difficilement faire plus court aussi
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Itemize
+Le mode 
+\begin_inset Quotes eld
+\end_inset
+
+protégé
+\begin_inset Quotes erd
+\end_inset
+
+ pour un transfert pop vers imap :
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+pop2imap 
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host1 pop3.truc.org --user1 john --passfile1 /john.secret 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host2 imap.trac.org --user2 rodo --passfile2 /rodo.secret
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout BeginFrame
+Exemples de base version warrior
+\end_layout
+
+\begin_layout FrameSubtitle
+Un utilisateur averti est un utilisateur averti
+\end_layout
+
+\begin_layout Itemize
+Ou bien, si vous aimez les conduites à risque :
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+imapsync 
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host1 imap.truc.org --user1 john --password1 superdur 
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host2 imap.trac.org --user2 rodo --password2 bof
+\end_layout
+
+\begin_layout Itemize
+La même avec pop2imap :
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+pop2imap 
+\backslash
+ 
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host1 pop3.truc.org --user1 john --password1 superdur 
+\backslash
+
+\end_layout
+
+\begin_layout Standard
+
+\family typewriter
+\size footnotesize
+--host2 imap.trac.org --user2 rodo --password2 bof 
+\end_layout
+
+\begin_layout BeginFrame
+Les cas compliqués
+\end_layout
+
+\begin_layout FrameSubtitle
+Pourquoi faire simple ?
+\end_layout
+
+\begin_layout Standard
+86 options en tout dans imapsync pour gérer les cas difficiles :
+\end_layout
+
+\begin_layout Itemize
+Les serveurs récalcitrants (hin, c'est quoi une RFC ?)
+\end_layout
+
+\begin_layout Itemize
+Je ne veux transférer que ...
+ (date, taille, dossiers souscrits etc.)
+\end_layout
+
+\begin_layout Itemize
+Je veux renommer les dossiers sur s2
+\end_layout
+
+\begin_layout Itemize
+Je veux transformer le contenu des messages (bah oui yen a qui veulent ça)
+\end_layout
+
+\begin_layout Itemize
+Je veux simuler (la simulation a de bons cotés)
+\end_layout
+
+\begin_layout Itemize
+Je veux détruire du serveur s1 ce qui est transféré dans s2 (migrer)
+\end_layout
+
+\begin_layout Itemize
+Je veux détruire de s2 ce qui n'est pas dans s1 (copie conforme, backup)
+\end_layout
+
+\begin_layout Itemize
+Je veux changer/enlever certaines étiquettes/flags (bah oui 2)
+\end_layout
+
+\begin_layout Itemize
+Les modes debug
+\end_layout
+
+\begin_layout Itemize
+...
+\end_layout
+
+\begin_layout BeginFrame
+Succès d'imapsync
+\end_layout
+
+\begin_layout FrameSubtitle
+Succès sans être victime du succès
+\end_layout
+
+\begin_layout Itemize
+40 logiciels serveur imap supportés par imapsync (pensiez-vous qu'il existait
+ autant de logiciel server imap ?).
+ 3 serveurs non supportés (sans être sûr par manque d'investigation)
+\end_layout
+
+\begin_layout Itemize
+Plusieurs cas de migrations de 40 000 boites avec 2 To de messages.
+\end_layout
+
+\begin_layout Itemize
+Fonctionne sous windows (surprise complète).
+ Un binaire imapsync.exe est disponible.
+\end_layout
+
+\begin_layout Itemize
+5ième sur 40 000 projets (par vote) chez feshmeat pendant longtemps (freshmeat
+ qui n'est plus ce qu'il était, bouhouhou).
+\end_layout
+
+\begin_layout Itemize
+Disponible dans les crémeries FreeBSD, Debian, Ubuntu, Gentoo, NetBSD, Darwin,
+ Mandriva et OpenBSD (au moins).
+\end_layout
+
+\begin_layout Itemize
+un article dans le linux journal allemand.
+\end_layout
+
+\begin_layout BeginFrame
+Récompenses
+\end_layout
+
+\begin_layout FrameSubtitle
+amis du fisc : ne pas lire
+\end_layout
+
+\begin_layout Standard
+Au 17 novembre 2010 :
+\end_layout
+
+\begin_layout Itemize
+106 livres reçus en dons (2618 USD) depuis février 2003.
+\end_layout
+
+\begin_layout Itemize
+Quelques dons de dollars en paypal.
+ Du 29 mai 2007 au 31 octobre 2010 : 0 -> 661,88 USD.
+\end_layout
+
+\begin_layout Itemize
+De plus nombreux achats en paypal : du 31 octobre au 18 novembre 2010 :
+ 661,88 -> 1 510,46 USD.
+\end_layout
+
+\begin_layout Itemize
+724 messages sur la liste de diffusion depuis le 8 mai 2008, 90 abonnés
+ (
+\family typewriter
+\size footnotesize
+cat ~/expl/imapsync/stats
+\family default
+\size default
+).
+\end_layout
+
+\begin_layout Itemize
+2300 messages concernant imapsync dans ma boite aux lettres (soit une moyenne
+ de 4 messages par semaine).
+\end_layout
+
+\begin_layout BeginFrame
+Quelques dates pour imapsync
+\end_layout
+
+\begin_layout Itemize
+Première version 1.1 du 29 juillet 2001 : Écriture initiale du programme
+ imapsync (taille : 5 126 octets).
+ Version qui a servi à remplir avec succès le premier besoin (adresses ip
+ en dur dans le script).
+\end_layout
+
+\begin_layout Itemize
+14 Mars 2003 : première annonce sur freshmeat, version 1.7.
+\end_layout
+
+\begin_layout Itemize
+25 octobre 2010 : dernière version libre, ouverte et gratuite, la 1.366 (taille
+ : 139 343 octets).
+\end_layout
+
+\begin_layout Itemize
+12 novembre 2010 : dernière version libre ouverte et payante, la 1.379 (taille
+ : 141 502 octets).
+\end_layout
+
+\begin_layout BeginFrame
+Quelques nombres et dates pour pop2imap
+\end_layout
+
+\begin_layout Itemize
+2003/07/02 : Écriture initial du programme pop2imap.
+\end_layout
+
+\begin_layout Itemize
+Taille de pop2imap : 16 Ko.
+\end_layout
+
+\begin_layout Itemize
+dernière version 1.18 du 1er spetembre 2008.
+\end_layout
+
+\begin_layout Itemize
+Peu de retours (mais d'excellentes qualités).
+\end_layout
+
+\begin_layout BeginFrame
+Histoire d'imapsync
+\end_layout
+
+\begin_layout FrameSubtitle
+Le besoin initial
+\end_layout
+
+\begin_layout Itemize
+Besoins et contraintes initiaux :
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Un transfert de boites aux lettres d'un serveur imap Domino (Notes) (je
+ n'en suis plus certain) vers un serveur imap cyrus.
+\end_layout
+
+\begin_layout Itemize
+Une faible bande passante (rnis) qui plante fréquemment sans prévenir.
+\end_layout
+
+\begin_layout Itemize
+peu de jours pour transférer et vérifier les transferts de bal.
+\end_layout
+
+\end_deeper
+\begin_layout BeginFrame
+Résumé
+\end_layout
+
+\begin_layout Itemize
+Qui n'aura jamais besoin de transférer ses boites aux lettres ?
+\end_layout
+
+\begin_layout Itemize
+imapsync & pop2imap : deux commandes simples d'usage dictées par le besoin
+ des utilisateurs.
+\end_layout
+
+\begin_layout BeginFrame
+Perspectives
+\end_layout
+
+\begin_layout FrameSubtitle
+Que fais-je à l'AG de Gulliver alors que je pourrais être aux bahamas ?
+\end_layout
+
+\begin_layout Itemize
+Développer un service commercial.
+ La société YippieMove transfert une boite aux lettres pour la modique somme
+ de 15 dollars.
+ Je propose 10 moins fois cher, qu'en pensez vous ?
+\end_layout
+
+\begin_layout Itemize
+Commencer un Wiki.
+\end_layout
+
+\begin_layout Itemize
+Lire le TODO et coder les demandes.
+\end_layout
+
+\begin_layout Itemize
+Appliquer les bons patchs.
+\end_layout
+
+\begin_layout EndFrame
+
+\end_layout
+
+\begin_layout Subsection*
+
+\end_layout
+
+\end_body
+\end_document

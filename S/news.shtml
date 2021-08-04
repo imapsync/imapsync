@@ -4,11 +4,9 @@
 <head>
 <meta  http-equiv="content-type"  content="application/xhtml+xml; charset=UTF-8" />
 <title>Imapsync News</title>
-<meta  content="Bluefish 2.2.2"  name="generator" />
 <meta  content="Gilles LAMIRAL"  name="author" />
-<meta  content="2016-01-22T01:56:39+0100"  name="date" />
 <meta  content="None"  name="copyright" />
-<meta  content="imap, transfer, migration, synchronization"  name="keywords" />
+<meta  content="imapsync, imap, transfer, migration, synchronization"  name="keywords" />
 <meta  content="imap migration tool"  name="description" />
 
 
@@ -30,71 +28,150 @@
 next and previous releases <a  href="../#TOP"  id="latest"><small>(back to menu)</small></a>
 </h1>
 
-<p>imapsync <!--#exec cmd="cat ../VERSION" --> was written on <!--#flastmod file="VERSION" -->
-</p>
 
-<p>See <b><a  href="../ChangeLog">ChangeLog</a></b> to read what has been done in details since 2001.</p>
-
-<p>New features or bugfixes since previous releases:</p>
+<h2>Roadmap</h2>
 
 <!-- 
 <ul>
 <li><b>Roadmap</b>: </li>
 </ul>
+-->
 
-<ul>
-<li><b>1.964</b></li>
-<li><b>Dependencies removed</b>: </li>
-<li><b>Dependencies added</b>: Perl modules </li>
+<p>
+If you are very interrested in those projects, don't hesitate to solicit me!
+</p>
 
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
-
-
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
-
-<li><b>Refactoring</b>: </li>
-<li><b>Refactoring</b>: </li>
-<li><b>Refactoring</b>: </li>
-<li><b>Refactoring</b>: </li>
-
-<li><b>Security</b>: </li>
-<li><b>Security</b>: </li>
-
-<li><b>Portability</b>: </li>
-<li><b>Portability</b>: </li>
-
-
-</ul>
- -->
-
- 
 <ul>
 <li><b>Roadmap</b>: Build a docker image including everything, to have a complete online /X in a single command.</li>
-<li><b>Roadmap</b>: Or better: Include a webserver in imapsync to have an online /X integrated.</li>
+<li><b>Roadmap</b>: Or better: Include a webserver in imapsync to have an online /X integrated. (NB: proof of concept already coded and working)</li>
 <li><b>Roadmap</b>: Add the sync of multiple accounts inside imapsync itself instead of via an external shell script doing the loop from a csv file.</li>
+<li><b>Roadmap</b>: Build an online tool, like /X, for multiple accounts at once. (NB: proof of concept already coded and working)</li>
 </ul>
+
+
+<h2>New features or bugfixes since previous releases:</h2>
+
+<p>imapsync <!--#exec cmd="cat ../VERSION" --> was written on <!--#flastmod file="VERSION" -->
+</p>
+
+<p>See <b><a  href="../ChangeLog">ChangeLog</a></b> to read what has been done in details since 2001.</p>
+
+<!--
+<ul>
+<li><b>2.xxx</b></li>
+<li><b>General</b>: </li>
+
+<li><b>Dependencies removed</b>: None </li>
+<li><b>Dependencies added</b>:   None </li>
+
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+
+<li><b>Refactoring</b>: </li>
+<li><b>Refactoring</b>: </li>
+
+<li><b>Security</b>: </li>
+<li><b>Security</b>: </li>
+
+<li><b>Portability</b>: </li>
+<li><b>Portability</b>: </li>
+
+</ul>
+-->
+
+<ul>
+<li><b>2.140</b></li>
+<li><b>General</b>: New release numbering from 1.999 directly to 2.100; I want to avoid 1.1000 and sorting issues in directory listing.</li>
+<li><b>Dependencies removed</b>: None</li>
+<li><b>Dependencies added</b>: None</li>
+
+<li><b>Enhancement</b>: Check if SEARCH ALL works on both accounts and then add --noabletosearch if one can not. Use --nochecknoabletosearch to avoid that behavior.</li>
+<li><b>Enhancement</b>: Added an analyse and classification of the errors encountered.
+Most common error encountered is printed at the end.
+Exit value 112 (EXIT_WITH_ERRORS_MAX) is now replaced by the most common error encountered exit value:
+<pre>
+     EX_OK          => 0  ; #/* successful termination */
+     EX_USAGE       => 64 ; #/* command line usage error */
+     EX_NOINPUT     => 66 ; #/* cannot open input */
+     EX_UNAVAILABLE => 69 ; #/* service unavailable */
+     EX_SOFTWARE    => 70 ; #/* internal software error */
+     EXIT_CATCH_ALL              =>   1 ; # Any other error
+     EXIT_BY_SIGNAL              =>   6 ; # Should be 128+n where n is the sig_num
+     EXIT_BY_FILE                =>   7 ;
+     EXIT_PID_FILE_ERROR         =>   8 ;
+     EXIT_CONNECTION_FAILURE     =>  10 ;
+     EXIT_TLS_FAILURE            =>  12 ;
+     EXIT_AUTHENTICATION_FAILURE =>  16 ;
+     EXIT_SUBFOLDER1_NO_EXISTS   =>  21 ;
+     EXIT_WITH_ERRORS            => 111 ;
+     EXIT_WITH_ERRORS_MAX        => 112 ;
+     EXIT_OVERQUOTA              => 113 ;
+     EXIT_ERR_APPEND             => 114 ;
+     EXIT_ERR_FETCH              => 115 ;
+     EXIT_ERR_CREATE             => 116 ;
+     EXIT_ERR_SELECT             => 117 ;
+     EXIT_TRANSFER_EXCEEDED      => 118 ;
+     EXIT_ERR_APPEND_VIRUS       => 119 ;
+     EXIT_TESTS_FAILED           => 254 ; # Like Test::More API
+     EXIT_CONNECTION_FAILURE_HOST1     =>  101 ;
+     EXIT_CONNECTION_FAILURE_HOST2     =>  102 ;
+     EXIT_AUTHENTICATION_FAILURE_USER1 =>  161 ;
+     EXIT_AUTHENTICATION_FAILURE_USER2 =>  162 ;
+</pre>
+</li>
+
+
+<li><b>Enhancement</b>: Added option --dry1 it avoids to fetch the message on host1 in --dry mode. Option --dry1 is on when --dry is on.
+       It speeds up --dry very much. To get the old --dry behavior, use --dry --nodry1</li>
+<li><b>Enhancement</b>: Do both sides login and authentication before exiting on failure.</li>
+<li><b>Enhancement</b>: --timeout can now be a float (was only integer). Same for --timeout1 --timeout2</li>
+<li><b>Enhancement</b>: Added option --syncduplicates to sync duplicates. On by default in CGI context. Off by default on command line.</li>
+<li><b>Enhancement</b>: Added option --trylogin. After a login failure of any kind, imapsync tries to login 
+  with the LOGIN command. Use --notrylogin to avoid that. --trylogin is on by default.
+ </li>
+<li><b>Enhancement</b>: Added options --oauthaccesstoken1 and --oauthaccesstoken2 to support OAUTH2 authentication.</li>
+<li><b>Enhancement</b>: Added options --oauthdirect1 and --oauthdirect2 to support OAUTH2 authentication.</li>
+<li><b>Enhancement</b>: Added statistic line "CPU time and %cpu". 
+                        Example: "CPU time and %cpu : 9.2 sec 39.8 %cpu 19.9 %allcpus".</li>
+<li><b>Enhancement</b>: Added option --filterbuggyflags to filter flags known to be buggy and 
+                        generators of errors "BAD Invalid system flag" or "NO APPEND Invalid flag list".</li>
+
+
+<li><b>CGI context</b>: Back from Message-Id to Message-Id Received in cgisetcontext</li>
+<li><b>CGI context</b>: In CGI context, the log directory is no longer ./LOG_imapsync/ but simply ./ It should fasten the searches and grep</li>
+<li><b>CGI context</b>: Added --loglogfile option. Append ../list_all_logs_auto.txt with the logfile name. On by default in CGI context.</li>
+
+
+<li><b>Usability</b>: Changed time presentation on ETA and in final stats. Example: Wednesday 16 June 2021-06-16 00:32:05 +0200 CEST</li>
+<li><b>Usability</b>: Do not check selectable folders for huge accounts with more than 152 folders, 98 percentile of /X; 
+                      It could be very long and ended up with some users transformed in stone just by staring at the fixed output.</li>
+
+
+<li><b>Bug fix</b>: The number of detected cpus (cores) was accurate only on Linux. Added Freebsd and fixed Darwin and Windows parts.</li>
+
+<li><b>Refactoring</b>: Continuing to deglobalize the global variables.</li>
+<li><b>Refactoring</b>: 1734 unit tests.</li>
+<li><b>Refactoring</b>: </li>
+
+
+</ul>
+
+
 
 <ul>
 <li><b>1.977</b></li>
 <li><b>Dependencies removed</b>: None.</li>
 <li><b>Dependencies added</b>: Perl modules Encode::IMAPUTF7</li>
+
+<li><b>Windows</b>: imapsync.exe is now 64 bits (it was a 32bit binary before). 
+                    If you use an old 32bit PC, use imapsync_32bit.exe instead.
+</li>
 
 <li><b>Enhancement</b>: Folders sizes are now presented per folder for host1 and host2,
                         as well as the differrences between them.
@@ -877,7 +954,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.74 2020/01/01 21:07:13 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.78 2021/07/05 20:22:15 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

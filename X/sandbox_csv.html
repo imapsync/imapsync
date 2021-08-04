@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+
+
+<html>
+  <head>
+    <title>Imapsync CSV online</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <!-- -->
+  </head>
+
+<body>
+
+<h1>Imapsync online</h1>
+
+<p>
+This file is a sandbox to play with, to learn, understand what happens, what can be done etc.<br/>
+
+<a  href="#BOTTOM">Bottom of this page</a>
+
+</p>
+
+
+<form id="form" action="/cgi-bin/imapsync_csv_wrapper" method="post" autocomplete="on">
+
+<textarea name="csv_data" rows="10" cols="120">
+# This example is a real one, ie, truly working in the real world.
+test1.lamiral.info;test1;secret1;test2.lamiral.info;test2;secret2;
+
+# The reverse
+test2.lamiral.info;test2;secret2;test1.lamiral.info;test1;secret1;
+
+# The first again but with authentication failure
+test1.lamiral.info;test1;secret1;test2.lamiral.info;test2;wrong;
+
+</textarea>
+<br/>
+
+
+</form>
+
+<button type="button"
+	onclick="imapsync( handleRun )"
+	>Run imapsync on all csv data
+</button>
+
+
+
+<button type="button"
+	onclick="abort(  )"
+	>Abort imapsync
+</button>
+
+<h2>Console of imapsync runs</h2>
+
+<pre id="console">
+</pre>
+
+<h2>Log of abort</h2>
+
+<pre id="abort">
+</pre>
+
+<h2>Log of imapsync runs</h2>
+
+<pre id="output" >
+</pre>
+
+
+
+<h2>Links</h2>
+
+<div id="BOTTOM">
+<p >
+<a  href="#TOP">Top of the page</a>
+</p>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+<script>
+
+
+
+var readyStateStr = {
+	0: "Request not initialized",
+	1: "Server connection established",
+	2: "Response headers received",
+	3: "Processing request",
+	4: "Finished and response is ready"
+} ;
+
+function imapsync( cFunction ) {
+	var xhr ;
+	xhr = new XMLHttpRequest(  ) ;
+	var timerRefreshLog = setInterval( function() { refreshLog( xhr ) }, 3000 ) ;
+	xhr.onreadystatechange = function(  ) {
+		cFunction( this, timerRefreshLog ) ;
+	} ;
+
+        var form_querystring = $("#form").serialize() ;
+
+        $("#form_querystring").text( form_querystring ) ;
+
+
+        xhr.open( "POST", "/cgi-bin/imapsync_csv_wrapper", true ) ;
+        xhr.setRequestHeader( "Content-type",
+            "application/x-www-form-urlencoded" ) ;
+        xhr.send( form_querystring ) ;
+
+        $("#output").text("Here comes the log!\n\n") ;
+        xhr.send(  ) ;
+}
+
+function handleRun( xhr, timerRefreshLog ) {
+
+	$( "#console" ).text( "Status: " + xhr.status + " " + xhr.statusText + ".\n" 
+	+ "State: " + readyStateStr[ xhr.readyState ] + "\n" ) ;
+
+	if ( xhr.status == 200 && xhr.readyState == 4 ) {
+	        var headers =  xhr.getAllResponseHeaders(  ) ;
+
+		clearInterval( timerRefreshLog ) ;
+		refreshLog( xhr ) ; // a last time
+	}
+}
+
+function refreshLog( xhr ) {
+	$( "#output" ).text( xhr.responseText ) ;
+}
+
+
+function abort()
+{
+        var querystring = $("#form").serialize() + "&abort=on";
+        var xhr;
+        xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function ()
+        {
+            handleAbort(xhr);
+        };
+        xhr.open("POST", "/cgi-bin/imapsync_csv_wrapper", true);
+        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhr.send(querystring);
+}
+
+
+function handleAbort( xhr ) {
+
+	$( "#abort" ).text( "Status: " + xhr.status + " " + xhr.statusText + ".\n" 
+	+ "State: " + readyStateStr[ xhr.readyState ] + "\n" ) ;
+
+	if ( xhr.status == 200 && xhr.readyState == 4 ) {
+	        var headers =  xhr.getAllResponseHeaders(  ) ;
+		// $( "#abort" ).append( "\n" + headers + "\n" ) ;
+		$( "#abort" ).append( xhr.responseText ) ;
+		
+	}
+}
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+#!/bin/sh
+
+refresh_token_file()
+{
+        echo ./D_oauth2_refresh_token_"$1".txt
+}
+
+access_token_file()
+{
+        echo ./D_oauth2_access_token_"$1".txt
+}
+
+oauthdirect_file()
+{
+        echo ./D_oauth2_oauthdirect_"$1".txt
+}
+
+
+
+#echo 
+#echo "get_refresh_token youremail@gmail.com # First time, then once in a while when the refresh_token is no longer working"
+get_refresh_token()
+{
+        refresh_token_file="`refresh_token_file $1`"
+        access_token_file="`access_token_file $1`"
+        # 1 Get an access_token and a refresh_token
+        
+        ./oauth2_google.py --user="$1" \
+                --client_id="108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com" \
+                --client_secret=zAJO4PLxzeJ4yOaiJRk6f69k \
+                --generate_oauth2_token --quiet
+                
+        cat typescript | grep -i 'Refresh Token:' | tail -1 | sed -e 's/Refresh Token: *//' | tr -d '\r' | tee "$refresh_token_file"
+        cat typescript | grep -i 'Access Token:'  | tail -1 | sed -e 's/Access Token: *//'  | tr -d '\r' | tee "$access_token_file"
+        echo refresh_token saved in "$refresh_token_file"
+        echo access_token  saved in "$access_token_file"
+}
+
+#echo 
+#echo "regenerate_access_token youremail@gmail.com # 2 Regenerate an access_token if time passes too long (3600s)"
+regenerate_access_token()
+{
+        refresh_token_file="`refresh_token_file $1`"
+        access_token_file="`access_token_file $1`"
+        # 2 Regenerate an access_token if time passes too long (3600s)
+        refresh_token="`cat $refresh_token_file|tr -d '\r'`"
+        echo ./oauth2_google.py  --quiet --user="$1" \
+                --client_id="108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com" \
+                --client_secret=zAJO4PLxzeJ4yOaiJRk6f69k \
+                --refresh_token="$refresh_token"
+            
+        ./oauth2_google.py  --quiet --user="$1" \
+                --client_id="108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com" \
+                --client_secret=zAJO4PLxzeJ4yOaiJRk6f69k \
+                --refresh_token="$refresh_token" | tee "$access_token_file"
+                
+        echo access_token saved in "$access_token_file"
+}
+
+
+
+refresh_token_is_here()
+{
+        echo In refresh_token_is_here "$@"
+        # force mode
+        if test -n "$2"; then
+                return $2
+        fi
+        
+        refresh_token_file="`refresh_token_file $1`"
+        if test -f "$refresh_token_file" && test -s "$refresh_token_file" ; then
+                echo $refresh_token_file is here
+                return 0
+        else
+                echo $refresh_token_file is not here or empty
+                return 1
+        fi
+}
+
+
+#echo
+#echo 'generate_oauthdirect youremail@gmail.com'
+generate_oauthdirect()
+{
+        access_token_file="`access_token_file $1`"
+        access_token="`cat $access_token_file`"
+        oauthdirect_file="`oauthdirect_file $1`"
+        # 3 Generate oauth2_string for imap authentication
+        ./oauth2_google.py --generate_oauth2_string --user="$1" \
+                --access_token="$access_token" | tail -1 | tee "$oauthdirect_file"
+        echo oauth2_string saved in "$oauthdirect_file"
+        echo Give this to imapsync --oauthdirect1 or --oauthdirect2
+}
+
+
+#echo 
+#echo authenticate_imap youremail@gmail.com
+authenticate_imap() 
+{
+        # 4
+        access_token_file="`access_token_file $1`"
+        access_token="`cat $access_token_file`"
+        echo $access_token
+        ./oauth2_imap_from_token "$1" "$access_token"
+}
+
+
+#echo 'authenticate_imap_google_from_access_token youremail@gmail.com'
+authenticate_imap_google_from_access_token()
+{
+        # 5
+        access_token_file="`access_token_file $1`"
+        access_token="`cat $access_token_file`"
+        echo "$access_token"
+        ./oauth2_google.py --user="$1" \
+                --access_token="$access_token" --test_imap_authentication
+}
+
+#echo generate_for_imapsync_tests
+generate_for_imapsync_tests()
+{
+	regenerate_access_token imapsync.gl0@gmail.com \
+        && generate_oauthdirect imapsync.gl0@gmail.com \
+        && authenticate_imap_google_from_access_token imapsync.gl0@gmail.com \
+        && authenticate_imap imapsync.gl0@gmail.com
+}
+
+verify_email()
+{
+        test X"" != X"$1"
+}
+
+usage()
+{
+        verify_email "$1" || { 
+                echo "Please, give an email address as parameter"
+                return 1
+        }
+}
+
+
+get_refresh_token_by_script_fork()
+{
+        if test -f $0.lock; then
+                echo I am a child in script $$ 
+                get_refresh_token "$1" 
+        else
+                echo I am the parent
+                touch $0.lock
+                echo will do: script -q -f -c "$0 $1 $2" 
+                script -q -f -c "$0 $1 $2" 
+                rm $0.lock
+                regenerate_access_token "$1"
+                generate_oauthdirect "$1"
+        fi
+}
+
+I_am_interractive_or_exit()
+{
+        if test -t 0; then
+                echo Interractive 
+                return 0
+        else
+                echo Not interractive 
+                exit 1
+        fi
+}
+
+#echo "generate_token    youremail@gmail.com"
+generate_token()
+{
+        echo I am PID $$ $0 "$@"
+        #
+        usage "$1" || return 1
+        
+        if refresh_token_is_here "$1" "$2" ; then
+                regenerate_access_token "$1"
+                generate_oauthdirect "$1"
+                authenticate_imap_google_from_access_token "$1"
+                authenticate_imap "$1"
+        else
+                I_am_interractive_or_exit
+                get_refresh_token_by_script_fork "$@"
+        fi
+        
+}
+
+generate_token "$@"
+

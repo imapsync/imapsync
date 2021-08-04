@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.230 2020/01/03 22:39:22 gilles Exp gilles $
+# $Id: TODO,v 1.257 2021/07/05 20:19:31 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -7,6 +7,177 @@ This documentation is also at http://imapsync.lamiral.info/#doc
 TODO file for imapsync
 ----------------------
 
+https://imapsync.lamiral.info/TODO
+
+
+SUGGESTED 2021_05_29 on github https://github.com/imapsync/imapsync/issues/78
+ripmime   https://github.com/inflex/ripMIME
+altermime http://pldaniels.com/altermime/
+
+SUGGESTED 2021_05_29 by Gilles 
+Add --regexbody --regexheader, similar to --regexmess
+
+Hum hum, time goes by:
+SUGGESTED 2016_06_09 by Gilles and David Carter
+In order to avoid useless headaches from --regexmess, add
+--regexheader
+--regexbody
+
+
+
+SUGGESTED 2021_01_26 by Gilles and Martin L. R. @duelhost.dk
+I am trying to move some e-mail using imapsync but the domain I'm moving 
+to have the Danish "ø"-character which it doesn't seem like imapsync can handle.
+Make a functional test of this scenario.
+
+SUGGESTED 2021_01_26 by Gilles and Mike
+https://github.com/imapsync/imapsync/pull/266
+Maybe Gmail has changed and that currently "All Mail" really contains all emails
+with all the labels well set to do a good Gmail to Gmail sync but I have to 
+investigate on that.
+
+SUGGESTED 2020_12_11 by Gilles
+Look at XAPPLEPUSHSERVICE for iCloud imap service Apple (Is it Dovecot masquerade?)
+
+SUGGESTED 2020_12_11 by Gilles
+Check my Office365 account (outlook.com) and play with the configuration 
+to still allow imap with imapsync. It already works but it is an old account.
+It looks like new O365 accounts are less likely to allow basic LOGIN imap
+with a password.
+
+SUGGESTED 2020_12_11 byTimo Smit 
+Allow the syntax --host1 "example.com/Sent"
+to sync only the Sent folder.
+
+SUGGESTED 2020_11_30 by Gilles
+Add a FAQ.Invalid_Argument.txt
+This error is a low level connexion issue, either ipv6 or dns resolution of 
+the name.
+
+
+SUGGESTED 2020_11_24 by Gilles
+On Centos 8 SELinux is blocking imapsync online /X by default.
+Dig into this to find the commands that will allow only the online /X service.
+Instead of:
+
+    sestatus
+    setenforce 0
+    sestatus
+
+
+SUGGESTED 2020_11_21 by Mike Alexander https://github.com/mtalexander and Wittmer, Christian https://github.com/computersalat
+Make a "make github" target in Makefile and add an automatic
+  git tag 1.977 # (not 1.977 of course, the actual release number)
+https://github.com/imapsync/imapsync/issues/156
+https://github.com/imapsync/imapsync/issues/251
+
+
+
+SUGGESTED 2020_11_01 bilogic
+How to uninstalled cpanm modules installed by cpanm and installed by
+perl -Mlazy imapsync
+https://github.com/imapsync/imapsync/issues/211#issuecomment-719889417
+
+SUGGESTED 2020_11_04 by Tim O (and others before)
+Add an option to sync newest emails first.
+
+SUGGESTED 2020_10_15 by Alexander Perlis
+Bugfix. With --delete1 duplicate messages on host1 are deleted only
+one at a time, one at each run. Imapsync should delete them all on first pass.
+Add --delete1duplicates
+
+
+SUGGESTED 2020_09_22 by Jon Ward
+--idatefromreceivedheader 
+As I thought about how this option works, I wondered if it makes more sense to 
+use the date from the final RECEIVED header rather than the DATE header?
+This seems like a better solution since it avoids the case of wrong or 
+spoofed times in the DATE header.  
+Also, I would guess that in most cases the final RECEIVED header is for 
+the closest server (to me) and is probably the most correct date/time.
+
+
+SUGGESTED 2020_09_17 by Peter Franken
+I found a bug:
+If I use the parameters "--subfolder1 Sent/2017 --subfolder2 Sent/2017",
+the mails from "Sent/2017" on Host 1 are transferred to "Sent/2017/INBOX" on Host 2.
+
+
+==============================================================================
+OAUTH2 requests
+
+Readings
+https://developers.google.com/identity/protocols/oauth2
+https://www.oauth.com/oauth2-servers/client-registration/client-id-secret/
+https://unix.stackexchange.com/questions/495691/how-to-provide-oauth2-client-id-and-client-secret-to-an-open-source-bash-scr
+https://stackoverflow.com/questions/64150126/best-practice-for-open-source-applications-using-imap-with-oauth2-regarding-cred
+
+SUGGESTED 05/12/2020 by David Carter
+https://massivescale.com/microsoft-v2-endpoint-primer/
+
+A big complication is https://docs.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth :
+"Get an access token
+ ... you can select an appropriate flow from the following list and follow the corresponding steps to call the underlying identity platform REST APIs and retrieve an access token.
+
+  OAuth2 authorization code flow
+  OAuth2 Device authorization grant flow
+
+OAuth access to IMAP, POP, SMTP AUTH protocols via OAuth2 client credentials grant flow is not supported." 
+
+
+SUGGESTED 2020_10_15 by Alexander Perlis
+https://gitlab.com/muttmua/mutt/-/blob/master/contrib/mutt_oauth2.py.README
+https://gitlab.com/muttmua/mutt/-/blob/master/contrib/mutt_oauth2.py
+
+
+SUGGESTED 2020_09_10 by Joe Rizzo
+I can follow these instructions and authenticate to imap.
+Is there a way I can use the access token generated by this process to authenticate with imapsync?
+https://github.com/google/gmail-oauth2-tools/wiki/OAuth2DotPyRunThrough
+$ python2.7 oauth2.py --test_imap_authentication --access_token=XXXX --user=user@domain.com
+  35:05.38 > CCPK1 AUTHENTICATE XOAUTH2
+  35:05.39 < +
+  35:05.39 write literal size 276
+  35:05.46 < * CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE ENABLE MOVE CONDSTORE ESEARCH UTF8=ACCEPT LIST-EXTENDED LIST-STATUS LITERAL- SPECIAL-USE APPENDLIMIT=35651584
+  35:05.46 < CCPK1 OK user@domain.com authenticated (Success)
+
+SUGGESTED 2021_01_07 by many people
+Add OAUTH2 individual to Gmail and Office365
+http://vdirsyncer.pimutils.org/en/stable/config.html#google
+Office365:
+https://techcommunity.microsoft.com/t5/exchange-team-blog/announcing-oauth-2-0-support-for-imap-and-smtp-auth-protocols-in/ba-p/1330432
+https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-auth-code-flow
+https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-device-code
+
+
+SUGGESTED on 31 Jan 2017 by tibbsbrookside
+Try this code XOAUTH2
+https://github.com/imapsync/imapsync/issues/87#issuecomment-276298841
+
+End of OAUTH2 requests
+==============================================================================
+   
+
+
+SUGGESTED 2020_04_16 by Gilles and tom@mklab
+Reinvestigate the memory issue for huge folder with 
+326691 messages in them. It sounds that imapsync
+take 2.5 Ko memory per message. 
+Trace memory consumption by message.
+
+
+
+SUGGESTED 2020_04_23 by Gabriel
+Folders Size human readable
+une option pour avoir la taille des dossiers individuels en MB,
+lors de l'utilisation de --justfoldersizes ?
+
+SUGGESTED 2020_03_02 by https://github.com/gpothier
+https://github.com/imapsync/imapsync/issues/27#issuecomment-593425945
+Bugfix. Do fail when --minage or --maxage are employed with --search
+Or make them be consistent, ie, do an AND between them.
+Or at least document the bad current behavior which is that
+--search overrides any --minage or --maxage 
 
 SUGGESTED 2020_01_03 by Gilles
 Bugfix. When running ./imapsync --tests --testslive
@@ -88,29 +259,26 @@ and update this status file every few seconds, so any application
 can access it and see what's going on with this process without
 parsing logs or keeping up with the log format when it changes.
 Example of such status file would be:
-In progress
+
+In good progress
 {
-"status": "In progress",
+"status": "in progress",
 "progress": "245/5000",
-"Message": "",
-"Debug": "",
-"Process ID": "pid123456"
+"message_rate":"7.06 msgs/s",
+"bandwidth_rate":"2.801 KiB/s",
+"errors_count": "0",
+"logfile": "LOG_imapsync/2019_09_22_09_01_42_058_abc@example.com_JDoe@example.com.txt",
+"pid": "123456",
+"exit_value": ""
 }
-On error example
-{
-"status": "Fail",
-"progress": "245/5000",
-"Message": "ERRCODE:123",
-"Debug": "LOG_imapsync/2019_09_22_09_01_42_058_abc@example.com_JDoe@example.com.txt",
-"Process ID": "pid123456"
-}
+
 On complete example*
 {
-"status": "Completed",
+"status": "finished",
 "progress": "5000/5000",
-"Message": "",
-"Debug": "LOG_imapsync/2019_09_22_09_01_42_058_abc@example.com_JDoe@example.com.txt",
-"Process ID": ""
+"logfile": "LOG_imapsync/2019_09_22_09_01_42_058_abc@example.com_JDoe@example.com.txt",
+"pid": ""
+"exit_value": "0"
 }
 
 
@@ -137,10 +305,6 @@ http://httpd.apache.org/docs/2.4/mod/core.html#httpprotocoloptions
 ks5 should be ok: Server Version: Apache/2.4.33 (FreeBSD)
 
 
-
-SUGGESTED on 31 Jan 2017 by tibbsbrookside
-Try this code XOAUTH2
-https://github.com/imapsync/imapsync/issues/87#issuecomment-276298841
 
 
 SUGGESTED 2019_06_18 by Konrad Wawryn
@@ -318,10 +482,6 @@ DONE * 420 perlcritic violations of CodeLayout::ProhibitParensWithBuiltins. "Bui
 
 
 
-SUGGESTED 2016_06_09 by Gilles and David Carter
-In order to avoid useless headaches from --regexmess, add
---regexheader
---regexbody
 
 SUGGESTED 2016_06_09 by David Carter
 Add --pipemess-on-fail
@@ -535,6 +695,11 @@ http://asg.web.cmu.edu/cyrus/download/imapd/altnamespace.html
 ===========================================================================
 Now the TODO done! (or not)
 ===========================================================================
+
+DONE 2021/04/30 revision 2.111 by Gilles
+SUGGESTED 2021_04_22 by popular request
+Add an option --syncduplicates that syncs duplicates.
+
 
 DONE      2019/12/16 revision 1.974 by Gilles
 Use Debug_fh to set where go the --debugimap outputs.

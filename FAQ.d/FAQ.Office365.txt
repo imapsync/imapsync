@@ -1,14 +1,14 @@
 
-$Id: FAQ.Office365.txt,v 1.20 2021/03/17 20:42:35 gilles Exp gilles $
+$Id: FAQ.Office365.txt,v 1.23 2021/07/06 02:30:01 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.Office365.txt
 
 
-=======================================================================
+======================================================================
             Imapsync tips for Office365.
-=======================================================================
+======================================================================
 
 Questions answered in this FAQ are:
 
@@ -65,7 +65,7 @@ Q. Couldn't create folder [trash] "Mailbox already exists".
 
 Now the questions again with their answers.
 
-=======================================================================
+======================================================================
 Q. Can I use imapsync to transfer from or to Office365 accounts?
 
 R. Yes. But IMAP access to Office365 account is not always allowed by default 
@@ -74,12 +74,12 @@ R. Yes. But IMAP access to Office365 account is not always allowed by default
 https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access
 https://docs.microsoft.com/en-us/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365
 
-=======================================================================
+======================================================================
 Q. Does imapsync support OAUTH2 authentication for Office365 accounts?
 
 R. No. But I plan to add it during the year 2021.
 
-=======================================================================
+======================================================================
 Q. How to sync from Office365 to XXX?
 
 R. On Windows, use:
@@ -90,13 +90,13 @@ On Unix, use:
 
   imapsync ... --office1
 
-Option --office1 is like (release 1.970):
+Option --office1 is like (release 1.970 or higher):
   
   imapsync ... --host1 outlook.office365.com \
                --ssl1 \
                --exclude "^Files$" 
   
-=======================================================================
+======================================================================
 Q. How to sync from XXX to Office365
 
 R0. IMAP is not enabled by default on Office365, see how to enable it:
@@ -112,7 +112,7 @@ R. Here is a command-line resume that solves most encountered issues when
 
     imapsync ... --office2
 
-which is equivalent to (in imapsync release 1.870):
+which is equivalent to (in imapsync release 1.870 or higher):
 
   imapsync ... \
     --host2 outlook.office365.com \
@@ -140,7 +140,7 @@ Use it like this:
 
 It often does some miracles on messages.
 
-=======================================================================
+======================================================================
 Q. For Office365 I have double and triple-checked the username and
    password spelling but I still get a "LOGIN failed". Any clue?
 
@@ -172,7 +172,7 @@ R5. Triple check the hostname then. Try all of these:
  * imap-mail.outlook.com
  * imap.outlook.com
 
-=======================================================================
+======================================================================
 Q. I see "NO Maximum size of appendable message has been exceeded"
    What can I do with that?
 
@@ -198,7 +198,7 @@ values on the migration accounts in the source and target tenants.
 Thanks to Sean McDougall, Ian Thomas & Matt Wilks from Toronto 
 for this FAQ item.
 
-=======================================================================
+======================================================================
 Q. The imap connection to Office365 is not working very efficiently,
    is there a solution to fix that?
 
@@ -206,7 +206,7 @@ R. Yes. Try DavMail
    http://davmail.sourceforge.net/
    I don't use it myself but a user, Yannick Palanque,  reported great results using it.
 
-=======================================================================
+======================================================================
 Q. The sync fails with many "Trying command when NOT connected!".
    What can I do?
 
@@ -215,7 +215,7 @@ R. The --debugimap option can show you more details, especially some
    "BAD Request is throttled. Suggested Backoff Time: 178755 milliseconds"
    In that case, see the next faq item and its fixes.
 
-=======================================================================
+======================================================================
 Q. Office365 throttles the sync and says: 
    "Request is throttled. Suggested Backoff Time: 299961 milliseconds".
    What can I do with that?
@@ -249,14 +249,14 @@ R2. Play with options --maxbytespersecond or --maxmessagespersecond
 I don't know the upper value that avoids the default throttling from 0365
 and I guess it changes over time.
 
-=======================================================================
+======================================================================
 Q. Office365 refuses to create the folder named "Files" with the error
    "NO Folder name is reserved". What happens?
 
 R. The folder Files is a standard folder in Office365.
    It should not be synced in IMAP. See the next question.
 
-=======================================================================
+======================================================================
 Q. Office365 users complain that a folder named "Files" contains 
    messages with no sender.
 
@@ -296,7 +296,7 @@ https://answers.microsoft.com/en-us/msoffice/forum/msoffice_o365admin-mso_dep365
 
   (This question/answer is taken quasi verbatim from Perttu Aaltonen)
 
-=======================================================================
+======================================================================
 Q. From XXX to Office365, read receipts are all resent again after sync.
    Even for old messages. How can I fix that?
 
@@ -330,7 +330,7 @@ X-Disposition-Notification-To: blabla
 
 Thanks to David Karnowski for pointing and solving this issue.
 
-=======================================================================
+======================================================================
 Q. DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error
    DEBUG: IO/Socket/SSL.pm:1043: local error: SSL read error   
 
@@ -346,7 +346,7 @@ R2. Another solution is to remove --tls or --ssl options for Exchange
 R3. See also the FAQ FAQ.SSL_errors.txt
     https://imapsync.lamiral.info/FAQ.d/FAQ.SSL_errors.txt
 
-=======================================================================
+======================================================================
 Q. From XXX Office365 I get this error message sometimes: 
    "BAD Command Argument Error 11". What does it mean?
 
@@ -371,26 +371,22 @@ R. This error message comes from the Office365 IMAP server when it
   * Some messages have some lines too long. Use option --maxlinelength
     to skip messages whose max line length is over some bytes.
     --maxlinelength 1000 is an RFC2822 must but most servers support
-    higher values. Exchange supports 9900 characters line length:
-
-  imapsync ... --maxlinelength 9900 
-
-    Office365 supports 10500 characters line length:
+    higher values. Office365 supports 10500 characters line length:
 
   imapsync ... --maxlinelength 10500
 
   In case you prefer fixing messages with long lines the hard way,
-  instead of skipping them with --maxlinelength 9900, just use:
+  instead of skipping them with --maxlinelength 10500, just use:
 
   On Windows
-  imapsync ... --regexmess "s,(.{9900}),$1\r\n,g"
+  imapsync ... --regexmess "s,(.{10500}),$1\r\n,g"
 
   On Unix
-  imapsync ... --regexmess 's,(.{9900}),$1\r\n,g'
+  imapsync ... --regexmess 's,(.{10500}),$1\r\n,g'
   
-Have also in mind that Exchange closes the connection after 10 errors
+Have also in mind that Office365 closes the connection after 10 errors
 encountered so you might also see "BYE Connection closed" errors from
-Exchange, which means Exchange leaves the session and says goodbye,
+Office365, which means Office365 leaves the session and says goodbye,
 come back later. Redo some sync then.
 
 On Linux, there is a good Python script in the tarball that can 
@@ -404,7 +400,7 @@ It often does some miracles on messages.
 It's called fix_email_for_exchange because Office365 is Exchange,
 or at least started to be an Exchange server with the same issues.
 
-=======================================================================
+======================================================================
 Q. From XXX to Office365 the flag Flagged does not seem to be well synced. 
    What can I do?
 
@@ -419,7 +415,7 @@ does in detail with flags.
 
 The magic of this trick is on ignoring the \Flagged flag on the first 
 sync and setting it on the second sync, with STORE instead of APPEND.
-This Exchange bug seems that Exchange gets and sets well the Flagged 
+This Office365 bug seems that Office365 gets and sets well the Flagged 
 flag with APPEND in IMAP but then it forgets it with other protocols;
 With STORE it sets and gets the "\Flagged" flag everywhere.
 
@@ -473,7 +469,7 @@ Subject: RE: [imapsync] Office 365 - 'Master User'?
 Date:    Mon, 1 Jun 2015 17:53:54 +0000
 
 
-=======================================================================
+======================================================================
 Q. Couldn't create folder [trash] "Mailbox already exists".
 
 R. Some servers take care of character cases in folder names, 
@@ -506,5 +502,5 @@ R. Some servers take care of character cases in folder names,
    on host1 but are considered the same on destination host2 because of
    case sensitivities and insensitivities, use  --nomixfolders
 
-=======================================================================
-=======================================================================
+======================================================================
+======================================================================

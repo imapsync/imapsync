@@ -1,0 +1,15 @@
+#!/usr/bin/perl 
+
+use strict ;
+use warnings ;
+
+# Is there a map between account xxx@domain and the imap host server 
+# cat G_success_login_on.txt | ./domains_servers_map | sort | uniq -c | sort -g
+
+while ( my $line = <> ) 
+{
+        if ( $line =~ /success login on \[(.*)\] with user \[.*\@(.*)\] auth / )
+        {
+                print "$2 $1\n" ;
+        }
+}

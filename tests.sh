@@ -1,20 +1,23 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.353 2020/01/02 23:48:18 gilles Exp gilles $  
+# $Id: tests.sh,v 1.365 2021/07/05 20:19:12 gilles Exp gilles $  
 
-# general tests start
-# general tests end
+# To run these tests, you need a running imap server somewhere
+# with several accounts. And be on Linux or Unix.
+# 
+# Tests will break as they are home specific, they depend on the content
+# of the mailboxes, which are not given here.
+# 
+# Anyway, those tests are good as imapsync examples.
+# 
+# All mandatory tests are run with:
+# 
+# sh tests.sh
+# 
+# Specific tests can be run by using them as arguments to tests.sh:
+# 
+# sh tests.sh ll_ssl_justconnect  ll_bad_host ...
 
-# Example 1:
-# CMD_PERL='perl -I./W/Mail-IMAPClient-3.39/lib' sh -x tests.sh
-
-# Example 2:
-# To select which Mail-IMAPClient within arguments:
-# sh -x tests.sh 2 ll 3 ll
-# This runs ll() with Mail-IMAPClient-2.2.9 then
-# again with Mail-IMAPClient-3.xx
-# 2 means "use Mail-IMAPClient-2.2.9"
-# 3 means "use Mail-IMAPClient-3.xx" 
 
 
 HOST1=${HOST1:-'localhost'}
@@ -24,27 +27,27 @@ echo HOST2=$HOST2
 
 # most tests use:
 
-# few debugging tests use:
-CMD_PERL_3xx='perl -I./W/Mail-IMAPClient-3.42/lib'
+CMD_PERL='perl -I./W/Mail-IMAPClient-3.43/lib'
 
-CMD_PERL=${CMD_PERL:-$CMD_PERL_3xx}
-
-#echo $CMD_PERL
-#exit
 
 #### Shell pragmas
 
-exec 3>&2 # 
-#set -x   # debug mode. See what is running
-#set -e    # exit on first failure
+
 
 #### functions definitions
 
+# File handle 3 is redirected to STDERR so that echo3 prints 
+# on the terminal even with "sh test.sh > /dev/null"
+# I want to see the names of the tests and their count while 
+# they're running but I don't want to see their output, it's too noisy.
+
+exec 3>&2 
 echo3() {
         #echo '#####################################################' >&3
         echo "$@" >&3
 }
 
+# 
 echolog() {
         echo "`date_ymdhms` : $@" >> W/.tests.errors.txt
         echo3 Last errors listed in W/.tests.errors.txt
@@ -77,14 +80,13 @@ setxon() {
 }
 
 setxback() {
-	$setx_restore_cmd
+        $setx_restore_cmd
 }
 
 run_tests() {
         for t in "$@"; do
-                test X"$t" = X3 && CMD_PERL=$CMD_PERL_3xx && continue
                 tests_count=`expr 1 + $tests_count`
-		#
+                #
                 if ! run_test "$t"; then
                         tests_failed_count=`expr 1 + $tests_failed_count`
                         tests_failed_list="$tests_failed_list $t"
@@ -127,12 +129,12 @@ no_args() {
 # mailboxes tata -> titi used on ll()
 # mailboxes tata -> titi on most ll_*() tests
 
-# mailbox tete@est.belle used on big size tests:
+# mailbox tete@est.belle used on big folder size tests:
 #                      huge_folder()
 #                      huge_folder_sizes_only()
 #                      dprof()
 
-# mailbox big1 big2 used on bigmail tests
+# mailbox big1 big2 used on bigmail message tests
 #                      ll_bigmail()
 #                      ll_memory_consumption
 
@@ -160,7 +162,7 @@ sendtestmessage_titi() {
 can_send() {
 
     # no send at all
-    return 1
+    #return 1
 
     test X`hostname` = X"petite" && return 0;
     test X`hostname` = X"plume" && return 0;
@@ -191,17 +193,35 @@ set_return_code_variables()
         EXIT_CATCH_ALL=1             # Any other error
         
         EXIT_BY_SIGNAL=6
+        EXIT_BY_SIGQUIT=131 # 128+3
+        EXIT_BY_SIGKILL=137 # 128+9
+        EXIT_BY_SIGTERM=143 # 128+15
+        
+        EXIT_BY_FILE=7
         EXIT_PID_FILE_ERROR=8
         
         EXIT_CONNECTION_FAILURE=10
+        EXIT_CONNECTION_FAILURE_HOST1=101
+        EXIT_CONNECTION_FAILURE_HOST2=102
         EXIT_TLS_FAILURE=12
         EXIT_AUTHENTICATION_FAILURE=16
+        EXIT_AUTHENTICATION_FAILURE_USER1=161
+        EXIT_AUTHENTICATION_FAILURE_USER2=162
         EXIT_SUBFOLDER1_NO_EXISTS=21
         
         EXIT_WITH_ERRORS=111
         EXIT_WITH_ERRORS_MAX=112
+        EXIT_OVERQUOTA=113
+        EXIT_ERR_APPEND=114
+        EXIT_ERR_FETCH=115
+        EXIT_ERR_CREATE=116
+        EXIT_ERR_SELECT=117
+        EXIT_TRANSFER_EXCEEDED=118
+        EXIT_ERR_APPEND_VIRUS=119
+        
         EXIT_TESTS_FAILED=254        # Like Test::More API
 }
+
 
 # general tests start
 
@@ -296,20 +316,53 @@ ll_showpasswords() {
 	 --justlogin --showpasswords --debugimap1 
 }
 
-ll_authentication_failure() {
+
+ll_dry() 
+{
+# The first is to create INBOX.dry on host2
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
-         --password1 wrong \
+         --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
-         --password2 wrong
-         test "$?" = "$EXIT_AUTHENTICATION_FAILURE"
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX --f1f2 INBOX=INBOX.dry --justfolders
+
+        time $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX --f1f2 INBOX=INBOX.dry --dry
 }
 
+ll_dry_nodry1() 
+{
+        time $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX --f1f2 INBOX=INBOX.dry --dry --nodry1
+}
+
+ll_dry_maxage() 
+{
+        time $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX --f1f2 INBOX=INBOX.dry --dry --maxage 7
+}
+
+
+# In mandatory_tests
 ll_justhost1()
 {
         $CMD_PERL  ./imapsync --host1 $HOST2
 }
 
+# In mandatory_tests
 ll_justhost2()
 {
         $CMD_PERL  ./imapsync --host2 $HOST2
@@ -362,6 +415,46 @@ ll_INBOX() {
          --folder INBOX
 }
 
+ll_acl() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX.few_emails --syncacl # --debugimap # --dry
+}
+
+l_office365_acl()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --folder INBOX.few_emails --syncacl --dry --debugimap
+}
+
+
+
+ll_namespace_debugimap() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --debugimap1 --justfolderlists
+}
+
+
+ll_host_sanitize() {
+        $CMD_PERL  ./imapsync \
+         --host1 " local /host " --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 ' loc alhost/    ' --user2 titi \
+         --passfile2 ../../var/pass/secret.titi --justlogin 
+}
+
+
 ll_skipcrossduplicates() {
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
@@ -380,7 +473,7 @@ ll_append_debugimap() {
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-	 --folder INBOX --maxage 1 --debugimap1 --nofoldersizes
+	 --folder INBOX --maxage 1 --debugimap2 --nofoldersizes
 }
 
 
@@ -404,13 +497,23 @@ ll_tee() {
 #         --passfile1 ../../var/pass/secret.tata \
 }
 
-ll_minsize() {
+ll_minsize()
+{
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-		 --minsize 1000000 --folder INBOX
+         --minsize 1000000 --folder INBOX
+}
+
+ll_nosearch()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 nosearch \
+         --passfile1 ../../var/pass/secret.nosearch \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi 
 }
 
 ll_search_larger() {
@@ -507,18 +610,37 @@ ll_sigignore_TERM() {
 # ABORT tests
 
 # In mandatory_tests
-ll_abort_pidfile_no_exist() {
+ll_abort_pidfile_no_exist()
+{
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-	 --abort --pidfile /noexist \
-         | grep 'Can not read pidfile /noexist. Exiting.'
+         --abort --pidfile /noexist \
+         --logfile ll_abort_pidfile_no_exist.log
+         grep 'Can not read pidfile /noexist' LOG_imapsync/ll_abort_pidfile_no_exist.log
 }
 
 # In mandatory_tests
-ll_abort_noprocess() {
+ll_abort_noprocess()
+{
+# The process does not exist so the pidfile is removed so the abort is not done
+# and that is ok.
+        echo 99998 > /tmp/imapsync_fake.pid
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+        --abort --pidfile /tmp/imapsync_fake.pid \
+        --logfile ll_abort_noprocess.log
+        grep 'Removing old /tmp/imapsync_fake.pid since its PID 99998 is not running anymore' LOG_imapsync/ll_abort_noprocess.log
+}
+
+# In mandatory_tests
+ll_abort_not_a_pid_number()
+{
         echo 999999 > /tmp/imapsync_fake.pid
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
@@ -526,11 +648,15 @@ ll_abort_noprocess() {
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
         --abort --pidfile /tmp/imapsync_fake.pid \
-         | grep 'Can not send signal kill ZERO to PID 999999.'
+        --logfile ll_abort_not_a_pid_number.log
+        grep 'pid 999999 in /tmp/imapsync_fake.pid is not a pid number' LOG_imapsync/ll_abort_not_a_pid_number.log
 }
 
+
+
 # In mandatory_tests
-ll_abort() { # send QUIT signal 
+ll_abort_basic()
+{ 
         rm -f LOG_imapsync/imapsync_abortme.log
         $CMD_PERL  ./imapsync \
         --host1 $HOST1 --user1 tata \
@@ -540,59 +666,150 @@ ll_abort() { # send QUIT signal
         --pidfile /tmp/imapsync_abortme.pid \
         --logfile imapsync_abortme.log --simulong 4 &
         
+        pid_imapsync_abortme=$!
         sleep 2
 
+        # --abort send QUIT signal 
         $CMD_PERL  ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --abort --pidfile /tmp/imapsync_abortme.pid \
-        --logfile imapsync_aborter.log \
-        | egrep 'Process PID .* ended.' \
-        || { echo 'Look into LOG_imapsync/imapsync_aborter.log' ; return 1 ; }
-
+        --logfile imapsync_aborter.log
         
-        grep 'Killing myself with signal QUIT' LOG_imapsync/imapsync_abortme.log
+        egrep 'Process PID .* ended.' LOG_imapsync/imapsync_aborter.log || return 1 
+
+        wait $pid_imapsync_abortme
+        STATUS_pid_imapsync_abortme="$?"
+        #test "$?" = "$EXIT_BY_SIGNAL" || return 1
+        test "$STATUS_pid_imapsync_abortme" = "$EXIT_BY_SIGQUIT" || test "$STATUS_pid_imapsync_abortme" = "$EXIT_BY_SIGKILL" || return 1
+        grep 'Killing myself with signal QUIT' LOG_imapsync/imapsync_abortme.log || return 1
+}
+
+# In mandatory_tests
+ll_abort_byfile_hand_made()
+{
+        rm -f LOG_imapsync/imapsync_abortme.log
+        $CMD_PERL  ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --pidfile /tmp/ll_abort_byfile_hand_made.pid --pidfilelocking \
+        --logfile ll_abort_byfile_hand_made.log --simulong 4 &
+
+        pid_imapsync_background=$!
+
+        sleep 4
+        touch "/tmp/ll_abort_byfile_hand_made.pidabort$pid_imapsync_background"
+        wait $pid_imapsync_background
+        test "$?" = "$EXIT_BY_FILE" || return 1
+        ! test -f "/tmp/ll_abort_byfile_hand_made.pidabort$pid_imapsync_background" || return 1
+}
+
+# In mandatory_tests
+ll_abort_byfile_imapsync_made()
+{
+        rm -f LOG_imapsync/ll_abort_byfile_imapsync_made.log
+        $CMD_PERL  ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --pidfile /tmp/ll_abort_byfile_imapsync_made.pid --pidfilelocking \
+        --logfile ll_abort_byfile_imapsync_made.log --simulong 6 --justbanner &
+
+        pid_imapsync_background_2=$!
+
+        sleep 3
+
+        $CMD_PERL  ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --pidfile /tmp/ll_abort_byfile_imapsync_made.pid --pidfilelocking \
+        --logfile ll_abort_byfile_imapsync_made_aborter.log --abortbyfile
+
+
+        wait $pid_imapsync_background_2
+        test "$?" = "$EXIT_BY_FILE" || return 1
+        ! test -f "/tmp/imapsync_abortme_byfile.pidabort$pid_imapsync_background_2" || return 1
+}
+
+# In mandatory_tests
+ll_abort_byfile_normal_run()
+{
+        rm -f LOG_imapsync/ll_abort_byfile_normal_run.log
+        $CMD_PERL  ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --pidfile /tmp/ll_abort_byfile_normal_run.pid --pidfilelocking \
+        --logfile ll_abort_byfile_normal_run.log --folder INBOX &
+
+        pid_imapsync_background_3=$!
+
+        sleep 3
+
+        $CMD_PERL  ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --pidfile /tmp/ll_abort_byfile_normal_run.pid --pidfilelocking \
+        --logfile ll_abort_byfile_normal_run_aborter.log --abortbyfile
+
+
+        wait $pid_imapsync_background_3
+        test "$?" = "$EXIT_BY_FILE" || return 1
+        ! test -f "/tmp/imapsync_abortme_byfile.pidabort$pid_imapsync_background_3" || return 1
 }
 
 
 
 # In mandatory_tests
 ll_abort_cgi_context_tail() {
+# --tail mechanism will not be executed because --pidfile is not already created when tail is called.
         rm -f LOG_imapsync/imapsync_abortme.log
         $CMD_PERL  ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --pidfile /tmp/imapsync_abortme_cgi_context.pid --pidfilelocking --tail \
-        --logfile imapsync_abortme_cgi_context.log --simulong 4 &
+        --pidfile /tmp/ll_abort_cgi_context_tail.pid --pidfilelocking --tail \
+        --logfile ll_abort_cgi_context_tail.log --simulong 4 &
         
         sleep 2
 
+# --tail will be ignored because of --abort 
         $CMD_PERL  ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --abort --pidfile /tmp/imapsync_abortme_cgi_context.pid --pidfilelocking --tail \
-        | egrep 'Process PID .* ended.' || return 1
-
-        grep 'Killing myself with signal QUIT' LOG_imapsync/imapsync_abortme_cgi_context.log
+        --abort --pidfile /tmp/ll_abort_cgi_context_tail.pid --pidfilelocking --tail \
+        --logfile ll_abort_cgi_context_tail_aborter.log
+        
+        egrep 'Process PID .* ended.' LOG_imapsync/ll_abort_cgi_context_tail_aborter.log  || return 1
+        grep 'Killing myself with signal QUIT' LOG_imapsync/ll_abort_cgi_context_tail.log || return 1
 }
 
 # In mandatory_tests
 ll_abort_no_pidfile_option() {
-        rm -f LOG_imapsync/imapsync_abortme.log
+        # The final grep has to be fresh
+        rm -f LOG_imapsync/ll_abort_no_pidfile_option.log
+        
         $CMD_PERL  ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --logfile imapsync_abortme_no_pidfile_option.log --simulong 4 &
+        --logfile ll_abort_no_pidfile_option.log  &
         
-        sleep 2
+        sleep 10
 
         $CMD_PERL  ./imapsync \
         --host1 $HOST1 --user1 tata \
@@ -600,9 +817,12 @@ ll_abort_no_pidfile_option() {
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --abort  \
-        | egrep 'Process PID .* ended.' || return 1
+        --logfile ll_abort_no_pidfile_option_aborter.log
+        
+        
+        egrep 'Process PID .* ended.' LOG_imapsync/ll_abort_no_pidfile_option_aborter.log || return 1
 
-        grep 'Killing myself with signal QUIT' LOG_imapsync/imapsync_abortme_no_pidfile_option.log
+        grep  'Killing myself with signal QUIT' LOG_imapsync/ll_abort_no_pidfile_option.log || return 1
 }
 
 
@@ -610,10 +830,25 @@ abort_tests()
 {
         ll_abort_pidfile_no_exist \
         && ll_abort_noprocess \
-        && ll_abort \
+        && ll_abort_not_a_pid_number \
+        && ll_abort_basic \
         && ll_abort_cgi_context_tail \
-        && ll_abort_no_pidfile_option
+        && ll_abort_no_pidfile_option \
+        && ll_abort_byfile_hand_made \
+        && ll_abort_byfile_imapsync_made \
+        && ll_abort_byfile_normal_run
+
 }
+
+ll_simulong() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justbanner --simulong 5
+}
+
 
 ll_nouid1() {
         can_send && sendtestmessage
@@ -659,11 +894,12 @@ ll_with_errors() {
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX --maxage 30 \
         --regexflag 's/.*/PasGlop \\PasGlopRe/'
+        test "$EXIT_WITH_ERRORS" = "$?"
 }
 
 
 
-ll_errors() {
+ll_errorsmax() {
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -671,6 +907,8 @@ ll_errors() {
          --passfile2 ../../var/pass/secret.titi \
 	 --nofoldersizes --folder INBOX.errors --regexflag 's/.*/PasGlop \\PasGlopRe/' --errorsmax 5 --delete2 
 	 #--pipemess 'grep lalalala' --nopipemesscheck --dry  --debugcontent --debugflags
+         #test "$EXIT_WITH_ERRORS_MAX" = "$?" # no longer used since errors classification
+         test "$EXIT_WITH_ERRORS" = "$?"
 }
 
 ll_debug()
@@ -690,8 +928,20 @@ ll_debugcontent() {
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-	 --debugcontent --maxage 1 --folder INBOX --dry
+	 --debugcontent --maxage 1 --folder INBOX --dry --nodry1 
 }
+
+ll_debug_FETCH_BODY() {
+        #can_send && sendtestmessage
+        $CMD_PERL  ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --debugimap1 --maxage 1 --folder INBOX --dry --nodry1 
+}
+
+
 
 
 ll_debugmemory() {
@@ -734,9 +984,19 @@ ll_nocheckselectable()
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --nocheckselectable --justfolderlists \
-        | grep 'Not checking that wanted folders are selectable' 
+        | grep 'Not checking that .*wanted folders are selectable' 
 }
 
+ll_checkselectable_nb_folders() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --justfolderlists | grep 'Not checking that .* wanted folders are selectable'
+}
+        
 ll_checkfoldersexist() 
 {
         $CMD_PERL ./imapsync \
@@ -873,9 +1133,9 @@ ll_ask_password() {
 }
 
 ll_env_password() {
-		set +x
-		IMAPSYNC_PASSWORD1=`cat ../../var/pass/secret.tata` \
-		IMAPSYNC_PASSWORD2=`cat ../../var/pass/secret.titi` \
+                set +x
+                IMAPSYNC_PASSWORD1=`cat ../../var/pass/secret.tata` \
+                IMAPSYNC_PASSWORD2=`cat ../../var/pass/secret.titi` \
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi \
@@ -884,13 +1144,17 @@ ll_env_password() {
 
 
 ll_authmech_PREAUTH() {
-		# No PREAUTH on my box
-                ! $CMD_PERL ./imapsync \
+                # No PREAUTH on my box
+                $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata --authmech1 PREAUTH \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --justlogin
+                --justlogin --debugimap1
+                test "$?" = "$EXIT_AUTHENTICATION_FAILURE"
 }
+
+
+
 
 
 ll_unknow_option() {
@@ -903,14 +1167,13 @@ ll_unknow_option() {
 }
 
 
-
 ll_timeout() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX --timeout 3 --justlogin
+                --folder INBOX --timeout 4.99 --justlogin
 }
 
 ll_timeout1_timeout2() {
@@ -919,7 +1182,7 @@ ll_timeout1_timeout2() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX --timeout1 4 --timeout2 5 --justlogin
+                --folder INBOX --timeout1 0.99 --timeout2 0.95 --justlogin
 }
 
 ll_timeout_timeout1() {
@@ -932,13 +1195,13 @@ ll_timeout_timeout1() {
 }
 
 
-ll_timeout_ssl() {
-                $CMD_PERL ./imapsync \
+ll_timeout_very_small() {
+                ! $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX --timeout 5 --ssl1 --ssl2 
+                --folder INBOX --timeout 0.001 --nossl1 --nossl2 --notls1 --notls2 --justlogin
 }
 
 
@@ -966,7 +1229,16 @@ ll_star() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder 'INBOX.backstar\*' --dry --justfolders --regextrans2 's,\*,_,g'
+                --folder 'INBOX.star*' --justfolders --debugimap
+}
+
+ll_star_ch() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folderrec 'INBOX.Z_ch' --justfolders --debugimap 
 }
 
 ll_tr() {
@@ -975,8 +1247,18 @@ ll_tr() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --dry --justfolders --regextrans2 'tr/a/_/'
+                --dry --justfolders --include a --regextrans2 'tr/a/_/' 
 }
+
+ll_tr_delete() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --dry --justfolders --folder INBOX.lalala --regextrans2 'tr/a//d' 
+}
+
 
 ll_regextrans2_d() {
                 $CMD_PERL ./imapsync \
@@ -1028,9 +1310,9 @@ ksks_password_doublequote() {
 ksks_empty_test1()
 {
         $CMD_PERL ./imapsync \
-                --host1 ks.lamiral.info  --user1 test1 \
+                --host1 test1.lamiral.info  --user1 test1 \
                 --password1 'secret1' \
-                --host2 ks.lamiral.info --user2 test1 \
+                --host2 test1.lamiral.info --user2 test1 \
                 --password2 'secret1' \
                 --delete1 --delete1emptyfolders
 }
@@ -1040,9 +1322,10 @@ ksks_init_test1()
         $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
-                --host2 ks.lamiral.info --user2 test1 \
+                --host2 test1.lamiral.info --user2 test1 \
                 --password2 'secret1' \
-                --folder INBOX.init --f1f2 INBOX.init=INBOX
+                --folder INBOX.init --f1f2 INBOX.init=INBOX \
+                --folderrec 'INBOX.init'
 }
 
 # In mandatory_tests
@@ -1054,9 +1337,9 @@ ksks_reset_test1()
 
 ksks_empty_test2() {
         $CMD_PERL ./imapsync \
-                --host1 ks.lamiral.info  --user1 test2 \
+                --host1 test2.lamiral.info  --user1 test2 \
                 --password1 'secret2' \
-                --host2 ks.lamiral.info --user2 test2 \
+                --host2 test2.lamiral.info --user2 test2 \
                 --password2 'secret2' \
                 --delete1 --delete1emptyfolders
 }
@@ -1190,7 +1473,7 @@ ll_debugimap() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.oneemail --debugimap
+                --folder INBOX.oneemail --debugimap --justlogin
 }
 
 ll_few_emails() {
@@ -1309,7 +1592,44 @@ ll_addheader() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.addheader --delete2  
+                
+                # destination should be empty
+                ! ls /home/vmail/titi/.addheader/cur/* || return 1
+                
+                
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.addheader --delete2  --addheader
+                
+                # Now it should be not empty
+                ls /home/vmail/titi/.addheader/cur/* || return 1
+}
+
+ll_addheader_minage() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.addheader --delete2  
+                
+                # destination should be empty
+                ! ls /home/vmail/titi/.addheader/cur/* || return 1
+                
+                
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.addheader --delete2  --addheader --minage 365 --debugimap
+                
+                # Now it should be not empty
+                ls /home/vmail/titi/.addheader/cur/* || return 1
 }
 
 
@@ -1332,6 +1652,15 @@ ll_folderrec() {
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folderrec INBOX.yop  --justfolders
+}
+
+ll_folderrec_INBOX() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folderrec INBOX  --justfolders
 }
 
 ll_folderrec_star() {
@@ -1662,7 +1991,7 @@ ll_prefix12() {
 
 ll_nosyncinternaldates() {
         can_send && sendtestmessage toto
-        $CMD_PERL_3xx ./imapsync \
+        $CMD_PERL ./imapsync \
          --host1 $HOST1  --user1 toto \
          --passfile1 ../../var/pass/secret.toto \
          --host2 $HOST2 --user2 titi \
@@ -1742,7 +2071,7 @@ ll_justconnect()
                 $CMD_PERL ./imapsync    \
                 --host1 $HOST1 \
                 --host2 $HOST2 \
-                --justconnect 
+                --justconnect --debugimap
 }
 
 
@@ -1872,7 +2201,7 @@ ll_reconnect_on_signal()
 
 
 
-ll_dev_reconnect() 
+ll_dev_reconnect_none()
 {
 # in another terminal:
 #
@@ -1894,8 +2223,29 @@ EOF
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX --useuid \
-		--reconnectretry2 0 --reconnectretry1 0
+                --reconnectretry2 0 --reconnectretry1 0
 }
+
+ll_dev_reconnect_one()
+{
+# in another root terminal:
+#
+: <<'EOF'
+while read y; do 
+    killall -v -u vmail imapd
+done
+EOF
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX --useuid \
+                --reconnectretry2 1 --reconnectretry1 1
+}
+
+
+
 
 ll_dev_reconnect_ssl_tls() 
 {
@@ -2238,7 +2588,7 @@ ll_search_SENTSINCE_and_BEFORE_search2()
 	--search2 'ALL' --folder INBOX --delete2
 }
 
-ll_search_HEADER_attachment() 
+ll_search_HEADER_attachment()
 {
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
@@ -2246,8 +2596,20 @@ ll_search_HEADER_attachment()
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --search "OR HEADER Content-Disposition attachment HEADER Content-Type multipart/mixed" \
-	--folder INBOX
+        --folder INBOX
 }
+
+ll_search_NOT_HEADER_attachment()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search "NOT OR HEADER Content-Disposition attachment HEADER Content-Type multipart/mixed" \
+        --folder INBOX
+}
+
 
 ll_search_HEADER_attachment_multipart() 
 {
@@ -2268,9 +2630,20 @@ ll_search_NOT_SUBJECT()
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --search "NOT SUBJECT test:" \
-	--folder INBOX
+        --folder INBOX
 }
 
+
+ll_search_UNSEEN_SENTSINCE() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search "UNSEEN SENTSINCE 23-Aug-2015" \
+        --folder INBOX --dry
+}
 
 
 
@@ -2287,7 +2660,7 @@ ll_maxage_nonew()
 }
 
 
-ll_nosearch_hack() 
+ll_noabletosearch() 
 {
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
@@ -2297,6 +2670,32 @@ ll_nosearch_hack()
         --folder INBOX.few_emails --noabletosearch
 	# --debugdev --debugimap
 }
+
+ll_fetch_hash_set() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --justfoldersizes --noabletosearch --fetch_hash_set '1:*' 
+	# --debugdev --debugimap
+}
+
+ll_fetch_hash_set_abletosearch() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --justfoldersizes --abletosearch --fetch_hash_set '1:*' 
+	# --debugdev --debugimap
+}
+
+
+
+
 
 ll_noabletosearch1() 
 {
@@ -2357,7 +2756,7 @@ ll_search_UID()
 
 
 
-ll_exitwhenover()
+ll_exitwhenover() 
 {
         sendtestmessage
         sendtestmessage
@@ -2367,7 +2766,8 @@ ll_exitwhenover()
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --maxage 1 --folder INBOX --nofoldersizes \
-	--exitwhenover 100
+        --exitwhenover 100
+        test "$EXIT_TRANSFER_EXCEEDED" = "$?"
 }
 
 
@@ -2523,8 +2923,9 @@ ll_skipheader()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
+                --useheader ALL \
                 --skipheader '^X-.*|^Date' --folder INBOX.yop.yap \
-                --debug
+                --debug --dry
 }
 
 
@@ -2645,11 +3046,18 @@ ll_regextrans2()
        --folder 'INBOX.yop.yap' --debug
 }
 
-ll_regextrans2_downcase() 
+ll_regextrans2_ucfirst_downcase_last_folder() 
 {
 # lowercase the last basename part
-# [INBOX.yop.YAP] -> [INBOX.yop.yap] using re [s/(.*)\Q${h1_sep}\E(.+)$/$1${h2_sep}\L$2\E/]
-# [INBOX.yop.YAP]                     -> [INBOX.yop.yap]                    
+# [INBOX.yop.YAP] -> [INBOX.yop.Yap] using re 
+# [INBOX.yop.YAP]                     -> [INBOX.yop.Yap]                    
+
+# \l          lowercase next char (think vi)
+# \u          uppercase next char (think vi)
+# \L          lowercase till \E (think vi)
+# \U          uppercase till \E (think vi)
+# \E          end case modification (think vi)
+# \Q          quote (disable) pattern metacharacters till \E
 
        $CMD_PERL ./imapsync \
        --host1 $HOST1 --user1 tata \
@@ -2658,16 +3066,13 @@ ll_regextrans2_downcase()
        --passfile2 ../../var/pass/secret.titi \
        --justfolders \
        --nofoldersizes \
-       --regextrans2 's/(.*)\Q${h1_sep}\E(.+)$/$1${h2_sep}\L$2\E/' \
+       --regextrans2 's,(.*)\.(.+)$,$1.\u\L$2\E,' \
        --folder 'INBOX.yop.YAP' --justfolders --debug --dry
 }
 
-ll_regextrans2_ucfirst() 
+ll_regextrans2_ucfirst_downcase_all_folders()
 {
 # lowercase the last basename part
-# [INBOX.yop.YAP] -> [INBOX.yop.yap] using re [s/(.*)\Q${h1_sep}\E(.+)$/$1${h2_sep}\L$2\E/]
-# [INBOX.yop.YAP]                     -> [INBOX.yop.yap]                    
-
        $CMD_PERL ./imapsync \
        --host1 $HOST1 --user1 tata \
        --passfile1 ../../var/pass/secret.tata \
@@ -2675,7 +3080,7 @@ ll_regextrans2_ucfirst()
        --passfile2 ../../var/pass/secret.titi \
        --justfolders \
        --nofoldersizes \
-       --regextrans2 's/(.*)\Q${h1_sep}\E(.)(.+)$/$1${h2_sep}\u$2\L$3\E/' \
+       --regextrans2 's,([^.]+),\u\L$1\E,g' \
        --folder 'INBOX.yop.YAP' --justfolders --debug --dry
 }
 
@@ -2910,15 +3315,66 @@ ll_bad_login()
    
 }
 
-ll_bad_host()
+ll_authentication_failure_user1() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --password1 wrong \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi
+         test "$?" = "$EXIT_AUTHENTICATION_FAILURE_USER1"
+}
+ll_authentication_failure_user2() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --password2 wrong
+         test "$?" = "$EXIT_AUTHENTICATION_FAILURE_USER2"
+}
+
+ll_authentication_failure_user12() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --password1 wrong \
+         --host2 $HOST2 --user2 titi \
+         --password2 wrong
+         test "$?" = "$EXIT_AUTHENTICATION_FAILURE_USER1"
+}
+
+
+ll_bad_host1()
 {
-    ! $CMD_PERL ./imapsync \
-        --host1 badhost --user1 tata \
+    $CMD_PERL ./imapsync \
+        --host1 badhostkaka --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
-        --host2 badhost --user2 titi \
+        --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi 
+    test "$EXIT_CONNECTION_FAILURE_HOST1" = "$?"
    
 }
+
+
+ll_bad_host2()
+{
+    $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 badhostkiki --user2 titi \
+        --passfile2 ../../var/pass/secret.titi 
+    test "$EXIT_CONNECTION_FAILURE_HOST2" = "$?"
+}
+
+ll_bad_host12()
+{
+    $CMD_PERL ./imapsync \
+        --host1 badhostkaka --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 badhostkiki --user2 titi \
+        --passfile2 ../../var/pass/secret.titi 
+    test "$EXIT_CONNECTION_FAILURE_HOST1" = "$?"
+}
+
+
 
 ll_bad_host_ssl()
 {
@@ -2940,7 +3396,7 @@ ll_useheader()
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
                 --useheader 'Message-ID' \
-                --dry --debug   
+                --dry --debug
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
@@ -2954,9 +3410,23 @@ ll_useheader_Received()
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
                 --useheader 'Received' \
-                --dry --debug   --fast
+                --dry --debug
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
+
+ll_useheader_Message_ID_Received() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --useheader 'Received' --useheader 'Message-ID' \
+                --dry --debug
+                echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+}
+
 
 ll_useheader_noheader() 
 {
@@ -3018,10 +3488,19 @@ ll_skipmess_Content_Type_Message_partial()
 	echo "sudo rm -rf /home/vmail/titi/.partial/cur/*"
 
 #        --skipmess 'm{\A((?:[^\n]+\n)+|)^Content-Type: Message/Partial;[^\n]*\n(?:\r?\n|.*\r?\n\r?\n)}ism'  --dry --addheader 
-
-
 }
 
+ll_skipmess_not_From() 
+{
+        sendtestmessage tata 
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --nofoldersizes \
+        --skipmess 'm{\A(?!.*^From:[^\n]*tartanpion\@machin\.truc)}xms'
+}
 
 
 ll_regexmess() 
@@ -3029,7 +3508,9 @@ ll_regexmess()
         if can_send; then
                 rm -f /home/vmail/titi/.yop.yap/cur/*
         fi
-                $CMD_PERL ./imapsync \
+        
+        # \157 is octal for o
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -3039,12 +3520,51 @@ ll_regexmess()
                 --regexmess 's/p/Z/g' \
                 --debug 
                 
-        if can_send; then 	
-		file=`ls -t /home/vmail/titi/.yop.yap/cur/* | tail -1`
+        if can_send; then
+                file=`ls -t /home/vmail/titi/.yop.yap/cur/* | tail -1`
                 diff ../../var/imapsync/tests/ll_regexmess/dest_01 $file
                 echo 'sudo rm -fv /home/vmail/titi/.yop.yap/cur/*'
-	fi
+        fi
 }
+
+ll_regexmess_8bit_X()
+{
+        if can_send; then
+                rm -f /home/vmail/titi/.oneemail/cur/*
+        fi
+        
+        # All f should become X
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.oneemail \
+                --regexmess 'tr [f] [\x99]' \
+                --regexmess 'tr [\x80-\xff] [X]' \
+                --debug 
+}
+
+ll_regexmess_add_CRLF_if_needed()
+{
+        if can_send; then
+                rm -f /home/vmail/titi/.oneemail/cur/*
+        fi
+        
+        # The first one is to be in the case of missing the last \r\n
+        # it actually removes it. The second one is the fix.
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.oneemail \
+                --regexmess "s{\r\n\z}{}gxms" \
+                --regexmess "s{(?<![\n])\z}{\r\n}gxms" \
+                --debug
+}
+
+
 
 ll_regexmess_bad_regex() 
 {
@@ -3532,6 +4052,24 @@ ll_regex_flag_keep_only()
                 echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
 
+ll_regex_flag_keep_only_phil() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --debugflags \
+                --regexflag 's/(.*)/$1 jrdH8u/' \
+                --regexflag 's/.*?(?:(\\(?:Answered|Flagged|Deleted|Seen|Draft)\s?)|$)/defined($1)?$1:q()/eg' \
+                --regexflag 's/jrdH8u *//'
+                
+                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+}
+
+
+
 
 ll_tls_justconnect() {
  $CMD_PERL ./imapsync \
@@ -3688,12 +4226,25 @@ ll_ssl_justlogin_SSL_version() {
 
 ll_ssl_justlogin_sslargs() {
         $CMD_PERL ./imapsync \
-	 --host1 $HOST1 --user1 tata \
-         --passfile1 ../../var/pass/secret.tata \
-         --host2 $HOST2 --user2 titi \
-         --passfile2 ../../var/pass/secret.titi \
-         --ssl1 --ssl2 \
-         --sslargs1 SSL_version=SSLv3 --sslargs1 SSL_verify_mode=1
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --ssl1 --ssl2 \
+        --sslargs1 SSL_version=SSLv3 --sslargs1 SSL_verify_mode=1
+}
+
+
+
+ll_tls_justlogin_sslargs_failure_EXIT_TLS_FAILURE() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --tls1 --tls2 \
+        --sslargs1 SSL_version=SSLv2 
+        test "$?" = "$EXIT_TLS_FAILURE"
 }
 
 
@@ -3701,16 +4252,17 @@ ll_ssl_justlogin_sslargs() {
 
 ll_ssl_tls_justlogin() {
         $CMD_PERL ./imapsync \
-	 --host1 $HOST1 --user1 tata \
+        --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
          --ssl1 --tls1  --ssl2 --tls2  \
          --justlogin --debug
+         test "$?" = "$EXIT_TLS_FAILURE"
 }
 
 ll_justlogin_devel() {
-    ll_justlogin && ll_ssl_justlogin && ll_tls_justlogin && ! ll_ssl_tls_justlogin 
+    ll_justlogin && ll_ssl_justlogin && ll_tls_justlogin && ll_ssl_tls_justlogin 
 }
 
 ll_ssl() {
@@ -3747,17 +4299,6 @@ ll_authmech_PLAIN_ssl() {
 }
 
 
-ll_authmech_XOAUTH_gmail() {
-                ! ping -c2 imap.gmail.com || $CMD_PERL ./imapsync \
-                --host1 imap.gmail.com --ssl1 --user1 imapsync@lab3.dedalusprime.com.br \
-                --passfile1 ../../var/pass/secret.xoauth \
-                --host2 imap.gmail.com --ssl2 --user2 imapsync@lab3.dedalusprime.com.br \
-                --passfile2 ../../var/pass/secret.xoauth \
-                --justfoldersizes --nofoldersizes \
-                --authmech1 XOAUTH --authmech2 XOAUTH
-}
-
-ll_authmech_xoauth_gmail() { ll_authmech_XOAUTH_gmail; }
 
 ll_authmech_XOAUTH2_gmail() {
                 ! ping -c1 imap.gmail.com || { $CMD_PERL ./imapsync \
@@ -3806,38 +4347,49 @@ ll_authmech_XOAUTH2_gmail_proxy() {
 ll_authmech_xoauth2_gmail_proxy() { ll_authmech_XOAUTH2_gmail_proxy; }
 
 
-
 ll_authmech_NTLM() {
-                $CMD_PERL -I./W/NTLM-1.09/blib/lib ./imapsync \
-                --host1 mail.freshgrillfoods.com --user1 ktraster \
-                --passfile1 ../../var/pass/secret.ktraster \
+                # It fails since I don't have NTLM available
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justlogin \
-                --debug --authmech1 NTLM
-
+                --debugimap1 --authmech1 NTLM --notrylogin
 }
 
 ll_authmech_NTLM_domain() {
-                $CMD_PERL -I./W/NTLM-1.09/blib/lib ./imapsync \
-                --host1 mail.freshgrillfoods.com --user1 ktraster \
-                --passfile1 ../../var/pass/secret.ktraster \
+                # It fails since I don't have NTLM available
+                ! $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justlogin \
-                --authmech1 NTLM --domain1 freshgrillfoods.com --debugimap1
+                --authmech1 NTLM --domain1 freshgrillfoods.com --debugimap1 --notrylogin
 }
 
-ll_authmech_NTLM_2() {
-                $CMD_PERL -I./W/NTLM-1.09/blib/lib ./imapsync \
-                --host1 mail.freshgrillfoods.com --user1 ktraster \
-                --passfile1 ../../var/pass/secret.ktraster \
+ll_authmech_NTLM_trylogin_ok() {
+                # It succeeds because --trylogin is set by default (for now).
+                $CMD_PERL  ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --authmech1 NTLM --dry
-
-
+                --authmech1 NTLM --trylogin --justlogin
 }
+
+ll_authmech_NTLM_trylogin_fail() {
+                $CMD_PERL  ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --password2 'cacakiki' \
+                --authmech2 NTLM --trylogin --justlogin
+                test "$?" = "$EXIT_AUTHENTICATION_FAILURE_USER2"
+}
+
+
 
 
 ll_authmech_X_MASTERAUTH()
@@ -3857,20 +4409,36 @@ ll_authuser()
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --justfoldersizes --nofoldersizes \
-                --authuser2 titi 
+                --justlogin --authuser2 titi --debugimap2
 }
 
-ll_authuser_2()
+ll_proxyauth_missing_authuser()
 {
         $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 anything \
                 --passfile2 ../../var/pass/secret.titi \
-                --justfoldersizes \
-                --authuser2 titi --folder INBOX.lalala
+                --justlogin --proxyauth2
+                test "$?" = "$EX_USAGE"
 }
+
+
+
+ll_proxyauth_authuser()
+{
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 anything \
+                --passfile2 ../../var/pass/secret.titi \
+                --justlogin --proxyauth2 --authuser2 titi --debugimap2
+                test "$?" = "$EXIT_AUTHENTICATION_FAILURE_USER2"
+}
+
+
+
+
 
 
 ll_authmech_LOGIN() {
@@ -3895,34 +4463,36 @@ ll_authmech_CRAMMD5() {
 }
 
 ll_delete1() {
-        # Sync done
-        test -f /home/vmail/tata/.oneemail3/cur/* || return 1
-	#test -f /home/vmail/titi/.oneemail3/cur/* || return 1
-	echo 11111111111111111111111 tata titi
+
+        # The initial state is a same message on both sides
+        ls -ld /home/vmail/tata/.oneemail3/cur/* || return 1
+        ls -ld /home/vmail/titi/.oneemail3/cur/* || return 1
+        echo 11111111111111111111111 tata titi
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX.oneemail3 --delete1
+        --folder INBOX.oneemail3 --delete1 --debugimap
 
-	#find /home/vmail/titi/.oneemail3/ || :
-	echo After first sync, tata has none, titi has one message
+        #find /home/vmail/titi/.oneemail3/ || :
+        echo After first sync, tata has none, titi has one message
         ! test -f /home/vmail/tata/.oneemail3/cur/* || return 1
-	test -f /home/vmail/titi/.oneemail3/cur/*   || return 1
+        test -f /home/vmail/titi/.oneemail3/cur/*   || return 1
 
-	echo 222222222222222222222222 back: titi tata
+        echo 222222222222222222222222 back: titi tata
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
         --host2 $HOST2 --user2 tata \
         --passfile2 ../../var/pass/secret.tata \
-        --folder INBOX.oneemail3 --delete1
+        --folder INBOX.oneemail3 --delete1 --delete2duplicates
         
+        echo After second sync reverse, tata has one, titi has no message
         test -f /home/vmail/tata/.oneemail3/cur/*   || return 1
         ! test -f /home/vmail/titi/.oneemail3/cur/* || return 1
         
-	echo 3333333333333333333333333 initial state
+        echo 3333333333333333333333333 initial state
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
@@ -3930,8 +4500,8 @@ ll_delete1() {
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX.oneemail3
 
-	#find /home/vmail/titi/.oneemail3/ || :
-	echo ll_delete1 finished
+        #find /home/vmail/titi/.oneemail3/ || :
+        echo ll_delete1 finished
 }
 
 ll_delete1_twoemails()
@@ -3975,7 +4545,19 @@ ll_delete1_twoemails()
 	echo ll_delete1_twoemails finished
 }
 
+ll_delete1_twoemails_dry()
+{
+        # initial 
+        ls /home/vmail/tata/.twoemails/cur/* || return 1
 
+        echo 11111111111111111111111 tata titi
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX.twoemails --delete1 --dry --debug
+}
 
 ll_delete1_delete2() {
         ! $CMD_PERL ./imapsync \
@@ -3988,7 +4570,7 @@ ll_delete1_delete2() {
 
 
 ll_delete2() {
-        #can_send && sendtestmessage titi
+        can_send && sendtestmessage titi
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
@@ -4018,7 +4600,7 @@ ll_delete1_reverse() {
         --host2 $HOST2 --user2 tata \
         --passfile2 ../../var/pass/secret.tata \
         --folder INBOX \
-        --delete1 --minage 600 --maxage 999 # --dry
+        --delete1 --minage 10 --maxage 999 # --dry
 
 }
 
@@ -4100,18 +4682,37 @@ ll_delete2_uidexpunge2_implicit() {
         --delete2 --useuid
 }
 
+ll_delete1duplicates() {
+        can_send && sendtestmessage titi thailah9eem4iHei
+        can_send && sendtestmessage tata thailah9eem4iHei
+        can_send && sendtestmessage tata thailah9eem4iHei
+        can_send && sendtestmessage tata thailah9eem4iHei
+        can_send && sendtestmessage tata thailah9eem4iHei
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX  --maxage 1 --useheader Subject # --delete2duplicates
+}
+
+
+
 
 ll_delete2duplicates() {
-        can_send && sendtestmessage titi
-        can_send && sendtestmessage tata
+        #can_send && sendtestmessage titi "test ll_delete2duplicates"
+        #can_send && sendtestmessage tata "test ll_delete2duplicates"
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
         --folder INBOX   \
-        --delete2duplicates --uidexpunge2
+        --delete2duplicates --uidexpunge2 --useheader Subject --dry 
 }
+
+
+
 
 ll_duplicates_across_folders() {
         $CMD_PERL ./imapsync \
@@ -4133,7 +4734,7 @@ ll_delete2_dev() {
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX  --nofoldersizes \
+        --include zz --include ZZ  --regextrans2 's,.*,INBOX.z_merge,' \
         --delete2
 }
 
@@ -4160,6 +4761,19 @@ ll_maxbytespersecond() {
         --maxbytespersecond 2000 --nofoldersizes
 }
 
+ll_maxbytespersecond_0() {
+        ll_delete1_reverse
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX \
+        --maxbytespersecond 1 --nofoldersizes --maxsleep 0
+}
+
+
+
 ll_maxbytesafter() {
         ll_delete1_reverse
         $CMD_PERL ./imapsync \
@@ -4172,9 +4786,14 @@ ll_maxbytesafter() {
 }
 
 
+big2_bigmail_clean()
+{
+        echo 'sudo sh -c "rm -v /home/vmail/big2/.bigmail/cur/*"'
+        sudo sh -c "rm -v /home/vmail/big2/.bigmail/cur/*"
+}
 
 ll_bigmail() {
-        $CMD_PERL ./imapsync \
+        time -p $CMD_PERL ./imapsync \
         --host1 $HOST1  --user1 big1 \
         --passfile1 ../../var/pass/secret.big1 \
         --host2 $HOST2 --user2 big2 \
@@ -4184,14 +4803,41 @@ ll_bigmail() {
 }
 
 ll_bigmail_fastio() {
-        $CMD_PERL ./imapsync \
+        time -p $CMD_PERL ./imapsync \
         --host1 $HOST1  --user1 big1 \
         --passfile1 ../../var/pass/secret.big1 \
         --host2 $HOST2 --user2 big2 \
         --passfile2 ../../var/pass/secret.big2 \
-        --folder INBOX.bigmail --fastio1 --fastio2
+        --folder INBOX.bigmail --debugmemory --nofoldersizes --fastio1 --fastio2
         echo 'sudo sh -c "rm -v /home/vmail/big2/.bigmail/cur/*"'
 }
+
+
+ll_bigmail_fastio_profile()
+{
+        test "0" = "`id -u`" || {
+                echo Do instead
+                echo "sudo sh tests.sh ll_bigmail_fastio_profile"
+                return
+        }
+        
+        big2_bigmail_clean
+        sync 
+        echo 3 >/proc/sys/vm/drop_caches
+        free
+        ll_bigmail_fastio
+        echo End of ll_bigmail_fastio
+
+        big2_bigmail_clean
+        sync
+        echo 3 >/proc/sys/vm/drop_caches
+        free
+        ll_bigmail
+        echo End of ll_bigmail
+        free
+}
+
+
 
 # In mandatory_tests
 memory_stress() {
@@ -4211,14 +4857,53 @@ ll_memory_consumption() {
 }
 
 
+ll_syncduplicates() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST1 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.duplicates --debug --syncduplicates # --dry
+}
+
+ll_syncduplicates_noskipsize() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST1 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.duplicates --debug --syncduplicates --noskipsize # --dry
+}
+
+ll_syncduplicates_usecache() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST1 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.duplicates --debug --syncduplicates --usecache #--dry
+}
+
+ll_syncduplicates_reverse() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 titi \
+                --passfile1 ../../var/pass/secret.titi \
+                --host2 $HOST1 --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --folder INBOX.duplicates --debug --syncduplicates # --dry
+}
+
+
 ll_remove_duplicates() {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST1 --user2 tata \
-                --passfile2 ../../var/pass/secret.tata \
-                --folder INBOX.duplicates --delete2 
+                --host2 $HOST1 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.duplicates --delete2duplicates # --dry
 }
+
+
 
 
 
@@ -4665,15 +5350,100 @@ easygmail_gmail2() {
 }
 
 
+gmail_gl0_justlogin()
+{
+        $CMD_PERL ./imapsync \
+                --gmail1 --user1 imapsync.gl0@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl0_gmail \
+                --gmail2 --user2 imapsync.gl0@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl0_gmail \
+                --justlogin
+}
+
+gmail_gl0_justlogin_oauthdirect()
+{
+        cd /home/gilles/public_html/imapsync/W/learn
+        pwd
+        . ./oauth2.memo
+        regenerate_access_token
+        access_token=`cat oauth2_access_token.txt`
+        echo "$access_token"
+        
+        generate_oauth2_string_for_imap_from_access_token "$access_token"
+        oauth2_string=`cat oauth2_string_for_oauthdirect.txt`
+        echo oauth2_string="$oauth2_string"
+        cd -
+        pwd
+        echo "2oauth2_string=$oauth2_string"
+        $CMD_PERL ./imapsync \
+                --gmail1 --user1 imapsync.gl0@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl0_gmail \
+                --gmail2 --user2 imapsync.gl0@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl0_gmail \
+                --justlogin --oauthdirect1 "$oauth2_string" --oauthdirect2 "$oauth2_string" --debugimap --showpasswords
+        pwd
+}
+
+gmail_gl0_oauthdirect_failure_login_success()
+{
+
+        oauth2_string="kaka"
+        echo "2oauth2_string=$oauth2_string"
+        $CMD_PERL ./imapsync \
+                --gmail1 --user1 imapsync.gl0@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl0_gmail \
+                --gmail2 --user2 imapsync.gl0@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl0_gmail \
+                --justlogin --oauthdirect1 "$oauth2_string" --oauthdirect2 "$oauth2_string" --debugimap --showpasswords
+
+}
+
+
+all_login_tests()
+{
+        run_tests ll_authmech_PREAUTH \
+        ll_authmd5 \
+        ll_authmd51 \
+        ll_authmd52 \
+        ll_noauthmd5 \
+        gmail_gl0_justlogin \
+        gmail_gl0_justlogin_oauthdirect \
+        ll_ssl_justlogin \
+        ll_tls_justlogin \
+        ll_tls_justlogin_sslargs_failure_EXIT_TLS_FAILURE \
+        yahoo_xxxx_login \
+        yahoo_xxxx_login_tls  \
+        yahoo_xxxx_login_tls \
+        ll_justlogin \
+        ll_justlogin_notls \
+        l_office365_SSL_verify_mode \
+        office365_justlogin_ssl1_ssl2 \
+        office365_justlogin_tls \
+        office365_justlogin_tls2_office365 \
+        office365_justlogin_ssl2_tls2_office365 \
+        ll_ask_password \
+        ll_env_password \
+        
+}
+
+
+
+gmail_glX_all_justlogin()
+{
+error_list=""
+for X in "" 0 1 2 3; do
+        $CMD_PERL ./imapsync \
+                --gmail1 --user1 imapsync.gl${X}@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl${X}_gmail \
+                --gmail2 --user2 imapsync.gl${X}@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl${X}_gmail \
+                --justlogin || { error_list="${error_list}[imapsync.gl${X}@gmail.com] " ; }
+done
+echo3 "error_list=$error_list"
+test "X$error_list" = X;
+}
+
+
+
 
 gmail_gmail() {
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
-                --ssl1 \
                 --user1 gilles.lamiral@gmail.com \
                 --passfile1 ../../var/pass/secret.gilles_gmail \
                 --host2 imap.gmail.com \
-                --ssl2 \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --justfolders --exclude Gmail  --exclude "blanc\ $"
@@ -4752,8 +5522,6 @@ gmail_gmail_justlogin() {
 }
 
 
-
-
 gmail_gl_gl2_justfolders() {
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
@@ -4762,7 +5530,7 @@ gmail_gl_gl2_justfolders() {
                 --passfile1 ../../var/pass/secret.imapsync.gl_gmail \
                 --host2 imap.gmail.com \
                 --user2 imapsync.gl2@gmail.com \
-                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
                 --justfolders --exclude Gmail  --exclude "blanc\ $" --dry
 }
 
@@ -4790,7 +5558,7 @@ gmail_gl_gl2_SUB() {
                 --host2 imap.gmail.com \
                 --ssl2 \
                 --user2 imapsync.gl2@gmail.com \
-                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
                 --justfolders --nofoldersizes --exclude Gmail --regextrans2 "s,(.*),SUB/\$1,"
 }
 
@@ -4809,19 +5577,37 @@ gmail_gl2_gl2_selectable()
 
 
 
-gmail_gl_gl2_create_folder_old() {
+gmail_gl_gl2_create_folder_old() { 
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
-                --host1 imap.gmail.com \
-                --ssl1 \
+                --gmail1 \
                 --user1 imapsync.gl@gmail.com \
                 --passfile1 ../../var/pass/secret.imapsync.gl_gmail \
-                --host2 imap.gmail.com \
-                --ssl2 \
+                --gmail2 \
                 --user2 imapsync.gl2@gmail.com \
-                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
                 --justfolders --exclude Gmail  --exclude "blanc\ $" \
-		--create_folder_old --dry --nofoldersizes
+                --create_folder_old --dry --nofoldersizes
+}
+
+
+gmail_gmail_search_NOT_HEADER_attachment()
+{
+        $CMD_PERL ./imapsync \
+                --gmail1 \
+                --user1 imapsync.gl@gmail.com \
+                --passfile1 ../../var/pass/secret.imapsync.gl_gmail \
+                --gmail2 \
+                --user2 imapsync.gl2@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+        --search "NOT HEADER Content-Disposition attachment" \
+        --folder INBOX --dry 
+
+        # Also works
+        # --search 'HEADER Content-Type multipart/mixed' \
+
+        # Does not work the OR
+        # --search 'OR HEADER "Content-Disposition attachment" HEADER "Content-Type multipart/mixed"' \
 }
 
 
@@ -4848,7 +5634,7 @@ gmail_gmail_INBOX() {
                 --host2 imap.gmail.com \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
-                --folder INBOX
+                --folder INBOX --debugflags
 		#--dry # --debug --debugimap # --authmech1 LOGIN
 }
 
@@ -4956,7 +5742,7 @@ gmail_gl_gl2_sslargs()
                 --host2 imap.gmail.com \
                 --ssl2 \
                 --user2 imapsync.gl2@gmail.com \
-                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
                 --justlogin --sslargs1 SSL_version=SSLv3 --sslargs1 SSL_verify_mode=0
 }
 
@@ -5111,18 +5897,17 @@ yahoo_xxxx_login()
 {
                 ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
                 --host1 imap.mail.yahoo.com \
-                --ssl1 \
                 --user1 glamiral \
                 --passfile1 ../../var/pass/secret.gilles_yahoo \
                 --host2 $HOST2 \
                 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-		--justlogin 
+                --justlogin 
 }
 
 yahoo_xxxx_login_tls() {
-		# tls1 no longer works on Yahoo
-                ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                # tls1 no longer works on Yahoo
+                ! ping -c1 imap.mail.yahoo.com || ! $CMD_PERL ./imapsync \
                 --host1 imap.mail.yahoo.com \
                 --tls1 --timeout1 5 \
                 --user1 glamiral \
@@ -5130,7 +5915,7 @@ yahoo_xxxx_login_tls() {
                 --host2 $HOST2 \
                 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-		--justlogin 
+                --justlogin 
 }
 
 
@@ -5152,7 +5937,7 @@ yahoo_fail_UNAVAILABLE() {
 # Those are messages from yahoo:
 # Err 1/11: - msg Archive/470002 {0} S[12903] F[$NotJunk] I[25-Oct-2016 00:19:28 +0000] could not be fetched: 29 NO [UNAVAILABLE] UID FETCH Server error while fetching messages
 # Update 2018/5/5: it now works well on those messages
-                ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+        ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
                 --host1 imap.mail.yahoo.com \
                 --user1 glamiral \
                 --passfile1 ../../var/pass/secret.gilles_yahoo \
@@ -5162,11 +5947,97 @@ yahoo_fail_UNAVAILABLE() {
                 --addheader --folder Archive
 }
 
+yahoo_search_SENTBEFORE()
+{
+        ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 $HOST2 \
+                --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --search "SENTBEFORE 1-Jan-2019"
+}
+
+yahoo_search_SENTAFTER()
+{
+        # SENTAFTER is plain wrong, so it should fail!
+        ! ping -c1 imap.mail.yahoo.com || ! $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 $HOST2 \
+                --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --search "SENTAFTER 1-Jan-2019" --folder Inbox --dry --debugimap1
+}
+
+yahoo_search_SENTSINCE()
+{
+        # SENTAFTER is wrong, it should fail!
+        ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 $HOST2 \
+                --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --search "SENTSINCE 1-Jan-2019" --folder Inbox --dry --debugimap1
+}
+
+yahoo_search_ALL_Inbox()
+{
+        # SENTAFTER is wrong, it should fail!
+        ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 $HOST2 \
+                --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --search "ALL" --folder Inbox --dry 
+}
+
+
+yahoo_yahoo_Inbox()
+{
+        # SENTAFTER is wrong, it should fail!
+        ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 imap.mail.yahoo.com \
+                --user2 glamiral \
+                --passfile2 ../../var/pass/secret.gilles_yahoo \
+                --folder Inbox --dry --debugimap1
+}
+
+yahoo_yahoo_search_ALL_Inbox()
+{
+        # SENTAFTER is wrong, it should fail!
+        ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 imap.mail.yahoo.com \
+                --user2 glamiral \
+                --passfile2 ../../var/pass/secret.gilles_yahoo \
+                --folder Inbox --dry --debugimap1 --search "ALL" 
+}
+
+
+
+
+
 yahoo_all() {
-        ! yahoo_xxxx_login_tls || return 1
-	yahoo_xxxx_login       || return 1
-	yahoo_xxxx             || return 1
-        yahoo_fail_UNAVAILABLE || return 1
+        yahoo_xxxx_login_tls    || return 1
+        yahoo_xxxx_login        || return 1
+        yahoo_xxxx              || return 1
+        yahoo_fail_UNAVAILABLE  || return 1
+        yahoo_search_SENTSINCE  || return 1
+        yahoo_search_ALL_Inbox  || return 1
+        yahoo_yahoo_Inbox       || return 1
+        yahoo_search_SENTBEFORE || return 1
 }
 
 
@@ -5202,7 +6073,7 @@ ll_justlogin() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-		--justlogin 
+                --justlogin 
 }
 
 ll_justlogin_notls() {
@@ -5211,7 +6082,7 @@ ll_justlogin_notls() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-		--justlogin --notls1 --notls2 
+                --justlogin --notls1 --notls2 
 }
 
 
@@ -5225,7 +6096,7 @@ ll_justlogin_backslash_char() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 tptp@est.belle \
                 --passfile2 ../../var/pass/secret.tptp \
-		--justlogin 
+                --justlogin 
 }
 
 ll_justlogin_dollar_char() {
@@ -5234,7 +6105,7 @@ ll_justlogin_dollar_char() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 dollar \
                 --passfile2 ../../var/pass/secret.dollar \
-		--justlogin
+                --justlogin --showpasswords --debugimap2
 }
 
 ll_justlogin_equal_char() {
@@ -5243,17 +6114,18 @@ ll_justlogin_equal_char() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 equal \
                 --passfile2 ../../var/pass/secret.equal \
-		--justlogin --debugimap2
+                --justlogin --debugimap2
 }
 
 
 
 
-ll_usecache() {
+ll_usecache()
+{
         if can_send; then
                 sendtestmessage
         fi
-	
+
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -5263,7 +6135,25 @@ ll_usecache() {
          --folder INBOX 
 }
 
-ll_usecache_all() {	
+ll_usecache_INBOX() {
+        if can_send; then
+                sendtestmessage
+        else
+                :
+        fi
+
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --usecache \
+         --folder INBOX 
+}
+
+
+ll_usecache_all()
+{
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -5300,21 +6190,6 @@ ll_nousecache() {
 }
 
 
-ll_usecache_INBOX() {
-        if can_send; then
-                sendtestmessage
-        else
-                :
-        fi
-	
-        $CMD_PERL  ./imapsync \
-         --host1 $HOST1 --user1 tata \
-         --passfile1 ../../var/pass/secret.tata \
-         --host2 $HOST2 --user2 titi \
-         --passfile2 ../../var/pass/secret.titi \
-         --usecache \
-         --folder INBOX 
-}
 
 
 
@@ -5423,7 +6298,7 @@ ll_useuid_nousecache()
 
 ll_fastio() 
 {
-        $CMD_PERL ./imapsync \
+        time -p $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
@@ -5433,7 +6308,7 @@ ll_fastio()
 
 ll_nofastio() 
 {
-        $CMD_PERL ./imapsync \
+        time -p $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
@@ -5540,6 +6415,21 @@ office1_office2()
 	--justfolders
 }
 
+office1_office2_sentbefore()
+{
+        $CMD_PERL ./imapsync \
+        --office1   \
+	--user1 gilles.lamiral@outlook.com \
+	--passfile1 ../../var/pass/secret.outlook.com \
+        --office2   \
+	--user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --folder Sent --search "SENTBEFORE 31-Dec-2013" --debugimap
+}
+
+
+
+
 office1_office2_noexclude()
 {
         $CMD_PERL ./imapsync \
@@ -5593,18 +6483,19 @@ office365_justlogin_tls2_office365()
         --passfile1 ../../var/pass/secret.outlook.com \
         --host2 outlook.office365.com  --tls2 --user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
-        --justlogin --ssl2 
+        --justlogin 
 }
 
 office365_justlogin_ssl2_tls2_office365()
 {
 # Should produce "BAD Command received in Invalid state."
-        ! $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
         --host1 imap-mail.outlook.com  --ssl1        --user1 gilles.lamiral@outlook.com \
         --passfile1 ../../var/pass/secret.outlook.com \
         --host2 outlook.office365.com  --tls2 --ssl2 --user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
         --justlogin 
+        test "$?" = "$EXIT_TLS_FAILURE"
 }
 
 office365_justlogin_nossl2_notls2_office365()
@@ -5794,10 +6685,10 @@ fuzz_network() {
 
 
 free_ssl() {
-	$CMD_PERL ./imapsync \
-	--host1 imap.free.fr --user1 gilles.lamiral@free.fr --passfile1 ../../var/pass/secret.gilles_free \
-	--host2 imap.free.fr --user2 gilles.lamiral@free.fr --passfile2 ../../var/pass/secret.gilles_free \
-	--justlogin --ssl1 --ssl2  
+        $CMD_PERL ./imapsync \
+        --host1 imap.free.fr --user1 gilles.lamiral@free.fr --passfile1 ../../var/pass/secret.gilles_free \
+        --host2 imap.free.fr --user2 gilles.lamiral@free.fr --passfile2 ../../var/pass/secret.gilles_free \
+        --justlogin --ssl1 --ssl2  
 }
 
 # xgenplus still ok on Wed Apr  3 15:36:09 CEST 2019
@@ -5852,6 +6743,28 @@ firstclass_fullfill() {
 }
 
 
+Alessandro_error_11()
+{
+        # $CMD_PERL  ./imapsync \
+         # --host1 $HOST1 --user1 tata \
+         # --passfile1 ../../var/pass/secret.tata \
+         # --host2 $HOST2 --user2 titi \
+         # --passfile2 ../../var/pass/secret.titi \
+        # --folder INBOX.error_11 --debugcontent --nodry --nodry1 --pipemess 'cat /g/Alessandro_error_11.txt'
+
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+        --folder INBOX.error_11 --debugcontent --nodry --nodry1 --pipemess 'cat /g/Alessandro_error_11.txt'
+
+
+
+        #--pipemess W/tools/fix_email_for_exchange.py 
+        #--pipemess 'reformime -r7'
+
+}
 
 # End of specific tests
 
@@ -5864,7 +6777,7 @@ huge_folder()
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
         --include INBOX.Junk.2010 \
-        --usecache --tmpdir /var/tmp   || \
+        --nousecache --tmpdir /var/tmp  --debugmemory || \
     true
     }
     date2=`date`
@@ -5880,7 +6793,7 @@ huge_folder_headers_ALL()
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
         --include INBOX.Junk.2010 \
-        --tmpdir /var/tmp --useheader ALL || \
+        --tmpdir /var/tmp --useheader ALL  --debugmemory || \
     true
     }
     date2=`date`
@@ -6028,6 +6941,86 @@ dprof_justfoldersizes()
 }
 
 
+bigfolder()
+{
+        date1=`date`
+        date1epoch=`date +%s`
+         
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --foldersizes  --folder INBOX.Junk.2010 --usecache 
+        
+        date2=`date`
+        date2epoch=`date +%s`
+
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --foldersizes  --folder INBOX.Junk.2010
+        
+        date3=`date`
+        date3epoch=`date +%s`
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --foldersizes  --folder INBOX.Junk.2010 --usecache 
+        
+        date4=`date`
+        date4epoch=`date +%s`
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --foldersizes  --folder INBOX.Junk.2010
+        
+        date5=`date`
+        date5epoch=`date +%s`
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --foldersizes  --folder INBOX.Junk.2010 --usecache 
+        
+        date6=`date`
+        date6epoch=`date +%s`
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --foldersizes  --folder INBOX.Junk.2010
+        
+        date7=`date`
+        date7epoch=`date +%s`
+        
+        diff_21=`expr $date2epoch - $date1epoch`
+        diff_32=`expr $date3epoch - $date2epoch`
+        diff_43=`expr $date4epoch - $date3epoch`
+        diff_54=`expr $date5epoch - $date4epoch`
+        diff_65=`expr $date6epoch - $date5epoch`
+        diff_76=`expr $date7epoch - $date6epoch`
+        diff_32_21=`expr $diff_32 - $diff_21`
+        diff_54_43=`expr $diff_54 - $diff_43`
+        diff_76_65=`expr $diff_76 - $diff_65`
+        echo "[$date1] [$date2] [$date3] [$date4] [$date5] [$date6] [$date7]" | tee -a bigfolder.txt
+        echo "diff [$diff_21] [$diff_32] [$diff_43] [$diff_54] [$diff_65] [$diff_76]" | tee -a bigfolder.txt
+        echo "diff cache pas cache [$diff_32_21] [$diff_54_43] [$diff_76_65]" | tee -a bigfolder.txt
+        echo >> bigfolder.txt
+}
+
+
+
+
+
 dprof_bigfolder()
 {
     date1=`date`
@@ -6124,6 +7117,107 @@ dprof2_bigmail()
     mv prof.out      W/dprof2_bigmail_tmon.out
 }
 
+curl_online_args()
+{
+        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;simulong=2' \
+                https://imapsync.lamiral.info/cgi-bin/imapsync
+}
+
+curl_online_args_pidfile()
+{
+        curl -v -d "host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;pidfile=/tmp/curl_online_args_pidfile_$$.txt" \
+                https://imapsync.lamiral.info/cgi-bin/imapsync
+}
+
+curl_online_args_nolog()
+{
+        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;justbanner=1;log=' \
+                https://lamiral.info/cgi-bin/imapsync
+}
+
+curl_online_args_nolog_2()
+{
+        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;justbanner=1;log=0' \
+                https://lamiral.info/cgi-bin/imapsync
+}
+
+curl_online_justbanner()
+{
+        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;simulong=0.7;justbanner=1' \
+                https://lamiral.info/cgi-bin/imapsync
+}
+
+
+curl_online_file()
+{
+        cat > W/tmp/cred.txt <<EOF
+host1=test1.lamiral.info;
+user1=test1;
+password1=secret1;
+host2=test2.lamiral.info;
+user2=test2;
+password2=secret2;
+simulong=2;
+dry=1;
+
+EOF
+        curl -v -d '@W/tmp/cred.txt' \
+                https://imapsync.lamiral.info/cgi-bin/imapsync
+}
+
+curl_online_args_json()
+{
+        # DO NOT WORK AT ALL
+        ! curl -v -d '{ "testslive":"1" }' -H "Content-Type: application/json"  \
+                https://imapsync.lamiral.info/cgi-bin/imapsync
+}
+
+
+#  * 1.810 https://tools.controlpanel.si/imapsync/ CGI https://tools.controlpanel.si/cgi-bin/imapsync
+#  * 1.882 https://tools.intertune.io/imapsync/X/  CGI https://tools.intertune.io/cgi-bin/imapsync
+#  * 1.882 https://imapsync.whc.ca/                CGI https://imapsync.whc.ca/cgi-bin/imapsync
+#  * 1.925 https://imapsync.boomhost.com/          CGI https://imapsync.boomhost.com/cgi-bin/imapsync 
+#  * 1.977 https://imapcopy.webhosting4u.gr/       CGI https://imapcopy.webhosting4u.gr/cgi-bin/imapsync
+#  * 1.991 https://imapsync.nl/                    CGI https://imapsync.nl/cgi-bin/imapsync
+#  * 1.998 https://mailsync.timetakernet.info/     CGI https://mailsync.timetakernet.info/cgi-bin/imapsync
+
+#Detected by releasecheck:
+#  * 1.957 http://migracao.hahost.com.br/migrar2.html    CGI http://migracao.hahost.com.br/cgi-bin/imapsync
+#  * 1.967                                               CGI https://jcenter.nara-edu.ac.jp/cgi-bin/imapsync
+#  * 1.973 http://77.68.7.106/                           CGI http://77.68.7.106/cgi-bin/imapsync
+#  * 1.979                                               CGI http://mail2.nara-edu.ac.jp/cgi-bin/imapsync
+#  * 1.979                                               CGI https://imapsync.bepulse.com/cgi-bin/imapsync
+#  * 1.990 https://transfer.keliweb.com/X/               CGI https://transfer.keliweb.com/cgi-bin/imapsync
+#  * 1.998                                               CGI https://web-tools.na.icb.cnr.it/cgi-bin/imapsync
+#  * 1.998                                               CGI https://140.164.23.4/cgi-bin/imapsync
+
+#  * ?.??? https://app.migrationwizard.co.uk/      CGI 404, deep into https://app.migrationwizard.co.uk/sync.php
+
+curl_online_external()
+{
+# curl 
+# -v verbose
+# -s silent
+        for imapsync in \
+                https://imapsync.lamiral.info/cgi-bin/imapsync      \
+                https://tools.controlpanel.si/cgi-bin/imapsync      \
+                https://tools.intertune.io/cgi-bin/imapsync         \
+                https://imapsync.whc.ca/cgi-bin/imapsync            \
+                https://imapsync.boomhost.com/cgi-bin/imapsync      \
+                https://imapcopy.webhosting4u.gr/cgi-bin/imapsync   \
+                https://imapsync.nl/cgi-bin/imapsync                \
+                https://mailsync.timetakernet.info/cgi-bin/imapsync \
+                https://jcenter.nara-edu.ac.jp/cgi-bin/imapsync     \
+                https://imapsync.bepulse.com/cgi-bin/imapsync       \
+                https://transfer.keliweb.com/cgi-bin/imapsync       \
+                https://web-tools.na.icb.cnr.it/cgi-bin/imapsync    \
+                https://140.164.23.4/cgi-bin/imapsync               \
+                ; do
+                curl -k -s -d 'justconnect=1;host1=mail.unionstrategiesinc.com;user1=a;user2=a;host2=mail5.unionstrategiesinc.com;simulong=2' \
+                        $imapsync
+                #sleep 2
+        done 
+}
 
 
 ##########################
@@ -6132,7 +7226,8 @@ dprof2_bigmail()
 # Tests list
 
 mandatory_tests='
-no_args 
+no_args
+
 option_version
 option_tests
 option_tests_in_var_tmp
@@ -6144,38 +7239,47 @@ option_bad_delete2
 option_extra_arguments
 passfile1_noexist
 passfile2_noexist
-passwords_masked 
-passwords_not_masked 
-ll_authentication_failure
-first_sync_dry 
-first_sync 
-ll 
-pidfile_well_removed 
-pidfile_bad 
-ll_pidfilelocking 
-test_tail 
-justbanner 
+passwords_masked
+passwords_not_masked
+first_sync_dry
+first_sync
+ll
+ll_host_sanitize
+pidfile_well_removed
+pidfile_bad
+ll_pidfilelocking
+test_tail
+justbanner
 nomodules_version
 xxxxx_gmail
 gmail_xxxxx
-gmail 
-gmail_gmail 
-gmail_gmail_INBOX 
+gmail
+gmail_gmail
+gmail_gmail_INBOX
 gmail_gmail_folderfirst
-yahoo_all
+gmail_glX_all_justlogin
+
+yahoo_xxxx_login_tls
+yahoo_xxxx_login
+yahoo_xxxx
+yahoo_fail_UNAVAILABLE
+
 free_ssl
 office365_justconnect_inet4_inet6
 office365_justconnect_tls_SSL_verify_mode_1
-ll_unknow_option 
+ll_unknow_option
 ll_ask_password
 ll_env_password
-ll_bug_folder_name_with_blank 
-ll_timeout 
+ll_bug_folder_name_with_blank
+ll_timeout
+ll_timeout1_timeout2
+ll_timeout_very_small
 ll_folder
 ll_folder_noexist
 ll_folder_mixfolders
 ll_nocheckselectable
 ll_checkselectable
+ll_checkselectable_nb_folders
 ll_nocheckfoldersexist
 ll_checkfoldersexist
 ll_subfolder2
@@ -6183,42 +7287,48 @@ ll_subfolder1
 ll_subfolder1_INBOX_SUB
 ll_subfolder1_DOES_NOT_EXIST
 ll_oneemail
-ll_buffersize 
+ll_buffersize
 ll_justfolders
 ll_justfolders_delete1emptyfolders
-ll_justfolders_skipemptyfolders 
-ll_prefix12 
-ll_nosyncinternaldates 
-ll_idatefromheader 
-ll_folder_rev 
-ll_subscribed 
-ll_nosubscribe 
+ll_justfolders_skipemptyfolders
+ll_prefix12
+ll_nosyncinternaldates
+ll_idatefromheader
+ll_folder_rev
+ll_subscribed
+ll_nosubscribe
 ll_justfoldersizes
 ll_justfoldersizes_noexist
-ll_authmd5 
+ll_authmd5
 ll_authmd51
 ll_authmd52
-ll_noauthmd5 
-ll_maxage 
-ll_maxsize 
-ll_skipsize 
-ll_skipheader 
-ll_include 
-ll_exclude 
+ll_noauthmd5
+ll_maxage
+ll_maxsize
+ll_skipsize
+ll_skipheader
+ll_include
+ll_exclude
 ll_exclude_INBOX
-ll_regextrans2 
-ll_sep2 
-ll_bad_login 
-ll_bad_host 
-ll_bad_host_ssl 
-ll_useheader 
-ll_useheader_noheader 
-ll_regexmess 
+ll_regextrans2
+ll_sep2
+ll_bad_login
+ll_authentication_failure_user1
+ll_authentication_failure_user2
+ll_authentication_failure_user12
+ll_bad_host1
+ll_bad_host2
+ll_bad_host12
+ll_bad_host_ssl
+ll_useheader
+ll_useheader_noheader
+ll_regexmess
+ll_regexmess_8bit_X
 ll_regexmess_bad_regex
 ll_regexmess_add_header
 ll_regexmess_add_header_path
-ll_regexmess_scwchu 
-ll_skipmess 
+ll_regexmess_scwchu
+ll_skipmess
 ll_skipmess_8bits
 ll_skipmess_Content_Type_Message_partial
 ll_pipemess_nocmd
@@ -6230,35 +7340,42 @@ ll_flags
 ll_resyncflags
 ll_noresyncflags
 ll_syncflagsaftercopy
-ll_regex_flag 
+ll_regex_flag
 ll_regex_flag_bad
-ll_regex_flag_keep_only 
+ll_regex_flag_keep_only
 ll_justconnect
 ll_justconnect_ipv6
 ll_justconnect_ipv6_nossl
 ll_justhost1
 ll_justhost2
-ll_justlogin 
+ll_justlogin
 ll_justconnect_devel
-ll_ssl 
-ll_ssl_justconnect 
-ll_ssl_justlogin 
+ll_ssl
+ll_ssl_justconnect
+ll_ssl_justlogin
 ll_ssl_justconnect_sslargs
-ll_tls_justconnect 
-ll_tls_justlogin 
-ll_tls 
-ll_authmech_PLAIN 
+ll_tls_justconnect
+ll_tls_justlogin
+ll_tls
+ll_tls_justlogin_sslargs_failure_EXIT_TLS_FAILURE
+ll_authmech_PLAIN
 ll_authmech_xoauth2_gmail
 ll_authmech_xoauth2_json_gmail
-ll_authmech_LOGIN 
-ll_authmech_CRAMMD5 
+ll_authmech_LOGIN
+ll_authmech_CRAMMD5
 ll_authmech_PREAUTH
-ll_authuser 
+ll_authmech_NTLM
+ll_authmech_NTLM_domain
+ll_authmech_NTLM_trylogin_ok
+ll_authmech_NTLM_trylogin_fail
+ll_authuser
+ll_proxyauth_missing_authuser
+ll_proxyauth_authuser
 ll_delete1_delete2
-ll_delete2 
+ll_delete2
 ll_delete1
 ll_delete1_twoemails
-ll_folderrec 
+ll_folderrec
 ll_memory_consumption
 ll_newmessage
 ll_usecache
@@ -6278,29 +7395,39 @@ ll_noheader_force
 ll_noheader
 ll_domino1_domino2
 ll_domino2
+ll_with_errors
+ll_errorsmax
+ll_exitwhenover
 fuzz_basic
 fuzz_network
 testslive
+testslive6
 ll_abort_pidfile_no_exist
 ll_abort_noprocess
-ll_abort
+ll_abort_not_a_pid_number
+ll_abort_basic
 ll_abort_cgi_context_tail
 ll_abort_no_pidfile_option
+ll_abort_byfile_hand_made
+ll_abort_byfile_imapsync_made
+ll_abort_byfile_normal_run
 ll_sigreconnect_INT
+curl_online_args
+curl_online_file
 ksks_reset_test1
 memory_stress
 '
 
-# 2019_12 Removed 
-# ks_justconnect_ipv6_nossl testslive6 
+# 2019_12 Removed
+# ks_justconnect_ipv6_nossl
 # ks_justconnect_ipv6
 
 
 other_tests='
-archiveopteryx_1 
+archiveopteryx_1
 msw
 msw2
-ll_bigmail 
+ll_bigmail
 ll_justlogin_backslash_char
 '
 

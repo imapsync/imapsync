@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Centos.txt,v 1.14 2019/11/28 14:37:02 gilles Exp gilles $
+# $Id: INSTALL.Centos.txt,v 1.25 2021/02/02 17:08:46 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -9,7 +9,37 @@ https://imapsync.lamiral.info/INSTALL.d/INSTALL.Centos.txt
                Installing imapsync on CentOS
 =======================================================================
 
-There is one section for Centos 7 and one for Centos 6.
+There is one section for Centos 8, 
+one for Centos 7,
+and one for Centos 6.
+
+=======================================================================
+               Centos 8
+=======================================================================
+
+
+How to install the latest imapsync on Centos 8
+
+  dnf install wget perl-App-cpanminus gcc
+  # then
+  cpanm lazy Test::MockObject
+  wget https://imapsync.lamiral.info/imapsync
+  perl -Mlazy imapsync
+  chmod +x imapsync
+  ./imapsync --testslive
+  ./imapsync --tests
+
+
+If you encounter the following error during the run of "perl -Mlazy imapsync"
+...
+Can't locate object method "new" via package "Archive::Tar" at ...
+FAIL install IO-String-1.08
+
+fix it with:
+  wget http://mirror.centos.org/centos/8/PowerTools/x86_64/os/Packages/perl-IO-String-1.08-31.el8.noarch.rpm 
+  yum install perl-IO-String-1.08-31.el8.noarch.rpm -y
+
+See also https://github.com/imapsync/imapsync/issues/211
 
 =======================================================================
                Centos 7
@@ -30,8 +60,8 @@ A good test that shows also the basic example:
 
 A live test:
 
-  imapsync --testslive
-  
+  imapsync --testslive --tls1 --ssl2
+
 Unit tests:
 
   imapsync --tests
@@ -40,8 +70,9 @@ Unit tests:
                Centos 7 and latest imapsync
 =======================================================================
 
-At the time of this writing (April 2018), the epel repository contains 
-imapsync release 1.727, which is not the latest available release.
+At the time of this writing (March 2020), the epel7 repository still
+contains imapsync release 1.727, which is not the latest available 
+imapsync release. (1.727 date is 2016/08/19 while 1.979 is 2020/01/14)
 
 In order to install the latest imapsync I suggest the following process:
 
@@ -67,15 +98,20 @@ Then:
  perl-Test-Requires \
  perl-Test-Deep \
  perl-File-Tail \
- perl-Unicode-String
+ perl-Unicode-String \
+ perl-Test-NoWarnings \
+ perl-Test-Simple \
+ perl-Test-Warn \
+ perl-Sub-Uplevel 
 
-  cpanm Encode::IMAPUTF7 # this module is not available as a rpm package
-  
+Also, run the following commands:
+
+  cpanm Encode::IMAPUTF7 
   wget -N https://imapsync.lamiral.info/imapsync
   chmod +x imapsync
   ./imapsync --testslive
 
-Now you should shave the latest imapsync locally working on Centos 7.
+Now you should have the latest imapsync locally working on Centos 7.
 
 If you want to install it and replace the old one:
 
@@ -85,7 +121,7 @@ If you want to install it and replace the old one:
   imapsync --version
 
 should give the latest release number instead of 1.727
-(It is 1.964 at the time of this writing)
+(It is 1.979 at the time of this writing)
 
 If you want to install an online imapsync service
 like /X then you also need a recent decent CGI.pm,

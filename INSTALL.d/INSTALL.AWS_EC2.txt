@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.AWS_EC2.txt,v 1.7 2019/11/28 14:37:23 gilles Exp gilles $
+# $Id: INSTALL.AWS_EC2.txt,v 1.8 2020/04/14 20:56:47 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -9,7 +9,54 @@ https://imapsync.lamiral.info/INSTALL.d/INSTALL.AWS_EC2.txt
                Installing imapsync on AWS EC2
 =======================================================================
 
+
 AWS: Amazon Web Service
+
+A) cat /etc/system-release
+Amazon Linux release 2 (Karoo)
+
+  sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+  sudo yum install imapsync
+
+  imapsync --version
+  1.727
+
+To install a more recent imapsync
+
+  sudo yum install perl-App-cpanminus \
+ perl-Dist-CheckConflicts \
+ perl-HTML-Parser \
+ perl-libwww-perl \
+ perl-Module-Implementation \
+ perl-Module-ScanDeps \
+ perl-Package-Stash \
+ perl-Package-Stash-XS \
+ perl-PAR-Packer \
+ perl-Regexp-Common \
+ perl-Sys-MemInfo \
+ perl-Test-Fatal \
+ perl-Test-Mock-Guard \
+ perl-Test-Requires \
+ perl-Test-Deep \
+ perl-File-Tail \
+ perl-Unicode-String \
+ perl-Test-NoWarnings \
+ perl-Test-Simple \
+ perl-Test-Warn \
+ perl-Sub-Uplevel 
+
+  sudo cpanm Encode::IMAPUTF7
+  wget -N https://imapsync.lamiral.info/imapsync
+  chmod +x imapsync
+  ./imapsync --testslive
+
+  ./imapsync --version # command typed on 14 April 2020
+  1.983
+
+  sudo cpanm CGI 
+
+
+B) Old Amazon Linux AMI release 2017.03
 
 cat /etc/system-release
 Amazon Linux AMI release 2017.03
