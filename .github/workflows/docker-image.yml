@@ -19,3 +19,5 @@ jobs:
         uses: docker/setup-buildx-action@v1
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
+      - name: Build image
+        run: docker buildx build --platform linux/amd64,linux/arm64 -t imapsync:$(/usr/bin/git log -1 --format='%h')  . --no-cache -f INSTALL.d/Dockerfile
