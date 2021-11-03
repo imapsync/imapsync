@@ -160,6 +160,7 @@ clean_man:
 	rm -f  W/imapsync.1
 
 W/imapsync.1: imapsync
+	mkdir -p W/
 	pod2man imapsync > W/imapsync.1
 
 install: testp W/imapsync.1
