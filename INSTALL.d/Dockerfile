@@ -3,7 +3,7 @@
 # $Id: Dockerfile,v 1.30 2020/03/26 07:15:04 gilles Exp gilles $
 # I use the following command to build the image:
 #
-#  docker build -t gilleslamiral/imapsync . 
+#  docker build -t gilleslamiral/imapsync -f INSTALL.d/Dockerfile .
 #
 # where this Dockerfile is in the current directory
 # 
@@ -27,13 +27,13 @@ LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
 # Put a copy of the Dockerfile in the image itself
 # It can help future maintenance, isn't it?
 
-COPY Dockerfile /
+COPY INSTALL.d/Dockerfile /
 
 # Also put my local imapsync on /usr/bin/ for testing purpose
 # renamed imapsync_local since would be erased by the wget
 
 COPY imapsync /usr/bin/imapsync_local
-COPY prerequisites_imapsync /usr/bin/prerequisites_imapsync_local
+COPY INSTALL.d/prerequisites_imapsync /usr/bin/prerequisites_imapsync_local
 
 RUN set -xe && \
   apt-get update \
@@ -76,9 +76,9 @@ RUN set -xe \
   && pwd \
   && wget -N https://imapsync.lamiral.info/imapsync \
      https://imapsync.lamiral.info/prerequisites_imapsync \
-     https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py
+     https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py \
   && mv imapsync oauth2.py /usr/bin/ \
-  && chmod +x /usr/bin/imapsync /usr/bin/imapsync_local /usr/bin/oauth2.py # just_a_comment_to_force_update 2019_11_26_12_58_34
+  && chmod +x /usr/bin/imapsync /usr/bin/imapsync_local /usr/bin/oauth2.py
 
 
 USER nobody:nogroup
