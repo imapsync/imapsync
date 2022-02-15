@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Messages_Too_Big.txt,v 1.5 2021/06/22 15:31:39 gilles Exp gilles $
+$Id: FAQ.Messages_Too_Big.txt,v 1.8 2021/12/16 11:44:26 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -11,76 +11,128 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Too_Big.txt
 
 Questions answered in this FAQ are:
 
-Q. What does imapsync with big messages?
+Q. Imapsync reports errors like these ones:
+   "could not append...Maximum size of appendable message has been exceeded"
+   "could not append...maximum message size exceeded"
+   "The most frequent error is ERR_APPEND_SIZE"
+   What does it mean?
+
+Q. Does imapsync limits big messages?
+
+Q. What are the well known servers messages size limits?
 
 Q. What can I do to transfer messages bigger than what allows the 
    imap destination server?
+
+Q. The solution --truncmess xxxx doesn't work with Gmail. 
+   What can I do?
+
 
 Now the questions again with their answers.
 
 =======================================================================
-Q. What does imapsync with big messages?
+Q. Imapsync reports errors like these ones:
+   "could not append...Maximum size of appendable message has been exceeded"
+   "could not append...maximum message size exceeded"
+   "The most frequent error is ERR_APPEND_SIZE"
+   What does it mean?
 
-R. By default, imapsync checks if the host2 imap server announces a
-message size limit with "APPENDLIMIT=xxxx" in its CAPABILITY response.
-Then imapsync takes this value to set automatically the --maxsize
-option, unless --maxsize is already set on the command line and has a
-smaller value than the APPENDLIMIT value.
-   
-If the host2 imap server doesn't announce any message size limit then
-imapsync syncs all messages no matter their sizes.
-   
+R. It means the message couldn't be transferred to the destination
+   account because it is too big, imapsync tries to APPEND it to the
+   server (that's IMAP jargon) but the server refuses it by saying
+   either "NO. Maximum size of appendable message has been exceeded"
+   or "NO. maximum message size exceeded".
+
+
+=======================================================================
+Q. Does imapsync limits big messages?
+
+R. No. Imapsync synchronizes messages no matter their sizes.
+
 When a message is copied to the destination server, the destination
-server accepts it or not but it does it as a whole, it takes the full
-message or nothing. Nothing triggers an error in imapsync.
+server accepts it or not. It does it as a whole, it takes the full
+message or nothing. The destination server can refuse a too big
+message, it then triggers an APPEND error message in imapsync.
 
-   * Gmail announces APPENDLIMIT=35651584 (June 2021).
-   * Office365 announces nothing.
-   * Dovecot announces nothing.
-   * Usually imap servers announce nothing.
+So far, December 2021, the biggest message transferred by imapsync on
+the online /X service is 1.51 GiB. Who can top that?
+
+
+=======================================================================
+Q. What are the well known servers messages size limits?
+
+   * Gmail message size limit is 35 MB. 
+     Gmail announces APPENDLIMIT=35651584 (June 2021).
+   
+   * Office365 message size limit is 45 MB by default
+     and it can be upped by configuration. See 
+     https://imapsync.lamiral.info/FAQ.d/FAQ.Office365.txt
+     Q. I see "NO Maximum size of appendable message has been exceeded"
+
+   * Exchange message size limit is 10 MB by default
+     and it can be upped by configuration. See
+     https://imapsync.lamiral.info/FAQ.d/FAQ.Exchange.txt
+     Q. I see "NO Maximum size of appendable message has been exceeded"
+
+   * Dovecot message size limit is variable. It is defined
+     by the sysadmin. For example, quota_max_mail_size = 100M
+     https://doc.dovecot.org/configuration_manual/quota/
+     
+   * Usually, any IMAP server has a message size limit, defined 
+     by the sysadmin. You discover it sooner or later
 
 =======================================================================
 Q. What can I do to transfer messages bigger than what allows the 
    imap destination server?
 
-R1. A solution is to truncate the message to the maximum size allowed
-before copying it to host2. That's a little dirty but it's ok if you
-prefer having a truncated message than no message at all. The
-attachments after the truncation won't be available but everything
-before should be ok. It may also depend on the software tool reading
-the email message.
+R1. A solution is ask imapsync to truncate the message to the maximum
+size allowed before copying it to host2 by using the option
+--truncmess.
 
-For example, Gmail currently limits messages to 35651584 bytes, 
-aka 34 MiB (June 2021),
+That's a little dirty but it's ok if you prefer having a truncated
+message than no message at all. The attachments after the truncation
+won't be available but everything before should be ok. It may also
+depend on the software tool reading the email message.
 
-Starting with imapsync release 1.938 option --truncmess xxxx truncates
-messages bigger than the given size xxxx, size given in bytes.
 
-  imapsync --truncmess 35651584 --appendlimit 1000000000000
+To truncate messages to 10 MB, use: 
 
-The --appendlimit option is only needed imap servers that offer the
-APPENDLIMIT capability, for example, Gmail. Using it doesn't hurt
-anyway.
-
-Prior to imapsync release 1.938, instead of --truncmess:
-
-On Linux, use:
-
-   imapsync ... --pipemess  'perl -0ne "print substr \$_,0,35651584" '
-   
-On windows, use (I'm not sure of, not tested yet):
-
-   imapsync ... --pipemess  "perl -0ne 'print substr $_,0,35651584' "
+  imapsync ... --truncmess 10_000_000
 
 
 R2. A not-so-dirty solution would be to transform the big messages,
-replace the attachments with links to the attachments stored elsewhere.
-Well, it's not done and it's too much complicated compared to a simpler
-solution which is to allow bigger messages on the destination account.
+replace the attachments with links to the attachments stored
+elsewhere.  Well, it's not done and it's too much complicated compared
+to a simpler solution which is to allow bigger messages on the
+destination account.
 
 As time goes on, disk space is cheaper and cheaper.  Don't make the
-new user account, the destination account, worst than his previous,
-buy disks. Monitor and rule your resources, not the users.
+new user account, the destination account, worst than his previous
+account: buy disks.
+
+Monitor and rule your hardware resources, serve your users,
+not the contrary.
+
+
+=======================================================================
+Q. The solution --truncmess xxxx doesn't work with Gmail. 
+   What can I do?
+
+R. Gmail currently limits messages size up to 35651584 bytes, aka 34
+  MiB (June 2021) but imapsync knows it so it avoid to transfer these
+  big messages. Solution, use:
+
+  imapsync ... --truncmess 35_651_584 --appendlimit 1_000_000_000_000
+
+Explanation. By default, imapsync checks if the host2 imap server
+announces a message size limit with "APPENDLIMIT=xxxx" in its
+CAPABILITY response, like Gmail does.  Imapsync takes this APPENDLIMIT
+value to set automatically the --maxsize option, unless --maxsize is
+already set on the command line and has a smaller value than the
+APPENDLIMIT value.
+
+1_000_000_000_000 is one TB, I guess you don't have any message of
+that size yet.
 
 =======================================================================
 =======================================================================

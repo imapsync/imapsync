@@ -1,17 +1,187 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 2.140
+head: 2.178
 branch:
 locks: strict
-	gilles: 2.140
+	gilles: 2.178
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 1040;	selected revisions: 1040
+total revisions: 1078;	selected revisions: 1078
 description:
 ----------------------------
-revision 2.140	locked by: gilles;
+revision 2.178	locked by: gilles;
+date: 2022/01/12 21:28:37;  author: gilles;  state: Exp;  lines: +75 -13
+Added tests_compress_ssl()
+----------------------------
+revision 2.177
+date: 2021/12/23 20:38:44;  author: gilles;  state: Exp;  lines: +8 -8
+Bugfix. 1849 -> 1848 unit tests
+----------------------------
+revision 2.176
+date: 2021/12/23 20:19:04;  author: gilles;  state: Exp;  lines: +35 -23
+Bugfix. memory consumption on Mac was not relevant. Use RSS instead of VSZ, on Mac only. Linux stays with VSZ.
+----------------------------
+revision 2.175
+date: 2021/12/21 17:46:14;  author: gilles;  state: Exp;  lines: +23 -21
+Bugix. Darwin, fixed loadavg tests, no more W/t/loadavg.out needed.
+----------------------------
+revision 2.174
+date: 2021/12/14 15:51:58;  author: gilles;  state: Exp;  lines: +62 -17
+Added advice for:
+  ERR_APPEND_SIZE
+  ERR_CONNECTION_FAILURE_HOST1 
+  ERR_CONNECTION_FAILURE_HOST2 
+  ERR_AUTHENTICATION_FAILURE_USER1
+  ERR_AUTHENTICATION_FAILURE_USER2
+----------------------------
+revision 2.173
+date: 2021/12/09 18:30:34;  author: gilles;  state: Exp;  lines: +61 -40
+Bugfix. Made reconnect mechanism works with --oauthdirect1 --oauthdirect2 --oauthaccesstoken1 --oauthaccesstoken2
+----------------------------
+revision 2.172
+date: 2021/12/07 18:19:42;  author: gilles;  state: Exp;  lines: +27 -17
+Added some tests to tests_get_options_from_string() and tests_get_options_extra()
+  I can not have the unknown options back with Getopt::Long::GetOptionsFromString(), just the unknown values, ie, caca but not --caca
+----------------------------
+revision 2.171
+date: 2021/12/07 17:50:12;  author: gilles;  state: Exp;  lines: +14 -8
+Added --ssl1 --ssl2 --tls1 --tls2 --compress1 --compress2 to get_options_from_string()
+----------------------------
+revision 2.170
+date: 2021/12/07 17:19:44;  author: gilles;  state: Exp;  lines: +12 -8
+Added --keepalive1 --keepalive2 --reconnectretry1 --reconnectretry2 in get_options_from_string()
+----------------------------
+revision 2.169
+date: 2021/12/07 17:13:44;  author: gilles;  state: Exp;  lines: +101 -36
+Added --keepalive1 and --keepalive2 options. On by default.
+  See https://metacpan.org/pod/Mail::IMAPClient#Keepalive
+  Use --nokeepalive1 and --nokeepalive2 to disable Keepalive.
+----------------------------
+revision 2.168
+date: 2021/12/05 23:27:27;  author: gilles;  state: Exp;  lines: +29 -11
+Added --debugflags --errorsmax --folder --timeout in options from file
+----------------------------
+revision 2.167
+date: 2021/12/02 16:59:51;  author: gilles;  state: Exp;  lines: +9 -9
+Moved the call to extra options after the chdir of the CGI context.
+----------------------------
+revision 2.166
+date: 2021/12/02 15:23:37;  author: gilles;  state: Exp;  lines: +107 -9
+Now read extra options on the first line of the file ./options_extra.txt if it is present and readable.
+----------------------------
+revision 2.165
+date: 2021/11/30 20:27:38;  author: gilles;  state: Exp;  lines: +30 -11
+cpu_time rounded with 2 decimals.
+Added 4 tests when no compression is on.
+----------------------------
+revision 2.164
+date: 2021/11/24 21:26:46;  author: gilles;  state: Exp;  lines: +12 -11
+Compression no more on by default. Just to see.
+----------------------------
+revision 2.163
+date: 2021/11/20 20:11:46;  author: gilles;  state: Exp;  lines: +8 -7
+Bugfix. imapsync --version was buggy in docker context.
+----------------------------
+revision 2.162
+date: 2021/11/20 10:16:33;  author: gilles;  state: Exp;  lines: +14 -12
+Docker. Current working directory changed from /var/tmp to /var/tmp/uid_$EFFECTIVE_USER_ID
+----------------------------
+revision 2.161
+date: 2021/11/19 18:17:48;  author: gilles;  state: Exp;  lines: +8 -8
+Bugfix. inline doc mentioned always --nocompress1
+----------------------------
+revision 2.160
+date: 2021/11/19 14:40:58;  author: gilles;  state: Exp;  lines: +10 -7
+Added inline documentation about --nocompress1 and --nocompress2
+----------------------------
+revision 2.159
+date: 2021/11/19 14:29:31;  author: gilles;  state: Exp;  lines: +113 -12
+Dependency. Added use Compress::Zlib
+Enhancement. Added compression in imap. On by default no matter the capability announced. Use --nocompress1 and --nocompress2 to turn it off.
+----------------------------
+revision 2.158
+date: 2021/11/13 20:01:35;  author: gilles;  state: Exp;  lines: +13 -7
+Added README help for --truncmess
+----------------------------
+revision 2.157
+date: 2021/10/23 21:51:43;  author: gilles;  state: Exp;  lines: +61 -16
+Refactor. Deglobalized $debugcontent. Added debugcontent() function.
+1800 unit tests.
+----------------------------
+revision 2.156
+date: 2021/10/12 13:36:36;  author: gilles;  state: Exp;  lines: +72 -71
+Added comment for ERR_FLAGS "Many STORE errors with FLAGS. Retry with the option --noresyncflags"
+Refactored errors_incr() and errors_listing()
+Bugfix. errors_incr() existed with CATCH_ALL
+----------------------------
+revision 2.155
+date: 2021/10/01 07:46:55;  author: gilles;  state: Exp;  lines: +9 -8
+Like --useheader X-Gmail-Received --useheader Message-Id when --gmail1 --gmail2
+----------------------------
+revision 2.154
+date: 2021/09/29 20:38:04;  author: gilles;  state: Exp;  lines: +8 -8
+Bugfix. Added 'E&AwE-le&AwE-ments envoye&AwE-s' in possible_special
+----------------------------
+revision 2.153
+date: 2021/09/29 13:56:15;  author: gilles;  state: Exp;  lines: +34 -12
+Does not checknoabletosearch if --justfolders
+When creating folder check if selectable and consider ok if selectable
+----------------------------
+revision 2.152
+date: 2021/09/29 12:03:12;  author: gilles;  state: Exp;  lines: +362 -58
+Added inline advice on error ERR_OVERQUOTA
+Added inline advice on error ERR_TRANSFER_EXCEEDED
+Renamed function bytes_display_string() bytes_display_string_bin() 
+  bytes_display_string_bin converts bytes to human KiB MiB GiB TiB PiB
+Added function bytes_display_string_dec() to convert bytes to human decimal KB MB GB TB PB (1000 base)
+----------------------------
+revision 2.151
+date: 2021/09/08 10:34:25;  author: gilles;  state: Exp;  lines: +23 -18
+Bugfix. load average on macosx was sometimes buggy. locale float 3,14 instead of 3.14
+----------------------------
+revision 2.150
+date: 2021/08/08 12:10:51;  author: gilles;  state: Exp;  lines: +9 -10
+Refactor. Deglobalized warn_release variable
+----------------------------
+revision 2.149
+date: 2021/07/31 11:24:24;  author: gilles;  state: Exp;  lines: +7 -26
+Removed --fast option.
+----------------------------
+revision 2.148
+date: 2021/07/22 14:21:09;  author: gilles;  state: Exp;  lines: +10 -10
+Bugfix. abort didn't do charset=UTF-8; same for heavy load 503 Service Unavailable
+----------------------------
+revision 2.147
+date: 2021/07/22 13:13:50;  author: gilles;  state: Exp;  lines: +12 -12
+Bugfix. The maximum number a pid can be is 2^22, not 2^32.
+----------------------------
+revision 2.146
+date: 2021/07/22 12:48:21;  author: gilles;  state: Exp;  lines: +8 -8
+1742 unit tests.
+----------------------------
+revision 2.145
+date: 2021/07/22 12:45:31;  author: gilles;  state: Exp;  lines: +16 -13
+Bugfix. Up the maximum number a pid can be. From 99999 to 2^32. See https://unix.stackexchange.com/questions/16883/what-is-the-maximum-value-of-the-process-id
+----------------------------
+revision 2.144
+date: 2021/07/17 18:07:59;  author: gilles;  state: Exp;  lines: +13 -10
+Just an experimental loaddelay forced to 0.
+----------------------------
+revision 2.143
+date: 2021/07/12 19:45:44;  author: gilles;  state: Exp;  lines: +111 -15
+Bugfix. Under docker context --version was buggy, too verbose.
+----------------------------
+revision 2.142
+date: 2021/07/12 14:04:01;  author: gilles;  state: Exp;  lines: +17 -19
+Removed that hard limit --maxsize 35_651_584 set by --gmail2 since CAPABILITY is used and good.
+----------------------------
+revision 2.141
+date: 2021/07/06 02:59:19;  author: gilles;  state: Exp;  lines: +8 -8
+cpu_time param
+----------------------------
+revision 2.140
 date: 2021/07/05 20:14:18;  author: gilles;  state: Exp;  lines: +14 -10
 Fixed perlcrit 4 severity 4 violations.
 ----------------------------

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: sync_parallel_unix.sh,v 1.9 2021/02/19 13:41:51 gilles Exp gilles $
+# $Id: sync_parallel_unix.sh,v 1.11 2022/01/13 12:56:28 gilles Exp gilles $
 
 # If you're on Windows there is a possibility to install and use parallel
 # but I have never tested it. I found:
@@ -44,10 +44,10 @@
 # The parallel command is then followed by its parameters.
 # parallel parameters explained:
 #
-# --max-procs 7 means parallel will parallelize up to 7 jobs at a time,
+# --max-procs 3 means parallel will parallelize up to 3 jobs at a time,
 # adjust this value by monitoring your system capacity.
 #
-# --delay 1.1 means parallel will pause 1.1 seconds after starting each job.
+# --delay 1.4 means parallel will pause 1.4 seconds (1400 ms) after starting each job.
 #
 #  --colsep ';' means the separator between values is the character semi-colon ;
 # 
@@ -96,6 +96,8 @@
 # paralelized runs
 
 
+# The current script does not take into account what is in the 7th column
+
 check_parallel_is_here() {
         parallel --version > /dev/null || { echo "parallel command is not installed. Install it first."; return 1; }
 }
@@ -114,9 +116,14 @@ DRYRUN=echo
 # since the previous echo value will be discarded
 DRYRUN=
 
-parallel --max-procs 7 --delay 1.1 --colsep ';' --arg-file file.txt --line-buffer --tagstring "from {2} to {5} : " \
+parallel --max-procs 3 --delay 1.4 --colsep ';' --arg-file file.txt --line-buffer --tagstring "from {2} to {5} : " \
         'echo {1} | egrep "^#|^ *$" > /dev/null ||' \
         $DRYRUN imapsync --host1 {1} --user1 {2} --password1 {3} \
-        --host2 {4} --user2 {5} --password2 {6} "$@" --simulong 5 
+        --host2 {4} --user2 {5} --password2 {6}  "$@" --simulong 5 
 
 
+
+# A question to ask to the parallel mailing-list, Ole Tange
+# does not work like I want, it passes all the 7th column as only one argument to imapsync:
+# '{=7 split / /, $arg[7] =}' 
+# I want a list of arguments

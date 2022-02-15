@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: cgi_memo,v 1.73 2021/06/30 20:10:12 gilles Exp gilles $
+# $Id: cgi_memo,v 1.74 2021/11/25 11:25:13 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -89,7 +89,7 @@ here_is_linux()
 echoq list_all_logs
 list_all_logs()
 {
-    cat list_all_logs.txt
+    cat list_all_logs.txt list_all_logs_auto.txt | grep -v 385d7a4d8d428d7aa2b57c8982629e2bd67698ed/ | grep "$1" 
 }
 
 echoq list_all_logs_generate
@@ -108,17 +108,27 @@ list_log_matching()
 }
 
 
+statsfile()
+{
+        base=`pattern_filename G $1 $2`
+        statsfile=$base.txt
+        echo $statsfile
+}
+
+
 
 echoq biggest_transfer
 biggest_transfer()
 {
-    bytestohuman `datamash_file_op_index G_Total_bytes_transferred.txt max 5`
+    statsfile=`statsfile Total_bytes_transferred $1`
+    bytestohuman `datamash_file_op_index "$statsfile" max 5`
 }
 
 echoq total_bytes_transferred
 total_bytes_transferred()
 {
-    datamash_file_op_index G_Total_bytes_transferred.txt sum  5
+    statsfile=`statsfile Total_bytes_transferred $1`
+    datamash_file_op_index "$statsfile" sum 5
 }
 
 # Total volume transferred
@@ -126,20 +136,22 @@ echoq total_volume_transferred
 total_volume_transferred()
 {
     #echo -n 'numfmt --to=iec-i '
-    bytestohuman `total_bytes_transferred`
+    bytestohuman `total_bytes_transferred $1`
 }
 
 
 echoq total_messages_transferred
 total_messages_transferred()
 {
-    datamash_file_op_index G_Messages_transferred.txt sum  4 %16.0f | tr -d ' '
+    statsfile=`statsfile Messages_transferred $1`
+    datamash_file_op_index "$statsfile" sum  4 %16.0f | tr -d ' '
 }
 
 
 longest_transfer()
 {
-    LC_ALL=C printf "%.0f\n" `datamash_file_op_index G_Transfer_time.txt max 4`
+        statsfile=`statsfile Transfer_time $1`
+        LC_ALL=C printf "%.0f\n" `datamash_file_op_index "$statsfile" max 4`
 }
 
 echoq number_and_pids_of_imapsync_running
@@ -178,8 +190,14 @@ oom_immune_imapsync_running() {
 
 echoq nb_migrations_launched
 nb_migrations_launched() {
-    /bin/ls . | egrep [a-f0-9]{40} | wc -l
+    list_all_logs | egrep "$1" | egrep -o [a-f0-9]{40} | sort | uniq -c | wc -l
 }
+
+nb_migrations_launched_old() {
+    /bin/ls . | egrep [a-f0-9]{40} | sort | uniq | wc -l
+}
+
+
 
 echoq current_stats
 current_stats() {
@@ -213,9 +231,10 @@ grep_in_all_logs() {
 }
 
 echoq grep_in_logs_manual
-grep_in_logs_manual() {
-cat << EOF
-list_all_logs | tail -500 |  tr '\n' '\000'| xargs -0 egrep -i LALALA | tee grep_LALALA.txt
+grep_in_logs_manual()
+{
+        cat << EOF
+list_all_logs /2021_11 | tail -666 | tr '\n' '\000'| xargs -0 egrep -i LALALA | tee grep_LALALA.txt
 EOF
 }
 
@@ -245,7 +264,7 @@ tests_pattern_filename()
         run_test test "abcd"      = "`pattern_filename ab""cd`" 
         run_test test "abcd"      = "`pattern_filename ab""cd`"
         run_test test "ab_cd"     = "`pattern_filename ab" "cd`"
-        run_test test "ab__cd"     = "`pattern_filename ab"  "cd`"
+        run_test test "ab__cd"    = "`pattern_filename ab"  "cd`"
         run_test test "ab__cd"    = "`pattern_filename ab "" cd`"
         run_test test "ab___cd"   = "`pattern_filename ab " " cd`"
         run_test test "ab____cd"  = "`pattern_filename ab "  " cd`"
@@ -263,7 +282,7 @@ pattern_filename()
 
 
 
-echoq 'grep_stats_from_list_log_matching lognamepattern'
+echoq 'grep_stats_from_list_log_matching lognamepattern # time depending on lognamepattern'
 grep_stats_from_list_log_matching() {
     pattern="$1"
     pattern_filename=`pattern_filename "$pattern"`
@@ -277,31 +296,41 @@ grep_stats_from_list_log_matching() {
 
 
 
-
 grep_any() {
-    pattern_filtered=`pattern_filename "$1" "$2"`
-    file="G_${pattern_filtered}.txt"
-    echo $file
-    egrep -i "$1" grep_stats_"$2".txt > $file.tmp
-    mv $file.tmp $file
+        file=`statsfile "$1" "$2"`
+        pattern_filtered=`pattern_filename "$2"`
+        echo $file
+        if test -f grep_stats_"$pattern_filtered".txt ; then
+                egrep -i "$1" grep_stats_"$pattern_filtered".txt > $file.tmp
+                mv $file.tmp $file
+        else
+                echo File not found: grep_stats_"$pattern_filtered".txt
+        fi
 }
 
 grep_load() {
-    echo G_Load.txt
-    egrep -o 'Load is ..?\... ..?\... ..?\... .*' grep_stats.txt > G_Load.txt
+        file=`statsfile "Load" "$1"`
+        pattern_filtered=`pattern_filename "$1"`
+        echo $file
+        if test -f grep_stats_"$pattern_filtered".txt ; then
+                egrep -o 'Load is ..?\... ..?\... ..?\... .*' grep_stats_"$pattern_filtered".txt > $file.tmp
+                mv $file.tmp $file
+        else
+                echo File not found: grep_stats_"$pattern_filtered".txt
+        fi
 }
 
-
-echoq 'grep_all_stat_from_patterns_list lognamepattern # long'
-grep_all_stat_from_patterns_list() {
-    #grep_load
-    stat_patterns_list | while read k; do grep_any "$k" "$1"; done
-}
 
 stat_patterns_list() {
    cat stat_patterns.txt | sed '/^[[:space:]]*$/d' | tr -d '^'
 }
 
+
+echoq 'grep_all_stat_from_patterns_list lognamepattern # long'
+grep_all_stat_from_patterns_list() {
+    grep_load "$1"
+    stat_patterns_list | while read k; do grep_any "$k" "$1"; done
+}
 
 
 sum_first_column_G_HTTP_USER_AGENT_sorted()
@@ -348,18 +377,20 @@ stat_load()
 echoq stat_exit_value
 stat_exit_value()
 {
-        good_lines=`grep '(EX' G_Exiting_with_return_value.txt | wc -l | tr -d ' '`
-        grep '(EX' G_Exiting_with_return_value.txt \
+        statsfile=`statsfile Exiting_with_return_value "$1"`
+        good_lines_nb=`grep '(EX' $statsfile | wc -l | tr -d ' '`
+        grep '(EX' "$statsfile" \
         | datamash  --sort groupby 6 -W count 5 \
-        | awk -v good_lines=$good_lines  \
-                '{ printf "%.2g%%  %s\n",  100*$2/good_lines,  $1 }' \
+        | awk -v good_lines_nb=$good_lines_nb  \
+                '{ printf "%.2g%%  %s\n",  100*$2/good_lines_nb,  $1 }' \
         | sort -n
 }
 
 echoq stat_exit_value_by_value
 stat_exit_value_by_value()
 {
-        datamash  --sort groupby 5 -W count 5 < G_Exiting_with_return_value.txt
+        statsfile=`statsfile Exiting_with_return_value "$1"`
+        datamash  --sort groupby 5 -W count 5 < "$statsfile"
 }
 
 
@@ -423,8 +454,8 @@ stat_all()
     stat_any  G_Messages_found_in_host2_not_in_host1.txt 9
     
     # stat_any  G_Folders_synced.txt
-    egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | egrep -o '^[0-9]+' > G_Folders_synced_.txt
-    egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | egrep -o '[0-9]+$' > G_Folders_total_seen.txt
+    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced.txt | egrep -o '^[0-9]+' > G_Folders_synced_.txt
+    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced.txt | egrep -o '[0-9]+/[0-9]+' | egrep -o '[0-9]+$' > G_Folders_total_seen.txt
     stat_any  G_Folders_synced_.txt 1
     stat_any  G_Folders_total_seen.txt 1
 
@@ -437,7 +468,7 @@ stat_all()
     stat_any  G_Average_bandwidth_rate.txt 5
     stat_any  G_Biggest_message.txt
     stat_any  G_Detected_errors.txt 2 
-    stat_any  G_Exiting_with_return_value.txt 5 # GROUP
+    #stat_any  G_Exiting_with_return_value.txt 5 # GROUP
     stat_any  G_Memory_consumption_at_the_end.txt 7
     #stat_any  G_failure_Error_login.txt
     percent_stat_useragent_X ; echo
@@ -448,23 +479,61 @@ stat_all()
 
 stat_transfer_time_mean()
 {
-        datamash_file_op_index G_Transfer_time.txt mean
+        statsfile=`statsfile Transfer_time "$1"`
+        datamash_file_op_index "$statsfile" mean
 }
 
 stat_throuput_since_day_one_in_days()
 {
-        number_of_syncs=`number_of_syncs`
-        days_since_first_use=`days_since_first_use`
+        number_of_syncs=`number_of_syncs "$1"`
+        days_since_first_use=`days_since_first_use "$1"`
         c "$number_of_syncs / $days_since_first_use"
 }
 
-stat_queue_mean()
+stat_queue_mean_old()
 {
         stat_throuput_since_day_one_in_days=`stat_throuput_since_day_one_in_days`
-        stat_transfer_time_mean=`stat_transfer_time_mean`
+        stat_transfer_time_mean=`stat_transfer_time_mean "$1"`
         stat_queue_mean_raw=`c "$stat_throuput_since_day_one_in_days * $stat_transfer_time_mean / 3600 / 24"`
         LC_ALL=C printf "%2.2f\n" $stat_queue_mean_raw
 }
+
+
+stat_queue_mean()
+{
+        first_log=`first_log "$1"`
+        last_log=`last_log "$1"`
+        number_of_syncs=`number_of_syncs "$1"`
+        seconds_between_files=`seconds_between_files $first_log $last_log`
+        stat_transfer_time_mean=`stat_transfer_time_mean "$1"`
+        stat_queue_mean_raw=`c "$number_of_syncs / $seconds_between_files * $stat_transfer_time_mean"`
+        LC_ALL=C printf "%2.2f\n" $stat_queue_mean_raw
+}
+
+
+first_log()
+{
+        list_all_logs "$1"_ | grep /"$1" | head -1
+}
+
+last_log()
+{
+        list_all_logs "$1"_ | grep /"$1" | tail -1
+}
+
+start_date()
+{
+        first_log=`first_log "$1"`
+        date -r "$first_log"
+}
+
+end_date()
+{
+        last_log=`last_log "$1"`
+        date -r "$last_log"
+}
+
+
 
 echoq dirs_of_syncs_finished_recently
 dirs_of_syncs_finished_recently() {
@@ -491,6 +560,7 @@ logfiles_finished_recently()
     done
     } 
 }
+
 
 last_dirs_written()
 {
@@ -675,11 +745,37 @@ first_use() {
     echo "${1:-2017} ${2:-01} ${3:-09}"
 }
 
+filedate()
+{
+        test FreeBSD = `uname -s` && gdate -r "$1" '+%Y %m %d'
+        test Linux   = `uname -s` &&  date -r "$1" '+%Y %m %d'
+}
+
+
+days_between_files()
+{
+        epoch1=`epoch_of_file "$1"`
+        epoch2=`epoch_of_file "$2"`
+        echo epoch1 $epoch1 epoch2 $epoch2
+        expr \( $epoch2 - $epoch1 \) / 3600 / 24
+}
+
+
+seconds_between_files()
+{
+        epoch1=`epoch_of_file "$1"`
+        epoch2=`epoch_of_file "$2"`
+        expr \( $epoch2 - $epoch1 \)
+}
+
+
+
 days_since_first_use() {
     first_use=`first_use "$@"`
     #echo $[$[$(date +%s)-$(epoch_of_y_m_d_h_m_s 2017 01 09 00 00 00)]/60/60/24]
     echo $[$[$(date +%s)-$(epoch_of_y_m_d_h_m_s $first_use 00 00 00)]/60/60/24]
 }
+
 
 epoch_of_y_m_d_h_m_s() {
         date -v -1d > /dev/null 2>&1 && date -u -v ${1:-1970}y -v ${2:-1}m -v ${3:-1}d -v ${4:-0}H -v ${5:-0}M -v ${6:-0}S +%s && return
@@ -756,7 +852,7 @@ vnstat_init() {
 echoq vnstat_gen
 vnstat_gen() {
         vnstat_init || return 
-        for opt in s h hg hs d m y t vs 5 ; do
+        for opt in s h hg hs d m y t vs 5 5g ; do
                 test "$1" && echo vnstati -$opt -o $VNSTATI_DIR/vnstat_${opt}.png
                 vnstati -$opt -o $VNSTATI_DIR/vnstat_${opt}.png
         done
@@ -833,55 +929,72 @@ referrer_of_x() {
         zegrep -h -s -o 'GET /X/? .*http[^"]+'  "${@:-/var/log/apache/access.log}" | grep -o 'http.*'
 }
 
+
 biggest_message_seen() {
-    
-    cat G_Biggest_message.txt | grep -v Memory| datamash -W max 4  | xargs bytestohuman
+    statsfile=`statsfile Biggest_message $1`
+    cat "$statsfile" | grep -v Memory | datamash -W max 4  | xargs bytestohuman
 }
 
 biggest_message_transferred() {
-# With this, the "Biggest message" could not be transferred by imapsync itself.
-    grep 'Host2 Biggest message' < G_Biggest_message.txt | datamash -W max 4  | xargs bytestohuman
+# With this, the "Biggest message" may be not be transferred by imapsync itself.
+    statsfile=`statsfile Biggest_message $1`
+    grep 'Host2 Biggest message' < "$statsfile" | datamash -W max 4  | xargs bytestohuman
 }
 
 
 biggest_bandwidth_rate() {
-    datamash_file_op_index G_Average_bandwidth_rate.txt max 5 | tr -d ' ' | tr '\n' ' '
+    statsfile=`statsfile Average_bandwidth_rate $1`
+    datamash_file_op_index "$statsfile" max 5 | tr -d ' ' | tr '\n' ' '
     echo KiB/s
 }
 
 average_bandwidth_rate() {
-    datamash_file_op_index G_Average_bandwidth_rate.txt mean 5 | tr -d ' ' | tr '\n' ' '
+    statsfile=`statsfile Average_bandwidth_rate $1`
+    datamash_file_op_index "$statsfile" mean 5 | tr -d ' ' | tr '\n' ' '
     echo KiB/s
 }
 
 
 
 max_number_of_messages_transferred() {
-        datamash_file_op_index G_Messages_transferred.txt max 4 "%.0f"
+        statsfile=`statsfile Messages_transferred $1`
+        datamash_file_op_index "$statsfile" max 4 "%.0f"
 }
 
 max_number_of_messages_skipped() {
-        datamash_file_op_index G_Messages_skipped.txt max 4 "%.0f"
+        statsfile=`statsfile Messages_skipped $1`
+        datamash_file_op_index "$statsfile" max 4 "%.0f"
 }
-
 
 
 echoq number_of_X_users
-number_of_X_users() {
-    datamash_file_op_index G_REMOTE_ADDR.txt unique 3 | tr , '\n'  | wc -l
+number_of_X_users()
+{
+        statsfile=`statsfile REMOTE_ADDR $1`
+        test -f $statsfile || { echo No exists $statsfile ; return ; }
+        datamash_file_op_index $statsfile unique 3 | tr , '\n'  | wc -l
 }
 
-echoq summary_compute
-summary_compute() {
+
+
+summary_compute_old() {
         list_all_logs_generate \
         && grep_stats_from_list_all_logs \
         && grep_all_stat_from_patterns_list \
         && summary_display
 }
 
+echoq 'summary_compute lognamepattern # time depending on lognamepattern'
+summary_compute() {
+        grep_stats_from_list_log_matching "$1" \
+        && grep_all_stat_from_patterns_list "$1" \
+        && summary_display "$1"
+}
+
+
 number_of_syncs()
 {
-        list_all_logs | wc -l
+        list_all_logs | egrep "$1"_ | wc -l
 }
 
 
@@ -1002,25 +1115,25 @@ server_survey_host2()
 }
 
 
-echoq summary_display
+echoq summary_display lognamepattern
 summary_display() {
-    vnstat_gen > /dev/null
-    echo    "Start date of /X (aaaa mm dd):  `first_use` (`days_since_first_use` days of service)"
-    echo -n "Number of /X users:            " ; number_of_X_users
-    echo -n "Number of /X accounts synced:  " ; nb_migrations_launched
-    echo -n "Number of /X syncs:            " ; number_of_syncs
-    echo -n "Total volume /X transferred:   " ; total_volume_transferred
-    echo -n "Total messages /X transferred: " ; total_messages_transferred
-    echo -n "Biggest transfer:              " ; biggest_transfer
-    echo -n "Biggest message seen:          " ; biggest_message_seen
-    echo -n "Biggest message transferred:   " ; biggest_message_transferred
-    echo -n "Biggest bandwidth rate:        " ; biggest_bandwidth_rate
-    echo -n "Average bandwidth rate:        " ; average_bandwidth_rate
-    echo -n "Max messages transferred:      " ; max_number_of_messages_transferred
-    echo -n "Max messages skipped:          " ; max_number_of_messages_skipped
-    echo -n "Longest transfer:              " ; seconds_to_days_hours `longest_transfer`
-    echo -n "Queue length mean is:          " ; stat_queue_mean
-    echo "Data made at" `date -r grep_stats.txt`
+    echo    "Start date : " `start_date "$1"`
+    echo    "End   date : " `end_date   "$1"`
+    echo -n "Number of /X users:            " ; number_of_X_users "$1"
+    echo -n "Number of /X accounts synced:  " ; nb_migrations_launched "$1"
+    echo -n "Number of /X syncs:            " ; number_of_syncs "$1"
+    echo -n "Total volume /X transferred:   " ; total_volume_transferred "$1"
+    echo -n "Total messages /X transferred: " ; total_messages_transferred "$1"
+    echo -n "Biggest transfer:              " ; biggest_transfer "$1"
+    echo -n "Biggest message seen:          " ; biggest_message_seen "$1"
+    echo -n "Biggest message transferred:   " ; biggest_message_transferred "$1"
+    echo -n "Biggest bandwidth rate:        " ; biggest_bandwidth_rate "$1"
+    echo -n "Average bandwidth rate:        " ; average_bandwidth_rate "$1"
+    echo -n "Max messages transferred:      " ; max_number_of_messages_transferred "$1"
+    echo -n "Max messages skipped:          " ; max_number_of_messages_skipped "$1"
+    echo -n "Longest transfer:              " ; seconds_to_days_hours `longest_transfer "$1"`
+    echo -n "Queue length mean is:          " ; stat_queue_mean "$1"
+    echo "Data made at" `date -r grep_stats_"$1".txt`
 }
 
 echoq sync_ks2_i005
@@ -1173,6 +1286,9 @@ while :; do ssh root@ks5 'cd /var/tmp/imapsync_cgi/ ; . cgi_memo ; loop_number_o
 cat G_Memory_consumption_at_the_end.txt | sort -g -k7 | grep 202[01] |tail -100  | cut -f1 -d: | while read f; do echo $f ; grep 'Memory consumption at the end' $f; grep 'Host. Nb messages' $f ; grep 'Biggest message' $f ; grep 'Memory/biggest message ratio' $f ; done
 cat G_Host2_Nb_messages.txt  | sort -g -k4 | grep 202[01] |tail -100 | cut -f1 -d: | while read f; do echo $f ; grep 'Memory consumption at the end' $f; grep 'Host. Nb messages' $f ; grep 'Biggest message' $f ; grep 'Memory/biggest message ratio' $f ; done
 cat G_Host1_Nb_messages.txt  | sort -g -k4 | grep 202[01] |tail -100 | cut -f1 -d: | while read f; do echo $f ; grep 'Memory consumption at the end' $f; grep 'Host. Nb messages' $f ; grep 'Biggest message' $f ; grep 'Memory/biggest message ratio' $f ; done
+
+# Best bandwidth moments
+cat /var/tmp/number_of_imapsync_running_every_60s.txt | sort -k3 -g| tail -66
 EOF
 }
 
@@ -1181,13 +1297,13 @@ echoq perf_help
 perf_help() {
         test FreeBSD = `uname -s` && { 
                 echo FreeBSD here
-                echo "nload -t 6000 em0  -u K"
+                echo "nload -t 6000 em0  -u K -i 100000 -o 100000"
                 echo "iftop -i em0  -f 'port imap or port imaps' -B #  t p >"
         }
         
         test Linux = `uname -s`  && { 
                 echo Linux here
-                echo "nload -t 6000 eth0 -u K  # Linux"
+                echo "nload -t 6000 eth0 -u K  -i 100000 -o 100000 # Linux"
                 echo "iftop -i eth0 -f 'port imap or port imaps' -B #  t p >"
         }
 }

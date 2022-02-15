@@ -1,24 +1,26 @@
 #!/bin/cat 
-# $Id: INSTALL.Debian.txt,v 1.32 2020/12/11 09:27:29 gilles Exp gilles $
+# $Id: INSTALL.Debian.txt,v 1.35 2021/12/17 20:30:33 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
 https://imapsync.lamiral.info/INSTALL.d/INSTALL.Debian.txt
 
 
-There is three install sections in this document,
-1) one for Debian 9 Stretch and Debian 10 Buster
-2) one for Debian 8 Jessie
-3) one for Debian 7 Wheezy
+There is four install sections in this document,
+1) one for Debian 9 Stretch, Debian 10 Buster, Debian 11 Bullseye
+2) one for all the Debian called "After installing the dependencies"
+3) one for Debian 8 Jessie (obsolete)
+4) one for Debian 7 Wheezy (even more obsolete)
 
-After reading and following 1) or 2) or 3), you'll be invited to read and follow 
-the fourth section "4) After installing the dependencies"
+After reading and following 1) or 3) or 4), you'll be invited to read and follow 
+the section "2) After installing the dependencies"
 
 What is your Debian release?
 Type on a terminal:
 
     cat /etc/debian_version
 
+11.x => Bullseye
 10.x => Buster
  9.x => Stretch
  8.x => Jessie
@@ -27,20 +29,20 @@ Type on a terminal:
 where x is any number between 0 and 9, x is minor and to be forgotten.
 
 
-First a call to Debian packagers
+First, a call to Debian packagers
 Why imapsync is not in Debian as a package?
 Imapsync used to be in Debian from 2005-04-25 (release 1.125) to 2011-01-25 (release 1.315).
 It could be in Debian nowadays, as always, my last words on this discussion were 
-"Do what you want, I promise I won't complain anymore about the fact imapsync is on Debian or not."
+"Do what you want, I promise I won't complain anymore about the fact imapsync is in Debian or not."
 https://lists.debian.org/debian-legal/2011/01/msg00058.html
-The license is now "No limits to do anything with this work and this license".
-Feel free.
+The Imapsync license is "No limits to do anything with this work and this license".
+So feel free!
 See also a more detailed story at
 https://lists.debian.org/debian-user/2016/11/msg00849.html
 
 
 =======================================================================
-  1) Installing imapsync on Debian 9 Stretch or Debian 10 Buster
+  1) Installing imapsync on Debian 9 Stretch, 10 Buster, 11 Bullseye
 =======================================================================
 
 How to install imapsync dependencies on a Debian system?
@@ -48,13 +50,18 @@ How to install imapsync dependencies on a Debian system?
 The repositories are the classical ones, ie, a
 /etc/apt/sources.list file with:
 
-# Debian 9 Stretch
-deb http://deb.debian.org/debian stretch main contrib
+# Debian 11 Bullseye
+deb http://deb.debian.org/debian bullseye main contrib
 
 or
 
 # Debian 10 Buster
 deb http://deb.debian.org/debian buster main contrib
+
+or
+
+# Debian 9 Stretch
+deb http://deb.debian.org/debian stretch main contrib
 
 
 You need root privilege to run it, be root or use sudo.
@@ -88,16 +95,60 @@ apt install -y            \
   libtest-deep-perl        \
   libtest-warn-perl        \
   make                     \
+  time                     \
   cpanminus
 
 
 After installing the dependencies, imapsync should be working,
-go to the section "4) After installing the dependencies" below.
+go to the section "2) After installing the dependencies" below.
+
+=======================================================================
+  2) After installing the dependencies
+=======================================================================
+
+You don't have to be root to test and use imapsync.
+
+Take imapsync either on github:
+
+  wget -N https://github.com/imapsync/imapsync/blob/master/imapsync
+
+or be on the cutting edge with the upstream site:
+
+  wget -N https://imapsync.lamiral.info/imapsync
+
+Add execution permission to the downloaded script:
+
+  chmod +x imapsync
+  
+Check the dependencies and print also the basic example:
+
+  ./imapsync
+
+Perform a live test showing imapsync job:
+
+  ./imapsync --testslive
+
+Now install imapsync on the system (need root priviledges again):
+
+  cp imapsync /usr/bin/
+
+That's finished for the installation part.
+You can now use imapsync without knowing where it is located
+on the system:
+
+  imapsync 
+
+Now go read the menu http://imapsync.lamiral.info/#doc
+and start with the tutorial 
+https://imapsync.lamiral.info/doc/TUTORIAL_Unix.html
+
+Feedback is welcome!
 
 
-=============================================
- 2) Installing imapsync on Debian 8 Jessie 
-=============================================
+
+=======================================================================
+ 3) Installing imapsync on Debian 8 Jessie 
+=======================================================================
 
 How to install imapsync dependencies on a Debian system?
 
@@ -165,11 +216,11 @@ the module JSON::WebToken with the command:
   cpanm JSON::WebToken
 
 After installing the dependencies, imapsync should be working,
-go to the section "4) After installing the dependencies" below.
+go to the section "2) After installing the dependencies" above.
 
 
 =======================================================================
-  3) Installing imapsync on Debian 7 Wheezy 
+  4) Installing imapsync on Debian 7 Wheezy 
 =======================================================================
 
 How to install imapsync dependencies on a Debian system?
@@ -234,40 +285,6 @@ the module JSON::WebToken with the command:
 
 
 After installing the dependencies, imapsync should be working,
-then go to the section "4) After installing the dependencies" below.
+then go to the section "2) After installing the dependencies" above.
 
-=======================================
-  4) After installing the dependencies
-=======================================
-
-You don't have to be root to test and use imapsync.
-
-Take imapsync either on github or at the upstream site.
-
-Add execution permission to the downloaded script:
-
-  chmod +x imapsync
-  
-Check the dependencies and print also the basic example:
-
-  ./imapsync
-
-Perform a live test showing imapsync job:
-
-  ./imapsync --testslive
-
-Now install imapsync on the system (need root priviledges again):
-
-  cp imapsync /usr/bin/
-
-That's finished for the installation part.
-You can now use imapsync without knowing where it is located
-on the system:
-
-  imapsync 
-
-Now go to read http://imapsync.lamiral.info/#doc
-and start with the tutorial.
-
-=======================================================================
 =======================================================================

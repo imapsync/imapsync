@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# $Id: memo_docker,v 1.15 2021/11/20 20:52:55 gilles Exp gilles $
+
 echo imapsync_docker_timestamp_dockerfile
 imapsync_docker_timestamp_dockerfile()
 {
@@ -25,6 +27,12 @@ echo imapsync_docker_version
 imapsync_docker_version()
 {
         docker run gilleslamiral/imapsync imapsync --version
+}
+
+echo imapsync_local_docker_version
+imapsync_local_docker_version()
+{
+        docker run gilleslamiral/imapsync imapsync_local --version
 }
 
 echo imapsync_docker_add_tag_version
@@ -102,13 +110,21 @@ imapsync_docker_rebuild_from_scratch()
     imapsync_docker_build
 }
 
+
+echo is_release_number
+is_release_number()
+{
+        echo "$1" | perl -pe 'm/^\d\.\d+$/ || exit 1' 
+}
+
 echo imapsync_docker_upload
 imapsync_docker_upload()
 {
         version=`imapsync_docker_version`
         # upload only after successful tests
         set -x \
-        && rcsdiff imapsync \
+        && is_release_number "$version" \
+        && rcsdiff imapsync Dockerfile memo_docker \
         && imapsync_docker_testslive \
         && imapsync_docker_tests \
         && docker run gilleslamiral/imapsync true \

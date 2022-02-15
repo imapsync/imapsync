@@ -1,0 +1,80 @@
+#!/bin/cat
+$Id: FAQ.Fun_Things.txt,v 1.2 2021/10/15 13:37:05 gilles Exp gilles $
+
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Fun_Things.txt
+
+=======================================================================
+              Imapsync fun things to do with
+=======================================================================
+
+Questions answered in this FAQ are:
+
+Q. How can I have a daily digest of my mailbox?
+
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. How can I have a daily digest of my mailbox?
+
+R. Use the same account as source and destination (not mandatory)
+
+  imapsync \
+         --host1 imap.example.com --user1 foo --password1 secret \
+         --host2 imap.example.com --user2 foo --password2 secret \
+         --folder INBOX --maxage 1 --dry --nodry1 --debugcontent \
+         --truncmess 1000 --f1f2 INBOX=Unused
+
+Some explanations on the options suggested:
+
+--folder INBOX to only focus on the folder INBOX
+
+--maxage 1 to select messages less old than 1 day
+
+--dry --nodry1 to avoid really syncing the messages
+
+--debugcontent to display the content
+
+--truncmess 1000 to display only the first 1000 bytes
+
+--f1f2 INBOX=Unused to force imapsync to do something. 
+  Since it is the same mailbox as source and destination, 
+  imapsync usually doesn't sync the messages as they are 
+  already at the destination. The folder Unused has to
+  exist, otherwise imapsync won't display the messages.
+  
+
+If you pipe this command with a filter like egrep, it becomes like
+magic:
+
+  imapsync \
+         --host1 imap.example.com --user1 foo --password1 secret \
+         --host2 imap.example.com --user2 foo --password2 secret \
+         --folder INBOX --maxage 1 --dry --nodry1 --debugcontent \
+         --truncmess 1000 --f1f2 INBOX=Unused \
+         | egrep 'From:|To:|Subject:|Date:|=====|msg '
+         
+Output example:
+
+$RCSfile: FAQ.Fun_Things.txt,v $ $Revision: 1.2 $ $Date: 2021/10/15 13:37:05 $ 
+msg INBOX/22359 copying to INBOX.Fake   (not really since --dry mode) ETA: vendredi 15 octobre 2021-10-15 15:31:38 +0200 CEST  57 s  38/38 msgs left
+================================================================================
+Subject: test: lei7eeCh4Fulahei
+To: <tata@localhost.info>
+Date: Mon, 11 Oct 2021 11:56:05 +0200 (CEST)
+From: gilles@localhost.info (Gilles LAMIRAL)
+================================================================================
+msg INBOX/22360 copying to INBOX.Fake   (not really since --dry mode) ETA: vendredi 15 octobre 2021-10-15 15:31:38 +0200 CEST  57 s  37/38 msgs left
+================================================================================
+Subject: test: yahShee3Ohvu9mai
+To: <tata@localhost.info>
+Date: Mon, 11 Oct 2021 11:56:05 +0200 (CEST)
+From: gilles@localhost.info (Gilles LAMIRAL)
+================================================================================
+
+Thanks to John Fedewa for this trick!
+
+=======================================================================
+=======================================================================

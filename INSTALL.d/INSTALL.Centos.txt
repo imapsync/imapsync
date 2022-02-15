@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Centos.txt,v 1.25 2021/02/02 17:08:46 gilles Exp gilles $
+# $Id: INSTALL.Centos.txt,v 1.29 2021/12/17 14:52:20 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -9,37 +9,43 @@ https://imapsync.lamiral.info/INSTALL.d/INSTALL.Centos.txt
                Installing imapsync on CentOS
 =======================================================================
 
-There is one section for Centos 8, 
+There is one section for AlmaLinux and Centos 8,
 one for Centos 7,
 and one for Centos 6.
 
+
 =======================================================================
-               Centos 8
+               AlmaLinux and Centos 8
 =======================================================================
 
+How to install imapsync on AlmaLinux and Centos 8:
 
-How to install the latest imapsync on Centos 8
+  dnf install --enablerepo=powertools imapsync
+  imapsync --testslive
 
-  dnf install wget perl-App-cpanminus gcc
-  # then
-  cpanm lazy Test::MockObject
-  wget https://imapsync.lamiral.info/imapsync
-  perl -Mlazy imapsync
+
+=======================================================================
+               AlmaLinux and Centos 8 and latest imapsync
+=======================================================================
+
+At the time of this writing (December 2021), the powertools repository 
+contains imapsync release 1.977, which is not the latest available 
+imapsync release. (1.977 date is 2019/12/23 while 2.174 is 2021/12/14)
+
+In order to install the latest imapsync I suggest the following process:
+
+Install the powertools imapsync 1.977 release via dnf like mentioned above.
+It will install the needed packages, Perl itself and Perl modules 
+for release 1.977. 
+
+The latest imapsync 2.174 needs no more Perl modules.
+
+  wget -N https://imapsync.lamiral.info/imapsync
   chmod +x imapsync
   ./imapsync --testslive
   ./imapsync --tests
 
-
-If you encounter the following error during the run of "perl -Mlazy imapsync"
-...
-Can't locate object method "new" via package "Archive::Tar" at ...
-FAIL install IO-String-1.08
-
-fix it with:
-  wget http://mirror.centos.org/centos/8/PowerTools/x86_64/os/Packages/perl-IO-String-1.08-31.el8.noarch.rpm 
-  yum install perl-IO-String-1.08-31.el8.noarch.rpm -y
-
-See also https://github.com/imapsync/imapsync/issues/211
+You may get an even more recent imapsync release this way.
 
 =======================================================================
                Centos 7
@@ -72,7 +78,7 @@ Unit tests:
 
 At the time of this writing (March 2020), the epel7 repository still
 contains imapsync release 1.727, which is not the latest available 
-imapsync release. (1.727 date is 2016/08/19 while 1.979 is 2020/01/14)
+imapsync release. (1.727 date is 2016/08/19 while 2.174 is 2021/12/14)
 
 In order to install the latest imapsync I suggest the following process:
 
@@ -102,7 +108,8 @@ Then:
  perl-Test-NoWarnings \
  perl-Test-Simple \
  perl-Test-Warn \
- perl-Sub-Uplevel 
+ perl-Sub-Uplevel \
+ ca-certificates
 
 Also, run the following commands:
 

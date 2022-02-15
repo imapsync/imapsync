@@ -7,7 +7,7 @@
 <CENTER>
 <H1>Imapsync tutorial</H1>
 <FONT SIZE="4"><I>Gilles LAMIRAL   gilles@lamiral.info</I></FONT><BR>
-<FONT SIZE="4">$Id: TUTORIAL_Unix.t2t,v 1.26 2019/02/10 12:33:17 gilles Exp gilles $ </FONT>
+<FONT SIZE="4">$Id: TUTORIAL_Unix.t2t,v 1.27 2022/01/14 12:42:51 gilles Exp gilles $ </FONT>
 </CENTER>
 
 <P></P>
@@ -18,14 +18,14 @@
   <LI><A HREF="#toc1">1. Good practices overview</A>
   <LI><A HREF="#toc2">2. Basic steps</A>
     <UL>
-    <LI><A HREF="#toc3">2.1. Verifying imapsync works well on its own</A>
+    <LI><A HREF="#toc3">2.1. Verifying imapsync works well</A>
     <LI><A HREF="#toc4">2.2. Working with your data</A>
     <LI><A HREF="#toc5">2.3. Prepare your credentials</A>
-    <LI><A HREF="#toc6">2.4. Take a real user account as source</A>
-    <LI><A HREF="#toc7">2.5. Take a test user account as destination</A>
+    <LI><A HREF="#toc6">2.4. Take a real user account as a source</A>
+    <LI><A HREF="#toc7">2.5. Take a test user account as a destination</A>
     <LI><A HREF="#toc8">2.6. Edit your own script mysync</A>
     </UL>
-  <LI><A HREF="#toc9">3. Background knowledge about emailboxes</A>
+  <LI><A HREF="#toc9">3. Background knowledge about mailboxes</A>
   <LI><A HREF="#toc10">4. Imapsync presentation</A>
   <LI><A HREF="#toc11">5. Conventions</A>
   <LI><A HREF="#toc12">6. Why start with a test account on destination host2?</A>
@@ -53,24 +53,24 @@ without much pain. So try imapsync with a real account at the source, aka host1,
 and a test account at the destination, aka host2.
 <P></P>
 <LI>Next, once familiar and satisfied by the result on the host2 test account, 
-change to a real user account on host2 or just stop consider it a test one.
+change to a real user account on host2 or just stop considering it a test one.
 </UL>
 
 <A NAME="toc2"></A>
 <H1>2. Basic steps</H1>
 
 <A NAME="toc3"></A>
-<H2>2.1. Verifying imapsync works well on its own</H2>
+<H2>2.1. Verifying imapsync works well</H2>
 
 <P>
 Open a terminal and go to the imapsync directory. 
-The imapsync directory is the directory created by extraction
-of the tarball (.tgz), its name is <CODE>imapsync-1.xxx</CODE> where <CODE>1.xxx</CODE> 
-is imapsync release number (1.882 at the time of this writing).
+The imapsync directory is the directory created by the extraction
+of the tarball (.tgz), its name is <CODE>imapsync-2.xxx</CODE> where <CODE>2.xxx</CODE> 
+is imapsync release number (2.178 at the time of this proofread).
 </P>
 
 <PRE>
-  cd imapsync-1.xxx/
+  cd imapsync-2.xxx/
 </PRE>
 
 <P>
@@ -86,14 +86,14 @@ It should output the help message.
 </P>
 <P>
 If the previous command fails then there is an installation issue.
-Go back to <A HREF="https://imapsync.lamiral.info/#install">https://imapsync.lamiral.info/#install</A> then 
-and read and apply the installation file corresponding to your 
+Go back to the <A HREF="https://imapsync.lamiral.info/#install">https://imapsync.lamiral.info/#install</A> section,  then 
+read and apply the installation file corresponding to your 
 system and drop me an email about your issue.
 </P>
 <P>
-Next, verify imapsync runs live tests. This check needs an Internet
+Next, verify imapsync runs well with live tests. This check needs Internet
 access. It does a simple sync between two real dedicated
-imap maiboxes located at the host test.lamiral.info
+imap mailboxes located at the host test.lamiral.info
 </P>
 
 <PRE>
@@ -109,7 +109,7 @@ Now verify that the script examples/imapsync_example.sh runs fine:
 </PRE>
 
 <P>
-This script does the same thing than "<CODE>imapsync --testslive</CODE>" but it
+This script does the same thing as "<CODE>imapsync --testslive</CODE>" but it
 uses explicitly the 6 parameters so it will be a good start 
 for your future own script.
 </P>
@@ -148,28 +148,28 @@ An IMAP account is accessed with 3 parameters,
 </P>
 
 <UL>
-<LI>the imap server <B>host</B>. It's a server name or an ip address
+<LI>the imap server <B>host</B>. It's a server name or an IP address
 <LI>the <B>user</B> name
 <LI>the <B>password</B>
 </UL>
 
 <P>
-Since imapsync job is to sync two imap accounts we need 3 + 3 = 6 parameters:
+Since imapsync job is to sync two imap accounts, we need 3 + 3 = 6 parameters:
 </P>
 
 <UL>
-<LI>Three parameters in order to read data from the source account: <B>host1</B>, <B>user1</B> and <B>password1</B>
-<LI>Three parameters in order to copy this data to the destination account: <B>host2</B>, <B>user2</B> and <B>password2</B>
+<LI>Three parameters to read data from the source account: <B>host1</B>, <B>user1</B> and <B>password1</B>
+<LI>Three parameters to copy this data to the destination account: <B>host2</B>, <B>user2</B> and <B>password2</B>
 </UL>
 
 <A NAME="toc6"></A>
-<H2>2.4. Take a real user account as source</H2>
+<H2>2.4. Take a real user account as a source</H2>
 
 <P>
 Even during the learning time with imapsync, you can take a 
 real user account as a source. There is also no problem if this account is 
 currently used by a user. By default, this account will only be read, no change will
-be made by imapsync on it.
+be made by imapsync on it. It's safe to use a normal and live account as a source, even to learn imapsync.
 </P>
 <P>
 Assuming that the imap source server name host1 is <B>origin.example.com</B>, 
@@ -184,13 +184,13 @@ we now have the first three parameters.
 </UL>
 
 <A NAME="toc7"></A>
-<H2>2.5. Take a test user account as destination</H2>
+<H2>2.5. Take a test user account as a destination</H2>
 
 <P>
 Unlike the source side, the destination side will be modified by
-imapsync. Therefore, for learning, checking and adjusting, 
-it is not a very good idea to use a real user imap account 
-the first times you play with imapsync.
+imapsync. Therefore, for learning, checking, and adjusting, 
+it is not a good idea to use a real user imap account 
+the first time you play with imapsync.
 </P>
 <P>
 If you really can't afford a test account on host2, it's ok,
@@ -213,7 +213,7 @@ we now have the next three parameters.
 <H2>2.6. Edit your own script mysync</H2>
 
 <P>
-Now edit the script <CODE>mysync</CODE> and replace the test values by yours.
+Now edit the script <CODE>mysync</CODE> and replace the test values with yours.
 </P>
 <P>
 You're ready for a dry test on your accounts.
@@ -227,22 +227,21 @@ You're ready for a dry test on your accounts.
 Since the <CODE>mysync</CODE> script is a copy of <CODE>examples/imapsync_example.sh</CODE>, 
 your first run with your data should include three other options
 <CODE>--automap</CODE> <CODE>--justfolders</CODE> <CODE>--dry</CODE>. 
-With <CODE>--dry</CODE> option, nothing will really be done on host2 
+With <CODE>--dry</CODE> option, nothing will be done for real on host2 
 but yet it will test whether the credentials are ok on both sides.
-You'll encounter two successful logins, or one failure on host1,
-or a successful login on host1 but a failure on host2. 
-If the login are ok, you will also observe if the folders mapping is ok.
+You'll encounter two successful logins, or one login failure on host1 or host2, or two failures on host1 and host2. 
+If the logins are ok, you will be able to observe that the folders mapping is ok.
 </P>
 <P>
-If a login fails then double-check all three values that identify
+If login fails then double-check all three values that identify
 the account, which are the host, the login name, and the password.
 </P>
 <P>
 If the folders mapping proposed is not ok then you can fix it with
-option <CODE>--f1f2</CODE>. The following example maps the source folder
+the option <CODE>--f1f2</CODE>. The following example maps the source folder
 "Sent Messages" to the destination folder "Sent". The double-quotes
-are not part of the folders names but they should be used when special
-characters like blanks are in the folders names:
+are not part of the names of the folders but they should be used when special
+characters like blanks are in the names of the folders:
 </P>
 
 <PRE>
@@ -250,7 +249,7 @@ characters like blanks are in the folders names:
 </PRE>
 
 <P>
-As explained in the inline help or in the README:
+As explained in the inline help or the README:
 </P>
 
 <PRE>
@@ -267,7 +266,7 @@ folders. Remove <CODE>--dry</CODE> from the <CODE>mysync</CODE> script and rerun
 </PRE>
 
 <A NAME="toc9"></A>
-<H1>3. Background knowledge about emailboxes</H1>
+<H1>3. Background knowledge about mailboxes</H1>
 
 <P>
 Three Internet protocols are used to access almost all email accounts: 
@@ -289,7 +288,7 @@ they are unavailable from any other system located elsewhere.
 <P>
 The second protocol to deal with email messages is IMAP, Internet Message Access Protocol.
 IMAP gives access to a hierarchy of mailboxes also called folders. Other IMAP features are
-concurrent accesses, tagging with flags, search by many criterium like date, subject, size etc.
+concurrent accesses, tagging with flags, search by many criteriums like date, subject, size, etc.
 </P>
 <P>
 The IMAP protocol presents most of the features POP lacks.
@@ -304,11 +303,11 @@ HTTP is the protocol to browse the web.
 Web browsers like Google Chrome, Mozilla Firefox, Internet Explorer and Safari
 are HTTP client software tools. You already know that so what's the point with HTTP mailboxes?
 HTTP mailboxes are called webmails. 
-Webmails often offer the same features than imap servers
+Webmails often offer the same features as imap servers
 because webmails underlying storage systems are often imap servers.
 </P>
 <P>
-Webmails systems like Gmail, Yahoo, Exchange, Zimbra or Office365 are also accessible via imap. 
+Webmails systems like Gmail, Yahoo, Exchange, Zimbra, or Office365 are also accessible via imap. 
 </P>
 <P>
 The conclusion of this protocol review is that mailboxes can be
@@ -325,12 +324,12 @@ you can use the tool <CODE>pop2imap</CODE> to sync them.
 <H1>4. Imapsync presentation</H1>
 
 <P>
-Software imapsync is a command line tool to 
-copy, migrate, backup or synchronize IMAP mailboxes.
+Software imapsync is a command-line tool to 
+copy, migrate, backup, or synchronize IMAP mailboxes.
 </P>
 <P>
 Command line means imapsync is not graphical, it is textual.
-Usually with command line tools you have to type characters 
+Usually, with command-line tools, you have to type characters 
 on your keyboard. But your fingers won't suffer much pain 
 typing on the keyboard because script examples are given,
 nearly ready to run. Most of the time you only have to change 
@@ -343,25 +342,25 @@ select/copy/paste complete examples,
 and run the little script with a double-click.
 </P>
 <P>
-Imapsync runs on Linux, Windows and OS X (Macintosh world).
+Imapsync runs on Linux, Windows, and OS X (Macintosh/Darwin world).
 Imapsync is written in the Perl language and, thanks to the 
 Perl developers, Perl runs mostly everywhere. So does imapsync.
 </P>
 <P>
 While operating systems have a lot in common, they sometimes differ,
 especially within their syntax. I won't blame anyone, historically Windows 
-came after Unix. The marvelous designers in this old times 
-decided it would be very cool to not share exactly the same syntax 
+came after Unix. The marvelous designers in these old times 
+decided it would be very cool to not share the same syntax 
 for doing the same things. 
 </P>
 <P>
-To designate an end of line, Unix uses the character \n
+To designate an end of the line, Unix uses the character \n
 Windows uses two characters \r\n and Mac use \r. 
-Thanks guys, great great thinking!
+Thanks to you guys, great thinking!
 Fifty years later, we still suffer from this...daily.
 </P>
 <P>
-To avoid you some headaches with systems no one masters
+To avoid some headaches with systems that no one masters
 I will give examples in both worlds, Unix and Windows.
 OS X users are in the Unix world nowadays so they must follow 
 the Unix examples.
@@ -371,7 +370,7 @@ the Unix examples.
 <H1>5. Conventions</H1>
 
 <P>
-In order to simplify display or print,
+To simplify display or print,
 each imapsync command line is usually written in several lines
 but it could be written in one single line.
 </P>
@@ -379,11 +378,11 @@ but it could be written in one single line.
 If you prefer to use the whole command written in one single line then 
 just remove the last visible character of each line ( \ or ^ ) and
 also the carriage return character. 
-The last visible character means "command continues on next line";
-it is the backslash \ character on Unix and the caret ^ character on Windows.
+The last visible character \ or ^ means "command continues on next line";
+it's the backslash \ character on Unix and the caret ^ character on Windows.
 </P>
 <P>
-For example, on Unix, a command like the following
+For example, on Unix, a command like the following:
 </P>
 
 <PRE>
@@ -395,7 +394,7 @@ For example, on Unix, a command like the following
 </PRE>
 
 <P>
-is equivalent to
+is equivalent to:
 </P>
 
 <PRE>
@@ -403,7 +402,7 @@ is equivalent to
 </PRE>
 
 <P>
-and on Windows
+and on Windows, a command like the following:
 </P>
 
 <PRE>
@@ -415,7 +414,7 @@ and on Windows
 </PRE>
 
 <P>
-is equivalent to
+is equivalent to:
 </P>
 
 <PRE>
@@ -435,16 +434,16 @@ messages that couldn't be transferred stay on host1.
 </P>
 <P>
 It's not the same for destination accounts as imapsync writes on host2 accounts. 
-Imapsync creates folders on them, add messages, set flags on messages. 
-It isn't a safe behavior on a real account. So don't use a real user account
+Imapsync creates folders on them, adds messages, and sets flags on messages. 
+It isn't safe on a real account. So don't use a real user account
 to test imapsync. Learn to use it and see what it does on a test account at host2.
 </P>
 <P>
 What can badly happen? The most common bad behavior is
-the folders mapping won't be what you expect because it is strictly
-reproduced from  host1 to  host2. The second bad behavior is
-duplicates on second run and after, it's rare but it can happen
-when a imap server software changes headers "<CODE>Message-Id</CODE>" or "<CODE>Received</CODE>". 
+that folders mapping won't be what you expect because it is strictly
+reproduced from  host1 to host2. The second bad behavior is getting
+duplicates on the second run and after; it's rare but it can happen
+when an imap server software changes the headers "<CODE>Message-Id</CODE>" or "<CODE>Received</CODE>". 
 Solutions to avoid duplicates are often easy (There's a FAQ called <CODE>FAQ.Duplicates.txt</CODE> about that). 
 It's also possible to remove the duplicates on host2 but it's better to avoid them on user accounts at first,
 users won't like that you mess up their mailboxes.

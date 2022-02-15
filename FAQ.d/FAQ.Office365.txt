@@ -1,5 +1,5 @@
 
-$Id: FAQ.Office365.txt,v 1.23 2021/07/06 02:30:01 gilles Exp gilles $
+$Id: FAQ.Office365.txt,v 1.33 2022/01/05 11:17:21 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -14,14 +14,24 @@ Questions answered in this FAQ are:
 
 Q. Can I use imapsync to transfer from or to Office365 accounts?
 
-Q. Does IMAPSync support OAUTH2 authentication in Office 365?
+Q. Can imapsync work for users that are administrators for 
+an Office 365 domain? (quick answer: no)
+
+Q. Does imapsync support OAUTH2 authentication for Office365 accounts?
 
 Q. How to sync from Office365 to XXX?
 
 Q. How to sync from XXX to Office365
 
 Q. For Office365 I have double and triple-checked the username and
-   password spelling but I still get a "LOGIN failed". Any clue?
+password spelling but I still get a "LOGIN failed". Any clue?
+
+Q. How can I access an Office365 shared mailbox?
+
+Q. How can I use a shared account as a backup account for several
+mailboxes and so avoid spending too many dollars in backup accounts?
+
+Q. Office365 fails with "User is authenticated but not connected".
 
 Q. I see "NO Maximum size of appendable message has been exceeded"
    What can I do with that?
@@ -32,6 +42,8 @@ Q. The imap connection to Office365 is not working very efficiently,
 Q. Office365 throttles the sync and says: 
    "Request is throttled. Suggested Backoff Time: 299961 milliseconds".
    What can I do with that?
+
+Q. What are the receive and sending limits of Office365?
 
 Q. The sync fails with many "Trying command when NOT connected!".
    What can I do?
@@ -68,19 +80,100 @@ Now the questions again with their answers.
 ======================================================================
 Q. Can I use imapsync to transfer from or to Office365 accounts?
 
-R. Yes. But IMAP access to Office365 account is not always allowed by default 
-   so it has to be allowed in the server configuration part.
+R0. Yes. But IMAP access to Office365 account is not always allowed 
+by default so it has to be allowed in the server configuration part.
    
 https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access
 https://docs.microsoft.com/en-us/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365
 
+R1. Imapsync doesn't support OAUTH2 authentication for Office365 
+accounts yet. That's not totally true, if you have an access token
+to access your mailbox then you can authenticate with imapsync this
+way:
+
+  imapsync ... --oauthaccesstoken1 tokenfile
+
+where "tokenfile" is a file containing the access token.
+
+R2. Enable double-step authentication and configure it but after use 
+an "app password" with imapsync. Details:
+
+a) Go to 
+https://account.microsoft.com/security
+
+b) Click on "Advanced Security Options"
+Turn "Two-step verification" on. Follow the steps and finish".
+
+c) Then now "App passwords" is available.
+Click on "Create a new app password". 
+Use this password to authenticate with imapsync.
+
+d) Delete this app password when the job with imapsync is finished.
+
+R3. Also, check a license is assigned to that account in Office365.
+
+R4. Microsoft introduced something called "security defaults" which is enabled
+by default for new tenants. One of the rules blocks IMAP access as of imapsync.
+
+The funny thing is that you can't disable a single rule of this 
+security package without buying additional licenses.
+Switching the whole thing off allows the IMAP login.
+
+Also, disable double-step authentication on the Azure/Active Directory portal.
+See here:
+https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/concept-fundamentals-security-defaults
+Thanks to Stephan Buhre for this R4 answer.
+
+R5. Are there special characters in the password?
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Authentication_failure.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
+    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Mac.txt
+
+R6. Triple check the hostname then. Try all of these:
+ * outlook.office365.com
+ * imap-mail.outlook.com
+ * imap.outlook.com
+
+======================================================================
+Q. Can imapsync work for users that are administrators for 
+an Office 365 domain? (quick answer: no)
+
+R. I doesn't seem possible to use imap for administrators, so imapsync
+won't be able to work for an administrator's mailbox.
+See:
+https://github.com/imapsync/imapsync/issues/310#issuecomment-1002396218
+https://exhaust.lewiscollard.com/post/146866104/office365-to-migadu-migration/
+
+Solution: as explained in the article above, use Davmail as a proxy to 
+access this mailbox. http://davmail.sourceforge.net/
+
+Thanks to Lewis Collard for this report and solution.
+
 ======================================================================
 Q. Does imapsync support OAUTH2 authentication for Office365 accounts?
 
-R. No. But I plan to add it during the year 2021.
+R. Yes but partially. Imapsync won't help you getting an access token
+but if you have one then you can use it with imapsync this way:
+
+Office365 as source:
+
+  imapsync ... --oauthaccesstoken1 tokenfile1
+
+Office365 as destination:
+
+  imapsync ... --oauthaccesstoken2 tokenfile2
 
 ======================================================================
 Q. How to sync from Office365 to XXX?
+
+R0. IMAP is not enabled by default on Office365, see how to enable it:
+https://docs.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/pop3-and-imap4/enable-or-disable-pop3-or-imap4-access
+https://docs.microsoft.com/en-us/exchange/troubleshoot/configure-mailboxes/pop3-imap-owa-activesync-office-365
+
+If IMAP cannot be enabled or if it doesn't work well, you can try DavMail 
+(http://davmail.sourceforge.net/) which acts as an IMAP gateway 
+through Outlook Web Access.
 
 R. On Windows, use:
 
@@ -141,41 +234,64 @@ Use it like this:
 It often does some miracles on messages.
 
 ======================================================================
-Q. For Office365 I have double and triple-checked the username and
-   password spelling but I still get a "LOGIN failed". Any clue?
+Q. For Office365 I have double and triple-checked the username and 
+password spelling but I still get a "LOGIN failed". Any clue?
 
-R0. Imapsync doesn't support OAUTH2 authentication for Office365 accounts yet.
+R. Go to "Q. Can I use imapsync to transfer from or to Office365 accounts?"
 
-R1. Disable double-step authentication, also known as 2-factor,
-    2-step authentication on the Azure/Active Directory portal.
+======================================================================
+Q. How can I access an Office365 shared mailbox?
 
-R2. Also, check a license is assigned to that account in Office365.
+R. First, create a shared mailbox, for example shared@example.com. 
+Then give full permissions to a licensed account user@example.com.
+Now with imapsync, use the licensed user login with the syntax: 
 
-R3. Microsoft introduced something called "security defaults" which is enabled
-by default for new tenants. One of the rules blocks IMAP access as of imapsync. 
-The funny thing is that you can't disable single rules of this security 
-package without buying additional licenses.
-Switching the whole thing off allows the login.0
-Also, disable double-step authentication on the Azure/Active Directory portal.
-See here:
-https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/concept-fundamentals-security-defaults
-Thanks to Stephan Buhre for this R3 answer.
+  user@example.com\shared@example.com
 
-R4. Are there special characters in the password?
-    https://imapsync.lamiral.info/FAQ.d/FAQ.Authentication_failure.txt
-    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
-    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
-    https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Mac.txt
+and the password for user@example.com
 
-R5. Triple check the hostname then. Try all of these:
- * outlook.office365.com
- * imap-mail.outlook.com
- * imap.outlook.com
+Caveat: Character \ is a special character, so
+use double-quotes around the user login, like:
+
+  imapsync ... --user1 "user@example.com\shared@example.com"
+
+Sources:
+https://adam-hand.com/2017/07/25/connect-a-shared-mailbox-from-o365-to-outlook-via-imap/
+https://www.arclab.com/en/kb/email/imap-settings-shared-mailbox-office-exchange-online.html
+https://social.technet.microsoft.com/Forums/en-US/336e02ee-6767-4810-90a0-1352bd7cc9e9/office-365-how-to-access-a-shared-mailbox-using-imap-client?forum=onlineservicesexchange
+
+======================================================================
+Q. How can I use a shared account as a backup account for several
+mailboxes and so avoid spending too many dollars in backup accounts?
+
+R. Use the option --subfolder2 backup_foo
+
+  imapsync ... --user2 sharedloginsyntax --subfolder2 backup_foo
+
+To restore, do the reverse with:
+
+  imapsync ... --user1 sharedloginsyntax --subfolder1 backup_foo
+
+
+======================================================================
+Q. Office365 fails with "User is authenticated but not connected".
+
+R1. "The message User is authenticated but not connected is due to a 
+   bug in the Office365 server's IMAP implementation. If the client 
+   presents a valid user name but an invalid password, the server 
+   accepts the login, but subsequent commands fail with the 
+   aforementioned error message." Source:
+https://unix.stackexchange.com/questions/164823/user-is-authenticated-but-not-connected-after-changing-my-exchange-password
+Thanks to James Abbottsmith for this link and explanation at
+https://github.com/imapsync/imapsync/issues/32#issuecomment-153561647
+
+R2. Miguel Alameda reported understanding and solving this issue 
+    like this, the context was admin/authuser:
+    "The admin user had not permission in the target mailbox."
 
 ======================================================================
 Q. I see "NO Maximum size of appendable message has been exceeded"
    What can I do with that?
-
 
 R. Office365 supports send/receive max message sizes of up to 150MB 
    but you need to make changes in your tenant(s) to support it.
@@ -204,14 +320,15 @@ Q. The imap connection to Office365 is not working very efficiently,
 
 R. Yes. Try DavMail
    http://davmail.sourceforge.net/
-   I don't use it myself but a user, Yannick Palanque,  reported great results using it.
+   I don't use it myself but a user, Yannick Palanque, reported
+   great results using it.
 
 ======================================================================
 Q. The sync fails with many "Trying command when NOT connected!".
    What can I do?
 
-R. The --debugimap option can show you more details, especially some
-   message like:
+R. The --debugimap option can show you more details, especially 
+   messages like this one:
    "BAD Request is throttled. Suggested Backoff Time: 178755 milliseconds"
    In that case, see the next faq item and its fixes.
 
@@ -250,6 +367,29 @@ I don't know the upper value that avoids the default throttling from 0365
 and I guess it changes over time.
 
 ======================================================================
+Q. What are the receive and sending limits of Office365?
+
+R1. 3600 messages per hour (22 July 2021). Maybe 1200 as imapsync can 
+   be viewed as a single sender. Tell me what you experienced, 
+   I'll update this point.
+
+https://docs.microsoft.com/en-us/office365/servicedescriptions/exchange-online-service-description/exchange-online-limits#receiving-and-sending-limits
+
+In that case, imapsync can adapt to this with (1 message/second = 3600 messages per hour)
+
+    imapsync ... --maxmessagespersecond 1
+or
+    imapsync ... --maxmessagespersecond 0.33
+
+R2. I also found "Microsoft theoretically allows for about 300MB of
+throughput per user per hour."  at
+https://www.systools.in/blog/microsoft-office-365-throttling-policy/
+
+In that case, imapsync can adapt to this with (83333 bytes/second = 300 MBytes/hour)
+
+    imapsync ... --maxbytespersecond 83333
+
+======================================================================
 Q. Office365 refuses to create the folder named "Files" with the error
    "NO Folder name is reserved". What happens?
 
@@ -277,12 +417,13 @@ R0. To fix this, add --exclude Files
   The host2 account ends up with a folder named 
   "Files_renamed_by_imapsync", but no complaining.
 
-R1. This folder "Files" seems to be a standard folder in Exchange Online, 
-   but it is not. This folder contains all attachments in every email 
-   that is in the mailbox but without any headers.
-   This causes some confusion for users as these appear in their search
-   results as duplicate lines but without the sender details or even
-   the message body.
+R1. This folder "Files" seems to be a standard folder in Exchange Online,
+    but it is not. This folder contains all attachments in every email
+    that is in the mailbox but without any headers.
+    
+    This causes some confusion for users as these appear in their search
+    results as duplicate lines but without the sender details or even
+    the message body.
 
    This folder seems to be usually hidden so IMAP clients can’t see it, 
    but for some reason sometimes it becomes visible.
@@ -350,8 +491,8 @@ R3. See also the FAQ FAQ.SSL_errors.txt
 Q. From XXX Office365 I get this error message sometimes: 
    "BAD Command Argument Error 11". What does it mean?
 
-R. This error message comes from the Office365 IMAP server when it 
-   encounters any problem. Most of the time it is one of the following:
+R. This error message comes from the Office365 IMAP server when it
+encounters any problem. Most of the time it is one of the following:
 
   * Some messages are bigger than the size limit. 
     45 MB by default on Office365.
@@ -365,7 +506,7 @@ R. This error message comes from the Office365 IMAP server when it
   * Quota reached. The whole account is full.
     It can be upped by configuration.
 
-  * You use --synclabels --resynclabels from a previous command line 
+  * You use --synclabels --resynclabels from a previous command line
     related to syncing from Gmail to Gmail. Remove them.
 
   * Some messages have some lines too long. Use option --maxlinelength
@@ -437,7 +578,8 @@ but previously in Office365, you must do something like the following, using Pow
 
 
 Note from Betsy Lawlor: You can use global modern authentication with two factor 
-on Exchange Online (M365) but you must have "AllowBasicAuthImap" on the admin account you are using to migrate the mail.
+on Exchange Online (M365) but you must have "AllowBasicAuthImap" on
+the admin account you are using to migrate the mail.
 
 Remark: PLAIN authentication is the only way to go with --authuser1 for now.
 So don't use --authmech1 SOMETHING with --authuser1 admin_user,
@@ -453,7 +595,7 @@ so if two factors authentication is enabled you will no be able to sync
 the mail (it will not connect to host2).
 OWA (I think this is the two-factor authentication) needs to be disabled 
 globally and enabled individually on the users you want to.
-One account can have the rights to access other mailboxes no matter if admin or 
+One account can have the right to access other mailboxes no matter if admin or 
 any other account but needs to have OWA disabled to be able to connect 
 to the office365 server.
 
@@ -473,8 +615,8 @@ Date:    Mon, 1 Jun 2015 17:53:54 +0000
 Q. Couldn't create folder [trash] "Mailbox already exists".
 
 R. Some servers take care of character cases in folder names, 
-   some servers do not, like Exchange. Since not respecting the case can merge
-   two different folders into one then imapsync respects the case. 
+   some servers do not, like Exchange. Since not respecting the case
+   can merge two different folders into one then imapsync respects the case. 
 
    For example, if a host1 server has a folder name called "trash"
    and the host2 server already has a folder "Trash" or "TRASH"

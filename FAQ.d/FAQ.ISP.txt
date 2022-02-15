@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.ISP.txt,v 1.9 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.ISP.txt,v 1.13 2021/12/06 20:02:39 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -9,36 +9,24 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.ISP.txt
       Imapsync tips for ISP. Specific issues and solutions.
 =======================================================================
 
-* IMAPSync - usage scenario with ISP - by Flávio Zarur Lucarelli.
+* IMAPSync - usage scenario with ISP - by Flavio Zarur Lucarelli (https://www.lucanet.com.br)
 
-I thought Id write a quick step by step on my attempts to learn the
-imapsync features that matter the most, so it works as we expected in
-the cenario in which we use it, which is to migrate customers from
+I thought I had to write a quick step by step on my attempts to learn
+the imapsync features that matter the most, so it works as we expected
+in the scenario in which we use it, which is to migrate customers from
 their old ISP to our ISP/email hosting. Thanks to the master Gilles
 Lamiral for all his help and hard work.
 
 First of all, remember to use --dry to test things first always and
 check the log file to see what would actually happen.
 
-Initially, I used a method where I'd do an exact sync of source to
-destination, deleting messages which were in destination, but not
-source. I call this "Method 2", below. In this cenario, customer
-shouldn't be using the destination account yet. Then, after I switch MX,
-I'd do a final sync based on date. The big advantage of this is, you
-get an exact sync.
-
-Easier, however, is method 1, where I sync based on message ID, this
-way, I can use the same syntax before and after MX change, with no
-worries. Only disadvantage, you might not get an exact sync, there
-might be some difference in terms of total emails in folders, due to
-duplicates, emails that had same message ID in source server.
-
-* Method 1 - sync based on message ID, can use same syntax before and
-  after MX change
+This type of copy keeps destination exactly like source (except, it doesn't 
+copy duplicates), so use it ONLY before changing your MX to the new server, 
+as it will delete whatever is in destination which isn't in source.
 
   imapsync --host1 imap.myisp.com --user1 user@domain.com --password1 pwd \
            --host2 imap.myisp.com --user2 user@domain.com --password2 pwd \
-		   --addheader
+           --subscribeall --delete2 --delete2folders --addheader
 
 Note: add header adds message ID when it doesn't exist.
 
@@ -46,57 +34,141 @@ This syntax can also be used to sync different source accounts to one
 same destination account, simply execute it as many times as desired,
 switching source user (user1).
 
-* Method 2 - exact sync source do destination, then sync based on date
-  after MX change
+If you have a list of accounts to sync, use this:
+https://imapsync.lamiral.info/examples/sync_loop_unix.sh
 
-My first goal is to have an exact sync of an account from
-current/source host to the new/destination host and be able to sync
-several times. The --useuid parameter is very important for that
-purpose. This is what I use:
+Adjust the parameters according to the original syntax which I
+explained above.
 
-  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl1 \
-           --host2 imap.myisp.com --user2 user@domain.com --password2 pwd --ssl2 \
-		   --useuid --delete2 --delete2folders 
+The Sync loop Unix script now outputs an error log, which can be
+useful.
 
-This makes it so imap.myisp.com (destination) is an exact copy of the
-account at imap.gmail.com (source). This is not a problem, since the
-user is not using the new host yet. ]You can check Imapsync log files
-and surely you will see the final difference should be 0. Check also
-for any possible errors in the log (search for "error").
+We also have shell scripts to check for errors, such as:
 
-The second goal is to lower the TTL (ex: 5 min) for the host
-associated with the MX record, in the domain's DNS server. Let's say
-customer has a host mail which his MX points to, with a high TTL
-(usually 1 hour). Lower it to 5 min so that, when you change the MX,
-it propagates faster.
+- Accounts over quota
+
+grep -R "EXIT_OVERQUOTA" *.txt
+
+- Login error
+
+grep -R "Error login" *.txt
+
+- Check just critical errors
+
+egrep 'EXIT_AUTHENTICATION_FAILURE|EXIT_CONNECTION_FAILURE|EXIT_TLS_FAILURE|EXIT_OVERQUOTA' *.txt
+
+- Check all sorts of errors (can be too much info)
+
+grep 'Exiting with return value' *.txt | grep -v 'Exiting with return value 0'
+
+Also, I like to check log file sizes and compare account sizes on
+source and destination.
+
+--
+
+Back to it.
+
+After you do a full sync, check that everything is consistant and
+let's proceed to the final stage.
+
+Lower the TTL (ex: 5 min) for the host associated with the MX record,
+in the domain's DNS server. Let's say customer has a host mail which
+his MX points to, with a high TTL (usually 1 hour). Lower it to 5 min
+so that, when you change the MX, it propagates faster.
 
 When comes time to switch over to the new host, do a final sync with
 above syntax, before changing the MX. Then, change the MX and tell
 your users to start using exclusively the new host.
 
 A few hours after the MX change, we will run Imapsync again. We have
-to start preserving emails users move or flag in the new host, which
+to start preserving emails users move or flags in the new host, which
 they started using, so we can't do an exact sync anymore.
 
-The best solution for me was to Sync any new emails (maxage:1) from
-source (that could arrive in source even after MX change, due to
-cache) and delete such emails from source server. This way, customer's
-mailbox is still intact on the source server, except new emails, which
-get synced to new server and deleted from source.
+One simple solution is the same syntax as before, but without
+--delete2 and --delete2folders.
 
-  imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl1 \
-           --host2 imap.myisp.com --user2 user@domain.com --password2 pwd --ssl2 \
-           --folder INBOX --useuid --noexpungeaftereach --skipemptyfolders --maxage 1 --delete1
+So:
 
-I personally prefer to keep a copy of users box intact in source, but
-if that's not an issue for you, you can remove --folder INBOX and even
---maxage, but then, all emails in source will be deleted. You can use
---maxage 1 with --delete1, however, for all folder (without specifying
---folder INBOX), so only any new email that arrives at source is
-copied to destination and deleted from source.
+  imapsync --host1 imap.myisp.com --user1 user@domain.com --password1 pwd \
+           --host2 imap.myisp.com --user2 user@domain.com --password2 pwd \
+           --subscribeall --addheader
 
-My next goal was to automate the process, so I followed this advice:
-http://imapsync.lamiral.info/examples/sync_loop_unix.sh
+The only issue with that syntax is, it would simply copy what is in
+source that is not in destination. For example, user might have moved
+emails to some sub-folder in host2. However, if you do this once, one
+hour after MX change, for example, it's comprehensible that
+destination is not exactly as the source anymore.
+
+What we've been doing, especially in the case of huge migrations,
+since our destination server auto-archives emails in sub-folders and
+changes the hierarchy, is syncing just the last day or few days of
+email and just of INBOX.
+
+So we do the sync initially explained in this doc, before the MX
+change. Then we auto-archive accounts and after auto-archiving, we
+change MX and do a final sync using maxage.
+
+Something like this:
+
+  imapsync --host1 imap.myisp.com --user1 user@domain.com --password1 pwd \
+           --host2 imap.myisp.com --user2 user@domain.com --password2 pwd \
+           --subscribeall --addheader --maxage 1
+
+If your last full sync was 2 days ago, then use --maxage 2
+
+Goal is to get all the new emails (2 last days) from source.
+
+Another alternative for syncing after the MX change, which Lamiral
+suggests, involves deleting emails from source from the last day.
+I prefer the method explained above. Anyway, here is this other cenario...
+
+Something like this:
+
+ imapsync --host1 imap.gmail.com --user1 user@domain.com --password1 pwd --ssl1 \
+          --host2 imap.myisp.com --user2 user@domain.com --password2 pwd --ssl2 \
+          --folder INBOX --noexpungeaftereach --skipemptyfolders --maxage 1 --delete1
+		   
+This way, any new email that arrived at source is copied to
+destination and deleted from source.  Without the --delete1 option,
+messages moved on host2 by the user are coming back from host1, and
+flags changed on host2 are also reset to what they are on host1.
+
+However, as I wrote before, if you run it just once without --delete1,
+perhaps not that bad.
+
+*** Other tips for ISPs
+
+1) Sync entire account into 1 folder of another account
+
+  imapsync --host1 xxx --user1 user1@domain.com --password1 secret1 --ssl1 \
+           --host2 yyy --user2 user2@domain.com --password2 secret2 --ssl2 \
+           --addheader --subfolder2 "otheraccountfolder" --delete2 --delete2foldersonly /otheraccountfolder/
+
+Above, user must not be using such destination folder in destination
+account until you finish syncing.
+
+I've used it without --delete2 and --delete2foldersonly, as it caused
+problems for us, of that folder being unsubscribed in destination...
+Don't think it should be a problem as this copy is done usually
+without using really using the folder in host2 until you instruct him
+to.
+
+Another nice scenario, sync just one folder hierarchy of an account to
+another folder of another account.
+
+--subfolder1 test --subfolder2 test2 --delete2 --delete2foldersonly /test2/ --addheader
+
+Also, very useful is to be move emails older than one year, from an
+account to another one, to offload the source account.
+
+imapsync ... --subfolder2 "account_user1" --addheader --minage 365 --delete1
+
+So everything older than 365 days is deleted from source. You can even
+specify same account for source and recipient, if you want to "delete
+older than x days" for the account itself, without moving old emails
+to another account.
+
+2) Translate folder names
 
 I also ended up requiring a regex to translate folder names. On the
 old server (Gmail), Sent items were in a folder called [Gmail]/E-mails
@@ -110,17 +182,21 @@ So this was added:
   --regextrans2 "s,Lixeira,Trash," \
   --regextrans2 "s,Rascunhos,Drafts,"
 
-*** Other cenarios
+Option --automap is also good to do most of the translate job.
 
-- Sync entire account into 1 folder of another account
+3) Folders to exclude, to speed up syncs, etc.
 
-  imapsync --host1 xxx --user1 user1@domain.com --password1 secret1 --ssl1 \
-           --host2 yyy --user2 user2@domain.com --password2 secret2 --ssl2 \
-		   --useuid --subfolder2 otheraccountfolder --delete2 --delete2foldersonly /otheraccountfolder/
+--exclude "^Backups" --exclude "(?i)spam" --exclude "(?i)junk" --exclude "(?i)trash" --exclude "(?i)lixeira" --exclude "(?i)Deleted Items"
 
-Above is based on message UID, advantage of no dupes, however, user
-must not be using such destination folder in destination account until
-you finish syncing.
+4) Delete older than 1 year from an account.
+
+Use the account itself as source and destination and use:
+
+--minage 365 --delete1
+
+5) Check size of folders in an account. Use Imapsync with same account as source and destination, with this parameter:
+
+--justfoldersizes
 
 =======================================================================
 =======================================================================

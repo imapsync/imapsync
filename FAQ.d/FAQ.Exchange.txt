@@ -1,5 +1,5 @@
 
-$Id: FAQ.Exchange.txt,v 1.75 2021/05/25 10:23:33 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.79 2021/12/17 11:59:48 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -30,6 +30,9 @@ Q. For Exchange I have double and triple checked the username and
 Q. Exchange fails with "User is authenticated but not connected".
 
 Q. Exchange fails with "BAD Command received in Invalid state".
+
+Q. Exchange fails with "NO Server Unavailable. 15" and imapsync says
+   "could not append ... NO Server Unavailable. 15"
 
 Q. From XXX to Exchange 2013, read receipts are all resent again 
    after a sync. Even for old messages. How can I fix that?
@@ -201,6 +204,14 @@ R2. Miguel Alameda reported understanding and solving this issue
     like this, the context was admin/authuser:
     "The admin user had not permission in the target mailbox."
 
+R3. Jason from magiclamp.net adds this tip (2021_11_23).
+"In GoDaddy Exchange admin center, under recipients, you can 
+double click on a mailbox, and in the "mailbox delegation" scrolling 
+down to the bottom it shows a input field named "Full Access". 
+Add the admin account there."
+
+
+
 ======================================================================
 Q. I see "NO Maximum size of appendable message has been exceeded" 
    What can I do with that?
@@ -297,6 +308,35 @@ R2. This message might also happen when authenticating with ssl and tls.
    asks for a double encryption, an encryption inside an encryption.
    It won't work, you can't do a direct double encryption, few 
    servers allow that.
+
+======================================================================
+Q. Exchange fails with "NO Server Unavailable. 15" and imapsync says
+   "could not append ... NO Server Unavailable. 15"
+
+R1. The problem could be a mailbox quota limitation.
+
+In the Exchange log file, if you see many
+"Microsoft.Exchange.Data.Storage.QuotaExceededException",
+it looks like "Quota Exceeded" could be the issue.
+
+The solution is to increase the quota for this mailbox.
+Quoting
+https://docs.microsoft.com/en-us/exchange/recipients/user-mailboxes/storage-quotas?view=exchserver-2019
+In the Exchange admin center (EAC), navigate to Recipients > Mailboxes.
+In the list of user mailboxes, click the mailbox that you want to change the storage quotas for, 
+and then click Edit icon, then change "Prohibit send and receive at (GB)", then save your changes.
+
+Or use the Exchange Management Shell, aka PowerShell:
+Set-Mailbox -Identity "Joe Healy" -IssueWarningQuota 499gb -ProhibitSendQuota 500gb -ProhibitSendReceiveQuota 500gb -UseDatabaseQuotaDefaults $false
+
+
+R2. A user fixed it by enabling IMAP logging on Exchange which is
+    quite crazy as a solution. But why not, here it is:
+
+https://www.mantisbt.org/forums/viewtopic.php?p=68835&sid=8b1ecd2d976e85218fbf33fcd38c209d#p68835
+by TerranceM
+
+  Set-ImapSettings -Server <server-name> -ProtocolLogEnabled $true
 
 ======================================================================
 Q. From XXX to Exchange 2013, read receipts are all resent again 

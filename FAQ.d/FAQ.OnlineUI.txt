@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.29 2021/05/05 21:38:32 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.31 2021/12/24 21:02:52 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -38,47 +38,52 @@ Let's do it anyway, you'll be the judge.
 
 R1. Some figures
 
-Date of this report: 22 April 2021.
+Date of this report: 24 December 2021. Happy Christmas!
 
-The online imapsync service /X started 9 January 2017
-(1564 days of service).
+The online imapsync service /X started 9 January 2017,
+5 years ago (1810 days of service).
 
 On average, /X has 51 users per day, each user lunches on average
-6 account migrations, from just one launch to many (hundreds).
+6 account migrations, from just 1 launch to many (hundreds).
 
-The total volume /X transferred so far is around 210 TiB coming 
-from nearly 450 000 imap account migrations and 700 million email messages.
+The total volume /X transferred so far is around 240 TiB coming 
+from nearly 520 000 imap account migrations and 810 million email messages.
 
 R2. Pros & Cons
 
-The online imapsync service /X runs on HTTPS only, with a
-letsencrypt certificate, a certificate overall rated "A+" at
+The online imapsync service /X runs on HTTPS only, with a letsencrypt
+certificate, an up to date certificate overall rated "A+" at
 https://www.ssllabs.com/ssltest/analyze.html?d=imapsync.lamiral.info
 
-Because of the HTTPS usage, what the users enter in their browser,
-the imap logins and passwords, can't be eavesdropped on the network.
+Because of the HTTPS usage, what the users enter in their browser, the
+imap logins and passwords, can't be eavesdropped on the network.
 
-Imapsync itself takes care of encryption for the imap sessions,
-if possible. First, imapsync tries to use SSL on port 993, 
-then TLS on port 143 if the servers announce TLS, then no encryption at all.
+Imapsync itself takes care of encryption for the imap sessions, if
+possible. First, imapsync tries to use SSL on port 993, then TLS on
+port 143 if the servers announce TLS, then no encryption at all.
 Concerning encryption, what is done with the source imap server host1
 is independent of what is done with the destination imap server host2.
 
-On the date of 22 April 2021, there is no security problem
-detected or reported to me (Gilles LAMIRAL), so far.
-Feel free to attack the service and feel free to report any
-hole encountered. Have in mind I can watch what you do
-from the server-side and take measures if the service suffers from
-your acts. Drop me a note before will be fair play.
+On the date of 24 December 2021, there is no security problem detected
+or reported to me (Gilles LAMIRAL), so far.
 
-As the owner of the service, it could have been 450 000 pairs of
-credentials collected and nearly 210 terabytes of email messages.
-I haven't kept them but I can't prove I haven't. It's just trust,
-like nearly every online service in the universe.
+Concerning the Log4j threats, the imapsync server doesn't use Log4j at
+all, so it should be safe about this issue.
 
-The imap server certificates are not checked for authenticity
-(by default) because too many imap servers are crappy configured
-regarding certified certificates.
+Feel free to attack the service and feel free to report any hole
+encountered. Have in mind that I can watch what you do from the
+server-side, and then take measures if the service suffers from your
+acts. Drop me a note before will be fair play and I will let you act
+as harsh as you can.
+
+As the owner of the service, it could have been 520 000 pairs of
+credentials collected and nearly 240 terabytes of email messages.
+That's massive. I haven't kept them but I can't prove I haven't. It's
+just trust, like nearly every online service in the universe.
+
+Concerning imapsync transfers, the imap server certificates are not
+checked for authenticity by default because too many imap servers are
+crappy configured regarding their certified certificates.
 
 This default behavior is chosen like this because users of /X
 want their emails transferred, instead of being not transferred
@@ -88,35 +93,38 @@ I admit that this part, checking imap ssl/tls certificates,
 could be improved from my side by including well known
 certificates directly in imapsync.
 
-If the imap servers don't honor ssl nor tls, then logins, passwords
-and everything will go clear text during the imap transfers.
-That's not good at all but what "comforts" me is that if an
-imap server does only clear text transfers, then it's also true
-for all the imap sessions the account owner encounters,
-imapsync is just one of them; the imap servers are then always 
-unsecured for any imap software client.
+If an imap server doesn't honor ssl nor tls, then logins, passwords
+and everything will go clear text during the imap transfers.  That's
+not good at all! But what "comforts" me is that if an imap server does
+only clear text transfers, then it's also true for all the imap
+sessions the account owner encounters, imapsync is just one of them;
+the imap servers are then always unsecured for any imap software
+client.
 
+Last point, who could be sure that no cracker cracked the online hosts
+and that he isn't currently sniffing the credentials?
 
-Last point, who could be sure that no cracker cracked the online
-hosts and that he isn't currently sniffing the credentials?
-
-No one, I'm not sure myself, even if I do take care of that
+No one! I'm not sure myself, even if I do take care of that
 possibility. So changing the imap accounts passwords after
-the sync is a safe and recommended practice!
+the sync is a safe and recommended practice! You can even
+change the password just after imapsync has started its job, 
+just after a successful login. This way you know the previously 
+given password is no longer working just after imapsync has
+started its job.
 
 =====================================================================
 Q. Does the online service store any sensitive information 
 like my passwords?
 
 No.
-The online passwords are kept by your browser. The goal is 
-that the next time you run a sync from your browser, all the 
-parameters are already there without having to re-enter them.
-The save is done when you click on the "Sync or resync" green
-button. So, if you don't want your browser to keep your password,
-enter a wrong one or empty the password field and click 
-on the "Sync or resync" green button, the wrong password 
-will be saved in your browser and no sync will be done,
+
+The online passwords are kept by your browser. The goal is that the
+next time you run a sync from your browser, all the parameters are
+already there without having to re-enter them.  The save is done when
+you click on the "Sync or resync" green button. So, if you don't want
+your browser to keep your password, enter a wrong one or empty the
+password field and click on the "Sync or resync" green button, the
+wrong password will be saved in your browser and no sync will be done,
 since a good login is mandatory to do anything on your mailboxes.
 
 =====================================================================

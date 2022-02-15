@@ -85,6 +85,72 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 </ul>
 -->
 
+
+<ul>
+<li><b>2.178</b></li>
+<li><b>General</b>: </li>
+
+<li><b>Dependencies removed</b>: None </li>
+<li><b>Dependencies added</b>: Perl module Compress::Zlib</li>
+
+<li><b>Enhancement</b>: Added final statistic line: "CPU time and %cpu : 13.27 sec 8.3 %cpu 2.1 %allcpus</li>
+<li><b>Enhancement</b>: Removed the hard limit --maxsize 35_651_584 set by --gmail2 since CAPABILITY is used and good.</li>
+<li><b>Enhancement</b>: Does not checknoabletosearch if --justfolders</li>
+<li><b>Enhancement</b>: When creating a folder, check if it is selectable and consider ok if it is selectable.</li>
+<li><b>Enhancement</b>: Options --gmail1 --gmail2 together sets --useheader X-Gmail-Received --useheader Message-Id</li>
+<li><b>Enhancement</b>: Added compression in the imap connexions. 
+                        Compression is off by default no matter the capability announced. 
+                        Use --compress1 and --compress2 to turn compression on.</li>
+<li><b>Enhancement</b>: Added --keepalive1 and --keepalive2 options. 
+                        Some firewalls and network gears like to timeout connections prematurely if the connection sits idle.
+                        This option enables SO_KEEPALIVE on the host1 socket.
+                        --keepalive1 is on by default since imapsync release 2.169
+                        Use --nokeepalive1 to disable it. Same thing for --keepalive2 but for --host2. See <a href="https://metacpan.org/pod/Mail::IMAPClient#Keepalive">https://metacpan.org/pod/Mail::IMAPClient#Keepalive</a></li>
+                        
+<li><b>Enhancement</b>: </li>
+<li><b>Enhancement</b>: </li>
+
+<li><b>Usability</b>: Removed --fast option. It didn't do anything anyway, it was a fake option.</li>
+<li><b>Usability</b>: Added advice inline advice on errors
+  <ul>
+  <li>ERR_OVERQUOTA. "The destination mailbox is 100% full, get free space on it and then resume the sync."</li>
+  <li>ERR_TRANSFER_EXCEEDED. "The maximum transfer size for a single sync is reached ( over 3 GB ). Relaunch the sync to sync more."</li>
+  <li>ERR_APPEND_SIZE. "The destination server refuses too big messages. Use --truncmess option. Read https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Too_Big.txt" </li>
+  <li>ERR_CONNECTION_FAILURE_HOST1. "Check that host1 on port1 is the right IMAP server to be contacted for your mailbox."</li>
+  <li>ERR_CONNECTION_FAILURE_HOST2. "Check that host2 on port2 is the right IMAP server to be contacted for your mailbox."</li>
+  <li>ERR_AUTHENTICATION_FAILURE_USER1. "Check the credentials for user1."</li>
+  <li>ERR_AUTHENTICATION_FAILURE_USER2. "Check the credentials for user2."</li>
+  </ul>
+</li>
+
+<li><b>Usability</b>: Bytes sizes human readable are now presented in KB MB GB TB PB (1000 base) instead of KiB MiB GiB TiB PiB (1024 base)</li>
+<li><b>Usability</b>: Added README help for --truncmess</li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+<li><b>Usability</b>: </li>
+
+
+<li><b>CGI context</b>: Experimental loaddelay forced to 0 (no delay at all). So far a huge load is rarely a problem.</li>
+<li><b>CGI context</b>: Bugfix. Abort didn't set charset=UTF-8; same thing for heavy load 503 Service Unavailable</li>
+
+
+<li><b>Bug fix</b>: Made reconnect mechanism works with --oauthdirect1 --oauthdirect2 --oauthaccesstoken1 --oauthaccesstoken2</li>
+<li><b>Bug fix</b>: Upped the maximum number a pid can be. From 99999 to 2^22.
+                    See <a href="https://unix.stackexchange.com/questions/16883/what-is-the-maximum-value-of-the-process-id">what-is-the-maximum-value-of-the-process-id</a> </li>
+<li><b>Bug fix</b>: Load average on Mac was sometimes buggy. locale float 3,14 instead of 3.14</li>
+<li><b>Bug fix</b>: errors_incr() exited with CATCH_ALL</li>
+<li><b>Bug fix</b>: Memory consumption on Mac was not relevant. Use RSS instead of VSZ, on Mac only. Linux stays with VSZ.</li>
+<li><b>Bug fix</b>: </li>
+<li><b>Bug fix</b>: </li>
+
+
+<li><b>Docker context</b>: Current working directory changed from /var/tmp to /var/tmp/uid_$EFFECTIVE_USER_ID</li>
+
+
+</ul>
+
+
 <ul>
 <li><b>2.140</b></li>
 <li><b>General</b>: New release numbering from 1.999 directly to 2.100; I want to avoid 1.1000 and sorting issues in directory listing.</li>
@@ -157,8 +223,6 @@ Exit value 112 (EXIT_WITH_ERRORS_MAX) is now replaced by the most common error e
 
 <li><b>Refactoring</b>: Continuing to deglobalize the global variables.</li>
 <li><b>Refactoring</b>: 1734 unit tests.</li>
-<li><b>Refactoring</b>: </li>
-
 
 </ul>
 
@@ -954,7 +1018,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.78 2021/07/05 20:22:15 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.83 2022/01/13 18:36:12 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

@@ -1,5 +1,5 @@
 
-// $Id: imapsync_form.js,v 1.20 2021/05/29 10:25:53 gilles Exp gilles $
+// $Id: imapsync_form.js,v 1.26 2021/12/18 19:01:52 gilles Exp gilles $
 
 /*jslint browser: true*/ /*global  $*/
 
@@ -55,7 +55,30 @@ $(document).ready(
     var note = function note( message )
     {
         $("#tests").append( message ) ;
-    }
+    } ;
+
+
+    var tests_last_x_lines = function tests_last_x_lines()
+    {
+        is( "", last_x_lines(), "last_x_lines: no args => empty string" ) ;
+        is( "", last_x_lines(""), "last_x_lines: empty string => empty string" ) ;
+        is( "abc", last_x_lines("abc"), "last_x_lines: abc => abc" ) ;
+        is( "abc\ndef", last_x_lines("abc\ndef"), "last_x_lines: abc\ndef => abc\ndef" ) ;
+        is( "def", last_x_lines("abc\ndef", -1), "last_x_lines: abc\ndef -1 => def\n" ) ;
+        is( "", last_x_lines("abc\ndef", 0), "last_x_lines: abc\ndef 0 => empty string" ) ;
+        is( "abc\ndef", last_x_lines("abc\ndef", -10), "last_x_lines: last 10 of 2 lines => 2 lines" ) ;
+        is( "4\n5\n", last_x_lines("1\n2\n3\n4\n5\n", -3), "last_x_lines: last 3 lines of 5 lines" ) ;
+        is( "3\n4\n5", last_x_lines("1\n2\n3\n4\n5", -3), "last_x_lines: last 3 lines of 5 lines" ) ;
+    } ;
+
+    var last_x_lines = function last_x_lines( string, num )
+    {
+        if ( undefined === string || 0 === num )
+        {
+            return "" ;
+        }
+        return string.split(/\r?\n/).slice(num).join("\n") ;
+    } ;
 
     var last_eta = function last_eta( string )
     {
@@ -82,6 +105,8 @@ $(document).ready(
             return "ETA: unknown" ;
         }
     }
+    
+   
 
     var tests_last_eta = function tests_last_eta()
     {
@@ -257,7 +282,7 @@ $(document).ready(
         }
         else
         {
-            slice_length = -240 ;
+            slice_length = -2400 ;
         }
         slice_log = xhr.responseText.slice( slice_length ) ;
         eta_str   = last_eta( slice_log ) ;
@@ -297,22 +322,22 @@ $(document).ready(
         if ( xhr.readyState === 4 )
         {
             // end of sync
-            $("#progress-txt").text(
+                $("#progress-txt").text(
                 "Ended. It remains "
                 + eta_obj.msgs_left + " messages to be synced" ) ;
+                
+                $( "#output" ).text( xhr.responseText ) ;
         }
         else
         {
-            eta_str = eta_obj.str + " (refresh every " + refresh_interval_s + " s)" ;
-            eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, "") ; // trim newline
-            //$("#tests").append( "refreshLog  eta_str: " + eta_str + "\n" ) ;
-            $("#progress-txt").text( eta_str ) ;
-
+                eta_str = eta_obj.str + " (refresh every " + refresh_interval_s + " s)" ;
+                eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, "") ; // trim newlines
+                //$("#tests").append( "refreshLog  eta_str: " + eta_str + "\n" ) ;
+                $( "#progress-txt" ).text( eta_str ) ;
+                var last_lines = last_x_lines( xhr.responseText.slice(-2000), -10)
+                $( "#output" ).text( last_lines ) ;
         }
-
-        $( "#output" ).text( xhr.responseText ) ;
     }
-
 
 
     var handleRun = function handleRun(xhr, timerRefreshLog)
@@ -326,7 +351,6 @@ $(document).ready(
         // var headers = xhr.getAllResponseHeaders();
         // $("#console").append(headers);
         // $("#console").append("See the completed log\n");
-        $("#link_to_bottom").show() ;
         clearInterval( timerRefreshLog ) ;
         refreshLog( xhr ) ; // a last time
         // back to enable state for next run
@@ -650,7 +674,6 @@ $(document).ready(
     // in case of a manual refresh, start with
         $("#bt-sync").prop("disabled", false);
         $("#bt-abort").prop("disabled", false);
-        $("#link_to_bottom").hide();
         $("#progress-bar-left").css( "width", 100 + "%" ).attr( "aria-valuenow", 100 ) ;
 
         $("#showpassword1").click(
@@ -678,7 +701,6 @@ $(document).ready(
                 $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
                 $("#bt-sync").prop("disabled", true) ;
                 $("#bt-abort").prop("disabled", false) ;
-                $("#link_to_bottom").hide() ;
                 $("#progress-txt").text( "ETA: coming soon" ) ;
                 store_form() ;
                 imapsync() ;
@@ -729,6 +751,9 @@ $(document).ready(
         
         if ( "imapsync.lamiral.info" === location.hostname )
         {
+                $( "#status_24h" ).attr('src', 'https://lstu.fr/imapsync_online_status_24h_1200x70') ;
+                $( "#status_7d" ).attr('src', 'https://lstu.fr/imapsync_online_status_7d') ;
+                $( "#status_2m" ).attr('src', 'https://lstu.fr/imapsync_online_status_2months_1200x70') ;
                 $( "#local_bandwidth" ).collapse( "show" ) ;
                 $( "#local_status_dbmon" ).collapse( "show" ) ;
                 $( "#local_status_hetrix" ).collapse( "show" ) ;
@@ -737,6 +762,7 @@ $(document).ready(
         }
         else if ( "lamiral.info" === location.hostname )
         {
+                
                 $( "#local_bandwidth" ).collapse( "show" ) ;
                 $( "#local_status_dbmon" ).collapse( "show" ) ;
                 $( "#local_status_hetrix" ).collapse( "show" ) ;
@@ -778,6 +804,7 @@ $(document).ready(
                 tests_store_retrieve(  ) ;
                 tests_last_eta(  ) ;
                 tests_decompose_eta_line(  ) ;
+                tests_last_x_lines( ) ;
                 // tests_cryptojs(  ) ;
                 
                 // The following test can be used to check that if a test fails
@@ -785,15 +812,16 @@ $(document).ready(
                 //is( 0, 1, "this test always fails" ) ;
                 
                 tests_bilan( nb_attended_test ) ;
+                
                 // If you want to always see the tests, uncomment the following 
                 // line
-                // $("#tests").collapse("show") ;
+                //$("#tests").collapse("show") ;
 
             }
         }
 
         init(  ) ;
-        tests( 29 ) ;
+        tests( 38 ) ;
         retrieve_form(  ) ;
 
     }

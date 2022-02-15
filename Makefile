@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.335 2021/07/06 02:00:46 gilles Exp gilles $	
+# $Id: Makefile,v 1.339 2022/01/14 14:28:38 gilles Exp gilles $	
 
 .PHONY: help usage all doc
 
@@ -34,6 +34,7 @@ usage:
 	@echo "make upload_index"
 	@echo "make upload_FAQ    # upload FAQs and documentation"
 	@echo "make upload_X      # upload online UI"
+	@echo "make upload_csv    # upload online CSV service"
 	@echo "make upload_latest # upload latest imapsync and binaries (dev)" 
 	@echo "make upload_cgi    # upload latest imapsync online, after local and remote --tests success." 
 	@echo "make upload_cgi_memo  # upload cgi_memo stat_patterns.txt to /X servers." 
@@ -150,7 +151,7 @@ clean_bak:
 	rm -f index.shtml.bak ./S/style.css.bak
 
 clean_oauth2:
-	rm oauth2/typescript oauth2/D_*txt
+	rm -f oauth2/typescript oauth2/D_*txt
 
 .PHONY: install dist man
 
@@ -160,6 +161,7 @@ clean_man:
 	rm -f  W/imapsync.1
 
 W/imapsync.1: imapsync
+	mkdir -p W
 	pod2man imapsync > W/imapsync.1
 
 install: testp W/imapsync.1
@@ -188,7 +190,7 @@ docker:
 	@echo "make docker_upload_docker_hub  # upload last build to https://hub.docker.com/r/gilleslamiral/imapsync"
 	@echo "ssh vp3 THEN cd docker/imapsync && . memo_docker"
 
-docker_build:
+docker_build: docker_copy_to_vp3
 	ssh vp3 'cd docker/imapsync && . memo_docker && imapsync_docker_build'
 
 
@@ -199,7 +201,7 @@ docker_copy_to_vp3:
 	rsync -av imapsync INSTALL.d/Dockerfile INSTALL.d/memo_docker INSTALL.d/prerequisites_imapsync INSTALL.d/secret.txt vp3:docker/imapsync/
 	rsync -av RCS/imapsync,v INSTALL.d/RCS/Dockerfile,v INSTALL.d/RCS/memo_docker,v vp3:docker/imapsync/RCS/
 
-docker_upload_docker_hub:
+docker_upload_docker_hub: docker_build
 	ssh vp3 'cd docker/imapsync && . memo_docker && imapsync_docker_upload'
 
 functree: W/imapsync_functions_tree_ppi.txt W/imapsync_functions_tree.txt
@@ -517,18 +519,18 @@ W/test_tail.bat:
 win64sshaccess:
 	ssh 'pc HP DV7'@p24 'perl -V'
 
-
-win64prepa:
-	ssh 'pc HP DV7'@p24 'perl -V'
+winprepalocal:
 	unix2dos W/build_exe.bat W/test_exe.bat W/install_modules.bat W/install_module_one.bat
+
+win64prepa: winprepalocal
+	ssh 'pc HP DV7'@p24 'perl -V'
 	scp imapsync W/build_exe.bat W/install_modules.bat W/install_module_one.bat \
 	W/test_exe_tests.bat W/test_exe_testsdebug.bat W/test_exe.bat \
 	pc_HP_DV7_p24:'Desktop/imapsync_build'
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
 	./W/check_win64err build_exe.bat
 
-win64build:
-	unix2dos W/build_exe.bat W/install_modules.bat
+win64build: winprepalocal
 	scp imapsync W/build_exe.bat W/install_modules.bat  pc_HP_DV7_p24:'Desktop/imapsync_build'
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
 	./W/check_win64err build_exe.bat
@@ -537,10 +539,9 @@ imapsync.exe: imapsync_64bit.exe
 	cp -a imapsync_64bit.exe imapsync.exe
 
 
-imapsync_64bit.exe: imapsync
+imapsync_64bit.exe: imapsync winprepalocal
 	(date "+%s"| tr "\n" " "; echo -n "BEGIN 64bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 	ssh 'pc HP DV7'@p24 'perl -V'
-	unix2dos W/build_exe.bat W/test_exe.bat W/install_modules.bat W/install_module_one.bat
 	scp imapsync W/build_exe.bat W/install_modules.bat W/install_module_one.bat \
 	W/test_exe_tests.bat W/test_exe_testsdebug.bat W/test_exe.bat \
 	pc_HP_DV7_p24:'Desktop/imapsync_build'
@@ -565,7 +566,7 @@ zip: dosify_bat
 	unix2dos ../prepa_zip/imapsync_$(VERSION)/*.txt
 	cd ../prepa_zip/ && rm -f ./imapsync_$(VERSION).zip && zip -r ./imapsync_$(VERSION).zip ./imapsync_$(VERSION)/
 	scp ../prepa_zip/imapsync_$(VERSION).zip Admin@c:'C:/msys/1.0/home/Admin/'
-	scp ../prepa_zip/imapsync_$(VERSION).zip pc_HP_DV7_p24:'Desktop/'
+#	scp ../prepa_zip/imapsync_$(VERSION).zip pc_HP_DV7_p24:'Desktop/'
 	cp ../prepa_zip/imapsync_$(VERSION).zip /fe/imapsync/
 
 
@@ -575,19 +576,22 @@ zip: dosify_bat
 
 mac: imapsync_bin_Darwin
 
-maccopy:
-	rsync -p -e 'ssh -4 -p 995' imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver \
-	gilleslamira@gate.polarhome.com:
-	rsync -av -p -e 'ssh -4 -p 995' X/ gilleslamira@gate.polarhome.com:X/
+macstadiumcopy:
+	rsync -v imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver administrator@macstadium.lamiral.info:
+	rsync -v examples/file.txt examples/sync_loop_darwin.sh administrator@macstadium.lamiral.info:examples/
+	rsync -v X/ administrator@macstadium.lamiral.info:X/
 
+maccopy:
+	rsync -v -p -e 'ssh -4 -p 995' imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver \
+	gilleslamira@gate.polarhome.com:
+	rsync -v -p -e 'ssh -4 -p 995' examples/file.txt examples/sync_loop_darwin.sh gilleslamira@gate.polarhome.com:examples/
+	rsync -v -p -e 'ssh -4 -p 995' X/ gilleslamira@gate.polarhome.com:X/
 
 macforce: maccopy
 	ssh -4 -p 995 gilleslamira@gate.polarhome.com 'sh -x build_mac.sh'
 
-
-imapsync_bin_Darwin: imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync
+imapsync_bin_Darwin: imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync maccopy
 	rcsdiff imapsync
-	rsync -p -e 'ssh -4 -p 995' imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync gilleslamira@gate.polarhome.com:
 	ssh -4 -p 995 gilleslamira@gate.polarhome.com 'sh -x build_mac.sh'
 	rsync -P -e 'ssh -4 -p 995' gilleslamira@gate.polarhome.com:imapsync_bin_Darwin .
 
@@ -714,12 +718,12 @@ S/imapsync_sold_by_country.txt: /g/bin/imapsync_by_country
 ks:
 	rsync -avHz --delete --exclude '*.exe' \
 	  . gilles@ks.lamiral.info:public_html/imapsync/
-	ssh root@ks.lamiral.info 'apachectl configtest && /etc/init.d/apache2 reload'
+	ssh root@ks.lamiral.info 'apachectl configtest && apachectl reload'
 
 ksa:
 	rsync -avHz --delete -P \
 	  . gilles@ks.lamiral.info:public_html/imapsync/
-	ssh root@ks.lamiral.info 'apachectl configtest && /etc/init.d/apache2 reload'
+	ssh root@ks.lamiral.info 'apachectl configtest && apachectl reload'
 
 ks3:
 	rsync -avHz --delete -P \
@@ -745,11 +749,10 @@ ks5tests: ks5tests_gilles ks5tests_root
 
 ks5tests_gilles:
 	rsync -P imapsync gilles@ks.lamiral.info:public_html/imapsync/
-	rsync -P oauth2_access_token.txt  oauth2_string_for_oauthdirect.txt gilles@ks.lamiral.info:
 	ssh gilles@ks.lamiral.info 'public_html/imapsync/imapsync --tests'
 
 ks5tests_root:
-	rsync -P imapsync oauth2_access_token.txt  oauth2_string_for_oauthdirect.txt root@ks5.lamiral.info:
+	rsync -P imapsync root@ks5.lamiral.info:
 	ssh root@ks5.lamiral.info './imapsync --tests'
 
 
@@ -830,14 +833,16 @@ W/.valid.index.shtml: index.shtml S/*.shtml
 
 upload_index: valid_index clean_permissions
 	rcsdiff index.shtml README_Windows.txt S/style.css S/*.shtml FAQ.d/*.txt LICENSE CREDITS TODO examples/*.bat examples/*.sh index.shtml INSTALL.d/*.txt
+	rcsdiff S/quiz/quiz_imapsync.html S/quiz/quiz_imapsync.js S/quiz/quiz_imapsync.css
 	rm -f examples/LOG_imapsync/*
 	rsync -avH index.shtml README_Windows.txt FAQ INSTALL  NOLIMIT LICENSE CREDITS TODO S/robots.txt S/favicon.ico ../imapsync_website/
 	rsync -aHv  --delete ./W/ks.htaccess ../imapsync_website/.htaccess
-	rsync -aHv  --delete S/ ../imapsync_website/S/
+	rsync -aHv  --delete ./S/ ../imapsync_website/S/
 	rsync -aHv  --delete ./examples/  ../imapsync_website/examples/
 	rsync -aHv  --delete ./INSTALL.d/ ../imapsync_website/INSTALL.d/
 	rsync -aHv  --delete ./FAQ.d/     ../imapsync_website/FAQ.d/
 	rsync -avH  --delete ./doc/       ../imapsync_website/doc/
+	rsync -avH  --delete ./W/tools/   ../imapsync_website/W/tools/
 	rsync -aHvz --delete ../imapsync_website/ root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
 
 
@@ -853,7 +858,7 @@ upload_latest: unitests ci_imapsync bin
 upload_cgi: unitests ks5tests ks5tests_root ci_imapsync 
 	rsync -a imapsync ./INSTALL.d/prerequisites_imapsync ../imapsync_website/
 	rsync -aHvz --delete ../imapsync_website/ root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
-	rsync -P imapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/imapsync
+	rsync -P imapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/
 
 upload_cgi_memo:
 	dos2unix X/stat_patterns.txt X/server_survey_patterns.txt
@@ -863,12 +868,20 @@ upload_cgi_memo:
 
 upload_X:
 	./W/tools/validate_xml_html5 X/index.html X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html
-	rcsdiff X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_wrapper.html X/imapsync_form.css X/noscript.css
-	rcsdiff X/imapsync_form.js X/imapsync_form_wrapper.js
+	rcsdiff X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html X/imapsync_form.css X/noscript.css
+	rcsdiff X/imapsync_form.js X/imapsync_form_wrapper.js 
 	rcsdiff INSTALL.d/INSTALL.OnlineUI.txt
 	rsync -a ./INSTALL.d/INSTALL.OnlineUI.txt ../imapsync_website/INSTALL.d/INSTALL.OnlineUI.txt
 	rsync -av   --delete   X/ ../imapsync_website/X/
 	rsync -aHvz --delete  ../imapsync_website/ root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
+
+upload_csv:
+	./W/tools/validate_xml_html5    X/sandbox_csv.html
+	rcsdiff      X/sandbox_csv.html X/sandbox_csv.js X/imapsync_csv_wrapper
+	rsync -a     X/sandbox_csv.html X/sandbox_csv.js X/imapsync_csv_wrapper ../imapsync_website/X/
+	rsync -aHvz  X/sandbox_csv.html X/sandbox_csv.js X/imapsync_csv_wrapper root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/X/
+	rsync X/imapsync_csv_wrapper root@ks5.lamiral.info:/home/www/apache24/cgi-bin/
+
 
 upload_FAQ:
 	rcsdiff FAQ.d/*.txt  LICENSE CREDITS TODO INSTALL.d/*.txt 
@@ -891,8 +904,9 @@ upload_ks: ci tarball
 	rsync -aHv  --delete ./INSTALL.d/    ../imapsync_website/INSTALL.d/
 	rsync -aHv  --delete ./FAQ.d/        ../imapsync_website/FAQ.d/
 	rsync -avH  --delete ./doc/          ../imapsync_website/doc/
+	rsync -avH  --delete ./W/tools/   ../imapsync_website/W/tools/
 	rsync -aHvz --delete ../imapsync_website/ root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
-	ssh root@ks.lamiral.info 'apachectl configtest && /etc/init.d/apache2 reload'
+	ssh root@ks.lamiral.info 'apachectl configtest && apachectl reload'
 
 
 upload_ks5:

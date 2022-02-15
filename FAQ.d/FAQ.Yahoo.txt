@@ -1,5 +1,5 @@
 
-$Id: FAQ.Yahoo.txt,v 1.12 2021/05/04 11:04:51 gilles Exp gilles $
+$Id: FAQ.Yahoo.txt,v 1.13 2021/12/03 12:38:58 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -18,24 +18,6 @@ Q. Synchronizing from XXX to Yahoo
 
 Now the questions again with their answers.
 
-Some explanation about the options given later:
-
-https://imapsync.lamiral.info/README
-...
- --noabletosearch    : Makes --minage and --maxage options use the internal 
-                       dates given by a FETCH imap command instead of the 
-                       "Date:" header. Internal date is the arrival date 
-                       in the mailbox.
-                       --noabletosearch equals --noabletosearch1 --noabletosearch2
-
- --regexmess    reg  : Apply the whole regex to each message before transfer.
-                       Example: 's/\000/ /g' # to replace null by space.
- --regexmess    reg  : and this one, etc.
-
-I'm not sure anymore about the need of --noabletosearch with Yahoo, maybe
-they fixed the issue about the standard imap searching command SEARCH
-they didn't honor before.
-
 =======================================================================
 Q. Synchronizing from Yahoo to XXX
 
@@ -49,8 +31,7 @@ Example:
     --password1 billysecreta \
     --host2 XXX \
     --user2 Billy@other.com \
-    --password2 billysecretb \
-    --noabletosearch 
+    --password2 billysecretb
 
 
 You also need to go to Yahoo, security and enable 
@@ -90,7 +71,7 @@ R. Example:
     --host2 imap.mail.yahoo.com \
     --user2 Billy@yahoo.com \
     --password2 billysecretb \
-    --noabletosearch --regexmess "s{(?<![\n])\z}{\r\n}gxms"
+    --regexmess "s{(?<![\n])\z}{\r\n}gxms"
 
 You wonder why there is this ugly regex, what it does and where does it 
 come from?
@@ -100,6 +81,12 @@ It's there to get rid of the errors
 when copying some messages to Yahoo.
 It adds a final \r\n on a message if a final \r\n is missing.
 See https://github.com/imapsync/imapsync/issues/209
+
+https://imapsync.lamiral.info/README
+...
+ --regexmess    reg  : Apply the whole regex to each message before transfer.
+                       Example: 's/\000/ /g' # to replace null by space.
+ --regexmess    reg  : and this one, etc.
 
 =======================================================================
 =======================================================================

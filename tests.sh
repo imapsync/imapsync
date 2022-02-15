@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.365 2021/07/05 20:19:12 gilles Exp gilles $  
+# $Id: tests.sh,v 1.367 2022/01/13 12:59:05 gilles Exp gilles $  
 
 # To run these tests, you need a running imap server somewhere
 # with several accounts. And be on Linux or Unix.
@@ -218,6 +218,7 @@ set_return_code_variables()
         EXIT_ERR_SELECT=117
         EXIT_TRANSFER_EXCEEDED=118
         EXIT_ERR_APPEND_VIRUS=119
+        EXIT_ERR_FLAGS=120
         
         EXIT_TESTS_FAILED=254        # Like Test::More API
 }
@@ -271,6 +272,19 @@ option_extra_arguments() {
 	$CMD_PERL ./imapsync --testslive blabla
         test "$?" = "$EX_USAGE"
 }
+
+option_extra() {
+        (
+        mkdir -p W/tmp/tests/options_extra/ || return 1
+        cd  W/tmp/tests/options_extra/ || return 1
+        echo '--debugimap' > options_extra.txt
+        test -f ../../../../imapsync
+	../../../../imapsync --testslive
+        test "$?" = "$EX_OK"
+        )
+        pwd
+}
+
 
 passwords_masked() {
 	$CMD_PERL ./imapsync --host1 boumboum --password1 secret --justbanner | grep MASKED
@@ -414,6 +428,19 @@ ll_INBOX() {
          --passfile2 ../../var/pass/secret.titi \
          --folder INBOX
 }
+
+ll_daily_digest() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST1 --user2 tata \
+         --passfile2 ../../var/pass/secret.tata \
+         --folder INBOX --dry --nodry1 --maxage 5 \
+         --truncmess 1000 --debugcontent --f1f2 INBOX=INBOX.Fake \
+         | egrep 'From:|To:|Subject:|Date:|=====|msg '
+}
+
+
 
 ll_acl() {
         $CMD_PERL  ./imapsync \
@@ -641,7 +668,7 @@ ll_abort_noprocess()
 # In mandatory_tests
 ll_abort_not_a_pid_number()
 {
-        echo 999999 > /tmp/imapsync_fake.pid
+        echo 12345678 > /tmp/imapsync_fake.pid
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -649,7 +676,7 @@ ll_abort_not_a_pid_number()
          --passfile2 ../../var/pass/secret.titi \
         --abort --pidfile /tmp/imapsync_fake.pid \
         --logfile ll_abort_not_a_pid_number.log
-        grep 'pid 999999 in /tmp/imapsync_fake.pid is not a pid number' LOG_imapsync/ll_abort_not_a_pid_number.log
+        grep 'pid 12345678 in /tmp/imapsync_fake.pid is not a pid number' LOG_imapsync/ll_abort_not_a_pid_number.log
 }
 
 
@@ -884,7 +911,7 @@ ll_final_diff() {
 	 --folder INBOX --f1f2 INBOX=INBOX.final_diff --maxage 30 
 }
 
-ll_with_errors() {
+ll_with_flags_errors() {
         can_send && sendtestmessage
         can_send && sendtestmessage
         $CMD_PERL  ./imapsync \
@@ -892,9 +919,9 @@ ll_with_errors() {
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX --maxage 30 \
-        --regexflag 's/.*/PasGlop \\PasGlopRe/'
-        test "$EXIT_WITH_ERRORS" = "$?"
+        --folder INBOX --maxage 300 \
+        --regexflag 's/.*/PasGlop \\PasGlopRe/' --errorsmax 5
+        test "$EXIT_ERR_FLAGS" = "$?"
 }
 
 
@@ -905,10 +932,11 @@ ll_errorsmax() {
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-	 --nofoldersizes --folder INBOX.errors --regexflag 's/.*/PasGlop \\PasGlopRe/' --errorsmax 5 --delete2 
+	 --nofoldersizes --folder INBOX.errors --regexflag 's/.*/PasGlop \\PasGlopRe/' --errorsmax 5 \
+         | grep 'Maximum number of errors 5 reached'
 	 #--pipemess 'grep lalalala' --nopipemesscheck --dry  --debugcontent --debugflags
          #test "$EXIT_WITH_ERRORS_MAX" = "$?" # no longer used since errors classification
-         test "$EXIT_WITH_ERRORS" = "$?"
+         #test "$EXIT_ERR_FLAGS" = "$?"
 }
 
 ll_debug()
@@ -1182,7 +1210,7 @@ ll_timeout1_timeout2() {
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX --timeout1 0.99 --timeout2 0.95 --justlogin
+                --folder INBOX --timeout1 1.99 --timeout2 1.95 --justlogin
 }
 
 ll_timeout_timeout1() {
@@ -1777,19 +1805,68 @@ gmail_l_automap() {
 
 
 ll_justfolders() {
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  
-                echo "sudo rm -rf /home/vmail/titi/.new_folder/"
+        echo "sudo rm -rf /home/vmail/titi/.new_folder/"
 }
 
 
+ll_create_folder_New1()
+{
+        ./W/learn/create_folder localhost tata `cat ../../var/pass/secret.tata` INBOX.New1 INBOX.New1.New1 INBOX.New1.New1.New1
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders --include New1 --folderfirst INBOX.New1.New1
+}
+
+ll_delete_folder_New1()
+{
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --include New1 --folderfirst INBOX.New1.New1 --delete1emptyfolders --delete1 
+        
+}
+
+ll_create_folder_encoding_accent()
+{
+        ./W/learn/create_folder localhost tata `cat ../../var/pass/secret.tata` INBOX.New1 'INBOX.New1.E&AwE-le&AwE-ments envoye&AwE-s' 'INBOX.New1.&AMk-l&AOk-ments envoy&AOk-s'
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders --include New1 
+}
+
+
+ll_create_folder_encoding_accent_365()
+{
+        #./W/learn/create_folder localhost tata `cat ../../var/pass/secret.tata`  'INBOX.E&AwE-le&AwE-ments envoye&AwE-s' 'INBOX.&AMk-l&AOk-ments envoy&AOk-s'
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 imap-mail.outlook.com --user2 gilles.lamiral@outlook.com \
+                --passfile2 ../../var/pass/secret.outlook.com \
+                --justfolders --include 'ments envoy' --automap --exclude New1
+}
+
+
+
+
+
 ll_justfolders_delete1emptyfolders() {
-                ./W/learn/create_folder localhost tata `cat /g/var/pass/secret.tata` INBOX.Empty INBOX.Empty.Empty INBOX.Empty.Empty.Empty
-                $CMD_PERL ./imapsync \
+        ./W/learn/create_folder localhost tata `cat ../../var/pass/secret.tata` INBOX.Empty INBOX.Empty.Empty INBOX.Empty.Empty.Empty
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -1798,10 +1875,9 @@ ll_justfolders_delete1emptyfolders() {
 }
 
 
-
 ll_delete1_delete1emptyfolders() {
-                ./W/learn/create_folder localhost tata `cat /g/var/pass/secret.tata` INBOX.Empty INBOX.Empty.Empty INBOX.Empty.Empty.Empty
-                $CMD_PERL ./imapsync \
+        ./W/learn/create_folder localhost tata `cat ../../var/pass/secret.tata` INBOX.Empty INBOX.Empty.Empty INBOX.Empty.Empty.Empty
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -1812,7 +1888,7 @@ ll_delete1_delete1emptyfolders() {
 
 
 ll_justfolders_skipemptyfolders()  {
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -2646,6 +2722,27 @@ ll_search_UNSEEN_SENTSINCE()
 }
 
 
+ll_search_FROM_TO_CC()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --dry --search 'OR FROM gilles@localhost (OR TO gilles@localhost (CC gilles@localhost))'
+}
+
+ll_search_FROM()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --dry --search 'FROM gilles@localhost'
+}
+
+
 
 ll_maxage_nonew() 
 {
@@ -2769,6 +2866,23 @@ ll_exitwhenover()
         --exitwhenover 100
         test "$EXIT_TRANSFER_EXCEEDED" = "$?"
 }
+
+
+ll_exitwhenover_noerrorsdump() 
+{
+        sendtestmessage
+        sendtestmessage
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --maxage 1 --folder INBOX --nofoldersizes \
+        --exitwhenover 100 --noerrorsdump
+        test "$EXIT_TRANSFER_EXCEEDED" = "$?"
+}
+
+
 
 
 
@@ -3045,6 +3159,20 @@ ll_regextrans2()
        --regextrans2 's/yop/yoX/' \
        --folder 'INBOX.yop.yap' --debug
 }
+
+ll_add_suffix() 
+{
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --justfolders \
+       --regextrans2 's,$,\@easterngraphics.com,' \
+       --folderrec 'INBOX.yop' --dry --justfolders
+}
+
+
 
 ll_regextrans2_ucfirst_downcase_last_folder() 
 {
@@ -3723,6 +3851,7 @@ ll_regexmess_truncate_long_message_substr()
                 --debugcontent --minsize 100000
                 
 }
+
 
 ll_regexmess_truncate_long_message_truncmess() 
 {
@@ -6085,6 +6214,15 @@ ll_justlogin_notls() {
                 --justlogin --notls1 --notls2 
 }
 
+ll_justlogin_nocompress() {
+                $CMD_PERL  ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justlogin --nocompress2 
+}
+
 
 
 
@@ -6465,6 +6603,11 @@ office365_justlogin_ssl1_ssl2()
         --justlogin 
 }
 
+outlook_login()
+{
+        office365_justlogin_ssl1_ssl2
+}
+
 office365_justlogin_tls()
 {
         $CMD_PERL ./imapsync \
@@ -6743,7 +6886,7 @@ firstclass_fullfill() {
 }
 
 
-Alessandro_error_11()
+Alessandro_error_11() 
 {
         # $CMD_PERL  ./imapsync \
          # --host1 $HOST1 --user1 tata \
@@ -6757,10 +6900,11 @@ Alessandro_error_11()
         --passfile1 ../../var/pass/secret.tata \
         --host2 imap-mail.outlook.com --ssl2 --user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
-        --folder INBOX.error_11 --debugcontent --nodry --nodry1 --pipemess 'cat /g/Alessandro_error_11.txt'
+        --folder INBOX.error_11 --debugcontent --nodry --nodry1 --pipemess 'cat /g/Alessandro_error_11.txt' \
+        --regexmess "s{\QSubject: =?TELETEX?Q?Fw=3APresentation_Storia_dell=5C=27Informatica?=\E}{Subject: Presentation Storia dell'Informatica}"
 
-
-
+# Subject: =?TELETEX?Q?Fw=3APresentation_Storia_dell=5C=27Informatica?=
+# Subject: Presentation Storia dell'Informatica
         #--pipemess W/tools/fix_email_for_exchange.py 
         #--pipemess 'reformime -r7'
 
@@ -7237,6 +7381,7 @@ option_releasecheck
 option_noreleasecheck
 option_bad_delete2
 option_extra_arguments
+option_extra
 passfile1_noexist
 passfile2_noexist
 passwords_masked
@@ -7395,9 +7540,10 @@ ll_noheader_force
 ll_noheader
 ll_domino1_domino2
 ll_domino2
-ll_with_errors
+ll_with_flags_errors
 ll_errorsmax
 ll_exitwhenover
+ll_exitwhenover_noerrorsdump
 fuzz_basic
 fuzz_network
 testslive

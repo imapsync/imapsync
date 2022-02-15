@@ -1,6 +1,6 @@
 ## Dockerfile for building a docker imapsync image
 
-# $Id: Dockerfile,v 1.30 2020/03/26 07:15:04 gilles Exp gilles $
+# $Id: Dockerfile,v 1.38 2021/11/29 10:20:56 gilles Exp gilles $
 # I use the following command to build the image:
 #
 #  docker build -t gilleslamiral/imapsync . 
@@ -10,9 +10,9 @@
 # I thank you very much
 # I like thanks
 # I like stars
-# I also like (and need) money
+# I also need money to keep on doing this stuff
 
-# Number of imapsync images pulled so far (2021_05_29): 368881
+# Number of imapsync images pulled so far (2021_11_29): 608326
 # Command used:
 # curl -s https://hub.docker.com/v2/repositories/gilleslamiral/imapsync/ | jq '.pull_count'
 
@@ -24,16 +24,13 @@ LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
         description="Imapsync" \
         documentation="https://imapsync.lamiral.info/#doc"
 
-# Put a copy of the Dockerfile in the image itself
-# It can help future maintenance, isn't it?
+# I put a copy of the Dockerfile in the image itself
+# It can help maintenance, isn't it?
+# Also put optionally my local and usually more recent imapsync on /, for testing purpose
 
-COPY Dockerfile /
+COPY Dockerfile imapsyn[c] prerequisites_imapsyn[c] /
 
-# Also put my local imapsync on /usr/bin/ for testing purpose
-# renamed imapsync_local since would be erased by the wget
 
-COPY imapsync /usr/bin/imapsync_local
-COPY prerequisites_imapsync /usr/bin/prerequisites_imapsync_local
 
 RUN set -xe && \
   apt-get update \
@@ -44,7 +41,8 @@ RUN set -xe && \
   libdata-uniqid-perl \
   libencode-imaputf7-perl \
   libfile-copy-recursive-perl \
-  libfile-tail-perl        \
+  libfile-tail-perl \
+  libio-compress-perl \
   libio-socket-ssl-perl \
   libio-socket-inet6-perl \
   libio-tee-perl \
@@ -70,16 +68,17 @@ RUN set -xe && \
   lsof \
   ncat \
   openssl \
+  ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 RUN set -xe \
+  && cd /usr/bin/ \
   && pwd \
-  && wget -N https://imapsync.lamiral.info/imapsync \
-     https://imapsync.lamiral.info/prerequisites_imapsync \
-     https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py
-  && mv imapsync oauth2.py /usr/bin/ \
-  && chmod +x /usr/bin/imapsync /usr/bin/imapsync_local /usr/bin/oauth2.py # just_a_comment_to_force_update 2019_11_26_12_58_34
-
+  && wget -N --no-check-certificate https://imapsync.lamiral.info/imapsync \
+        https://imapsync.lamiral.info/prerequisites_imapsync \
+        https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py \
+  && chmod +x imapsync oauth2.py \
+  && /usr/bin/imapsync --testslive && /usr/bin/imapsync --tests # just_a_comment_to_force_update 2021_11_29_11_20_56
 
 USER nobody:nogroup
 

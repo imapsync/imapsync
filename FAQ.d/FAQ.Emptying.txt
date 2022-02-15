@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Emptying.txt,v 1.11 2020/10/13 16:24:43 gilles Exp gilles $
+$Id: FAQ.Emptying.txt,v 1.12 2021/09/09 11:53:53 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -13,9 +13,17 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Emptying.txt
 Questions answered in this FAQ are:
 
 Q. How to delete all emails of all folders of an account with imapsync?
+
 Q. How to delete all folders of an account with imapsync?
+
 Q. How to delete some folders of an account with imapsync?
+
 Q. How to revert a sync that went to the wrong account?
+
+Q. How to delete emails older than 90 days with imapsync?
+
+Q. How to delete emails matching a certain criterium with imapsync?
+
 
 Now the questions again with their answers.
 
@@ -27,11 +35,11 @@ R. Use the same account on both sides with option --delete1
 
 Option --noexpungeaftereach is just to speed up the deletions.
 
-Example (real example):
+Example:
 
   imapsync \
-    --host1 test.lamiral.info --user1 empty --password1 secret \
-    --host2 test.lamiral.info --user2 empty --password2 secret \
+    --host1 test.lamiral.info --user1 foo --password1 secret \
+    --host2 test.lamiral.info --user2 foo --password2 secret \
     --delete1 --noexpungeaftereach
 
 =======================================================================
@@ -89,6 +97,36 @@ R. If all the wrong emails have some common characteristic that is not
 
  If the wrongly emails messages synced have no special common 
  characteristic then take an handkerchief and cry.
+
+=======================================================================
+Q. How to delete emails older than 90 days with imapsync?
+
+R. Use the same account on both sides with option --delete1
+   --noexpungeaftereach --minage 90 
+
+Example:
+
+  imapsync \
+    --host1 test.lamiral.info --user1 foo --password1 secret \
+    --host2 test.lamiral.info --user2 foo --password2 secret \
+    --delete1 --noexpungeaftereach --minage 90 
+
+=======================================================================
+Q. How to delete emails matching a certain criterium with imapsync?
+
+R. Use the --search option to select the messages you want to delete 
+   and then use the same account on both sides with the suplementary 
+   options --delete1 --noexpungeaftereach
+   To select the messages read the document FAQ.Messages_Selection.txt
+   at https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
+
+
+Example:
+
+  imapsync \
+    --host1 test.lamiral.info --user1 foo --password1 secret \
+    --host2 test.lamiral.info --user2 foo --password2 secret \
+    --delete1 --noexpungeaftereach --search "SENTBEFORE 31-Dec-2010"
 
 =======================================================================
 =======================================================================

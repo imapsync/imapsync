@@ -1,14 +1,14 @@
 #!/bin/cat
-$Id: FAQ.SSL_errors.txt,v 1.15 2021/06/22 15:35:10 gilles Exp gilles $
+$Id: FAQ.SSL_errors.txt,v 1.17 2021/08/01 12:49:00 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.SSL_errors.txt
 
 
-=======================================================================
+======================================================================
                Imapsync SSL errors
-=======================================================================
+======================================================================
 
 Questions answered in this FAQ are:
 
@@ -25,11 +25,14 @@ Q. SSL connect attempt failed SSL
    SSL connect attempt failed SSL
    SSL routines:ssl_choose_client_version:unsupported protocol
 
+Q. fatal SSL error: SSL connect attempt failed with unknown error 
+   SSL wants a read first
+
 Q. How to see the certificate and identify problems in it?
 
 Now the questions again with their answers.
 
-=======================================================================
+======================================================================
 Q. What are the errors
   DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
   or
@@ -45,11 +48,11 @@ it's often Exchange or Office365. I don't know what exactly happens.
 Those errors happen more often on Windows than on Linux.
 
 
-=======================================================================
+======================================================================
 Q. What can I do to avoid those "SSL read/write errors"?
 
 R0. Windows users: upgrade to imapsync.exe release 1.836 (or next ones)
-Those errors don't appear with recent releases, post 1.836
+Those errors appear less often with imapsync releases post 1.836
 
 R1. Remove all ssl/tls encryption
 
@@ -70,7 +73,7 @@ R5. Set up a ssltunnel proxy to the host.
     Read the file FAQ.Security.txt for an example to set up
     a ssltunnel proxy.
 
-=======================================================================
+======================================================================
 Q. SSL connect attempt failed SSL
    routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
    or 
@@ -145,8 +148,13 @@ when they receive a TLS version 1.1 request.
 In this case setting the version 
 to 'SSLv23:!SSLv2:!SSLv3:!TLSv1_1:!TLSv1_2' might help.
 
+======================================================================
+Q. fatal SSL error: SSL connect attempt failed with unknown error 
+   SSL wants a read first
 
-=======================================================================
+R. If you're using --ssl1 or --ssl2, try instead --tls1 or --tls2
+
+======================================================================
 Q. How to see the certificate and identify problems in it?
 
 R. Use the command openssl like this:
@@ -221,5 +229,5 @@ ggEBANuPNbYLPMZ4vPa9NBoHAUdIXqpi0eqdXMXd2sT+qRmqxS5ihr999BHOROcr
 ...
 
 
-=======================================================================
-=======================================================================
+======================================================================
+======================================================================

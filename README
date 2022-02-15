@@ -6,7 +6,7 @@ NAME
 
 VERSION
 
-    This documentation refers to Imapsync $Revision: 2.140 $
+    This documentation refers to Imapsync $Revision: 2.178 $
 
 USAGE
 
@@ -181,16 +181,6 @@ OPTIONS
                            http://search.cpan.org/perldoc?IO::Socket::SSL#Description_Of_Methods
      --sslargs2     str  : Pass any ssl parameter for host2 ssl or tls connection.
                            See --sslargs1
-
-     --timeout1     flo  : Connection timeout in seconds for host1.
-                           Default is 120 and 0 means no timeout at all.
-     --timeout2     flo  : Connection timeout in seconds for host2.
-                           Default is 120 and 0 means no timeout at all.
-
-                           Caveat, under CGI context, you may encounter a timeout
-                           from the webserver, killing imapsync and the imap connexions.
-                           See the document INSTALL.OnlineUI.txt and search
-                           for "Timeout" for how to deal with this issue.
 
   OPTIONS/authentication
 
@@ -395,6 +385,12 @@ OPTIONS
                            Example: 's/\000/ /g' # to replace null characters
                            by spaces.
      --regexmess    reg  : and this one, etc.
+ 
+     --truncmess    int  : truncates messages when their size exceed the int 
+                           value, specified in bytes. Good to sync too big 
+                           messages or to "suppress" attachments. 
+                           Have in mind that this way, messages become 
+                           uncoherent somehow.
 
   OPTIONS/labels
 
@@ -594,6 +590,26 @@ OPTIONS
       --domino2          : sets options for Domino. See FAQ.Domino.txt
 
   OPTIONS/behavior
+
+     --timeout1     flo  : Connection timeout in seconds for host1.
+                           Default is 120 and 0 means no timeout at all.
+     --timeout2     flo  : Connection timeout in seconds for host2.
+                           Default is 120 and 0 means no timeout at all.
+
+                           Caveat, under CGI context, you may encounter a timeout
+                           from the webserver, killing imapsync and the imap connexions.
+                           See the document INSTALL.OnlineUI.txt and search
+                           for "Timeout" for how to deal with this issue.
+
+     --keepalive1        : https://metacpan.org/pod/Mail::IMAPClient#Keepalive
+                           Some firewalls and network gears like to timeout connections 
+                           prematurely if the connection sits idle.
+                           This option enables SO_KEEPALIVE on the host1 socket.
+                           --keepalive1 is on by default since imapsync release 2.169
+                           Use --nokeepalive1 to disable it.
+                       
+     --keepalive2        : Same as --keepalive2 but for host2.
+                           Use --nokeepalive2 to disable it.
 
      --maxmessagespersecond flo : limits the average number of messages 
                                   transferred per second.

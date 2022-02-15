@@ -1,11 +1,14 @@
 #!/bin/sh
 
-# $Id: imapsync_csv_wrapper,v 1.5 2020/05/01 21:26:30 gilles Exp gilles $
+# $Id: imapsync_csv_wrapper,v 1.13 2021/11/01 13:24:47 gilles Exp gilles $
 
 exec 3>&1
 
-debug=/bin/true
-debug=/bin/false
+debug=true
+# comment the following to have debug data
+debug=false
+
+PATH=$PATH:/home/www/apache24/cgi-bin/
 
 echo3() {
         echo "$@" >&3
@@ -83,8 +86,9 @@ tests_uri_unescape()
         run_test test '"_a\n\n\nz_" = "_`uri_unescape a%0A%0A%0Az`_"'
         run_test test '"_`uri_unescape a%0A%0A%0Az`_" = "_`uri_unescape a%0A%0A%0Az`_"'
         run_test test 'A B' = 'A B'
-        uri_unescape 'a%0A%0A%0Az'    > /tmp/$$_zzz1.txt
-        /bin/echo -e "a\n\n\nz"       > /tmp/$$_zzz2.txt
+        uri_unescape 'a%0Az'    > /tmp/$$_zzz1.txt
+        /bin/echo  "a
+z"       > /tmp/$$_zzz2.txt
         run_test diff /tmp/$$_zzz1.txt /tmp/$$_zzz2.txt
         rm /tmp/$$_zzz1.txt /tmp/$$_zzz2.txt
         z3=`uri_unescape a%0A%0A%0Az`
@@ -208,17 +212,33 @@ tests_is_blank_or_comment()
 
 logfailures()
 {
-        :
+        run_on_each_line_failures="$run_on_each_line_failures
+$@"
 }
 
 tests_logfailures()
 {
-        :
+        #reset 
+        run_on_each_line_failures=     
+
+        # add Blabla
+        run_test logfailures Blabla
+        run_test test "
+Blabla" = "$run_on_each_line_failures"
+
+        # add Kiki
+        run_test logfailures Kiki
+        run_test test "
+Blabla
+Kiki" = "$run_on_each_line_failures"
+        
+        #reset again
+        run_on_each_line_failures=
 }
 
 
 
-run_on_each_line()
+run_on_each_line() 
 {
         echodebug '### Entering run_on_each_line ###'
         test -f abort_$$.txt && { echo abort demanded so not doing normal stuff ; return ; }
@@ -227,12 +247,6 @@ run_on_each_line()
         test -z "$1" && { echo3 'First parameter is empty. Leaving run_on_each_line().' ;  return ; }
         csv_data_multilines="$1"
         echodebug "csv_data_multilines=[$csv_data_multilines]"
-        
-        test 1 -le "$#" && shift
-        failures_file=${1:-""}
-        echodebug failures_file="$failures_file"
-        
-        test -x "$failures_file" && { echo3 "failure file $failures_file is an executable. Leaving run_on_each_line()." ;  return ; }
         
         test 1 -le "$#" && shift
         command=${1:-echo}
@@ -244,43 +258,49 @@ run_on_each_line()
         line_number=0
         csv_number=0
         failures_number=0
-        echo "$csv_data_multilines" | while IFS=';' read h1 u1 p1 h2 u2 p2 fake; do
+        while IFS=';' read h1 u1 p1 h2 u2 p2 extra fake; do
                 test -f abort_$$.txt && { echo abort demanded so not doing normal stuff ; return ; }
                 line_number=`expr 1 + $line_number`
-                if is_blank_or_comment "$h1$u1$p1$h2$u2$p2$fake" ; then
-                        echo3 "Ignoring   line " $line_number "$h1$u1$p1$h2$u2$p2$fake"
+                if is_blank_or_comment "$h1$u1$p1$h2$u2$p2$extra" ; then
+                        echo3 "Ignoring line " $line_number "$h1$u1$p1$h2$u2$p2$extra"
                 else 
                         csv_number=`expr 1 + $csv_number`
-                        echo3 "Processing line " $line_number run $csv_number "[$h1] [$u1] [xxx] [$h2] [$u2] [xxx] [$fake] $$"
-                        $command "$@" --host1 "$h1" --user1 "$u1" --password1 "$p1" --host2 "$h2" --user2 "$u2" --password2 "$p2"
+                        echo3 "Processing line " $line_number csv run $csv_number "[$h1] [$u1] [xxx] [$h2] [$u2] [xxx] [$extra] $$"
+                        $command "$@" --host1 "$h1" --user1 "$u1" --password1 "$p1" --host2 "$h2" --user2 "$u2" --password2 "$p2" $extra
                         command_status=$?
                         test "0" != "$command_status" && failures_number=`expr 1 + $failures_number`
-                        logfailures "$failures_file" "$command_status" "$line_number" "$csv_number" 
+                        echodebug command_status=$command_status failures_number=$failures_number
+                        test "0" != "$command_status" && logfailures "line $line_number csv run $csv_number returned with status $command_status ($h1;$u1;$p1;$h2;$u2;$p2;$extra;)"
                 fi
-        done
-        echodebug Leaving run_on_each_line
+        done << EOF 
+$csv_data_multilines
+EOF
+        
+        echodebug Leaving run_on_each_line, failures_number=$failures_number
+        
+        test "0" != "$failures_number" && echo "$run_on_each_line_failures"
         test "0" != "$failures_number" && return 1
         return 0
 }
 
-tests_run_on_each_line()
+tests_run_on_each_line() 
 {
         # 1-4
         run_test test '' = "`run_on_each_line`"
         run_test test '' = "`run_on_each_line ''`"
-        run_test test '' = "`run_on_each_line '' 'log.txt'`"
-        run_test test '' = "`run_on_each_line '' 'log.txt' echo imapsync`"
+        run_test test '' = "`run_on_each_line '' echo imapsync`"
+        run_test test '' = "`run_on_each_line '' echo imapsync blabla blibli`"
 
 
         # 5-7 blank data
         run_test test '' = "`run_on_each_line '   '`"
-        run_test test '' = "`run_on_each_line '   ' 'log.txt'`"
-        run_test test '' = "`run_on_each_line '   ' 'log.txt' echo imapsync`"
+        run_test test '' = "`run_on_each_line '         '  `"
+        run_test test '' = "`run_on_each_line '   ' echo imapsync blabla blibli`"
 
         # 8-10 comment data
         run_test test '' = "`run_on_each_line '#   '`"
-        run_test test '' = "`run_on_each_line '#   ' 'log.txt'`"
-        run_test test '' = "`run_on_each_line '#   ' 'log.txt' echo imapsync`"
+        run_test test '' = "`run_on_each_line '  # '`"
+        run_test test '' = "`run_on_each_line '#   ' echo imapsync blabla blibli`"
 
         # 11-13 empty line
         myval='
@@ -289,10 +309,10 @@ tests_run_on_each_line()
         myret=`run_on_each_line "$myval"`
         run_test test "" = "$myret"
         
-        myret=`run_on_each_line "$myval" 'log.txt'`
+        myret=`run_on_each_line "$myval"`
         run_test test "" = "$myret"
         
-        myret=`run_on_each_line "$myval" 'log.txt' echo imapsync`
+        myret=`run_on_each_line "$myval" echo imapsync blabla blibli`
         run_test test "" = "$myret"
 
 
@@ -308,39 +328,33 @@ tests_run_on_each_line()
         myret=`run_on_each_line "$myval"`
         run_test test "" = "$myret"
         
-        myret=`run_on_each_line "$myval" 'log.txt'`
+        myret=`run_on_each_line "$myval"   `
         run_test test "" = "$myret"
         
-        myret=`run_on_each_line "$myval" 'log.txt' echo imapsync`
+        myret=`run_on_each_line "$myval" echo imapsync blabla blibli`
         run_test test "" = "$myret"
 
 
-        # 17-21
+        # 17-18
         # csv data no blank no comment
         lines='a1;b1;c1;d1;e1;f1
 a2;b2;c2;d2;e2;f2
 a3;b3;c3;d3;e3;f3'
 
-        # No failure file (so /dev/null), no command (so echo)
+        # no command (so echo)
         lines_out='--host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
 --host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
 --host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
         run_test test "$lines_out" = "`run_on_each_line "$lines"`"
 
-        # failure file is a command => BAD => do nothing
-        cp /bin/echo "/tmp/myecho$$"
-        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$`"
-        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo`"
-        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo imapsync blabla bla`"
-        rm "/tmp/myecho$$"
 
-        # No failure file (so /dev/null), command = echo imapsync
+        # command = echo imapsync
         lines_out='imapsync --host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
 imapsync --host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
 imapsync --host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
-        run_test test "$lines_out" = "`run_on_each_line "$lines" '' echo imapsync`"
+        run_test test "$lines_out" = "`run_on_each_line "$lines" echo imapsync`"
 
-        # 22-27
+        # 19-20
         # csv data + blanks + comments
         lines='a1;b1;c1;d1;e1;f1
 # blabla 2
@@ -349,34 +363,97 @@ a2;b2;c2;d2;e2;f2
 a3;b3;c3;d3;e3;f3
  # end'
 
-        # No failure file (so /dev/null), no command (so echo)
+        # no command (so echo)
         lines_out='--host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
 --host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
 --host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
         run_test test "$lines_out" = "`run_on_each_line "$lines"`"
 
-        # failure file is a command => BAD => do nothing
-        cp /bin/echo "/tmp/myecho$$"
-        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$`"
-        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo`"
-        run_test test "" = "`run_on_each_line "$lines" /tmp/myecho$$ echo imapsync blabla bla`"
-        rm "/tmp/myecho$$"
-
-        # No failure file (so /dev/null), command = echo imapsync
+        # command = echo imapsync
         lines_out='imapsync --host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1
 imapsync --host1 a2 --user1 b2 --password1 c2 --host2 d2 --user2 e2 --password2 f2
 imapsync --host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3'
-        run_test test "$lines_out" = "`run_on_each_line "$lines" '' echo imapsync`"
+        run_test test "$lines_out" = "`run_on_each_line "$lines"  echo imapsync`"
 
-        
+
+        # 21-22
+        # csv data 3/3;/6/6;/7/7;/8/8; parameters + blanks + comments
+        #     runs 1 2  3 4  5 6  7 8
+        lines='a1;b1;c1
+# blabla 2
+a2;b2;c2;
+  # bloblo 3
+a3;b3;c3;d3;e3;f3
+a4;b4;c4;d4;e4;f4;
+a5;b5;c5;d5;e5;f5;--extra blurp
+a6;b6;c6;d6;e6;f6;--extra blurp;
+a7;b7;c7;d7;e7;f7;--extra blurp; ignored
+a8;b8;c8;d8;e8;f8;--extra blurp; ignored;
+ # end'
+
+        # no command (so echo)
+        lines_out='--host1 a1 --user1 b1 --password1 c1 --host2  --user2  --password2 
+--host1 a2 --user1 b2 --password1 c2 --host2  --user2  --password2 
+--host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3
+--host1 a4 --user1 b4 --password1 c4 --host2 d4 --user2 e4 --password2 f4
+--host1 a5 --user1 b5 --password1 c5 --host2 d5 --user2 e5 --password2 f5 --extra blurp
+--host1 a6 --user1 b6 --password1 c6 --host2 d6 --user2 e6 --password2 f6 --extra blurp
+--host1 a7 --user1 b7 --password1 c7 --host2 d7 --user2 e7 --password2 f7 --extra blurp
+--host1 a8 --user1 b8 --password1 c8 --host2 d8 --user2 e8 --password2 f8 --extra blurp'
+        run_test test "$lines_out" = "`run_on_each_line "$lines"`"
+
+        # command = echo imapsync
+        lines_out='imapsync --host1 a1 --user1 b1 --password1 c1 --host2  --user2  --password2 
+imapsync --host1 a2 --user1 b2 --password1 c2 --host2  --user2  --password2 
+imapsync --host1 a3 --user1 b3 --password1 c3 --host2 d3 --user2 e3 --password2 f3
+imapsync --host1 a4 --user1 b4 --password1 c4 --host2 d4 --user2 e4 --password2 f4
+imapsync --host1 a5 --user1 b5 --password1 c5 --host2 d5 --user2 e5 --password2 f5 --extra blurp
+imapsync --host1 a6 --user1 b6 --password1 c6 --host2 d6 --user2 e6 --password2 f6 --extra blurp
+imapsync --host1 a7 --user1 b7 --password1 c7 --host2 d7 --user2 e7 --password2 f7 --extra blurp
+imapsync --host1 a8 --user1 b8 --password1 c8 --host2 d8 --user2 e8 --password2 f8 --extra blurp'
+        run_test test "$lines_out" = "`run_on_each_line "$lines"  echo imapsync`"
+
+
+        # 23-2x
+        # "" input
+        lines='a1;b1;c1;d1;e1;f1;--caca "KK"'
+
+        # no command (so echo)
+        lines_out='--host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1 --caca "KK"'
+        run_test test "$lines_out" = "`run_on_each_line "$lines"`"
+
+
+        # command = echo imapsync
+        lines_out='imapsync --host1 a1 --user1 b1 --password1 c1 --host2 d1 --user2 e1 --password2 f1 --caca "KK"'
+        run_test test "$lines_out" = "`run_on_each_line "$lines" echo imapsync`"
 
 }
+
+
+remove_double_quotes()
+{
+        echo "$1" | tr -d '"'
+}
+
+tests_remove_double_quotes()
+{
+        echo 'Entering tests_remove_double_quotes()'
+        run_test test -z `remove_double_quotes`
+        run_test test 'abc' = `remove_double_quotes 'abc'`
+        run_test test -z `remove_double_quotes '"'`
+        run_test test -z `remove_double_quotes '""'`
+        run_test test 'abc' = `remove_double_quotes '"ab"c'`
+        echo 'Leaving  tests_remove_double_quotes()'
+}
+
+
+
 
 hashsync()
 {
         #set -x
-        mystring=${1:-''}
-        mykey=${2:-''}
+        mystring=`remove_double_quotes ${1:-''}`
+        mykey=${2:-''} 
         # impressive! is not it? quoting shit!
         perl -MDigest::HMAC_SHA1 -e 'print Digest::HMAC_SHA1::hmac_sha1_hex( "'"$mystring"'", "'"$mykey"'" )'
         #set +x
@@ -385,11 +462,16 @@ hashsync()
 
 tests_hashsync()
 {
+        echo 'Entering tests_hashsync()'
         run_test test 'fbdb1d1b18aa6c08324b7d64b71fb76370690e1d' = `hashsync`
         run_test test 'fbdb1d1b18aa6c08324b7d64b71fb76370690e1d' = `hashsync ''`
         run_test test 'fbdb1d1b18aa6c08324b7d64b71fb76370690e1d' = `hashsync '' ''`
         run_test test 'e86a28a3611c1e7bbaf8057cd00ae122781a11fe' = `hashsync 'zzz' ''`
         run_test test '6a7b451ac99eab1531ad8e6cd544b32420c552ac' = `hashsync 'zzz' 'A'`
+        
+        run_test test 'fbdb1d1b18aa6c08324b7d64b71fb76370690e1d' = `hashsync '""'`
+        run_test test 'e86a28a3611c1e7bbaf8057cd00ae122781a11fe' = `hashsync '"zzz"'`
+        echo 'Leaving  tests_hashsync()'
 }
 
 tests_caca()
@@ -480,7 +562,9 @@ tests()
                 tests_run_on_each_line \
                 tests_hashsync \
                 tests_is_blank_or_comment \
-                tests_logfailures
+                tests_logfailures \
+                tests_remove_double_quotes \
+                
 }
 
 
@@ -595,7 +679,7 @@ justlogin()
         date
         test -f abort_$$.txt && { echo Abort demanded so not doing normal stuff ; return ; }
         echo Now run imapsync --justlogin to check all credentials are ok
-        if run_on_each_line "$csv_data_unescaped" "" \
+        if run_on_each_line "$csv_data_unescaped" \
                 imapsync --no-modulesversion --justlogin --tmpdir . 
         then
                 echo success of the just login check round
@@ -612,8 +696,8 @@ justfoldersizes()
 ######################## just folders sizes counting round #####################'
         date
         test -f abort_$$.txt && { echo Abort demanded so not doing normal stuff ; return ; }
-        echo Now run imapsync --justlogin to check all credentials are ok
-        run_on_each_line "$csv_data_unescaped" "" \
+        echo Now run imapsync --justfoldersizes to show the volume to be synced
+        run_on_each_line "$csv_data_unescaped" \
                 imapsync --no-modulesversion --justfoldersizes --tmpdir . \
                 || return 1
 }
@@ -625,8 +709,8 @@ sync_all()
 ######################## now sync them all round ###############################'
         date
         test -f abort_$$.txt && { echo Abort demanded so not doing normal stuff ; return ; }
-        echo Now run imapsync --justlogin to check all credentials are ok
-        run_on_each_line "$csv_data_unescaped" "" \
+        echo Now run imapsync on the data given
+        run_on_each_line "$csv_data_unescaped" \
                 imapsync --no-modulesversion --tmpdir . \
                 || return 1
 }
@@ -647,11 +731,13 @@ main()
         # All stderr to stdin, yeah I am like that
         exec 2>&1
         
-        # Some tests
+        # Some tests, uncomment which one you work with and also the return one
         #run_tests tests_is_blank_or_comment
         #run_tests tests_run_on_each_line
         #run_tests tests_remove_blanks_and_comments
         #tests_hashsync
+        #run_tests tests_logfailures
+        #tests_remove_double_quotes
         #return
 
         tests_all_verbose_if_failure || return 1
@@ -662,7 +748,9 @@ main()
         
         getcsvdata
         
-        hashsync=`hashsync $csv_data_pure`
+        hashsync=`hashsync "$csv_data_pure"`
+        
+        test -z $hashsync && return 1
 
         change_working_directory_if_under_cgi /var/tmp/imapsync_cgi/$hashsync/
 
@@ -678,9 +766,8 @@ main()
         unset SERVER_SOFTWARE
         
         # Now the real stuff
-        justlogin || return 1
-        
-        justfoldersizes 
+        #justlogin || return 1
+        #justfoldersizes 
         
         sync_all || return 1
 
@@ -694,6 +781,3 @@ main()
 tests_initialisation
 main
 return 0
-
-
-

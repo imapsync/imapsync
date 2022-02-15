@@ -1,45 +1,122 @@
 #!/bin/cat
-# $Id: FAQ.Security.txt,v 1.23 2021/06/22 15:32:10 gilles Exp gilles $
+# $Id: FAQ.Security.txt,v 1.26 2021/07/11 12:11:38 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.Security.txt
 
-
 =======================================================================
       Imapsync tips about security. Issues and solutions.
 =======================================================================
 
-SSL: going to encryption before the imap session start. 
-     It is on port 993.
+Questions answered in this FAQ are:
 
-TLS: going to encryption after the imap session start but before
-     the credential are sent. It is on port 143.
+Q. Is running this program a secure method of transferring emails?  
+   Are there any security concerns?
+
+Q. Does imapsync refer to SSL security protocols with --ssl1 and --ssl2 
+   and does it refer to TLS security protocols with the --tls1 and --tls2
+   options? 
+   Short answer: No.
+
+Q. I noticed that the online UI has no option for TLS/SSL. 
+   Is this secure? 
+   Is this more secure than using the .bat file on my computer?
+
+Q. Are transferred emails/attachments stored on any other 
+   server/location aside from my originating/destination server(s)?
+
+Q. Other than changing passwords on the originating/destination email
+   accounts once the relevant emails have been moved,
+   are there any other security tips I should know?
+
+Q. I need to transfer mail from an imap server to another imap server.
+   Which ports need to be open on the firewall to make this possible?
+
+Q. Does imapsync support the IMAP command STARTTLS?
+
+Q. Does imapsync support IMAP over SSL/TLS (IMAPS)?
+
+Q. How can I test an ssl/tls imap connection without imapsync?
+
+Q. How can I manually test login using --ssl?
+
+Q. Imapsync used to use SSL_VERIFY_PEER now it uses SSL_VERIFY_NONE.
+   How can I change this back to the more secure SSL_VERIFY_PEER?
+
+Q: How can I have an imaps server?
+
+Now the questions again with their answers.
 
 =======================================================================
 Q. Is running this program a secure method of transferring emails?  
    Are there any security concerns?
 
-R. Well, it depends. Use encryption, secure the access to the host running
-   imapsync and everything shall be safe.
+R. Well, it depends. Use encryption and secure access to the host running
+   imapsync then everything shall be safe.
 
 =======================================================================
-Q. I noticed that the online UI has no option for TLS/SSL 
-   Is this secure? Is this more secure that using the .bat file 
-   on my computer?
+Q. Does imapsync refer to SSL security protocols with --ssl1 and --ssl2 
+   and does it refer to TLS security protocols with the --tls1 and --tls2
+   options? 
+   Short answer: No.
 
-R1. The online UI does TLS/SSL imap connections if the imap
-    servers support TLS/SSL. If you are concerned by security then 
-    using the .bat file or .sh on your computer should be more secure 
-    since you can examine and secure it by yourself, no matter high is
-    your paranoid spirit. The online UI security is mine, I am
-    concerned by security, not to the upmost high level possible 
-    but I won't give you direct access to the host to discover my level.
-    With a good guy spirit, feel free to try to break the online UI 
-    security and report me any security issue you encounter, I'll do my
-    best to fix them as soon as possible. Drop me a note before
-    starting because I may detect a sort of abuse and ban 
-    definitively your IPs.
+R. No.
+
+Imapsync behaviour:
+
+--ssl: Goes to encryption before the imap session start. 
+     The connection is on port 993. 
+     Can use the TLS or SSL security protocols.
+     Fails if encryption cannot be established.
+
+--tls: Goes to encryption after the imap session start but before the
+     credential are sent. 
+     The connection is on port 143.  
+     Can use the TLS or SSL securityprotocols.  
+     Fails if encryption cannot be established.
+
+Explanation:
+
+To force transferring emails over an encrypted connection, you can use
+the imapsync parameters --ssl1 and --ssl2 or the parameters --tls1 and
+--tls2, they all force the connection to be encrypted by the security
+protocols series SSL/TLS.
+
+In a security context, SSL refers to all deprecated Secure Sockets
+Layer protocols. TLS refers to the SSL successors, Transport Layer
+Security protocols. But TLS 1.0 and TLS 1.1 are also deprecated.
+
+Current endorsed versions of TLS are only TLS 1.2 and TLS 1.3 (July 2021).
+
+The whole story is detailed here:
+https://en.wikipedia.org/wiki/Transport_Layer_Security
+
+Options --ssl1 and --ssl2 are a little more paranoid than --tls1 and
+--tls2 because they verify that the hostname of the certificate is the
+same as the one used by imapsync. Other than that, the security
+behavior is the same.
+
+=======================================================================
+Q. I noticed that the online UI has no option for TLS/SSL. 
+   Is this secure? 
+   Is this more secure than using the .bat file on my computer?
+
+R1. The online UI does TLS/SSL imap connections if the imap servers
+support TLS/SSL. 
+
+If you are concerned about security then using the .bat file or .sh on
+your computer should be more secure since you can examine and secure
+it by yourself, no matter high is your paranoid spirit compared to
+mine.
+
+The online UI security is mine, I am concerned by security, not to the
+utmost high level possible but I won't give you direct access to the
+host to discover my level.  With a good guy spirit, feel free to try
+to break the online UI security and report me any security issue you
+encounter, I'll do my best to fix them as soon as possible. Drop me a
+note before starting because I may detect a sort of abuse and ban your
+IPs.
 
 =======================================================================
 Q. Are transferred emails/attachments stored on any other 
@@ -48,15 +125,15 @@ Q. Are transferred emails/attachments stored on any other
 R. No!
 
 =======================================================================
-Q. Other than changing passwords on the originating/destination email 
-   accounts once the relevant emails have been moved, 
+Q. Other than changing passwords on the originating/destination email
+   accounts once the relevant emails have been moved,
    are there any other security tips I should know?
 
-R. Secure the host where imapsync is running since credentials are
-   on it.
+R. Yes. Secure the host where imapsync is running since credentials
+   are on it.
 
 =======================================================================
-Q. I need to transfer mail from an imap server to an other imap server. 
+Q. I need to transfer mail from an imap server to another imap server.
    Which ports need to be open on the firewall to make this possible?
 
 R. It depends. Open either:
@@ -64,29 +141,31 @@ R. It depends. Open either:
     * port 993 in ssl mode (--ssl1 or --ssl2)
 
 =======================================================================
-Q. Does imapsync support IMAP TLS?
+Q. Does imapsync support the IMAP command STARTTLS?
 
 R1. Yes. 
-   Use --tls1 and/or --tls2 options:
 
-  --tls1 tells imapsync to use tls on host1.
-  --tls2 tells imapsync to use tls on host2.
+   Use --tls1 and --tls2 options:
 
-R2. Since imapsync release 1.755 TLS mode is activated automatically
-    if the server announce it supports it, STARTTLS inside the response 
-    to CAPABILITY, and if neither --notls nor --ssl is explicitely
-    mentioned on the command line options.
+  --tls1 tells imapsync to use STARTTLS on host1.
+  --tls2 tells imapsync to use STARTTLS on host2.
+
+R2. Since imapsync release 1.755 STARTTLS mode is activated
+    automatically when the server announces that it supports it by
+    listing STARTTLS inside the response to the CAPABILITY command.
+    If either --notls or --ssl are explicitly mentioned on the
+    command-line options then STARTTLS won't be done.
 
 =======================================================================
-Q. Does imapsync support IMAP over SSL (IMAPS)?
+Q. Does imapsync support IMAP over SSL/TLS (IMAPS)?
 
 R. Yes natively since release 1.161. 
    Still, there are 2 ways, at least, to use ssl:
 
 a) Use native --ssl1 and/or --ssl2 options
 
-  --ssl1 tells imapsync to use ssl on host1.
-  --ssl2 tells imapsync to use ssl on host2.
+  --ssl1 tells imapsync to use ssl/tls on host1.
+  --ssl2 tells imapsync to use ssl/tls on host2.
 
 
 b) Use stunnel
@@ -108,18 +187,18 @@ b) Use stunnel
    If the local port 143 is already taken then use a free one, 
    like 10143 for example.
 
-c) Other example for accessing gmail with no local root access 
-   to open port 143
+c) Another example for accessing Gmail with no local root access 
+   to open port 143:
 
    stunnel3 -P '' -c -d 9993 -r imap.gmail.com:993 -f 
 
-Then, to access gmail as host2 use:
+Then, to access Gmail as host2 use:
 
   imapsync ... --host2 localhost --port2 9993 --nossl2 
 
 
 =======================================================================
-Q.How can I test an ssl imap connection without imapsync?
+Q.How can I test an ssl/tls imap connection without imapsync?
 
 R1. Use either ncat or telnet-ssl or openssl commands like in the 
     following examples with imap.gmail.com server:
@@ -133,37 +212,39 @@ R1. Use either ncat or telnet-ssl or openssl commands like in the
 The previous commands are interactive, hit ctrl-c
 to finish them. If you want to finish automatically, then use: 
 
-  { sleep 2; echo "a logout"; sleep 1; } | ncat --ssl -C  imap.gmail.com 993
+  { sleep 2; echo "A LOGOUT"; sleep 1; } | ncat --ssl -C  imap.gmail.com 993
 
 
 =======================================================================
-Q. How can I manually test a login via ssl?
+Q. How can I manually test login using --ssl?
 
 R. Use either ncat or telnet-ssl or openssl commands like in the 
     following examples with imap.gmail.com server:
 
   ncat --ssl -C imap.gmail.com 993
+
   telnet-ssl -z ssl  imap.gmail.com 993
+
   openssl s_client -crlf  -connect imap.gmail.com:993
 
-Tipical dialog for an imap LOGIN command:
+Typical dialog for an imap LOGIN command:
   
 * OK Gimap ready for requests from 78.196.254.58 q1mb175739668wix
-a LOGIN "gilles.lamiral@gmail.com" "secret" 
+A1 LOGIN "gilles.lamiral@gmail.com" "secret" 
 * CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE ... ESEARCH
-a OK gilles.lamiral@gmail.com Gilles Lamiral authenticated (Success)
-b LOGOUT
+A1 OK gilles.lamiral@gmail.com Gilles Lamiral authenticated (Success)
+A2 LOGOUT
 * BYE LOGOUT Requested
-b OK 73 good day (Success)
+A2 OK 73 good day (Success)
 
 The client part you have to type is 
-a LOGIN ... 
-b LOGOUT
+A1 LOGIN ... 
+A2 LOGOUT
 while replacing ... by your credentials values,
 other lines are the server responses.
 
 =======================================================================
-Q.How can I test an tls imap connection without imapsync?
+Q. How can I test a STARTTLS imap connection without imapsync?
 
 R1. Use openssl command like the following example with 
     an outlook.office365.com server:
@@ -177,13 +258,12 @@ to finish them. If you want to finish automatically, then use:
 
 Replace outlook.office365.com with your imap server name.
 
-
 ======================================================================
 Q. Imapsync used to use SSL_VERIFY_PEER now it uses SSL_VERIFY_NONE.
    How can I change this back to the more secure SSL_VERIFY_PEER?
 
 
-R2. After imapsync 1.673, 
+R. After imapsync 1.673, 
     to set SSL_verify_mode to SSL_VERIFY_PEER on host1
     and    SSL_verify_mode to SSL_VERIFY_NONE on host2
 
@@ -191,18 +271,20 @@ R2. After imapsync 1.673,
                 --sslargs1 SSL_verify_mode=1 \
                 --sslargs2 SSL_verify_mode=0 
 
-See perldoc IO::Socket::SSL for all possibilities, also at
+See "perldoc IO::Socket::SSL" for all possibilities, also at
 http://search.cpan.org/perldoc?IO%3A%3ASocket%3A%3ASSL
 
-It might be possible you need an extra:
-                --sslargs1 SSL_ca_file=/etc/ssl/certs/ca-certificates.crt 
+It might be possible you need an extra option
+
+  --sslargs1 SSL_ca_file=/etc/ssl/certs/ca-certificates.crt 
+
 to help the ssl software verifying the server certificate.
 The file ca-certificates.crt may be elsewhere on your system, even 
 named differently.
 
 The imap server certificates are not checked for authenticity 
-(by default) because too many imap servers are crappy configured 
-regarding certified certificates.
+by imapsync by default because too many imap servers are crappy 
+configured regarding certified certificates.
 
 This default behavior is chosen like this because users
 want their emails transferred, instead of being not transferred 
@@ -211,12 +293,13 @@ because of an incompetent imap server sysadmin.
 I admit that this part, checking imap ssl/tls certificates, 
 could be improved from my side by including well known 
 certificates directly in imapsync.
-Drop me a note to encourage me.
+Drop me a note to encourage me, I'm lazy.
 
 =======================================================================
-Q: How to have an imaps server?
+Q: How can I have an imaps server?
 
-R. 
+R. Three solutions.
+
 a) Install one 
 
 b) or use stunnel :
