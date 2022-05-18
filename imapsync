@@ -375,6 +375,7 @@ Same thing for user2 password.
  --nolog             : Turn off logging on file
  --logfile      str  : Change the default log filename (can be dirname/filename).
  --logdir       str  : Change the default log directory. Default is LOG_imapsync/
+ --noout             : Turn off logging on STDOUT when logfile is specified
 
 The default logfile name is for example
 
@@ -1438,7 +1439,8 @@ $sync->{ biggest_message_transferred } = 0;
    Dec => '11',
 );
 
-
+# Enable STDOUT by default before get_options() call
+$sync->{ out } = 1;
 
 # Just create a CGI object if under cgi context only.
 # Needed for the get_options() call
@@ -1531,8 +1533,9 @@ binmode STDOUT, ":encoding(UTF-8)" ;
 
 if ( $sync->{ log } ) {
         setlogfile( $sync ) ;
-        teelaunch( $sync ) ;
-        # now $sync->{tee} is a filehandle to STDOUT and the logfile
+        my $tee = teelaunch( $sync ) ;
+        # Now $sync->{ tee } is a filehandle to STDOUT and the logfile and we can remove STDOUT if required:
+        pop @{*{$tee}} unless $sync->{ out };
 }
 
 #binmode STDERR, ":encoding(UTF-8)" ;
@@ -18150,7 +18153,7 @@ sub teelaunch
         open my $logfile_handle, '>', $logfile
           or croak( "Can not open $logfile for write: $OS_ERROR" ) ;
         binmode $logfile_handle, ":encoding(UTF-8)" ;
-        my $tee = IO::Tee->new( $logfile_handle, \*STDOUT ) ;
+        my $tee = IO::Tee->new( $logfile_handle, $mysync->{out} ? (\*STDOUT) : () ) ;
         $tee->autoflush( 1 ) ;
         $mysync->{logfile_handle} = $logfile_handle ;
         $mysync->{tee} = $tee ;
@@ -18167,7 +18170,7 @@ sub teefinish
 
         if ( ! defined( $tee ) ) { return ; }
 
-        if ( 2 == scalar $tee->handles )
+        if ( ( $mysync->{out} ? 2 : 1 ) == scalar $tee->handles )
         {
                 shift @{*{$tee}};
         }
@@ -19984,6 +19987,7 @@ sub get_options_cmd
         'maxsleep=f'             => \$mysync->{maxsleep},
         'skipcrossduplicates!'   => \$skipcrossduplicates,
         'debugcrossduplicates!'  => \$debugcrossduplicates,
+        'out!'                   => \$mysync->{out},
         'log!'                   => \$mysync->{log},
         'tail!'                  => \$mysync->{tail},
         'logfile=s'        => \$mysync->{logfile},
