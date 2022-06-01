@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Docker_build.txt,v 1.15 2021/11/29 11:56:11 gilles Exp gilles $
+# $Id: INSTALL.Docker_build.txt,v 1.16 2022/04/05 13:20:24 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -14,25 +14,39 @@ Nearly verbatim copy from https://imapsync.lamiral.info/INSTALL.d/Dockerfile
 
 ## Dockerfile for building a docker imapsync image
 
-# Id: Dockerfile,v 1.38 2021/11/29 10:20:56 gilles Exp gilles $
+# Id: Dockerfile,v 1.42 2022/04/04 19:16:50 gilles Exp gilles $
 # I use the following command to build the image:
 #
 #  docker build -t gilleslamiral/imapsync . 
 #
 # where this Dockerfile is in the current directory
 # 
+# This Dockerfile build an image with two imapsync
+# 1) One comes from https://imapsync.lamiral.info/imapsync
+#    and goes to /usr/bin/imapsync in the Docker image
+#    It is used with the command:
+#
+#    docker run gilleslamiral/imapsync imapsync ...
+# 
+# 2) One comes from the local file ./imapsync
+#    and goes to /imapsync in the Docker image
+#    It is used with the command:
+#
+#    docker run gilleslamiral/imapsync /imapsync ...
+
+
 # I thank you very much
 # I like thanks
 # I like stars
-# I also need money to keep on doing this stuff
+# I like money to keep on doing this stuff
 
-# Number of imapsync images pulled so far (2021_11_29): 608326
+# Number of imapsync images pulled so far (2022_04_04): 673551
 # Command used:
 # curl -s https://hub.docker.com/v2/repositories/gilleslamiral/imapsync/ | jq '.pull_count'
 
-# Debian Buster is Debian 10
+# Debian Bullseye is Debian 11
 
-FROM debian:buster 
+FROM debian:bullseye 
 
 LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
         description="Imapsync" \
@@ -43,8 +57,6 @@ LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
 # Also put optionally my local and usually more recent imapsync on /, for testing purpose
 
 COPY Dockerfile imapsyn[c] prerequisites_imapsyn[c] /
-
-
 
 RUN set -xe && \
   apt-get update \
@@ -83,7 +95,11 @@ RUN set -xe && \
   ncat \
   openssl \
   ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && cpanm IO::Socket::SSL
+
+# I added the IO::Socket::SSL update to avoid the annoying, confusing and useless warning
+# DEBUG: .../IO/Socket/SSL.pm:1177: global error: Undefined SSL object
 
 RUN set -xe \
   && cd /usr/bin/ \
@@ -92,7 +108,7 @@ RUN set -xe \
         https://imapsync.lamiral.info/prerequisites_imapsync \
         https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py \
   && chmod +x imapsync oauth2.py \
-  && /usr/bin/imapsync --testslive && /usr/bin/imapsync --tests # just_a_comment_to_force_update 2021_11_29_11_20_56
+  && /usr/bin/imapsync --testslive && /usr/bin/imapsync --tests # just_a_comment_to_force_update 2022_04_04_21_16_50
 
 USER nobody:nogroup
 
@@ -106,8 +122,6 @@ CMD ["/usr/bin/imapsync"]
 
 # 
 # End of imapsync Dockerfile 
-
-
 
 =======================================================================
 =======================================================================

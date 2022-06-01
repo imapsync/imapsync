@@ -1,0 +1,55 @@
+$Id: FAQ.Capacity_Planning.txt,v 1.3 2022/03/22 11:12:25 gilles Exp gilles $
+
+This documentation is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Capacity_Planning.txt
+
+
+======================================================================
+            Imapsync tips for Capacity Planning.
+======================================================================
+
+
+I plan to go to a distributed architecture for the online service. I'm
+doing some capacity planning. Imapsync takes memory, cpu and bandwidth
+in a relatively deterministic values.
+
+My current question is: Shall I use 
+* N   2GB hosts
+* N/2 4GB hosts
+* N/4 8GB hosts
+
+Let's do some maths
+
+The CPU can be an issue. On average, an imapsync run takes 5% of the
+overall cpu time for a Intel i5-2300 with 4 cores.  It implies 20
+imapsync runs is ok on the current online host before the cpus become
+the bottleneck.  As a rule of thumb, imapsync takes 20% of a cpu core.
+
+The RAM can be an issue. On average, an imapsync run takes 250 MB.  So
+4 imapsync processes per GB is the limit before swapping to disk,
+which is a known phenomenum telling when memory becomes the bottleneck.
+16 GB allows 64 imapsync processes.
+
+The Bandwidth I/O can be an issue.  The "Average bandwidth rate" value
+given by imapsync at the end of a transfer, and also the bandwidth
+rate given during the sync on the ETA line, is the total size of all
+messages copied divided by the time passed. If imapsync is run between
+two foreign imap servers then the total size transferred on the
+network link is twice this value, one time when getting the message
+from host1, rx, and one time sending the message to host2, tx.
+
+On average, an imapsync runs at 3 Mbps both ways, rx and tx, so 6 Mbps
+in total.  So a 100 Mbps symetric link allows 33 imapsync processes
+before the link becomes the bottleneck.
+
+The best minutes observed so far are a global 187 Mpbs rate (23 MiB/s) 
+on a 100 Mbps symetrical link done by 28 imapsync processes in parallel, 
+6.7 Mbps per process at that minute.  But the best minutes observed for a
+single imapsync process is at 103 Mbps, the rx/tx link limit.
+
+
+The harddisk I/O can be an issue. I don't measure it yet because
+imapsync doesn't perform heavy I/0 where it runs. Well, I don't know,
+no measure is no knowledge, just guesses.
+

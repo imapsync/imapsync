@@ -1,17 +1,110 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 2.178
+head: 2.200
 branch:
 locks: strict
-	gilles: 2.178
+	gilles: 2.200
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 1078;	selected revisions: 1078
+total revisions: 1100;	selected revisions: 1100
 description:
 ----------------------------
-revision 2.178	locked by: gilles;
+revision 2.200	locked by: gilles;
+date: 2022/04/04 16:05:55;  author: gilles;  state: Exp;  lines: +14 -10
+typo. "check the certificate server" => "check the server certificate."
+----------------------------
+revision 2.199
+date: 2022/04/01 19:45:33;  author: gilles;  state: Exp;  lines: +15 -14
+Enhancement. Added the local ip address for the imap connexions. It can help configuring firewalls to allow the imap source IP.
+----------------------------
+revision 2.198
+date: 2022/04/01 11:13:01;  author: gilles;  state: Exp;  lines: +10 -12
+Added SERVER_NAME SERVER_ADDR SERVER_ADMIN variables and values to the output.
+----------------------------
+revision 2.197
+date: 2022/03/30 10:43:22;  author: gilles;  state: Exp;  lines: +29 -28
+Bugfix. --tests --testslive was listing 0 folders.
+Added message "Use --noemailreport1 to avoid it" after putting the email final report in INBOX.
+----------------------------
+revision 2.196
+date: 2022/03/25 20:35:59;  author: gilles;  state: Exp;  lines: +120 -67
+Bugfix. Dates were not displayed under Windows because POSIX::strftime %e is not portable.
+Bugfix. Several other places where dates were wrong on Windows.
+----------------------------
+revision 2.195
+date: 2022/03/24 10:00:09;  author: gilles;  state: Exp;  lines: +26 -29
+Added warning "parsing headers of folder ... It can take time for huge folders. Be patient."
+----------------------------
+revision 2.194
+date: 2022/03/17 11:04:16;  author: gilles;  state: Exp;  lines: +16 -15
+Bugfix. --var HTTP_COOKIE=proximapsync_runs=31 was not working because of the second =
+----------------------------
+revision 2.193
+date: 2022/03/15 11:30:02;  author: gilles;  state: Exp;  lines: +101 -105
+Refactor. Deglobalized $debuglist $debugflags 
+Refactor. Added sync->{ permanentflags2 }
+----------------------------
+revision 2.192
+date: 2022/03/11 18:26:06;  author: gilles;  state: Exp;  lines: +88 -46
+Bugfix. Do not allow --skipcrossduplicates and --usecache. Exit EX_USAGE 64
+----------------------------
+revision 2.191
+date: 2022/03/08 10:55:21;  author: gilles;  state: Exp;  lines: +131 -48
+Added --var to pass values from proximapsync for variables REMOTE_ADDR REMOTE_HOST HTTP_REFERER HTTP_USER_AGENT SERVER_SOFTWARE SERVER_PORT HTTP_COOKIE
+----------------------------
+revision 2.190
+date: 2022/03/01 21:48:11;  author: gilles;  state: Exp;  lines: +31 -8
+Bugfix. Do not turn on --delete2duplicates when --syncduplicates is on, unless --delete2duplicates is given.
+----------------------------
+revision 2.189
+date: 2022/02/28 18:10:10;  author: gilles;  state: Exp;  lines: +9 -11
+Upped ERRORS_MAX_CGI from 20 to 500
+----------------------------
+revision 2.188
+date: 2022/02/26 22:43:55;  author: gilles;  state: Exp;  lines: +182 -100
+Refactor. Changed setlogfile() to be usable for different logs by proximapsync.
+----------------------------
+revision 2.187
+date: 2022/02/23 12:01:25;  author: gilles;  state: Exp;  lines: +26 -7
+Documented why total sizes can differ even when the sync is perfect.
+----------------------------
+revision 2.186
+date: 2022/02/22 22:39:50;  author: gilles;  state: Exp;  lines: +27 -21
+Bugfix. Redirect STDERR to STDOUT in all cases, --log or --nolog
+----------------------------
+revision 2.185
+date: 2022/02/11 21:36:18;  author: gilles;  state: Exp;  lines: +19 -11
+Added option --emailreport1 and --emailreport2. On by default. Use --noemailreport1 and --noemailreport2 to avoid final emails reports in each INBOX.
+----------------------------
+revision 2.184
+date: 2022/02/10 17:37:57;  author: gilles;  state: Exp;  lines: +91 -31
+Added final report to source account also.
+----------------------------
+revision 2.183
+date: 2022/02/06 13:14:33;  author: gilles;  state: Exp;  lines: +29 -29
+Added folder name in the debug output of header identificators
+----------------------------
+revision 2.182
+date: 2022/02/01 20:49:51;  author: gilles;  state: Exp;  lines: +10 -10
+Bugfix. GMT is good but the tests had to be changed also...
+----------------------------
+revision 2.181
+date: 2022/02/01 20:19:22;  author: gilles;  state: Exp;  lines: +23 -10
+Bugfix. Use GMT in tests_email_report_message_id
+Bugfix. Make the email report w3c validated. Crazy man!
+----------------------------
+revision 2.180
+date: 2022/02/01 15:14:51;  author: gilles;  state: Exp;  lines: +373 -30
+Enhancement. Append a final email report on account2 at the end of the synchronization. Will be optionnal soon.
+----------------------------
+revision 2.179
+date: 2022/01/26 14:32:19;  author: gilles;  state: Exp;  lines: +134 -139
+README reread, grammarly on it.
+Added "Posta inviata" so \Sent with --automap
+----------------------------
+revision 2.178
 date: 2022/01/12 21:28:37;  author: gilles;  state: Exp;  lines: +75 -13
 Added tests_compress_ssl()
 ----------------------------

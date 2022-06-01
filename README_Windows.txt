@@ -1,4 +1,4 @@
-# $Id: README_Windows.txt,v 1.26 2022/01/14 11:54:28 gilles Exp gilles $
+# $Id: README_Windows.txt,v 1.27 2022/04/05 19:45:21 gilles Exp gilles $
 # 
 # This is the README_Windows.txt file for imapsync 
 # imapsync: IMAP syncing and migration tool.
@@ -43,13 +43,13 @@ A.0) Preamble for visual users looking for a visual tool.
 A.1) Get imapsync.
 
  Get imapsync at https://imapsync.lamiral.info/
- You'll then have access to a zip archive file named imapsync_2.178.zip
- where 2.178 is the imapsync release number.
+ You'll then have access to a zip archive file named imapsync_2.200.zip
+ where 2.200 is the imapsync release number.
 
 A.2) Extract the zip file in a folder where you will work with imapsync.
 
  You can work on the Desktop since the zip file extraction creates
- a unique folder named imapsync_2.178/
+ a unique folder named imapsync_2.200/
  
  Do not unzip the archive in what is called a "system" directory since
  you may encounter permission issues.
@@ -62,7 +62,7 @@ In short, any user on your system can use imapsync.
 
 A.3) Check the folder
 
- In the folder extracted and called imapsync_2.178, you see 7 files
+ In the folder extracted and called imapsync_2.200, you see 7 files
  and 2 directories.  Those files and directories may be presented in a
  different order than the following, the order is not important
  anyway. There are only two important files to get your mailbox

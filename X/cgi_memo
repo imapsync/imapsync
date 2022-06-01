@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: cgi_memo,v 1.74 2021/11/25 11:25:13 gilles Exp gilles $
+# $Id: cgi_memo,v 1.78 2022/03/28 09:24:08 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -154,10 +154,10 @@ longest_transfer()
         LC_ALL=C printf "%.0f\n" `datamash_file_op_index "$statsfile" max 4`
 }
 
-echoq number_and_pids_of_imapsync_running
-number_and_pids_of_imapsync_running()
-{
-    echo "`number_of_imapsync_running` : `pids_of_imapsync_running`"
+
+echoq pids_of_imapsync_running
+pids_of_imapsync_running() {
+    pgrep -d ' ' -f cgi-bin/imapsync
     : # always return true
 }
 
@@ -168,10 +168,23 @@ number_of_imapsync_running()
     : # always return true
 }
 
-echoq pids_of_imapsync_running
-pids_of_imapsync_running() {
-    pgrep  -d ' ' -f   cgi-bin/imapsync
+echoq number_and_pids_of_imapsync_running
+number_and_pids_of_imapsync_running()
+{
+    echo "`number_of_imapsync_running` : `pids_of_imapsync_running`"
     : # always return true
+}
+
+echoq memory_used_by_all_imapsync_KiB
+memory_used_by_all_imapsync_KiB()
+{
+        # Sum up all memory taken by imapsync runs, in KiB.
+        pids_of_imapsync_running=`pids_of_imapsync_running`
+        if test -n "$pids_of_imapsync_running" ; then
+                ps -o vsz -p $pids_of_imapsync_running | sed 1,1d | datamash sum  1
+        else
+                echo 0
+        fi
 }
 
 echoq oom_immune_imapsync_running
@@ -335,43 +348,41 @@ grep_all_stat_from_patterns_list() {
 
 sum_first_column_G_HTTP_USER_AGENT_sorted()
 {
-        awk '{sum += $1} END {print sum}' G_HTTP_USER_AGENT_sorted.txt
+        awk '{sum += $1} END {print sum}'  G_HTTP_USER_AGENT_${1}_sorted.txt
 }
 
 stat_useragent_X()
 {
-         grep -o 'HTTP_USER_AGENT.*' G_HTTP_USER_AGENT.txt \
+         grep -o 'HTTP_USER_AGENT.*' G_HTTP_USER_AGENT_$1.txt \
          | tail -10000000 | sort | egrep -o -w 'Mozilla/5.0 \([^;]+' \
          | sort | egrep -o '\([a-zA-Z]+' | sort  | uniq -c | sort -g \
-         | grep -v KHTML | tr -d '(' > G_HTTP_USER_AGENT_sorted.txt
-         
-         
+         | grep -v KHTML | tr -d '(' > G_HTTP_USER_AGENT_${1}_sorted.txt
 }
 
 echoq 'percent_stat_useragent_X'
 percent_stat_useragent_X()
 {
-        stat_useragent_X
-        sum_first_column_G_HTTP_USER_AGENT=`sum_first_column_G_HTTP_USER_AGENT_sorted`
+        stat_useragent_X "$1"
+        sum_first_column_G_HTTP_USER_AGENT=`sum_first_column_G_HTTP_USER_AGENT_sorted $1`
         { while read num_useragent useragent ; do
                 #echo KK $num_useragent $useragent
                 PerCent=`echo "scale=2; 100*$num_useragent/$sum_first_column_G_HTTP_USER_AGENT" | bc -l`
                 echo "$useragent $PerCent %    ( $num_useragent / $sum_first_column_G_HTTP_USER_AGENT )"
         done 
-        } < G_HTTP_USER_AGENT_sorted.txt
+        } < G_HTTP_USER_AGENT_${1}_sorted.txt
 
 }
 
 
 stat_load()
 {
-    echo -n 'Load        1 min      5 min   15 min ' ; grep -o 'on.*cores' G_Load.txt|uniq
-    echo -n 'Load min:    ' ; datamash --format=%3.1f -W min    3 min    4 min    5 < G_Load.txt
-    echo -n 'Load q1:     ' ; datamash --format=%3.1f -W q1     3 q1     4 q1     5 < G_Load.txt
-    echo -n 'Load median: ' ; datamash --format=%3.1f -W median 3 median 4 median 5 < G_Load.txt
-    echo -n 'Load mean:   ' ; datamash --format=%3.1f -W mean   3 mean   4 mean   5 < G_Load.txt
-    echo -n 'Load q3:     ' ; datamash --format=%3.1f -W q3     3 q3     4 q3     5 < G_Load.txt
-    echo -n 'Load max:    ' ; datamash --format=%3.1f -W max    3 max    4 max    5 < G_Load.txt
+    echo -n 'Load        1 min      5 min   15 min ' ; grep -o 'on.*cores' G_Load_$1.txt | uniq
+    echo -n 'Load min:    ' ; datamash --format=%3.1f -W min    3 min    4 min    5 < G_Load_$1.txt
+    echo -n 'Load q1:     ' ; datamash --format=%3.1f -W q1     3 q1     4 q1     5 < G_Load_$1.txt
+    echo -n 'Load median: ' ; datamash --format=%3.1f -W median 3 median 4 median 5 < G_Load_$1.txt
+    echo -n 'Load mean:   ' ; datamash --format=%3.1f -W mean   3 mean   4 mean   5 < G_Load_$1.txt
+    echo -n 'Load q3:     ' ; datamash --format=%3.1f -W q3     3 q3     4 q3     5 < G_Load_$1.txt
+    echo -n 'Load max:    ' ; datamash --format=%3.1f -W max    3 max    4 max    5 < G_Load_$1.txt
 }
 
 echoq stat_exit_value
@@ -432,49 +443,82 @@ stat_any() {
 echoq stat_all
 stat_all()
 {
-    stat_load ; echo
+    stat_load "$1" ; echo
     
-    # stat_any  G_REMOTE_ADDR.txt
-    # stat_any  G_REMOTE_HOST.txt
-    # stat_any  G_HTTP_COOKIE.txt
-    # stat_any  G_HTTP_REFERER.txt
-    
-    # See various_usefull()
-    # stat_any  G_Host1_IMAP_server.txt
-    # stat_any  G_Host2_IMAP_server.txt
+    echo G_REMOTE_ADDR_$1.txt
+    egrep -o 'REMOTE_ADDR is .*' G_REMOTE_ADDR_$1.txt | sort -g |  uniq -c | sort -g | tail -5
 
-    # stat_any  G_Host1_banner.txt
-    # stat_any  G_Host2_banner.txt
+    echo
+    echo G_REMOTE_HOST_$1.txt
+    egrep -o 'REMOTE_HOST is .*' G_REMOTE_HOST_$1.txt | sort -g |  uniq -c | sort -g | tail -5
     
-    stat_any  G_Host1_Nb_messages.txt
-    stat_any  G_Host2_Nb_messages.txt
-    stat_any  G_Messages_transferred.txt
-    stat_any  G_Messages_skipped.txt
-    stat_any  G_Messages_found_in_host1_not_in_host2.txt 9
-    stat_any  G_Messages_found_in_host2_not_in_host1.txt 9
+    echo
+    echo G_HTTP_COOKIE_$1.txt 
+    egrep -o 'imapsync_runs=[0-9]+'  G_HTTP_COOKIE_$1.txt  | egrep -o '[0-9]+' | sort -n | tail -1
+    
+    # stat_any  G_HTTP_REFERER.txt
+    echo
+    echo G_HTTP_REFERER_$1.txt 
+    egrep -o 'HTTP_REFERER is .*' G_HTTP_REFERER_$1.txt | sort -g |  uniq -c | sort -g
+    
+    echo
+    echo G_Host1_IMAP_server_$1.txt
+    cat  G_Host1_IMAP_server_$1.txt | datamash -s -W -g 4 count 4 | awk '{ print $2 " " $1 }' | sort -g | tail -5
+
+    echo
+    echo G_Host2_IMAP_server_$1.txt
+    cat  G_Host2_IMAP_server_$1.txt | datamash -s -W -g 4 count 4 | awk '{ print $2 " " $1 }' | sort -g | tail -5
+
+
+    echo
+    stat_any  G_Host1_Nb_messages_$1.txt
+    stat_any  G_Host2_Nb_messages_$1.txt
+    stat_any  G_Messages_transferred_$1.txt
+    stat_any  G_Messages_skipped_$1.txt
+    stat_any  G_Messages_found_in_host1_not_in_host2_$1.txt 9
+    stat_any  G_Messages_found_in_host2_not_in_host1_$1.txt 9
     
     # stat_any  G_Folders_synced.txt
-    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced.txt | egrep -o '^[0-9]+' > G_Folders_synced_.txt
-    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced.txt | egrep -o '[0-9]+/[0-9]+' | egrep -o '[0-9]+$' > G_Folders_total_seen.txt
-    stat_any  G_Folders_synced_.txt 1
-    stat_any  G_Folders_total_seen.txt 1
+    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced_$1.txt | egrep -o '^[0-9]+' > G_Folders_synced__$1.txt
+    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced_$1.txt | egrep -o '[0-9]+/[0-9]+' | egrep -o '[0-9]+$' > G_Folders_total_seen_$1.txt
+    stat_any  G_Folders_synced__$1.txt 1
+    stat_any  G_Folders_total_seen_$1.txt 1
 
     #
-    stat_any  G_Transfer_time.txt
-    stat_any  G_Host1_Total_size.txt
-    stat_any  G_Host2_Total_size.txt
-    stat_any  G_Total_bytes_transferred.txt 5
-    stat_any  G_Message_rate.txt
-    stat_any  G_Average_bandwidth_rate.txt 5
-    stat_any  G_Biggest_message.txt
-    stat_any  G_Detected_errors.txt 2 
+    stat_any  G_Transfer_time_$1.txt
+    stat_any  G_Host1_Total_size_$1.txt
+    stat_any  G_Host2_Total_size_$1.txt
+    stat_any  G_Total_bytes_transferred_$1.txt 5
+    stat_any  G_Message_rate_$1.txt
+    stat_any  G_Average_bandwidth_rate_$1.txt 5
+    stat_any  G_Biggest_message_$1.txt
+    stat_any  G_Detected_errors_$1.txt 2 
     #stat_any  G_Exiting_with_return_value.txt 5 # GROUP
-    stat_any  G_Memory_consumption_at_the_end.txt 7
+    stat_any  G_Memory_consumption_at_the_end_$1.txt 7
     #stat_any  G_failure_Error_login.txt
-    percent_stat_useragent_X ; echo
-    stat_exit_value
     
-    echo "Data made at" `date -r grep_stats.txt`
+    echo cpu time
+    stat_any  G_CPU_time_and_cpu_$1.txt  6
+    echo '%allcpus'
+    stat_any  G_CPU_time_and_cpu_$1.txt 10
+    
+    echo G_Host1_banner_$1.txt
+    server_survey_percent G_Host1_banner_$1.txt  | tail -6
+    
+    echo
+    echo G_Host2_banner_$1.txt
+    server_survey_percent G_Host2_banner_$1.txt  | tail -6
+    
+    echo
+    echo USER_AGENT
+    percent_stat_useragent_X $1 ; 
+    
+    echo
+    echo EXIT values
+    stat_exit_value $1
+    
+    echo
+    echo "Data made at" `date -r grep_stats_$1.txt`
 }
 
 stat_transfer_time_mean()
@@ -1217,19 +1261,48 @@ div_1_by_2_or_zero()
         fi
 }
 
+
+load_1m_linux()
+{
+        cat /proc/loadavg | cut -d' ' -f1
+}
+
+load_1m_freebsd()
+{
+        /sbin/sysctl vm.loadavg | egrep -o '[0-9]+\.[0-9]++' | head -1
+}
+
+load_1m()
+{
+        here_is_linux && load_1m_linux
+        here_is_freebsd && load_1m_freebsd
+}
+
+KiBytes_to_Bytes()
+{
+        expr 1024 \* $1 
+}
+
 echoq number_of_imapsync_running_bandwidth
 number_of_imapsync_running_bandwidth()
 {
+        # Maybe I could do two number_of_imapsync_running one before
+        # one after and average the two.
         nir=`number_of_imapsync_running`
+        load_1m=`load_1m`
         nbsr=`number_of_bytes_sent_received_per_second_during ${1:-1}`
+        mubaiKiB=`memory_used_by_all_imapsync_KiB`
+        mubaiB=`KiBytes_to_Bytes $mubaiKiB`
+        mubai_human=`bytestohuman $mubaiB`
         ratio=`div_1_by_2_or_zero $nbsr $nir`
         date=`date_ymdhms`
         date_u=`LANG= date -u`
         nbsr_human=`bytestohuman $nbsr`
         ratio_human=`bytestohuman $ratio`
-        echo "$date $nir $nbsr $ratio $nbsr_human$ratio_human"
-        echo "Current number of syncs: $nir;  Current total bandwidth: $nbsr_human/s;  Current bandwidth per sync: $ratio_human/s; Current date/time: $date_u; ">/var/tmp/imapsync_current.txt
+        echo "$date $nir $nbsr $ratio $nbsr_human $ratio_human $load_1m $mubaiKiB"
+        echo "Load: $load_1m; Mem: $mubai_human; Number of syncs: $nir; Total bandwidth: $nbsr_human/s;  Bandwidth per sync: $ratio_human/s; Date/time: $date_u; ">/var/tmp/imapsync_current.txt
 }
+
 
 echoq loop_number_of_imapsync_running_bandwidth
 loop_number_of_imapsync_running_bandwidth()
@@ -1249,35 +1322,30 @@ echoq various_usefull
 various_usefull() {
 cat <<'EOF'
 strace -e trace=signal -f `pgrep /usr/sbin/apach | xargs -n1 echo -n  " -p "` 2>&1
-egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | sort -g
-egrep -o '[0-9]+/[0-9]+' G_Folders_synced.txt | sort -t/ -g -k2 | uniq -c
 egrep -o '* ID .*' G_Read___ID.txt | sort | uniq -c | sort -n
-egrep -o 'imapsync_runs=[0-9]+'  G_HTTP_COOKIE.txt  | egrep -o '[0-9]+' | sort -n | uniq -c | sort -g -k1,2
-egrep -o 'HTTP_REFERER is .*' G_HTTP_REFERER.txt | sort -g |  uniq -c | sort -g
-egrep -o 'REMOTE_HOST is .*' G_REMOTE_HOST.txt | sort -g |  uniq -c | sort -g
-egrep -o 'REMOTE_ADDR is .*' G_REMOTE_ADDR.txt | sort -g |  uniq -c | sort -g
-datamash -s -W -g 4 count 4 < G_Host1_IMAP_server.txt | awk '{ print $2 " " $1 }' | sort -g | tail -22
-datamash -s -W -g 4 count 4 < G_Host2_IMAP_server.txt | awk '{ print $2 " " $1 }' | sort -g | tail -22
 egrep -o '* ID .*' G_Read___ID.txt | sort |  awk '{ print $1 " " $2 " "  $3 " NIL" }' | datamash -s -W -g 3 count 3 | awk '{ print $2 " " $1 }' | sort -g
+
 locate perl.core | xargs -n 1 gdb -q -x /tmp/gdb_quit.txt -c
+
 zcat /var/log/apache/httpd-access.log.*.gz|egrep -o -w 'Mozilla/5.0 \([^;]+' | sort | egrep -o '\([a-zA-Z]+' | sort  | uniq -c | sort -g | grep -v KHTML
 zcat /var/log/apache/httpd-access.log.*.gz|grep 'POST /cgi-bin/imapsync' | egrep -o -w 'Mozilla/5.0 \([^;]+' | sort | egrep -o '\([a-zA-Z]+' | sort  | uniq -c | sort -g | grep -v KHTML
 
 egrep -o '\[.+@[^]]+]' G_success_login.txt |head -222222 | sort | uniq -c | sort -g
+cat  G_success_login_on.txt | ./domains_servers_map | sort | uniq -c | sort -g
 
 list_all_logs |tail -9999 | xargs grep -i 'Exiting with return value 112' | tee  Error_112_last_9999_syncs.txt
 cut -d: -f1 Error_112_last_30_days.txt | xargs grep -oih 'Invalid system flag.*'  | sort | uniq -c
 
 list_all_logs | xargs grep -i 'Exiting with return value 112' | tee  Error_112_all_syncs.txt
 cut -d: -f1 Error_112_all_syncs.txt  | tail -100  | xargs egrep -oih 'Invalid system flag [^(]+'  | sort | uniq -c
-cat  G_success_login_on.txt | ./domains_servers_map | sort | uniq -c | sort -g
+
 logfiles_finished_recently -300| xargs grep -i 'Exiting with return value 10 ' | grep -v 'return value 0 ' | cut -d: -f1 | xargs  tail -11 | grep 'failure: can not open imap connection on' | uniq -c | sort -g | grep http | tee ../http_host_failures.txt
 
 # Searching big messages copied over 500 MB
 list_all_logs|tail -50000 | xargs egrep '{.?[56789]........}    copied'
 
 # online processes stats
-cat  /var/tmp/number_of_imapsync_running.txt | datamash -W min  2 max 2 mean 2 median 2 q1 2 q3 2
+cat /var/tmp/number_of_imapsync_running_every_60s.txt | datamash -W min 2 max 2 mean 2 median 2 q1 2 q3 2
 for v in 2 3 4; do cat  /var/tmp/number_of_imapsync_running_every_6s.txt | datamash --format=%10.0f -W min  $v max $v mean $v median $v q1 $v q3 $v ; done
 netstat -I em0 -b -n -w 6 -q 1
 while :; do ssh root@ks5 'cd /var/tmp/imapsync_cgi/ ; . cgi_memo ; loop_number_of_imapsync_running_bandwidth 6' ; echo $?; done
@@ -1289,6 +1357,20 @@ cat G_Host1_Nb_messages.txt  | sort -g -k4 | grep 202[01] |tail -100 | cut -f1 -
 
 # Best bandwidth moments
 cat /var/tmp/number_of_imapsync_running_every_60s.txt | sort -k3 -g| tail -66
+
+# Sort by number of parallel runs and by load in case of equality
+cat /var/tmp/number_of_imapsync_running_every_60s.txt | grep ^2022_ | sort -k2 -k9 -g | tail -666
+
+# Sort by number of parallel runs and by bandwidth in case of equality
+cat /var/tmp/number_of_imapsync_running_every_60s.txt | grep ^2022_ | sort -k2 -k3 -g | tail -666
+
+
+# getrusage on FreeBSD, espacially disk i/o
+procstat -r `pgrep -f cgi-bin/imapsync`
+
+# Sum up all memory taken by imapsync runs, in KiB.
+ps -o vsz -p `pgrep -f cgi-bin/imapsync` | sed 1,1d | datamash sum  1
+memory_used_by_all_imapsync_KiB
 EOF
 }
 

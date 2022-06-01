@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: memo_docker,v 1.15 2021/11/20 20:52:55 gilles Exp gilles $
+# $Id: memo_docker,v 1.17 2022/04/04 14:46:21 gilles Exp gilles $
 
 echo imapsync_docker_timestamp_dockerfile
 imapsync_docker_timestamp_dockerfile()
@@ -16,11 +16,6 @@ imapsync_docker_build()
 {
     docker build -t gilleslamiral/imapsync . \
         && imapsync_docker_add_tag_version && echo Build SUCCEEDED || echo Build FAILED
-
-    echo
-    #docker run gilleslamiral/imapsync imapsync --testslive
-    #docker run gilleslamiral/imapsync imapsync --testslive6
-    # docker run gilleslamiral/imapsync imapsync --testslive6 --nossl2
 }
 
 echo imapsync_docker_version
@@ -32,7 +27,7 @@ imapsync_docker_version()
 echo imapsync_local_docker_version
 imapsync_local_docker_version()
 {
-        docker run gilleslamiral/imapsync imapsync_local --version
+        docker run gilleslamiral/imapsync /imapsync --version
 }
 
 echo imapsync_docker_add_tag_version
@@ -51,15 +46,15 @@ imapsync_docker_add_tag_version()
 echo imapsync_docker_testslive
 imapsync_docker_testslive()
 {
-    echo docker run gilleslamiral/imapsync imapsync --testslive
-    docker run gilleslamiral/imapsync imapsync --testslive
+    echo docker run gilleslamiral/imapsync imapsync --testslive "$@"
+    docker run gilleslamiral/imapsync imapsync --testslive "$@"
 }
 
 echo imapsync_docker_testslive6
 imapsync_docker_testslive6()
 {
-    echo docker run gilleslamiral/imapsync imapsync --testslive6 --ssl1 --ssl2
-    docker run gilleslamiral/imapsync imapsync --testslive6 --ssl1 --ssl2
+    echo docker run gilleslamiral/imapsync imapsync --testslive6 "$@"
+    docker run gilleslamiral/imapsync imapsync --testslive6 "$@"
 }
 
 echo imapsync_docker_tests
@@ -121,13 +116,18 @@ echo imapsync_docker_upload
 imapsync_docker_upload()
 {
         version=`imapsync_docker_version`
+        version_local=`imapsync_local_docker_version`
+        
         # upload only after successful tests
         set -x \
         && is_release_number "$version" \
+        && is_release_number "$version_local" \
+        && test "$version" = "$version_local" \
         && rcsdiff imapsync Dockerfile memo_docker \
         && imapsync_docker_testslive \
         && imapsync_docker_tests \
         && docker run gilleslamiral/imapsync true \
+        && docker run gilleslamiral/imapsync diff /imapsync /usr/bin/imapsync \
         && docker login --username=gilleslamiral --password=`cat $HOME/var/pass/secret.docker` \
         && docker push gilleslamiral/imapsync:latest \
         && docker push gilleslamiral/imapsync:$version \

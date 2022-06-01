@@ -1,5 +1,5 @@
 
-// $Id: imapsync_form.js,v 1.26 2021/12/18 19:01:52 gilles Exp gilles $
+// $Id: imapsync_form.js,v 1.27 2022/01/30 20:57:46 gilles Exp gilles $
 
 /*jslint browser: true*/ /*global  $*/
 
@@ -751,9 +751,9 @@ $(document).ready(
         
         if ( "imapsync.lamiral.info" === location.hostname )
         {
-                $( "#status_24h" ).attr('src', 'https://lstu.fr/imapsync_online_status_24h_1200x70') ;
-                $( "#status_7d" ).attr('src', 'https://lstu.fr/imapsync_online_status_7d') ;
-                $( "#status_2m" ).attr('src', 'https://lstu.fr/imapsync_online_status_2months_1200x70') ;
+                // $( "#status_24h" ).attr('src', 'https://lstu.fr/imapsync_online_status_24h_1200x70') ;
+                // $( "#status_7d" ).attr('src', 'https://lstu.fr/imapsync_online_status_7d') ;
+                // $( "#status_2m" ).attr('src', 'https://lstu.fr/imapsync_online_status_2months_1200x70') ;
                 $( "#local_bandwidth" ).collapse( "show" ) ;
                 $( "#local_status_dbmon" ).collapse( "show" ) ;
                 $( "#local_status_hetrix" ).collapse( "show" ) ;

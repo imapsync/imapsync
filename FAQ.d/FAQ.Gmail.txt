@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.81 2021/10/06 20:21:26 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.87 2022/02/10 12:42:52 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -41,10 +41,15 @@ Q. Can not open imap connection on [imap.gmail.com]
 
 Q. I want to sync the Sent folder only, what is it on Gmail?
 
+Q. From Gmail to Gmail, I want to keep Categories. What can I do?
+
 Q. The context is a Gmail account at the source, but not Gmail at the
 destination. I want cross-duplicates, different Gmail folders/labels
 generating duplicate messages across folders on the destination,
 except for the "All Mail" folder.
+
+Q. I can't sync more than 1000 messages in each Gmail folder.
+   What can I do?
 
 Q. What are the Gmail imap names of the folders 
    "Sent" "Trash" "Drafts" "Junk" "Flagged" and "All"?
@@ -236,7 +241,7 @@ imapsync  \
            --password2 gmailsecret2 \
            --gmail1 --gmail2 
 
-Or, replacing what does --gmail1 --gmail2 (values are from imapsync 2.155):
+Or, replacing what does --gmail1 --gmail2 (values are from imapsync 2.178):
 
 imapsync \
            --host1 imap.gmail.com \
@@ -320,7 +325,7 @@ imapsync --host1 mail.oldhost.com     \
          --password2 gmailsecret \
          --gmail2
 
-Or, replacing what does --gmail2 (values are from imapsync 1.970):
+Or, replacing what does --gmail2 (values are from imapsync 2.178):
 (For Linux only because of the quotes)
 
 imapsync --host1 mail.oldhost.com     \
@@ -429,19 +434,19 @@ R. Use this example:
 imapsync \
            --user1     foo@gmail.com \
            --password1 gmailsecret \
-           --host2     localhost \
+           --host2     imap.example.org \
            --user2     tata \
            --password2 tatasecret \
            --gmail1
 
-Or, replacing what does --gmail1 (values are from imapsync 1.970):
+Or, replacing what does --gmail1 (values are from imapsync 2.178):
 
 imapsync \
            --host1     imap.gmail.com \
            --ssl1 \
            --user1     foo@gmail.com \
            --password1 gmailsecret \
-           --host2     localhost \
+           --host2     imap.example.org \
            --user2     tata \
            --password2 tatasecret \
            --maxbytespersecond 40_000 \
@@ -628,6 +633,73 @@ R2. In fact, by configuration from the user, it can be another folder
     See below 
 
 =======================================================================
+Q. From Gmail to Gmail, I want to keep Categories. What can I do?
+
+R. First, read a document to learn how to play with Gmail Categories:
+https://support.google.com/mail/answer/3094499
+
+Categories are not presented in IMAP in Gmail, so synchronizing them 
+with imapsync requires some work.
+
+Let's say I want to synchronize the category named "Updates".
+
+1. Create a label "Updates_L", or name it as you want. You can't 
+   create a label named "Updates" like the category name because
+   Gmail will refuse to create it, saying it's a reserved name.
+
+2. Select all messages in the category "Updates".
+   To do so, you can use the string "category:updates" in the 
+   search input text located at the top of the Gmail page.
+   Notice the case is irrelevant to the search,
+   "category:updates" equals "Category:Updates".
+
+   Gmail then announces "All 100 messages on this page are selected."
+   It's not enough, I want all the "Updates" category messages.
+   So, on the right of this statement, click on the text 
+   "Select all messages that match this search".
+   Now Gmail announces "All messages in this search are selected."
+
+3. Apply label "Updates_L" created at step 1 to all the selected
+   messages. Gmail will present a warning and a 
+   "Confirm bulk action" button. Press "Ok".
+
+4. Repeat steps 1 to 3 for each category you want to synchronize.
+
+5. Transfer your mailbox to the new account with imapsync using the
+   options --gmail1 --gmail2, the labels will be synchronized.
+   
+6. For each of the labels you made for categories, do the steps 7 to 9.
+   As an example, I take the label "Updates_L" previously used.
+
+7. Select all messages with the label "Updates_L".
+   You can use the string "label:Updates_L" in the search input 
+   text located at the top of the Gmail page.
+   Gmail then announces "All 100 messages on this page are selected."
+   It's not enough, I want all the "updates_l" labeled messages.
+   So, on the right of this statement, click on the text 
+   "Select all messages that match this search".
+   Now Gmail announces "All messages in this search are selected."
+   (does it sound similar to a previous §?)
+   
+8. Apply the category "Updates" to all the selected
+   messages. Gmail will present a warning and a 
+   "Confirm bulk action" button. Press "Ok".
+   If you search where are the categories: the categories are 
+   located with the labels, as if they were labels.
+
+9. Delete the temporary label. That part is optional.
+
+Maybe one day Google will make categories optionally available
+in IMAP, like any other label and this trick will be obsolete.
+Labels can be "Show in IMAP" at
+https://mail.google.com/mail/u/0/#settings/labels
+Categories are listed there but not possibly "Show in IMAP", not yet :-)
+
+Thanks to Michael Leggett https://twitter.com/leggett for this 
+trick. See the story at
+https://twitter.com/leggett/status/1484632316697739267?s=20
+
+=======================================================================
 Q. The context is a Gmail account at the source, but not Gmail at the
 destination. I want cross-duplicates, different Gmail folders/labels
 generating duplicate messages across folders on the destination,
@@ -657,6 +729,16 @@ Mike also provided a patch to implement that directly in imapsync.
 See https://github.com/imapsync/imapsync/pull/266
 (I refused it because well maintaining it will be very hard for me
 and I have other priorities).
+
+=======================================================================
+Q. I can't sync more than 1000 messages in each Gmail folder.
+   What can I do?
+
+R. It's a Gmail configuration feature that someone set for your
+Gmail account. Go to 
+https://mail.google.com/mail/u/0/?tab=wm#settings/fwdandpop
+and select 
+"Do not limit the number of messages in an IMAP folder (default)"
 
 =======================================================================
 Q. What are the Gmail imap names of the folders 
@@ -715,28 +797,33 @@ which is the opposite goal of --usecache implied by --useuid.
 
 
 ======================================================================= 
-Q. Gmail does not really delete messages in folder [Gmail]/All Mail 
-   What happens? What can I do? 
+Q. Gmail does not really delete messages in folder [Gmail]/All Mail
+   What happens? What can I do?
 
 R. It's true and explained in Gmail documentation at
-https://support.google.com/mail/answer/7401?hl=en
+https://support.google.com/mail/answer/7401?hl=en#zippy=%2Cempty-your-trash
 
 To really remove messages in folder "[Gmail]/All Mail", they have to
 be moved to the "Trash" folder and be deleted from "Trash".
 
-Quoting the link above (25 december 2018, happy christmas by the way!)
+Quoting the link above (4 february 2022)
 ...
 Empty your Trash
-If you don't want a message to stay in your Trash for 30 days, 
-you can permanently delete it.
-* On your computer, go to Gmail.
-* On the left side of the page, scroll down, 
-  then click More and then Trash.
-* Check the box next to messages you want to permanently delete, 
-  then click Delete forever.
 
-* Note: The Delete forever option is only available in the Trash. 
-  You won’t be able to delete items forever from the Search result view.
+If you don't want a message to stay in your trash for 30 days,
+you can permanently delete it.
+
+* On your computer, go to Gmail.
+
+* On the left side of the page, click More.
+
+* Scroll to Trash.
+
+* Check the box next to messages you want to permanently delete.
+  Then click Delete forever.
+  
+* Tip: The "Delete forever" option is only available in the trash.
+  You won’t be able to delete items permanently from the Search result view.
   To delete all messages in your trash, click Empty Trash now.
 
 

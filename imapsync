@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# $Id: imapsync,v 2.178 2022/01/12 21:28:37 gilles Exp gilles $
+# $Id: imapsync,v 2.200 2022/04/04 16:05:55 gilles Exp gilles $
 # structure
 # pod documentation
 # use pragmas
@@ -25,7 +25,7 @@ and without duplicates.
 
 =head1 VERSION
 
-This documentation refers to Imapsync $Revision: 2.178 $
+This documentation refers to Imapsync $Revision: 2.200 $
 
 =head1 USAGE
 
@@ -44,42 +44,38 @@ This documentation refers to Imapsync $Revision: 2.178 $
 We sometimes need to transfer mailboxes from one imap server to
 one another.
 
-Imapsync command is a tool allowing incremental and
-recursive imap transfers from one mailbox to another.
-If you don't understand the previous sentence, it's normal,
-it's pedantic computer-oriented jargon.
+Imapsync command is a tool allowing incremental and recursive imap
+transfers from one mailbox to another.  If you don't understand the
+previous sentence, it's normal, it's pedantic computer-oriented
+jargon.
 
-All folders are transferred, recursively, meaning
-the whole folder hierarchy is taken, all messages in them,
-and all message flags (\Seen \Answered \Flagged etc.)
-are synced too.
+All folders are transferred, recursively, meaning the whole folder
+hierarchy is taken, all messages in them, and all message flags (\Seen
+\Answered \Flagged etc.)  are synced too.
 
-Imapsync reduces the amount of data transferred by not transferring
-a given message if it already resides on the destination side.
-Messages that are on the destination side but not on the
-source side stay as they are. See the --delete2
-option to have strict sync and delete them.
+Imapsync reduces the amount of data transferred by not transferring a
+given message if it already resides on the destination side.  Messages
+that are on the destination side but not on the source side stay as
+they are. See the --delete2 option to have strict sync and delete
+them.
 
-How imapsync know a message is already on both sides?
-Same specific headers and the transfer is done only once.
-By default, the identification headers are
-"Message-Id:" and "Received:" lines
-but this choice can be changed with the --useheader option,
-most often a duplicate problem is solved by using
---useheader "Message-Id"
+How does imapsync know a message is already on both sides?  Same
+specific headers and the transfer is done only once.  By default, the
+identification headers are "Message-Id:" and "Received:" lines but
+this choice can be changed with the --useheader option, most often a
+duplicate problem is solved by using --useheader "Message-Id"
 
 
-All flags are preserved, unread messages will stay unread,
-read ones will stay read, deleted will stay deleted.
-In the IMAP protocol, a deleted message is not really deleted,
-it is marked \Deleted and can be undelete. Real destruction
-comes with the EXPUNGE or UIDEXPUNGE IMAP commands.
+All flags are preserved, unread messages will stay unread, read ones
+will stay read, deleted will stay deleted.  In the IMAP protocol, a
+deleted message is not deleted, it is marked \Deleted and can be
+undeleted. Real destruction comes with the EXPUNGE or UIDEXPUNGE IMAP
+commands.
 
-You can abort the transfer at any time and restart it later,
-imapsync works well with bad connections and interruptions,
-by design. On a terminal hit Ctr-c twice within two seconds
-to abort the program. Hit Ctr-c just once makes
-imapsync reconnect to both imap servers.
+You can abort the transfer at any time and restart it later, imapsync
+works well with bad connections and interruptions, by design. On a
+terminal hit Ctr-c twice within two seconds to abort the program. Hit
+Ctr-c just once makes imapsync reconnect to both imap servers.
 
 How do you know the sync is finished and well done?
 When imapsync ends by itself it mentions it with lines like those:
@@ -88,31 +84,51 @@ When imapsync ends by itself it mentions it with lines like those:
   Removing pidfile /tmp/imapsync.pid
   Log file is LOG_imapsync/2020_11_17_15_59_22_761_test1_test2.txt ( to change it, use --logfile filepath ; or use --nolog to turn off logging )
 
-If you don't have those lines it means that either the sync process is still
-running (or eventually hanging indefinitely) or that it ended without
-a whisper, a strong kill -9 on Linux for example.
+If you don't have those lines it means that either the sync process is
+still running (or eventually hanging indefinitely) or that it ended
+without a whisper, a strong kill -9 on Linux for example.
 
 If you have those final lines then it means the sync process is properly
 finished. It may have encountered problems though.
 
-A good synchronization is mentioned by some lines above the last ones, especially
-those three lines:
+A good synchronization is mentioned by some lines above the last ones,
+especially those three lines:
 
   The sync looks good, all 1745 identified messages in host1 are on host2.
   There is no unidentified message on host1.
   Detected 0 errors
 
+Imapsync mentions the total sizes of both accounts at the beginning of
+the sync and also at the end. Sometimes, even with a strict sync,
+those total sizes differ, and sometimes they differ a lot. The
+difference is not a good criterion to conclude the sync went wrong.
 
-A classical scenario is synchronizing a mailbox B from another mailbox A
-where you just want to keep a strict copy of A in B. Strict meaning
+Why? That's because message sizes given by the imap servers are not
+always accurate, they are not always the same as the actual message
+sizes of the messages transferred by imapsync. Imapsync use the sizes
+given by the imap servers to calculate the big total size. They can
+differ. In the early days, Imapsync used the sizes of the messages as
+one of the criteria to identify the messages, different sizes implied
+different messages; but it was a mistake, the same message had
+different sizes on both sides sometimes, depending on the imap
+servers.
+
+Another explanation for a big total size difference is that Gmail
+doesn't count the size of duplicate messages across folders twice,
+while imapsync does.
+
+
+A classical scenario is synchronizing a mailbox B from another mailbox
+A where you just want to keep a strict copy of A in B. Strict meaning
 all messages in A will be in B but no more.
 
-For this, option --delete2 can be used, it deletes messages in the host2
-folder B that are not in the host1 folder A. If you also need to destroy
-host2 folders that are not in host1 then use --delete2folders. See also
---delete2foldersonly and --delete2foldersbutnot to set up exceptions
-on folders to destroy. INBOX will never be destroyed, it's a mandatory
-folder in IMAP so imapsync doesn't even try to remove it.
+For a strict synchronization, use the option --delete2. The option
+--delete2 deletes the messages in the host2 folder B that are not in
+the host1 folder A. If you also need to destroy host2 folders that are
+not in host1 then use --delete2folders. See also --delete2foldersonly
+and --delete2foldersbutnot to set up exceptions on folders to
+destroy. INBOX will never be destroyed, it's a mandatory folder in
+IMAP so imapsync doesn't even try to remove it.
 
 A different scenario is to delete the messages from the source mailbox
 after a successful transfer, it can be a good feature when migrating
@@ -122,20 +138,19 @@ messages that arrived after a sync or that failed to be transferred.
 
 In that case, use the --delete1 option. Option --delete1 implies also
 the option --expunge1 so all messages marked deleted on host1 will be
-deleted. In IMAP protocol deleting a message does not delete it,
-it marks it with the flag \Deleted, allowing an undelete. Expunging
-a folder removes, definitively, all the messages marked as \Deleted
-in this folder.
+deleted. In IMAP protocol deleting a message does not delete it, it
+marks it with the flag \Deleted, allowing an undelete. Expunging a
+folder removes, definitively, all the messages marked as \Deleted in
+this folder.
 
 You can also decide to remove empty folders once all of their messages
 have been transferred. Add --delete1emptyfolders to obtain this
 behavior.
 
-
-Imapsync is not adequate for maintaining two active imap accounts
-in synchronization when the user plays independently on both sides.
-Use offlineimap (written by John Goerzen) or mbsync (written by
-Michael R. Elkins) for a 2 ways synchronization.
+Imapsync is not adequate for maintaining two active imap accounts in
+synchronization when the user plays independently on both sides.  Use
+offlineimap (written by John Goerzen) or mbsync (written by Michael
+R. Elkins) for a 2 ways synchronization.
 
 
 =head1 OPTIONS
@@ -143,18 +158,20 @@ Michael R. Elkins) for a 2 ways synchronization.
  usage: imapsync [options]
 
 The standard options are the six values forming the credentials.
-Three values on each side are needed in order to login into the IMAP
-servers. These six values are a hostname, a username, and a password, two times.
+Three values on each side are needed to login into the IMAP
+servers. These six values are a hostname, a username, and a password,
+two times.
 
-Conventions used in the following descriptions of the options:
+Here are the conventions used in the following descriptions of the
+options:
 
- str means string
- int means integer number
- flo means float number
- reg means regular expression
- cmd means command
+ str means a string
+ int means an integer number
+ flo means a float number
+ reg means a regular expression
+ cmd means a command
 
- --dry               : Makes imapsync doing nothing for real; it just print what
+ --dry               : Makes imapsync do nothing for real; it just prints what
                        would be done without --dry.
 
 =head2 OPTIONS/credentials
@@ -270,9 +287,9 @@ Same thing for user2 password.
 
  --nomixfolders      : Do not merge folders when host1 is case-sensitive
                        while host2 is not (like Exchange). Only the first
-                       similar folder is synced (example: with folders
-                       "Sent", "SENT" and "sent"
-                       on host1 only "Sent" will be synced to host2).
+                       similar folder is synced. Example: with folders
+                       "Sent", "SENT" and "sent" on host1, only "Sent"
+                       will be synced to host2.
 
  --skipemptyfolders  : Empty host1 folders are not created on host2.
 
@@ -710,40 +727,41 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
 =head1 SECURITY
 
-You can use --passfile1  instead of --password1 to mention the
-password since it is safer. With --password1 option, on Linux,
-any user on your host can see the password by using the 'ps auxwwww'
-command. Using a variable (like IMAPSYNC_PASSWORD1) is also
-dangerous because of the 'ps auxwwwwe' command. So, saving
-the password in a well protected file (600 or rw-------) is
-the best solution.
+You can use --passfile1 instead of --password1 to mention the password
+since it is safer. With --password1 option, on Linux, any user on your
+host can see the password by using the 'ps auxwwww' command. Using a
+variable (like IMAPSYNC_PASSWORD1) is also dangerous because of the
+'ps auxwwwwe' command. So, saving the password in a well protected
+file (600 or rw-------) is the best solution.
 
 Imapsync activates ssl or tls encryption by default, if possible.
 
 What detailed behavior is under this "if possible"?
 
 Imapsync activates ssl if the well known port imaps port (993) is open
-on the imap servers. If the imaps port is closed then it open a
-normal (clear) connection on port 143 but it looks for TLS support
-in the CAPABILITY list of the servers. If TLS is supported
-then imapsync goes to encryption with STARTTLS.
+on the imap servers. If the imaps port is closed then it open a normal
+(clear) connection on port 143 but it looks for TLS support in the
+CAPABILITY list of the servers. If TLS is supported then imapsync goes
+to encryption with STARTTLS.
 
 If the automatic ssl and the tls detections fail then imapsync will
-not protect against sniffing activities on the network, especially
-for passwords.
+not protect against sniffing activities on the network, especially for
+passwords.
 
-If you want to force ssl or tls just use --ssl1 --ssl2 or --tls1 --tls2
+If you want to force ssl or tls just use --ssl1 --ssl2 or --tls1
+--tls2
 
-See also the document FAQ.Security.txt in the FAQ.d/ directory
-or at https://imapsync.lamiral.info/FAQ.d/FAQ.Security.txt
+See also the document FAQ.Security.txt in the FAQ.d/ directory or at
+https://imapsync.lamiral.info/FAQ.d/FAQ.Security.txt
 
 =head1 EXIT STATUS
 
-Imapsync will exit with a 0 status (return code) if everything went good.
-Otherwise, it exits with a non-zero status. That's classical Unix behavior.
-Here is the list of the exit code values (an integer between 0 and 255).
-In Bourne Shells, this exit code value can be retrieved within the variable
-value "$?" if you read it just after the imapsync call.
+Imapsync will exit with a 0 status (return code) if everything went
+good.  Otherwise, it exits with a non-zero status. That's classical
+Unix behavior.  Here is the list of the exit code values (an integer
+between 0 and 255).  In Bourne Shells, this exit code value can be
+retrieved within the variable value "$?" if you read it just after the
+imapsync call.
 
 The names reflect their meaning:
 
@@ -781,10 +799,10 @@ egrep '^Readonly my.*\$EX' imapsync | egrep -o 'EX.*' | sed 's_^_     _'
 
 =head1 LICENSE AND COPYRIGHT
 
-Imapsync is free, open, public but not always gratis software
-cover by the NOLIMIT Public License, now called NLPL.
-See the LICENSE file included in the distribution or just read this
-simple sentence as it IS the licence text:
+Imapsync is free, open, public but not always gratis software cover by
+the NOLIMIT Public License, now called NLPL.  See the LICENSE file
+included in the distribution or just read the following simple
+sentence as it IS the license text:
 
  "No limits to do anything with this work and this license."
 
@@ -801,12 +819,11 @@ Gilles LAMIRAL <gilles@lamiral.info>
 Good feedback is always welcome.
 Bad feedback is very often welcome.
 
-Gilles LAMIRAL earns his living by writing, installing,
-configuring and sometimes teaching free, open and often gratis
-software. Imapsync used to be "always gratis" but now it is
-only "often gratis" because imapsync is sold by its author,
-your servitor, a good way to maintain and support free open public
-software tools over decades.
+Gilles LAMIRAL earns his living by writing, installing, configuring
+and sometimes teaching free, open, and often gratis software. Imapsync
+used to be "always gratis" but now it is only "often gratis" because
+imapsync is sold by its author, your servitor, a good way to maintain
+and support free open public software tools over decades.
 
 =head1 BUGS AND LIMITATIONS
 
@@ -818,10 +835,9 @@ See https://imapsync.lamiral.info/S/imapservers.shtml
 
 =head1 HUGE MIGRATION
 
-If you have many mailboxes to migrate think about a little
-shell program. Write a file called file.txt (for example)
-containing users and passwords.
-The separator used in this example is ';'
+If you have many mailboxes to migrate think about a little shell
+program. Write a file called file.txt (for example) containing users
+and passwords.  The separator used in this example is ';'
 
 The file.txt file contains:
 
@@ -857,19 +873,19 @@ https://imapsync.lamiral.info/examples/
 
  Imapsync works under most Windows (2000, XP, Vista, Seven, Eight, Ten
  and all Server releases 2000, 2003, 2008 and R2, 2012 and R2, 2016)
- as a standalone binary software called imapsync.exe,
- usually launched from a batch file in order to avoid always typing
- the options. There is also a 32bit binary called imapsync_32bit.exe
+ as a standalone binary software called imapsync.exe, usually launched
+ from a batch file in order to avoid always typing the options. There
+ is also a 32bit binary called imapsync_32bit.exe
 
- Imapsync works under OS X as a standalone binary
- software called imapsync_bin_Darwin
+ Imapsync works under OS X as a standalone binary software called
+ imapsync_bin_Darwin
 
  Purchase latest imapsync at
  https://imapsync.lamiral.info/
 
- You'll receive a link to a compressed tarball called imapsync-x.xx.tgz
- where x.xx is the version number. Untar the tarball where
- you want (on Unix):
+ You'll receive a link to a compressed tarball called
+ imapsync-x.xx.tgz where x.xx is the version number. 
+ Untar the tarball where you want (on Unix):
 
   tar xzvf  imapsync-x.xx.tgz
 
@@ -882,9 +898,8 @@ https://imapsync.lamiral.info/examples/
 
 =head1 CONFIGURATION
 
-There is no specific configuration file for imapsync,
-everything is specified by the command line parameters
-and the default behavior.
+There is no specific configuration file for imapsync, everything is
+specified by the command line parameters and the default behavior.
 
 
 =head1 HACKING
@@ -932,24 +947,23 @@ List verified on Friday July 1, 2021.
 
 =head1 HISTORY
 
-I initially wrote imapsync in July 2001 because an enterprise,
-called BaSystemes, paid me to install a new imap server
-without losing huge old mailboxes located in a far
-away remote imap server, accessible by an
-often broken low-bandwidth ISDN link.
+I initially wrote imapsync in July 2001 because an enterprise, called
+BaSystemes, paid me to install a new imap server without losing huge
+old mailboxes located in a far away remote imap server, accessible by
+an often broken low-bandwidth ISDN link.
 
-I had to verify every mailbox was well transferred, all folders, all messages,
-without wasting bandwidth or creating duplicates upon resyncs. The imapsync
-design was made with the beautiful rsync command in mind.
+I had to verify every mailbox was well transferred, all folders, all
+messages, without wasting bandwidth or creating duplicates upon
+resyncs. The imapsync design was made with the beautiful rsync command
+in mind.
 
-Imapsync started its life as a patch of the copy_folder.pl
-script. The script copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl
-module tarball source (more precisely in the examples/ directory of the
+Imapsync started its life as a patch of the copy_folder.pl script. The
+script copy_folder.pl comes from the Mail-IMAPClient-2.1.3 perl module
+tarball source (more precisely in the examples/ directory of the
 Mail-IMAPClient tarball).
 
-So many changes happened since then that I wonder
-if it remains any lines of the original
-copy_folder.pl in imapsync source code.
+So many changes happened since then that I wonder if it remains any
+lines of the original copy_folder.pl in imapsync source code.
 
 
 =cut
@@ -1212,10 +1226,8 @@ sub comment_err_flags
 
 Readonly my $DEFAULT_LOGDIR => 'LOG_imapsync' ;
 
-Readonly my $ERRORS_MAX     =>  50 ; # exit after 50 errors.
-Readonly my $ERRORS_MAX_CGI =>  20 ; # exit after 20 errors in CGI context.
-
-
+Readonly my $ERRORS_MAX     =>   50  ; # exit after  50 errors.
+Readonly my $ERRORS_MAX_CGI =>  500 ; # exit after 500 errors in CGI context.
 
 Readonly my $INTERVAL_TO_EXIT => 2 ; # interval max to exit instead of reconnect
 
@@ -1292,10 +1304,9 @@ Readonly my $FORCE => 1 ;
 # Currently working to finish with only $sync, $acc1, $acc2
 # Not finished yet...
 
-my(
+my( 
         $sync, $acc1, $acc2,
-        $debugflags,
-        $debuglist, $debugdev, $debugmaxlinelength, $debugcgi,
+        $debugdev, $debugmaxlinelength, $debugcgi,
         @include, @exclude, @folderrec,
         @folderfirst, @folderlast,
         @h1_folders_all, %h1_folders_all,
@@ -1329,7 +1340,7 @@ my(
         $split1, $split2,
         $modulesversion,
         $delete2folders, $delete2foldersonly, $delete2foldersbutnot,
-        $usecache, $debugcache, $cacheaftercopy,
+        $debugcache, $cacheaftercopy,
         $wholeheaderifneeded, %h1_msgs_copy_by_uid, $useuid, $h2_uidguess,
         $checkmessageexists,
         $messageidnodomain,
@@ -1338,7 +1349,6 @@ my(
         $minmaxlinelength,
         $fixcolonbug,
         $create_folder_old,
-        $skipcrossduplicates, $debugcrossduplicates,
         $disarmreadreceipts,
         $mixfolders,
         $fetch_hash_set,
@@ -1376,7 +1386,7 @@ $acc2->{ N } = '2' ;
 
 $sync->{timestart} = time ; # Is a float because of use Time::HiRres
 
-$sync->{rcs} = q{$Id: imapsync,v 2.178 2022/01/12 21:28:37 gilles Exp gilles $} ;
+$sync->{rcs} = q{$Id: imapsync,v 2.200 2022/04/04 16:05:55 gilles Exp gilles $} ;
 
 $sync->{ memory_consumption_at_start } = memory_consumption(  ) || 0 ;
 
@@ -1451,9 +1461,8 @@ cgibuildheader( $sync ) ;
 docker_context( $sync ) ;
 
 print_output_if_needed( $sync ) ;
-
-
 output_reset_with( $sync ) ;
+
 
 # don't go on if options are not all known.
 if ( ! defined $options_good ) { exit $EX_USAGE ; }
@@ -1463,8 +1472,8 @@ if ( ! defined $options_good ) { exit $EX_USAGE ; }
 # the second line (ending with "1 ;") can then stay active or be commented,
 # the result will be the same: no releasecheck by default (because 0 is then the defined value).
 
-$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 0 ;
-#$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 1 ;
+#$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 0 ;
+$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 1 ;
 
 # just the version
 if ( $sync->{ version } ) {
@@ -1482,6 +1491,9 @@ after_get_options( $sync, $options_good ) ;
 #local $ENV{TZ} = 'GMT' if ( under_cgi_context( $sync ) and 'MSWin32' ne $OSNAME ) ;
 #output( $sync, localtime(time) . " " . gmtime(time) . "\n" ) ;
 
+make_var_array_to_a_hash( $sync ) ;
+
+
 # Under CGI environment, fix caveat emptor potential issues
 cgisetcontext( $sync ) ;
 
@@ -1489,6 +1501,7 @@ get_options_extra( $sync ) ;
 
 # --gmail --gmail --exchange --office etc.
 easyany( $sync ) ;
+
 
 $sync->{ sanitize } = defined $sync->{ sanitize } ? $sync->{ sanitize } : 1 ;
 sanitize( $sync ) ;
@@ -1525,20 +1538,34 @@ $sync->{ log }        = defined $sync->{ log }        ? $sync->{ log }        : 
 $sync->{ errorsdump } = defined $sync->{ errorsdump } ? $sync->{ errorsdump } :  1 ;
 $sync->{ errorsmax }  = defined $sync->{ errorsmax }  ? $sync->{ errorsmax }  : $ERRORS_MAX ;
 
+$sync->{ emailreport1 } = defined $sync->{ emailreport1 } ? $sync->{ emailreport1 } :  1 ;
+$sync->{ emailreport2 } = defined $sync->{ emailreport2 } ? $sync->{ emailreport2 } :  1 ;
+
+
 # log and output
 binmode STDOUT, ":encoding(UTF-8)" ;
 
 
-if ( $sync->{ log } ) {
-        setlogfile( $sync ) ;
-        teelaunch( $sync ) ;
+if ( $sync->{ log } ) { 
+        $sync->{ logdir }  = setlogdir( $sync ) ;
+        $sync->{ logfile } = setlogfile( $sync, $sync->{ logfile } ) ;
+        $sync->{ tee } = teelaunch( $sync, $sync->{ logfile } ) ;
         # now $sync->{tee} is a filehandle to STDOUT and the logfile
-}
+} 
 
 #binmode STDERR, ":encoding(UTF-8)" ;
-# STDERR goes to the same place: LOG and STDOUT (if logging is on)
-# Useful only for --debugssl
-$sync->{tee} and local *STDERR = *${$sync->{tee}}{IO} ;
+# STDERR goes to the same place: LOG and STDOUT if logging is on
+# or just STDOUT
+# 
+
+stderr_to_stdout( $sync ) ;
+
+
+if ( usecache_and_skipcrossduplicates( $sync ) )
+{
+        $sync->{ nb_errors }++ ;
+        exit_clean( $sync, $EX_USAGE, "Error: can not have both --usecache and --skipcrossduplicates\n" ) ;
+}
 
 
 
@@ -1568,11 +1595,8 @@ $sync->{ warn_release } = ( $sync->{ releasecheck } ) ? check_last_release(  ) :
 $wholeheaderifneeded  = defined  $wholeheaderifneeded   ? $wholeheaderifneeded  : 1;
 
 # Activate --usecache if --useuid is set and there is no --nousecache
-$usecache = 1 if ( $useuid and ( ! defined  $usecache   ) ) ;
-$cacheaftercopy = 1 if ( $usecache and ( ! defined  $cacheaftercopy  ) ) ;
-
-
-
+$sync->{ usecache } = 1 if ( $useuid and ( ! defined  $sync->{ usecache }   ) ) ;
+$cacheaftercopy = 1 if ( $sync->{ usecache } and ( ! defined  $cacheaftercopy  ) ) ;
 
 $sync->{ checkfoldersexist } = defined $sync->{ checkfoldersexist } ? $sync->{ checkfoldersexist } : 1 ;
 $checkmessageexists = defined  $checkmessageexists  ? $checkmessageexists : 0 ;
@@ -1593,7 +1617,8 @@ $create_folder_old  = defined  $create_folder_old  ? $create_folder_old : 0 ;
 $mixfolders         = defined  $mixfolders  ? $mixfolders : 1 ;
 $sync->{automap}    = defined  $sync->{automap}  ? $sync->{automap} : 0 ;
 
-$sync->{ delete2duplicates } = 1 if ( $sync->{ delete2 } and ( ! defined  $sync->{ delete2duplicates }  ) ) ;
+$sync->{ delete2duplicates } = determine_delete2duplicates( $sync ) ;
+
 
 $sync->{maxmessagespersecond} = defined  $sync->{maxmessagespersecond}  ? $sync->{maxmessagespersecond} : 0 ;
 $sync->{maxbytespersecond}    = defined  $sync->{maxbytespersecond}     ? $sync->{maxbytespersecond}    : 0 ;
@@ -1651,7 +1676,7 @@ cgiload( $sync ) ;
 
 $fixcolonbug = defined  $fixcolonbug  ? $fixcolonbug : 1 ;
 
-if ( $usecache and $fixcolonbug ) { tmpdir_fix_colon_bug( $sync ) } ;
+if ( $sync->{ usecache } and $fixcolonbug ) { tmpdir_fix_colon_bug( $sync ) } ;
 
 $modulesversion and myprint( "Modules version list ( use --no-modulesversion to turn off printing this Perl modules list ):\n", modulesversion(), "\n" ) ;
 
@@ -1731,8 +1756,8 @@ my %SSL_VERIFY_STR ;
 
 Readonly $SSL_VERIFY_POLICY => IO::Socket::SSL::SSL_VERIFY_NONE(  ) ;
 Readonly %SSL_VERIFY_STR => (
-	IO::Socket::SSL::SSL_VERIFY_NONE(  ) => 'SSL_VERIFY_NONE, ie, do not check the certificate server.' ,
-	IO::Socket::SSL::SSL_VERIFY_PEER(  ) => 'SSL_VERIFY_PEER, ie, check the certificate server' ,
+	IO::Socket::SSL::SSL_VERIFY_NONE(  ) => 'SSL_VERIFY_NONE, ie, do not check the server certificate.' ,
+	IO::Socket::SSL::SSL_VERIFY_PEER(  ) => 'SSL_VERIFY_PEER, ie, check the server certificate.' ,
 ) ;
 
 $IO::Socket::SSL::DEBUG = defined( $sync->{debugssl} ) ? $sync->{debugssl} : 1 ;
@@ -2202,7 +2227,7 @@ checkselectable( $sync ) ;
 
 
 
-# Bugfix OpenFind folders named like "kk \*123" are in fact "kk *123" (no \)
+# Local bugfix. OpenFind folders named like "kk \*123" are in fact "kk *123" (no \)
 #foreach my $folder ( @{ $sync->{ h1_folders_wanted } } )
 #{
 #        $folder =~ s{ \\\*}{ *}g ;
@@ -2211,7 +2236,8 @@ checkselectable( $sync ) ;
 
 # this hack is because LWP post does not pass well a hash in the $form parameter
 # but it does pass well an array
-%{ $sync->{f1f2h} } = split_around_equal( @{ $sync->{f1f2} } ) ;
+#%{ $sync->{f1f2h} } = split_around_equal( @{ $sync->{f1f2} } ) ;
+make_f1f2_array_to_a_hash( $sync ) ;
 
 automap( $sync ) ;
 
@@ -2448,8 +2474,8 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
         my $h2_fold_nb_messages = count_from_select( @select_results ) ;
         myprint( "Host2: folder [$h2_fold] has $h2_fold_nb_messages messages in total (mentioned by SELECT)\n" ) ;
 
-        my $permanentflags2 = permanentflags( $sync, @select_results ) ;
-        myprint( "Host2: folder [$h2_fold] permanentflags: $permanentflags2\n"  ) ;
+        $sync->{ permanentflags2 } = permanentflags( $sync, @select_results ) ;
+        myprint( "Host2: folder [$h2_fold] permanentflags: $sync->{ permanentflags2 }\n"  ) ;
 
         if ( $sync->{ expunge1 } )
         {
@@ -2484,7 +2510,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
         if ( ! reconnect_12_if_needed( $sync ) ) { last FOLDER ; }
 
         myprint( "Host1: folder [$h1_fold] considering $h1_msgs_nb messages\n"  ) ;
-        ( $sync->{ debug } or $debuglist ) and myprint( "Host1: folder [$h1_fold] considering $h1_msgs_nb messages, LIST gives: @h1_msgs\n" ) ;
+        ( $sync->{ debug } or $sync->{ debuglist } ) and myprint( "Host1: folder [$h1_fold] considering $h1_msgs_nb messages, LIST gives: @h1_msgs\n" ) ;
         $sync->{ debug } and myprint( "Host1: selecting messages of folder [$h1_fold] took ", timenext( $sync ), " s\n" ) ;
 
         my $h2_msgs_all_hash_ref = {  } ;
@@ -2495,7 +2521,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
         my $h2_msgs_nb = scalar  @h2_msgs  ;
 
         myprint( "Host2: folder [$h2_fold] considering $h2_msgs_nb messages\n" ) ;
-        ( $sync->{ debug } or $debuglist ) and myprint( "Host2: folder [$h2_fold] considering $h2_msgs_nb messages, LIST gives: @h2_msgs\n" ) ;
+        ( $sync->{ debug } or $sync->{ debuglist } ) and myprint( "Host2: folder [$h2_fold] considering $h2_msgs_nb messages, LIST gives: @h2_msgs\n" ) ;
         $sync->{ debug } and myprint( "Host2: selecting messages of folder [$h2_fold] took ", timenext( $sync ), " s\n" ) ;
 
         my $cache_base = "$sync->{ tmpdir }/imapsync_cache/" ;
@@ -2508,7 +2534,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
 
         if ( ! reconnect_12_if_needed( $sync ) ) { last FOLDER ; }
 
-        if ( $usecache ) {
+        if ( $sync->{ usecache } ) {
                 myprint( "Local cache directory: $cache_dir ( " . length( $cache_dir  )  . " characters long )\n"  ) ;
                 mkpath( "$cache_dir" ) ;
                 ( $cache_1_2_ref, $cache_2_1_ref )
@@ -2544,35 +2570,38 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
         if ( $useuid ) {
                 # use uid so we have to avoid getting header
                 @h1_msgs_copy_by_uid{ @h1_msgs_not_in_cache } = (  ) ;
-                @h2_msgs_delete2_not_in_cache = @h2_msgs_not_in_cache if $usecache ;
+                @h2_msgs_delete2_not_in_cache = @h2_msgs_not_in_cache if $sync->{ usecache } ;
                 @h1_msgs_not_in_cache = (  ) ;
                 @h2_msgs_not_in_cache = (  ) ;
 
                 #myprint( "delete2: @h2_msgs_delete2_not_in_cache\n" ) ;
         }
-
-        $sync->{ debug } and myprint( "Host1: parsing headers of folder [$h1_fold]\n" ) ;
-
-        my ($h1_heads_ref, $h1_fir_ref) = ({}, {});
-        $h1_heads_ref = $sync->{imap1}->parse_headers([@h1_msgs_not_in_cache], @useheader) if (@h1_msgs_not_in_cache);
+ 
+        if ( $sync->{ debug } or ( 5000 <= scalar( @h1_msgs_not_in_cache ) ) )
+        {
+                myprint( "Host1: parsing headers of folder [$h1_fold]. It can take time for huge folders. Be patient.\n" ) ;
+        }
+        
+        my ( $h1_heads_ref, $h1_fir_ref ) = ( {}, {} ) ;
+        $h1_heads_ref = $sync->{ imap1 }->parse_headers( [ @h1_msgs_not_in_cache ], @useheader ) if ( @h1_msgs_not_in_cache ) ;
         $sync->{ debug } and myprint( "Host1: parsing headers of folder [$h1_fold] took ", timenext( $sync ), " s\n" ) ;
 
-        @{ $h1_fir_ref }{@h1_msgs} = ( undef ) ;
+        @{ $h1_fir_ref }{ @h1_msgs } = ( undef ) ;
 
-        $sync->{ debug } and myprint( "Host1: getting flags idate and sizes of folder [$h1_fold]\n"  ) ;
+        $sync->{ debug } and myprint( "Host1: getting flags idate and sizes of folder [$h1_fold]\n" ) ;
 
         my @h1_common_fetch_param = ( 'FLAGS', 'INTERNALDATE', 'RFC822.SIZE' ) ;
         if ( $sync->{ synclabels } or $sync->{ resynclabels } ) { push @h1_common_fetch_param, 'X-GM-LABELS' ; }
 
-        if ( $sync->{abletosearch1} )
+        if ( $sync->{ abletosearch1 } )
         {
-                $h1_fir_ref = $sync->{imap1}->fetch_hash( \@h1_msgs, @h1_common_fetch_param, $h1_fir_ref )
+                $h1_fir_ref = $sync->{ imap1 }->fetch_hash( \@h1_msgs, @h1_common_fetch_param, $h1_fir_ref )
                 if ( @h1_msgs ) ;
         }
         else
         {
                 my $fetch_hash_uids = $fetch_hash_set || "1:*" ;
-                $h1_fir_ref = $sync->{imap1}->fetch_hash( $fetch_hash_uids, @h1_common_fetch_param, $h1_fir_ref )
+                $h1_fir_ref = $sync->{ imap1 }->fetch_hash( $fetch_hash_uids, @h1_common_fetch_param, $h1_fir_ref )
                 if ( @h1_msgs ) ;
         }
 
@@ -2588,7 +2617,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
         my @h1_msgs_duplicate;
         foreach my $m ( @h1_msgs_not_in_cache )
         {
-                my $rc = parse_header_msg( $sync, $sync->{imap1}, $m, $h1_heads_ref, $h1_fir_ref, 'Host1', \%h1_hash ) ;
+                my $rc = parse_header_msg( $sync, $sync->{imap1}, $m, $h1_fold, $h1_heads_ref, $h1_fir_ref, 'Host1', \%h1_hash ) ;
                 if ( ! defined $rc )
                 {
                         my $h1_size = $h1_fir_ref->{$m}->{'RFC822.SIZE'} || 0;
@@ -2619,30 +2648,31 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
 
         $sync->{ debug } and myprint( 'Host1: whole time parsing headers took ', timenext( $sync ), " s\n"  ) ;
 
-
-
         # Getting headers and metada can be so long that host2 might be disconnected here
         if ( ! reconnect_12_if_needed( $sync ) ) { last FOLDER ; }
 
 
-        $sync->{ debug } and myprint( "Host2: parsing headers of folder [$h2_fold]\n" ) ;
+        if ( $sync->{ debug } or ( 5000 <= scalar( @h2_msgs_not_in_cache ) ) )
+        {
+                myprint( "Host2: parsing headers of folder [$h2_fold]. It can take time for huge folders. Be patient.\n" ) ;
+        }
 
-        my ($h2_heads_ref, $h2_fir_ref) = ( {}, {} );
-        $h2_heads_ref =   $sync->{imap2}->parse_headers([@h2_msgs_not_in_cache], @useheader) if (@h2_msgs_not_in_cache);
+        my ( $h2_heads_ref, $h2_fir_ref ) = ( {}, {} );
+        $h2_heads_ref = $sync->{ imap2 }->parse_headers( [ @h2_msgs_not_in_cache ], @useheader ) if ( @h2_msgs_not_in_cache );
         $sync->{ debug } and myprint( "Host2: parsing headers of folder [$h2_fold] took ", timenext( $sync ), " s\n"  ) ;
 
         $sync->{ debug } and myprint( "Host2: getting flags idate and sizes of folder [$h2_fold]\n"  ) ;
-        @{ $h2_fir_ref }{@h2_msgs} = (  ); # fetch_hash can select by uid with last arg as ref
+        @{ $h2_fir_ref }{ @h2_msgs } = (  ); # fetch_hash can select by uid with last arg as ref
 
 
         my @h2_common_fetch_param = ( 'FLAGS', 'INTERNALDATE', 'RFC822.SIZE' ) ;
         if ( $sync->{ synclabels } or $sync->{ resynclabels } ) { push @h2_common_fetch_param, 'X-GM-LABELS' ; }
 
-        if ( $sync->{abletosearch2} and scalar( @h2_msgs ) ) {
-                $h2_fir_ref = $sync->{imap2}->fetch_hash( \@h2_msgs, @h2_common_fetch_param, $h2_fir_ref) ;
+        if ( $sync->{ abletosearch2 } and scalar( @h2_msgs ) ) {
+                $h2_fir_ref = $sync->{ imap2 }->fetch_hash( \@h2_msgs, @h2_common_fetch_param, $h2_fir_ref ) ;
         }else{
                 my $fetch_hash_uids = $fetch_hash_set || "1:*" ;
-                $h2_fir_ref = $sync->{imap2}->fetch_hash( $fetch_hash_uids, @h2_common_fetch_param, $h2_fir_ref )
+                $h2_fir_ref = $sync->{ imap2 }->fetch_hash( $fetch_hash_uids, @h2_common_fetch_param, $h2_fir_ref )
                 if ( @h2_msgs ) ;
         }
 
@@ -2650,7 +2680,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
 
         my @h2_msgs_duplicate;
         foreach my $m (@h2_msgs_not_in_cache) {
-                my $rc = parse_header_msg( $sync, $sync->{imap2}, $m, $h2_heads_ref, $h2_fir_ref, 'Host2', \%h2_hash ) ;
+                my $rc = parse_header_msg( $sync, $sync->{imap2}, $m, $h2_fold, $h2_heads_ref, $h2_fir_ref, 'Host2', \%h2_hash ) ;
                 my $h2_size = $h2_fir_ref->{$m}->{'RFC822.SIZE'} || 0 ;
                 if (! defined  $rc  ) {
                         myprint( "Host2: $h2_fold/$m size $h2_size ignored (no wanted headers so we ignore this message)\n"  ) ;
@@ -2832,10 +2862,10 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
 
                 if ( ( not exists  $h2_hash{ $m_id }  )
                         and ( not ( exists $sync->{ h2_folders_of_md5 }->{ $m_id } )
-                              or not $skipcrossduplicates ) )
+                              or not $sync->{ skipcrossduplicates } ) )
                 {
                         # copy
-                        my $h2_msg = copy_message( $sync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+                        my $h2_msg = copy_message( $sync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $cache_dir ) ;
                         if ( $h2_msg and $sync->{ delete1 } and not $sync->{ expungeaftereach } ) {
                                 # not  expunged
                                 push @h1_msgs_to_delete, $h1_msg ;
@@ -2868,7 +2898,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
                         {
                                 my $h2_msg   = $h2_hash{$m_id}{'m'} ;
                                 $sync->{ debug } and myprint( "Host1: found that msg $h1_fold/$h1_msg equals Host2 $h2_fold/$h2_msg\n"  ) ;
-                                if ( $usecache )
+                                if ( $sync->{ usecache } )
                                 {
                                         $debugcache and myprint( "touch $cache_dir/${h1_msg}_$h2_msg\n"  ) ;
                                         touch( "$cache_dir/${h1_msg}_$h2_msg" )
@@ -2878,7 +2908,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
                         elsif( exists  $sync->{ h2_folders_of_md5 }->{ $m_id }  )
                         {
                                 my @folders_dup = keys  %{ $sync->{ h2_folders_of_md5 }->{ $m_id } }  ;
-                                ( $sync->{ debug } or $debugcrossduplicates ) and myprint( "Host1: found that msg $h1_fold/$h1_msg is also in Host2 folders @folders_dup\n"  ) ;
+                                ( $sync->{ debug } or $sync->{ debugcrossduplicates } ) and myprint( "Host1: found that msg $h1_fold/$h1_msg is also in Host2 folders @folders_dup\n"  ) ;
                                 $sync->{ h2_nb_msg_crossdup } +=1 ;
                         }
                         $sync->{ total_bytes_skipped } += $h1_size ;
@@ -2890,7 +2920,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
                         #$debug and myprint( "MESSAGE $m_id\n" ) ;
                         my $h2_msg  = $h2_hash{$m_id}{'m'};
                         if ( $sync->{resyncflags} ) {
-                                sync_flags_fir( $sync, $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+                                sync_flags_fir( $sync, $h1_fold, $h1_msg, $h2_fold, $h2_msg, $h1_fir_ref, $h2_fir_ref ) ;
                         }
                         # Good
                         my $h2_size = $h2_hash{$m_id}{'s'};
@@ -2925,7 +2955,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
                         $debugcache and myprint( "cache messages update flags $h1_msg->$h2_msg\n" ) ;
                         if ( $sync->{resyncflags} )
                         {
-                                sync_flags_fir( $sync, $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) ;
+                                sync_flags_fir( $sync, $h1_fold, $h1_msg, $h2_fold, $h2_msg, $h1_fir_ref, $h2_fir_ref ) ;
                         }
                         my $h1_size = $h1_fir_ref->{ $h1_msg }->{ 'RFC822.SIZE' } || 0 ;
                         $sync->{ total_bytes_skipped } += $h1_size;
@@ -2945,7 +2975,7 @@ FOLDER: foreach my $h1_fold ( @{ $sync->{h1_folders_wanted} } )
                 $sync->{ debug } and myprint( "Copy by uid $h1_fold/$h1_msg\n"  ) ;
                 if ( ! reconnect_12_if_needed( $sync ) ) { last FOLDER ; }
 
-                my $h2_msg = copy_message( $sync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) ;
+                my $h2_msg = copy_message( $sync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $cache_dir ) ;
                 if( $sync->{ delete2 } and exists  $h2_folders_from_1_several{ $h2_fold }  and $h2_msg ) {
                         myprint( "Host2: msg $h2_fold/$h2_msg will cancel deletion [fresh copy] on host2\n"  ) ;
                         $uid_candidate_no_deletion{ $h2_fold }{ $h2_msg }++ ;
@@ -2985,9 +3015,6 @@ END_SIZE
         foldersizesatend( $sync ) ;
 }
 
-#$sync->{imap1}->State( 0 ); # Unconnected
-if ( ! lost_connection( $sync, $sync->{imap1}, "for host1 [$sync->{host1}]" ) ) { $sync->{imap1}->logout(  )  ; }
-if ( ! lost_connection( $sync, $sync->{imap2}, "for host2 [$sync->{host2}]" ) ) { $sync->{imap2}->logout(  )  ; }
 
 do_and_print_stats( $sync ) ;
 
@@ -3003,6 +3030,12 @@ if ( $sync->{ testslive } or $sync->{ testslive6 } )
         tests_live_result( $sync->{ nb_errors } ) ;
 }
 
+$sync->{ emailreport2 } and email_report_append( $sync->{ acc2 }, email_report( $sync, email_report_body_extra2(  ) ) ) ;
+$sync->{ emailreport1 } and email_report_append( $sync->{ acc1 }, email_report( $sync, email_report_body_extra1(  ) ) ) ;
+
+#$sync->{imap1}->State( 0 ); # Unconnected
+if ( ! lost_connection( $sync, $sync->{imap1}, "for host1 [$sync->{host1}]" ) ) { $sync->{imap1}->logout(  )  ; }
+if ( ! lost_connection( $sync, $sync->{imap2}, "for host2 [$sync->{host2}]" ) ) { $sync->{imap2}->logout(  )  ; }
 
 if ( $sync->{ nb_errors } )
 {
@@ -3172,6 +3205,43 @@ sub print_output_if_needed
 }
 
 
+sub stderr_to_stdout
+{
+        my $mysync = shift @ARG ;
+        if ( $mysync->{ tee} ) 
+        {
+                *STDERR = *${ $mysync->{ tee } }{ IO } ;
+        }
+        else
+        {
+                *STDERR = *STDOUT ;
+        }
+        return ;
+}
+
+
+
+sub determine_delete2duplicates
+{
+        my $mysync = shift @ARG ;
+        
+        if ( defined  $mysync->{ delete2duplicates } ) 
+        {
+                return $mysync->{ delete2duplicates } ; 
+        }
+        
+        if ( $mysync->{ syncduplicates } )
+        {
+                return 0 ;
+        }
+        
+        if ( $sync->{ delete2 } )
+        {
+                 return 1 ;       
+        }
+        
+        return ;
+}
 
 sub define_pidfile
 {
@@ -3803,6 +3873,14 @@ sub buggyflagsregex
         return( @buggyflagsregex ) ;
 }
 
+
+sub make_var_array_to_a_hash
+{
+        my $mysync = shift @ARG ;
+        %{ $mysync->{ varh } } = split_around_equal( @{ $mysync->{ var } } ) ;
+}
+
+
 sub cgisetcontext
 {
         my $mysync = shift ;
@@ -3833,7 +3911,7 @@ sub cgisetcontext
         $mysync->{ errorsmax } = $ERRORS_MAX_CGI ;
         $modulesversion = 0 ;
         $mysync->{ releasecheck } = defined  $mysync->{ releasecheck }  ? $mysync->{ releasecheck } : 1 ;
-        $usecache = 0 ;
+        $mysync->{ usecache } = 0 ;
         $mysync->{ showpasswords } = 0 ;
         $mysync->{ acc1 }->{ debugimap } = 0 ;
         $mysync->{ acc2 }->{ debugimap } = 0 ;
@@ -3860,7 +3938,7 @@ sub cgisetcontext
         $mysync->{ logdir } = '' ;
         
         chdir  $cgidir or die "Can not cd to $cgidir: $OS_ERROR\n" ;
-        cgioutputenvcontext( $mysync ) ;
+        output( $mysync, cgienvcontext( $mysync ) ) ;
         $mysync->{ debug } and output( $mysync, 'Current directory is ' . getcwd(  ) . "\n" ) ;
         $mysync->{ debug } and output( $mysync, 'Real user id is ' . getpwuid_any_os( $REAL_USER_ID ) . " (uid $REAL_USER_ID)\n" ) ;
         $mysync->{ debug } and output( $mysync, 'Effective user id is ' . getpwuid_any_os( $EFFECTIVE_USER_ID ). " (euid $EFFECTIVE_USER_ID)\n" ) ;
@@ -3887,18 +3965,77 @@ sub cgisetcontext
         return ;
 }
 
-sub cgioutputenvcontext
+
+
+sub tests_cgienvcontext 
+{
+        note( 'Entering tests_cgienvcontext()' ) ;
+
+        is( '', cgienvcontext(  ),  'cgienvcontext: no args => empty' ) ;
+        my $mysync = {  } ;
+        is( '', cgienvcontext( $mysync ),  'cgienvcontext: undef => empty' ) ;
+        
+        # environment SERVER_SOFTWARE alone
+        local $ENV{SERVER_SOFTWARE} = 'Chateau Lami' ;
+        is( "SERVER_SOFTWARE is Chateau Lami\n", cgienvcontext( $mysync ),  'cgienvcontext: SERVER_SOFTWARE=Chateau Lami' ) ;
+        
+        # environment REMOTE_HOST and SERVER_SOFTWARE
+        $mysync = {  } ;
+        local $ENV{REMOTE_HOST} = 'Votre serviteur' ;
+        is( "REMOTE_HOST is Votre serviteur\nSERVER_SOFTWARE is Chateau Lami\n", cgienvcontext( $mysync ),  'cgienvcontext: SERVER_SOFTWARE + REMOTE_HOST' ) ;
+        
+        # environment REMOTE_HOST and SERVER_SOFTWARE and --var REMOTE_HOST
+        $mysync->{ varh }->{REMOTE_HOST} = 'Another Servant' ;
+        is( "REMOTE_HOST is Another Servant and Votre serviteur\nSERVER_SOFTWARE is Chateau Lami\n", cgienvcontext( $mysync ),  'cgienvcontext: SERVER_SOFTWARE + REMOTE_HOST + --var REMOTE_HOST' ) ;
+        
+
+        # environment SERVER_SOFTWARE --var REMOTE_HOST only
+        local $ENV{REMOTE_HOST} = undef ;
+        $mysync = {  } ;
+        $mysync->{ varh }->{REMOTE_HOST} = 'Another Servant' ;
+        is( "REMOTE_HOST is Another Servant\nSERVER_SOFTWARE is Chateau Lami\n", cgienvcontext( $mysync ),  'cgienvcontext: SERVER_SOFTWARE + --var REMOTE_HOST' ) ;
+        
+        # environment SERVER_SOFTWARE --var REMOTE_HOST only
+        local $ENV{REMOTE_HOST} = undef ;
+        local $ENV{SERVER_SOFTWARE} = undef ;
+        $mysync = {  } ;
+        $mysync->{ varh }->{REMOTE_HOST} = 'Another Servant' ;
+        is( "REMOTE_HOST is Another Servant\n", cgienvcontext( $mysync ),  'cgienvcontext: --var REMOTE_HOST' ) ;
+
+        note( 'Leaving  tests_cgienvcontext()' ) ;
+        return ;
+} 
+
+sub cgienvcontext 
 {
 	my $mysync = shift @ARG ;
-
-	for my $envvar ( qw( REMOTE_ADDR REMOTE_HOST HTTP_REFERER HTTP_USER_AGENT SERVER_SOFTWARE SERVER_PORT HTTP_COOKIE ) ) {
-
+        
+        if ( ! defined $mysync ) { return '' ; }
+        
+        my $output = '' ;
+	for my $envvar ( qw( REMOTE_ADDR REMOTE_HOST HTTP_REFERER HTTP_USER_AGENT SERVER_SOFTWARE SERVER_NAME SERVER_ADDR SERVER_PORT SERVER_ADMIN HTTP_COOKIE ) )
+        {
+                # $envval comes from the web server via an environment variable
+                # $varval comes from the command line parameter --val or the cgi parameter val
 		my $envval = $ENV{ $envvar } || q{} ;
-		if ( $envval ) { output( $mysync, "$envvar is $envval\n" ) } ;
+                my $varval = $mysync->{ varh }->{ $envvar } ;
+                
+		if ( $envval and ! $varval )
+                {
+                        $output .= "$envvar is $envval\n" ;
+                }
+                elsif ( ! $envval and $varval )
+                {
+                        $output .= "$envvar is $varval\n" ;
+                }
+                elsif ( $envval and $varval )
+                {
+                        $output .= "$envvar is $varval and $envval\n" ;
+                } 
 	}
 
-	return ;
-}
+	return $output ;
+} 
 
 sub announcelogfile 
 {
@@ -4005,18 +4142,6 @@ sub debugsleep
         return ;
 }
 
-sub tests_foldersize
-{
-        note( 'Entering tests_foldersize()' ) ;
-
-        is( undef, foldersize(  ),  'foldersize: no args => undef' ) ;
-
-
-        #is_deeply( {}, {}, 'foldersize: a hash is a hash' ) ;
-        #is_deeply( [], [], 'foldersize: an array is an array' ) ;
-        note( 'Leaving  tests_foldersize()' ) ;
-        return ;
-}
 
 
 
@@ -4506,7 +4631,7 @@ sub foldersizes_at_the_beggining
 
         myprint( << 'END_SIZE'  ) ;
 
-Folders sizes before the synchronization.
+Folders sizes before the synchronization. It can take some time. Be patient.
 You can remove foldersizes listings by using "--nofoldersizes" and "--nofoldersizesatend"
 but then you will also lose the ETA (Estimation Time of Arrival) given after each message copy.
 END_SIZE
@@ -5418,13 +5543,13 @@ sub imap_id
                  myprint( "$Side: No ID capability\n"  ) ;
         }else{
                 my $id_inp = imapsync_id( $mysync, { side => lc $Side } ) ;
-                myprint( "\n$Side: found ID capability. Sending/receiving ID, presented in raw IMAP for now.\n"
+                myprint( "$Side: found ID capability. Sending/receiving ID, presented in raw IMAP for now.\n"
                 . "In order to avoid sending/receiving ID, use option --noid\n" ) ;
                 my $debug_before = $imap->Debug(  ) ;
                 $imap->Debug( 1 ) ;
                 my $id_out = $imap->tag_and_run( 'ID ' . $id_inp ) ;
                 #my $id_out = $imap->tag_and_run( 'ID NIL' ) ;
-                myprint( "\n" ) ;
+                #myprint( "\n" ) ;
                 $imap->Debug( $debug_before ) ;
                 #$imap_id_response = Data::Dumper->Dump( [ $id_out ], [ 'IMAP_ID' ] ) ;
         }
@@ -5446,7 +5571,7 @@ sub imapsync_id
                 vendor        => 'Gilles LAMIRAL',
                 'support-url' => 'https://imapsync.lamiral.info/',
                 # Example of date-time:  19-Sep-2015 08:56:07
-                date          => date_from_rcs( q{$Date: 2022/01/12 21:28:37 $ } ),
+                date          => date_from_rcs( q{$Date: 2022/04/04 16:05:55 $ } ),
         } ;
 
         my $imapsync_id_github  = {
@@ -5455,7 +5580,7 @@ sub imapsync_id
                 os            => $OSNAME,
                 vendor        => 'github',
                 'support-url' => 'https://github.com/imapsync/imapsync',
-                date          => date_from_rcs( q{$Date: 2022/01/12 21:28:37 $ } ),
+                date          => date_from_rcs( q{$Date: 2022/04/04 16:05:55 $ } ),
         } ;
 
         $imapsync_id = $imapsync_id_lamiral ;
@@ -5624,6 +5749,15 @@ sub quota_extract_storage_current_in_bytes
 }
 
 
+
+sub make_f1f2_array_to_a_hash
+{
+        my $mysync = shift @ARG ;
+        %{ $mysync->{ f1f2h } } = split_around_equal( @{ $mysync->{ f1f2 } } ) ;
+}
+
+
+
 sub automap
 {
         my ( $mysync ) = @_ ;
@@ -5776,7 +5910,7 @@ sub build_possible_special
         $possible_special->{'\Sent'}    = [ 'Sent', 'Sent Messages', 'Sent Items',
                                             'Gesendete Elemente', 'Gesendete Objekte',
                                             '&AMk-l&AOk-ments envoy&AOk-s', 'E&AwE-le&AwE-ments envoye&AwE-s', 'Envoy&AOk-', 'Objets envoy&AOk-s',
-                                            'Elementos enviados',
+                                            'Elementos enviados', 'Posta inviata',
                                             '&kAFP4W4IMH8wojCkMMYw4A-',
                                             '&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-',
                                             'Elementy wys&AUI-ane'] ;
@@ -6332,9 +6466,9 @@ sub size_filtered_flag
         return( 0 ) ;
 }
 
-sub sync_flags_fir
+sub sync_flags_fir 
 {
-        my ( $mysync, $h1_fold, $h1_msg, $h2_fold, $h2_msg, $permanentflags2, $h1_fir_ref, $h2_fir_ref ) = @_ ;
+        my ( $mysync, $h1_fold, $h1_msg, $h2_fold, $h2_msg, $h1_fir_ref, $h2_fir_ref ) = @_ ;
 
         if ( not defined  $h1_msg  ) { return } ;
         if ( not defined  $h2_msg  ) { return } ;
@@ -6346,44 +6480,39 @@ sub sync_flags_fir
         my $h1_flags = $h1_fir_ref->{ $h1_msg }->{ 'FLAGS' } || q{} ;
         my $h2_flags = $h2_fir_ref->{ $h2_msg }->{ 'FLAGS' } || q{} ;
 
-        sync_flags( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $h2_flags, $permanentflags2 ) ;
+        sync_flags( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $h2_flags ) ;
 
         return ;
-}
+} 
 
-sub sync_flags_after_copy
+sub sync_flags_after_copy 
 {
         # Activated with option --syncflagsaftercopy
-        my( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $permanentflags2 ) = @_ ;
+        my( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg ) = @_ ;
 
         if ( my @h2_flags = $mysync->{imap2}->flags( $h2_msg ) ) {
                 my $h2_flags = "@h2_flags" ;
-                ( $mysync->{ debug } or $debugflags ) and myprint( "Host2: msg $h2_fold/$h2_msg flags before sync flags after copy ( $h2_flags )\n"  ) ;
-                sync_flags( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $h2_flags, $permanentflags2 ) ;
+                ( $mysync->{ debug } or $mysync->{ debugflags } ) and myprint( "Host2: msg $h2_fold/$h2_msg flags before sync flags after copy ( $h2_flags )\n"  ) ;
+                sync_flags( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $h2_flags ) ;
         }else{
                 myprint( "Host2: msg $h2_fold/$h2_msg could not get its flags for sync flags after copy\n"  ) ;
         }
         return ;
-}
-
-# Globals
-# $debug
-# $debugflags
-# $permanentflags2
+} 
 
 
-sub sync_flags
+sub sync_flags 
 {
-        my( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $h2_flags, $permanentflags2 ) = @_ ;
+        my( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $h2_msg, $h2_flags ) = @_ ;
 
-        ( $mysync->{ debug } or $debugflags ) and
+        ( $mysync->{ debug } or $mysync->{ debugflags } ) and
         myprint( "Host1: flags init msg $h1_fold/$h1_msg flags( $h1_flags ) Host2 msg $h2_fold/$h2_msg flags( $h2_flags )\n"  ) ;
 
-        $h1_flags = flags_for_host2( $mysync, $h1_flags, $permanentflags2 ) ;
+        $h1_flags = flags_for_host2( $mysync, $h1_flags, $mysync->{ permanentflags2 } ) ;
 
         $h2_flags = flagscase( $h2_flags ) ;
 
-        ( $mysync->{ debug } or $debugflags ) and
+        ( $mysync->{ debug } or $mysync->{ debugflags } ) and
         myprint( "Host1: flags filt msg $h1_fold/$h1_msg flags( $h1_flags ) Host2 msg $h2_fold/$h2_msg flags( $h2_flags )\n"  ) ;
 
 
@@ -6392,7 +6521,7 @@ sub sync_flags
         my @h2_flags = sort split(q{ }, $h2_flags );
         my $diff = compare_lists( \@h1_flags, \@h2_flags );
 
-        $diff and ( $mysync->{ debug } or $debugflags )
+        $diff and ( $mysync->{ debug } or $mysync->{ debugflags } )
               and myprint( "Host2: flags msg $h2_fold/$h2_msg replacing h2 flags( $h2_flags ) with h1 flags( $h1_flags )\n" ) ;
 
         # This sets flags exactly. So flags can be removed with this.
@@ -6400,14 +6529,14 @@ sub sync_flags
         # to be removed on host2. Just add flags is not what
         # we need most of the time, so no + like in "+FLAGS.SILENT".
 
-        if ( not $mysync->{dry} and $diff and not $mysync->{imap2}->store( $h2_msg, "FLAGS.SILENT (@h1_flags)" ) ) {
+        if ( not $mysync->{ dry } and $diff and not $mysync->{ imap2 }->store( $h2_msg, "FLAGS.SILENT (@h1_flags)" ) ) {
                 my $error_msg = join q{}, "Host2: flags msg $h2_fold/$h2_msg could not add flags [@h1_flags]: ",
-                  $mysync->{imap2}->LastError || q{}, "\n" ;
+                  $mysync->{ imap2 }->LastError || q{}, "\n" ;
                 errors_incr( $mysync, $error_msg ) ;
         }
 
         return ;
-}
+} 
 
 
 
@@ -6916,25 +7045,25 @@ sub remove_tmp_files
         return ;
 }
 
-sub cleanup_before_exit
+sub cleanup_before_exit 
 {
         my $mysync = shift ;
         
         remove_tmp_files( $mysync ) ;
         
-        if ( $mysync->{imap1} and $mysync->{imap1}->IsConnected() )
+        if ( $mysync->{ imap1 } and $mysync->{ imap1 }->IsConnected() )
         {
                 myprint( "Disconnecting from host1 $mysync->{ host1 } user1 $mysync->{ user1 }\n" ) ;
-                $mysync->{imap1}->logout(  ) ;
+                $mysync->{ imap1 }->logout(  ) ;
         }
         
-        if ( $mysync->{imap2} and $mysync->{imap2}->IsConnected() )
+        if ( $mysync->{ imap2 } and $mysync->{ imap2 }->IsConnected() )
         {
                 myprint( "Disconnecting from host2 $mysync->{ host2 } user2 $mysync->{ user2 }\n" ) ;
-                $mysync->{imap2}->logout(  ) ;
+                $mysync->{ imap2 }->logout(  ) ;
         }
         
-        if ( $mysync->{log} ) {
+        if ( $mysync->{ log } ) {
                 myprint( "Log file is $mysync->{logfile} ( to change it, use --logfile filepath ; or use --nolog to turn off logging )\n" ) ;
         }
         else
@@ -6942,13 +7071,13 @@ sub cleanup_before_exit
                 myprint( "No log file because of option --nolog\n" ) ;
         }
 
-        if ( $mysync->{log} and $mysync->{logfile_handle} ) {
+        if ( $mysync->{ log } ) {
                 #print( "Closing $mysync->{ logfile }\n" ) ;
-                teefinish( $mysync ) ;
+                teefinish( $mysync->{ tee } ) ;
         }
-        
+        $IO::Socket::SSL::DEBUG = 1 ;
         return ;
-}
+} 
 
 
 sub tests_exit_value
@@ -7574,7 +7703,7 @@ sub probe_imapssl
 
 }
 
-sub connect_imap
+sub connect_imap 
 {
         my( $host, $port, $ssl, $tls, $acc ) = @_ ;
         my $imap = Mail::IMAPClient->new(  ) ;
@@ -7601,8 +7730,7 @@ sub connect_imap
                         " $OS_ERROR\n"
                 ) ;
         }
-        myprint( "$acc->{ Side } IP address: ", $imap->Socket->peerhost(), "\n"  ) ;
-
+        myprint( "$acc->{ Side } IP address: ", $imap->Socket->peerhost(), " Local IP address: ", $imap->Socket->sockhost(), "\n"  ) ;
         my $banner = $imap->Results()->[0] ;
 
         myprint( "$acc->{ Side } banner: $banner"  ) ;
@@ -7621,7 +7749,7 @@ sub connect_imap
                 myprint( "$acc->{ Side }: Socket successfully converted to SSL\n"  ) ;
         }
         return( $imap ) ;
-}
+} 
 
 sub tests_compress_ssl
 {
@@ -8013,7 +8141,7 @@ sub tests_login_imap_oauth
 
 
 
-sub login_imap
+sub login_imap 
 {
         my @allargs = @_ ;
         my(
@@ -8040,7 +8168,9 @@ sub login_imap
                 errors_incr( $mysync, $error ) ;
                 return ;
         }
-        myprint( "$acc->{ Side } IP address: ", $imap->Socket->peerhost(), "\n"  ) ;
+        
+        # Add also $imap->Socket->sockhost() to help configuring firewalls, allowed rule.
+        myprint( "$acc->{ Side } IP address: ", $imap->Socket->peerhost(), " Local IP address: ", $imap->Socket->sockhost(), "\n"  ) ;
         my $banner = $imap->Results()->[0] ;
 
         myprint( "$acc->{ Side } banner: $banner"  ) ;
@@ -8094,7 +8224,7 @@ sub login_imap
                 myprint( "$acc->{ Side }: failed login on [$host] with user [$user] auth [$acc->{ authmech }]\n"  ) ;
                 return ;
         }
-}
+} 
 
 
 
@@ -8109,12 +8239,9 @@ sub init_imap
 
         $imap = Mail::IMAPClient->new() ;
 
-        if ( $mysync->{ tee } )
-        {
-                # Well, it does not change anything, does it?
-                # It does when suppressing the hack with *STDERR
-                $imap->Debug_fh( $mysync->{ tee } ) ;
-        }
+        # Well, it does not change anything, does it?
+        # It does when suppressing the hack with *STDERR
+        $imap->Debug_fh( $mysync->{ tee } || *STDOUT ) ;
 
         if ( $ssl ) { set_ssl( $imap, $acc ) }
         if ( $tls ) {  } # can not do set_tls() here because connect() will directly do a STARTTLS
@@ -8671,8 +8798,8 @@ sub banner_imapsync
 
         my $banner_imapsync = join q{},
                 q{$RCSfile: imapsync,v $ },
-                q{$Revision: 2.178 $ },
-                q{$Date: 2022/01/12 21:28:37 $ },
+                q{$Revision: 2.200 $ },
+                q{$Date: 2022/04/04 16:05:55 $ },
                 "\n",
                 "Command line used, run by $EXECUTABLE_NAME:\n",
                 "$PROGRAM_NAME ", command_line_nopassword( $mysync, @argv ), "\n" ;
@@ -10693,7 +10820,7 @@ sub tests_regexflags
         return ;
 }
 
-sub regexflags
+sub regexflags 
 {
         my $mysync = shift ;
         my $flags = shift ;
@@ -10701,16 +10828,16 @@ sub regexflags
         foreach my $regexflag ( @{ $mysync->{ regexflag } } )
         {
                 my $flags_orig = $flags ;
-                $debugflags and myprint( "eval \$flags =~ $regexflag\n"  ) ;
+                $mysync->{ debugflags } and myprint( "eval \$flags =~ $regexflag\n"  ) ;
                 my $ret = eval "\$flags =~ $regexflag ; 1 " ;
-                $debugflags and myprint( "regexflag $regexflag [$flags_orig] -> [$flags]\n"  ) ;
+                $mysync->{ debugflags } and myprint( "regexflag $regexflag [$flags_orig] -> [$flags]\n"  ) ;
                 if( not ( defined $ret ) or $EVAL_ERROR ) {
                         myprint( "Error: eval regexflag '$regexflag': $EVAL_ERROR\n"  ) ;
                         return( undef ) ;
                 }
         }
         return( $flags ) ;
-}
+} 
 
 
 sub filterbuggyflags
@@ -10830,7 +10957,7 @@ sub tests_permanentflags
         return ;
 }
 
-sub permanentflags
+sub permanentflags 
 {
         my $mysync = shift ;
         
@@ -10838,7 +10965,7 @@ sub permanentflags
 
         foreach my $line (@lines) {
                 if ( $line =~ m{\[PERMANENTFLAGS\s\(([^)]+?)\)\]}x ) {
-                        ( $debugflags or $sync->{ debug } ) and myprint( "permanentflags: $line"  ) ;
+                        ( $mysync->{ debugflags } or $mysync->{ debug } ) and myprint( "permanentflags: $line"  ) ;
                         my $permanentflags = $1 ;
                         if ( $permanentflags =~ m{\\\*}x )
                         {
@@ -10848,7 +10975,7 @@ sub permanentflags
                 } ;
         }
         return( q{} ) ;
-}
+} 
 
 sub tests_flags_filter
 {
@@ -11041,7 +11168,7 @@ sub select_msgs_by_search
         # Need all messages list to avoid deleting useful cache part
         # in case of --search or --minage or --maxage
 
-        if ( ( defined  $msgs_all_hash_ref  and $usecache )
+        if ( ( defined  $msgs_all_hash_ref  and $sync->{ usecache } )
         or ( not defined  $maxage  and not defined  $minage  and not defined  $search_cmd  )
         ) {
 
@@ -11300,11 +11427,11 @@ sub stats_update_skip_message
         return ;
 }
 
-sub copy_message
+sub copy_message 
 {
         # copy
 
-        my ( $mysync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $permanentflags2, $cache_dir ) = @_ ;
+        my ( $mysync, $h1_msg, $h1_fold, $h2_fold, $h1_fir_ref, $cache_dir ) = @_ ;
         ( $mysync->{ debug } or $mysync->{dry} )
                 and myprint( "msg $h1_fold/$h1_msg copying to $h2_fold $mysync->{dry_message} " . eta( $mysync ) . "\n" ) ;
 
@@ -11357,12 +11484,12 @@ sub copy_message
 
         my $h1_date = date_for_host2( $h1_msg, $h1_idate ) ;
 
-        ( $mysync->{ debug } or $debugflags ) and
+        ( $mysync->{ debug } or $mysync->{ debugflags } ) and
         myprint( "Host1: flags init msg $h1_fold/$h1_msg date [$h1_date] flags [$h1_flags] size [$h1_size]\n"  ) ;
 
-        $h1_flags = flags_for_host2( $mysync, $h1_flags, $permanentflags2 ) ;
+        $h1_flags = flags_for_host2( $mysync, $h1_flags, $mysync->{ permanentflags2 } ) ;
 
-        ( $mysync->{ debug } or $debugflags ) and
+        ( $mysync->{ debug } or $mysync->{ debugflags } ) and
         myprint( "Host1: flags filt msg $h1_fold/$h1_msg date [$h1_date] flags [$h1_flags] size [$h1_size]\n"  ) ;
 
         $h1_date = undef if ( $h1_date eq q{} ) ;
@@ -11372,13 +11499,13 @@ sub copy_message
 
 
         if ( $new_id and $syncflagsaftercopy ) {
-                sync_flags_after_copy( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $new_id, $permanentflags2 ) ;
+                sync_flags_after_copy( $mysync, $h1_fold, $h1_msg, $h1_flags, $h2_fold, $new_id ) ;
         }
 
         myprint( debugmemory( $mysync, " at C3" ) ) ;
 
         return $new_id ;
-}
+} 
 
 
 
@@ -11670,6 +11797,7 @@ sub tests_message_for_host2
                 is( undef, $string, q{message_for_host2: --pipemess 'true', value} ) ;
         }
 
+        undef @pipemess ;
         note( 'Leaving  tests_message_for_host2()' ) ;
         return ;
 }
@@ -12327,7 +12455,7 @@ sub append_message_on_host2
                         $amount_transferred,
                         $eta );
                         sleep_if_needed( $mysync ) ;
-                        if ( $usecache and $cacheaftercopy and $new_id =~ m{^\d+$}x ) {
+                        if ( $sync->{ usecache } and $cacheaftercopy and $new_id =~ m{^\d+$}x ) {
                                 $debugcache and myprint( "touch $cache_dir/${h1_msg}_$new_id\n"  ) ;
                                 touch( "$cache_dir/${h1_msg}_$new_id" )
                                 or croak( "Couldn't touch $cache_dir/${h1_msg}_$new_id" ) ;
@@ -12739,6 +12867,40 @@ sub tests_time_remaining
         note( 'Leaving  tests_time_remaining()' ) ;
         return ;
 }
+
+
+
+
+sub tests_usecache_and_skipcrossduplicates
+{
+        note( 'Entering tests_usecache_and_skipcrossduplicates()' ) ;
+
+        is( undef, usecache_and_skipcrossduplicates(  ),  'usecache_and_skipcrossduplicates: no args => undef' ) ;
+        my $mysync = {  } ;
+        is( undef, usecache_and_skipcrossduplicates( $mysync ),  'usecache_and_skipcrossduplicates: undef => undef' ) ;
+        
+        $mysync->{ usecache } = $mysync->{ skipcrossduplicates } = 1 ;
+        is( 1, usecache_and_skipcrossduplicates( $mysync ),  'usecache_and_skipcrossduplicates: usecache=skipcrossduplicates=1 => wrong' ) ;
+        
+        note( 'Leaving  tests_usecache_and_skipcrossduplicates()' ) ;
+        return ;
+}
+
+sub usecache_and_skipcrossduplicates
+{
+        my $mysync = shift @ARG ;
+        
+        if ( ! defined $mysync ) { return ; }
+
+        if ( ( $mysync->{ usecache } ) and ( $mysync->{ skipcrossduplicates } ) )
+        {
+                return 1 ;
+        }
+        
+        return ;
+}
+
+
 
 
 sub cache_map
@@ -13399,6 +13561,7 @@ sub tests_filter_forbidden_characters
         note( 'Entering tests_filter_forbidden_characters()' ) ;
 
         is( undef , filter_forbidden_characters(  ), 'filter_forbidden_characters: no args -> undef' ) ;
+        is( '' , filter_forbidden_characters( '' ),  'filter_forbidden_characters: empty string -> empty string' ) ;
 
         is( 'a_b' , filter_forbidden_characters( 'a_b' ), 'filter_forbidden_characters: a_b -> a_b' ) ;
         is( 'a_b' , filter_forbidden_characters( 'a*b' ), 'filter_forbidden_characters: a*b -> a_b' ) ;
@@ -14876,12 +15039,367 @@ sub do_and_print_stats
 
         comment_on_final_diff_in_1_not_in_2( $mysync ) ;
         comment_on_final_diff_in_2_not_in_1( $mysync ) ;
-        myprint( "Detected $mysync->{nb_errors} errors\n\n" ) ;
+        myprint( "Detected $mysync->{nb_errors} errors\n" ) ;
 
         myprint(  $mysync->{ warn_release }, "\n" ) ;
         myprint(  homepage(  ), "\n" ) ;
         return ;
 }
+
+
+sub tests_email_report_message_id  
+{
+        note( 'Entering tests_email_report_message_id()' ) ;
+
+        local $ENV{TZ} = 'GMT' ;
+
+        like( email_report_message_id(  ),
+        qr{^...._.._.._.._.._.._...__\@imapsync.tk$}xms,
+        'email_report_message_id: no args => ...._.._.._.._.._.._...__@imapsync.tk' ) ;
+        
+        my $mysync = {  } ;
+        like( email_report_message_id( $mysync ),
+        qr{^...._.._.._.._.._.._...__\@imapsync.tk$}xms,
+        'email_report_message_id: undef => ...._.._.._.._.._.._...__@imapsync.tk' ) ;
+        
+        $mysync->{ timestart } = 1357902468.531 ;
+        like(
+        email_report_message_id( $mysync ),  
+        qr{^2013_01_11_\d\d_07_48_530__\@imapsync.tk$}xms,
+        'email_report_message_id: 1357902468.531 => 2013_01_11_\d\d_07_48_530__@imapsync.tk' ) ;
+
+        $mysync->{ user1 } = 'sarah' ;
+        $mysync->{ user2 } = 'haras' ;    
+        $mysync->{ timestart } = 1357902468.531 ;
+        like(
+        email_report_message_id( $mysync ),
+        qr{^2013_01_11_\d\d_07_48_530_sarah_haras\@imapsync.tk$}xms,
+        'email_report_message_id: 1357902468.531 sarah haras => 2013_01_11_\d\d_07_48_530_sarah_haras@imapsync.tk' ) ;
+
+        $mysync->{ user1 } = 'sar@ah' ;
+        $mysync->{ user2 } = 'har@as' ;
+        $mysync->{ timestart } = 1357902468.531 ;
+        like( 
+        email_report_message_id( $mysync ),
+        qr{2013_01_11_\d\d_07_48_530_sar_ah_har_as\@imapsync.tk},
+        'email_report_message_id: 1357902468.531 sar@ah har@as => 2013_01_11_\d\d_07_48_530_sar_ah_har_as@imapsync.tk' ) ;
+
+        note( 'Leaving  tests_email_report_message_id()' ) ;
+        return ;
+}  
+
+
+sub email_report_message_id
+{
+        my $mysync = shift @ARG ;
+        
+        my $time = $mysync->{ timestart } || time ;
+        my $user1_filtered = $mysync->{ user1 } || '' ;
+        my $user2_filtered = $mysync->{ user2 } || '' ;
+        
+        # Nothing but alphanumeric characters and underscores to replace the others
+        $user1_filtered =~ s/[^a-zA-Z0-9]/_/g ;
+        $user2_filtered =~ s/[^a-zA-Z0-9]/_/g ;
+        
+        my $message_id = join( '', 
+                year_month_day_hour_min_sec_ms( $time ),
+                '_',
+                $user1_filtered,
+                '_',
+                $user2_filtered,
+                '@imapsync.tk',
+        ) ;
+        return $message_id ;
+}
+
+
+sub tests_date_rfc822 
+{ 
+        note( 'Entering tests_email_report_date()' ) ;
+
+        ok( date_rfc822(  ),  'date_rfc822: no args => now: ' . date_rfc822(  ) ) ;
+        
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                like( date_rfc822( 1671706800 ), qr{Thu, 22 Dec 2022 \d\d:00:00 \+0000},  'date_rfc822: 1671706800 => Thu, 22 Dec 2022 \d\d:00:00 \+0000' ) ;
+                like( date_rfc822( 1671534000 ), qr{Tue, 20 Dec 2022 \d\d:00:00 \+0000},  'date_rfc822: 1671534000 => Tue, 20 Dec 2022 \d\d:00:00 \+0000' ) ;
+                
+        }
+        else
+        {
+                local $ENV{TZ} = 'GMT' ;
+                is( 'Thu, 01 Jan 1970 00:00:00 +0000', date_rfc822( 0 ),  'date_rfc822: 0 => Thu, 01 Jan 1970 00:00:00 +0000' ) ;
+                is( 'Thu, 22 Dec 2022 11:00:00 +0000', date_rfc822( 1671706800 ),  'date_rfc822: 1671706800 => Thu, 22 Dec 2022 11:00:00 +0000' ) ;
+        }
+        note( 'Leaving  tests_email_report_date()' ) ;
+        return ;
+} 
+
+
+
+sub date_rfc822 
+{ 
+        # Later I found Mail::IMAPCLient::Rfc822_date()
+        # https://metacpan.org/pod/Mail::IMAPClient#Rfc822_date
+        my $time = shift @ARG ;
+        $time = defined( $time ) ? $time : time ;
+        my $old_locale  = POSIX::setlocale( POSIX::LC_TIME, "C" ) ;
+        
+        my $date_rfc822 ;
+        
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                $date_rfc822 = POSIX::strftime( "%a, %d %b %Y %H:%M:%S +0000", localtime( $time ) ) ;
+        }
+        else
+        {
+                $date_rfc822 = POSIX::strftime( "%a, %d %b %Y %H:%M:%S %z", localtime( $time ) ) ;
+        }
+        
+        POSIX::setlocale( POSIX::LC_TIME, $old_locale ) ;
+        return $date_rfc822 ;
+} 
+
+
+
+sub tests_email_report_from
+{
+        note( 'Entering tests_email_report_from()' ) ;
+
+        is( 'help@imapsync.tk', email_report_from(  ),  'email_report_from: no args => help@imapsync.tk' ) ;
+        my $mysync = {  } ;
+        is( 'help@imapsync.tk', email_report_from( $mysync ),  'email_report_from: undef => help@imapsync.tk' ) ;
+        $mysync->{ email_report_from } = 'foo@example.com' ;
+        is( 'foo@example.com', email_report_from( $mysync ),  'email_report_from: foo@example.com => foo@example.com' ) ;
+
+        note( 'Leaving  tests_email_report_from()' ) ;
+        return ;
+}
+
+sub email_report_from
+{
+        my $mysync = shift @ARG ;
+        
+        my $email_report_from = defined( $mysync->{ email_report_from } ) 
+                ? $mysync->{ email_report_from } 
+                : 'help@imapsync.tk' ;
+
+        return $email_report_from ;
+}
+
+
+sub tests_email_report_to
+{
+        note( 'Entering tests_email_report_from()' ) ;
+
+        is( 'unknown@imapsync.tk', email_report_to(  ),  'email_report_to: no args => help@imapsync.tk' ) ;
+        my $mysync = {  } ;
+        is( 'unknown@imapsync.tk', email_report_to( $mysync ),  'email_report_to: undef => help@imapsync.tk' ) ;
+        $mysync->{ user2 } = 'foo@example.com' ;
+        is( 'foo@example.com', email_report_to( $mysync ),  'email_report_to: foo@example.com => foo@example.com' ) ;
+
+        note( 'Leaving  tests_email_report_from()' ) ;
+        return ;
+}
+
+sub email_report_to
+{
+        my $mysync = shift @ARG ;
+        
+        my $email_report_to = defined( $mysync->{ user2 } )
+                ? $mysync->{ user2 } 
+                : 'unknown@imapsync.tk' ;
+
+        return $email_report_to ;
+}
+
+sub email_report_subject
+{
+        my $mysync = shift @ARG ;
+        
+        my $email_report_subject = 'Imapsync transferred your account' ;
+        return $email_report_subject ;
+}
+
+sub tests_email_report_body_base
+{
+        note( 'Entering tests_email_report_body_base()' ) ;
+
+        is( '', email_report_body_base(  ),  'email_report_body_base: no args => empty string' ) ;
+        my $mysync = {  } ;
+        is( '', email_report_body_base( $mysync ),  'email_report_body_base: undef => empty string' ) ;
+        $mysync->{ user1 } = 'user1@example.com' ;
+        $mysync->{ user2 } = 'user2@example.com' ;
+        
+        note( email_report_body_base( $mysync ) ) ;
+
+        note( 'Leaving  tests_email_report_body_base()' ) ;
+        return ;
+}
+
+sub email_report_body_base
+{
+        my $mysync = shift @ARG ;
+        
+        if( ! $mysync ) { return '' ; }
+        if( ! all_defined( 
+                $mysync->{ user1 },
+                $mysync->{ user2 },
+        ) ) { return '' ; }
+        
+        my $email_report_body_base = <<"EOM";
+<!DOCTYPE html>\r
+<html lang="en">\r
+<head>\r
+<title>Imapsync transfer from $mysync->{ user1 } to $mysync->{ user2 }</title>\r
+</head>\r
+<body>\r
+<p>Hello!</p>\r
+<p>\r
+Imapsync just ended the synchronization from the imap account <b>$mysync->{ user1 }</b> to the imap account <b>$mysync->{ user2 }</b>.<br />\r
+</p>\r
+EOM
+        return $email_report_body_base ;
+}
+
+sub email_report_body_extra1
+{
+        my $image = '<a href="https://imapsync.lamiral.info/">'
+                .'<img src="https://imapsync.lamiral.info/S/images/logo_imapsync_s1.png" alt="imapsync website" />'
+                .'</a>'
+                . "\r\n" 
+                ;
+        return $image ;
+}
+
+
+sub email_report_body_extra2
+{
+        my $image = '<a href="https://imapsync.lamiral.info/">'
+                .'<img src="https://imapsync.lamiral.info/S/images/logo_imapsync_s2.png" alt="imapsync website" />'
+                .'</a>'
+                . "\r\n" 
+                ;
+        return $image ;
+}
+
+
+
+
+
+sub email_report_html_begin
+{
+        return  '<html>' 
+                . "\r\n" 
+                ;
+}
+
+sub email_report_html_end
+{
+        return  '</html>' 
+                . "\r\n" 
+                ;
+}
+
+sub email_report_body_begin
+{
+        return  '<body>'
+                . "\r\n" 
+                ;
+}
+
+sub email_report_body_end
+{
+        return  '</body>'
+                . "\r\n" 
+                ;
+}
+
+
+sub email_report_header
+{
+        my $mysync = shift @ARG ;
+        
+        my @header ;
+        
+        push( @header, join( "\r\n", 
+                'Message-Id: ' . email_report_message_id( $mysync ),
+                'Date: '       . date_rfc822( time ),
+                'From: '       . email_report_from( $mysync ),
+                'To: '         . email_report_to( $mysync ),
+                'Subject: '    . email_report_subject( $mysync ),
+                'Content-Type: text/html',
+                "\r\n",
+                )
+        ) ;
+        
+        return @header ;
+}
+
+
+sub tests_email_report
+{
+        note( 'Entering tests_email_report()' ) ;
+
+        is( '', email_report(  ),  'email_report: undef => empty string' ) ;
+        my $mysync = {  } ;
+        $mysync->{ user1 } = 'user1@example.com' ;
+        $mysync->{ user2 } = 'user2@example.com' ;
+        
+        note( email_report( $mysync, "c'est extra !\r\n"  ) ) ;
+
+        note( 'Leaving  tests_email_report()' ) ;
+        return ;
+}
+
+
+sub email_report 
+{
+        my $mysync = shift @ARG ;
+        
+        my $extra = shift @ARG ;
+        
+        if ( ! defined $mysync ) { return '' ; }
+        
+        my @email_report = (  ) ;
+        
+        push( @email_report, email_report_header( $mysync ),
+                email_report_html_begin(  ),
+                email_report_body_begin(  ),
+                email_report_body_base( $mysync ),
+                $extra,
+                email_report_body_end(  ),
+                email_report_html_end(  ),
+        ) ;
+
+        my $email_report = join( "", @email_report ) ;
+        
+        return $email_report ;
+}
+
+sub email_report_append  
+{
+        my $acc = shift ;
+        my $text = shift ;
+        
+        if ( $acc->{ imap }->IsAuthenticated && $text )
+        {
+                my $newuid = $acc->{ imap }->append_string( 'INBOX', $text ) ;
+                if ( $newuid )
+                {       
+                        myprint( "$acc->{ Side }: Successfully put the email final report in INBOX. Use --noemailreport" . $acc->{N} . " to avoid it.\n" ) ;
+                }
+                else
+                {
+                        myprint( "$acc->{ Side }: Failed to put the email final report in INBOX. Use --noemailreport" . $acc->{N} . " to avoid it.\n" ) ;
+                }
+                return $newuid ;
+        }
+        else
+        {
+                return ;
+        }
+} 
 
 sub diff_or_NA
 {
@@ -14983,14 +15501,14 @@ sub load_modules
 # Globals: $skipsize $wholeheaderifneeded
 sub parse_header_msg
 {
-        my ( $mysync, $imap, $m_uid, $s_heads, $s_fir, $side, $s_hash ) = @_ ;
+        my ( $mysync, $imap, $m_uid, $folder, $s_heads, $s_fir, $side, $s_hash ) = @_ ;
 
         my $head = $s_heads->{$m_uid} ;
         my $headnum =  scalar keys  %{ $head }   ;
-        $mysync->{ debug } and myprint( "$side: uid $m_uid number of headers, pass one: ", $headnum, "\n" ) ;
+        $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid number of headers, pass one: ", $headnum, "\n" ) ;
 
         if ( ( ! $headnum ) and ( $wholeheaderifneeded ) ){
-                $mysync->{ debug } and myprint( "$side: uid $m_uid no header by parse_headers so taking whole header with BODY.PEEK[HEADER]\n" ) ;
+                $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid no header by parse_headers so taking whole header with BODY.PEEK[HEADER]\n" ) ;
                 $imap->fetch($m_uid, 'BODY.PEEK[HEADER]' ) ;
                 my $whole_header = $imap->_transaction_literals ;
 
@@ -14998,16 +15516,16 @@ sub parse_header_msg
                 $head = decompose_header( $whole_header ) ;
 
                 $headnum =  scalar  keys  %{ $head }   ;
-                $mysync->{ debug } and myprint( "$side: uid $m_uid number of headers, pass two: ", $headnum, "\n" ) ;
+                $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid number of headers, pass two: ", $headnum, "\n" ) ;
         }
 
         #myprint( Data::Dumper->Dump( [ $head, \%useheader ] )  ) ;
 
-        my $headstr = header_construct( $mysync, $head, $side, $m_uid ) ;
+        my $headstr = header_construct( $mysync, $head, $side, $folder, $m_uid ) ;
 
         if ( ( ! $headstr ) and ( $mysync->{addheader} ) and ( $side eq 'Host1' ) ) {
                 my $header = add_header( $m_uid ) ;
-                $mysync->{ debug } and myprint( "$side: uid $m_uid no header found so adding our own [$header]\n" ) ;
+                $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid no header found so adding our own [$header]\n" ) ;
                 $headstr .= uc  $header  ;
                 $s_fir->{$m_uid}->{NO_HEADER} = 1;
         }
@@ -15035,7 +15553,7 @@ sub parse_header_msg
                 my $num = scalar( @{ $dup_ref } ) ;
                 push( @{ $dup_ref }, $m_uid ) ;
                 my $keydup = "$key#$num" ;
-                $mysync->{ debug } and myprint( "$side: uid $m_uid sig $keydup size $size idate $idate dup @{ $dup_ref }\n" ) ;
+                $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid sig $keydup size $size idate $idate dup @{ $dup_ref }\n" ) ;
                 if ( $mysync->{ syncduplicates } )
                 {
                         $s_hash->{"$keydup"}{'5'} = $m_md5 ;
@@ -15054,7 +15572,7 @@ sub parse_header_msg
                 $s_hash->{"$key"}{'F'} = $flags ;
                 $s_hash->{"$key"}{'m'} = $m_uid ;
                 $s_hash->{"$key"}{'U'} = [ $m_uid ] ; # ? or [  ] ?
-                $mysync->{ debug } and myprint( "$side: uid $m_uid sig $key size $size idate $idate\n" ) ;
+                $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid sig $key size $size idate $idate\n" ) ;
                 return( 1 ) ;
         }
 
@@ -15062,7 +15580,7 @@ sub parse_header_msg
         return ;
 }
 
-sub tests_header_construct
+sub tests_header_construct 
 {
         note( 'Entering tests_header_construct()' ) ;
 
@@ -15071,39 +15589,39 @@ sub tests_header_construct
         my $head = {
                 'key1' => [ 'val1_key1' ]
         } ;
-        is( undef, header_construct( $mysync, $head, 'Host1', '1' ),  'header_construct: key1 val1_key1 no useheader => undef' ) ;
+        is( undef, header_construct( $mysync, $head, 'Host1', 'INBOX', '1' ),  'header_construct: key1 val1_key1 no useheader => undef' ) ;
 
         $mysync->{useheader}->{ 'KEY1'  } = 1 ;
-        is( 'KEY1: VAL1_KEY1', header_construct( $mysync, $head, 'Host1', '1' ),  'header_construct: key1 val1_key1 => KEY1: VAL1_KEY1' ) ;
+        is( 'KEY1: VAL1_KEY1', header_construct( $mysync, $head, 'Host1', 'INBOX', '1' ),  'header_construct: key1 val1_key1 => KEY1: VAL1_KEY1' ) ;
 
 
 
         $head = {
                 'key1' => [ 'val1_key1', 'val3_key1', 'val2_key1' ]
         } ;
-        is( 'KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1', header_construct( $mysync, $head, 'Host1', '1' ),
+        is( 'KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1', header_construct( $mysync, $head, 'Host1', 'INBOX', '1' ),
         'header_construct: key1 val1_key1 val3_key1 val2_key1                => KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1' ) ;
 
         $head = {
                 'key1' => [ 'val1_key1', 'val3_key1', ' val2_key1' ]
         } ;
-        is( 'KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1', header_construct( $mysync, $head, 'Host1', '1' ),
+        is( 'KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1', header_construct( $mysync, $head, 'Host1', 'INBOX', '1' ),
         'header_construct: key1 val1_key1 val3_key1  val2_key1               => KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1' ) ;
 
         $mysync->{useheader}->{ 'ALL'  } = 1 ;
 
-        is( 'KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1', header_construct( $mysync, $head, 'Host1', '1' ),
+        is( 'KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1', header_construct( $mysync, $head, 'Host1', 'INBOX', '1' ),
         'header_construct: key1 val1_key1 val3_key1  val2_key1 useheader ALL => KEY1: VAL1_KEY1KEY1: VAL2_KEY1KEY1: VAL3_KEY1' ) ;
 
         $mysync->{skipheader} = 'key1' ;
-        is( undef, header_construct( $mysync, $head, 'Host1', '1' ),
+        is( undef, header_construct( $mysync, $head, 'Host1', 'INBOX', '1' ),
         'header_construct: key1 val1_key1 val3_key1  val2_key1 useheader ALL => undef' ) ;
 
         $head = {
                 'key1' => [ 'val1_key1', 'val3_key1', ' val2_key1' ],
                 'key2' => [ 'val1_key2', 'val3_key2', ' val2_key2' ]
         } ;
-        is( 'KEY2: VAL1_KEY2KEY2: VAL2_KEY2KEY2: VAL3_KEY2', header_construct( $mysync, $head, 'Host1', '1' ),
+        is( 'KEY2: VAL1_KEY2KEY2: VAL2_KEY2KEY2: VAL3_KEY2', header_construct( $mysync, $head, 'Host1', 'INBOX', '1' ),
         'header_construct: ... useheader ALL skipheader key1 => KEY2: VAL1_KEY2KEY2: VAL2_KEY2KEY2: VAL3_KEY2' ) ;
 
 
@@ -15113,9 +15631,9 @@ sub tests_header_construct
 
 
 # No global in header_construct
-sub header_construct
+sub header_construct 
 {
-        my( $mysync, $head, $side, $m_uid ) = @_ ;
+        my( $mysync, $head, $side, $folder, $m_uid ) = @_ ;
 
         my @headstr ;
         foreach my $h ( sort keys  %{ $head }  ) {
@@ -15127,10 +15645,10 @@ sub header_construct
                         my $H = header_line_normalize( $h, $val ) ;
 
                         # show stuff in debug mode
-                        $mysync->{ debug } and myprint( "$side uid $m_uid header [$H]", "\n" ) ;
+                        $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid header [$H]", "\n" ) ;
 
                         if ( $mysync->{skipheader} and $H =~ m/$mysync->{skipheader}/xi) {
-                                $mysync->{ debug } and myprint( "$side uid $m_uid skipping header [$H]\n" ) ;
+                                $mysync->{ debug } and myprint( "$side: folder/uid $folder/$m_uid skipping header [$H]\n" ) ;
                                 next ;
                         }
                         push @headstr, $H ;
@@ -16239,8 +16757,8 @@ sub cpu_time
         my $cpu_time = 0 ;
         # last element is the sum of all elements
         $cpu_time = ( map { $cpu_time += $_ } @cpu_times )[ -1 ] ;
-        my $cpu_time_round = mysprintf( '%.2f', $cpu_time ) ;
-        $mysync->{ debug } and myprint( join(' + ', @cpu_times), " = $cpu_time ~ $cpu_time_round\n" ) ;
+        my $cpu_time_rounded = mysprintf( '%.2f', $cpu_time ) ;
+        $mysync->{ debug } and myprint( join(' + ', @cpu_times), " = $cpu_time ~ $cpu_time_rounded\n" ) ;
         return $cpu_time ;
 }
 
@@ -17775,15 +18293,14 @@ sub set_checknoabletosearch
 }
 
 
-sub tests_setlogfile
+sub tests_setlogfile 
 {
 	note( 'Entering tests_setlogfile()' ) ;
 
 	my $mysync = {} ;
-        $mysync->{logdir}  = 'vallogdir' ;
-        $mysync->{logfile} = 'vallogfile.txt' ;
-        is( 'vallogdir/vallogfile.txt', setlogfile( $mysync ),
-                'setlogfile: logdir vallogdir, logfile vallogfile.txt, vallogdir/vallogfile.txt' ) ;
+        $mysync->{ logdir }  = 'vallogdir' ;
+        is( 'vallogdir/vallogfile.txt', setlogfile( $mysync, 'vallogfile.txt' ),
+                'setlogfile: logdir vallogdir, vallogfile.txt => vallogdir/vallogfile.txt' ) ;
 
 	SKIP: {
 	skip( 'Too hard to have a well known timezone on Windows', 9 ) if ( 'MSWin32' eq $OSNAME ) ;
@@ -17794,8 +18311,8 @@ sub tests_setlogfile
                 timestart => 2,
 	} ;
 
-        is( "$DEFAULT_LOGDIR/1970_01_01_00_00_02_000__.txt", setlogfile( $mysync ),
-                "setlogfile: default is like $DEFAULT_LOGDIR/1970_01_01_00_00_02_000__.txt" ) ;
+        is( '1970_01_01_00_00_02_000__.txt', setlogfile( $mysync ),
+                'setlogfile: default is like 1970_01_01_00_00_02_000__.txt' ) ;
 
         $mysync = {
                 timestart => 2,
@@ -17804,29 +18321,27 @@ sub tests_setlogfile
                 abort     => 1,
         } ;
 
-        is( "$DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2_abort.txt", setlogfile( $mysync ),
-                "setlogfile: default is like $DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2_abort.txt" ) ;
+        is( '1970_01_01_00_00_02_000_user1_user2_abort.txt', setlogfile( $mysync ),
+                'setlogfile: default abort is like 1970_01_01_00_00_02_000_user1_user2_abort.txt' ) ;
 
         $mysync = {
                 timestart => 2,
                 user1     => 'user1',
                 user2     => 'user2',
-                remote    => 'zzz',
         } ;
 
-        is( "$DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2_remote.txt", setlogfile( $mysync ),
-                "setlogfile: default is like $DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2_remote.txt" ) ;
+        is( '1970_01_01_00_00_02_000_user1_user2_remote.txt', setlogfile( $mysync, undef, '_remote' ),
+                'setlogfile: default with _remote is like 1970_01_01_00_00_02_000_user1_user2_remote.txt' ) ;
 
         $mysync = {
                 timestart => 2,
                 user1     => 'user1',
                 user2     => 'user2',
-                remote    => 'zzz',
                 abort     => 1,
         } ;
 
-        is( "$DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2_remote_abort.txt", setlogfile( $mysync ),
-                "setlogfile: default is like $DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2_remote_abort.txt" ) ;
+        is( '1970_01_01_00_00_02_000_user1_user2_remote_abort.txt', setlogfile( $mysync, undef, '_remote' ),
+                'setlogfile: default abort with _remote is like 1970_01_01_00_00_02_000_user1_user2_remote_abort.txt' ) ;
 
 
         $mysync = {
@@ -17835,13 +18350,13 @@ sub tests_setlogfile
                 user2     => 'user2',
         } ;
 
-        is( "$DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2.txt", setlogfile( $mysync ),
-                "setlogfile: default is like $DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2.txt" ) ;
+        is( '1970_01_01_00_00_02_000_user1_user2.txt', setlogfile( $mysync ),
+                'setlogfile: default is like 1970_01_01_00_00_02_000_user1_user2.txt' ) ;
 
         $mysync->{logdir}  = undef ;
         $mysync->{logfile} = undef ;
-        is( "$DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2.txt", setlogfile( $mysync ),
-                "setlogfile: logdir undef, $DEFAULT_LOGDIR/1970_01_01_00_00_02_000_user1_user2.txt" ) ;
+        is( '1970_01_01_00_00_02_000_user1_user2.txt', setlogfile( $mysync ),
+                'setlogfile: logdir undef, 1970_01_01_00_00_02_000_user1_user2.txt' ) ;
 
         $mysync->{logdir} = q{} ;
         $mysync->{logfile} = undef ;
@@ -17858,42 +18373,116 @@ sub tests_setlogfile
                 user2     => 'u/ser2a*|?:"<>b',
         } ;
 
-        is( "$DEFAULT_LOGDIR/1970_01_01_00_00_00_000_us_er1a_______b_u_ser2a_______b.txt", setlogfile( $mysync ),
-                "setlogfile: logdir undef, $DEFAULT_LOGDIR/1970_01_01_00_00_00_000_us_er1a_______b_u_ser2a_______b.txt" ) ;
-
-
+        is( '1970_01_01_00_00_00_000_us_er1a_______b_u_ser2a_______b.txt', setlogfile( $mysync ),
+                'setlogfile: logdir undef, 1970_01_01_00_00_00_000_us_er1a_______b_u_ser2a_______b.txt' ) ;
 
 	} ;
 
 	note( 'Leaving  tests_setlogfile()' ) ;
         return ;
-}
+} 
 
-sub setlogfile
+
+sub setlogfile 
 {
-        my( $mysync ) = shift ;
+        my $mysync     = shift @ARG ;
+        my $given      = shift @ARG ;
+        my $supplement = shift @ARG || '' ;
 
         # When aborting another process the log file name finishes with "_abort.txt"
         my $abort_suffix = ( $mysync->{ abort } ) ? '_abort' : q{} ;
         
-        # When acting as a proxy the log file name finishes with "_remote.txt"
-        # proxy mode is not done in imapsync, it is done by proximapsync
-        my $remote_suffix = ( $mysync->{ remote } ) ? '_remote' : q{} ;
+        my $suffix       = logfilesuffix( $mysync, $supplement . $abort_suffix ) ;
 
+        my $logdir = $mysync->{ logdir } || '' ;
+
+        my $logfile ;
+        if ( defined $given )
+        {
+                if ( $logdir )
+                {
+                        $logfile = "$logdir/$given" ;
+                }
+                else
+                {
+                        $logfile = "$given" ;
+                }
+        }
+        else
+        {
+                $logfile = logfile( $mysync->{ timestart }, $suffix, $logdir ) ;
+        }
+
+        return( $logfile ) ;
+} 
+
+
+sub tests_logfilesuffix
+{
+        note( 'Entering tests_logfilesuffix()' ) ;
+
+        is( '_', logfilesuffix(  ),  'logfilesuffix: no args => _' ) ;
+        my $mysync = {  } ;
+        is( '_', logfilesuffix( $mysync ),  'logfilesuffix: undef => _' ) ;
+        $mysync->{ user1 } = 'valuser1' ;
+        $mysync->{ user2 } = 'valuser2' ;
+        is( 'valuser1_valuser2', logfilesuffix( $mysync ),  'logfilesuffix: valuser1 valuser2 => valuser1_valuser2' ) ;
+        is( 'valuser1_valuser2_suppl', logfilesuffix( $mysync, '_suppl' ),  'logfilesuffix: valuser1 valuser2 _suppl => valuser1_valuser2_suppl' ) ;
+        
+        note( 'Leaving  tests_logfilesuffix()' ) ;
+        return ;
+}
+
+sub logfilesuffix
+{
+        my $mysync = shift @ARG ;
+        my $supplement = shift @ARG || '' ;
+        
         my $suffix = (
                 filter_forbidden_characters( slash_to_underscore( $mysync->{ user1 } ) ) || q{} )
                 . '_'
                 . ( filter_forbidden_characters( slash_to_underscore( $mysync->{ user2 } ) ) || q{} )
-                . $remote_suffix . $abort_suffix ;
-
-        $mysync->{ logdir }  = defined $mysync->{ logdir }  ? $mysync->{ logdir }  : $DEFAULT_LOGDIR ;
-
-        $mysync->{ logfile } = defined $mysync->{ logfile }
-                ? "$mysync->{ logdir }/$mysync->{ logfile }"
-                : logfile( $mysync->{ timestart }, $suffix, $mysync->{ logdir } ) ;
-
-        return( $mysync->{ logfile } ) ;
+                . $supplement ;
+        
+        return $suffix ;
 }
+
+
+
+sub tests_setlogdir
+{
+        note( 'Entering tests_setlogdir()' ) ;
+
+        is( $DEFAULT_LOGDIR, setlogdir(  ),  "setlogdir: no args => $DEFAULT_LOGDIR" ) ;
+        
+        my $mysync = {  } ;
+        is( $DEFAULT_LOGDIR, setlogdir( $mysync ),  "setlogdir: no args => $DEFAULT_LOGDIR" ) ;
+        
+        $mysync->{ logdir } = '' ;
+        is( '', setlogdir( $mysync ),  "setlogdir: logdir empty string => empty string" ) ;
+        is( '', $mysync->{ logdir },  "setlogdir: logdir empty string unchanged" ) ;
+        
+        $mysync->{ logdir } = 'vallogdir' ;
+        is( 'vallogdir', setlogdir( $mysync ),  "setlogdir: logdir vallogdir => vallogdir" ) ;
+        is( 'vallogdir', $mysync->{ logdir },  "setlogdir: logdir vallogdir unchanged" ) ;
+        # Does a second call hurt?
+        is( 'vallogdir', setlogdir( $mysync ),  "setlogdir: logdir vallogdir => vallogdir" ) ;
+        is( 'vallogdir', $mysync->{ logdir },  "setlogdir: logdir vallogdir unchanged" ) ;
+
+        note( 'Leaving  tests_setlogdir()' ) ;
+        return ;
+}
+
+
+sub setlogdir
+{
+        my $mysync = shift @ARG ;
+        
+        my $logdir = defined $mysync->{ logdir }  ? $mysync->{ logdir }  : $DEFAULT_LOGDIR ;
+        
+        return $logdir ;
+}
+
 
 sub tests_logfile
 {
@@ -17906,22 +18495,20 @@ sub tests_logfile
                 local $ENV{TZ} = 'GMT' ;
                 {
                         POSIX::tzset unless ('MSWin32' eq $OSNAME) ;
-                        is( '1970_01_01_00_00_00_000.txt', logfile(  ),           'logfile: no args    => 1970_01_01_00_00_00.txt' ) ;
-                        is( '1970_01_01_00_00_00_000.txt', logfile( 0 ),          'logfile: 0          => 1970_01_01_00_00_00.txt' ) ;
-                        is( '1970_01_01_00_01_01_000.txt', logfile( 61 ),         'logfile: 0          => 1970_01_01_00_01_01.txt' ) ;
-                        is( '1970_01_01_00_01_01_234.txt', logfile( 61.234 ),     'logfile: 0          => 1970_01_01_00_01_01.txt' ) ;
-                        is( '2010_08_24_14_00_00_000.txt', logfile( 1_282_658_400 ), 'logfile: 1_282_658_400 => 2010_08_24_14_00_00.txt' ) ;
-                        is( '2010_08_24_14_01_01_000.txt', logfile( 1_282_658_461 ), 'logfile: 1_282_658_461 => 2010_08_24_14_01_01.txt' ) ;
-                        is( '2010_08_24_14_01_01_000_poupinette.txt', logfile( 1_282_658_461, 'poupinette' ), 'logfile: 1_282_658_461 poupinette => 2010_08_24_14_01_01_poupinette.txt' ) ;
-                        is( '2010_08_24_14_01_01_000_removeblanks.txt', logfile( 1_282_658_461, '   remove blanks  ' ), 'logfile: 1_282_658_461   remove blanks   => 2010_08_24_14_01_01_000_removeblanks' ) ;
+                        is( '1970_01_01_00_00_00_000.txt', logfile(  ),           'logfile: no args    => 1970_01_01_00_00_00_000.txt' ) ;
+                        is( '1970_01_01_00_00_00_000.txt', logfile( 0 ),          'logfile: 0          => 1970_01_01_00_00_00_000.txt' ) ;
+                        is( '1970_01_01_00_01_01_000.txt', logfile( 61 ),         'logfile: 0          => 1970_01_01_00_01_01_000.txt' ) ;
+                        is( '1970_01_01_00_01_01_234.txt', logfile( 61.234 ),     'logfile: 0          => 1970_01_01_00_01_01_234.txt' ) ;
+                        is( '2010_08_24_14_00_00_000.txt', logfile( 1_282_658_400 ), 'logfile: 1_282_658_400 => 2010_08_24_14_00_00_000.txt' ) ;
+                        is( '2010_08_24_14_01_01_000.txt', logfile( 1_282_658_461 ), 'logfile: 1_282_658_461 => 2010_08_24_14_01_01_000.txt' ) ;
+                        is( '2010_08_24_14_01_01_000_poupinette.txt', logfile( 1_282_658_461, 'poupinette' ), 'logfile: 1_282_658_461 poupinette => 2010_08_24_14_01_01_000_poupinette.txt' ) ;
+                        is( '2010_08_24_14_01_01_000_removeblanks.txt', logfile( 1_282_658_461, '   remove blanks  ' ), 'logfile: 1_282_658_461   remove blanks   => 2010_08_24_14_01_01_000_removeblanks.txt' ) ;
 
                         is( '2010_08_24_14_01_01_234_poup.txt', logfile( 1_282_658_461.2347, 'poup' ),
                             'logfile: 1_282_658_461.2347 poup => 2010_08_24_14_01_01_234_poup.txt' ) ;
 
                         is( 'dirdir/2010_08_24_14_01_01_234_poup.txt', logfile( 1_282_658_461.2347, 'poup', 'dirdir' ),
                             'logfile: 1_282_658_461.2347 poup dirdir => dirdir/2010_08_24_14_01_01_234_poup.txt' ) ;
-
-
 
                 }
                 POSIX::tzset unless ('MSWin32' eq $OSNAME) ;
@@ -17932,7 +18519,7 @@ sub tests_logfile
 }
 
 
-sub logfile
+sub logfile 
 {
         my ( $time, $suffix, $dir ) = @_ ;
 
@@ -17943,45 +18530,146 @@ sub logfile
         $dir    ||= q{} ;
         my $sep_dir = ( $dir ) ? '/' : q{} ;
 
-        my $date_str = POSIX::strftime( '%Y_%m_%d_%H_%M_%S', localtime $time ) ;
-	# Because of ab tests or web accesses, more than one sync withing one second is possible
-	# so we add also milliseconds
-	$date_str .= sprintf "_%03d", ($time - int( $time ) ) * 1000 ; # without rounding
+        my $date_str = year_month_day_hour_min_sec_ms( $time ) ;
+	
         my $logfile = "${dir}${sep_dir}${date_str}${sep_suffix}${suffix}.txt" ;
         return( $logfile ) ;
 }
 
 
-sub tests_localtimez
-{
-        note( 'Entering tests_localtimez()' ) ;
 
-        SKIP: {
-                # Too hard to have a well known timezone on Windows
-                skip( 'Too hard to have a well known timezone on Windows', 1 ) if ( 'MSWin32' eq $OSNAME ) ;
-                local $ENV{TZ} = 'GMT' ;
-                like( localtimez( 0 ), qr'1970-01-01 00:00:00 \+0000 (GMT|UTC)', 'localtimez: 0 => match 1970-01-01 00:00:00 +0000 GMT' ) ;
+sub tests_year_month_day_hour_min_sec_ms 
+{ 
+        note( 'Entering tests_date_year_month_day_hour_min_sec_ms()' ) ;
+
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                # Can not use $ENV{TZ} nor POSIX::tzset
+                like( year_month_day_hour_min_sec_ms(  ), qr'1970_01_01_\d\d_00_00_000',  'year_month_day_hour_min_sec_ms: no args => match 1970_01_01_\d\d_00_00_000' ) ;
+                like( year_month_day_hour_min_sec_ms( 0 ), qr'1970_01_01_\d\d_00_00_000', 'year_month_day_hour_min_sec_ms:       0 => match 1970_01_01_\d\d_00_00_000' ) ;
+                like( year_month_day_hour_min_sec_ms( 1671706800.123 ), qr'2022_12_22_\d\d_00_00_122', 'year_month_day_hour_min_sec_ms: 123456789.123 => match 2022_12_22_\d\d_00_00_122' ) ;
+
+                like( year_month_day_hour_min_sec_ms( -1 ), qr'19\d\d_\d\d_\d\d_\d\d_59_59_000', 'year_month_day_hour_min_sec_ms: -1       => 19\d\d_\d\d_\d\d_\d\d_59_59_000' ) ;
+                like( year_month_day_hour_min_sec_ms( -0.246 ), qr'19\d\d_\d\d_\d\d_\d\d_59_59_754', 'year_month_day_hour_min_sec_ms: -1       => 19\d\d_\d\d_\d\d_\d\d_59_59_754' ) ;
+                
+                like( year_month_day_hour_min_sec_ms( -32360400.135 ), qr'1968_12_22_\d\d_59_59_864', 'year_month_day_hour_min_sec_ms: -1       => 1968_12_22_\d\d_59_59_864' ) ;
         }
+        else
+        {
+                local $ENV{TZ} = 'GMT' ;
+                {
+                        POSIX::tzset unless ('MSWin32' eq $OSNAME) ;
+                is( '1970_01_01_00_00_00_000', year_month_day_hour_min_sec_ms(  ),
+                        'year_month_day_hour_min_sec_ms: no args => 1970_01_01_00_00_00_000 GMT' ) ;
+                is( '1970_01_01_00_00_00_000', year_month_day_hour_min_sec_ms( 0 ),
+                        'year_month_day_hour_min_sec_ms: 0       => 1970_01_01_00_00_00_000 GMT' ) ;
+                is( '1973_11_29_21_33_09_122', year_month_day_hour_min_sec_ms( 123456789.123 ),
+                        'year_month_day_hour_min_sec_ms: 123456789.123 => 1973_11_29_21_33_09_122 GMT' ) ;
+                is( '1969_12_31_23_59_59_000', year_month_day_hour_min_sec_ms( -1 ),
+                        'year_month_day_hour_min_sec_ms: -1       => 1969_12_31_23_59_59_000 GMT' ) ;
+                is( '1969_12_31_23_59_59_754', year_month_day_hour_min_sec_ms( -0.246 ),
+                        'year_month_day_hour_min_sec_ms: -0.246   => 1969_12_31_23_59_59_754 GMT' ) ;
+                is( '1966_02_02_02_26_50_864', year_month_day_hour_min_sec_ms( -123456789.135 ),
+                        'year_month_day_hour_min_sec_ms: -123456789.135 => 1966_02_02_02_26_50_864 GMT' ) ;
+                }
+                POSIX::tzset unless ('MSWin32' eq $OSNAME) ;
+        }
+        note( 'Leaving  tests_year_month_day_hour_min_sec_ms()' ) ;
+        return ;
+} 
 
-        is( localtimez( ), localtimez( time ), 'localtimez: undef => equals currrent' ) ;
-        note( 'Leaving  tests_localtimez()' ) ;
+sub year_month_day_hour_min_sec_ms
+{
+        my $time = shift @ARG || 0 ;
+        
+        my $date_str = POSIX::strftime( '%Y_%m_%d_%H_%M_%S', localtime $time ) ;
+	# Because of ab tests or web accesses, more than one sync withing one second is possible
+	# so we add also milliseconds
+	$date_str .= sprintf "_%03d", fractional_of_floor( $time ) * 1000 ;
+        
+        return $date_str ;
+}
+
+
+
+sub tests_fractional_of_floor
+{
+        note( 'Entering tests_fractional_of_floor()' ) ;
+
+        is( 0, fractional_of_floor(  ),  'fractional_of_floor: no args => 0' ) ;
+        is( 0, fractional_of_floor( 0 ),  'fractional_of_floor: 0 => 0' ) ;
+        is( 0, fractional_of_floor( '0' ),  'fractional_of_floor: 0 => 0' ) ;
+        is( 0, fractional_of_floor( 1 ),  'fractional_of_floor: 1 => 0' ) ;
+        is( 0, fractional_of_floor( '1' ),  'fractional_of_floor: 1 => 0' ) ;
+        is( 0, fractional_of_floor( -1 ),  'fractional_of_floor: -1 => 0' ) ;
+        is( 0, fractional_of_floor( '-1' ),  'fractional_of_floor: -1 => 0' ) ;
+        is( 0.234, fractional_of_floor( 1.234 ),  'fractional_of_floor: 1.234 => 0.234' ) ;
+        is( 0.234, fractional_of_floor( '1.234' ), 'fractional_of_floor: 1.234 => 0.234' ) ;
+        is( 0.766, fractional_of_floor( -1.234 ),  'fractional_of_floor: -1.234 => 0.766' ) ;
+        is( 0.766, fractional_of_floor( '-1.234' ), 'fractional_of_floor: -1.234 => 0.766' ) ;
+        is( 0.234, fractional_of_floor( 10.234 ),  'fractional_of_floor: 10.234 => 0.234' ) ;
+        is( 0.766, fractional_of_floor( -10.234 ),  'fractional_of_floor: -10.234 => 0.766' ) ;
+
+        note( 'Leaving  tests_fractional_of_floor()' ) ;
         return ;
 }
 
 
 
-sub localtimez
+
+sub fractional_of_floor
+{
+        my $float = shift @ARG || 0 ;
+        
+        if ( $float - int( $float ) >= 0 )
+        {
+                return( $float - int( $float ) ) ;
+        }
+        else
+        {
+                return( 1 - ( int( $float ) - $float ) ) ;
+        }
+}
+
+
+
+sub tests_localtimez 
+{
+        note( 'Entering tests_localtimez()' ) ;
+        note( "localtimez: " . localtimez(  ) ) ;
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                like( localtimez( 0 ), qr'1970-01-01 \d\d:\d\d:\d\d', 'localtimez: 0 => match 1970-01-01 \d\d:\d\d:\d\d' ) ;
+        }
+        else
+        {
+                local $ENV{TZ} = 'GMT' ;
+                like( localtimez( 0 ), qr'1970-01-01 00:00:00 \+0000 (GMT|UTC)', 'localtimez: 0 => match 1970-01-01 00:00:00 +0000 GMT or UTC' ) ;
+        }
+        is( localtimez( ), localtimez( time ), 'localtimez: undef => equals currrent' ) ;
+        note( 'Leaving  tests_localtimez()' ) ;
+        return ;
+} 
+
+sub localtimez 
 {
         my $time = shift ;
         
         $time = defined( $time ) ? $time : time ;
         
-        my $datetimestr = POSIX::strftime( '%A %e %B %Y-%m-%d %H:%M:%S %z %Z', localtime( $time ) ) ;
-
+        my $datetimestr ;
+        
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                $datetimestr = POSIX::strftime( '%A %d %B %Y-%m-%d %H:%M:%S %z', localtime( $time ) ) ;
+        }
+        else
+        {
+                $datetimestr = POSIX::strftime( '%A %d %B %Y-%m-%d %H:%M:%S %z %Z', localtime( $time ) ) ;
+        }
         #myprint( "$datetimestr\n" ) ;
         return $datetimestr ;        
-}
-
+} 
 
 
 
@@ -18080,19 +18768,18 @@ sub tests_teelaunch
         is( undef, teelaunch(  ), 'teelaunch: no args => undef' ) ;
         my $mysync = {} ;
         is( undef, teelaunch( $mysync ), 'teelaunch: arg empty {} => undef' ) ;
-        $mysync->{logfile} = q{} ;
-        is( undef, teelaunch( $mysync ), 'teelaunch: logfile empty string => undef' ) ;
+        is( undef, teelaunch( $mysync, '' ), 'teelaunch: empty string => undef' ) ;
 
         # First time, learning IO::Tee intrasics
-        $mysync->{logfile} = 'W/tmp/tests/tests_teelaunch.txt' ;
-        isa_ok( my $tee = teelaunch( $mysync ), 'IO::Tee' , 'teelaunch: logfile W/tmp/tests/tests_teelaunch.txt' ) ;
+        my $tee = teelaunch( $mysync, 'W/tmp/tests/tests_teelaunch.txt' ) ;
+        isa_ok( $tee, 'IO::Tee', 'teelaunch: logfile W/tmp/tests/tests_teelaunch.txt' ) ;
         is( 1, print( $tee "Hi!\n" ), 'teelaunch: write Hi!') ;
         is( "Hi!\n", file_to_string( 'W/tmp/tests/tests_teelaunch.txt' ), 'teelaunch: reading W/tmp/tests/tests_teelaunch.txt is Hi!\n' ) ;
         is( 1, print( $tee "Hoo\n" ), 'teelaunch: write Hoo') ;
         is( "Hi!\nHoo\n", file_to_string( 'W/tmp/tests/tests_teelaunch.txt' ), 'teelaunch: reading W/tmp/tests/tests_teelaunch.txt is Hi!\nHoo\n' ) ;
 
-        # closing so tee won't be happy
-        close $mysync->{logfile_handle} ;
+        # closing file handle so tee won't be happy
+        ($tee->handles)[0]->close ;
         is( undef, print( $tee "Argh1\n" ), 'teelaunch: write Argh1') ;
         is( undef, print( $tee "Argh2\n" ), 'teelaunch: write Argh2') ;
         # write not done
@@ -18110,33 +18797,32 @@ sub tests_teelaunch
         is( 1, print( $tee "Argh 4\n" ), 'teelaunch: write Argh4 no') ;
 
         # Second time, lesson learnt IO::Tee
-        $mysync->{logfile} = 'W/tmp/tests/tests_teelaunch2.txt' ;
-        isa_ok( $tee = teelaunch( $mysync ), 'IO::Tee' , 'teelaunch: logfile W/tmp/tests/tests_teelaunch2.txt' ) ;
+        $tee = teelaunch( $mysync, 'W/tmp/tests/tests_teelaunch2.txt' ) ;
+        isa_ok( $tee, 'IO::Tee' , 'teelaunch: W/tmp/tests/tests_teelaunch2.txt' ) ;
         is( 1, print( $tee "Hi!\n" ), 'teelaunch: write Hi!') ;
         is( "Hi!\n", file_to_string( 'W/tmp/tests/tests_teelaunch2.txt' ), 'teelaunch: reading W/tmp/tests/tests_teelaunch2.txt is Hi!\n' ) ;
         is( 1, print( $tee "Hoo\n" ), 'teelaunch: write Hoo') ;
         is( "Hi!\nHoo\n", file_to_string( 'W/tmp/tests/tests_teelaunch2.txt' ), 'teelaunch: reading W/tmp/tests/tests_teelaunch2.txt is Hi!\nHoo\n' ) ;
 
-        is( 1, teefinish( $mysync ), 'teefinish: return 1') ;
+        is( 1, teefinish( $tee ), 'teefinish: return 1') ;
         is( 1, print( $tee "Argh1\n" ), 'teelaunch: write Argh1') ;
         is( 1, print( $tee "Argh2\n" ), 'teelaunch: write Argh2') ;
         is( "Hi!\nHoo\n", file_to_string( 'W/tmp/tests/tests_teelaunch2.txt' ), 'teelaunch: reading W/tmp/tests/tests_teelaunch2.txt is still Hi!\nHoo\n' ) ;
-        is( 1, teefinish( $mysync ), 'teefinish: still return 1') ;
+        is( 1, teefinish( $tee ), 'teefinish: still return 1') ;
 
         note( 'Leaving  tests_teelaunch()' ) ;
         return ;
 }
 
-sub teelaunch
+sub teelaunch 
 {
-        my $mysync = shift ;
+        my $mysync  = shift @ARG ;
+        my $logfile = shift @ARG ;
 
         if ( ! defined( $mysync ) )
         {
                 return ;
         }
-
-        my $logfile = $mysync->{logfile} ;
 
         if ( ! $logfile )
         {
@@ -18145,38 +18831,41 @@ sub teelaunch
 
         logfileprepa( $logfile ) || croak "Error no valid directory to write log file $logfile : $OS_ERROR" ;
 
+        # To honor -T tainted mode. Could do better...
+        ( $logfile ) = $logfile =~ m{(.*)}x ;
         # This is a log file opened during the whole sync
         ## no critic (InputOutput::RequireBriefOpen)
-        open my $logfile_handle, '>', $logfile
-          or croak( "Can not open $logfile for write: $OS_ERROR" ) ;
-        binmode $logfile_handle, ":encoding(UTF-8)" ;
-        my $tee = IO::Tee->new( $logfile_handle, \*STDOUT ) ;
-        $tee->autoflush( 1 ) ;
-        $mysync->{logfile_handle} = $logfile_handle ;
-        $mysync->{tee} = $tee ;
-        return $tee ;
+        if ( ! open my $logfile_handle, '>', $logfile )
+        {
+                carp( "Can not open $logfile for write: $OS_ERROR" ) ;
+                return ;
+        }
+        else
+        {
+                binmode $logfile_handle, ":encoding(UTF-8)" ;
+                my $tee = IO::Tee->new( $logfile_handle, \*STDOUT ) ;
+                $tee->autoflush( 1 ) ;
+                return $tee ;
+        }
 }
 
-sub teefinish
+sub teefinish 
 {
-        my $mysync = shift ;
-
-        if ( ! defined( $mysync ) ) { return ; }
-
-        my $tee = $mysync->{tee} ;
+        my $tee = shift @ARG ;
 
         if ( ! defined( $tee ) ) { return ; }
 
         if ( 2 == scalar $tee->handles )
         {
-                shift @{*{$tee}};
+                my $handle = shift @{*{$tee}} ;
+                $handle->close ;
         }
         else
         {
                 # nothing
         }
         return scalar $tee->handles ;
-}
+} 
 
 
 sub getpwuid_any_os
@@ -18255,6 +18944,8 @@ sub unittestssuite
         testsdebug( $mysync ) ;
         testunitsession( $mysync ) ;
 
+        cleanup_mess_from_tests(  ) ;
+
         my @summary = $test_builder->summary() ;
         my @details = $test_builder->details() ;
         my $nb_tests_run = scalar( @summary ) ;
@@ -18267,15 +18958,25 @@ sub unittestssuite
                 "List of failed tests:\n", $tests_failed ) ;
                 return $EXIT_TESTS_FAILED ;
         }
-
-        cleanup_mess_from_tests(  ) ;
-
         return 0 ;
 }
 
 sub cleanup_mess_from_tests
 {
         undef @pipemess ;
+        undef @include ;
+        undef @exclude ;
+        undef @folderrec ;
+        undef @folderfirst ;
+        undef @folderlast ;
+        undef @h1_folders_all ;
+        undef %h1_folders_all ;
+        undef @h2_folders_all ;
+        undef %h2_folders_all ;
+        undef @h2_folders_from_1_wanted ;
+        undef %h2_folders_from_1_all ;
+        undef %requested_folder ;
+
         return ;
 }
 
@@ -18418,7 +19119,7 @@ sub gmail12
 	$mysync->{maxbytesafter} ||= 1_000_000_000 ; # In fact it is documented as half: 500_000_000
 	$mysync->{automap}   = ( defined $mysync->{automap} )  ? $mysync->{automap} : 1 ;
 	$mysync->{maxsleep}  = ( defined $mysync->{maxsleep} ) ? $mysync->{maxsleep} : $MAX_SLEEP ; ;
-	$skipcrossduplicates = ( defined $skipcrossduplicates ) ? $skipcrossduplicates : 0 ;
+	$mysync->{ skipcrossduplicates } = ( defined $mysync->{ skipcrossduplicates } ) ? $mysync->{ skipcrossduplicates } : 0 ;
         $mysync->{ synclabels  }   = ( defined $mysync->{ synclabels } )  ? $mysync->{ synclabels } : 1 ;
         $mysync->{ resynclabels }   = ( defined $mysync->{ resynclabels } )  ? $mysync->{ resynclabels } : 1 ;
         push @useheader, 'X-Gmail-Received', 'Message-Id' ;
@@ -18438,7 +19139,7 @@ sub gmail1
 	$mysync->{maxbytesafter} ||= 3_000_000_000 ;  #
 	$mysync->{automap}   = ( defined $mysync->{automap} ) ? $mysync->{automap} : 1 ;
 	$mysync->{maxsleep}  = ( defined $mysync->{maxsleep} ) ? $mysync->{maxsleep} : $MAX_SLEEP ; ;
-	$skipcrossduplicates = ( defined $skipcrossduplicates ) ? $skipcrossduplicates : 1 ;
+	$mysync->{ skipcrossduplicates } = ( defined $mysync->{ skipcrossduplicates } ) ? $mysync->{ skipcrossduplicates } : 1 ;
 
 	push @useheader, 'X-Gmail-Received', 'Message-Id' ;
 	push @{ $mysync->{ regextrans2 } }, 's,\[Gmail\].,,' ;
@@ -18454,9 +19155,7 @@ sub gmail2
 	$mysync->{ ssl2 } = ( defined $mysync->{ ssl2 } ) ? $mysync->{ ssl2 } : 1 ;
 	$mysync->{ maxbytespersecond } ||= 20_000 ;     # should be less than 10_000 computed from by Gmail documentation
 	$mysync->{ maxbytesafter } ||= 1_000_000_000 ;  # In fact it is documented as half: 500_000_000
-
 	$mysync->{ automap } = ( defined $mysync->{ automap } ) ? $mysync->{ automap } : 1 ;
-	#$skipcrossduplicates = ( defined $skipcrossduplicates ) ? $skipcrossduplicates : 1 ;
 	$mysync->{ expunge1 }  = ( defined $mysync->{ expunge1 } )  ? $mysync->{ expunge1 }  : 1 ;
 	$mysync->{ addheader } = ( defined $mysync->{ addheader } ) ? $mysync->{ addheader } : 1 ;
 	$mysync->{ maxsleep }  = ( defined $mysync->{ maxsleep } )  ? $mysync->{ maxsleep } : $MAX_SLEEP ; ;
@@ -18966,20 +19665,24 @@ sub tests_split_around_equal
         note( 'Entering tests_split_around_equal()' ) ;
 
         is( undef, split_around_equal(  ), 'split_around_equal: no args => undef' ) ;
-        is_deeply( { toto => 'titi' }, { split_around_equal( 'toto=titi' ) }, 'split_around_equal: toto=titi => toto => titi' ) ;
-        is_deeply( { A => 'B', C => 'D' }, { split_around_equal( 'A=B=C=D' ) }, 'split_around_equal: toto=titi => toto => titi' ) ;
+        is_deeply( { toto => 'titi' }, { split_around_equal( 'toto=titi' ) },      'split_around_equal: toto=titi => toto => titi' ) ;
+        is_deeply( { toto => undef }, { split_around_equal( 'toto' ) },            'split_around_equal: tototiti => toto  => undef' ) ;
+        is_deeply( { toto => '' }, { split_around_equal( 'toto=' ) },           'split_around_equal: tototiti => toto= => empty' ) ;
         is_deeply( { A => 'B', C => 'D' }, { split_around_equal( 'A=B', 'C=D' ) }, 'split_around_equal: A=B C=D => A => B, C=>D' ) ;
+        is_deeply( { A => 'B', C => 'D', E => 'F' }, { split_around_equal( 'A=B', 'C=D', 'E=F' ) }, 'split_around_equal: A=B C=D => A => B, C=>D' ) ;
+        is_deeply( { A => 'B=C' },   { split_around_equal( 'A=B=C' ) },    'split_around_equal: A=B=C => A => B=C' ) ;
+        is_deeply( { A => 'B=C=D' }, { split_around_equal( 'A=B=C=D' ) },    'split_around_equal: A=B=C=D => A => B=C=D' ) ;
 
         note( 'Leaving  tests_split_around_equal()' ) ;
 	return ;
 }
 
-sub split_around_equal
-{
+sub split_around_equal 
+{ 
         if ( ! @ARG ) { return ; } ;
-        return map { split /=/mxs, $_ } @ARG ;
+        return map { split( /=/mxs, $_, 2 ) } @ARG ;
 
-}
+} 
 
 
 
@@ -19526,7 +20229,7 @@ sub tests_get_options_from_string
         'get_options_from_string: --nodebugimap1 --debugflags --errorsmax 2 => ok, empty string return' ) ;
   
         is( 0, $mysync->{ acc1 }->{ debugimap }, 'get_options_from_string: acc1->debugimap = 0 now' ) ;
-        is( 1, $debugflags, 'get_options_from_string: debugflags = 1 now' ) ;
+        is( 1, $mysync->{ debugflags }, 'get_options_from_string: debugflags = 1 now' ) ;
         is( 2, $mysync->{ errorsmax }, 'get_options_from_string: mysync->errorsmax = 2 now' ) ;
   
         is( '', get_options_from_string( $mysync, '--folder "IN BOX" --folder JOE' ), 
@@ -19552,7 +20255,7 @@ sub get_options_from_string
         'debugimap!'    => \$mysync->{ debugimap },
         'debugimap1!'   => \$mysync->{ acc1 }->{ debugimap },
         'debugimap2!'   => \$mysync->{ acc2 }->{ debugimap },
-        'debugflags!'   => \$debugflags,
+        'debugflags!'   => \$mysync->{ debugflags },
         'debugsleep=f'  => \$mysync->{ debugsleep },
         'errorsmax=i'   => \$mysync->{ errorsmax },
         'folder=s@'     => \$mysync->{ folder  },
@@ -19688,7 +20391,7 @@ sub tests_get_options_cgi_context
 
 
 
-sub get_options_cgi 
+sub get_options_cgi
 {
         # In CGI context arguments are not in @ARGV but in QUERY_STRING variable (with GET).
 	my $mysync = shift @ARG ;
@@ -19746,13 +20449,18 @@ sub get_options_cgi
         'delete1!'         => \$mysync->{ delete1 },
         'delete2!'         => \$mysync->{ delete2 },
         'delete2duplicates!'  => \$mysync->{ delete2duplicates },
-        'tail!'            => \$mysync->{ tail },
-        'tmphash=s'        => \$mysync->{ tmphash },
-        'exitwhenover=i'   => \$mysync->{ exitwhenover },
-        'syncduplicates!'  => \$mysync->{ syncduplicates },
-        'log!'             => \$mysync->{ log },
-        'loglogfile!'      => \$mysync->{ loglogfile },
-        
+        'tail!'               => \$mysync->{ tail },
+        'tmphash=s'           => \$mysync->{ tmphash },
+        'exitwhenover=i'      => \$mysync->{ exitwhenover },
+        'syncduplicates!'     => \$mysync->{ syncduplicates },
+        'skipcrossduplicates!' => \$mysync->{ skipcrossduplicates },
+        'debugcrossduplicates!'=> \$mysync->{ debugcrossduplicates },
+        'log!'                 => \$mysync->{ log },
+        'loglogfile!'          => \$mysync->{ loglogfile },
+        'emailreportfrom=s'    => \$mysync->{ email_report_from },
+        'emailreport1!'        => \$mysync->{ emailreport1 },
+        'emailreport2!'        => \$mysync->{ emailreport2 },
+        'var=s@'               => \$mysync->{ var },
 
 # f1f2h=s% could be removed but
 # tests_get_options_cgi() should be split before
@@ -19765,9 +20473,9 @@ sub get_options_cgi
 		return ;
 	}
 	return $numopt ;
-}
+} 
 
-sub get_options_cmd
+sub get_options_cmd 
 {
         my $mysync = shift @ARG ;
         my @arguments = @ARG ;
@@ -19785,10 +20493,10 @@ sub get_options_cmd
         $mysync,
         \@arguments,
         'debug!'        => \$mysync->{ debug },
-        'debuglist!'    => \$debuglist,
+        'debuglist!'    => \$mysync->{ debuglist },
         'debugcontent!' => \$mysync->{ debugcontent },
         'debugsleep=f'  => \$mysync->{ debugsleep },
-        'debugflags!'   => \$debugflags,
+        'debugflags!'   => \$mysync->{ debugflags },
         'debugimap!'    => \$mysync->{ debugimap },
         'debugimap1!'   => \$mysync->{ acc1 }->{ debugimap },
         'debugimap2!'   => \$mysync->{ acc2 }->{ debugimap },
@@ -19958,12 +20666,12 @@ sub get_options_cmd
         'sigignore=s@'    => \$mysync->{ sigignore },
         'releasecheck!'   => \$mysync->{releasecheck},
         'modulesversion|modules_version!' => \$modulesversion,
-        'usecache!'    => \$usecache,
+        'usecache!'       => \$mysync->{ usecache },
         'cacheaftercopy!' => \$cacheaftercopy,
-        'debugcache!' => \$debugcache,
-        'useuid!'     => \$useuid,
-        'addheader!'  => \$mysync->{addheader},
-        'exitwhenover=i' => \$mysync->{ exitwhenover },
+        'debugcache!'     => \$debugcache,
+        'useuid!'         => \$useuid,
+        'addheader!'      => \$mysync->{addheader},
+        'exitwhenover=i'  => \$mysync->{ exitwhenover },
         'checkselectable!' => \$mysync->{ checkselectable },
         'checkfoldersexist!' => \$mysync->{ checkfoldersexist },
         'checkmessageexists!' => \$checkmessageexists,
@@ -19982,8 +20690,9 @@ sub get_options_cmd
         'maxbytespersecond=i'    => \$mysync->{maxbytespersecond},
         'maxbytesafter=i'        => \$mysync->{maxbytesafter},
         'maxsleep=f'             => \$mysync->{maxsleep},
-        'skipcrossduplicates!'   => \$skipcrossduplicates,
-        'debugcrossduplicates!'  => \$debugcrossduplicates,
+        'syncduplicates!'        => \$mysync->{ syncduplicates },
+        'skipcrossduplicates!'   => \$mysync->{ skipcrossduplicates },
+        'debugcrossduplicates!'  => \$mysync->{ debugcrossduplicates },
         'log!'                   => \$mysync->{log},
         'tail!'                  => \$mysync->{tail},
         'logfile=s'        => \$mysync->{logfile},
@@ -20000,10 +20709,11 @@ sub get_options_cmd
         'justfolderlists!' => \$mysync->{justfolderlists},
         'delete1emptyfolders'   => \$mysync->{delete1emptyfolders},
         'checknoabletosearch!' => \$mysync->{checknoabletosearch},
-        'syncduplicates!'  => \$mysync->{ syncduplicates },
         'dockercontext!'   => \$mysync->{ dockercontext },
-        
-
+        'emailreportfrom=s' => \$mysync->{ email_report_from },
+        'emailreport1!'    => \$mysync->{ emailreport1 },
+        'emailreport2!'    => \$mysync->{ emailreport2 },
+        'var=s@'           => \$mysync->{ var },
         ) ;
         #myprint( Data::Dumper->Dump( [ $mysync ] )  ) ;
         $mysync->{ debug } and output( $mysync, "get options: [$opt_ret][$numopt]\n" ) ;
@@ -20107,7 +20817,7 @@ sub get_options
 }
 
 
-sub tests_infos 
+sub tests_infos
 {
         note( 'Entering tests_infos()' ) ;
         note( "OSNAME=$OSNAME" ) ;
@@ -20125,7 +20835,6 @@ sub tests_infos
         cpu_number
         note( "cpu_number: " . cpu_number() ) ;
         note( $sync->{rcs} ) ;
-        
         note( 'Leaving  tests_infos()' ) ;
         return ;
 }
@@ -20272,7 +20981,7 @@ sub testsunit
 	return ;
 }
 
-sub testsdebug
+sub testsdebug 
 {
         # Now a little obsolete since there is
         # imapsync ... --testsunit "anyfunction"
@@ -20293,14 +21002,17 @@ sub testsdebug
                 #tests_probe_imapssl(  ) ;
                 #tests_cpu_number(  ) ;
                 #tests_mailimapclient_connect(  ) ;
-				tests_loadavg(  ) ;
+                #tests_loadavg(  ) ;
                 #tests_always_fail(  ) ;
-
+                tests_localtimez(  ) ;
+                tests_year_month_day_hour_min_sec_ms(  ) ;
+                tests_date_rfc822(  ) ;
+                tests_email_report_message_id(  ) ;
                 note( 'Leaving  testsdebug()' ) ;
                 done_testing(  ) ;
         }
         return ;
-}
+} 
 
 
 sub tests
@@ -20466,7 +21178,7 @@ sub tests
                 tests_eta(  ) ;
                 tests_timesince(  ) ;
                 tests_timenext(  ) ;
-                tests_foldersize(  ) ;
+
                 tests_imapsync_context(  ) ;
                 tests_abort(  ) ;
                 tests_probe_imapssl(  ) ;
@@ -20499,6 +21211,18 @@ sub tests
                 tests_compress(  ) ;
                 tests_get_options_extra(  ) ;
                 tests_get_options_from_string(  ) ;
+                tests_email_report_message_id(  ) ;
+                tests_year_month_day_hour_min_sec_ms(  ) ;
+                tests_fractional_of_floor(  ) ;
+                tests_date_rfc822(  ) ;
+                tests_email_report_from(  ) ;
+                tests_email_report_to(  ) ;
+                tests_email_report_body_base(  ) ;
+                tests_email_report(  ) ;
+                tests_setlogdir(  ) ;
+                tests_logfilesuffix(  ) ;
+                tests_cgienvcontext(  ) ;
+                tests_usecache_and_skipcrossduplicates(  ) ;
                 tests_infos(  ) ;
                 #tests_resolv(  ) ;
 
@@ -20509,11 +21233,11 @@ sub tests
                 #tests_kill_zero(  ) ;
 
                 #tests_always_fail(  ) ;
-                done_testing( 1860 ) ;
+                done_testing( 1922 ) ;
                 note( 'Leaving  tests()' ) ;
         }
         return ;
-}
+} 
 
 sub tests_template
 {
@@ -20535,5 +21259,4 @@ sub template
         
         return ;
 }
-
 

@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Centos.txt,v 1.29 2021/12/17 14:52:20 gilles Exp gilles $
+# $Id: INSTALL.Centos.txt,v 1.31 2022/02/19 20:28:13 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -23,6 +23,29 @@ How to install imapsync on AlmaLinux and Centos 8:
   dnf install --enablerepo=powertools imapsync
   imapsync --testslive
 
+
+For Centos 8 End Of Life fix:
+https://www.centos.org/centos-linux-eol/
+
+If you encounter the error 
+"Error: Failed to download metadata for repo 'appstream': Cannot prepare internal mirrorlist: No URLs in mirrorlist"
+
+Do this:
+
+  sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-*
+  sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*
+  dnf update
+
+To upgrade to CentOS stream:
+
+  dnf install centos-release-stream
+  dnf swap centos-{linux,stream}-repos
+  dnf distro-sync
+
+Taken from 
+https://stackoverflow.com/questions/70926799/centos-through-vm-no-urls-in-mirrorlist
+
+and tested successfuly on one of my hosts, an ex-Centos8/CentOS-stream now.
 
 =======================================================================
                AlmaLinux and Centos 8 and latest imapsync

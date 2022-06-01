@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.367 2022/01/13 12:59:05 gilles Exp gilles $  
+# $Id: tests.sh,v 1.372 2022/04/06 10:07:32 gilles Exp gilles $  
 
 # To run these tests, you need a running imap server somewhere
 # with several accounts. And be on Linux or Unix.
@@ -239,14 +239,14 @@ option_tests_in_var_tmp_sub() {
 	( 
 	mkdir -p /var/tmp/imapsync_tests
 	cd /var/tmp/imapsync_tests
-        /g/public_html/imapsync/i3 --tests
+        /g/public_html/imapsync/imapsync --tests
 	)
 }
 
 option_tests_in_var_tmp() {
 	( 
 	cd /var/tmp/
-        /g/public_html/imapsync/i3 --tests
+        /g/public_html/imapsync/imapsync --tests
 	)
 }
 
@@ -420,6 +420,21 @@ ll() {
          --passfile2 ../../var/pass/secret.titi 
 }
 
+ll_diff_log_stdout_debugssl() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin --debugssl 4 \
+         --logfile ll_diff_log_stdout_debugssl_1.txt 2>&1 \
+         | tee LOG_imapsync/ll_diff_log_stdout_debugssl_2.txt
+         echo 
+         diff LOG_imapsync/ll_diff_log_stdout_debugssl_1.txt LOG_imapsync/ll_diff_log_stdout_debugssl_2.txt
+}
+
+
+
 ll_INBOX() {
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
@@ -551,6 +566,17 @@ ll_search_larger() {
          --passfile2 ../../var/pass/secret.titi \
 		 --search 'LARGER 1000' --folder INBOX
 }
+
+ll_search_keyword() {
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --search 'KEYWORD NonJunk' --folder INBOX.flagsetSeen --debugflags --debugimap1 
+}
+
+
 
 
 ll_maxsize() {
@@ -1086,6 +1112,19 @@ pidfile_bad() {
                 --pidfile /var/tmp/noexist/imapsync.pid
                 test "$?" = "$EXIT_PID_FILE_ERROR"
 }
+
+
+ll_skipcrossduplicates_usecache() {
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --skipcrossduplicates --usecache
+        test "$?" = "$EX_USAGE"
+}
+
+
 
 test_tail() {
         $CMD_PERL ./imapsync \
@@ -3145,7 +3184,7 @@ ll_f1f2_01()
        --passfile2 ../../var/pass/secret.titi \
        --justfolders \
        --folder 'INBOX.yop.yap' --f1f2 'INBOX.yop.yap=INBOX/rha/lovely' --f1f2 'lalala=lululu' --debugfolders
-
+        test "$EXIT_ERR_CREATE" = "$?"
 }
 
 ll_regextrans2() 
@@ -4855,6 +4894,8 @@ ll_duplicates_across_folders() {
         --skipcrossduplicates --debugcrossduplicates 
 }
 
+
+
 ll_delete2_dev() {
         can_send && sendtestmessage titi
         can_send && sendtestmessage
@@ -4994,6 +5035,26 @@ ll_syncduplicates() {
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.duplicates --debug --syncduplicates # --dry
 }
+
+ll_syncduplicates_delete2() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST1 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.duplicates --syncduplicates --delete2 # --dry
+}
+
+ll_syncduplicates_delete2_delete2duplicates() {
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST1 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.duplicates --syncduplicates --delete2 --delete2duplicates # --dry
+}
+
+
 
 ll_syncduplicates_noskipsize() {
                 $CMD_PERL ./imapsync \
@@ -5858,6 +5919,19 @@ gmail_gmail_9_search_X_GM_LABELS() {
                 --search 'X-GM-LABELS "Important"'  
 }
 
+gmail_gmail_10_search_drafts() {
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --gmail1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --gmail2 \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --nofoldersizes \
+                --folderfirst '[Gmail]/Drafts' --debuglabels --dry  \
+                --folder Test --folder '[Gmail]/Drafts' 
+}
+
 
 
 
@@ -5911,7 +5985,7 @@ gmail_gl1_gl2_labels()
                 --user2 imapsync.gl2@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
                 --exclude "\[Gmail\]" \
-                --synclabels --resynclabels --debuglabels --dry
+                --synclabels --resynclabels --debug --debuglabels # --dry
 }
 
 gmail_gl1_gl2_labels_subfolder2()
@@ -6921,7 +6995,7 @@ huge_folder()
         --host2 $HOST2 --user2 tete@est.belle \
         --passfile2 ../../var/pass/secret.tete \
         --include INBOX.Junk.2010 \
-        --nousecache --tmpdir /var/tmp  --debugmemory || \
+        --tmpdir /var/tmp  --debugmemory || \
     true
     }
     date2=`date`
@@ -7263,31 +7337,38 @@ dprof2_bigmail()
 
 curl_online_args()
 {
-        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;simulong=2' \
+        curl -v --data 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;simulong=2' \
                 https://imapsync.lamiral.info/cgi-bin/imapsync
 }
 
+curl_online_testslive()
+{
+        curl -v --data 'testslive=1;simulong=2' https://imapsync.lamiral.info/cgi-bin/imapsync
+}
+
+
+
 curl_online_args_pidfile()
 {
-        curl -v -d "host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;pidfile=/tmp/curl_online_args_pidfile_$$.txt" \
+        curl -v --data"host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;pidfile=/tmp/curl_online_args_pidfile_$$.txt" \
                 https://imapsync.lamiral.info/cgi-bin/imapsync
 }
 
 curl_online_args_nolog()
 {
-        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;justbanner=1;log=' \
+        curl -v --data 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;justbanner=1;log=' \
                 https://lamiral.info/cgi-bin/imapsync
 }
 
 curl_online_args_nolog_2()
 {
-        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;justbanner=1;log=0' \
+        curl -v --data 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;justbanner=1;log=0' \
                 https://lamiral.info/cgi-bin/imapsync
 }
 
 curl_online_justbanner()
 {
-        curl -v -d 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;simulong=0.7;justbanner=1' \
+        curl -v --data 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;simulong=0.7;justbanner=1' \
                 https://lamiral.info/cgi-bin/imapsync
 }
 
@@ -7305,14 +7386,14 @@ simulong=2;
 dry=1;
 
 EOF
-        curl -v -d '@W/tmp/cred.txt' \
+        curl -v --data '@W/tmp/cred.txt' \
                 https://imapsync.lamiral.info/cgi-bin/imapsync
 }
 
 curl_online_args_json()
 {
         # DO NOT WORK AT ALL
-        ! curl -v -d '{ "testslive":"1" }' -H "Content-Type: application/json"  \
+        ! curl -v --data '{ "testslive":"1" }' -H "Content-Type: application/json"  \
                 https://imapsync.lamiral.info/cgi-bin/imapsync
 }
 
@@ -7357,7 +7438,7 @@ curl_online_external()
                 https://web-tools.na.icb.cnr.it/cgi-bin/imapsync    \
                 https://140.164.23.4/cgi-bin/imapsync               \
                 ; do
-                curl -k -s -d 'justconnect=1;host1=mail.unionstrategiesinc.com;user1=a;user2=a;host2=mail5.unionstrategiesinc.com;simulong=2' \
+                curl -k -s --data 'justconnect=1;host1=mail.unionstrategiesinc.com;user1=a;user2=a;host2=mail5.unionstrategiesinc.com;simulong=2' \
                         $imapsync
                 #sleep 2
         done 
@@ -7416,6 +7497,7 @@ ll_unknow_option
 ll_ask_password
 ll_env_password
 ll_bug_folder_name_with_blank
+ll_skipcrossduplicates_usecache
 ll_timeout
 ll_timeout1_timeout2
 ll_timeout_very_small
@@ -7436,6 +7518,7 @@ ll_buffersize
 ll_justfolders
 ll_justfolders_delete1emptyfolders
 ll_justfolders_skipemptyfolders
+ll_f1f2_01
 ll_prefix12
 ll_nosyncinternaldates
 ll_idatefromheader
@@ -7558,6 +7641,7 @@ ll_abort_byfile_hand_made
 ll_abort_byfile_imapsync_made
 ll_abort_byfile_normal_run
 ll_sigreconnect_INT
+ll_diff_log_stdout_debugssl
 curl_online_args
 curl_online_file
 ksks_reset_test1
@@ -7590,7 +7674,7 @@ set_return_code_variables
 if test $# -eq 0; then
         # mandatory tests
         if run_tests $mandatory_tests; then
-                ./i3 --version >> .test_3xx
+                ./imapsync --version >> .tests_passed
                 return 0
         fi
 else

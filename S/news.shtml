@@ -85,10 +85,39 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 </ul>
 -->
 
+<ul>
+<li><b>2.200</b></li>
+<li><b>Dependencies removed</b>: None </li>
+<li><b>Dependencies added</b>:   None </li>
+
+<li><b>Enhancement</b>: Append a final email report on each account at the end of the synchronization. Use --noemailreport1 and --noemailreport2 to avoid final emails reports in each INBOX.</li>
+<li><b>Enhancement</b>: Documented why total sizes can differ even when the sync is perfect.</li>
+<li><b>Enhancement</b>: Added SERVER_NAME SERVER_ADDR SERVER_ADMIN variables and values to the output.</li>
+<li><b>Enhancement</b>: Added the local ip address for the imap connexions. It can help configuring firewalls to allow the imap source IP.</li>
+<li><b>Enhancement</b>: Added "Posta inviata" for \Sent with --automap</li>
+
+
+<li><b>CGI context</b>: Upped ERRORS_MAX_CGI from 20 to 500.</li>
+<li><b>CGI context</b>: Added --var to get values from proximapsync for variables REMOTE_ADDR REMOTE_HOST HTTP_REFERER HTTP_USER_AGENT SERVER_SOFTWARE SERVER_PORT HTTP_COOKIE</li>
+
+<li><b>Usability</b>: Added warning "parsing headers of folder ... It can take time for huge folders. Be patient."</li>
+
+<li><b>Bug fix</b>: Do not turn on --delete2duplicates when --syncduplicates is on, unless --delete2duplicates is given.</li>
+<li><b>Bug fix</b>: Redirect STDERR to STDOUT in all cases, --log or --nolog</li>
+<li><b>Bug fix</b>: Do not allow --skipcrossduplicates and --usecache. Exit EX_USAGE 64</li>
+<li><b>Bug fix</b>: Dates were not displayed under Windows because POSIX::strftime %e is not portable. Fixed several other places where dates were wrong on Windows.</li>
+<li><b>Bug fix</b>: --tests --testslive was listing 0 folders.</li>
+
+
+<li><b>Refactoring</b>: Deglobalized $debuglist $debugflags </li>
+<li><b>Refactoring</b>: Added sync->{ permanentflags2 }</li>
+
+
+</ul>
+
 
 <ul>
 <li><b>2.178</b></li>
-<li><b>General</b>: </li>
 
 <li><b>Dependencies removed</b>: None </li>
 <li><b>Dependencies added</b>: Perl module Compress::Zlib</li>
@@ -107,10 +136,9 @@ If you are very interrested in those projects, don't hesitate to solicit me!
                         --keepalive1 is on by default since imapsync release 2.169
                         Use --nokeepalive1 to disable it. Same thing for --keepalive2 but for --host2. See <a href="https://metacpan.org/pod/Mail::IMAPClient#Keepalive">https://metacpan.org/pod/Mail::IMAPClient#Keepalive</a></li>
                         
-<li><b>Enhancement</b>: </li>
-<li><b>Enhancement</b>: </li>
 
 <li><b>Usability</b>: Removed --fast option. It didn't do anything anyway, it was a fake option.</li>
+
 <li><b>Usability</b>: Added advice inline advice on errors
   <ul>
   <li>ERR_OVERQUOTA. "The destination mailbox is 100% full, get free space on it and then resume the sync."</li>
@@ -125,10 +153,6 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 
 <li><b>Usability</b>: Bytes sizes human readable are now presented in KB MB GB TB PB (1000 base) instead of KiB MiB GiB TiB PiB (1024 base)</li>
 <li><b>Usability</b>: Added README help for --truncmess</li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
-<li><b>Usability</b>: </li>
 
 
 <li><b>CGI context</b>: Experimental loaddelay forced to 0 (no delay at all). So far a huge load is rarely a problem.</li>
@@ -141,12 +165,9 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 <li><b>Bug fix</b>: Load average on Mac was sometimes buggy. locale float 3,14 instead of 3.14</li>
 <li><b>Bug fix</b>: errors_incr() exited with CATCH_ALL</li>
 <li><b>Bug fix</b>: Memory consumption on Mac was not relevant. Use RSS instead of VSZ, on Mac only. Linux stays with VSZ.</li>
-<li><b>Bug fix</b>: </li>
-<li><b>Bug fix</b>: </li>
 
 
 <li><b>Docker context</b>: Current working directory changed from /var/tmp to /var/tmp/uid_$EFFECTIVE_USER_ID</li>
-
 
 </ul>
 
@@ -1018,7 +1039,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.83 2022/01/13 18:36:12 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.84 2022/04/04 16:11:25 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

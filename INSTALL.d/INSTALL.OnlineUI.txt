@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.OnlineUI.txt,v 1.50 2021/09/20 13:47:20 gilles Exp gilles $
+# $Id: INSTALL.OnlineUI.txt,v 1.52 2022/03/23 11:02:05 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -26,26 +26,25 @@ Load mean: 0.8 on a CPU 4 cores "Intel(R) i5-2320 3.00GHz K8-class"
 =======================================================================
                     Installation
 
-You have to be a little familiar with what a CGI script is
-and how to activate a CGI script on the Apache 
-HTTP server, or any other HTTP server. I have received demands
-to run it on the Ngnix HTTP server but I haven't played with it yet.
-Linux is also a preferred platform (I run /X service on Linux and FreeBSD).
+You have to be a little familiar with what a CGI script is and how to
+activate a CGI script on the Apache HTTP server, or any other HTTP
+server. I have received demands to run it on the Ngnix HTTP server but
+I haven't played with it yet.  Linux is also a preferred platform (I
+run /X service on Linux and FreeBSD).
 
-I have tested this visual interface on Mac. It works.
-For now, it demands some skills few Mac users have.
-Drop me a note in case you want to do that.
+I have tested this visual interface on Mac. It works.  For now, it
+demands some skills few Mac users have.  Drop me a note in case you
+want to do that.
 
-I have tested this visual interface on Windows,
-it fails on Windows because of some hardcoded Unix paths.
-I'm working on it to be Windows ok but it's not done yet (May 2020).
+I have tested this visual interface on Windows, it fails on Windows
+because of some hardcoded Unix paths.  I'm working on it to be Windows
+ok but it's not done yet (May 2020).
 
-Some users have successfully installed a /X visual interface 
-on Windows using a Linux VM machine.
+Some users have successfully installed a /X visual interface on
+Windows using a Linux VM machine.
 
-The web visual user interface frontend /X is compounded in four
-files: a html5 file, a CSS file, a javascript file, and
-a logo image:
+The web visual user interface frontend /X is compounded in four files:
+a html5 file, a CSS file, a javascript file, and a logo image:
 
 * https://imapsync.lamiral.info/X/imapsync_form_extra.html
 * https://imapsync.lamiral.info/X/imapsync_form.css
@@ -53,29 +52,28 @@ a logo image:
 * https://imapsync.lamiral.info/X/logo_imapsync_Xn.png
 
 
-You can do a "view source" to see the HTML file as 
-it is written, and a "save" to get it locally.
-The three other files can be saved the same way or
-with a command named "wget". I suggest using wget,
-see below the ready-to-use command lines.
+You can do a "view source" to see the HTML file as it is written, and
+a "save" to get it locally.  The three other files can be saved the
+same way or with a command named "wget". I strongly suggest using
+wget, see below the ready-to-use command lines.
 
-Those four files can be put anywhere on a web server,
-as long as they stand in the same directory. If you
-want to put them in different directories, just change
-the content of imapsync_form_extra.html to reflect the change,
-ie, change the two lines referencing imapsync_form.css and imapsync_form.js 
-  href="imapsync_form.css" (near the beginning of imapsync_form_extra.html)
-  src="imapsync_form.js"   (near the end of imapsync_form_extra.html)
-I let you change the image logo as an exercise, it's safe if you fail.
+Those four files can be put anywhere on a web server, as long as they
+stand in the same directory. If you want to put them in different
+directories, just change the content of imapsync_form_extra.html to
+reflect the change, ie, change the two lines referencing
+imapsync_form.css and imapsync_form.js href="imapsync_form.css" (near
+the beginning of imapsync_form_extra.html) src="imapsync_form.js"
+(near the end of imapsync_form_extra.html) I let you change the image
+logo as an exercise, it's safe if you fail.
 
-The actual imap syncing work is done by imapsync acting as a CGI,
-the visual interface is only there to give imapsync the parameters
-needed for the sync.
+The actual imap syncing work is done by imapsync acting as a CGI, the
+visual interface is only there to give imapsync the parameters needed
+for the sync.
 
-Use at least Perl module CGI.pm release 4.08 (2014-10-18)
-to avoid the bug "Undefined subroutine CGI::multi_param".
-You can use the command named cpanm to upgrade CGI.pm to
-its last version, it's the easiest way.
+Use at least Perl module CGI.pm release 4.08 (2014-10-18) to avoid the
+bug "Undefined subroutine CGI::multi_param".  You can use the command
+named cpanm to upgrade CGI.pm to its last version, it's the easiest
+way.
 
 Print the CGI.pm release with:
 
@@ -85,8 +83,12 @@ If it is under release 4.08 (2014-10-18) then upgrade it with
 
   cpanm CGI
 
-It is a good thing to remove the old one if it was installed
-by a distribution package, I let you this part as an exercise too.
+It is a good thing to remove the old one if it was installed by a
+distribution package, I let you this part as an exercise too. Ok, here
+is a way:
+
+  apt remove libcgi-pm-perl # for the Debian family
+  dnf remove perl-CGI       # for the Centos family
 
 To check and fix the Perl modules dependencies, run:
 
@@ -94,50 +96,59 @@ To check and fix the Perl modules dependencies, run:
   wget -N https://imapsync.lamiral.info/prerequisites_imapsync
   sh prerequisites_imapsync
 
-To make imapsync work as a CGI script, there are two conditions.
-First, imapsync has to work by itself on the web host.
+To make imapsync work as a CGI script, there are three conditions.
 
-If imapsync doesn't work by itself, as a command line, 
-then it won't work as a CGI script.
+First, imapsync has to work by itself on the web host.  If imapsync
+doesn't work by itself, as a command line, then it won't work as a CGI
+script.
 
-Second, imapsync has to work by itself on the web host using
-the Unix user running the webserver. Detailed examples to
-verify that will be provided further in this document.
+Second, imapsync has to work by itself on the web host using the Unix
+user running the webserver.
+
+Third, the file imapsync has to be considered as a cgi script.
+
+Command lines to provide and verify those three conditions will be
+provided further in this document, for the Debian family systems and
+for the Centos family systems. You are strongly advised to follow this
+commands if need and want help from me because I will first ask you to
+run them before searching what you did wrong.
 
 The imapsync_form_extra.html file in action calls the CGI location
 /cgi-bin/imapsync
 which has to be imapsync itself, the file script (not the directory).
 
-The very latest and relatively stable imapsync is at
+The very latest and relatively stable imapsync is
 https://imapsync.lamiral.info/imapsync
 This file is the program file used verbatim for the service given at
 https://imapsync.lamiral.info/X/
 
-Copy the three files imapsync_form.* on a directory that is exported 
+Copy the three files imapsync_form.* on a directory that is exported
 by your HTTP server.
+
 Copy the imapsync script on the cgi-bin/ directory
 allowing CGIs and you'll have your imapsync visual interface
 and service. The cgi-bin/ directory is usually outside the
 hierarchy exported to anybody by the HTTP server.
 
-The default Apache 2.4 timeout is 60 seconds, one minute, 300 for older Apache.
+The default Apache 2.4 timeout is 60 seconds, one minute, and 300
+secondes for older Apache, 5 minutes.  See
 https://httpd.apache.org/docs/2.4/mod/core.html#timeout
-Mine is now "Timeout 3600", 3600 seconds, an hour. I chose this huge
-timeout value because imapsync can spend a long time without talking while
-getting the headers of huge folders of 100k messages.
-If you intend to offer this service for huge mailboxes or for a long 
-time, I strongly recommand you to set this "Timeout 3600" in
-the Apache configuration right now because you will sure end up with this 
-timeout issue in a few months.
-Search for timeouts in the Apache error log to see if you have timeout issues.
 
-Now that I have explained the general context for any system,
-I'll describe concrete examples on several systems, 
-Debian/Ubuntu and Centos. Feedbacks show that the Centos
-process is easier in case you don't know very much any of the
-Linux distributions. I add that if you don't know very much any 
-of the Linux distributions then you shouldn't install this 
-imapsync service at all.
+I use "Timeout 3600", 3600 seconds, an hour. I chose this huge timeout
+value because imapsync can spend a long time without talking while
+getting the headers of huge folders of 100k messages.  If you intend
+to offer this service for huge mailboxes or for a long time, I
+strongly recommand you to set this "Timeout 3600" in the Apache
+configuration right now because you will sure end up with this timeout
+issue in a few months. You can search for timeouts in the Apache error
+log to see if you have timeout issues.
+
+Now that I have explained the general context for any system, I'll
+describe concrete examples on several systems, Debian/Ubuntu and
+Centos. Feedbacks show that the Centos process is easier in case you
+don't know very much any Linux distribution. But I have to add that if
+you don't know very much the Linux distribution you use, then you
+shouldn't install this imapsync service at all.
 
 
 =============================================================================
@@ -175,7 +186,18 @@ ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
     Require all granted
 </Directory>
 
-That's all for the Apache configuration side.
+In recent Debian distributions you can activate this cgi 
+stuff with the following commands:
+
+  a2enmod cgi
+  a2enconf  serve-cgi-bin
+  /etc/init.d/apache2 reload
+
+If the cgi mode and the cgi-bin configuration are not activated then
+you may encounter a 404 error when, later, you will run the command
+wget -nv -S -O-  http://localhost/cgi-bin/imapsync?testslive=1
+
+That's all for the Apache Debian family configuration side.
 
 Now get, test, and install the latest imapsync:
 
@@ -189,15 +211,21 @@ Now get, test, and install the latest imapsync:
 
   cp imapsync /usr/lib/cgi-bin/
 
-Assuming that the Unix account running Apache is www-data, 
-check that it will work under Apache with this command:
+Assuming that the Unix account running Apache is www-data, check that
+it will work under Apache with this command:
 
   su -s /bin/sh -c 'SERVER_SOFTWARE=foo /usr/lib/cgi-bin/imapsync' www-data
+
+Test that imapsync is considered a cgi with: 
+
   wget -nv -S -O-  http://localhost/cgi-bin/imapsync?testslive=1
 
 The last command should print something like:
 Status: 200 OK to sync IMAP boxes. Load on bar is ...
 ...
+
+If you get a 404 here then review the cgi installation and
+configuration part.
 
 
 You can also verify that the webserver is not buffering its output with the 
@@ -205,17 +233,16 @@ command:
 
   wget -nv -S -O-  'http://localhost/cgi-bin/imapsync?testslive=1&simulong=10'
 
-You should get the output as time goes on. If you don't get the
-output as time goes on, ie you see no output then all output
-at once, it means the webserver is buffering. Fix it with
-the "SetEnv no-gzip 1" described above.
+You should get the output as time goes on. If you don't get the output
+as time goes on, ie you see no output then all output at once, it
+means the webserver is buffering. Fix it with the "SetEnv no-gzip 1"
+described above.
 
 
-The UI front-end file place on the server disk in
-this example is
+The UI front-end file place on the server disk in this example is
 /var/www/html/X/imapsync_form_extra.html
-but it can be placed anywhere on the disk, the important
-thing is that it has to be served by the webserver. 
+but it can be placed anywhere on the disk, the important thing is that
+it has to be served by the webserver.
 
   mkdir /var/www/html/X/
   cd /var/www/html/X/
@@ -228,9 +255,8 @@ thing is that it has to be served by the webserver.
 
 The imapsync process working directory in cgi mode is
 /var/tmp/imapsync_cgi/
-it is not configurable unless changing it in
-imapsync directly, it is hard-coded in imapsync. 
-In this directory will go the log files and
+it is not configurable unless changing it in imapsync directly, it is
+hard-coded in imapsync.  In this directory will go the log files and
 the pid files.
 
 Check 
@@ -238,14 +264,14 @@ Check
 or the safer
   https://yourhost/X/imapsync_form_extra.html
 
-That's all for installing a /X service on Debian.
+That's all for installing a /X service on a Debian family system.
 
 =============================================================================
 B) Here is a concrete example on a Centos 7 server with the Apache
    webserver httpd:
 
-First, follow and apply the section "Centos 7 and latest imapsync" 
-at https://imapsync.lamiral.info/INSTALL.d/INSTALL.Centos.txt
+First, follow and apply the section "Centos 7 and latest imapsync" at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.Centos.txt
 
 Then:
 
@@ -291,14 +317,14 @@ The last command should print something like:
 Status: 200 OK to sync IMAP boxes. Load on bar is ...
 ...
 
-You can also verify that the webserver is not buffering its output with the 
-command:
+You can also verify that the webserver is not buffering its output
+with the command:
 
   wget -nv -S -O-  'http://localhost/cgi-bin/imapsync?testslive=1&simulong=10'
 
-You should get the output as time goes on. If you don't, no output then all
-output at once, it means the webserver is buffering. Fix it with
-the "SetEnv no-gzip 1" described above.
+You should get the output as time goes on. If you don't, no output
+then all output at once, it means the webserver is buffering. Fix it
+with the "SetEnv no-gzip 1" described above.
 
 Now check 
    http://yourhost/X/imapsync_form_extra.html
@@ -310,17 +336,19 @@ That's all for installing a /X service on Centos 7.
 
 B bis) How about Centos 8?
 
-Follow the procedure for Centos 7. While imapsync is ok on the command line,
-you will encounter some permission denied in the CGI context. Something like:
+Follow the procedure for Centos 7. While imapsync is ok on the command
+line, you will encounter some permission denied in the CGI
+context. Something like:
 
 wget -nv -S -O-  http://localhost/cgi-bin/imapsync?testslive=1
 ...
-Host1 failure: can not open imap connection on host1 [test1.lamiral.info]
-with user [test1]: Unable to connect to test1.lamiral.info:  Permission denied
+Host1 failure: can not open imap connection on host1
+[test1.lamiral.info] with user [test1]: Unable to connect to
+test1.lamiral.info: Permission denied
 
-The issue might come from SELinux. I haven't dig into SELinux enough to give 
-you the commands that will allow imapsync online and only it while maintaining
-SELinux in enforcing mode.
+The issue might come from SELinux. I haven't dig into SELinux enough
+to give you the commands that will allow imapsync online and only it
+while maintaining SELinux in enforcing mode.
 
 Quick solution:
 
@@ -336,36 +364,21 @@ To go back to the previous state:
 
 Nota bene
 =========
-You may also want to avoid being placed by systemd in
-a directory like (where xxx are crypto hash characters):
+
+You may also want to avoid being placed by systemd in a directory like
+(where xxx are crypto hash characters):
 
 /var/tmp/systemd-private-xxx-httpd.service-xxx/tmp/
 
-In that case, edit the file
+In that case, see the Troubleshooting section below.
 
-  /usr/lib/systemd/system/httpd.service
-
-and in it, replace the line
-
-  PrivateTmp=true
-
-by the line
-
-  PrivateTmp=false
-
-then reload systemd and restart httpd with the commands:
-
-  systemctl daemon-reload
-  systemctl restart httpd
-  systemctl status  httpd
-  
 
 =======================================================================
 ===================   Bandwidth statistics   ==========================
 =======================================================================
 
-If you want the bandwidth statistics like the ones at the bottom 
-of the page and following the image link, more detailed at
+If you want the bandwidth statistics like the ones at the bottom of
+the page and following the image link, more detailed at
 https://imapsync.lamiral.info/vnstat/vnstati.html
 
 Those stats are generated by vnstat
@@ -392,39 +405,50 @@ vnstati -5  -o /var/www/vnstat/vnstat_5.png
 
 The log says the temporary directory is 
 /var/tmp/imapsync_cgi/
-but it is not in the system.
+but this directory is not in the system. What a mystery!
 
-It may be that the apache or httpd service is run by systemd with a jailed 
-temporary directory.
+It may be that the apache or httpd service is run by systemd with a
+jailed temporary directory.
 
 Solution:
 
-  find /etc/systemd/ /usr/lib/systemd/ |xargs grep -s PrivateTmp
+  find /etc/systemd/ /usr/lib/systemd/ | xargs grep -s PrivateTmp
 
-If systemd jails Apache then you'll find a line like:
+If systemd jails Apache, then you'll find a line like:
 /etc/systemd/system/multi-user.target.wants/apache2.service:PrivateTmp=true
 (Debian/Ubuntu)
 or
 /usr/lib/systemd/system/httpd.service:PrivateTmp=true
 (Centos)
 
-Replace this line "PrivateTmp=true"
-in /etc/systemd/system/multi-user.target.wants/apache2.service 
+The goal is to override the line
+
+PrivateTmp=true
+
+found in /etc/systemd/system/multi-user.target.wants/apache2.service 
 or
 /usr/lib/systemd/system/httpd.service
 
-with:
+with the line:
 
 PrivateTmp=false
 
-Then reload the systemd daemon and restart the apache2 service
+The right way to do it is by using the "systemctl edit ..." command
+and then reload the systemd daemon and restart the apache2 service.
+You can also edit directly the file override.conf if you know where
+to do it. If you don't use the override.conf mechanism then your change will 
+be canceled the next time the apache package is updated.
 
 Debian:
+  systemctl edit apache2
+  cat /etc/systemd/system/apache2.service.d/override.conf
   systemctl daemon-reload
   systemctl restart apache2
   systemctl status  apache2
 
 Centos:
+  systemctl edit httpd
+  cat /etc/systemd/system/httpd.service.d/override.conf
   systemctl daemon-reload
   systemctl restart httpd
   systemctl status  httpd
@@ -461,6 +485,7 @@ So if your https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
 is not what it should be, your access looks compromised.
 
 Thanks to Dominik Ulrich for this insight!
+
 =======================================================================
 =======================================================================
 
@@ -487,11 +512,11 @@ Debian:
   chmod +x imapsync_shell_wrapper
   cp imapsync_shell_wrapper /usr/lib/cgi-bin/
 
-Normally, you only have to change the script imapsync_shell_wrapper 
-to suit your needs.
+Normally, you only have to change the script imapsync_shell_wrapper to
+suit your needs.
 
-Have in mind that the abort button will kill only one imapsync so
-it is not a working button in case of successive imapsync runs.
+Have in mind that the abort button will kill only one imapsync so it
+is not a working button in case of successive imapsync runs.
 
 =======================================================================
 =======================================================================
@@ -500,13 +525,12 @@ it is not a working button in case of successive imapsync runs.
 ====== mod_perl failure ======
 
 This part is for mod_perl experts only.
-The script imapsync doesn't work under Modperl::Registry
-nor under ModPerl::PerlRun. So read on if you think you
-are better than me. 
 
-I tried the standard way, telling how any cgi Perl script
-can be run under mod_perl perlrun, but it fails with imapsync.
-Any hint welcome!
+The script imapsync doesn't work under Modperl::Registry nor under
+ModPerl::PerlRun. So read on if you think you are better than me.
+
+I tried the standard way, telling how any cgi Perl script can be run
+under mod_perl perlrun, but it fails with imapsync.  Any hint welcome!
 
 # This is a Debian example
 
@@ -544,7 +568,6 @@ Any hint welcome!
 # Verify imapsync works under perl-run
 
   curl http://localhost/perl-run/imapsync
-
 
 =======================================================================
 =======================================================================

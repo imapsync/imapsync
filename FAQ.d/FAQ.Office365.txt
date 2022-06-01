@@ -1,5 +1,5 @@
 
-$Id: FAQ.Office365.txt,v 1.33 2022/01/05 11:17:21 gilles Exp gilles $
+$Id: FAQ.Office365.txt,v 1.37 2022/04/06 09:58:39 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -112,7 +112,27 @@ d) Delete this app password when the job with imapsync is finished.
 
 R3. Also, check a license is assigned to that account in Office365.
 
-R4. Microsoft introduced something called "security defaults" which is enabled
+R4. From Dave Pusey 
+https://github.com/imapsync/imapsync/issues/317#issuecomment-1027776418
+
+I quote Dave nearly verbatim:
+
+"I had created an app password, and security defaults are already off.
+
+I have now figured out the issue.
+
+Despite the MS365 and EXO admin centers showing that IMAP and Basic
+Auth were all enabled, it turns out that in Oct 2021, Microsoft began
+disabling basic auth for all tenants that had have never used it by
+that point. There was an item in my Message Center from that date
+saying my tenant was being done.
+
+You can re-enable it for specific protocols (IMAP in this case) using
+the diagnostic process detailed at
+https://techcommunity.microsoft.com/t5/exchange-team-blog/basic-authentication-and-exchange-online-september-2021-update/bc-p/2782230
+(see the section "Limited Opt Out")
+
+R5. Microsoft introduced something called "security defaults" which is enabled
 by default for new tenants. One of the rules blocks IMAP access as of imapsync.
 
 The funny thing is that you can't disable a single rule of this 
@@ -122,15 +142,15 @@ Switching the whole thing off allows the IMAP login.
 Also, disable double-step authentication on the Azure/Active Directory portal.
 See here:
 https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/concept-fundamentals-security-defaults
-Thanks to Stephan Buhre for this R4 answer.
+Thanks to Stephan Buhre for this R5 answer.
 
-R5. Are there special characters in the password?
+R6. Are there special characters in the password?
     https://imapsync.lamiral.info/FAQ.d/FAQ.Authentication_failure.txt
     https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Windows.txt
     https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Unix.txt
     https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Mac.txt
 
-R6. Triple check the hostname then. Try all of these:
+R7. Triple check the hostname then. Try all of these:
  * outlook.office365.com
  * imap-mail.outlook.com
  * imap.outlook.com
@@ -570,7 +590,7 @@ Note from Yago Torres Fernandez:
 (a working command using admin/authuser on host2 Office 365)
 
   imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated@domain.com  ^
-               --password2 XXXX --ssl2  ^
+               --password2 XXXX --ssl2
 
 but previously in Office365, you must do something like the following, using Powershell:
 
@@ -580,6 +600,10 @@ but previously in Office365, you must do something like the following, using Pow
 Note from Betsy Lawlor: You can use global modern authentication with two factor 
 on Exchange Online (M365) but you must have "AllowBasicAuthImap" on
 the admin account you are using to migrate the mail.
+
+Note from Guido (5 April 2022):The way I fixed it was by turning off security defaults 
+https://docs.microsoft.com/nl-nl/azure/active-directory/fundamentals/concept-fundamentals-security-defaults. 
+You still need to check IMAP access on an account-basis though.
 
 Remark: PLAIN authentication is the only way to go with --authuser1 for now.
 So don't use --authmech1 SOMETHING with --authuser1 admin_user,
@@ -606,7 +630,7 @@ but not for the admin.  Example:
   imapsync ... --authuser2 user_admin@domain.com --user2 user_to_be_migrated
 
 See also:
-http://www.linux-france.org/prj/imapsync_list/msg02203.html
+http://linux-france.tk/prj/imapsync_list/msg02203.html
 Subject: RE: [imapsync] Office 365 - 'Master User'?
 Date:    Mon, 1 Jun 2015 17:53:54 +0000
 

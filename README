@@ -6,7 +6,7 @@ NAME
 
 VERSION
 
-    This documentation refers to Imapsync $Revision: 2.178 $
+    This documentation refers to Imapsync $Revision: 2.200 $
 
 USAGE
 
@@ -38,7 +38,7 @@ DESCRIPTION
     that are on the destination side but not on the source side stay as they
     are. See the --delete2 option to have strict sync and delete them.
 
-    How imapsync know a message is already on both sides? Same specific
+    How does imapsync know a message is already on both sides? Same specific
     headers and the transfer is done only once. By default, the
     identification headers are "Message-Id:" and "Received:" lines but this
     choice can be changed with the --useheader option, most often a
@@ -46,8 +46,8 @@ DESCRIPTION
 
     All flags are preserved, unread messages will stay unread, read ones
     will stay read, deleted will stay deleted. In the IMAP protocol, a
-    deleted message is not really deleted, it is marked \Deleted and can be
-    undelete. Real destruction comes with the EXPUNGE or UIDEXPUNGE IMAP
+    deleted message is not deleted, it is marked \Deleted and can be
+    undeleted. Real destruction comes with the EXPUNGE or UIDEXPUNGE IMAP
     commands.
 
     You can abort the transfer at any time and restart it later, imapsync
@@ -76,16 +76,35 @@ DESCRIPTION
       There is no unidentified message on host1.
       Detected 0 errors
 
+    Imapsync mentions the total sizes of both accounts at the beginning of
+    the sync and also at the end. Sometimes, even with a strict sync, those
+    total sizes differ, and sometimes they differ a lot. The difference is
+    not a good criterion to conclude the sync went wrong.
+
+    Why? That's because message sizes given by the imap servers are not
+    always accurate, they are not always the same as the actual message
+    sizes of the messages transferred by imapsync. Imapsync use the sizes
+    given by the imap servers to calculate the big total size. They can
+    differ. In the early days, Imapsync used the sizes of the messages as
+    one of the criteria to identify the messages, different sizes implied
+    different messages; but it was a mistake, the same message had different
+    sizes on both sides sometimes, depending on the imap servers.
+
+    Another explanation for a big total size difference is that Gmail
+    doesn't count the size of duplicate messages across folders twice, while
+    imapsync does.
+
     A classical scenario is synchronizing a mailbox B from another mailbox A
     where you just want to keep a strict copy of A in B. Strict meaning all
     messages in A will be in B but no more.
 
-    For this, option --delete2 can be used, it deletes messages in the host2
-    folder B that are not in the host1 folder A. If you also need to destroy
-    host2 folders that are not in host1 then use --delete2folders. See also
-    --delete2foldersonly and --delete2foldersbutnot to set up exceptions on
-    folders to destroy. INBOX will never be destroyed, it's a mandatory
-    folder in IMAP so imapsync doesn't even try to remove it.
+    For a strict synchronization, use the option --delete2. The option
+    --delete2 deletes the messages in the host2 folder B that are not in the
+    host1 folder A. If you also need to destroy host2 folders that are not
+    in host1 then use --delete2folders. See also --delete2foldersonly and
+    --delete2foldersbutnot to set up exceptions on folders to destroy. INBOX
+    will never be destroyed, it's a mandatory folder in IMAP so imapsync
+    doesn't even try to remove it.
 
     A different scenario is to delete the messages from the source mailbox
     after a successful transfer, it can be a good feature when migrating
@@ -114,18 +133,19 @@ OPTIONS
      usage: imapsync [options]
 
     The standard options are the six values forming the credentials. Three
-    values on each side are needed in order to login into the IMAP servers.
-    These six values are a hostname, a username, and a password, two times.
+    values on each side are needed to login into the IMAP servers. These six
+    values are a hostname, a username, and a password, two times.
 
-    Conventions used in the following descriptions of the options:
+    Here are the conventions used in the following descriptions of the
+    options:
 
-     str means string
-     int means integer number
-     flo means float number
-     reg means regular expression
-     cmd means command
+     str means a string
+     int means an integer number
+     flo means a float number
+     reg means a regular expression
+     cmd means a command
 
-     --dry               : Makes imapsync doing nothing for real; it just print what
+     --dry               : Makes imapsync do nothing for real; it just prints what
                            would be done without --dry.
 
   OPTIONS/credentials
@@ -237,9 +257,9 @@ OPTIONS
 
      --nomixfolders      : Do not merge folders when host1 is case-sensitive
                            while host2 is not (like Exchange). Only the first
-                           similar folder is synced (example: with folders
-                           "Sent", "SENT" and "sent"
-                           on host1 only "Sent" will be synced to host2).
+                           similar folder is synced. Example: with folders
+                           "Sent", "SENT" and "sent" on host1, only "Sent"
+                           will be synced to host2.
 
      --skipemptyfolders  : Empty host1 folders are not created on host2.
 
@@ -726,8 +746,8 @@ LICENSE AND COPYRIGHT
 
     Imapsync is free, open, public but not always gratis software cover by
     the NOLIMIT Public License, now called NLPL. See the LICENSE file
-    included in the distribution or just read this simple sentence as it IS
-    the licence text:
+    included in the distribution or just read the following simple sentence
+    as it IS the license text:
 
      "No limits to do anything with this work and this license."
 
@@ -744,7 +764,7 @@ AUTHOR
     Good feedback is always welcome. Bad feedback is very often welcome.
 
     Gilles LAMIRAL earns his living by writing, installing, configuring and
-    sometimes teaching free, open and often gratis software. Imapsync used
+    sometimes teaching free, open, and often gratis software. Imapsync used
     to be "always gratis" but now it is only "often gratis" because imapsync
     is sold by its author, your servitor, a good way to maintain and support
     free open public software tools over decades.
@@ -796,19 +816,19 @@ INSTALL
 
      Imapsync works under most Windows (2000, XP, Vista, Seven, Eight, Ten
      and all Server releases 2000, 2003, 2008 and R2, 2012 and R2, 2016)
-     as a standalone binary software called imapsync.exe,
-     usually launched from a batch file in order to avoid always typing
-     the options. There is also a 32bit binary called imapsync_32bit.exe
+     as a standalone binary software called imapsync.exe, usually launched
+     from a batch file in order to avoid always typing the options. There
+     is also a 32bit binary called imapsync_32bit.exe
 
-     Imapsync works under OS X as a standalone binary
-     software called imapsync_bin_Darwin
+     Imapsync works under OS X as a standalone binary software called
+     imapsync_bin_Darwin
 
      Purchase latest imapsync at
      https://imapsync.lamiral.info/
 
-     You'll receive a link to a compressed tarball called imapsync-x.xx.tgz
-     where x.xx is the version number. Untar the tarball where
-     you want (on Unix):
+     You'll receive a link to a compressed tarball called
+     imapsync-x.xx.tgz where x.xx is the version number. 
+     Untar the tarball where you want (on Unix):
 
       tar xzvf  imapsync-x.xx.tgz
 

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.SSL_errors.txt,v 1.17 2021/08/01 12:49:00 gilles Exp gilles $
+$Id: FAQ.SSL_errors.txt,v 1.18 2022/01/14 21:20:37 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -12,20 +12,25 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.SSL_errors.txt
 
 Questions answered in this FAQ are:
 
+Q. What is the error
+   DEBUG: .../IO/Socket/SSL.pm:1177: global error: Undefined SSL object
+
 Q. What are the errors
-  DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
-  or
-  DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
+   DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
+   or
+   DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
 
 Q. What can I do to avoid those "SSL read/write errors"?
 
-Q. SSL connect attempt failed SSL
+Q. What are the errors
+   SSL connect attempt failed SSL
    routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
    or 
    SSL connect attempt failed SSL
    SSL routines:ssl_choose_client_version:unsupported protocol
 
-Q. fatal SSL error: SSL connect attempt failed with unknown error 
+Q. What is the error
+   fatal SSL error: SSL connect attempt failed with unknown error 
    SSL wants a read first
 
 Q. How to see the certificate and identify problems in it?
@@ -33,10 +38,26 @@ Q. How to see the certificate and identify problems in it?
 Now the questions again with their answers.
 
 ======================================================================
+Q. What is the error
+   DEBUG: .../IO/Socket/SSL.pm:1177: global error: Undefined SSL object
+   
+R. It's a fake error from the Perl Module IO::Socket::SSL
+   Imapsync works well despite this fake warning but it's disturbing
+   when you encounter errors due to something else, you believe it's
+   the issue but no, it's something else to deal with.
+   
+   This fake error is fixed in  IO::Socket::SSL release 2.073
+   https://metacpan.org/dist/IO-Socket-SSL/changes
+   "fix #110 - prevent internal error warning in some cases"
+   https://github.com/noxxi/p5-io-socket-ssl/issues/110
+   
+   imapsync.exe release 2.178 uses this fixed 2.073 IO::Socket::SSL
+
+======================================================================
 Q. What are the errors
-  DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
-  or
-  DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
+   DEBUG: .../IO/Socket/SSL.pm:1165: local error: SSL write error
+   or
+   DEBUG: .../IO/Socket/SSL.pm:1088: local error: SSL read error
 
 
 R1. As they claim, those errors are SSL errors. SSL is not directly
@@ -74,7 +95,8 @@ R5. Set up a ssltunnel proxy to the host.
     a ssltunnel proxy.
 
 ======================================================================
-Q. SSL connect attempt failed SSL
+Q. What are the errors
+   SSL connect attempt failed SSL
    routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure
    or 
    SSL connect attempt failed SSL
@@ -149,7 +171,8 @@ In this case setting the version
 to 'SSLv23:!SSLv2:!SSLv3:!TLSv1_1:!TLSv1_2' might help.
 
 ======================================================================
-Q. fatal SSL error: SSL connect attempt failed with unknown error 
+Q. What is the error
+   fatal SSL error: SSL connect attempt failed with unknown error 
    SSL wants a read first
 
 R. If you're using --ssl1 or --ssl2, try instead --tls1 or --tls2
@@ -201,7 +224,6 @@ ggEBAMUTJVdrTl86nDI2yO6Vz5l1qxMMPqJylQcgi9vDHpwsnUq5HGPv+qZNhM69
 ...
 
 
-
 After an complete server update ("apt update && apt upgrade && /etc/init.d/dovecot restart"):
 
 echo | openssl s_client -crlf -connect test1.lamiral.info:993
@@ -228,6 +250,7 @@ EnRlc3QxLmxhbWlyYWwuaW5mbzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
 ggEBANuPNbYLPMZ4vPa9NBoHAUdIXqpi0eqdXMXd2sT+qRmqxS5ihr999BHOROcr
 ...
 
+Champagne!
 
 ======================================================================
 ======================================================================
