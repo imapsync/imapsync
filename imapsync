@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# $Id: imapsync,v 2.200 2022/04/04 16:05:55 gilles Exp gilles $
+# $Id: imapsync,v 2.229 2022/09/14 18:08:24 gilles Exp gilles $
 # structure
 # pod documentation
 # use pragmas
@@ -25,7 +25,7 @@ and without duplicates.
 
 =head1 VERSION
 
-This documentation refers to Imapsync $Revision: 2.200 $
+This documentation refers to Imapsync $Revision: 2.229 $
 
 =head1 USAGE
 
@@ -253,7 +253,7 @@ Same thing for user2 password.
                        It will be combined with the --user1 value to form the 
                        string to pass with XOAUTH2 authentication.
                        The password given by --password1 or --passfile1
-                       is ignored.
+                       is ignored but needed on the command line.
                        Instead of the access token itself, the value can be a
                        file containing the access token on the first line.
                        If the value is a file, imapsync reads its first line
@@ -267,7 +267,8 @@ Same thing for user2 password.
 
  --oauthdirect1 str  : The direct string to pass with XOAUTH2 authentication.
                        The password given by --password1 or --passfile1 and 
-                       the user given by --user1 are ignored.
+                       the user given by --user1 are ignored but they are 
+                       needed to be on the command line. Consider it a bug.
 
  --oauthdirect2 str  : same thing as oauthdirect1
  
@@ -401,7 +402,7 @@ where:
 
  2019_12_22_23_57_59_532 is nearly the date of the start
  YYYY_MM_DD_HH_MM_SS_mmm
- year_month_day_hour_minute_seconde_millisecond
+ year_month_day_hour_minute_second_millisecond
 
 and user1 user2 are the --user1 --user2 values.
 
@@ -658,7 +659,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
                        Default is 120 and 0 means no timeout at all.
 
                        Caveat, under CGI context, you may encounter a timeout
-                       from the webserver, killing imapsync and the imap connexions.
+                       from the webserver, killing imapsync and the imap connections.
                        See the document INSTALL.OnlineUI.txt and search
                        for "Timeout" for how to deal with this issue.
 
@@ -693,6 +694,12 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
  --releasecheck      : Check for new imapsync release.
                        it's an http request to
                        http://imapsync.lamiral.info/prj/imapsync/VERSION
+
+  --emailreport1     : Put the email final report in host1 INBOX
+  --emailreport2     : Put the email final report in host2 INBOX
+
+  --noemailreport1   : Do not put the email final report in host1 INBOX
+  --noemailreport2   : Do not put the email final report in host2 INBOX
 
  --noid              : Do not send/receive IMAP "ID" command to imap servers.
 
@@ -1357,7 +1364,7 @@ my(
         $SSL_VERIFY_POLICY,
 ) ;
 
-single_sync( $sync, $acc1, $acc2 );
+exit( single_sync( $sync, $acc1, $acc2 ) ) ;
 
 
 
@@ -1386,23 +1393,12 @@ $acc2->{ N } = '2' ;
 
 $sync->{timestart} = time ; # Is a float because of use Time::HiRres
 
-$sync->{rcs} = q{$Id: imapsync,v 2.200 2022/04/04 16:05:55 gilles Exp gilles $} ;
+$sync->{rcs} = q{$Id: imapsync,v 2.229 2022/09/14 18:08:24 gilles Exp gilles $} ;
 
-$sync->{ memory_consumption_at_start } = memory_consumption(  ) || 0 ;
-
+$sync->{ memory_consumption_at_start } = memory_consumption_of_myself(  ) || 0 ;
 
 
 my @loadavg = loadavg(  ) ;
-
-$sync->{ cpu_number } = cpu_number(  ) ;
-$sync->{ loaddelay } = load_and_delay( $sync->{ cpu_number }, @loadavg ) ;
-$sync->{ loaddelay } = 0 ;
-
-$sync->{ loadavg } = join( q{ }, $loadavg[ 0 ] )
-                   . " on $sync->{cpu_number} cores and "
-                   . ram_memory_info(  ) ;
-
-
 
 $sync->{ total_bytes_transferred } = 0 ;
 $sync->{ total_bytes_skipped } = 0 ;
@@ -1448,14 +1444,20 @@ $sync->{ biggest_message_transferred } = 0;
    Dec => '11',
 );
 
-
-
 # Just create a CGI object if under cgi context only.
 # Needed for the get_options() call
 cgibegin( $sync ) ;
 
 # In cgi context, printing must start by the header so we delay other prints by using output() storage
 my $options_good = get_options( $sync, @ARGV ) ;
+
+$sync->{ cpu_number } = cpu_number(  ) ;
+$sync->{ heavy_load_reached } = heavy_load_reached( $sync ) ;
+
+$sync->{ loadavg } = join( q{ }, $loadavg[ 0 ] )
+                   . " on $sync->{cpu_number} cores and "
+                   . ram_memory_info( $sync ) ;
+
 # Is it the first myprint?
 cgibuildheader( $sync ) ;
 docker_context( $sync ) ;
@@ -1472,8 +1474,8 @@ if ( ! defined $options_good ) { exit $EX_USAGE ; }
 # the second line (ending with "1 ;") can then stay active or be commented,
 # the result will be the same: no releasecheck by default (because 0 is then the defined value).
 
-$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 0 ;
-#$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 1 ;
+#$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 0 ;
+$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 1 ;
 
 # just the version
 if ( $sync->{ version } ) {
@@ -1534,12 +1536,14 @@ if ( $sync->{ abortbyfile } ) { $sync->{ abort } = 1 ; }
 
 install_signals( $sync ) ;
 
+$sync->{ loglogfilename } = '../list_all_logs_auto.txt' ;
 $sync->{ log }        = defined $sync->{ log }        ? $sync->{ log }        :  1 ;
+
 $sync->{ errorsdump } = defined $sync->{ errorsdump } ? $sync->{ errorsdump } :  1 ;
 $sync->{ errorsmax }  = defined $sync->{ errorsmax }  ? $sync->{ errorsmax }  : $ERRORS_MAX ;
 
-$sync->{ emailreport1 } = defined $sync->{ emailreport1 } ? $sync->{ emailreport1 } :  1 ;
-$sync->{ emailreport2 } = defined $sync->{ emailreport2 } ? $sync->{ emailreport2 } :  1 ;
+$sync->{ emailreport1 } = defined $sync->{ emailreport1 } ? $sync->{ emailreport1 } :  0 ;
+$sync->{ emailreport2 } = defined $sync->{ emailreport2 } ? $sync->{ emailreport2 } :  0 ;
 
 
 # log and output
@@ -1582,7 +1586,7 @@ myprint( "Transfer started at $sync->{ timestart_str }\n" ) ;
 myprint( "PID is $PROCESS_ID my PPID is ", mygetppid(  ), "\n" ) ;
 announcelogfile( $sync ) ;
 myprint( "Load is " . ( join( q{ }, loadavg(  ) ) || 'unknown' ), " on $sync->{cpu_number} cores\n" ) ;
-#myprintf( "Memory consumption so far: %.1f MiB\n", memory_consumption(  ) / $KIBI / $KIBI ) ;
+#myprintf( "Memory consumption so far: %.1f MiB\n", memory_consumption_of_myself(  ) / $KIBI / $KIBI ) ;
 myprint( 'Current directory is ' . getcwd(  ) . "\n" ) ;
 myprint( 'Real user id is ' . getpwuid_any_os( $REAL_USER_ID ) . " (uid $REAL_USER_ID)\n" ) ;
 myprint( 'Effective user id is ' . getpwuid_any_os( $EFFECTIVE_USER_ID ). " (euid $EFFECTIVE_USER_ID)\n" ) ;
@@ -1662,16 +1666,19 @@ if ( $sync->{ abort } )
         exit $EX_OK ;
 }
 
+if ( $sync->{ memorystress } ) { tests_memory_stress() ; }
+
+
 # simulong is just a loop printing some lines for xx seconds with option "--simulong xx".
 simulong( $sync ) ;
 
 
 
-# New place for cgiload 2019_03_03
+# New place for cgi_exit_on_heavy_load 2019_03_03
 # because I want to log it
 # Can break here if load is too heavy
-# Have in mind the CGI header has already a 503 Service Unavailable
-cgiload( $sync ) ;
+# Have in mind the CGI header has already a 503 Service Unavailable printed.
+cgi_exit_on_heavy_load( $sync ) ;
 
 
 $fixcolonbug = defined  $fixcolonbug  ? $fixcolonbug : 1 ;
@@ -3030,8 +3037,7 @@ if ( $sync->{ testslive } or $sync->{ testslive6 } )
         tests_live_result( $sync->{ nb_errors } ) ;
 }
 
-$sync->{ emailreport2 } and email_report_append( $sync->{ acc2 }, email_report( $sync, email_report_body_extra2(  ) ) ) ;
-$sync->{ emailreport1 } and email_report_append( $sync->{ acc1 }, email_report( $sync, email_report_body_extra1(  ) ) ) ;
+final_emails_reports( $sync ) ;
 
 #$sync->{imap1}->State( 0 ); # Unconnected
 if ( ! lost_connection( $sync, $sync->{imap1}, "for host1 [$sync->{host1}]" ) ) { $sync->{imap1}->logout(  )  ; }
@@ -3464,7 +3470,7 @@ sub tests_killpid_by_brother
 
 sub killpid
 {
-        my $pidtokill = shift ;
+        my $pidtokill = shift @ARG ;
 
         if ( ! $pidtokill ) {
                 myprint( "No process to kill.\n" ) ;
@@ -3601,7 +3607,7 @@ sub tests_under_docker_context
 
 sub under_docker_context
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         
         if ( ! defined $mysync ) { return ; }
 
@@ -3625,7 +3631,7 @@ sub under_docker_context
 
 sub docker_context 
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( ! under_docker_context( $mysync ) )
         {
@@ -3659,7 +3665,7 @@ sub docker_context
 
 sub cgibegin
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 	if ( ! under_cgi_context( $mysync ) ) { return ; }
 	require CGI ;
 	CGI->import( qw( -no_debug -utf8 ) ) ;
@@ -3701,7 +3707,7 @@ sub tests_under_cgi_context
 
 sub under_cgi_context
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         # Under cgi context
         if ( $ENV{SERVER_SOFTWARE} ) {
                 return 1 ;
@@ -3712,7 +3718,7 @@ sub under_cgi_context
 
 sub cgibuildheader 
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 	if ( ! under_cgi_context( $mysync ) ) { return ; }
 
 	my $imapsync_runs = $mysync->{cgi}->cookie( 'imapsync_runs' ) || 0 ;
@@ -3723,23 +3729,28 @@ sub cgibuildheader
 			-path    => '/cgi-bin/imapsync',
 		) ;
 	my $httpheader ;
-	if ( $mysync->{ abort } ) {
+	if ( $mysync->{ abort } )
+	{
 		$httpheader = $mysync->{cgi}->header(
 			-type   => 'text/plain; charset=UTF-8',
-			-status => '200 OK to abort syncing IMAP boxes' . ". Here is " . hostname(),
+			-status => '200 OK to abort syncing IMAP boxes. ' . load_message( $mysync ),
 		) ;
-	}elsif( $mysync->{ loaddelay } ) {
+	}
+	elsif( $mysync->{ heavy_load_reached } )
+	{
 # https://tools.ietf.org/html/rfc2616#section-10.5.4
 # 503 Service Unavailable
 # The server is currently unable to handle the request due to a temporary overloading or maintenance of the server.
 		$httpheader = $mysync->{cgi}->header(
 			-type   => 'text/plain; charset=UTF-8',
-			-status => '503 Service Unavailable' . ". Be back in $mysync->{ loaddelay } min. Load on " . hostname() . " is $mysync->{ loadavg }",
+			-status => '503 Service Unavailable. ' . "Be back later. " . load_message( $mysync ),
 		) ;
-	}else{
+	}
+	else
+	{
 		$httpheader = $mysync->{cgi}->header(
 		-type   => 'text/plain; charset=UTF-8',
-		-status => '200 OK to sync IMAP boxes' . ". Load on " . hostname() . " is $mysync->{ loadavg }",
+		-status => '200 OK to sync IMAP boxes. ' . load_message( $mysync ),
 		-cookie => $cookie,
 		) ;
 	}
@@ -3748,21 +3759,192 @@ sub cgibuildheader
 	return ;
 }
 
-sub cgiload
+sub load_message
+{
+        my $mysync = shift @ARG ;
+        
+        my $message = "Load on " . hostname() . " is $mysync->{ loadavg }" ;
+        return $message ;
+}
+
+sub cgi_exit_on_heavy_load
 {
         # Exit on heavy load in CGI context
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! under_cgi_context( $mysync ) ) { return ; }
         if ( $mysync->{ abort } ) { return ; } # keep going to abort since some ressources will be free soon
-        if ( $mysync->{ loaddelay } )
+        if ( $mysync->{ heavy_load_reached } )
         {
-                $mysync->{nb_errors}++ ;
+                $mysync->{ nb_errors }++ ;
                 exit_clean( $mysync, $EX_UNAVAILABLE,
-                        "Server is on heavy load. Be back in $mysync->{ loaddelay } min. Load is $mysync->{ loadavg }\n"
+                        "Server is on heavy load. Be back later. " . load_message( $mysync ) . "\n"
                 ) ;
         }
         return ;
+} 
+
+
+
+sub tests_heavy_load_reached
+{
+        note( 'Entering tests_is_heavy_load_reached()' ) ;
+
+        like( heavy_load_reached(  ), qr{^(0|1)$}xms,  'heavy_load_reached: no args => 0 or 1' ) ;
+        
+        my $mysync = {  } ;
+        like( heavy_load_reached( $mysync ), qr{^(0|1)$}xms,  'heavy_load_reached: {  } => 0 or 1' ) ;
+        
+        $mysync->{ exitonload } = 0 ;
+        is( 0, heavy_load_reached( $mysync ), 'heavy_load_reached: exitonload=0 => 0 ' ) ;
+
+        note( 'Leaving  tests_heavy_load_reached()' ) ;
+        return ;
 }
+
+sub heavy_load_reached
+{
+        my $mysync = shift @ARG ;
+        
+        my $heavy_load_reached = 0 ;
+        
+        if ( defined( $mysync->{ exitonload } ) && ( ! $mysync->{ exitonload } ) )
+        {
+                return 0 ;
+        }
+        
+        my $heavy_load_reached_by_memory = heavy_load_reached_by_memory( $mysync ) ;
+        my $heavy_load_reached_by_cpu    = heavy_load_reached_by_cpu( $mysync ) ;
+        
+        if ( $heavy_load_reached_by_memory || $heavy_load_reached_by_cpu )
+        {
+                $heavy_load_reached = 1 ;
+        }
+        else
+        {
+                $heavy_load_reached = 0 ;
+        }
+        
+        return $heavy_load_reached ;
+}
+
+
+sub tests_heavy_load_reached_by_cpu
+{
+        note( 'Entering tests_heavy_load_reached_by_cpu()' ) ;
+        
+        note( join( " ", loadavg(  ), 'heavy_load_reached_by_cpu ', heavy_load_reached_by_cpu(  ) ) ) ;
+        like( heavy_load_reached_by_cpu(  ), qr{^(0|1)$}xms,  'heavy_load_reached_by_cpu: no args => 0 or 1' ) ;
+        
+        my $mysync = {  } ;
+        like( heavy_load_reached_by_cpu( $mysync ), qr{^(0|1)$}xms,  'heavy_load_reached_by_cpu: {  } => 0 or 1' ) ;
+
+        note( 'Leaving  tests_heavy_load_reached_by_cpu()' ) ;
+        return ;
+}
+
+sub  heavy_load_reached_by_cpu
+{
+        my $mysync = shift @ARG ;
+        
+        my $heavy_load_reached = 0 ;
+        
+        my $load_and_delay = load_per_cpu( $mysync ) ;
+        
+        if ( $load_and_delay  )
+        {
+                $heavy_load_reached = 1 ;
+        }
+        else
+        {
+                $heavy_load_reached = 0 ;
+        }
+        
+        return $heavy_load_reached ;
+}
+
+
+sub tests_load_per_cpu
+{
+        note( 'Entering tests_load_per_cpu()' ) ;
+        
+        note( join( " ", 'loadavg:', loadavg(  ), 'cpu_number:', cpu_number(  ), 'load_per_cpu ', load_per_cpu(  ) ) ) ;
+        like( load_per_cpu(  ), qr{^([0-9.]+)$}xms,  'load_per_cpu: no args => number' ) ;
+        
+        my $mysync = {  } ;
+        like( load_per_cpu( $mysync ), qr{^([0-9.]+)$}xms,  'load_per_cpu: {  } => number' ) ;
+
+        note( 'Leaving  tests_load_per_cpu()' ) ;
+        return ;
+}
+
+
+sub load_per_cpu 
+{
+        my $mysync = shift @ARG ;
+        
+        return load_and_delay( 1, cpu_number(  ), loadavg(  ) ) ;
+} 
+
+sub tests_heavy_load_reached_by_memory
+{
+        note( 'Entering tests_heavy_load_reached_by_memory()' ) ;
+
+        like( heavy_load_reached_by_memory(  ), qr{^(0|1)$}xms,  'heavy_load_reached_by_memory: no args => 0 or 1' ) ;
+        
+        my $mysync = {  } ;
+        like( heavy_load_reached_by_memory( $mysync ), qr{^(0|1)$}xms,  'heavy_load_reached_by_memory: {  } => 0 or 1' ) ;
+
+        note( 'Leaving  tests_heavy_load_reached_by_memory()' ) ;
+        return ;
+}
+
+
+sub  heavy_load_reached_by_memory
+{
+        my $mysync = shift @ARG ;
+        
+        my $heavy_load_reached = 0 ;
+                
+        my $heavy_load_percent_threshold = heavy_load_percent_threshold( $mysync ) ;
+        my $memory_consumption_all_pids_percent = memory_consumption_all_pids_percent( $mysync ) ;
+        
+        if ( $memory_consumption_all_pids_percent > $heavy_load_percent_threshold )
+        {
+                $heavy_load_reached = 1 ;
+        }
+        else
+        {
+                $heavy_load_reached = 0 ;
+        }
+        
+        return $heavy_load_reached ;
+}
+
+sub tests_heavy_load_percent_threshold
+{
+        note( 'Entering tests_heavy_load_percent_threshold()' ) ;
+        note( heavy_load_percent_threshold(  ) . " (%)" ) ;
+        like( heavy_load_percent_threshold(  ), qr{^\d+$}xms,  'heavy_load_percent_threshold: no args => integer' ) ;
+        my $mysync = {  } ;
+        like( heavy_load_percent_threshold(  ), qr{^\d+$}xms,  'heavy_load_percent_threshold: {  } => integer' ) ;
+
+        note( 'Leaving  tests_heavy_load_percent_threshold()' ) ;
+        return ;
+}
+
+
+sub heavy_load_percent_threshold
+{
+        my $mysync = shift @ARG ;
+
+        my $total_memory_bytes = total_ram_memory_bytes(  ) || return 0 ;
+        my $memory_footprint_average_bytes = 250_000_000 ;
+        my $heavy_load_percent_threshold = max( 0, int( 100 * ( $total_memory_bytes - ( 4 * $memory_footprint_average_bytes ) ) / $total_memory_bytes ) ) ;
+
+        return $heavy_load_percent_threshold ;
+}
+
+
 
 sub tests_set_umask
 {
@@ -3784,7 +3966,7 @@ sub tests_set_umask
 
 sub set_umask
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 	my $previous_umask = umask_str(  ) ;
 	my $new_umask = umask_str( $UMASK_PARANO ) ;
 	output( $mysync, "Umask set with $new_umask (was $previous_umask)\n" ) ;
@@ -3831,7 +4013,7 @@ sub tests_umask_str
 
 sub umask_str
 {
-	my $value = shift ;
+	my $value = shift @ARG ;
 
 	if ( defined $value ) {
 		umask oct( $value ) ;
@@ -3865,25 +4047,19 @@ sub tests_umask
 	return ;
 }
 
-sub buggyflagsregex
-{
-        # From /X analyse
-        # cut -d: -f1 Error_112_all_syncs.txt   | xargs egrep -oih 'Invalid system flag [^( ]+'  | sort | uniq -c | sort -g
-        my @buggyflagsregex = ( 's/\\\\RECEIPTCHECKED|\\\\Indexed|\\\\X-EON-HAS-ATTACHMENT|\\\\UNSEEN|\\\\ATTACHED|\\\\X-HAS-ATTACH|\\\\FORWARDED|\\\\FORWARD|\\\\X-FORWARDED|\\\\\$FORWARDED|\\\\PRIORITY|\\\\READRCPT//g' ) ;
-        return( @buggyflagsregex ) ;
-}
-
 
 sub make_var_array_to_a_hash
 {
         my $mysync = shift @ARG ;
         %{ $mysync->{ varh } } = split_around_equal( @{ $mysync->{ var } } ) ;
+        
+        return ;
 }
 
 
 sub cgisetcontext
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! under_cgi_context( $mysync ) ) { return ; }
 
         output( $mysync, "Under cgi context\n" ) ;
@@ -3962,6 +4138,10 @@ sub cgisetcontext
 
         # log the logfile name by default in cgi context
         $mysync->{ loglogfile } = defined  $mysync->{ loglogfile }  ? $mysync->{ loglogfile } : 1 ;
+        
+        # exit on heavy load
+        $mysync->{ exitonload } = defined  $mysync->{ exitonload }  ? $mysync->{ exitonload } : 1 ;
+        
         return ;
 }
 
@@ -4020,11 +4200,11 @@ sub cgienvcontext
 		my $envval = $ENV{ $envvar } || q{} ;
                 my $varval = $mysync->{ varh }->{ $envvar } ;
                 
-		if ( $envval and ! $varval )
+		if ( $envval and not $varval )
                 {
                         $output .= "$envvar is $envval\n" ;
                 }
-                elsif ( ! $envval and $varval )
+                elsif ( not $envval and $varval )
                 {
                         $output .= "$envvar is $varval\n" ;
                 }
@@ -4039,7 +4219,7 @@ sub cgienvcontext
 
 sub announcelogfile 
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( $mysync->{ log } )
         {
@@ -4054,34 +4234,96 @@ sub announcelogfile
 }
 
 
-sub loglogfile
+
+
+
+
+
+sub tests_loglogfile
 {
-        my $mysync = shift ;
-        if ( ! $mysync->{ loglogfile } ) { return ; }
-        if ( ! $mysync->{ log        } ) { return ; }
-        
-        my $cwd = getcwd(  ) ;
-        my $absolutelogfilepath ;
-        # Fixme: add case when the logfile name is already absolute
-        $absolutelogfilepath = "$cwd/$mysync->{ logfile }" ;
-        my $loglogfilename = '../list_all_logs_auto.txt' ;
-        myprint( "Writing log file name $absolutelogfilepath to $loglogfilename\n" ) ;
-        if ( open( my $fh, '>>', $loglogfilename ) )
-        {
-                print $fh "$absolutelogfilepath\n" ;
-                close $fh ;
-        }
-        else
-        {
-                myprint( "Could not open loglogfile $loglogfilename $!\n" ) ;
-        }
+        note( 'Entering tests_loglogfile()' ) ;
+
+        is( undef, loglogfile(  ),  'loglogfile: no args => undef' ) ;
+        my $mysync = {  } ;
+        is( undef, loglogfile( $mysync ),  'loglogfile: undef => undef' ) ;
+		$mysync->{ loglogfile } = 1 ;
+		$mysync->{ log        } = 1 ;
+		is( undef, loglogfile( $mysync ),  'loglogfile: no logfile => undef' ) ;
+		$mysync->{ logfile }    = "logfile.txt" ;
+		$mysync->{ loglogfilename } = "W/tmp/tests/list_all_logs_auto.txt" ;
+		like( loglogfile( $mysync ), qr{logfile.txt}xms,  'loglogfile: logfile=logfile.txt => ' ) ;
+        note( 'Leaving  tests_loglogfile()' ) ;
         return ;
 }
 
 
+sub loglogfile 
+{
+        my $mysync = shift @ARG ;
+        if ( ! $mysync->{ loglogfile } ) { return ; }
+        if ( ! $mysync->{ log        } ) { return ; }
+        if ( ! $mysync->{ logfile    } ) { return ; }
+		
+		my $loglogfilename = $mysync->{ loglogfilename } || return ;
+		
+        my $absolutelogfilepath = absolutelogfilepath( $mysync ) ;
+		
+		if ( condition_to_loglogfile( $mysync ) )
+		{
+				myprint( "Writing log file name $absolutelogfilepath to $loglogfilename\n" ) ;
+				append_to_file( $absolutelogfilepath, $loglogfilename ) ;
+		}
+		
+        return $absolutelogfilepath ;
+} 
+
+sub condition_to_loglogfile
+{
+		my $mysync = shift @ARG ;
+		
+		if ( defined $mysync->{ cmdcgi } and scalar( @{ $mysync->{ cmdcgi } } ) )
+		{
+				return 1 ;
+		}
+		else
+		{
+				return 0 ;
+		}
+}
+
+sub absolutelogfilepath
+{
+		my $mysync = shift @ARG ;
+
+        # Fixme: add case when the logfile name is already absolute
+		
+		my $cwd = getcwd(  ) ;
+		my $absolutelogfilepath = "$cwd/$mysync->{ logfile }" ;
+		
+		return $absolutelogfilepath ;
+}
+
+
+sub append_to_file
+{
+		my $string   = shift @ARG ;
+		my $filename = shift @ARG ;
+		
+        if ( open( my $fh, '>>', $filename ) )
+        {
+                print $fh "$string\n" ;
+                close $fh ;
+        }
+        else
+        {
+                myprint( "Could not append $string to file $filename $!\n" ) ;
+        }
+		return ;
+}
+
 sub checkselectable 
 {
-        my $mysync = shift ; 
+        my $mysync = shift @ARG ; 
         
         if ( $mysync->{ checkselectable } ) {
                 my @h1_folders_wanted_selectable ;
@@ -4111,7 +4353,7 @@ sub checkselectable
 
 sub setcheckselectable 
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         
         my $h1_folders_wanted_nb = scalar @{ $mysync->{ h1_folders_wanted } } ;
         # 152 because 98% of host1 accounts have less than 152 folders on /X service.
@@ -4268,11 +4510,11 @@ sub foldersizes
 
 sub foldersize_diff_present
 {
-        my $mysync = shift ;
-        my $folder1 = shift ;
-        my $folder2 = shift ;
-        my $counter_str = shift ;
-        my $force = shift ;
+        my $mysync = shift @ARG ;
+        my $folder1 = shift @ARG ;
+        my $folder2 = shift @ARG ;
+        my $counter_str = shift @ARG ;
+        my $force = shift @ARG ;
 
         my $values1_str ;
         my $values2_str ;
@@ -4338,10 +4580,10 @@ sub foldersize_diff_present
 
 sub foldersize_diff_compute
 {
-        my $mysync  = shift ;
-        my $folder1 = shift ;
-        my $folder2 = shift ;
-        my $force   = shift ;
+        my $mysync  = shift @ARG ;
+        my $folder1 = shift @ARG ;
+        my $folder2 = shift @ARG ;
+        my $force   = shift @ARG ;
 
 
 
@@ -4429,8 +4671,8 @@ sub foldersize_diff_compute
 
 sub diff
 {
-        my $x = shift ;
-        my $y = shift ;
+        my $x = shift @ARG ;
+        my $y = shift @ARG ;
 
         $x ||= 0 ;
         $y ||= 0 ;
@@ -4438,15 +4680,40 @@ sub diff
         return $x - $y ;
 }
 
+sub tests_add
+{
+        note( 'Entering tests_add()' ) ;
+
+        is( 0, add(  ),             'tests_add:  no args    => 0' ) ;
+        is( 0, add( undef ),        'tests_add:  undef      => 0' ) ;
+        is( 0, add( 0 ),            'tests_add:  0          => 0' ) ;
+        is( 0, add( 0, 0 ),         'tests_add:  0 0        => 0' ) ;
+        is( 0, add( 0, 0, 0 ),      'tests_add:  0 0 0      => 0' ) ;
+        is( 1, add( 1 ),            'tests_add:  1          => 1' ) ;
+        is( 2, add( 1, 1 ),         'tests_add:  1 1        => 2' ) ;
+        is( 3, add( 1, 1, 1 ),      'tests_add:  1 1 1      => 3' ) ;
+        is( 2, add( 1, undef, 1 ),  'tests_add:  1 undef 1  => 2' ) ;
+        is( 0, add( -1, 1 ),        'tests_add: -1 1        => 0' ) ;
+       
+        is( 2.2, add( 1.1, 1.1 ),   'tests_add:  1.1 1.1    => 2.2' ) ;
+
+        is( 100, add( (1) x 100 ),     'tests_add: 1 1 ... 1 100 times => 100 list' ) ;
+        my @hundred_ones = (1) x 100 ;
+        is( 100, add( @hundred_ones ), 'tests_add: 1 1 ... 1 100 times => 100 array' ) ;
+        
+        note( 'Leaving  tests_add()' ) ;
+        return ;
+}
+
+
 sub add
 {
-        my $x = shift ;
-        my $y = shift ;
-
-        $x ||= 0 ;
-        $y ||= 0 ;
-
-        return $x + $y ;
+        my $sum = 0 ;
+        foreach my $number ( @ARG )
+        {
+                $sum += $number || 0 ;
+        }
+        return $sum ;
 }
 
 sub tests_checknoabletosearch
@@ -4512,8 +4779,8 @@ sub checknoabletosearch
 
 sub foldersizes_diff_list
 {
-        my $mysync = shift ;
-        my $force  = shift ;
+        my $mysync = shift @ARG ;
+        my $force  = shift @ARG ;
 
         my @folders = @{ $mysync->{h1_folders_wanted} } ;
         my $nb_folders = scalar  @folders  ;
@@ -4532,7 +4799,7 @@ sub foldersizes_diff_list
 
 sub foldersizes_total
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         my @folders_1 = @{ $mysync->{h1_folders_wanted} } ;
         my @folders_2 = @h2_folders_from_1_wanted ;
@@ -4578,7 +4845,7 @@ sub foldersizes_total
 
 sub foldersizesatend_old
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         timenext( $mysync ) ;
         return if ( $mysync->{imap1}->IsUnconnected(  ) ) ;
         return if ( $mysync->{imap2}->IsUnconnected(  ) ) ;
@@ -4599,7 +4866,7 @@ sub foldersizesatend_old
 
 sub foldersizesatend
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         timenext( $mysync ) ;
         return if ( $mysync->{imap1}->IsUnconnected(  ) ) ;
         return if ( $mysync->{imap2}->IsUnconnected(  ) ) ;
@@ -4627,7 +4894,7 @@ sub foldersizesatend
 
 sub foldersizes_at_the_beggining
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         myprint( << 'END_SIZE'  ) ;
 
@@ -4672,7 +4939,7 @@ END_SIZE
 
 sub foldersizes_at_the_beggining_old
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         myprint( << 'END_SIZE'  ) ;
 
@@ -4736,7 +5003,7 @@ sub tests_total_bytes_max_reached
 
 sub total_bytes_max_reached
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( ! defined $mysync ) { return ; }
 
@@ -4833,7 +5100,7 @@ sub tests_mock_capability
 
 sub sig_install_toggle_sleep
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( 'MSWin32' ne $OSNAME ) {
                 #myprint( "sig_install( $mysync, \&toggle_sleep, 'USR1' )\n" ) ;
                 sig_install( $mysync, 'toggle_sleep', 'USR1' ) ;
@@ -4845,7 +5112,7 @@ sub sig_install_toggle_sleep
 
 sub mock_capability
 {
-        my $myimap = shift ;
+        my $myimap = shift @ARG ;
         my @has_capability_value = @ARG ;
         my ( $has_capability_value ) = @has_capability_value ;
 
@@ -4984,7 +5251,7 @@ sub tests_appendlimit_from_capability
 
 sub appendlimit_from_capability
 {
-        my $myimap = shift ;
+        my $myimap = shift @ARG ;
         if ( ! $myimap )
         {
                 myprint( "Warn: no imap with call to appendlimit_from_capability\n" ) ;
@@ -5239,8 +5506,8 @@ sub tests_hashsynclocal
 
 sub hashsynclocal
 {
-	my $mysync = shift ;
-	my $hashkey = shift ; # Optional, only there for tests
+	my $mysync = shift @ARG ;
+	my $hashkey = shift @ARG ; # Optional, only there for tests
 	my $hashfile = $mysync->{ hashfile } ;
 	$hashfile = createhashfileifneeded( $hashfile, $hashkey ) ;
 	if ( ! $hashfile ) {
@@ -5326,8 +5593,8 @@ sub tests_hashsync
 
 sub hashsync
 {
-	my $mysync  = shift ;
-	my $hashkey = shift ;
+	my $mysync  = shift @ARG ;
+	my $hashkey = shift @ARG ;
 
 	my $mystring = join( q{},
 		$mysync->{ host1 }     || q{},
@@ -5434,7 +5701,7 @@ sub tests_hmac_sha1_hex_robust
 
 sub hmac_sha1_hex_robust
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
         my $val ;
         if ( defined( $val = eval{ hmac_sha1_hex( $string, @ARG ) } ) )
         {
@@ -5462,7 +5729,7 @@ sub tests_createhashfileifneeded
 
 sub createhashfileifneeded
 {
-	my $hashfile = shift ;
+	my $hashfile = shift @ARG ;
 	my $hashkey  = shift || rand32(  ) ;
 
 	# no name
@@ -5517,7 +5784,7 @@ sub rand32
 
 sub imap_id_stuff
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( not $mysync->{id} ) { return ; } ;
 
@@ -5558,8 +5825,8 @@ sub imap_id
 
 sub imapsync_id
 {
-        my $mysync = shift ;
-        my $overhashref = shift ;
+        my $mysync = shift @ARG ;
+        my $overhashref = shift @ARG ;
         # See http://tools.ietf.org/html/rfc2971.html
 
         my $imapsync_id = { } ;
@@ -5571,7 +5838,7 @@ sub imapsync_id
                 vendor        => 'Gilles LAMIRAL',
                 'support-url' => 'https://imapsync.lamiral.info/',
                 # Example of date-time:  19-Sep-2015 08:56:07
-                date          => date_from_rcs( q{$Date: 2022/04/04 16:05:55 $ } ),
+                date          => date_from_rcs( q{$Date: 2022/09/14 18:08:24 $ } ),
         } ;
 
         my $imapsync_id_github  = {
@@ -5580,7 +5847,7 @@ sub imapsync_id
                 os            => $OSNAME,
                 vendor        => 'github',
                 'support-url' => 'https://github.com/imapsync/imapsync',
-                date          => date_from_rcs( q{$Date: 2022/04/04 16:05:55 $ } ),
+                date          => date_from_rcs( q{$Date: 2022/09/14 18:08:24 $ } ),
         } ;
 
         $imapsync_id = $imapsync_id_lamiral ;
@@ -5614,7 +5881,7 @@ sub tests_imapsync_id
 
 sub format_for_imap_arg
 {
-        my $ref = shift ;
+        my $ref = shift @ARG ;
 
         my $string = q{} ;
         my %terms = %{ $ref } ;
@@ -5699,19 +5966,25 @@ sub tests_quota_extract_storage_limit_in_bytes
         '* QUOTA "Messages quota" (MESSAGE 2 100000)',
         '5 OK Getquotaroot completed.'
         ] ;
-        ok( $NUMBER_104_857_600 * $KIBI == quota_extract_storage_limit_in_bytes( $mysync, $imap_output ), 'quota_extract_storage_limit_in_bytes ') ;
-
+        is( $NUMBER_104_857_600 * $KIBI, quota_extract_storage_limit_in_bytes( $mysync, $imap_output ), 'quota_extract_storage_limit_in_bytes (STORAGE 1 104857600) => 104857600 * 1024') ;
+		$imap_output = [
+        '* QUOTAROOT "INBOX" "Storage quota" "Messages quota"',
+        'QUOTA "user-defined quota (konsoleH)" (STORAGE 988 48829 MESSAGE 20 20)',
+        '5 OK Getquotaroot completed.'
+        ] ;
+        is( 48829 * 1024, quota_extract_storage_limit_in_bytes( $mysync, $imap_output ), 'quota_extract_storage_limit_in_bytes (STORAGE 988 48829 MESSAGE 20 20) => 48829 * 1024') ;
+		
         note( 'Leaving  tests_quota_extract_storage_limit_in_bytes()' ) ;
         return ;
 }
 
 sub quota_extract_storage_limit_in_bytes
 {
-        my $mysync = shift ;
-        my $imap_output = shift ;
+        my $mysync = shift @ARG ;
+        my $imap_output = shift @ARG ;
 
         my $limit_kb ;
-        $limit_kb = ( map { /.*\(\s*STORAGE\s+\d+\s+(\d+)\s*\)/x ? $1 : () } @{ $imap_output } )[0] ;
+        $limit_kb = ( map { /STORAGE\s+\d+\s+(\d+)/x ? $1 : () } @{ $imap_output } )[0] ;
         $limit_kb ||= 0 ;
         $mysync->{ debug } and myprint( "storage_limit_kb = $limit_kb\n"  ) ;
         return( $KIBI * $limit_kb ) ;
@@ -5729,19 +6002,27 @@ sub tests_quota_extract_storage_current_in_bytes
         '* QUOTA "Messages quota" (MESSAGE 2 100000)',
         '5 OK Getquotaroot completed.'
         ] ;
-        ok( 1*$KIBI == quota_extract_storage_current_in_bytes( $mysync, $imap_output ), 'quota_extract_storage_current_in_bytes: 1 => 1024 ') ;
+        is( 1*$KIBI, quota_extract_storage_current_in_bytes( $mysync, $imap_output ), 'quota_extract_storage_current_in_bytes: 1 => 1024 ') ;
 
-	note( 'Leaving  tests_quota_extract_storage_current_in_bytes()' ) ;
+		$imap_output = [
+        '* QUOTAROOT "INBOX" "Storage quota" "Messages quota"',
+        'QUOTA "user-defined quota (konsoleH)" (STORAGE 988 48829 MESSAGE 20 20)',
+        '5 OK Getquotaroot completed.'
+        ] ;
+        is( 988 * 1024, quota_extract_storage_current_in_bytes( $mysync, $imap_output ), 'quota_extract_storage_current_in_bytes (STORAGE 988 48829 MESSAGE 20 20) => 988 * 1024') ;
+
+
+		note( 'Leaving  tests_quota_extract_storage_current_in_bytes()' ) ;
         return ;
 }
 
 sub quota_extract_storage_current_in_bytes
 {
-        my $mysync = shift ;
-        my $imap_output = shift ;
+        my $mysync = shift @ARG ;
+        my $imap_output = shift @ARG ;
 
         my $current_kb ;
-        $current_kb = ( map { /.*\(\s*STORAGE\s+(\d+)\s+\d+\s*\)/x ? $1 : () } @{ $imap_output } )[0] ;
+        $current_kb = ( map { /STORAGE\s+(\d+)\s+\d+/x ? $1 : () } @{ $imap_output } )[0] ;
         $current_kb ||= 0 ;
         $mysync->{ debug } and myprint( "storage_current_kb = $current_kb\n"  ) ;
         return( $KIBI * $current_kb ) ;
@@ -5754,6 +6035,8 @@ sub make_f1f2_array_to_a_hash
 {
         my $mysync = shift @ARG ;
         %{ $mysync->{ f1f2h } } = split_around_equal( @{ $mysync->{ f1f2 } } ) ;
+        
+        return ;
 }
 
 
@@ -5784,7 +6067,7 @@ sub automap
 
 sub build_guess_special
 {
-        my ( $mysync ) = shift ;
+        my ( $mysync ) = shift @ARG ;
 
         foreach my $h1_fold ( sort keys  %{ $mysync->{h1_folders_all} }  ) {
                 my $special = guess_special( $h1_fold, $mysync->{possible_special}, $mysync->{h1_prefix} ) ;
@@ -5844,7 +6127,7 @@ sub tests_guess_special
 
 sub build_automap
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 	$mysync->{ debug } and myprint( "Entering build_automap\n" ) ;
         foreach my $h1_fold ( @{ $mysync->{h1_folders_wanted} } ) {
                 my $h2_fold ;
@@ -5896,7 +6179,7 @@ sub build_automap
 # because it works well without
 sub build_possible_special
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $possible_special = { } ;
         # All|Archive|Drafts|Flagged|Junk|Sent|Trash
 
@@ -6145,7 +6428,7 @@ sub tests_error_type
 
 sub error_type
 {
-        my $error = shift ;
+        my $error = shift @ARG ;
 
         if ( ! defined $error ) { return 'ERR_NOTHING_REPORTED' ; }
         if ( ! $error ) { return 'ERR_NOTHING_REPORTED' ; }
@@ -6273,7 +6556,7 @@ sub tests_most_common_error
 
 sub most_common_error
 {
-        my $errors_counted_ref = shift ;
+        my $errors_counted_ref = shift @ARG ;
 
         if ( ! defined $errors_counted_ref ) { return 'ERR_NOTHING_REPORTED' ; }
 
@@ -6371,7 +6654,7 @@ sub errorsdump
 
 sub errors_listing
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         $mysync->{ most_common_error } = errorsanalyse( errors_log( $mysync ) ) ;
 
         my $errors_listing = '' ;
@@ -6441,7 +6724,7 @@ sub tests_live_result
 {
         note( 'Entering tests_live_result()' ) ;
 
-        my $nb_errors = shift ;
+        my $nb_errors = shift @ARG ;
         if ( $nb_errors  ) {
                 myprint( "Live tests failed with $nb_errors errors\n"  ) ;
         } else {
@@ -6454,8 +6737,8 @@ sub tests_live_result
 
 sub size_filtered_flag
 {
-        my $mysync = shift ;
-        my $h1_size = shift ;
+        my $mysync = shift @ARG ;
+        my $h1_size = shift @ARG ;
 
         if ( defined $mysync->{ maxsize } and $h1_size >= $mysync->{ maxsize } ) {
                 return( 1 ) ;
@@ -6542,7 +6825,7 @@ sub sync_flags
 
 sub _filter
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $str = shift or return q{} ;
         my $sz  = $SIZE_MAX_STR ;
         my $len = length $str ;
@@ -6580,7 +6863,7 @@ sub lost_connection
 
 sub imap_last_error
 {
-        my $imap = shift ;
+        my $imap = shift @ARG ;
         my $einfo = $imap->LastError || @{$imap->History}[$LAST] || q{} ;
         chomp( $einfo ) ;
         return( $einfo ) ;
@@ -6679,7 +6962,7 @@ sub tests_is_number
 
 sub is_number
 {
-        my $item = shift ;
+        my $item = shift @ARG ;
 
         if ( ! defined $item ) { return ; }
 
@@ -6749,7 +7032,7 @@ sub min
 
 sub check_lib_version
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         $mysync->{ debug } and myprint( "IMAPClient $Mail::IMAPClient::VERSION\n"  ) ;
         if ( '2.2.9' eq $Mail::IMAPClient::VERSION ) {
                 myprint( "imapsync no longer supports Mail::IMAPClient 2.2.9, upgrade it\n"  ) ;
@@ -6919,7 +7202,7 @@ sub get_stdin_masked
 
 sub ask_for_password_new
 {
-        my $prompt = shift ;
+        my $prompt = shift @ARG ;
         my $password = get_stdin_masked( $prompt ) ;
         return $password ;
 }
@@ -6928,7 +7211,7 @@ sub ask_for_password_new
 
 sub ask_for_password
 {
-        my $prompt = shift ;
+        my $prompt = shift @ARG ;
         myprint( $prompt  ) ;
         Term::ReadKey::ReadMode( 2 ) ;
         ## no critic (InputOutput::ProhibitExplicitStdin)
@@ -6944,7 +7227,7 @@ sub ask_for_password
 sub get_password1
 {
 
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
 	$mysync->{ password1 }
 	|| $mysync->{ passfile1 }
@@ -6986,7 +7269,7 @@ FIN_PASSFILE
 sub get_password2
 {
 
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
 	$mysync->{password2}
 	|| $mysync->{ passfile2 }
@@ -7047,7 +7330,7 @@ sub remove_tmp_files
 
 sub cleanup_before_exit 
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         
         remove_tmp_files( $mysync ) ;
         
@@ -7140,8 +7423,8 @@ sub exit_clean
 
 sub missing_option
 {
-        my $mysync = shift ;
-        my $option  = shift ;
+        my $mysync = shift @ARG ;
+        my $option  = shift @ARG ;
         $mysync->{nb_errors}++ ;
         exit_clean( $mysync, $EX_USAGE, "$option option is mandatory, for help run $PROGRAM_NAME --help\n" ) ;
         return ;
@@ -7150,11 +7433,11 @@ sub missing_option
 
 sub catch_ignore
 {
-        my $mysync = shift ;
-        my $signame = shift ;
+        my $mysync = shift @ARG ;
+        my $signame = shift @ARG ;
 
         my $sigcounter = ++$mysync->{ sigcounter }{ $signame } ;
-        myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", getppid(  ),
+        myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", mygetppid(  ),
                  "). Received $sigcounter $signame signals so far. Thanks!\n" ) ;
         do_and_print_stats( $mysync ) ;
         return ;
@@ -7164,15 +7447,15 @@ sub catch_ignore
 
 sub catch_exit
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $signame = shift || q{} ;
         if ( $signame ) {
-                myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", getppid(  ),
+                myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", mygetppid(  ),
                          "). Asked to terminate\n" ) ;
                 if ( $mysync->{can_do_stats} ) {
                         do_and_print_stats( $mysync ) ;
                         myprint( "Ended by a signal $signame (my PID is $PROCESS_ID my PPID is ",
-                        getppid(  ), "). I am asked to terminate immediately.\n" ) ;
+                        mygetppid(  ), "). I am asked to terminate immediately.\n" ) ;
                 }
                 myprint( "You should resynchronize those accounts by running a sync again,\n",
                          "since some messages and entire folders might still be missing on host2.\n"
@@ -7205,18 +7488,18 @@ sub catch_exit
 
 sub catch_print
 {
-        my $mysync = shift ;
-        my $signame = shift ;
+        my $mysync = shift @ARG ;
+        my $signame = shift @ARG ;
 
         my $sigcounter = ++$mysync->{ sigcounter }{ $signame } ;
-        myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", getppid(  ),
+        myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", mygetppid(  ),
                  "). Received $sigcounter $signame signals so far. Thanks!\n" ) ;
         return ;
 }
 
 sub here_twice
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $now = time ;
         my $previous = $mysync->{lastcatch} || 0 ;
         $mysync->{lastcatch} = $now ;
@@ -7231,13 +7514,13 @@ sub here_twice
 
 sub catch_reconnect
 {
-        my $mysync = shift ;
-        my $signame = shift ;
+        my $mysync = shift @ARG ;
+        my $signame = shift @ARG ;
         if ( here_twice( $mysync ) ) {
                 myprint( "Got two signals $signame within $INTERVAL_TO_EXIT seconds. Exiting...\n" ) ;
                 catch_exit( $mysync, $signame ) ;
         }else{
-                myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", getppid(  ), ")\n",
+                myprint( "\nGot a signal $signame (my PID is $PROCESS_ID my PPID is ", mygetppid(  ), ")\n",
                         "Hit 2 ctr-c within 2 seconds to exit the program\n",
                         "Hit only 1 ctr-c to reconnect to both imap servers\n",
                 ) ;
@@ -7277,7 +7560,7 @@ sub catch_reconnect
 
 sub install_signals
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( under_docker_context( $mysync ) )
         {
@@ -7330,7 +7613,7 @@ sub tests_reconnect_12_if_needed
 
 sub reconnect_12_if_needed
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 	#return 2 ;
 	if ( ! reconnect_if_needed( $mysync->{imap1} ) ) {
 		return ;
@@ -7369,7 +7652,7 @@ sub reconnect_if_needed
 	# return undef upon failure.
 	# return 1 upon connection success, with or without reconnection.
 
-        my $imap = shift ;
+        my $imap = shift @ARG ;
 
 	if ( ! defined $imap ) { return ; }
 	if ( ! $imap->Server(  ) ) { return ; }
@@ -7398,7 +7681,7 @@ sub reconnect_if_needed
 
 sub justconnect
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $justconnect1 = justconnect1( $sync ) ;
         my $justconnect2 = justconnect2( $sync ) ;
         return "$justconnect1 $justconnect2";
@@ -7406,7 +7689,7 @@ sub justconnect
 
 sub justconnect1
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( $mysync->{host1} )
         {
                 myprint( "Host1: Will just connect to $mysync->{host1} without login\n" ) ;
@@ -7425,7 +7708,7 @@ sub justconnect1
 
 sub justconnect2
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( $mysync->{host2} )
         {
                 myprint( "Host2: Will just connect to $mysync->{host2} without login\n" ) ;
@@ -7681,7 +7964,7 @@ sub tests_probe_imapssl
 
 sub probe_imapssl
 {
-        my $host = shift ;
+        my $host = shift @ARG ;
 
         if ( ! $host ) { return ; }
         $sync->{ debug } and $IO::Socket::SSL::DEBUG = 4 ;
@@ -7863,7 +8146,7 @@ sub tests_compress
 
 sub acc_compress_imap
 {
-        my $acc = shift ;
+        my $acc = shift @ARG ;
         
         if ( ! defined( $acc ) ) { return ; }
         
@@ -7915,7 +8198,7 @@ sub tests_login_imap
         # certificate has expired
         # Fix: ssh root@test1.lamiral.info 'apt update && apt upgrade && /etc/init.d/dovecot restart'
         #
-        # or
+        # or this one:
         # echo | openssl s_client -crlf -connect test1.lamiral.info:993
         # ...
         # Verify return code: 9 (certificate is not yet valid)
@@ -8713,7 +8996,7 @@ sub xmasterauth
         # This code comes from
         # https://github.com/imapsync/imapsync/pull/53/files
 
-        my $imap = shift ;
+        my $imap = shift @ARG ;
 
         my $user     = $imap->User(  ) ;
         my $password = $imap->Password(  ) ;
@@ -8759,7 +9042,7 @@ sub xmasterauth
 
 sub keepalive1
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         
         $mysync->{ acc1 }->{ keepalive } = defined  $mysync->{ acc1 }->{ keepalive }  ? $mysync->{ acc1 }->{ keepalive } : 1 ;
         
@@ -8771,11 +9054,13 @@ sub keepalive1
         {
                 myprint( "Host1: imap connection keepalive is off on host1. Use --keepalive1 to enable it.\n" ) ;
         }
+        
+        return ;
 }
 
 sub keepalive2
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         
         $mysync->{ acc2 }->{ keepalive } = defined  $mysync->{ acc2 }->{ keepalive }  ? $mysync->{ acc2 }->{ keepalive } : 1 ;
         
@@ -8787,6 +9072,8 @@ sub keepalive2
         {
                 myprint( "Host2: imap connection keepalive is off on host2. Use --keepalive2 to enable it.\n" ) ;
         }
+        
+        return ;
 }
 
 
@@ -8798,8 +9085,8 @@ sub banner_imapsync
 
         my $banner_imapsync = join q{},
                 q{$RCSfile: imapsync,v $ },
-                q{$Revision: 2.200 $ },
-                q{$Date: 2022/04/04 16:05:55 $ },
+                q{$Revision: 2.229 $ },
+                q{$Date: 2022/09/14 18:08:24 $ },
                 "\n",
                 "Command line used, run by $EXECUTABLE_NAME:\n",
                 "$PROGRAM_NAME ", command_line_nopassword( $mysync, @argv ), "\n" ;
@@ -9009,7 +9296,7 @@ sub tail
         # return undef on failures
         # return 1 on success
 
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         # no tail when aborting!
         if ( $mysync->{ abort } ) { return ; }
@@ -9066,8 +9353,8 @@ sub tail
 
 sub isrunning
 {
-        my $pidtocheck    = shift ;
-        my $moretimes_ref = shift ;
+        my $pidtocheck    = shift @ARG ;
+        my $moretimes_ref = shift @ARG ;
 
         if ( kill 'ZERO', $pidtocheck )
         {
@@ -9285,7 +9572,7 @@ sub tests_jux_utf8_old
 sub jux_utf8_old
 {
         # juxtapose utf8 at the right if different
-        my ( $s_utf7 ) =  shift ;
+        my ( $s_utf7 ) =  shift @ARG ;
         my ( $s_utf8 ) =  imap_utf7_decode_old( $s_utf7 ) ;
 
         if ( $s_utf7 eq $s_utf8 ) {
@@ -9302,7 +9589,7 @@ sub jux_utf8_old
 # https://rt.cpan.org/Public/Bug/Display.html?id=11172
 sub imap_utf7_decode_old
 {
-        my ( $s ) = shift ;
+        my ( $s ) = shift @ARG ;
 
         # Algorithm
         # On remplace , par / dans les BASE 64 (, entre & et -)
@@ -9359,7 +9646,7 @@ sub jux_utf8
 {
         #use utf8 ;
         # juxtapose utf8 at the right if different
-        my ( $s_utf7 ) =  shift ;
+        my ( $s_utf7 ) =  shift @ARG ;
         my ( $s_utf8 ) =  imap_utf7_decode( $s_utf7 ) ;
 
         if ( $s_utf7 eq $s_utf8 ) {
@@ -9374,14 +9661,14 @@ sub jux_utf8
 sub imap_utf7_decode
 {
         #use utf8 ;
-        my ( $s ) = shift ;
+        my ( $s ) = shift @ARG ;
         return( Encode::IMAPUTF7::decode("IMAP-UTF-7", $s ) ) ;
 }
 
 sub imap_utf7_encode
 {
         #use utf8 ;
-        my ( $s ) = shift ;
+        my ( $s ) = shift @ARG ;
         return( Encode::IMAPUTF7::encode("IMAP-UTF-7", $s ) ) ;
 }
 
@@ -9981,7 +10268,7 @@ sub help_to_guess_prefix
 
 sub folders_list_to_help
 {
-        my( $imap ) = shift ;
+        my( $imap ) = shift @ARG ;
 
         my @folders = $imap->folders ;
         my $listing = join q{}, map { "[$_]\n" } @folders ;
@@ -10009,7 +10296,7 @@ sub private_folders_separators_and_prefixes
 
 sub subfolder1
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $subfolder1 = sanitize_subfolder( $mysync->{ subfolder1 } ) ;
 
         if ( $subfolder1 )
@@ -10035,7 +10322,7 @@ sub subfolder1
 
 sub subfolder2
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $subfolder2 = sanitize_subfolder( $mysync->{ subfolder2 } ) ;
         if ( $subfolder2 )
         {
@@ -10073,7 +10360,7 @@ sub tests_sanitize_subfolder
 
 sub sanitize_subfolder
 {
-        my $subfolder = shift ;
+        my $subfolder = shift @ARG ;
 
         if ( ! $subfolder )
         {
@@ -10115,7 +10402,7 @@ sub tests_sanitize_host
 
 sub sanitize_host
 {
-        my $host = shift ;
+        my $host = shift @ARG ;
         if ( ! defined $host ) { return ; }
 
         $host =~ tr{ /}{}d ;
@@ -10154,7 +10441,7 @@ sub tests_add_subfolder1_to_folderrec
 
 sub add_subfolder1_to_folderrec
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! $mysync || ! $mysync->{ subfolder1 } )
         {
                 return ;
@@ -10182,7 +10469,7 @@ sub add_subfolder1_to_folderrec
 
 sub set_regextrans2_for_subfolder2
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
 
         unshift @{ $mysync->{ regextrans2 } },
@@ -10393,8 +10680,8 @@ EOS
 
 sub imap2_folder_name
 {
-        my $mysync = shift ;
-        my ( $h1_fold ) = shift ;
+        my $mysync = shift @ARG ;
+        my ( $h1_fold ) = shift @ARG ;
         my ( $h2_fold ) ;
         if ( $mysync->{f1f2h}{ $h1_fold } ) {
                 $h2_fold = $mysync->{f1f2h}{ $h1_fold } ;
@@ -10447,8 +10734,8 @@ sub tests_remove_last_char_if_is
 
 sub remove_last_char_if_is
 {
-        my $string = shift ;
-        my $char   = shift ;
+        my $string = shift @ARG ;
+        my $char   = shift @ARG ;
 
         if ( ! defined $string )
         {
@@ -10527,8 +10814,8 @@ sub tests_prefix_seperator_invertion
 
 sub prefix_seperator_invertion
 {
-        my $mysync  = shift ;
-        my $h1_fold = shift ;
+        my $mysync  = shift @ARG ;
+        my $h1_fold = shift @ARG ;
         my $h2_fold ;
 
         if ( not defined $h1_fold ) { return ; }
@@ -10633,7 +10920,7 @@ sub tests_decompose_regex
 
 sub decompose_regex
 {
-        my $regex = shift ;
+        my $regex = shift @ARG ;
         my( $left_part, $right_part ) ;
 
         ( $left_part, $right_part ) = $regex =~ m{^s/((?:[^/]|\\/)+)/((?:[^/]|\\/)+)/}x;
@@ -10662,7 +10949,7 @@ sub tests_timenext
 
 sub timenext
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( ! defined $mysync )
         {
@@ -10698,7 +10985,7 @@ sub timesince
         my ( $timenow, $timediff ) ;
         $timenow    = time ;
         $timediff   = $timenow - $timeinit ;
-        # Often used in a division so no 0 but a nano seconde.
+        # Often used in a division so no 0 but a nano second.
         return( max( $timediff, min( 1e-09, $timediff ) ) ) ;
 }
 
@@ -10801,20 +11088,6 @@ sub tests_regexflags
         #regexflags( '\Deleted Flagged \Answered \Flagged \Draft \Flagged' ),
         # 'regexflags: remove \Flagged 3 mistery...' ) ;
 
-        $mysync->{ regexflag } = [  ] ;
-        $mysync->{ filterbuggyflags } = 1 ;
-        filterbuggyflags( $mysync ) ;
-        
-        is( '\Deleted \Answered  \Draft  \Flagged',
-        regexflags( $mysync, '\\Deleted \\Answered \\RECEIPTCHECKED \\Draft \\Indexed \\Flagged' ),
-        'regexflags: remove famous /X 1' ) ;
-
-        is( '\\Deleted  \\Flagged \\Answered  \\Draft',
-        regexflags( $mysync, '\\Deleted \\RECEIPTCHECKED \\Flagged \\Answered \\Indexed \\Draft' ),
-        'regexflags: remove famous /X 2' ) ; 
-
-        is( '\ ', '\\ ',  'regexflags: \ is \\ ' ) ;
-        is( '\\ ', '\\ ', 'regexflags: \\ is \\ ' ) ;
         is( '\\ \ ', '\ \\ ', 'regexflags: \\ \ is \ \\ ' ) ;
         note( 'Leaving  tests_regexflags()' ) ;
         return ;
@@ -10822,8 +11095,8 @@ sub tests_regexflags
 
 sub regexflags 
 {
-        my $mysync = shift ;
-        my $flags = shift ;
+        my $mysync = shift @ARG ;
+        my $flags = shift @ARG ;
         
         foreach my $regexflag ( @{ $mysync->{ regexflag } } )
         {
@@ -10839,10 +11112,48 @@ sub regexflags
         return( $flags ) ;
 } 
 
+sub tests_filterbuggyflags
+{
+        note( 'Entering tests_regexflags()' ) ;
+
+        my $mysync = {} ; 
+        
+        
+        $mysync->{ regexflag } = [  ] ;
+        $mysync->{ filterbuggyflags } = 1 ;
+        filterbuggyflags( $mysync ) ;
+        
+        # 
+        is( '\Deleted \Answered  \Draft  \Flagged  ',
+        regexflags( $mysync, '\\Deleted \\Answered \\RECEIPTCHECKED \\Draft \\Indexed \\Flagged \\JUNK \\Junk' ),
+        'regexflags: remove famous /X 1' ) ;
+
+        is( '\\Deleted  \\Flagged \\Answered  \\Draft',
+        regexflags( $mysync, '\\Deleted \\RECEIPTCHECKED \\Flagged \\Answered \\Indexed \\Draft' ),
+        'regexflags: remove famous /X 2' ) ; 
+
+        is( '\ ', '\\ ',  'regexflags: \ is \\ ' ) ;
+        is( '\\ ', '\\ ', 'regexflags: \\ is \\ ' ) ;
+        
+        
+        note( 'Leaving  tests_regexflags()' ) ;
+        return ;
+
+
+}
+
+sub buggyflagsregex
+{
+        # From /X analyse
+        # cut -d: -f1 Error_112_all_syncs.txt   | xargs egrep -oih 'Invalid system flag [^( ]+'  | sort | uniq -c | sort -g
+        my @buggyflagsregex = ( 's/\\\\RECEIPTCHECKED|\\\\JUNK|\\\\Indexed|\\\\X-EON-HAS-ATTACHMENT|\\\\UNSEEN|\\\\ATTACHED|\\\\X-HAS-ATTACH|\\\\FORWARDED|\\\\FORWARD|\\\\X-FORWARDED|\\\\\$FORWARDED|\\\\PRIORITY|\\\\READRCPT//gi' ) ;
+        return( @buggyflagsregex ) ;
+}
+
 
 sub filterbuggyflags
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( $mysync->{ filterbuggyflags } )
         {
                 unshift @{ $mysync->{ regexflag } }, buggyflagsregex(  ) ;
@@ -10883,7 +11194,7 @@ sub tests_remove_doublequotes_if_any
 
 sub remove_doublequotes_if_any
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
 
         if ( ! defined $string ) { return ; }
         $string =~ s/\\\"//g ;
@@ -10959,11 +11270,11 @@ sub tests_permanentflags
 
 sub permanentflags 
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         
-        my @lines  = @_ ;
+        my @lines  = @ARG ;
 
-        foreach my $line (@lines) {
+        foreach my $line ( @lines ) {
                 if ( $line =~ m{\[PERMANENTFLAGS\s\(([^)]+?)\)\]}x ) {
                         ( $mysync->{ debugflags } or $mysync->{ debug } ) and myprint( "permanentflags: $line"  ) ;
                         my $permanentflags = $1 ;
@@ -11026,7 +11337,7 @@ sub tests_flagscase
 
 sub flagscase
 {
-        my $flags = shift ;
+        my $flags = shift @ARG ;
 
         my @flags = split /\s+/x, $flags ;
         my %rfc_flags = map { $_ => 1 } split q{ }, '\Answered \Flagged \Deleted \Seen \Draft' ;
@@ -11084,9 +11395,9 @@ sub tests_flags_for_host2
 
 sub flags_for_host2
 {
-        my $mysync = shift ;
-        my $h1_flags = shift ;
-        my $permanentflags2 = shift ;
+        my $mysync = shift @ARG ;
+        my $h1_flags = shift @ARG ;
+        my $permanentflags2 = shift @ARG ;
         
         if ( ! all_defined( $mysync, $h1_flags ) ) { return ; } ; 
         
@@ -11115,7 +11426,7 @@ sub flags_for_host2
 
 sub ucsecond
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
         my $output ;
 
         return( $string )  if ( 1 >= length $string ) ;
@@ -11352,9 +11663,9 @@ sub info_date_from_uid
 
 sub lastuid
 {
-        my $imap   = shift ;
-        my $folder = shift ;
-        my $lastuid_guess  = shift ;
+        my $imap   = shift @ARG ;
+        my $folder = shift @ARG ;
+        my $lastuid_guess  = shift @ARG ;
         my $lastuid ;
 
         # rfc3501: The only reliable way to identify recent messages is to
@@ -11418,8 +11729,8 @@ sub message_exists
 # $mysync->{ h1_nb_msg_processed }
 sub stats_update_skip_message
 {
-        my $mysync  = shift ; # to be used
-        my $h1_size = shift ;
+        my $mysync  = shift @ARG ; # to be used
+        my $h1_size = shift @ARG ;
 
         $mysync->{ total_bytes_skipped } += $h1_size ;
         $mysync->{ nb_msg_skipped } += 1 ;
@@ -11717,8 +12028,8 @@ sub tests_truncmess
 
 sub truncmess
 {
-        my $string = shift ;
-        my $length = shift ;
+        my $string = shift @ARG ;
+        my $length = shift @ARG ;
 
         if ( not defined $string ) { return ; }
         if ( not defined $length ) { return $string ; }
@@ -11843,8 +12154,8 @@ sub tests_labels_remove_subfolder1
 
 sub labels_remove_subfolder1
 {
-        my $labels = shift ;
-        my $subfolder1 = shift ;
+        my $labels = shift @ARG ;
+        my $subfolder1 = shift @ARG ;
 
         if ( not defined $labels ) { return ; }
         if ( not defined $subfolder1  ) { return $labels ; }
@@ -11908,7 +12219,7 @@ sub tests_labels_remove_special
 
 sub labels_remove_special
 {
-        my $labels = shift ;
+        my $labels = shift @ARG ;
 
         if ( not defined $labels ) { return ; }
 
@@ -11981,8 +12292,8 @@ sub tests_labels_add_subfolder2
 
 sub labels_add_subfolder2
 {
-        my $labels = shift ;
-        my $subfolder2 = shift ;
+        my $labels = shift @ARG ;
+        my $subfolder2 = shift @ARG ;
         my $h1_folder = shift || q{} ;
 
         if ( not defined $labels ) { return ; }
@@ -12285,7 +12596,7 @@ sub uniq
 
 sub length_ref
 {
-        my $string_ref = shift ;
+        my $string_ref = shift @ARG ;
         my $string_len = defined  ${ $string_ref }  ? length( ${ $string_ref } ) : q{} ; # length or empty string
         return $string_len ;
 }
@@ -12333,7 +12644,7 @@ sub date_for_host2
 
 sub subject
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
         my $subject = q{} ;
 
         my $header = extract_header( $string ) ;
@@ -12512,7 +12823,7 @@ sub tests_sleep_if_needed
 
 sub sleep_if_needed
 {
-        my( $mysync ) = shift ;
+        my( $mysync ) = shift @ARG ;
 
         if ( ! $mysync ) {
                 return ;
@@ -12744,8 +13055,8 @@ sub tests_uidexpunge_or_expunge
 
 sub uidexpunge_or_expunge
 {
-        my $mysync = shift ;
-        my $imap = shift ;
+        my $mysync = shift @ARG ;
+        my $imap = shift @ARG ;
         my @messages = @ARG ;
 
         if ( ! $imap ) { return ; } ;
@@ -12767,7 +13078,7 @@ sub uidexpunge_or_expunge
 
 sub eta_print
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( my $eta = eta( $mysync ) )
         {
                 myprint( "$eta\n" ) ;
@@ -12807,7 +13118,7 @@ sub tests_eta
 
 sub eta
 {
-        my( $mysync ) = shift ;
+        my( $mysync ) = shift @ARG ;
 
         if ( ! $mysync )
         {
@@ -12990,7 +13301,7 @@ sub tests_cache_map
 
 sub cache_dir_fix
 {
-        my $cache_dir = shift ;
+        my $cache_dir = shift @ARG ;
         $cache_dir =~ s/([;<>\*\|`&\$!#\(\)\[\]\{\}:'"\\])/\\$1/xg ;
         #myprint( "cache_dir_fix: $cache_dir\n"  ) ;
         return( $cache_dir ) ;
@@ -13016,7 +13327,7 @@ sub tests_cache_dir_fix
 
 sub cache_dir_fix_win
 {
-        my $cache_dir = shift ;
+        my $cache_dir = shift @ARG ;
         $cache_dir =~ s/(\[|\])/[$1]/xg ;
         #myprint( "cache_dir_fix_win: $cache_dir\n"  ) ;
         return( $cache_dir ) ;
@@ -13163,7 +13474,7 @@ sub tests_get_cache
 
 sub match_a_cache_file
 {
-        my $file = shift ;
+        my $file = shift @ARG ;
         my ( $cache_uid1, $cache_uid2 ) ;
 
         return( ( undef, undef ) ) if ( ! $file ) ;
@@ -13464,7 +13775,7 @@ sub tests_tmpdir_has_colon_bug
 
 sub tmpdir_has_colon_bug
 {
-        my $path = shift ;
+        my $path = shift @ARG ;
 
         my $path_filtered = filter_forbidden_characters( $path ) ;
         if ( $path_filtered ne $path ) {
@@ -13476,7 +13787,7 @@ sub tmpdir_has_colon_bug
 
 sub tmpdir_fix_colon_bug
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $err = 0 ;
         if ( not (-d $mysync->{ tmpdir } and -r _ and -w _) ) {
                 myprint( "tmpdir $mysync->{ tmpdir } is not valid\n"  ) ;
@@ -13591,7 +13902,7 @@ sub tests_filter_forbidden_characters
 
 sub filter_forbidden_characters
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
 
         if ( ! defined $string ) { return ; }
 
@@ -14940,7 +15251,7 @@ sub tests_useheader_suggestion
 
 sub useheader_suggestion
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! defined $mysync->{ h1_nb_msg_noheader } )
         {
                 return ;
@@ -14958,7 +15269,7 @@ sub useheader_suggestion
 
 sub do_and_print_stats
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( ! $mysync->{can_do_stats} ) {
                 return ;
@@ -14973,7 +15284,7 @@ sub do_and_print_stats
         my $cpu_percent = cpu_percent( $mysync, $cpu_time, $timediff ) ;
         my $cpu_percent_global = cpu_percent_global( $mysync, $cpu_percent ) ;
 
-        my $memory_consumption_at_end = memory_consumption(  ) || 0 ;
+        my $memory_consumption_at_end = memory_consumption_of_myself(  ) || 0 ;
         my $memory_consumption_at_start = $mysync->{ memory_consumption_at_start } || 0 ;
         my $memory_ratio = ( $mysync->{ biggest_message_transferred } ) ?
                 mysprintf( '%.1f', $memory_consumption_at_end / $mysync->{ biggest_message_transferred } ) : 'NA' ;
@@ -15010,9 +15321,12 @@ sub do_and_print_stats
         myprintf("Average bandwidth rate                  : %.1f KiB/s\n", $mysync->{total_bytes_transferred} / $KIBI / $timediff ) ;
         myprint( "Reconnections to host1                  : $mysync->{imap1}->{IMAPSYNC_RECONNECT_COUNT}\n" ) ;
         myprint( "Reconnections to host2                  : $mysync->{imap2}->{IMAPSYNC_RECONNECT_COUNT}\n" ) ;
-        myprintf("Memory consumption at the end           : %.1f MiB (started with %.1f MiB)\n",
+
+        myprintf("Memory consumption at the end           : %.1f MiB (*time %.1f MiB*h) (started with %.1f MiB)\n",
                  $memory_consumption_at_end / $KIBI / $KIBI,
+                 memory_consumption_surface( $mysync, $memory_consumption_at_end, $timediff  ),
                  $memory_consumption_at_start / $KIBI / $KIBI ) ;
+
         myprint( "Load end is                             : " . ( join( q{ }, loadavg(  ) ) || 'unknown' ), " on $mysync->{cpu_number} cores\n" ) ;
         myprint( "CPU time and %cpu                       : $cpu_time sec $cpu_percent %cpu $cpu_percent_global %allcpus\n" ) ;
         myprintf("Biggest message transferred             : %s bytes (%s)\n",
@@ -15045,6 +15359,36 @@ sub do_and_print_stats
         myprint(  homepage(  ), "\n" ) ;
         return ;
 }
+
+
+
+sub tests_memory_consumption_surface
+{
+        note( 'Entering tests_memory_consumption_surface()' ) ;
+
+        is( undef, memory_consumption_surface(  ),  'memory_consumption_surface: no args => undef' ) ;
+        my $mysync = {  } ;
+        is( undef, memory_consumption_surface( $mysync ),  'memory_consumption_surface: {  } => undef' ) ;
+        is(   "1.0", memory_consumption_surface( $mysync,   1_048_576, 3600 ),  'memory_consumption_surface:   1 MB  1 hour => 1' ) ;
+        is( "238.4", memory_consumption_surface( $mysync, 500_000_000, 1800 ),  'memory_consumption_surface: 500 MB 30 min  => 238' ) ;
+
+
+        note( 'Leaving  tests_memory_consumption_surface()' ) ;
+        return ;
+}
+
+sub memory_consumption_surface
+{
+        my ( $mysync, $memory_consumption_at_end, $timediff ) = @ARG ;
+        
+        if ( ! all_defined( $mysync, $memory_consumption_at_end, $timediff ) ) { return } ;
+        
+        my $memory_consumption_surface = sprintf( "%.1f", $timediff * $memory_consumption_at_end / $KIBI / $KIBI / 3600 ) ;
+        
+        return $memory_consumption_surface ;
+}
+
+
 
 
 sub tests_email_report_message_id  
@@ -15379,8 +15723,8 @@ sub email_report
 
 sub email_report_append  
 {
-        my $acc = shift ;
-        my $text = shift ;
+        my $acc = shift @ARG ;
+        my $text = shift @ARG ;
         
         if ( $acc->{ imap }->IsAuthenticated && $text )
         {
@@ -15400,6 +15744,32 @@ sub email_report_append
                 return ;
         }
 } 
+
+
+sub final_emails_reports
+{
+	my $mysync = shift @ARG ;
+	
+	if ( condition_to_put_final_emails_reports( $mysync ) )
+	{
+		$mysync->{ emailreport2 } and email_report_append( $mysync->{ acc2 }, email_report( $mysync, email_report_body_extra2(  ) ) ) ;
+		$mysync->{ emailreport1 } and email_report_append( $mysync->{ acc1 }, email_report( $mysync, email_report_body_extra1(  ) ) ) ;
+	}
+	
+	return ;
+}
+
+
+sub condition_to_put_final_emails_reports
+{
+	my $mysync = shift @ARG ;
+	
+	if ( $mysync->{ dry }  ) { return 0 ; }
+	if ( $mysync->{ justfolders }  ) { return 0 ; }
+	
+	return 1 ;
+}
+
 
 sub diff_or_NA
 {
@@ -15736,7 +16106,7 @@ sub firstline
         # extract the first line of a file (without \n)
         # return empty string if error or empty string
 
-        my $file = shift ;
+        my $file = shift @ARG ;
         my $line ;
 
         $line = nthline( $file, 1 ) ;
@@ -15768,7 +16138,7 @@ sub secondline
         # extract the second line of a file (without \n)
         # return empty string if error or empty string
 
-        my $file = shift ;
+        my $file = shift @ARG ;
         my $line ;
 
         $line = nthline( $file, 2 ) ;
@@ -15800,8 +16170,8 @@ sub nthline
         # extract the nth line of a file (without \n)
         # return empty string if error or empty string
 
-        my $file = shift ;
-        my $num  = shift ;
+        my $file = shift @ARG ;
+        my $num  = shift @ARG ;
 
         if ( ! all_defined( $file, $num ) ) { return q{} ; }
 
@@ -15838,7 +16208,7 @@ sub tests_file_to_array
 sub file_to_array
 {
 
-        my( $file ) = shift ;
+        my( $file ) = shift @ARG ;
 	if ( ! $file )    { return ; }
 	if ( ! -e $file ) { return ; }
 	if ( ! -f $file ) { return ; }
@@ -15883,7 +16253,7 @@ sub tests_file_to_string
 
 sub file_to_string
 {
-        my  $file  = shift ;
+        my  $file  = shift @ARG ;
 	if ( ! $file ) { return ; }
 	if ( ! -e $file ) { return ; }
 	if ( ! -f $file ) { return ; }
@@ -16108,7 +16478,7 @@ sub tests_is_a_release_number
 
 sub is_a_release_number
 {
-        my $number = shift ;
+        my $number = shift @ARG ;
         if ( ! defined $number ) { return ; }
         return( $number =~ m{^\d+\.\d+$}xo ) ;
 }
@@ -16147,7 +16517,7 @@ sub not_long_imapsync_version_public
 {
         #myprint( "Entering not_long_imapsync_version_public\n" ) ;
 
-	my $fake = shift ;
+	my $fake = shift @ARG ;
 	if ( $fake ) { return $fake }
 
         my $val ;
@@ -16204,7 +16574,7 @@ sub tests_not_long_imapsync_version_public
 
 sub check_last_release
 {
-	my $fake = shift ;
+	my $fake = shift @ARG ;
         my $public_release = not_long_imapsync_version_public( $fake ) ;
         $sync->{ debug } and myprint( "check_last_release: [$public_release]\n" ) ;
         my $inline_help_when_on = '( Use --noreleasecheck to avoid this release check. )' ;
@@ -16263,7 +16633,7 @@ sub tests_imapsync_context
 
 sub imapsync_context
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         my $context = q{} ;
 
@@ -16290,7 +16660,7 @@ sub imapsync_context
 
 sub imapsync_version
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my $rcs = $mysync->{rcs} ;
         my $version ;
 
@@ -16315,7 +16685,7 @@ sub tests_version_from_rcs
 sub version_from_rcs
 {
 
-        my $rcs = shift ;
+        my $rcs = shift @ARG ;
         if ( ! $rcs ) { return ; }
 
         my $version = 'UNKNOWN' ;
@@ -16349,12 +16719,12 @@ sub imapsync_basename
 
 sub localhost_info
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         my( $infos ) = join( q{},
                 "Here is imapsync ", imapsync_version( $mysync ),
                 " on host " . hostname(),
                 ", a $OSNAME system with ",
-                ram_memory_info(  ),
+                ram_memory_info( $mysync ),
                 "\n",
                 'with Perl ',
                 mysprintf( '%vd ', $PERL_VERSION),
@@ -16390,6 +16760,7 @@ sub tests_cpu_number
                         skip( 'cpu_number on host != petite (Linux)', 1  ) ;
                 }
                 is( 2, cpu_number(  ), "cpu_number: on petite (Linux) => 2" ) ;
+                #is( 1, cpu_number(  ), "cpu_number: on petite (Linux) => 2" ) ;
         } ;
 
         SKIP: {
@@ -16424,7 +16795,7 @@ sub tests_cpu_number
 
 sub cpu_number {
 
-        my $cpu_number_forced = shift ;
+        my $cpu_number_forced = shift @ARG ;
 	# Well, here 1 is better than 0 or undef
 	my $cpu_number = 1 ; # Default value, erased if better found
 
@@ -16481,7 +16852,7 @@ sub tests_integer_or_1
 
 sub integer_or_1
 {
-        my $number = shift ;
+        my $number = shift @ARG ;
         if ( is_integer( $number  ) ) {
                 return $number ;
         }
@@ -16510,7 +16881,7 @@ sub tests_is_integer
 
 sub is_integer
 {
-        my $number = shift ;
+        my $number = shift @ARG ;
         if ( ! defined $number ) { return ; }
         return( $number =~ m{^\d+$}xo ) ;
 }
@@ -16575,7 +16946,7 @@ sub loadavg
 
 sub loadavg_linux
 {
-	my $line = shift ;
+	my $line = shift @ARG ;
 
 	if ( ! $line ) {
                 $line = firstline( '/proc/loadavg'  ) or return ;
@@ -16591,14 +16962,14 @@ sub loadavg_linux
 
 sub loadavg_freebsd
 {
-	my $file = shift ;
+	my $file = shift @ARG ;
 	# Example of output of command "sysctl vm.loadavg":
 	# vm.loadavg: { 0.15 0.08 0.08 }
 	my $loadavg ;
 
 	if ( ! defined $file ) {
 		eval {
-			$loadavg = `/sbin/sysctl vm.loadavg` ;
+			$loadavg = `LANG=C /sbin/sysctl vm.loadavg` ;
 			#myprint( "LOADAVG FREEBSD: $loadavg\n" ) ;
 		} ;
 		if ( $EVAL_ERROR ) { myprint( "[$EVAL_ERROR]\n" ) ; return ; }
@@ -16614,7 +16985,7 @@ sub loadavg_freebsd
 
 sub loadavg_darwin
 {
-	my $line = shift ;
+	my $line = shift @ARG ;
 	# Example of output of command "sysctl vm.loadavg":
 	# vm.loadavg: { 0.15 0.08 0.08 }
 	my $loadavg ;
@@ -16622,7 +16993,7 @@ sub loadavg_darwin
 	if ( ! defined $line ) {
 		eval {
 			# $loadavg = `/usr/sbin/sysctl vm.loadavg` ;
-			$loadavg = `LANG= /usr/sbin/sysctl vm.loadavg` ;
+			$loadavg = `LANG=C /usr/sbin/sysctl vm.loadavg` ;
 			#myprint( "LOADAVG DARWIN: $loadavg\n" ) ;
 		} ;
 		if ( $EVAL_ERROR ) { myprint( "[$EVAL_ERROR]\n" ) ; return ; }
@@ -16638,7 +17009,7 @@ sub loadavg_darwin
 
 sub loadavg_windows
 {
-	my $file = shift ;
+	my $file = shift @ARG ;
 	# Example of output of command "wmic cpu get loadpercentage":
 	# LoadPercentage
         # 12
@@ -16668,69 +17039,94 @@ sub loadavg_windows
 
 
 
-sub tests_load_and_delay
+sub tests_load_and_delay 
 {
 	note( 'Entering tests_load_and_delay()' ) ;
 
-	is( undef, load_and_delay(  ), 'load_and_delay: no args => undef ' ) ;
-	is( undef, load_and_delay( 1 ), 'load_and_delay: not 4 args => undef ' ) ;
-	is( undef, load_and_delay( 0, 1, 1, 1 ), 'load_and_delay: division per 0 => undef ' ) ;
+	is( undef, load_and_delay(  ),                 'load_and_delay: no args => undef ' ) ;
+	is( undef, load_and_delay( 1, 2 ),       'load_and_delay: not 3 args => undef ' ) ;
+	is( undef, load_and_delay( 2, 0, 1, 1, 1 ),    'load_and_delay: division per 0 => undef ' ) ;
 
-#       ( $cpu_num, $avg_1_min, $avg_5_min, $avg_15_min )
+#       ( $max_load_per_core, $cpu_num, $avg_1_min, $avg_5_min, $avg_15_min )
 
-        is(  0, load_and_delay( 1, 1, 1, 1 ), 'load_and_delay: one core, loads are all 1 => ok ' ) ;
-        is(  0, load_and_delay( 1, 1, 1, 1, 'lalala' ), 'load_and_delay: five arguments is ok' ) ;
-        is(  0, load_and_delay( 2, 2, 2, 2 ), 'load_and_delay: two core, loads are all 2 => ok ' ) ;
-        is(  0, load_and_delay( 2, 2, 4, 5 ), 'load_and_delay: two core, load1m     is 2 => ok ' ) ;
+        # load max = 1 per cpu
+        is(  0,  load_and_delay( 1, 1, 0 ),             'load_and_delay: max=1, one core, loads is 0 => ok ' ) ;
+        is(  0,  load_and_delay( 1, 1, 0, 0, 0 ),       'load_and_delay: max=1, one core, loads are all 0 => ok ' ) ;
+        is(  0,  load_and_delay( 3, 1, 1, 1, 1, 1 ),    'load_and_delay: six arguments => ok' ) ;
+        is(  0,  load_and_delay( 1, 2, 1, 1, 1 ),       'load_and_delay: max=1, two core, loads are all 1 => ok ' ) ;
+        is(  0,  load_and_delay( 1, 2, 1, 4, 5 ),       'load_and_delay: max=1, two core, load1m    is  1 => ok ' ) ;
+        is(  0,  load_and_delay( 1, 1, 0, 0, 0 ),       'load_and_delay: max=1, one core, load1m=0 load5m=0 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, 0, 0, 2 ),       'load_and_delay: max=1, one core, load1m=0 load5m=0 load15m=2 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, 0, 2, 0 ),       'load_and_delay: max=1, one core, load1m=0 load5m=2 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, 0, 2, 2 ),       'load_and_delay: max=1, one core, load1m=0 load5m=2 load15m=2 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, 0, 3, 3 ),       'load_and_delay: max=1, one core, load1m=0 load5m=3 load15m=3 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, 0, 4, 4 ),       'load_and_delay: max=1, one core, load1m=0 load5m=3 load15m=3 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, .2, 0, 0 ),       'load_and_delay: max=1, one core, load1m=.2 load5m=0 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, .2, 0, .2 ),       'load_and_delay: max=1, one core, load1m=.2 load5m=0 load15m=.2 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, .2, .2, 0 ),       'load_and_delay: max=1, one core, load1m=2 load5m=2 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 1, 1, .2, .2, .2 ),    'load_and_delay: max=1, one core, load1m=.2 load5m=.2 load15m=.2   => 0 ' ) ;
+        is(  1,  load_and_delay( 1, 1, 1, 0, 0 ),       'load_and_delay: max=1, one core, load1m=3 load5m=0   load15m=0   => 0 ' ) ;
+        is(  1,  load_and_delay( 1, 1, 1, .9, .9 ),     'load_and_delay: max=1, one core, load1m=3 load5m=.9 load15m=.9 => 0 ' ) ;
+        is(  5,  load_and_delay( 1, 1, 1, 1, .9 ),      'load_and_delay: max=1, one core, load1m=3 load5m=3   load15m=.9 => 5 ' ) ;
+        is( 15,  load_and_delay( 1, 1, 1, 1, 1 ),       'load_and_delay: max=1, one core, load1m=3 load5m=3   load15m=3 => 15 ' ) ;
+        is(  0,  load_and_delay( 1, 1, .9, .9, .9 ),    'load_and_delay: max=1, one core, load1m=.9 load5m=.9 load15m=.9 => 0 ' ) ;
+
+        # load max = 3 per cpu
+        is(  0,  load_and_delay( 3, 1, 1, 1, 1 ),       'load_and_delay: max=3, one core, loads are all 1 => ok ' ) ;
+        is(  0,  load_and_delay( 3, 2, 2, 2, 2 ),       'load_and_delay: max=3, two core, loads are all 2 => ok ' ) ;
+        is(  0,  load_and_delay( 3, 2, 2, 4, 5 ),       'load_and_delay: max=3, two core, load1m     is 2 => ok ' ) ;
+        is(  0,  load_and_delay( 3, 1, 0, 0, 0 ),       'load_and_delay: max=3, one core, load1m=0 load5m=0 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 0, 0, 2 ),       'load_and_delay: max=3, one core, load1m=0 load5m=0 load15m=2 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 0, 2, 0 ),       'load_and_delay: max=3, one core, load1m=0 load5m=2 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 0, 2, 2 ),       'load_and_delay: max=3, one core, load1m=0 load5m=2 load15m=2 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 0, 3, 3 ),       'load_and_delay: max=3, one core, load1m=0 load5m=3 load15m=3 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 0, 4, 4 ),       'load_and_delay: max=3, one core, load1m=0 load5m=3 load15m=3 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 2, 0, 0 ),       'load_and_delay: max=3, one core, load1m=2 load5m=0 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 2, 0, 2 ),       'load_and_delay: max=3, one core, load1m=2 load5m=0 load15m=2 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 2, 2, 0 ),       'load_and_delay: max=3, one core, load1m=2 load5m=2 load15m=0 => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 2, 2, 2 ),       'load_and_delay: max=3, one core, load1m=2   load5m=2   load15m=2   => 0 ' ) ;
+        is(  1,  load_and_delay( 3, 1, 3, 0, 0 ),       'load_and_delay: max=3, one core, load1m=3 load5m=0   load15m=0   => 0 ' ) ;
+        is(  1,  load_and_delay( 3, 1, 3, 2.9, 2.9 ),   'load_and_delay: max=3, one core, load1m=3 load5m=2.9 load15m=2.9 => 0 ' ) ;
+        is(  5,  load_and_delay( 3, 1, 3, 3, 2.9 ),     'load_and_delay: max=3, one core, load1m=3 load5m=3   load15m=2.9 => 0 ' ) ;
+        is( 15,  load_and_delay( 3, 1, 3, 3, 3 ),       'load_and_delay: max=3, one core, load1m=3 load5m=3   load15m=3   => 0 ' ) ;
+        is(  0,  load_and_delay( 3, 1, 2.9, 2.9, 2.9 ), 'load_and_delay: max=3, one core, load1m=2.9 load5m=2.9 load15m=2.9 => 0 ' ) ;
 
 
-        is(  0, load_and_delay( 1, 0, 0, 0 ),       'load_and_delay: one core, load1m=0 load5m=0 load15m=0 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 0, 0, 2 ),       'load_and_delay: one core, load1m=0 load5m=0 load15m=2 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 0, 2, 0 ),       'load_and_delay: one core, load1m=0 load5m=2 load15m=0 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 0, 2, 2 ),       'load_and_delay: one core, load1m=0 load5m=2 load15m=2 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 0, 3, 3 ),       'load_and_delay: one core, load1m=0 load5m=3 load15m=3 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 0, 4, 4 ),       'load_and_delay: one core, load1m=0 load5m=3 load15m=3 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 2, 0, 0 ),       'load_and_delay: one core, load1m=2 load5m=0 load15m=0 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 2, 0, 2 ),       'load_and_delay: one core, load1m=2 load5m=0 load15m=2 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 2, 2, 0 ),       'load_and_delay: one core, load1m=2 load5m=2 load15m=0 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 2, 2, 2 ),       'load_and_delay: one core, load1m=2   load5m=2   load15m=2   => 0 ' ) ;
-        is(  0, load_and_delay( 1, 2.9, 2.9, 2.9 ), 'load_and_delay: one core, load1m=2.9 load5m=2.9 load15m=2.9 => 0 ' ) ;
 
-        is(  0, load_and_delay( 1, 3, 0, 0 ),       'load_and_delay: one core, load1m=3 load5m=0   load15m=0   => 0 ' ) ;
-        is(  0, load_and_delay( 1, 3, 2.9, 2.9 ),   'load_and_delay: one core, load1m=3 load5m=2.9 load15m=2.9 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 3, 3, 2.9 ),     'load_and_delay: one core, load1m=3 load5m=3   load15m=2.9 => 0 ' ) ;
-        is(  0, load_and_delay( 1, 3, 3, 3 ),       'load_and_delay: one core, load1m=3 load5m=3   load15m=3   => 0 ' ) ;
-
-        is(  1, load_and_delay( 1, 6, 0, 0 ),       'load_and_delay: one core, load1m=3 load5m=0   load15m=0   => 1 ' ) ;
-        is(  1, load_and_delay( 1, 6, 5.9, 5.9 ),   'load_and_delay: one core, load1m=3 load5m=2.9 load15m=2.9 => 1 ' ) ;
-        is(  5, load_and_delay( 1, 6, 6, 5.9 ),     'load_and_delay: one core, load1m=3 load5m=3   load15m=2.9 => 5 ' ) ;
-        is(  15, load_and_delay( 1, 6, 6, 6 ),      'load_and_delay: one core, load1m=3 load5m=3   load15m=3 => 15 ' ) ;
-
-
+        is(  1,  load_and_delay( 6, 1, 6, 0, 0 ),       'load_and_delay: max=6, one core, load1m=6 load5m=0   load15m=0   =>  1 ' ) ;
+        is(  1,  load_and_delay( 6, 1, 6, 5.9, 5.9 ),   'load_and_delay: max=6, one core, load1m=6 load5m=5.9 load15m=5.9 =>  1 ' ) ;
+        is(  5,  load_and_delay( 6, 1, 6, 6, 5.9 ),     'load_and_delay: max=6, one core, load1m=6 load5m=6   load15m=5.9 =>  5 ' ) ;
+        is(  15, load_and_delay( 6, 1, 6, 6, 6 ),       'load_and_delay: max=6, one core, load1m=6 load5m=6   load15m=6   => 15 ' ) ;
+        is(  0,  load_and_delay( 6, 1, 5.9, 5.9, 5.9 ), 'load_and_delay: max=6, one core, load1m=5.9 load5m=5.9 load15m=5.9 =>  1 ' ) ;
 
         note( 'Leaving  tests_load_and_delay()' ) ;
         return ;
-}
+} 
 
-sub load_and_delay
+sub load_and_delay 
 {
-	# Basically return 0 if load is not heavy, ie <= 1 per processor
+	# Basically return 0 if load is not heavy, ie load 1 min <= $max_load_per_core
 
-        # Not enough arguments
-	if ( 4 > scalar @ARG ) { return ; }
+        # 5 arguments at least (loadavg return 4 arguments like "0.19 0.16 0.17 3/444" )
+	if ( 3 > scalar @ARG ) { return ; }
 
-	my ( $cpu_num, $avg_1_min, $avg_5_min, $avg_15_min ) = @ARG ;
+	my ( $max_load_per_core, $cpu_num, $avg_1_min, $avg_5_min, $avg_15_min ) = @ARG ;
 
 	if ( 0 == $cpu_num ) { return ; }
 
+        # No avg_5_min nor avg_15_min on Windows
+        $avg_5_min  ||= 0 ;
+        $avg_15_min ||= 0 ;
+        
 	# Let divide by number of cores
 	( $avg_1_min, $avg_5_min, $avg_15_min ) = map { $_ / $cpu_num } ( $avg_1_min, $avg_5_min, $avg_15_min ) ;
-	# One of avg ok => ok, for now it is a OR
-	if ( $avg_1_min < 6 ) { return 0 ; }
-	if ( $avg_5_min < 6 ) { return 1 ; } # Retry in 1 minute
-	if ( $avg_15_min < 6 ) { return 5 ; } # Retry in 5 minutes
-	return 15 ; # Retry in 15 minutes
-}
+        
+	# If one period 1m is ok => ok ( 0 ) else Nok ( return > 0, 1 or 5 or 15 )
+	if ( $avg_1_min  < $max_load_per_core ) { return 0 ; }
+	if ( $avg_5_min  < $max_load_per_core ) { return 1 ; } # Message: retry in 1 minute
+	if ( $avg_15_min < $max_load_per_core ) { return 5 ; } # Message: retry in 5 minutes
+	return 15 ; # Message: retry in 15 minutes
+} 
 
 
 sub tests_cpu_time
@@ -16749,7 +17145,7 @@ sub tests_cpu_time
 
 sub cpu_time
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         
         my @cpu_times = times ;
         if ( ! @cpu_times ) { return ; }
@@ -16782,7 +17178,7 @@ sub tests_cpu_percent
 
 sub cpu_percent
 {
-        my $mysync   = shift ;
+        my $mysync   = shift @ARG ;
         my $cpu_time = shift || 0 ;
         my $timediff = shift || 1 ; # no division by 0
 
@@ -16798,7 +17194,7 @@ sub cpu_percent
         
 }
 
-sub tests_cpu_percent_global
+sub tests_cpu_percent_global 
 {
         note( 'Entering tests_cpu_percent_global()' ) ;
 
@@ -16822,15 +17218,16 @@ sub tests_cpu_percent_global
                         skip( 'cpu_percent_global on host != petite', 1  ) ;
                 }
                 is( '50.0', cpu_percent_global( $mysync, 100 ), 'cpu_percent_global: {} 100 => 50 on host petite' ) ;
+                #is( '100.0', cpu_percent_global( $mysync, 100 ), 'cpu_percent_global: {} 100 => 100 on host petite' ) ;
         } ;
 
         note( 'Leaving  tests_cpu_percent_global()' ) ;
         return ;
-}
+} 
 
 sub cpu_percent_global
 {
-        my $mysync      = shift ;
+        my $mysync      = shift @ARG ;
         my $cpu_percent = shift || 0 ;
         
         my $cpu_number = cpu_number(  ) ;
@@ -16843,16 +17240,78 @@ sub cpu_percent_global
 }
 
 
+sub tests_ram_memory_info
+{
+        note( 'Entering tests_ram_memory_info()' ) ;
+
+        note( "ram_memory_info:", ram_memory_info(  ) ) ;
+        note( "total_ram_memory_bytes_sys_meminfo:", total_ram_memory_bytes_sys_meminfo(  ) ) ;
+        #note( "total_ram_memory_bytes_hw_memsize:", total_ram_memory_bytes_hw_memsize(  ) ) ;
+        
+        ok( ram_memory_info(  ), 'ram_memory_info: => some text' ) ;
+
+        note( 'Leaving  tests_ram_memory_info()' ) ;
+        return ;
+}
+
+
+sub total_ram_memory_bytes
+{
+        my $total_ram_memory_bytes ;
+        
+        # Found Sys::MemInfo::get( "totalmem" ) 
+        # wrong on macOS    11.5.2 (20G95)
+        # good  on Mac OS X 10.7.5 (11G63)
+        # ( commands "sw_vers" or "system_profiler SPSoftwareDataType" )
+        
+        if ( 'darwin' eq $OSNAME )
+        {
+                $total_ram_memory_bytes = total_ram_memory_bytes_hw_memsize(  ) ;
+        }
+        else
+        {
+                $total_ram_memory_bytes = total_ram_memory_bytes_sys_meminfo(  ) ;
+        }
+}
+
+
+
+sub total_ram_memory_bytes_hw_memsize
+{
+        my $total_ram_memory_bytes = `sysctl -n  hw.memsize` ;
+        chomp $total_ram_memory_bytes ;
+        return $total_ram_memory_bytes ;
+}
+
+
+sub total_ram_memory_bytes_sys_meminfo
+{
+        my $total_ram_memory_bytes = Sys::MemInfo::get( "totalmem" ) ;
+        return $total_ram_memory_bytes ;
+}
+
+
+
+
 sub ram_memory_info
 {
+        my $mysync      = shift @ARG ;
         # In GigaBytes so division by 1024 * 1024 * 1024
 	#
-	return(
-		sprintf( "%.1f/%.1f free GiB of RAM",
+        
+        my $ram_memory_info = sprintf(
+                "%.1f/%.1f free GiB of RAM",
                 Sys::MemInfo::get("freemem") / ( $KIBI ** 3 ),
-                Sys::MemInfo::get("totalmem") / ( $KIBI ** 3 ),
-                )
-	) ;
+                total_ram_memory_bytes(  ) / ( $KIBI ** 3 ),
+        ) ;
+
+        my $memory_consumption_all_pids_percent = memory_consumption_all_pids_percent( $mysync ) || 0 ;
+        if ( $memory_consumption_all_pids_percent )
+        {
+                $ram_memory_info .= ", $memory_consumption_all_pids_percent% used by processes."
+        }
+        
+	return $ram_memory_info ;
 }
 
 
@@ -16860,7 +17319,8 @@ sub ram_memory_info
 sub tests_memory_stress
 {
         note( 'Entering tests_memory_stress()' ) ;
-
+		my $mysync = { } ;
+		sig_install( $mysync, 'catch_ignore', ( 'QUIT', 'TERM', 'INT' ) ) ;
         is( undef, memory_stress(  ), 'memory_stress: => undef' ) ;
 
         note( 'Leaving  tests_memory_stress()' ) ;
@@ -16869,34 +17329,35 @@ sub tests_memory_stress
 
 sub memory_stress
 {
-        my $total_ram_in_MB = Sys::MemInfo::get("totalmem") / ( $KIBI * $KIBI ) ;
+        my $total_ram_in_MB = total_ram_memory_bytes(  ) / ( $KIBI * $KIBI ) ;
         my $i = 1 ;
 
-        myprintf("Stress memory consumption before: %.1f MiB\n", memory_consumption(  ) / $KIBI / $KIBI ) ;
-        while ( $i < $total_ram_in_MB / 1.7 ) { $a .= "A" x 1000_000; $i++ } ;
-        myprintf("Stress memory consumption after: %.1f MiB\n", memory_consumption(  ) / $KIBI / $KIBI ) ;
+        myprintf("Stress memory consumption before: %.1f MiB of %.1f MiB\n", memory_consumption_of_myself(  ) / $KIBI / $KIBI, $total_ram_in_MB ) ;
+        while ( $i < $total_ram_in_MB / 1.7 )
+		{
+			$a .= "A" x 1000_000;
+			myprintf( "$i " ) ;
+			$i++ ;
+		} ;
+        myprintf( "\nStress memory consumption after: %.1f MiB of %.1f MiB\n", memory_consumption_of_myself(  ) / $KIBI / $KIBI, $total_ram_in_MB ) ;
         return ;
 }
 
-sub tests_memory_consumption 
+sub tests_memory_consumption_of_myself
 {
-	note( 'Entering tests_memory_consumption()' ) ;
+	note( 'Entering tests_memory_consumption_of_myself()' ) ;
 
-        note(  "memory_consumption: " . memory_consumption() . " bytes aka " . bytes_display_string_dec( memory_consumption() ) ) ;
-        like( memory_consumption(  ),  qr{\d+}xms,'memory_consumption no args') ;
-        like( memory_consumption( 1 ), qr{\d+}xms,'memory_consumption 1') ;
-        like( memory_consumption( $PROCESS_ID ), qr{\d+}xms,"memory_consumption_of_pids $PROCESS_ID") ;
-
-        like( memory_consumption_ratio(), qr{\d+}xms,   'memory_consumption_ratio' ) ;
-        like( memory_consumption_ratio(1), qr{\d+}xms,  'memory_consumption_ratio 1' ) ;
-        like( memory_consumption_ratio(10), qr{\d+}xms, 'memory_consumption_ratio 10' ) ;
+        note(  "memory_consumption_of_myself: " . memory_consumption_of_myself(  ) . " bytes aka " . bytes_display_string_dec( memory_consumption_of_myself(  ) ) ) ;
+        like( memory_consumption_of_myself(  ),  qr{\d+}xms,'tests_memory_consumption_of_myself no args') ;
+        like( memory_consumption_of_myself( 1 ), qr{\d+}xms,'tests_memory_consumption_of_myself 1') ;
+        like( memory_consumption_of_myself( $PROCESS_ID ), qr{\d+}xms,"tests_memory_consumption_of_myself $PROCESS_ID") ;
 
 
-	note( 'Leaving  tests_memory_consumption()' ) ;
+	note( 'Leaving  tests_memory_consumption_of_myself()' ) ;
         return ;
 }
 
-sub memory_consumption
+sub memory_consumption_of_myself
 {
         # memory consumed by imapsync until now in bytes
         return( ( memory_consumption_of_pids(  ) )[0] );
@@ -16904,43 +17365,35 @@ sub memory_consumption
 
 sub debugmemory
 {
-        my $mysync = shift ;
-        if ( ! $mysync->{debugmemory} ) { return q{} ; }
+        my $mysync = shift @ARG ;
+        if ( ! $mysync->{ debugmemory } ) { return q{} ; }
 
-        my $precision = shift ;
-        return( mysprintf( "Memory consumption$precision: %.1f MiB\n", memory_consumption(  ) / $KIBI / $KIBI ) ) ;
+        my $precision = shift @ARG ;
+        return( mysprintf( "Memory consumption$precision: %.1f MiB\n", memory_consumption_of_myself(  ) / $KIBI / $KIBI ) ) ;
 }
 
-sub memory_consumption_of_pids
+sub memory_consumption_of_pids 
 {
-
-        my @pid = @_;
+        my @pid = @ARG ;
+        # No pid in ARG means find myself memory
         @pid = ( @pid ) ? @pid : ( $PROCESS_ID ) ;
 
-        $sync->{ debug } and myprint( "memory_consumption_of_pids PIDs: @pid\n" ) ;
+        #$sync->{ debug } and myprint( "memory_consumption_of_pids PIDs: @pid\n" ) ;
         my @val ;
-        if ( ( 'MSWin32' eq $OSNAME ) or ( 'cygwin' eq $OSNAME ) ) {
-                @val = memory_consumption_of_pids_win32( @pid ) ;
-        }
-        elsif ( 'darwin' eq $OSNAME )
+        if ( ( 'MSWin32' eq $OSNAME ) or ( 'cygwin' eq $OSNAME ) )
         {
-                @val = memory_consumption_of_pids_mac( @pid ) ;
+                @val = memory_consumption_of_pids_win32( @pid ) ;
         }
         else
         {
-                # Unix
-                my @ps = qx{ ps -o vsz -p @pid } ;
-                shift @ps ; # First line is column name "VSZ"
-                chomp @ps ;
-                # convert to octets
-
-                @val = map { $_ * $KIBI } @ps ;
+                # Unix, Mac OS X included
+                @val = memory_consumption_of_pids_unix( @pid ) ;
         }
         return( @val ) ;
-}
+} 
 
 
-sub memory_consumption_of_pids_mac
+sub memory_consumption_of_pids_unix
 {
         my @pid = @_ ;
         # Use IPC::Open3 from perlcrit -3
@@ -16948,14 +17401,86 @@ sub memory_consumption_of_pids_mac
         #my @ps = backtick( "ps -o rss -p @pid" ) ;
         #myprint( "ps: @ps" ) ;
         my @ps = qx{ ps -o rss -p @pid } ;
-        shift @ps ; # First line is column name "RSS"
+        shift @ps ; # First line is the column name "RSS"
         chomp @ps ;
+        # convert to octets
         my @val = map { $_ * $KIBI } @ps ;
         return( @val ) ;
 }
 
-sub memory_consumption_of_pids_win32
+
+sub tests_memory_consumption_of_all_pids
 {
+	note( 'Entering tests_memory_consumption_of_all_pids()' ) ;
+
+        note(  "memory_consumption_of_all_pids: " . memory_consumption_of_all_pids(  ) . " bytes aka " . bytes_display_string_dec( memory_consumption_of_all_pids(  ) ) ) ;
+        like( memory_consumption_of_all_pids(  ),  qr{\d+}xms,           'tests_memory_consumption_of_all_pids no args') ;
+
+	note( 'Leaving  tests_memory_consumption_of_all_pids()' ) ;
+        return ;
+}
+
+
+sub memory_consumption_of_all_pids
+{
+        my @all_pids = all_pids(  ) ;
+        my @memory_consumption_of_all_pids = memory_consumption_of_pids( @all_pids ) ;
+        my $memory_consumption_of_all_pids = add( @memory_consumption_of_all_pids ) ;
+        return $memory_consumption_of_all_pids ;
+}
+
+
+sub tests_all_pids
+{
+        note( 'Entering tests_all_pids()' ) ;
+
+        note( 'all_pids', join( ' ', all_pids(  ) ) ) ;
+        ok( all_pids(  ),  'tests_all_pids: no args => list of pids' ) ;
+
+
+        note( 'Leaving  tests_all_pids()' ) ;
+        return ;
+}
+
+
+sub all_pids
+{
+        my @all_pids ;
+        if ( ( 'MSWin32' eq $OSNAME ) or ( 'cygwin' eq $OSNAME ) ) {
+                @all_pids = all_pids_win32(  ) ;
+        }
+        else
+        {
+                # Unix
+                @all_pids = all_pids_unix(  ) ;
+        }
+        return( @all_pids ) ;
+}
+
+sub all_pids_unix
+{
+        my @ps = qx{ ps -e -o pid } ;
+        shift @ps ; # First line is the column name "PID"
+        chomp @ps ;
+        return @ps ;
+}
+
+
+
+sub tests_memory_consumption_of_pids_win32
+{
+        note( 'Entering tests_memory_consumption_of_pids_win32()' ) ;
+
+        note( memory_consumption_of_pids_win32( $PROCESS_ID ) ) ;
+        #ok( memory_consumption_of_pids_win32( $PROCESS_ID ),  'tests_memory_consumption_of_pids_win32: no args => ' ) ;
+
+        note( 'Leaving  tests_memory_consumption_of_pids_win32()' ) ;
+        return ;
+}
+
+
+sub memory_consumption_of_pids_win32 
+{ 
         # Windows
         my @PID = @_;
         my %PID;
@@ -16965,27 +17490,173 @@ sub memory_consumption_of_pids_win32
         # Does not work but should work reading the tasklist documentation
         #@ps = qx{ tasklist /FI "PID eq @PID" };
 
-        my @ps = qx{ tasklist /NH /FO CSV } ;
-        #my @ps = backtick( 'tasklist /NH /FO CSV' ) ;
+        my @ps = qx{ tasklist /NH /FO TABLE } ;
+        #my @ps = backtick( 'tasklist /NH /FO TABLE' ) ;
         #myprint( "-" x $STD_CHAR_PER_LINE, "\n", @ps, "-" x $STD_CHAR_PER_LINE, "\n" ) ;
-        my @val;
-        foreach my $line (@ps) {
-                my($name, $pid, $mem) = (split ',', $line )[0,1,4];
+        my @val ;
+        #myprint( @ps ) ;
+        foreach my $line ( @ps ) {
+                my( $name, $pid, $mem ) = ( split / +/, $line )[ 0, 1, 4 ] ;
                 next if (! $pid);
-                #myprint( "[$name][$pid][$mem]" ) ;
-                if ($PID{remove_qq($pid)}) {
-                        #myprint( "MATCH !\n" ) ;
+                #myprint( "[$name][$pid][$mem]\n" ) ;
+                $pid = remove_qq( $pid ) ;
+                if ( $PID{ $pid } )
+                {
+                        #myprint( "MATCH $pid\n" ) ;
                         chomp $mem ;
-                        $mem = remove_qq($mem);
-                        $mem = remove_Ko($mem);
-                        $mem = remove_not_num($mem);
-                        #myprint( "[$mem]\n" ) ;
-                        push @val, $mem * $KIBI;
+                        $mem = remove_qq( $mem ) ;
+                        $mem = remove_not_num( $mem ) ;
+                        if ( is_number( $mem ) )
+                        {
+                                #myprint( "[$mem] ", $mem * $KIBI, "\n" ) ;
+                                push @val, $mem * $KIBI ;
+                        }
                 }
         }
-        return(@val);
+        return( @val ) ;
+} 
+
+
+
+sub all_pids_win32
+{
+        my @ps = qx{ tasklist /NH /FO CSV } ;
+        my @pids ;
+        foreach my $line ( @ps )
+        {
+                my( $name, $pid, $mem ) = ( split ',', $line )[ 0, 1, 4 ] ;
+                next if ( ! $pid ) ;
+                #myprint( "[$name][$pid][$mem]\n" ) ;
+                $pid = remove_qq( $pid ) ;
+                push @pids, $pid ;
+        }
+        return( @pids ) ;
 }
 
+
+
+sub tests_memory_consumption_all_pids_percent
+{
+        note( 'Entering tests_memory_consumption_all_pids_percent()' ) ;
+		
+        note( memory_consumption_all_pids_percent(  ) . " (%)" ) ;
+        like( memory_consumption_all_pids_percent(  ), qr{^0|^(\d+\.\d+)$}xms,   'tests_memory_consumption_all_pids_percent: no args => like 12.34' ) ;
+        
+        ok(   0 <= memory_consumption_all_pids_percent(  ), 'tests_memory_consumption_all_pids_percent: > 0' ) ;
+        ok( 100 >= memory_consumption_all_pids_percent(  ), 'tests_memory_consumption_all_pids_percent: <= 100' ) ;
+        note( 'Leaving  tests_memory_consumption_all_pids_percent()' ) ;
+        
+        return ;
+}
+
+
+
+sub memory_consumption_all_pids_percent
+{
+        my $percent ;
+        
+        my $memory_consumption_of_all_pids = memory_consumption_of_all_pids(  ) ;
+        my $total_memory_bytes = total_ram_memory_bytes(  ) || return 0 ;
+        
+        $percent = sprintf( "%.2f", 100 * $memory_consumption_of_all_pids / $total_memory_bytes ) ;
+        return $percent ;
+}
+
+
+
+sub tests_memory_consumption_all_pids_percent_Proc_ProcessTable
+{
+        note( 'Entering tests_memory_consumption_all_pids_percent_Proc_ProcessTable()' ) ;
+        require_ok( 'Proc::ProcessTable' ) ;
+		
+        note( memory_consumption_all_pids_percent_Proc_ProcessTable(  ) . " (%)" ) ;
+        like( memory_consumption_all_pids_percent_Proc_ProcessTable(  ), qr{^0|^(\d+\.\d+)$}xms,   'tests_memory_consumption_all_pids_percent_Proc_ProcessTable: no args => like 12.34' ) ;
+        
+        my $mysync = {  } ;
+        
+        like( memory_consumption_all_pids_percent_Proc_ProcessTable( $mysync ), qr{^0|^(\d+\.\d+)$}xms, 'tests_memory_consumption_all_pids_percent_Proc_ProcessTable: {  } => like 12.34' ) ;
+        note( 'Leaving  tests_memory_consumption_all_pids_percent_Proc_ProcessTable()' ) ;
+        
+        return ;
+}
+
+# Proc::ProcessTable pctmem does NOT work for Win32 Darwin 
+# Negative values and negative zeros for Darwin
+# zeros for Win32
+# 
+sub memory_consumption_all_pids_percent_Proc_ProcessTable
+{
+        my $mysync = shift @ARG ;
+
+        my $percent ;
+        if ( eval { require Proc::ProcessTable } )
+        {
+                my $table_all_processes = Proc::ProcessTable->new(  ) ;
+
+                if ( pctmem_available( $table_all_processes ) )
+                {
+                        #pctmem is memory percentage of a process
+                        foreach my $process ( @{ $table_all_processes->table(  ) } )
+                        {
+                                #myprint( "pctmem: ", $process->pctmem(  ), "\n" ) ;
+                                #
+                                $percent += max( 0, $process->pctmem(  ) ) ;
+                        }
+                }
+                else
+                {
+                        $percent = 0 ;
+                }
+        }
+        else
+        {
+                $percent = 0 ;
+        }
+        
+        $percent = sprintf( "%.2f", $percent ) ;
+        
+        return $percent ;
+} 
+
+
+sub tests_pctmem_available
+{
+        note( 'Entering tests_pctmem_available()' ) ;
+
+        is( undef, pctmem_available(  ),  'pctmem_available: no args => undef' ) ;
+        
+        SKIP: {
+                skip( 'no Proc::ProcessTable', 1 ) if ( ! eval { require Proc::ProcessTable } ) ;
+                my $table_all_processes = Proc::ProcessTable->new(  ) ;
+                like( pctmem_available( $table_all_processes ), qr{^(0|1)$}xms, 'pctmem_available:  => 0 or 1' ) ;
+        }
+
+        note( 'Leaving  tests_pctmem_available()' ) ;
+        return ;
+}
+
+
+sub pctmem_available
+{
+        my $table_all_processes = shift @ARG ;
+        
+        if ( ! defined $table_all_processes ) { return ; } ;
+        
+        my @fields = $table_all_processes->fields(  ) ;
+        
+        my %fields = map { defined( $_ ) ? ( $_ => 1 ) : (  ) } @fields ;
+        
+        if ( exists( $fields{ pctmem } ) )
+        {
+                return 1 ;
+        }
+        else
+        {
+                return 0 ;
+        }
+        
+        return ;
+}
 
 sub tests_backtick
 {
@@ -17042,7 +17713,7 @@ sub tests_backtick
 
 sub backtick
 {
-        my $command = shift ;
+        my $command = shift @ARG ;
 
 	if ( ! $command ) { return ; }
 
@@ -17161,7 +17832,7 @@ sub search_dyn_lib_locale_MSWin32
 sub remove_not_num
 {
 
-        my $string = shift ;
+        my $string = shift @ARG ;
         $string =~ tr/0-9//cd ;
         #myprint( "tr [$string]\n" ) ;
         return( $string ) ;
@@ -17171,48 +17842,58 @@ sub tests_remove_not_num
 {
 	note( 'Entering tests_remove_not_num()' ) ;
 
-        ok( '123' eq remove_not_num( 123 ), 'remove_not_num( 123 )' ) ;
-        ok( '123' eq remove_not_num( '123' ), q{remove_not_num( '123' )} ) ;
-        ok( '123' eq remove_not_num( '12 3' ), q{remove_not_num( '12 3' )} ) ;
-        ok( '123' eq remove_not_num( 'a 12 3 Ko' ), q{remove_not_num( 'a 12 3 Ko' )} ) ;
+        is( '123', remove_not_num( 123 ), 'remove_not_num( 123 )' ) ;
+        is( '123', remove_not_num( '123' ), q{remove_not_num( '123' )} ) ;
+        is( '123', remove_not_num( '12 3' ), q{remove_not_num( '12 3' )} ) ;
+        is( '123', remove_not_num( 'a 12 3 Ko' ), q{remove_not_num( 'a 12 3 Ko' )} ) ;
+        is( '123', remove_not_num( 'a 12 3 K' ), q{remove_not_num( 'a 12 3 K' )} ) ;
+        is( '123', remove_not_num( 'a 12,3 K' ), q{remove_not_num( 'a 12, 3 K' )} ) ;
+        is( '173892', remove_not_num( 'a 173,892 K' ), q{remove_not_num( 'a 173,892 K' )} ) ;
 
 	note( 'Leaving  tests_remove_not_num()' ) ;
         return ;
 }
 
-sub remove_Ko
+
+
+
+sub tests_remove_qq
 {
-        my $string = shift;
-        if ($string =~ /^(.*)\sKo$/xo) {
-                return($1);
+        note( 'Entering tests_remove_qq()' ) ;
+
+        is( undef, remove_qq(  ),            'tests_remove_qq: no args   => undef' ) ;
+        is(    '', remove_qq( '' ),          'tests_remove_qq: empty     => empty' ) ;
+        is( 'ABC', remove_qq( 'ABC' ),       'tests_remove_qq: ABC       => ABC' ) ;
+        is( 'ABC', remove_qq( '"ABC"' ),     'tests_remove_qq: "ABC"     => ABC' ) ;
+        is( '"ABC', remove_qq( '""ABC"' ),   'tests_remove_qq: ""ABC"    => "ABC' ) ;
+        is( 'ABC"', remove_qq( '"ABC""' ),   'tests_remove_qq: "ABC""    => ABC"' ) ;
+        is( '"ABC"', remove_qq( '""ABC""' ), 'tests_remove_qq: ""ABC""   => "ABC"' ) ;
+
+        note( 'Leaving  tests_remove_qq()' ) ;
+        return ;
+}
+
+
+sub remove_qq 
+{ 
+        my $string = shift ;
+
+        if ( ! defined $string ) { return ; }
+        
+        #myprint( "$string\n" ) ;
+
+        if ( $string =~ /^"(.*)"$/xo )
+        {
+                return( $1 ) ;
         }else{
-                return($string);
+                return( $string ) ;
         }
-}
-
-sub remove_qq
-{
-        my $string = shift;
-        if ($string =~ /^"(.*)"$/xo) {
-                return($1);
-        }else{
-                return($string);
-        }
-}
-
-sub memory_consumption_ratio
-{
-
-        my ($base) = @_;
-        $base ||= 1;
-        my $consu = memory_consumption();
-        return($consu / $base);
-}
+} 
 
 
 sub date_from_rcs
 {
-        my $d = shift ;
+        my $d = shift @ARG ;
 
         my %num2mon = qw( 01 Jan 02 Feb 03 Mar 04 Apr 05 May 06 Jun 07 Jul 08 Aug 09 Sep 10 Oct 11 Nov 12 Dec ) ;
         if ($d =~ m{(\d{4})/(\d{2})/(\d{2})\s(\d{2}):(\d{2}):(\d{2})}xo ) {
@@ -17248,7 +17929,7 @@ sub good_date
         # outgoing format: internal date format
         #   24-Aug-2010 16:00:00 +0200
 
-    my $d = shift ;
+    my $d = shift @ARG ;
     return(q{}) if not defined $d;
 
         SWITCH: {
@@ -17483,7 +18164,7 @@ sub tests_nb_messages_in_2_not_in_1
 
 sub nb_messages_in_2_not_in_1
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( not defined $mysync ) { return ; }
 
         $mysync->{ nb_messages_in_2_not_in_1 } = scalar(
@@ -17497,7 +18178,7 @@ sub nb_messages_in_2_not_in_1
 
 sub nb_messages_in_1_not_in_2
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( not defined $mysync ) { return ; }
 
         $mysync->{ nb_messages_in_1_not_in_2 }  = scalar(
@@ -17512,7 +18193,7 @@ sub nb_messages_in_1_not_in_2
 
 sub comment_on_final_diff_in_1_not_in_2
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( not defined $mysync
              or $mysync->{ justfolders }
@@ -17569,7 +18250,7 @@ sub comment_on_final_diff_in_1_not_in_2
 
 sub comment_on_final_diff_in_2_not_in_1
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         if ( not defined $mysync
              or $mysync->{ justfolders }
@@ -17771,7 +18452,7 @@ sub delete_folder
 
 sub delete1emptyfolders
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! $mysync ) { return ; } # abort if no parameter
         if ( ! $mysync->{delete1emptyfolders} ) { return ; } # abort if --delete1emptyfolders off
         my $imap = $mysync->{imap1} ;
@@ -17962,9 +18643,9 @@ sub tests_delete1emptyfolders_unit
 {
 	note( 'Entering tests_delete1emptyfolders_unit()' ) ;
 
-        my $syncT  = shift ;
-        my $folders1wanted_init_ref = shift ;
-        my $folders1wanted_after_ref = shift ;
+        my $syncT  = shift @ARG ;
+        my $folders1wanted_init_ref = shift @ARG ;
+        my $folders1wanted_after_ref = shift @ARG ;
         my $comment = shift || q{delete1emptyfolders:} ;
 
         my @folders1wanted_init  = @{ $folders1wanted_init_ref } ;
@@ -17982,7 +18663,7 @@ sub tests_delete1emptyfolders_unit
 
 sub extract_header
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
 
         my ( $header ) = split  /\n\n/x, $string ;
         if ( ! $header ) { return( q{} ) ; }
@@ -18018,7 +18699,7 @@ EOM
 }
 
 sub decompose_header{
-        my $string = shift ;
+        my $string = shift @ARG ;
 
         # a hash, for a keyword header KEY value are list of strings [VAL1, VAL1_other, etc]
         # Think of multiple "Received:" header lines.
@@ -18192,7 +18873,7 @@ sub epoch
         # outgoing format: epoch
 
 
-        my $d = shift ;
+        my $d = shift @ARG ;
         return(q{}) if not defined $d;
 
         my ( $mday, $month, $year, $hour, $min, $sec, $sign, $zone_h, $zone_m ) ;
@@ -18265,7 +18946,7 @@ sub tests_max_line_length
 
 sub max_line_length
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
         my $max = 0 ;
 
         while ( $string =~ m/([^\n]*\n?)/msxg ) {
@@ -18653,7 +19334,7 @@ sub tests_localtimez
 
 sub localtimez 
 {
-        my $time = shift ;
+        my $time = shift @ARG ;
         
         $time = defined( $time ) ? $time : time ;
         
@@ -18686,7 +19367,7 @@ sub tests_slash_to_underscore
 
 sub slash_to_underscore
 {
-	my $string = shift ;
+	my $string = shift @ARG ;
 
 	if ( ! defined $string ) { return ; }
 
@@ -18721,17 +19402,6 @@ sub tests_million_folders_baby_2
 
 
 
-sub tests_always_fail
-{
-	note( 'Entering tests_always_fail()' ) ;
-
-        is( 0, 1, 'always_fail: 0 is 1' ) ;
-
-	note( 'Leaving  tests_always_fail()' ) ;
-        return ;
-}
-
-
 sub tests_logfileprepa
 {
         note( 'Entering tests_logfileprepa()' ) ;
@@ -18746,7 +19416,7 @@ sub tests_logfileprepa
 
 sub logfileprepa
 {
-        my $logfile = shift ;
+        my $logfile = shift @ARG ;
 
         if ( ! defined( $logfile ) )
         {
@@ -18870,7 +19540,7 @@ sub teefinish
 
 sub getpwuid_any_os
 {
-        my $uid = shift ;
+        my $uid = shift @ARG ;
 
         return( scalar  getlogin ) if ( 'MSWin32' eq $OSNAME ) ; # Windows system
         return( scalar  getpwuid $uid ) ; # Unix system
@@ -18882,7 +19552,7 @@ sub getpwuid_any_os
 
 sub abortifneeded
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( -e $mysync->{ abortfile } )
         {
                 myprint( "Asked to terminate by file $mysync->{ abortfile }\n" ) ;
@@ -18901,7 +19571,7 @@ sub abortifneeded
 
 sub simulong
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         my $max_seconds = $mysync->{ simulong } ;
 
@@ -18934,7 +19604,7 @@ sub printenv
 
 sub unittestssuite
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! ( $mysync->{ tests }  or $mysync->{ testsdebug } or $mysync->{ testsunit } ) ) {
                 return ;
         }
@@ -18982,8 +19652,8 @@ sub cleanup_mess_from_tests
 
 sub after_get_options
 {
-        my $mysync = shift ;
-	my $numopt = shift ;
+        my $mysync = shift @ARG ;
+	my $numopt = shift @ARG ;
 
 
         # exit with --help option or no option at all
@@ -19013,7 +19683,7 @@ sub tests_remove_edging_blanks
 
 sub remove_edging_blanks
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
         if ( ! defined $string )
         {
                 return ;
@@ -19044,7 +19714,7 @@ sub tests_sanitize
 
 sub sanitize
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! defined $mysync )
         {
                 return ;
@@ -19059,7 +19729,7 @@ sub sanitize
 
 sub easyany
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
 	# Gmail
 	if ( $mysync->{gmail1} and $mysync->{gmail2} ) {
@@ -19109,7 +19779,7 @@ sub easyany
 # From and for https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 sub gmail12 
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 	# Gmail at host1 and host2
 	$mysync->{host1} ||= 'imap.gmail.com' ;
 	$mysync->{ssl1} = ( defined $mysync->{ssl1} ) ? $mysync->{ssl1} : 1 ;
@@ -19131,7 +19801,7 @@ sub gmail12
 
 sub gmail1
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 	# Gmail at host2
 	$mysync->{host1} ||= 'imap.gmail.com' ;
 	$mysync->{ssl1} = ( defined $mysync->{ssl1} ) ? $mysync->{ssl1} : 1 ;
@@ -19149,7 +19819,7 @@ sub gmail1
 
 sub gmail2 
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 	# Gmail at host2
 	$mysync->{ host2 } ||= 'imap.gmail.com' ;
 	$mysync->{ ssl2 } = ( defined $mysync->{ ssl2 } ) ? $mysync->{ ssl2 } : 1 ;
@@ -19184,7 +19854,7 @@ sub gmail2
 sub office1
 {
         # Office 365 at host1
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         output( $mysync, q{Option --office1 is like: --host1 outlook.office365.com --ssl1 --exclude "^Files$"} . "\n" ) ;
         output( $mysync, "Option --office1 (cont) : unless overrided with --host1 otherhost --nossl1 --noexclude\n" ) ;
@@ -19200,7 +19870,7 @@ sub office1
 sub office2
 {
         # Office 365 at host2
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         output( $mysync, qq{Option --office2 is like: --host2 outlook.office365.com --ssl2 --maxsize 45_000_000 --maxmessagespersecond 4\n} ) ;
         output( $mysync, qq{Option --office2 (cont) : --disarmreadreceipts --regexmess "wrap 10500" --f1f2 "Files=Files_renamed_by_imapsync"\n} ) ;
         output( $mysync, qq{Option --office2 (cont) : unless overrided with --host2 otherhost --nossl2 ... --nodisarmreadreceipts --noregexmess\n} ) ;
@@ -19227,7 +19897,7 @@ sub office2
 sub exchange1
 {
         # Exchange 2010/2013 at host1
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         output( $mysync, "Option --exchange1 does nothing (except printing this line...)\n" ) ;
         # Well nothing to do so far
         return ;
@@ -19236,7 +19906,7 @@ sub exchange1
 sub exchange2
 {
         # Exchange 2010/2013 at host2
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         output( $mysync, "Option --exchange2 is like: --maxsize 10_000_000 --maxmessagespersecond 4 --disarmreadreceipts\n" ) ;
         output( $mysync, "Option --exchange2 (cont) : --regexflag del Flagged --regexmess wrap 10500\n" ) ;
         output( $mysync, "Option --exchange2 (cont) : unless overrided with --maxsize xxx --nodisarmreadreceipts --noregexflag --noregexmess\n" ) ;
@@ -19256,7 +19926,7 @@ sub exchange2
 sub domino1
 {
 	# Domino at host1
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
 	$mysync->{ sep1 }    = q{\\} ;
 	$prefix1 = q{} ;
@@ -19267,7 +19937,7 @@ sub domino1
 sub domino2
 {
 	# Domino at host1
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
 	$mysync->{ sep2 }    = q{\\} ;
 	$prefix2 = q{} ;
@@ -19445,7 +20115,7 @@ sub tests_imapsping
 
 sub imapsping
 {
-	my $host = shift ;
+	my $host = shift @ARG ;
 	return tcpping( $host, $IMAP_SSL_PORT ) ;
 }
 
@@ -19559,7 +20229,7 @@ sub tests_sslcheck
 
 sub sslcheck
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
 	if ( ! $mysync->{sslcheck} ) {
 		return ;
@@ -19609,7 +20279,7 @@ sub sslcheck
 
 sub testslive_init
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         $mysync->{host1}     ||= 'test1.lamiral.info' ;
         $mysync->{user1}     ||= 'test1' ;
         $mysync->{password1} ||= 'secret1' ;
@@ -19621,7 +20291,7 @@ sub testslive_init
 
 sub testslive6_init
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         $mysync->{host1}     ||= 'ks6ipv6.lamiral.info' ;
         $mysync->{user1}     ||= 'test1' ;
         $mysync->{password1} ||= 'secret1' ;
@@ -19653,7 +20323,7 @@ sub tests_backslash_caret
 
 sub backslash_caret
 {
-        my $string = shift ;
+        my $string = shift @ARG ;
 
         $string =~ s{\\ $ }{^}gxms ;
 
@@ -19744,9 +20414,9 @@ sub tests_sig_install
 #
 sub sig_install
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! $mysync ) { return ; }
-        my $mysubname = shift ;
+        my $mysubname = shift @ARG ;
         if ( ! $mysubname ) { return ; }
 
         if ( ! @ARG ) { return ; }
@@ -19758,7 +20428,7 @@ sub sig_install
         $mysync->{ debugsig } and myprint( "In sig_install with sub $mysubname and signal @ARG\n" ) ;
 
         my $subsignal = sub {
-                my $signame = shift ;
+                my $signame = shift @ARG ;
                 $mysync->{ debugsig } and myprint( "In subsignal with $signame and $mysubname\n" ) ;
                 &$mysub( $mysync, $signame ) ;
         } ;
@@ -19775,7 +20445,7 @@ sub sig_install
 
 sub tototo
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         myprint("In tototo with @ARG\n" ) ;
         $mysync->{ tototo_calls } += 1 ;
         return ;
@@ -19843,7 +20513,7 @@ sub tests_toggle_sleep
 
 sub toggle_sleep
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
 
         myprint("In toggle_sleep with @ARG\n" ) ;
 
@@ -19857,7 +20527,7 @@ sub toggle_sleep
 
 sub mypod2usage
 {
-        my $fh_pod2usage = shift ;
+        my $fh_pod2usage = shift @ARG ;
 
         pod2usage(
                 -exitval   => 'NOEXIT',
@@ -19874,7 +20544,7 @@ sub mypod2usage
 
 sub usage
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
         if ( ! defined $mysync ) { return ; }
 
@@ -19916,7 +20586,7 @@ sub tests_usage
 
 sub usage_footer
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
         my $footer = q{} ;
 
@@ -20391,7 +21061,7 @@ sub tests_get_options_cgi_context
 
 
 
-sub get_options_cgi
+sub get_options_cgi 
 {
         # In CGI context arguments are not in @ARGV but in QUERY_STRING variable (with GET).
 	my $mysync = shift @ARG ;
@@ -20452,6 +21122,7 @@ sub get_options_cgi
         'tail!'               => \$mysync->{ tail },
         'tmphash=s'           => \$mysync->{ tmphash },
         'exitwhenover=i'      => \$mysync->{ exitwhenover },
+        'exitonload!'         => \$mysync->{ exitonload },
         'syncduplicates!'     => \$mysync->{ syncduplicates },
         'skipcrossduplicates!' => \$mysync->{ skipcrossduplicates },
         'debugcrossduplicates!'=> \$mysync->{ debugcrossduplicates },
@@ -20473,7 +21144,7 @@ sub get_options_cgi
 		return ;
 	}
 	return $numopt ;
-} 
+}
 
 sub get_options_cmd 
 {
@@ -20672,6 +21343,7 @@ sub get_options_cmd
         'useuid!'         => \$useuid,
         'addheader!'      => \$mysync->{addheader},
         'exitwhenover=i'  => \$mysync->{ exitwhenover },
+        'exitonload!'     => \$mysync->{ exitonload },
         'checkselectable!' => \$mysync->{ checkselectable },
         'checkfoldersexist!' => \$mysync->{ checkfoldersexist },
         'checkmessageexists!' => \$checkmessageexists,
@@ -20714,6 +21386,7 @@ sub get_options_cmd
         'emailreport1!'    => \$mysync->{ emailreport1 },
         'emailreport2!'    => \$mysync->{ emailreport2 },
         'var=s@'           => \$mysync->{ var },
+        'memorystress!'    => \$mysync->{ memorystress },
         ) ;
         #myprint( Data::Dumper->Dump( [ $mysync ] )  ) ;
         $mysync->{ debug } and output( $mysync, "get options: [$opt_ret][$numopt]\n" ) ;
@@ -20817,33 +21490,32 @@ sub get_options
 }
 
 
-sub tests_infos
+sub tests_infos 
 {
         note( 'Entering tests_infos()' ) ;
         note( "OSNAME=$OSNAME" ) ;
-        note( "hostname=". hostname() ) ;
+        note( "hostname=". hostname(  ) ) ;
         note( "cwd=" . getcwd(  ) ) ;
         note( "PROGRAM_NAME=$PROGRAM_NAME" ) ;
-        my $stat = stat("$PROGRAM_NAME") ;
-        my $perms = sprintf( "%04o\n", $stat->mode & oct($PERMISSION_FILTER) ) ;
+        my $stat = stat( "$PROGRAM_NAME" ) ;
+        my $perms = sprintf( "%04o\n", $stat->mode & oct( $PERMISSION_FILTER ) ) ;
         note( "permissions=$perms" ) ;
         note( "PROCESS_ID=$PROCESS_ID" ) ;
         note( "REAL_USER_ID=$REAL_USER_ID" ) ;
         note( "EFFECTIVE_USER_ID=$EFFECTIVE_USER_ID" ) ;
         note( "context: " . imapsync_context( $sync ) ) ;
-        note( "memory_consumption: " . memory_consumption() . " bytes aka " . bytes_display_string_dec( memory_consumption() ) ) ;
-        cpu_number
-        note( "cpu_number: " . cpu_number() ) ;
-        note( $sync->{rcs} ) ;
+        note( "memory_consumption_of_myself: " . memory_consumption_of_myself(  ) . " bytes aka " . bytes_display_string_dec( memory_consumption_of_myself(  ) ) ) ;
+        note( "cpu_number: " . cpu_number(  ) ) ;
+        note( $sync->{ rcs } ) ;
         note( 'Leaving  tests_infos()' ) ;
         return ;
-}
+} 
 
 
 
 sub condition_to_leave_after_tests
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( $mysync->{ testslive } or $mysync->{ testslive6 } )
         {
                 return 0 ;
@@ -20861,7 +21533,7 @@ sub condition_to_leave_after_tests
 
 sub testunitsession
 {
-	my $mysync = shift ;
+	my $mysync = shift @ARG ;
 
 	if ( ! $mysync ) { return ; }
 	if ( ! $mysync->{ testsunit } ) { return ; }
@@ -20935,10 +21607,24 @@ sub tests_true
 {
 	note( 'Entering tests_true()' ) ;
 
-	is( 1, 1, 'true: 1 is 1' ) ;
+	is(   1,   1, 'true: 1 is 1' ) ;
+	is( 'A', 'A', 'true: A is A' ) ;
 	note( 'Leaving  tests_true()' ) ;
 	return ;
 }
+
+
+sub tests_always_fail
+{
+	note( 'Entering tests_always_fail()' ) ;
+
+        is(     0,  1,  'always_fail: 0 is 1' ) ;
+        isnt( 'A', 'A', 'always_fail: A is A' ) ;
+
+	note( 'Leaving  tests_always_fail()' ) ;
+        return ;
+}
+
 
 sub tests_testsunit
 {
@@ -20981,11 +21667,11 @@ sub testsunit
 	return ;
 }
 
-sub testsdebug 
+sub testsdebug
 {
         # Now a little obsolete since there is
         # imapsync ... --testsunit "anyfunction"
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! $mysync->{ testsdebug } ) { return ; }
         SKIP: {
                 if ( ! $mysync->{ testsdebug } ) {
@@ -21000,24 +21686,42 @@ sub testsdebug
                 #tests_kill_zero(  ) ;
                 #tests_connect_socket(  ) ;
                 #tests_probe_imapssl(  ) ;
-                #tests_cpu_number(  ) ;
                 #tests_mailimapclient_connect(  ) ;
-                #tests_loadavg(  ) ;
                 #tests_always_fail(  ) ;
-                tests_localtimez(  ) ;
-                tests_year_month_day_hour_min_sec_ms(  ) ;
-                tests_date_rfc822(  ) ;
-                tests_email_report_message_id(  ) ;
+                #tests_localtimez(  ) ;
+                #tests_year_month_day_hour_min_sec_ms(  ) ;
+                #tests_date_rfc822(  ) ;
+                #tests_email_report_message_id(  ) ;
+                tests_all_pids(  ) ;
+                tests_memory_consumption_of_myself(  ) ;
+                tests_ram_memory_info(  ) ;
+                tests_memory_consumption_of_all_pids(  ) ;
+                tests_memory_consumption_all_pids_percent(  ) ;
+                
+                #tests_memory_stress(  ) ;
+                
+                tests_memory_consumption_of_pids_win32(  ) ;
+                
+                #tests_load_and_delay(  ) ;
+                #tests_cpu_number(  ) ;
+                #tests_loadavg(  ) ;
+                #tests_load_per_cpu(  ) ;
+                #tests_all_pids(  ) ;
+                #tests_remove_qq(  ) ;
+                #tests_remove_not_num(  ) ;
+                
+                tests_infos(  ) ;
+                
                 note( 'Leaving  testsdebug()' ) ;
                 done_testing(  ) ;
         }
         return ;
-} 
+}
 
 
 sub tests
 {
-        my $mysync = shift ;
+        my $mysync = shift @ARG ;
         if ( ! $mysync->{ tests } ) { return ; }
 
         SKIP: {
@@ -21037,7 +21741,7 @@ sub tests
                 tests_good_date(  ) ;
                 tests_max(  ) ;
                 tests_remove_not_num();
-                tests_memory_consumption( ) ;
+                tests_memory_consumption_of_myself( ) ;
                 tests_is_a_release_number();
                 tests_imapsync_basename();
                 tests_list_keys_in_2_not_in_1();
@@ -21178,7 +21882,6 @@ sub tests
                 tests_eta(  ) ;
                 tests_timesince(  ) ;
                 tests_timenext(  ) ;
-
                 tests_imapsync_context(  ) ;
                 tests_abort(  ) ;
                 tests_probe_imapssl(  ) ;
@@ -21223,6 +21926,22 @@ sub tests
                 tests_logfilesuffix(  ) ;
                 tests_cgienvcontext(  ) ;
                 tests_usecache_and_skipcrossduplicates(  ) ;
+                tests_loglogfile(  ) ;
+                tests_heavy_load_reached(  ) ;
+                tests_heavy_load_percent_threshold(  ) ;
+                tests_pctmem_available(  ) ;
+                tests_filterbuggyflags(  ) ;
+                tests_heavy_load_reached_by_memory(  ) ;
+                tests_heavy_load_reached_by_cpu(  ) ;
+                tests_load_per_cpu(  ) ;
+                tests_memory_consumption_surface(  ) ;
+                tests_add(  ) ;
+                tests_all_pids(  ) ;
+                tests_memory_consumption_of_all_pids(  ) ;
+                tests_remove_qq(  ) ;
+                tests_memory_consumption_all_pids_percent(  ) ;
+                tests_ram_memory_info(  ) ;
+                
                 tests_infos(  ) ;
                 #tests_resolv(  ) ;
 
@@ -21233,7 +21952,8 @@ sub tests
                 #tests_kill_zero(  ) ;
 
                 #tests_always_fail(  ) ;
-                done_testing( 1922 ) ;
+                
+                done_testing( 1992 ) ;
                 note( 'Leaving  tests()' ) ;
         }
         return ;
@@ -21243,11 +21963,11 @@ sub tests_template
 {
         note( 'Entering tests_template()' ) ;
 
-        is( undef, template(  ),  'template: no args => undef' ) ;
+        is( undef, template(  ),  'tests_template: no args => undef' ) ;
         my $mysync = {  } ;
-        is( undef, template( $mysync ),  'template: undef => undef' ) ;
-        is_deeply( {}, {}, 'template: a hash is a hash' ) ;
-        is_deeply( [], [], 'template: an array is an array' ) ;
+        is( undef, template( $mysync ),  'tests_template: {  } => undef' ) ;
+        is_deeply( {}, {}, 'tests_template: a hash is a hash' ) ;
+        is_deeply( [], [], 'tests_template: an array is an array' ) ;
 
         note( 'Leaving  tests_template()' ) ;
         return ;

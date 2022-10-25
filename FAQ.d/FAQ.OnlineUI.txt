@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.32 2022/03/23 11:00:27 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.36 2022/09/14 11:18:05 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -35,23 +35,26 @@ Q. The sync stalls at the beginning, just after a line like:
    "Host1: xxx says it has CAPABILITY for AUTHENTICATE LOGIN"
    What is the problem?
 
+Q. The synchronization fails with the error message like:
+   Err 1/1: Host1 failure: Error login on [10.1.161.155] with user [webmaster@truc.com] auth [LOGIN]: 2 NO [ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED
+
 Now the questions again with their answers.
 
 =====================================================================
 Q. Can I launch several imap synchronizations on the visual 
    user interface /X?
 
-R. Yes. Open several tabs/windows on your browser and fill each one
+A. Yes. Open several tabs/windows on your browser and fill each one
    with different credentials.
 
 =====================================================================
 Q. How secure is the online visual user interface /X?
 
-R0. Well, I don't know if asking the provider whether his online
+A0. Well, I don't know if asking the provider whether his online
 service is secure or not would be of any interest.
 Let's do it anyway, you'll be the judge.
 
-R1. Some figures
+A1. Some figures
 
 Date of this report: 24 December 2021. Happy Christmas!
 
@@ -64,7 +67,7 @@ On average, /X has 51 users per day, each user lunches on average
 The total volume /X transferred so far is around 240 TiB coming 
 from nearly 520 000 imap account migrations and 810 million email messages.
 
-R2. Pros & Cons
+A2. Pros & Cons
 
 The online imapsync service /X runs on HTTPS only, with a letsencrypt
 certificate, an up to date certificate overall rated "A+" at
@@ -148,7 +151,7 @@ Q. I want to switch from the visual interface /X to the
    https://imapsync.lamiral.info/#DOC_BASIC
    What should I know?
 
-R. Let's do some ascii art. 
+A. Let's do some ascii art. 
    The visual interface looks roughly like this, for the textfields input part:
 
 +------------------------------------------+------------------------------------------+
@@ -203,7 +206,7 @@ https://imapsync.lamiral.info/examples/imapsync_example.sh
 Q. Shall I have issues with the browser timing out?
    What happens if the browser connection is closed for whatever reason?
 
-R. A browser connection closed closes also the imapsync process, 
+A. A browser connection closed closes also the imapsync process, 
    ie, the sync is ended right away.
 
 Further comments on this behavior.
@@ -240,7 +243,7 @@ the logfile running the sync like a "tail -f" command (isn't that magic?).
 Q. Shall I have issues when the webserver times out? What happens
    if the web server closes the connection for whatever reason?
 
-R. If the webserver closes the connection then usually it also 
+A. If the webserver closes the connection then usually it also 
    kills the imapsync process and the imap connections as well.
 
 The current webserver timeout at 
@@ -252,12 +255,46 @@ Q. The sync stalls at the beginning, just after a line like:
    "Host1: xxx says it has CAPABILITY for AUTHENTICATE LOGIN"
    What is the problem?
 
-R. I've seen this issue on /X with the imap server
+A. I've seen this issue on /X with the imap server
    CommuniGate Pro IMAP Server 6.0.11
 
 The issue looks related to special characters in the password.
 Solution for now: change the password, keep only standard (ASCII) 
 alphanumeric characters ABC-YZ abc-yz 012-89.
+
+=====================================================================
+Q. The synchronization fails with the error message like:
+   Err 1/1: Host1 failure: Error login on [10.1.161.155] with user [webmaster@truc.com] auth [LOGIN]: 2 NO [ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED
+
+A. The message "[ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED" comes directly 
+   from the IMAP server at 10.1.161.155
+
+It looks like that the 10.1.161.155 imap server filters incoming 
+connexions based on their IPS. In that case, here are the current 
+IPs of the imapsync online service (September 2022):
+
+ks5.lamiral.info      has address      91.121.221.224
+ks5ipv6.lamiral.info  has IPv6 address 2001:41d0:2:84e0::1
+ks6.lamiral.info      has address      5.39.87.81
+ks6ipv6.lamiral.info  has IPv6 address 2001:41d0:8:9951::1
+ks7.lamiral.info      has address      5.135.177.225
+ks7ipv6.lamiral.info  has IPv6 address 2001:41d0:8:b8e1::1
+i050.lamiral.info     has address      213.32.72.139
+i050ipv6.lamiral.info has IPv6 address 2001:41d0:302:1000::155d
+vp3.lamiral.info      has address      51.178.81.27
+vp3ipv6.lamiral.info  has IPv6 address 2001:41d0:404:200::4d81
+vp4.lamiral.info      has address      51.38.34.201
+vp4ipv6.lamiral.info  has IPv6 address 2001:41d0:305:2100::4c46
+
+The imapsync online service may contact your imap server with one
+or more of those IP addresses.
+
+CPhulk of Cpannel has a buildin country block that can cause this behavior.
+Later on you may encountered issues with maximum sessions per ip.
+You can change that within cPannel.
+
+https://support.cpanel.net/hc/en-us/articles/4406663082519-What-is-cPHulk-
+https://docs.cpanel.net/whm/security-center/cphulk-brute-force-protection/
 
 =====================================================================
 =====================================================================

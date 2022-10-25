@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.372 2022/04/06 10:07:32 gilles Exp gilles $  
+# $Id: tests.sh,v 1.374 2022/09/15 08:43:20 gilles Exp gilles $  
 
 # To run these tests, you need a running imap server somewhere
 # with several accounts. And be on Linux or Unix.
@@ -3604,7 +3604,7 @@ ll_useheader_noheader()
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
                 --useheader 'NoExist' \
-                --debug --delete2 
+                --debug --delete2 --addheader
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
@@ -5528,11 +5528,12 @@ easygmail_gmail1_gmail2() {
                 --justfolders
 }
 
-easygmail_gmail2() {
+easygmail_gmail2()
+{
                 $CMD_PERL ./imapsync \
                 --user1 gilles.lamiral@gmail.com \
                 --passfile1 ../../var/pass/secret.gilles_gmail \
-		--host1 imap.gmail.com --ssl1 \
+		--host1 imap.gmail.com \
                 --gmail2 \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
@@ -5611,7 +5612,6 @@ all_login_tests()
 }
 
 
-
 gmail_glX_all_justlogin()
 {
 error_list=""
@@ -5626,9 +5626,29 @@ test "X$error_list" = X;
 }
 
 
+gmail_glX_all_justfolderlist()
+{
+error_list=""
+for X in "" 0 1 2 3; do
+        $CMD_PERL ./imapsync \
+                --gmail1 --user1 imapsync.gl${X}@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl${X}_gmail \
+                --gmail2 --user2 imapsync.gl${X}@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl${X}_gmail \
+                --no-modulesversion --justfolderlists --nocheckfoldersexist || { error_list="${error_list}[imapsync.gl${X}@gmail.com] " ; }
+done
+echo3 "error_list=$error_list"
+test "X$error_list" = X;
+}
 
 
-gmail_gmail() {
+gmail_gmail_slash_in_foldername()
+{
+        ./imapsync --gmail1 --user1 imapsync.gl1@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl1_gmail \
+                   --gmail2 --user2 imapsync.gl2@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
+                   --no-modulesversion  --dry --justfolders
+}
+
+gmail_gmail()
+{
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 imap.gmail.com \
                 --user1 gilles.lamiral@gmail.com \
@@ -5636,8 +5656,36 @@ gmail_gmail() {
                 --host2 imap.gmail.com \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
-                --justfolders --exclude Gmail  --exclude "blanc\ $"
+                --justfolders --exclude Gmail  --exclude "blanc\ $" 
 }
+
+gmail_gmail_exclude()
+{
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --host2 imap.gmail.com \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --justfolders --exclude "/Trash" 
+}
+
+
+
+
+gmail_gmail_inet4() {
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --host1 imap.gmail.com \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --host2 imap.gmail.com \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --justlogin --inet4
+}
+
+
 
 gmail_gmail_ipv6() {
 

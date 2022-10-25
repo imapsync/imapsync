@@ -1,4 +1,4 @@
-$Id: FAQ.Capacity_Planning.txt,v 1.3 2022/03/22 11:12:25 gilles Exp gilles $
+$Id: FAQ.Capacity_Planning.txt,v 1.6 2022/04/23 13:45:59 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -19,17 +19,48 @@ My current question is: Shall I use
 * N/2 4GB hosts
 * N/4 8GB hosts
 
-Let's do some maths
+Let's do some observations and maths
+
+The observations are done on the standalone imapsync online which 
+characteristics are:
+
+CPU: Intel i5-2300 with 4 cores
+
+RAM: 16 GB
+
+NET: 100 Mbps symetrical, 12.5 MBytes/s symetrical, 
+     so 25 MBytes/s max for a global imapsync rate.
+
+Disks: I don't know.
+
+System: FreeBSD 11.4
+
+===== CPU =====
 
 The CPU can be an issue. On average, an imapsync run takes 5% of the
 overall cpu time for a Intel i5-2300 with 4 cores.  It implies 20
 imapsync runs is ok on the current online host before the cpus become
 the bottleneck.  As a rule of thumb, imapsync takes 20% of a cpu core.
 
+In the Intel i5-2300 4 cores, so far, the maximum number of imapsync 
+processes has been 68, which is 3 times what the system should 
+support in a standard imapsync workload. For this workload, the 
+imapsync performamces were not good, the server could not handle the load
+and was even out of order for a while. For 40 imapsync processes, the
+the performances are ok.
+
+===== RAM =====
+
 The RAM can be an issue. On average, an imapsync run takes 250 MB.  So
 4 imapsync processes per GB is the limit before swapping to disk,
 which is a known phenomenum telling when memory becomes the bottleneck.
 16 GB allows 64 imapsync processes.
+
+On the 16GB, so far, the maximum memory usage taken by imapsync processes was
+13 GB. For that value, the one minute load was 10 or more, the number of 
+imapsync processes was around 40, the total bandwidth was around 19 MiB/s.
+
+===== LINK =====
 
 The Bandwidth I/O can be an issue.  The "Average bandwidth rate" value
 given by imapsync at the end of a transfer, and also the bandwidth
@@ -43,13 +74,30 @@ On average, an imapsync runs at 3 Mbps both ways, rx and tx, so 6 Mbps
 in total.  So a 100 Mbps symetric link allows 33 imapsync processes
 before the link becomes the bottleneck.
 
-The best minutes observed so far are a global 187 Mpbs rate (23 MiB/s) 
+The best minutes observed so far are a global 187 Mpbs rate (~23 MiB/s) 
 on a 100 Mbps symetrical link done by 28 imapsync processes in parallel, 
 6.7 Mbps per process at that minute.  But the best minutes observed for a
-single imapsync process is at 103 Mbps, the rx/tx link limit.
+single imapsync process is at 103 Mbps (~13 MiB/s), the rx/tx link limit.
 
+===== DISKS =====
 
 The harddisk I/O can be an issue. I don't measure it yet because
 imapsync doesn't perform heavy I/0 where it runs. Well, I don't know,
 no measure is no knowledge, just guesses.
+
+
+===== Repartition ======
+
+
+Let's consider we have a bunch of different hosts able to run imapsync 
+processes. How should we distribute imapsync jobs among them?
+
+A simple rule is "do not add more load to a host when one of the ressources
+has reached its maximal. The ressources are memory, bandwidth, cpu, disk.
+I ignore the disk part for now.
+
+maximum number of imapsync processes for a host 
+= min( 4 * RAM_in_GB, 10 * nb_cores, bandwidth_in_mbps / 3 )
+
+
 

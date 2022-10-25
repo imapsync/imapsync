@@ -1,6 +1,6 @@
 ## Dockerfile for building a docker imapsync image
 
-# $Id: Dockerfile,v 1.42 2022/04/04 19:16:50 gilles Exp gilles $
+# $Id: Dockerfile,v 1.43 2022/05/17 14:29:36 gilles Exp gilles $
 # I use the following command to build the image:
 #
 #  docker build -t gilleslamiral/imapsync . 
@@ -64,6 +64,7 @@ RUN set -xe && \
   libparse-recdescent-perl \
   libmodule-scandeps-perl \
   libpar-packer-perl \
+  libproc-processtable-perl \
   libreadonly-perl \
   libregexp-common-perl \
   libsys-meminfo-perl \

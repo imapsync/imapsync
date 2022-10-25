@@ -6,7 +6,7 @@ NAME
 
 VERSION
 
-    This documentation refers to Imapsync $Revision: 2.200 $
+    This documentation refers to Imapsync $Revision: 2.229 $
 
 USAGE
 
@@ -225,7 +225,7 @@ OPTIONS
                            It will be combined with the --user1 value to form the 
                            string to pass with XOAUTH2 authentication.
                            The password given by --password1 or --passfile1
-                           is ignored.
+                           is ignored but needed on the command line.
                            Instead of the access token itself, the value can be a
                            file containing the access token on the first line.
                            If the value is a file, imapsync reads its first line
@@ -239,7 +239,8 @@ OPTIONS
 
      --oauthdirect1 str  : The direct string to pass with XOAUTH2 authentication.
                            The password given by --password1 or --passfile1 and 
-                           the user given by --user1 are ignored.
+                           the user given by --user1 are ignored but they are 
+                           needed to be on the command line. Consider it a bug.
 
      --oauthdirect2 str  : same thing as oauthdirect1
 
@@ -368,7 +369,7 @@ OPTIONS
 
      2019_12_22_23_57_59_532 is nearly the date of the start
      YYYY_MM_DD_HH_MM_SS_mmm
-     year_month_day_hour_minute_seconde_millisecond
+     year_month_day_hour_minute_second_millisecond
 
     and user1 user2 are the --user1 --user2 values.
 
@@ -617,7 +618,7 @@ OPTIONS
                            Default is 120 and 0 means no timeout at all.
 
                            Caveat, under CGI context, you may encounter a timeout
-                           from the webserver, killing imapsync and the imap connexions.
+                           from the webserver, killing imapsync and the imap connections.
                            See the document INSTALL.OnlineUI.txt and search
                            for "Timeout" for how to deal with this issue.
 
@@ -652,6 +653,12 @@ OPTIONS
      --releasecheck      : Check for new imapsync release.
                            it's an http request to
                            http://imapsync.lamiral.info/prj/imapsync/VERSION
+
+      --emailreport1     : Put the email final report in host1 INBOX
+      --emailreport2     : Put the email final report in host2 INBOX
+
+      --noemailreport1   : Do not put the email final report in host1 INBOX
+      --noemailreport2   : Do not put the email final report in host2 INBOX
 
      --noid              : Do not send/receive IMAP "ID" command to imap servers.
 

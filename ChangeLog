@@ -1,17 +1,138 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 2.200
+head: 2.229
 branch:
 locks: strict
-	gilles: 2.200
+	gilles: 2.229
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 1100;	selected revisions: 1100
+total revisions: 1129;	selected revisions: 1129
 description:
 ----------------------------
-revision 2.200	locked by: gilles;
+revision 2.229	locked by: gilles;
+date: 2022/09/14 18:08:24;  author: gilles;  state: Exp;  lines: +16 -16
+Make pass "make linuxtests win32tests win64tests mactests"
+----------------------------
+revision 2.228
+date: 2022/09/13 12:14:02;  author: gilles;  state: Exp;  lines: +10 -9
+Doc. --oauthaccesstoken1 needs --password1 presence. This is a bug.
+----------------------------
+revision 2.227
+date: 2022/07/28 15:59:38;  author: gilles;  state: Exp;  lines: +347 -112
+Bugfix. Fixed memory measurement on MacOS and Win32 Win64
+----------------------------
+revision 2.226
+date: 2022/07/15 12:02:47;  author: gilles;  state: Exp;  lines: +30 -26
+1966 unit tests
+----------------------------
+revision 2.225
+date: 2022/07/14 16:56:11;  author: gilles;  state: Exp;  lines: +14 -11
+*** empty log message ***
+----------------------------
+revision 2.224
+date: 2022/07/13 17:33:42;  author: gilles;  state: Exp;  lines: +8 -8
+typo connexions connections
+----------------------------
+revision 2.223
+date: 2022/07/03 10:39:30;  author: gilles;  state: Exp;  lines: +48 -11
+Default is now like --noemailreport1 --noemailreport2, no final email report. Popular demand.
+Added a stat value: memory footprint times time spent during the sync. Unity MiB * hour. Line "Memory consumption at the end".
+----------------------------
+revision 2.222
+date: 2022/06/29 12:13:58;  author: gilles;  state: Exp;  lines: +9 -10
+Remove --memorystress from CGI options.
+----------------------------
+revision 2.221
+date: 2022/06/28 23:12:01;  author: gilles;  state: Exp;  lines: +72 -63
+CGI context. Refuse to serve when the cpu load is greater than 1 per cpu. A load of 3.9 with 4 cores is ok.
+----------------------------
+revision 2.220
+date: 2022/06/28 19:01:18;  author: gilles;  state: Exp;  lines: +8 -8
+CGI context. Refuse to server when memory left is less than 1 GB.
+----------------------------
+revision 2.219
+date: 2022/06/25 21:33:30;  author: gilles;  state: Exp;  lines: +24 -19
+heavy load by cpu limit from 6 to 3. Because 6 is too big on ks6
+----------------------------
+revision 2.218
+date: 2022/06/25 06:38:24;  author: gilles;  state: Exp;  lines: +12 -9
+Typo. memory_consumption_all_pids_percent with only 2 decimals.
+----------------------------
+revision 2.217
+date: 2022/06/25 06:16:42;  author: gilles;  state: Exp;  lines: +148 -52
+CGI context. Bring back to exit on heavy load by cpu. limit is a load of 6 per core, roughly the number of processes running constantly per core.
+----------------------------
+revision 2.216
+date: 2022/06/22 18:49:55;  author: gilles;  state: Exp;  lines: +9 -9
+typo seconde second
+----------------------------
+revision 2.215
+date: 2022/06/22 01:44:01;  author: gilles;  state: Exp;  lines: +34 -21
+Added --exitonload option. Only available in CGI context for now.
+----------------------------
+revision 2.214
+date: 2022/06/08 21:28:34;  author: gilles;  state: Exp;  lines: +11 -11
+load_percent_threshold is now room for two average imapsync processes.
+----------------------------
+revision 2.213
+date: 2022/05/20 11:57:22;  author: gilles;  state: Exp;  lines: +48 -33
+Filtering buggy flags is now case insensitive. \Junk or \JUNK or \jUnK etc.
+Refactoring. Added sub tests_filterbuggyflags()
+----------------------------
+revision 2.212
+date: 2022/05/19 11:18:09;  author: gilles;  state: Exp;  lines: +67 -16
+Bugfix. Do not crash when Proc::ProcessTable field pctmem does not exist.
+----------------------------
+revision 2.211
+date: 2022/05/19 08:37:14;  author: gilles;  state: Exp;  lines: +10 -10
+Last commit 2.210 did not pass the unit tests. Fixed.
+----------------------------
+revision 2.210
+date: 2022/05/19 08:09:57;  author: gilles;  state: Exp;  lines: +10 -10
+Added filtering \JUNK flag in cgi context or with --filterbuggyflags
+----------------------------
+revision 2.209
+date: 2022/05/15 11:03:02;  author: gilles;  state: Exp;  lines: +37 -9
+Enhancement. heavy_load_percent_threshold now based on memory_footprint_average_bytes 300 MB
+----------------------------
+revision 2.208
+date: 2022/05/13 20:14:25;  author: gilles;  state: Exp;  lines: +8 -8
+90%
+----------------------------
+revision 2.207
+date: 2022/05/12 16:31:10;  author: gilles;  state: Exp;  lines: +21 -21
+memory limit to quit from 100% to 50%. Quick fix.
+----------------------------
+revision 2.206
+date: 2022/05/12 11:07:07;  author: gilles;  state: Exp;  lines: +139 -54
+Added dependency. Perl module Proc::ProcessTable. Not mandatory anyway. For now.
+CGI context. Exit when 100% of RAM memory is used by processes. Exit with status value 69 and message "EX_UNAVAILABLE: service unavailable".
+Added the % of RAM used by all processes in the memory infi line.
+----------------------------
+revision 2.205
+date: 2022/05/09 21:29:07;  author: gilles;  state: Exp;  lines: +264 -247
+perlcritic. Change all "= shift ;" to " = shift @ARG ;"
+----------------------------
+revision 2.204
+date: 2022/05/03 22:28:53;  author: gilles;  state: Exp;  lines: +34 -9
+Do not report final emails when --dry or --justfolders
+----------------------------
+revision 2.203
+date: 2022/04/26 22:57:46;  author: gilles;  state: Exp;  lines: +42 -17
+Bugfix. Allow quota like: QUOTA "user-defined quota (konsoleH)" (STORAGE 988 48829 MESSAGE 20 20)
+Enhancement. Added --memorystress to check memory crunching in normal run.
+----------------------------
+revision 2.202
+date: 2022/04/18 23:40:20;  author: gilles;  state: Exp;  lines: +89 -20
+CGI context. Do not append the log file name to ../list_all_logs_auto.txt when there is no parameters.
+----------------------------
+revision 2.201
+date: 2022/04/09 08:45:27;  author: gilles;  state: Exp;  lines: +12 -12
+Moved all getppid to mygetppid (it adds a comment on Windows, where ppid is too complicated to get.
+----------------------------
+revision 2.200
 date: 2022/04/04 16:05:55;  author: gilles;  state: Exp;  lines: +14 -10
 typo. "check the certificate server" => "check the server certificate."
 ----------------------------

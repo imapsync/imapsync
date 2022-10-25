@@ -58,11 +58,11 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 
 <!--
 <ul>
-<li><b>2.xxx</b></li>
+<li><b>2.230</b></li>
 <li><b>General</b>: </li>
 
-<li><b>Dependencies removed</b>: None </li>
 <li><b>Dependencies added</b>:   None </li>
+<li><b>Dependencies removed</b>: None </li>
 
 <li><b>Enhancement</b>: </li>
 <li><b>Enhancement</b>: </li>
@@ -81,9 +81,38 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 
 <li><b>Portability</b>: </li>
 <li><b>Portability</b>: </li>
+
+<li><b>CGI context</b>: </li>
+<li><b>CGI context</b>: </li>
+<li><b>CGI context</b>: </li>
+<li><b>CGI context</b>: </li>
 
 </ul>
 -->
+
+<ul>
+<li><b>2.229</b></li>
+<li><b>General</b>: </li>
+
+<li><b>Dependencies added</b>:   Proc::ProcessTable </li>
+<li><b>Dependencies removed</b>: None </li>
+
+<li><b>Enhancement</b>: Added a stat value: memory footprint times time spent during the sync. The unity is MiB * hour. The stat line is "Memory consumption at the end".</li>
+<li><b>Enhancement</b>: Filtering buggy flags is now case insensitive. \Junk or \JUNK or \jUnK etc. (sub tests_filterbuggyflags)</li>
+<li><b>Enhancement</b>: Added --memorystress to check memory crunching in normal run.</li>
+
+<li><b>Usability</b>: Do not email final reports by default. Use --emailreport1 and --emailreport2 to add final emails reports in each INBOX.</li>
+
+<li><b>CGI context</b>:
+        <ul>
+        <li>Refuse to serve when the cpu load is greater than 1 per cpu. A load of 3.9 with 4 cores is ok, 4.1 is not. (sub heavy_load_reached_by_cpu)</li>
+        <li>Refuse to serve when the RAM memory available for imapsync processes is less than 1 GB, presented by percentage on the first line like "64.80% used by processes". (sub heavy_load_percent_threshold)</li>
+        <li>When refuse to serve, exits with value 69 EX_UNAVAILABLE</li>
+        </ul>
+</li>
+<li><b>Testing</b>: 1992 unit tests</li>
+</ul>
+
 
 <ul>
 <li><b>2.200</b></li>
@@ -1039,7 +1068,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.84 2022/04/04 16:11:25 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.87 2022/09/15 08:42:40 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

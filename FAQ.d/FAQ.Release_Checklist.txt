@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Release_Checklist.txt,v 1.22 2022/01/14 12:46:38 gilles Exp gilles $
+$Id: FAQ.Release_Checklist.txt,v 1.27 2022/09/16 05:35:27 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -17,14 +17,28 @@ Checklist before release a new release:
 - Make "imapsync --tests" pass on Windows 32 bits
 - Make "imapsync --tests" pass on Windows 64 bits
 
+make linuxtests 
+make win32tests
+make win64tests 
+make mactests
+
+or 
+
+make -j linuxtests win32tests win64tests mactests
+
 - Make "imapsync --testslive" pass on Linux
 - Make "imapsync --testslive" pass on Mac
-- Make "imapsync --testslive" pass on Windows 32 bits
-- Make "imapsync --testslive" pass on Windows 64 bits
+
+
+make linuxtestslive mactestslive mactestslive6
+
 
 - Add a new section in S/news.shtml reading "rlog imapsync"
 - In case of a new dependency, add it to all the INSTALL/* files.
 - Generate the README
+
+make doc
+
 - Run a spell checker on the README
 - Read the README again slowly. Fix all issues, all.
 - Read the OPTIONS section of README and read it very slowly
@@ -38,8 +52,8 @@ Checklist before release a new release:
 - Review the newsletter by running:
     m4 -P W/ml_announce.in.txt
 
-- Update W/rsync_exclude_dist.txt
-- Update .gitignore
+- Update the file W/rsync_exclude_dist.txt
+- Update the file .gitignore
 
 - Review the TODO file and mark done what is done.
 - Review the general FAQ.d/FAQ.General.txt

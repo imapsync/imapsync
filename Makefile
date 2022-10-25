@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.345 2022/04/06 10:00:39 gilles Exp gilles $	
+# $Id: Makefile,v 1.349 2022/09/15 08:43:25 gilles Exp gilles $	
 
 .PHONY: help usage all doc
 
@@ -109,8 +109,6 @@ VERSION: imapsync
 	touch -r ./imapsync ./VERSION
 
 
-
-
 doc/GOOD_PRACTICES.html: doc/GOOD_PRACTICES.t2t
 	txt2tags -i doc/GOOD_PRACTICES.t2t  -t html --toc  -o doc/GOOD_PRACTICES.html
 	./W/tools/validate_html4 doc/GOOD_PRACTICES.html
@@ -172,16 +170,30 @@ install: testp W/imapsync.1
 	install W/imapsync.1 $(DESTDIR)$(PREFIX)/share/man/man1/imapsync.1
 	chmod 644 $(DESTDIR)$(PREFIX)/share/man/man1/imapsync.1
 
-
-
-
 ###############
 # Local goals
 ###############
 
-.PHONY: prereq test tests unitests testp testf test3xx perlcritic allcritic crit compok dev cover tidy nytprof functree
+.PHONY: dailybuild dailytests prereq test tests unitests testp testf test3xx perlcritic allcritic crit compok dev cover tidy nytprof functree
 
 dev: test functree crit cover nytprof bin
+
+
+dailytests: linuxtests win32tests win64tests mactests
+
+dailybuild: linuxbuild win32build win64build macbuild
+
+linuxtests:
+	./imapsync --tests
+
+linuxtestsdebug:
+	./imapsync --testsdebug
+
+testsdebug: linuxtestsdebug win64testsdebug win32testsdebug mactestsdebug 
+
+testslive:  mactestslive
+
+
 
 
 docker:
@@ -258,7 +270,7 @@ perlcritic: W/perlcritic_3.txt W/perlcritic_2.txt
 allcritic: W/perlcritic_4.txt W/perlcritic_3.txt W/perlcritic_2.txt W/perlcritic_1.txt
 
 W/perlcritic_1.txt: imapsync W/.compok 
-	perlcritic --statistics-only -1 imapsync > W/perlcritic_1.txt.tmp || :
+	perlcritic --statistics -1 imapsync > W/perlcritic_1.txt.tmp || :
 	mv W/perlcritic_1.txt.tmp W/perlcritic_1.txt
 	echo | ci -l W/perlcritic_1.txt
 
@@ -329,6 +341,7 @@ win32testsdebug:
 	scp imapsync W/test_testsdebug.bat Admin@c:'C:/msys/1.0/home/Admin/imapsync/'
 	ssh Admin@c 'C:/msys/1.0/home/Admin/imapsync/test_testsdebug.bat'
 	./W/check_winerr test_testsdebug.bat
+
 
 
 .PHONY: W/*.bat examples/*
@@ -451,34 +464,47 @@ imapsync_32bit.exe: imapsync
 	chmod a+r+x imapsync_32bit.exe
 	(date "+%s"| tr "\n" " "; echo -n "END   32bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
+win64tests: win64tests_p26
 
-
-win64tests:
+win64tests_p24:
 	unix2dos  W/test_tests.bat
 	scp imapsync W/test_tests.bat pc_HP_DV7_p24:'Desktop/imapsync_build'
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/test_tests.bat'
 	./W/check_win64err test_tests.bat
 
-win64testsdebug:
+win64testsdebug_p24:
 	unix2dos  W/test_testsdebug.bat
 	scp imapsync W/test_testsdebug.bat pc_HP_DV7_p24:'Desktop/imapsync_build'
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/test_testsdebug.bat'
 	./W/check_win64err test_testsdebug.bat
 
-
+win64testsdebug: win64testsdebug_p26
 
 win64testsdebug_p26:
 	unix2dos  W/test_testsdebug.bat
-	scp imapsync W/test_testsdebug.bat gille@p26:'Desktop\imapsync_build'
-	ssh gille@p26 'Desktop\imapsync_build\test_testsdebug.bat'
+	scp imapsync W/test_testsdebug.bat gille@p26:'OneDrive\Bureau\imapsync_build'
+	ssh gille@p26 'OneDrive\Bureau\imapsync_build\test_testsdebug.bat'
 	./W/check_p26err test_testsdebug.bat
+
 
 win64tests_p26:
 	unix2dos  W/test_tests.bat
-	scp imapsync W/test_tests.bat gille@p26:'Desktop\imapsync_build'
-	ssh gille@p26 'Desktop\imapsync_build\test_tests.bat'
+	scp imapsync W/test_tests.bat gille@p26:'OneDrive\Bureau\imapsync_build'
+	ssh gille@p26 'OneDrive\Bureau\imapsync_build\test_tests.bat'
 	./W/check_p26err test_tests.bat
 
+
+win64_test_exe_always_fail_p26:
+	unix2dos W/test_exe_always_fail.bat
+	scp W/test_exe_always_fail.bat gille@p26:'OneDrive\Bureau\imapsync_build'
+	ssh gille@p26 'OneDrive\Bureau\imapsync_build\test_exe_always_fail.bat'
+	./W/check_p26err test_exe_always_fail.bat
+
+win64_test_always_fail_p26:
+	unix2dos W/test_exe_always_fail.bat
+	scp imapsync W/test_always_fail.bat gille@p26:'OneDrive\Bureau\imapsync_build'
+	ssh gille@p26 'OneDrive\Bureau\imapsync_build\test_always_fail.bat'
+	./W/check_p26err test_always_fail.bat
 
 zzz:
 	unix2dos W/build_exe.bat W/install_module_one.bat
@@ -543,18 +569,45 @@ win64prepa: winprepalocal
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
 	./W/check_win64err build_exe.bat
 
-win64build: winprepalocal
+win64build_p24: winprepalocal
 	scp imapsync W/build_exe.bat W/install_modules.bat  pc_HP_DV7_p24:'Desktop/imapsync_build'
 	ssh 'pc HP DV7'@p24 'Desktop/imapsync_build/build_exe.bat'
 	./W/check_win64err build_exe.bat
 
 imapsync.exe: imapsync_64bit.exe_p26
-	cp -a imapsync_64bit.exe imapsync.exe
+	cp -a imapsync_64bit.exe_p26 imapsync.exe
+
+win64build: imapsync_64bit.exe_p26
 
 
+
+win64build_p26: winprepalocal
+	scp imapsync W/build_exe.bat W/install_modules.bat  gille@p26:'OneDrive\Bureau\imapsync_build'
+	ssh gille@p26 'OneDrive\Bureau\imapsync_build\build_exe.bat'
+	./W/check_win64err build_exe.bat
 
 
 .PHONY: imapsync_64bit.exe_p24 imapsync_64bit.exe_p26
+
+64exe: imapsync_64bit.exe_p26
+
+imapsync_64bit.exe_p26: imapsync
+	(date "+%s"| tr "\n" " "; echo -n "BEGIN 64bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
+	unix2dos W/build_exe.bat W/test_exe.bat W/install_modules.bat W/install_module_one.bat
+	ssh gille@p26 'perl -V'
+	ssh gille@p26 'if not exist OneDrive\Bureau\imapsync_build  mkdir OneDrive\Bureau\imapsync_build'
+	scp imapsync W/build_exe.bat W/install_modules.bat W/install_module_one.bat \
+	W/test_exe_tests.bat W/test_exe_testsdebug.bat W/test_exe.bat \
+	gille@p26:'OneDrive\Bureau\imapsync_build'
+	ssh gille@p26 'OneDrive\Bureau\imapsync_build\build_exe.bat'
+	./W/check_p26err build_exe.bat
+	scp ../../var/pass/secret.tata ../../var/pass/secret.titi gille@p26:'OneDrive\Bureau\imapsync_build'
+	ssh gille@p26 'OneDrive\Bureau\imapsync_build\test_exe.bat'
+	./W/check_p26err test_exe.bat
+	rm -f imapsync_64bit.exe
+	scp -T gille@p26:'OneDrive\Bureau\imapsync_build\imapsync_64bit.exe' .
+	chmod a+r+x imapsync_64bit.exe
+	(date "+%s"| tr "\n" " "; echo -n "END   64bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
 
 imapsync_64bit.exe_p24: imapsync
@@ -573,26 +626,8 @@ imapsync_64bit.exe_p24: imapsync
 	chmod a+r+x imapsync_64bit.exe
 	(date "+%s"| tr "\n" " "; echo -n "END   64bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
-imapsync_64bit.exe: imapsync
-	(date "+%s"| tr "\n" " "; echo -n "BEGIN 64bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
-	unix2dos W/build_exe.bat W/test_exe.bat W/install_modules.bat W/install_module_one.bat
-	ssh gille@p26 'perl -V'
-	ssh gille@p26 'if not exist Desktop\imapsync_build  mkdir Desktop\imapsync_build'
-	scp imapsync W/build_exe.bat W/install_modules.bat W/install_module_one.bat \
-	W/test_exe_tests.bat W/test_exe_testsdebug.bat W/test_exe.bat \
-	gille@p26:'Desktop\imapsync_build'
-	ssh gille@p26 'Desktop\imapsync_build\build_exe.bat'
-	./W/check_p26err build_exe.bat
-	scp ../../var/pass/secret.tata ../../var/pass/secret.titi gille@p26:'Desktop\imapsync_build'
-	ssh gille@p26 'Desktop\imapsync_build\test_exe.bat'
-	./W/check_p26err test_exe.bat
-	rm -f imapsync_64bit.exe
-	scp -T gille@p26:'Desktop\imapsync_build\imapsync_64bit.exe' .
-	chmod a+r+x imapsync_64bit.exe
-	(date "+%s"| tr "\n" " "; echo -n "END   64bit " $(VERSION) ": "; date) >> W/.BUILD_EXE_TIME
 
-
-zip: dosify_bat
+zip: dosify_bat cidone
 	rm -rfv ../prepa_zip/imapsync_$(VERSION)/
 	mkdir -p ../prepa_zip/imapsync_$(VERSION)/FAQ.d/ ../prepa_zip/imapsync_$(VERSION)/Cook/
 	cp -av examples/imapsync_example.bat examples/sync_loop_windows.bat examples/file.txt  ../prepa_zip/imapsync_$(VERSION)/
@@ -614,9 +649,9 @@ zip: dosify_bat
 mac: imapsync_bin_Darwin
 
 macstadiumcopy:
-	rsync -v imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver administrator@macstadium.lamiral.info:
-	rsync -v examples/file.txt examples/sync_loop_darwin.sh administrator@macstadium.lamiral.info:examples/
-	rsync -v X/ administrator@macstadium.lamiral.info:X/
+	rsync -pv imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver administrator@macstadium.lamiral.info:
+	rsync -pv examples/file.txt examples/sync_loop_darwin.sh administrator@macstadium.lamiral.info:examples/
+	rsync -pv X/ administrator@macstadium.lamiral.info:X/
 
 maccopy:
 	rsync -v -p -e 'ssh -4 -p 995' imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver \
@@ -648,6 +683,16 @@ mactestslive6:
 	rsync -p -e 'ssh -4 -p 995' imapsync gilleslamira@gate.polarhome.com:
 	ssh -4 -p 995 gilleslamira@gate.polarhome.com '. .bash_profile; perl imapsync --testslive6'
 
+macstests:
+	rsync -pv imapsync administrator@macstadium.lamiral.info:
+	ssh administrator@macstadium.lamiral.info '. .bash_profile; perl imapsync --tests'
+
+macstestsdebug:
+	rsync -pv imapsync administrator@macstadium.lamiral.info:
+	ssh administrator@macstadium.lamiral.info '. .bash_profile; perl imapsync --testsdebug'
+
+
+
 .PHONY: bin win lin win32 win64
 
 bin: mac win
@@ -659,6 +704,10 @@ win: win32 win64 imapsync.exe
 win32: imapsync_32bit.exe
 
 win64: imapsync_64bit.exe
+
+win32build: imapsync_32bit.exe
+
+linuxbuild: lin
 
 
 $(BIN_NAME): imapsync
@@ -893,15 +942,19 @@ upload_latest: unitests ci_imapsync bin
 
 
 
-.PHONY: upload_cgi upload_cgi_ks5 upload_cgi_memo upload_cgi_vp3 upload_cgi_vp4 upload_cgi_ks6
+.PHONY: upload_cgi upload_cgi_ks5 upload_cgi_memo upload_cgi_vp3 upload_cgi_vp4 upload_cgi_ks6 upload_tmphash_all
 
-upload_cgi: upload_cgi_ks5 upload_cgi_vp3 upload_cgi_vp4 upload_cgi_ks6
 
-upload_cgi_ks5: ci_imapsync unitests ks5tests
-	rsync -P imapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/imapsync_new
-	curl -v --data 'testslive=1' https://imapsync.lamiral.info/cgi-bin/imapsync_new  | grep 'Exiting with return value 0'
-	rsync -P imapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/imapsync
-	curl -v --data 'testslive=1' https://imapsync.lamiral.info/cgi-bin/imapsync  | grep 'Exiting with return value 0'
+upload_proximapsync:
+	rcsdiff W/learn/proximapsync
+	W/learn/proximapsync --tests
+	W/learn/proximapsync --testslive | grep 'Exiting with return value 0'
+	rsync -P W/learn/proximapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/proximapsync_new
+	ssh root@ks5.lamiral.info '/home/www/apache24/cgi-bin/proximapsync_new --tests'
+	ssh root@ks5.lamiral.info '/home/www/apache24/cgi-bin/proximapsync_new --testslive' | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1' https://imapsync.lamiral.info/cgi-bin/proximapsync_new 2>/dev/null | grep 'Exiting with return value 0'
+	rsync -P W/learn/proximapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/proximapsync
+	curl -v --data 'testslive=1' https://imapsync.lamiral.info/cgi-bin/proximapsync     2>/dev/null | grep 'Exiting with return value 0'
 
 upload_cgi_memo:
 	dos2unix X/stat_patterns.txt X/server_survey_patterns.txt
@@ -909,31 +962,73 @@ upload_cgi_memo:
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks5:/var/tmp/imapsync_cgi/
 
 upload_cgi_memo_all:
-	rsync -av X/cgi_memo root@ks5:/var/tmp/imapsync_cgi/
-	rsync -av X/cgi_memo root@ks6:/var/tmp/imapsync_cgi/
-	rsync -av X/cgi_memo root@vp3:/var/tmp/imapsync_cgi/
-	rsync -av X/cgi_memo root@vp4:/var/tmp/imapsync_cgi/
+	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks5:/var/tmp/imapsync_cgi/
+	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks6:/var/tmp/imapsync_cgi/
+	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks7:/var/tmp/imapsync_cgi/
+	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@vp3:/var/tmp/imapsync_cgi/
+	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@vp4:/var/tmp/imapsync_cgi/
+	! ping -c1 -W1 cl1 || rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@cl1:/var/tmp/imapsync_cgi/
+
+upload_tmphash_all:
+	scp /var/tmp/imapsync_hash root@ks5:/var/tmp/imapsync_hash && ssh root@ks5 chgrp www      /var/tmp/imapsync_hash
+	scp /var/tmp/imapsync_hash root@ks6:/var/tmp/imapsync_hash && ssh root@ks6 chgrp www-data /var/tmp/imapsync_hash
+	scp /var/tmp/imapsync_hash root@vp3:/var/tmp/imapsync_hash && ssh root@vp3 chgrp www-data /var/tmp/imapsync_hash
+	scp /var/tmp/imapsync_hash root@vp4:/var/tmp/imapsync_hash && ssh root@vp4 chgrp apache   /var/tmp/imapsync_hash
+	scp /var/tmp/imapsync_hash root@i050:/var/tmp/imapsync_hash && ssh root@i050 chgrp www-data /var/tmp/imapsync_hash
+
+test_cgi_all:
+	curl -v --data 'testslive=1;exitonload=0' https://imapsync.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0' # ks5
+	curl -v --data 'testslive=1;exitonload=0' https://i006.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://i007.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://i013.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://i014.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+
+upload_cgi: upload_cgi_ks5 upload_cgi_vp3 upload_cgi_vp4 upload_cgi_ks6 upload_cgi_ks7 
+
+# FreeBSD
+upload_cgi_ks5: ci_imapsync unitests ks5tests
+	rsync -P imapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/imapsync_new
+	curl -v --data 'testslive=1;exitonload=0' https://imapsync.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
+	rsync -P imapsync root@ks5.lamiral.info:/home/www/apache24/cgi-bin/imapsync
+	curl -v --data 'testslive=1;exitonload=0' https://imapsync.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+
 
 # Debian
 upload_cgi_vp3: ci_imapsync vp3tests
 	rsync -P imapsync      root@vp3.lamiral.info:/usr/lib/cgi-bin/imapsync_new
-	curl -v --data 'testslive=1' https://vp3.lamiral.info/cgi-bin/imapsync_new  | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://vp3.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
 	rsync -P imapsync      root@vp3.lamiral.info:/usr/lib/cgi-bin/imapsync
-	curl -v --data 'testslive=1' https://vp3.lamiral.info/cgi-bin/imapsync  | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://vp3.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
 
 # Centos
 upload_cgi_vp4: ci_imapsync vp4tests
 	rsync -P imapsync      root@vp4.lamiral.info:/var/www/cgi-bin/imapsync_new
-	curl -v --data 'testslive=1' https://vp4.lamiral.info/cgi-bin/imapsync_new  | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://vp4.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
 	rsync -P imapsync      root@vp4.lamiral.info:/var/www/cgi-bin/imapsync
-	curl -v --data 'testslive=1' https://vp4.lamiral.info/cgi-bin/imapsync  | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://vp4.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
 
 # Debian
 upload_cgi_ks6: ci_imapsync ks6tests
 	rsync -P imapsync      root@ks6.lamiral.info:/usr/lib/cgi-bin/imapsync_new
-	curl -v --data 'testslive=1' https://ks6.lamiral.info/cgi-bin/imapsync_new  | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://ks6.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
 	rsync -P imapsync      root@ks6.lamiral.info:/usr/lib/cgi-bin/imapsync
-	curl -v --data 'testslive=1' https://ks6.lamiral.info/cgi-bin/imapsync  | grep 'Exiting with return value 0'
+	curl -v --data 'testslive=1;exitonload=0' https://ks6.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+
+# Promox/Debian
+upload_cgi_ks7: ci_imapsync ks7tests
+	rsync -P imapsync      root@ks7.lamiral.info:/usr/lib/cgi-bin/imapsync_new
+	curl -v --data 'testslive=1;exitonload=0' https://ks7.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
+	rsync -P imapsync      root@ks7.lamiral.info:/usr/lib/cgi-bin/imapsync
+	curl -v --data 'testslive=1;exitonload=0' https://ks7.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+
+# Debian
+upload_cgi_cl1: ci_imapsync cl1tests
+	rsync -P imapsync      root@cl1.lamiral.info:/usr/lib/cgi-bin/imapsync_new
+	curl -v --data 'testslive=1;exitonload=0' https://cl1.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
+	rsync -P imapsync      root@cl1.lamiral.info:/usr/lib/cgi-bin/imapsync
+	curl -v --data 'testslive=1;exitonload=0' https://cl1.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+
+
 
 .PHONY: vp3tests vp4tests ks6tests 
 
@@ -952,10 +1047,29 @@ ks6tests:
 	ssh root@ks6.lamiral.info ./imapsync --tests
 	ssh root@ks6.lamiral.info ./imapsync --testslive6
 
+ks7tests:
+	rsync -P imapsync root@ks7.lamiral.info:imapsync
+	ssh root@ks7.lamiral.info ./imapsync --tests
+	ssh root@ks7.lamiral.info ./imapsync --testslive6
+
+cl1tests:
+	rsync -P imapsync root@cl1.lamiral.info:imapsync
+	ssh root@cl1.lamiral.info ./imapsync --tests
+	ssh root@cl1.lamiral.info ./imapsync --testslive6
+
+
+upload_imapsync_all:
+	scp imapsync INSTALL.d/prerequisites_imapsync W/learn/processtable root@i005.lamiral.info:
+	scp imapsync INSTALL.d/prerequisites_imapsync W/learn/processtable root@i006.lamiral.info:
+	scp imapsync INSTALL.d/prerequisites_imapsync W/learn/processtable root@i013.lamiral.info:
+	scp imapsync INSTALL.d/prerequisites_imapsync W/learn/processtable root@i014.lamiral.info:
+
+
 upload_X:
-	./W/tools/validate_xml_html5 X/index.html X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html
-	rcsdiff X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html X/imapsync_form.css X/noscript.css
-	rcsdiff X/imapsync_form.js X/imapsync_form_wrapper.js 
+	./W/tools/validate_xml_html5 X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html X/proximapsync_form_extra_free.html
+	rcsdiff                      X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html X/proximapsync_form_extra_free.html
+	rcsdiff X/imapsync_form.css X/noscript.css 
+	rcsdiff X/imapsync_form.js X/imapsync_form_wrapper.js X/proximapsync_form.js
 	rcsdiff INSTALL.d/INSTALL.OnlineUI.txt
 	rsync -a ./INSTALL.d/INSTALL.OnlineUI.txt ../imapsync_website/INSTALL.d/INSTALL.OnlineUI.txt
 	rsync -av   --delete   X/ ../imapsync_website/X/
@@ -977,6 +1091,10 @@ upload_FAQ:
 	rsync -avH  --delete  ./doc/                ../imapsync_website/doc/
 	rsync -aHvz --delete ../imapsync_website/   root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
 
+upload_oauth2:
+	rm -f oauth2/D_oauth2_*
+	rsync -aHv  --delete  ./oauth2/          ../imapsync_website/oauth2/
+	rsync -aHvz --delete ../imapsync_website/   root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
 
 upload_ks_W_memo:
 	rsync -av W/memo gilles@ks.lamiral.info:public_html/imapsync/W/memo

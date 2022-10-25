@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Flags.txt,v 1.26 2021/04/25 20:47:05 gilles Exp gilles $
+$Id: FAQ.Flags.txt,v 1.28 2022/06/22 17:07:35 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -21,6 +21,9 @@ Q. How to convert flags?
 Q. Exchange sends an email to any sender whose email is deleted 
    without reading. It's called "unread notifications".
    How to set the \Seen flag on host1 (source system) before syncing?
+
+Q. Every single mail synced to exchange online owns the 
+   category $MDNSent after migration. How can I avoid this?
 
 Q. Does imapsync retain the \Answered and $Forwarded flags?
 
@@ -174,6 +177,18 @@ https://translate.google.com/translate?sl=auto&tl=en&u=https%3A%2F%2Fwww.ci-solu
 German original:
 https://www.ci-solution.com/blog/artikel/ungelesen-geloescht-verhindern.html
 (Link from Oliver B.)
+
+======================================================================
+Q. Every single mail synced to exchange online owns the 
+   category $MDNSent after migration. How can I avoid this?
+
+R. To remove the flag $MDNSent from all messages, use:
+
+  imapsync ... --regexflag "s/\$MDNSent//g"
+
+See also the document
+https://imapsync.lamiral.info/FAQ.d/FAQ.Flags.txt
+
 =======================================================================
 Q. Does imapsync retain the \Answered and $Forwarded flags?
 
@@ -305,7 +320,8 @@ You can try --nofilterflags straightaway without the
 "other thunderbird" proposal.
 
 There is also the possibility to map flags across servers 
-with --regexflags
+with the option --regexflag. See some --regexflag examples 
+above. 
 
 
 =======================================================================

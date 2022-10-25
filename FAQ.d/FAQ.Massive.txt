@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Massive.txt,v 1.32 2021/11/01 11:30:48 gilles Exp gilles $
+$Id: FAQ.Massive.txt,v 1.34 2022/07/14 16:00:23 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -14,7 +14,7 @@ Questions answered here are:
 
 Q. How long will take the whole migration?
 
-Q. I need to migrate hundred accounts, how can I do?
+Q. I need to migrate hundreds of accounts, how can I do that?
 
 Q. I have to migrate 500k users using 400 TB of disk space. 
    How do I proceed? How about speed?
@@ -23,7 +23,7 @@ Q. How to determine where is the bottleneck in an imapsync process?
 
 Q. Can I run several instances of imapsync in parallel on a Windows host?
 
-Q. I run multiple imapsync applications at the same time then get a
+Q. I run multiple imapsync applications at the same time and then get a
    warning "imapsync.pid already exists, overwriting it".
    Is this a potential problem when trying to sync multiple 
    IMAP account in parallel?
@@ -31,17 +31,18 @@ Q. I run multiple imapsync applications at the same time then get a
 =======================================================================
 Q. How long will take the whole migration? 
 
-R1. First you have to consider several periods. There is the global 
-    period, from when the migration process is decided to the final end
+R1. First, you have to consider several periods. There is the global 
+    period, from when the migration process is decided to the end,
     where all mailboxes are migrated. This global period can be divided
     into three smaller periods.
     
-    The first period is the analyse period: you play with the tools 
+    The first period is the analysis period: you play with the tools 
     available, you estimate the volume to be transferred, the number of
     accounts, you measure how long it takes for one account under
     your context.
     
-    The second period is the presync period. The users are still using
+    The second period is what I call the presyncing period. 
+    The users are still using
     the old accounts but nothing prevents you from starting to sync
     the old accounts, as they are, to the new accounts.
     With tons of gigabytes to transfer, this period may be the longest one. 
@@ -49,15 +50,15 @@ R1. First you have to consider several periods. There is the global
     until the round is finished.
     
     The last period is the final sync period where only the last 
-    changes of the mailboxes need to be synced in order to switch
+    mailboxes' changes  need to be synced before switching
     the users to their new mailboxes.
 
-R2. To estimate the presync period, consider the mean imapsync transfer
+R2. To estimate the presyncing period, consider the mean imapsync transfer
     rate to be around 340 Kbytes/s, ie, 2.8 Mbps, no matter the local 
     link bandwidth.
-    It's a mean, measured upon various different syncs, coming from 
+    It's a mean, measured upon various syncs, coming from 
     the online service /X where the network card flow rate is 200 Mbps 
-    (Rx 100 Mps, Tx 100 Mps) and the provider bandwidth is also 200 Mbps.
+    (Rx 100 Mbps, Tx 100 Mbps) and the provider bandwidth is also 200 Mbps.
     The maximum global rate seen is 22 MiB/s (176 Mbps).
    
     At 340 Kbytes/s,
@@ -65,15 +66,15 @@ R2. To estimate the presync period, consider the mean imapsync transfer
     At  10 transfers at a time, 1 TB will take 3.5 days.
     At 100 transfers at a time, 1 TB will take 8 hours.
     Double the time because the best scenario never happens.
-    Triple the time because, well, real world is like that.
+    Triple the time because, well, the real world is like that.
 
-R3. An other way to better evaluate the end of the presync period can 
+R3. Another way to better evaluate the end of the presyncing period can 
     be based on your actual data. Just apply a simple rule of three 
     on the mailboxes already migrated to estimate the global end.
     If it took X hours to finish Y% of the mailboxes, then it
     will take 100*X/Y hours to finish 100% of the mailboxes.
 
-    Following the same idea but using matematical garbage, 
+    Following the same idea but using mathematical garbage, 
     the ETA can be estimated like this: 
     t_0      = time of global start (the start of the first presync)
     t_now    = time of now.
@@ -90,11 +91,11 @@ R4. To estimate the last period, the final sync, just rerun a complete
     the same amount of time.
     
 =======================================================================
-Q. I need to migrate hundred accounts, how can I do?
+Q. I need to migrate hundreds of accounts, how can I do that?
 
 R. If you have many mailboxes to migrate, think about a little
 script program. Write a file called file.txt (for example)
-containing hosts, users and passwords on both sides.
+containing hosts, users, and passwords on both sides.
 The separator used in this example is ";"
 
 The file.txt file contains for example:
@@ -105,8 +106,8 @@ host003_1;user003_1;password003_1;host003_2;user003_2;password003_2;
 host004_1;user004_1;password004_1;host004_2;user004_2;password004_2;
 etc.
 
-Most of the times, the first column (host001_1, host002_1 ...) will
-contains the same value, the value of --host1 parameter. Same
+Most of the time, the first column (host001_1, host002_1 ...) will
+contain the same value, the value of --host1 parameter. Same
 thing for the third column (host001_2, host002_2).
 
 On Unix the shell script can be:
@@ -147,7 +148,7 @@ becomes
 host001_1;user001_1;password001_1;host001_2;user001_2;password001_2; --automap --addheader
 host002_1;user002_1;password002_1;host002_2;user002_2;password002_2; --automap --addheader
 
-With this solution, options can be added, changed or removed per account.
+With this solution, options can be added, changed, or removed per account.
 Technically those options will go in %%M in the loop body 
 
 Here is a complete Windows example ready to use: 
@@ -169,11 +170,11 @@ Q. I have to migrate 500k users using 400 TB of disk space.
 
 R. A good solution to this issue is two words: parallelism and measurements.  
 
-Since all mailboxes are functionnaly independent, they can be processed 
+Since all mailboxes are functionally independent, they can be processed 
 independently, here comes the parallelism, ie, lunching several imapsync 
 processes in parallel.
 
-Meanwhile, mailboxes usually belong to the same server and the syncs
+Meanwhile, mailboxes usually belong to the same server, and the syncs
 share the same imapsync host via the same bandwidth, here come 
 some limitations and bottlenecks.
 
@@ -184,7 +185,7 @@ Here comes some measurements.
    Since adding this way is not so easy, just look at the overall 
    network rate of the imapsync host.
 
-   On Linux and FreeBSD, nload is a good candidate to measure this overall
+   On Linux and FreeBSD, the command "nload" is a good candidate to measure this overall
    network rate. For example, to measure the rate every 6 seconds (-t 6000), 
    on eth0 or em0 interface, with values in Kbytes (-u K), use:
    
@@ -195,24 +196,26 @@ Here comes some measurements.
    
      dstat -n -N eth0 6  # Linux only (in 2018)
 
-   Another excellent tool to measure the network trafic is iftop.
-   The following command will monitor imap and imaps connexions
-   on interfce eth0, only them, and sum them up:
+   Another excellent tool to measure the network traffic is iftop.
+   The following command will monitor imap and imaps connections
+   on interface eth0, only them, and sum them up:
    
      iftop -i eth0 -f 'port imap or port imaps' -B # Linux
      iftop -i em0  -f 'port imap or port imaps' -B # FreeBSD
 
    During iftop, press the h to see the display commands available, 
    every single feature is useful! Press h again and try each one.
-   My preferred display combination is by typing
+   My preferred display combination is by typing the keys
    t p >  
-   meaning: one line per connection, show port numbers, sort by destination.
+   t  means "one line per connection"
+   p means "show port numbers"
+   > means "sort by destination"
 
 
    On Windows 8.1 Windows 10 Windows 2012 R2 Windows 2016,
    get the overall network rate with the classical
    task manager (Ctrl-Shift-Esc), there is a Performance tab
-   in it where resides a Network grap monitor.
+   in it, where resides a Network monitor.
 
    On Windows 7, get the overall network rate with the classical
    task manager (Ctrl-Shift-Esc), there is a Network tab in it.
@@ -224,7 +227,7 @@ Here comes some measurements.
    transfer rate increase.
 
 3) When the total transfer rate starts to diminish, stop new launches. 
-   Note N as the number of parallel runs you got until then.
+   Note N as the number of runs in parallel you got until then.
 
 4) Only keep N-2 parallel runs for the future.
 
@@ -234,15 +237,15 @@ Q. How to determine where is the bottleneck in an imapsync process?
 
 R1. Divide and conquer.
 
-In order to detect whether host1/link1 is the bottleneck or
+To detect whether host1/link1 is the bottleneck or
 host2/link2, we have several tests to explore:
 
-1) run a sync from host1 to host1, with a host1 test account as destination.
-This way, only host1+link1 are tested, host2 is not directly concerned.
+1) run a sync from host1 to host1, with a host1 test account as the destination.
+This way, only host1 and link1 are tested, host2 is not directly concerned.
 If performances increase a lot then host2/link2 is the bottleneck.
 
-2) run a sync from host2 to host2, with a host2 test account as destination.
-This way, only host2+link2 are tested, host1 is not concerned.
+2) run a sync from host2 to host2, with a host2 test account as the destination.
+This way, only host2 and link2 are tested, host1 is not concerned.
 If performances increase a lot then host1/link1 is the bottleneck.
 
 If performances increase on both tests 1) and 2), I have no clue to explain that.
@@ -250,39 +253,39 @@ Same thing if they both decrease!
 
 R2. Isolating and overcoming bottlenecks
 
-On any process involving several mechanisms, among all elements taking
-part on the process, there is always a bottleneck.  No one knows in
+In any process involving several mechanisms, among all elements taking
+part in the process, there is always a bottleneck.  No one knows in
 advance what is the first bottleneck. The first bottleneck has to be
 determined, by measurements, not by guesses.  Once this first
 bottleneck is known and overcome then the next bottleneck has to be
 determined and overcome too, if needed. Repeat the process of looking
 for the next bottleneck and its elimination until you estimate the
 transfer rates, money costs, time spent on this, and final dates 
-are good enough to proceed the whole huge migration.
+are good enough to proceed with the whole huge migration.
 
 Possible bottlenecks: 
 
 - Throttles. 
   IMAP servers have artificial limits. 
-  For example Gmail, Office365, Exchange have throttle limits.
+  For example, Gmail, Office365, and Exchange have throttle limits.
 
 - Bandwidth. 
-  Usually available bandwidth is NOT a bottleneck.
-  Meanwhile, it can be a bottleneck on small Internet connexions.
+  Usually, the available bandwidth is not a bottleneck.
+  Meanwhile, it can be a bottleneck on small Internet connections.
   Imapsync downloads messages from host1 and upload messages to host2,
-  consider this in case the connexion are asymmetric.
+  consider this in case the connection is asymmetric.
   
-- I/O on disks. 
-  I/O are a classical bottleneck, almost always forgotten.
+- I/O, aka "Input/Output" on the disks of the imap servers.
+  The I/O on disks are a classical bottleneck, almost always forgotten.
   Unlike CPU and RAM, Input/Output performances don't improve
   very much as time goes on so it's often a bottleneck.
   To measure and overcome an I/O disk bottleneck, you need 
-  usually a direct access to host1 and host2.
+  usually direct access to host1 and host2.
   An I/O bottleneck where imapsync runs is possible if
   --usecache or --useuid is used or with very big messages.
 
 
-- RAM memory.
+- RAM.
   On all sides, monitor that your systems don't swap its 
   running processes on disk, because swapping running processes 
   on disks decreases performance by a factor of 20, at least.
@@ -291,9 +294,8 @@ Possible bottlenecks:
 
 - CPU.
   100% CPU during a whole transfer means the system is busy.
-  Usually CPU is not a problem with imapsync but it can be a problem
-  with one of the imap servers.
-  Most often CPU is not the real bottleneck, I/O are.
+  CPU can be a problem with imapsync but it can also be a problem
+  with one or both of the imap servers.
 
 Other possible bottlenecks:
 - Number of hosts available to run imapsync processes.
@@ -312,10 +314,10 @@ Q. Can I run several instances of imapsync in parallel on a Windows host?
 
 R. Yes!
 
-Q. Any performance issue?
+Q. Any performance issues?
 
 You have to try and check the transfer rates, sum them up to
-have a uniq numeric criteria. 
+have a unique numeric criterion. 
 There is always a limit, depending on remote imap servers 
 and the one running imapsync.
 CPU, memory, Inputs/Outputs are the classical bottlenecks, 
@@ -336,7 +338,7 @@ REM After that, just double-click on each batch file to launch each process
 
 
 =======================================================================
-Q. I run multiple imapsync applications at the same time then get a
+Q. I run multiple imapsync applications at the same time and then get a
    warning "imapsync.pid already exists, overwriting it".
    Is this a potential problem when trying to sync multiple 
    IMAP account in parallel?
@@ -346,7 +348,7 @@ by yourself.
 
 This file can help you to manage multiple runs by sending signals 
 to the processes (sigterm or sigkill) using their PID.
-Each run can have its own pid file with --pidfile option.
+Each run can have its pid file with --pidfile option.
 The file imapsync.pid contains the PID of the current imapsync process.
 This file is removed at the end of a normal run.
 You can safely ignore the warning if you don't use imapsync.pid file

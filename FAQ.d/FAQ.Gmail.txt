@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.87 2022/02/10 12:42:52 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.92 2022/06/28 11:03:40 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -56,7 +56,9 @@ Q. What are the Gmail imap names of the folders
 
 Q. Can I transfer Gmail "Chat" messages with imapsync?
 
-Q. Can I safely use --useuid for Gmail transfers?
+Q. Can I safely use --useuid or --usecache for Gmail transfers?
+
+Q. Can I use --syncduplicates Gmail transfers?
 
 Q. Gmail does not really delete messages in folder [Gmail]/All Mail
    What happens? What can I do?
@@ -95,77 +97,22 @@ it has to be allowed in the Gmail configuration part:
  -> Click on the button "Save changes" at the bottom of the page.
 
 That's not finished, there is also the authentication issue to consider.
-There are three different ways to authenticate to Gmail with Imapsync,
+There are two different ways to authenticate to Gmail with Imapsync,
 either:
 
-1) "Access for less secure apps"
-2) "2-step verification"
-3) XOauth2 ready for groups on any OS or 
+1) "App password with 2-step verification"
+
+or
+
+2) XOauth2 ready for groups on any OS or 
    for individual Gmail authentication on Linux.
 
-For the last one, XOauth2, see the document 
+For the second one, XOauth2, see the document 
 https://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
 
 
-1) "Access for less secure apps", the first way to authenticate 
-   to Gmail with Imapsync. This is the easiest way because
-   you just have to turn one button on.
-
-Go to https://myaccount.google.com/
-Click on the Security tab on the left menu or go directly to
-https://myaccount.google.com/security?gar=1
-
- -> Verify 2-step verification is OFF
-    https://myaccount.google.com/security?hl=en&pli=1&nlr=1#signin
-
-Near the end of the page,
- -> Turn ON "Access for less secure apps"
-    https://www.google.com/settings/security/lesssecureapps
-    https://support.google.com/accounts/answer/6010255?hl=en
-
-Here is what Google add on this "Access for less secure apps":
-"Some apps and devices use less secure sign-in technology, which makes your 
-account vulnerable. You can turn off access for these apps, which we recommend, 
-or turn it on if you want to use them despite the risks. 
-Google will automatically turn this setting OFF if it’s not being used."
-
-So after a while, this button will be turned off again.
-I suggest to turn it off once the job with imapsync is finished.
-
-If you forgot to also enable imap you end up with login failure like this one:
-"Host failure: Error login on [imap.gmail.com] with user [xxxx@gmail.com] auth [LOGIN]:
-NO [ALERT] Your account is not enabled for IMAP use. Please visit your Gmail 
-settings page and enable your account for IMAP access. (Failure)"
-
-After using imapsync on a Gmail account, sometimes you may encounter an email 
-with the title "Critical security alert for your linked Google Account"
-and the body 
-"Sign-in attempt was blocked for your linked Google Account
-xxxx@gmail.com
-Someone just used your password to try to sign in to your account from 
-a non-Google app. Google blocked them, but you should check what happened. 
-Review your account activity to make sure that no one else has access."
-Click on the button "Check Activity" and let Gmail know you were the author 
-of the sign in.
-
-
-Sometimes, with Gsuite, the login for the users are ok with imapsync
-for a while then they become forbidden with 
-"failure: Error login on [imap.gmail.com] with user [xxx] auth [LOGIN]: 
-2 NO [AUTHENTICATIONFAILED] Invalid credentials (Failure)"
-
-In that case, use:
-https://admin.google.com/AdminHome?hl=fr#ServiceSettings/notab=1&service=securitysetting&subtab=lesssecureappsaccess
-to allow "Access for less secure apps to all users"
-(Thanks to Sébastien R. for this input)
-Remark: even if the user has enabled less secure apps at Super Admin 
- and reseller level, it still needs amended at 
- https://myaccount.google.com/security
- (Thanks Tony@gle for this last tip!)
-
-
-2) "2-step verification" the second way to authenticate 
-   to Gmail with Imapsync.
+1) "App password with 2-step verification" is the first way to 
+   authenticate to Gmail with Imapsync.
 
 Go to
 https://myaccount.google.com/security
@@ -795,6 +742,12 @@ message, and Gmail will always accept and throw away the new copy. It
 ends up with no duplicates on Gmail but a waste of bandwidth and time,
 which is the opposite goal of --usecache implied by --useuid.
 
+=======================================================================
+Q. Can I use --syncduplicates Gmail transfers?
+
+R. Yes, but Gmail will accept the new duplicate message and 
+throw away the new copy. It ends up with no duplicates on Gmail but 
+a waste of bandwidth and time.
 
 ======================================================================= 
 Q. Gmail does not really delete messages in folder [Gmail]/All Mail

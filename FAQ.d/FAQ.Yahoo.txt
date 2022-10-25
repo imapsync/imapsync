@@ -1,5 +1,5 @@
 
-$Id: FAQ.Yahoo.txt,v 1.13 2021/12/03 12:38:58 gilles Exp gilles $
+$Id: FAQ.Yahoo.txt,v 1.15 2022/05/05 14:17:22 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -64,6 +64,7 @@ Q. Synchronizing from XXX to Yahoo
 
 R. Example:
 
+On Linux:
   ./imapsync \
     --host1 XXX \
     --user1 Billy@other.com \
@@ -71,7 +72,19 @@ R. Example:
     --host2 imap.mail.yahoo.com \
     --user2 Billy@yahoo.com \
     --password2 billysecretb \
+    --regexmess 's{(?<![\n])\z}{\r\n}gxms'
+
+On Windows:
+  imapsync.exe \
+    --host1 XXX \
+    --user1 Billy@other.com \
+    --password1 billysecreta \
+    --host2 imap.mail.yahoo.com \
+    --user2 Billy@yahoo.com \
+    --password2 billysecretb \
     --regexmess "s{(?<![\n])\z}{\r\n}gxms"
+
+
 
 You wonder why there is this ugly regex, what it does and where does it 
 come from?

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.User_Concurrent_Access.txt,v 1.5 2018/05/24 11:34:30 gilles Exp gilles $
+$Id: FAQ.User_Concurrent_Access.txt,v 1.6 2022/05/05 13:18:29 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -35,12 +35,31 @@ Details:
                            so --delete2 is needed to sync the deletion.
   * message flag change => will need a resync
 
+Let's more precise about timing.
+Imapsync works per folder, one folder at a time.
+
+If imapsync has already synced a folder during a run, 
+what happens to this folder now won't be synced by the current run.
+
+If imapsync has not already synced a folder during a run, 
+what happens to this folder now will be synced by the current run.
+
+If imapsync is syncing a folder during a run,
+what happens to this folder now depends on when things happen.
+Imapsync starts by listing messages and getting meta data about them,
+Message-Id, Date, Size.
+A message deleted just after the listing, won't be synced.
+A new message arriving just after the listing, won't be synced.
+
+
 * Writing at destination/host2:
   * adding folder       => no problem, unless --delete2folders is used
   * deleting folder     => will reappear by a new sync
   * adding message      => no problem, unless --delete2 is used on next sync.
   * deleting message    => might reappear by a new sync.
   * message flag change => will be reseted by a new sync.
+
+
 
 =======================================================================
 =======================================================================

@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Authentication_failure.txt,v 1.15 2022/03/03 11:43:55 gilles Exp gilles $
+$Id: FAQ.Authentication_failure.txt,v 1.16 2022/08/17 09:18:17 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -25,17 +25,17 @@ Q. Imapsync fails with the following error, what can I do?
 Host1 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 NO [AUTHENTICATIONFAILED] Authentication failed
 
 
-R. One over four imapsync syncs ends up quickly with the error message 
+R. One over four imapsync synchronizations end up quickly with the error message 
    "Authentication failed" or "NO LOGIN failed" or a similar message.
    Authentication failure is the primary failure with imapsync
    and since nothing tangible can be done without authentication, 
    this stage must succeed to go further.
 
-Here are some advices to get you pass this difficult stage of authentication:
+Here is some advice to get you to pass this difficult stage of authentication:
 
-  * Triple check each credential parameter. It's not always a password problem,
+  * Triple-check each credential parameter. It's not always a password problem,
     it can be the wrong host or the wrong user.
-    There are three parameters at each side:
+    There are three parameters on each side:
      * triple check --host1
      * triple check --user1
      * triple check --password1
@@ -43,7 +43,7 @@ Here are some advices to get you pass this difficult stage of authentication:
      * triple check --user2
      * triple check --password2
 
-   * If you can authenticate successfully with an other imap client software 
+   * If you can authenticate successfully with another imap client software 
      like Thunderbird or Outlook or Sparrow then it is a very good sign to 
      authenticate successfully with imapsync. Examine the parameters of 
      this other imap client and copy them as is for imapsync.
@@ -52,7 +52,7 @@ Here are some advices to get you pass this difficult stage of authentication:
      At the beginning of the output, imapsync dumps all its command
      line parameters; it's the line after "Command line used:".
      With --showpasswords, imapsync prints the passwords received 
-     instead of the string MASKED. It helps for debugging quoting issues.
+     instead of the string MASKED. It helps with debugging quoting issues.
      Option --showpasswords shows passwords again when the IMAP dialog
      is dumped by --debugimap option. Search for a line like 
      "Sending: 2 LOGIN test1 secret1" (secret1 is the password here).
@@ -64,18 +64,18 @@ Here are some advices to get you pass this difficult stage of authentication:
      https://imapsync.lamiral.info/FAQ.d/FAQ.Passwords_on_Mac.txt
      
      The quickest trick may be to change the password temporally
-     with easy characters like the classical alphabet, a long
-     string still ensure strong security.
+     with easy characters like the classical alphabet, one long
+     string still ensures strong security.
 
    * Sometimes some servers announce they support LOGIN but it
-     actually fails because the authentication mechanism
+     fails because the authentication mechanism
      working is something else like CRAM-MD5 or PLAIN. 
      So:
        * Try --authmech1 CRAM-MD5 (or --authmech2 CRAM-MD5)
        * Try --authmech1 PLAIN    (or --authmech2 PLAIN)
 
     * Manually test a login via ssl.
-      Use either ncat or telnet-ssl or openssl commands like in the 
+      Use either ncat or telnet-ssl or openssl commands, like in the 
       following examples with imap.gmail.com server:
 
   ncat --ssl -C imap.gmail.com 993
@@ -85,7 +85,7 @@ Here are some advices to get you pass this difficult stage of authentication:
 Replace imap.gmail.com by your imap server.
 The three commands do the same work here.
 
-Tipical dialog for an imap LOGIN command:
+Typical dialog for an imap LOGIN command:
   
 * OK Gimap ready for requests from 78.196.254.58 q1mb175739668wix
 a LOGIN "gilles.lamiral@gmail.com" "secret" 

@@ -1,5 +1,5 @@
 
-// $Id: imapsync_form_new.js,v 1.12 2019/07/29 22:42:19 gilles Exp gilles $
+// $Id: proximapsync_form.js,v 1.2 2022/05/04 00:40:46 gilles Exp gilles $
 
 /*jslint browser: true*/ /*global  $*/
 
@@ -19,7 +19,7 @@ $(document).ready(
     "4": "Finished and response is ready"
         } ;
 
-        var refresh_interval_ms = 5000 ;
+        var refresh_interval_ms = 6000 ;
         var refresh_interval_s = refresh_interval_ms  / 1000 ;
         var test = {
             counter_all : 0 ,
@@ -51,8 +51,36 @@ $(document).ready(
         }
         $("#tests").append( message ) ;
     } ;
+    
+    var note = function note( message )
+    {
+        $("#tests").append( message ) ;
+    } ;
 
-    function last_eta( string )
+
+    var tests_last_x_lines = function tests_last_x_lines()
+    {
+        is( "", last_x_lines(), "last_x_lines: no args => empty string" ) ;
+        is( "", last_x_lines(""), "last_x_lines: empty string => empty string" ) ;
+        is( "abc", last_x_lines("abc"), "last_x_lines: abc => abc" ) ;
+        is( "abc\ndef", last_x_lines("abc\ndef"), "last_x_lines: abc\ndef => abc\ndef" ) ;
+        is( "def", last_x_lines("abc\ndef", -1), "last_x_lines: abc\ndef -1 => def\n" ) ;
+        is( "", last_x_lines("abc\ndef", 0), "last_x_lines: abc\ndef 0 => empty string" ) ;
+        is( "abc\ndef", last_x_lines("abc\ndef", -10), "last_x_lines: last 10 of 2 lines => 2 lines" ) ;
+        is( "4\n5\n", last_x_lines("1\n2\n3\n4\n5\n", -3), "last_x_lines: last 3 lines of 5 lines" ) ;
+        is( "3\n4\n5", last_x_lines("1\n2\n3\n4\n5", -3), "last_x_lines: last 3 lines of 5 lines" ) ;
+    } ;
+
+    var last_x_lines = function last_x_lines( string, num )
+    {
+        if ( undefined === string || 0 === num )
+        {
+            return "" ;
+        }
+        return string.split(/\r?\n/).slice(num).join("\n") ;
+    } ;
+
+    var last_eta = function last_eta( string )
     {
         // return the last occurrence of the substring "ETA: ...\n"
         // or "ETA: unknown" or ""
@@ -77,8 +105,10 @@ $(document).ready(
             return "ETA: unknown" ;
         }
     }
+    
+   
 
-    function tests_last_eta()
+    var tests_last_eta = function tests_last_eta()
     {
         is( "", last_eta(  ),  "last_eta: no args => empty string" ) ;
 
@@ -252,7 +282,7 @@ $(document).ready(
         }
         else
         {
-            slice_length = -240 ;
+            slice_length = -2400 ;
         }
         slice_log = xhr.responseText.slice( slice_length ) ;
         eta_str   = last_eta( slice_log ) ;
@@ -278,11 +308,13 @@ $(document).ready(
         return ;
     } ;
 
-    function refreshLog( xhr )
+    var refreshLog = function refreshLog( xhr )
     {
         var eta_obj ;
         var eta_str ;
 
+        $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+        
         eta_obj = extract_eta( xhr ) ;
 
         progress_bar_update( eta_obj ) ;
@@ -290,25 +322,25 @@ $(document).ready(
         if ( xhr.readyState === 4 )
         {
             // end of sync
-            $("#progress-txt").text(
+                $("#progress-txt").text(
                 "Ended. It remains "
                 + eta_obj.msgs_left + " messages to be synced" ) ;
+                
+                $( "#output" ).text( xhr.responseText ) ;
         }
         else
         {
-            eta_str = eta_obj.str + " (refresh every " + refresh_interval_s + " s)" ;
-            eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, "") ; // trim newline
-            //$("#tests").append( "refreshLog  eta_str: " + eta_str + "\n" ) ;
-            $("#progress-txt").text( eta_str ) ;
-
+                eta_str = eta_obj.str + " (refresh every " + refresh_interval_s + " s)" ;
+                eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, "") ; // trim newlines
+                //$("#tests").append( "refreshLog  eta_str: " + eta_str + "\n" ) ;
+                $( "#progress-txt" ).text( eta_str ) ;
+                var last_lines = last_x_lines( xhr.responseText.slice(-2000), -10)
+                $( "#output" ).text( last_lines ) ;
         }
-
-        $( "#output" ).text( xhr.responseText ) ;
     }
 
 
-
-    function handleRun(xhr, timerRefreshLog)
+    var handleRun = function handleRun(xhr, timerRefreshLog)
     {
 
         $("#console").text(
@@ -319,15 +351,17 @@ $(document).ready(
         // var headers = xhr.getAllResponseHeaders();
         // $("#console").append(headers);
         // $("#console").append("See the completed log\n");
-        $("#link_to_bottom").show() ;
         clearInterval( timerRefreshLog ) ;
         refreshLog( xhr ) ; // a last time
         // back to enable state for next run
         $("#bt-sync").prop("disabled", false) ;
+        
+        $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+
         }
     }
 
-    function imapsync()
+    var imapsync = function imapsync()
     {
         var querystring = $("#form").serialize() ;
         $("#abort").text("\n\n") ; // clean abort console
@@ -351,6 +385,8 @@ $(document).ready(
         {
             querystring = querystring + "&office2=on" ;
         }
+        
+        // querystring = querystring + "&tmphash=" + tmphash(  ) ;
 
 
         var xhr ;
@@ -366,14 +402,14 @@ $(document).ready(
             handleRun( xhr, timerRefreshLog ) ;
         } ;
 
-        xhr.open( "POST", "/cgi-bin/imapsync", true ) ;
+        xhr.open( "POST", "/cgi-bin/proximapsync", true ) ;
         xhr.setRequestHeader( "Content-type",
             "application/x-www-form-urlencoded" ) ;
         xhr.send( querystring ) ;
     }
 
 
-    function handleAbort( xhr )
+    var handleAbort = function handleAbort( xhr )
     {
 
         $( "#abort" ).text(
@@ -388,7 +424,7 @@ $(document).ready(
         }
     }
 
-    function abort()
+    var abort = function abort()
     {
         var querystring = $("#form").serialize() + "&abort=on";
         var xhr;
@@ -397,12 +433,12 @@ $(document).ready(
         {
             handleAbort(xhr);
         };
-        xhr.open("POST", "/cgi-bin/imapsync", true);
+        xhr.open("POST", "/cgi-bin/proximapsync", true);
         xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
         xhr.send(querystring);
     }
 
-    function store( id )
+    var store = function store( id )
     {
         var stored ;
         //$( "#tests" ).append( "Eco: " + id + " type is " + $( id ).attr( "type" ) + "\n" ) ;
@@ -420,7 +456,7 @@ $(document).ready(
         return stored ;
     }
 
-    function retrieve( id )
+    var retrieve = function retrieve( id )
     {
         var retrieved ;
         //$( "#tests" ).append( "Eco: " + id + " type is " + $( id ).attr( "type" ) + " length is " + $( id ).length + "\n" ) ;
@@ -438,7 +474,7 @@ $(document).ready(
         return retrieved ;
     }
 
-    function tests_store_retrieve()
+    var tests_store_retrieve = function tests_store_retrieve()
     {
         if ( $("#tests").length !== 0 )
         {
@@ -479,7 +515,7 @@ $(document).ready(
     }
 
 
-    function store_form()
+    var store_form = function store_form()
     {
         if ( Storage !== "undefined")
         {
@@ -506,7 +542,7 @@ $(document).ready(
         }
     }
 
-    function show_extra_if_needed()
+    var show_extra_if_needed = function show_extra_if_needed()
     {
         if ( $("#subfolder1").length && $("#subfolder1").val().length > 0 )
         {
@@ -518,7 +554,7 @@ $(document).ready(
         }
     }
 
-    function retrieve_form()
+    var retrieve_form = function retrieve_form()
     {
         if ( Storage !== "undefined" )
         {
@@ -555,14 +591,14 @@ $(document).ready(
                     localStorage.account2_background_color ) ;
             }
 
-            // Show the extra parameters if they are not empty because it would be dangerous
-            // to retrieve them without knowing
+            // Show the extra parameters if they are not empty because it would
+            //  be dangerous to retrieve them without showing them
             show_extra_if_needed() ;
         }
     }
 
 
-    function showpassword( id, button )
+    var showpassword = function showpassword( id, button )
     {
         var x = document.getElementById( id );
         if ( button.checked )
@@ -573,15 +609,72 @@ $(document).ready(
         }
     }
 
-    function init()
+
+
+    var tests_cryptojs = function tests_cryptojs()
+    {
+        if ( $("#tests").length !== 0 )
+        {
+            if (typeof CryptoJS === 'undefined')
+            {
+                is( true, typeof CryptoJS !== 'undefined', "CryptoJS is available" ) ;
+                note( "CryptoJS is not available on this site. Ask the admin to fix this.\n" ) ;
+            }
+            else if (typeof CryptoJS.SHA256 !== "function")
+            { 
+                is( "function", typeof CryptoJS.SHA256, "CryptoJS.SHA256 is a function" ) ;
+                note( "CryptoJS.SHA256 function is not available on this site. Ask the admin to fix this.\n" ) ;
+            }
+            else
+            {
+                // safe to use the function
+                is( "function", typeof CryptoJS.SHA256, "CryptoJS.SHA256 is a function" ) ;
+                is( "2f77668a9dfbf8d5848b9eeb4a7145ca94c6ed9236e4a773f6dcafa5132b2f91", sha256("Message"), "sha256 Message" ) ;
+                is( "26429a356b1d25b7d57c0f9a6d5fed8a290cb42374185887dcd2874548df0779", sha256("caca"), "sha256 caca" ) ;
+                is( "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", sha256(""), "sha256 ''" ) ;
+                is( tmphash(), tmphash(), "tmphash" ) ;
+                
+                $("#user1").val("test1") ;
+                $("#password1").val("secret1") ;
+                $("#host1").val("test1.lamiral.info") ;
+                $("#user2").val("test2") ;
+                $("#password2").val("secret2") ;
+                $("#host2").val("test2.lamiral.info") ;
+                is( "20d2b4917cf69114876b4c8779af543e89c5871c6ada68107619722e55af1101", tmphash(), "tmphash like testslive" ) ;
+                $("#user1").val("") ;
+                $("#password1").val("") ;
+                $("#host1").val("") ;
+                $("#user2").val("") ;
+                $("#password2").val("") ;
+                $("#host2").val("") ;
+
+            }
+        }
+    }
+    
+    var sha256 = function sha256( string )
+    {
+            var hash = CryptoJS.SHA256( string ) ;
+            var hash_hex = hash.toString( CryptoJS.enc.Hex ) ;
+            return( hash_hex ) ;
+    }
+
+    var tmphash = function tmphash()
+    {
+            var string = "" ;
+            string = string.concat( 
+                $("#user1").val(), $("#password1").val(), $("#host1").val(), 
+                $("#user2").val(), $("#password2").val(), $("#host2").val(), 
+                )
+        return( sha256( string ) ) ;
+    }
+
+    var init = function init()
     {
     // in case of a manual refresh, start with
         $("#bt-sync").prop("disabled", false);
         $("#bt-abort").prop("disabled", false);
-        $("#link_to_bottom").hide();
         $("#progress-bar-left").css( "width", 100 + "%" ).attr( "aria-valuenow", 100 ) ;
-
-        retrieve_form();
 
         $("#showpassword1").click(
             function ( event )
@@ -605,9 +698,9 @@ $(document).ready(
         $("#bt-sync").click(
             function ()
             {
+                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
                 $("#bt-sync").prop("disabled", true) ;
                 $("#bt-abort").prop("disabled", false) ;
-                $("#link_to_bottom").hide() ;
                 $("#progress-txt").text( "ETA: coming soon" ) ;
                 store_form() ;
                 imapsync() ;
@@ -617,9 +710,11 @@ $(document).ready(
         $("#bt-abort").click(
             function ()
             {
+                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
                 $("#bt-sync").prop("disabled", true);
                 $("#bt-abort").prop("disabled", true);
                 abort();
+                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
             }
         );
 
@@ -653,12 +748,29 @@ $(document).ready(
                 showpassword( "password2", $("#showpassword2")[0] ) ;
             }
         ) ;
+        
+        if ( "imapsync.lamiral.info" === location.hostname )
+        {
+                $( "#local_bandwidth" ).collapse( "show" ) ;
+                $( "#local_status_dbmon" ).collapse( "show" ) ;
+                $( "#local_status_hetrix" ).collapse( "show" ) ;
+                $( "#imapsync_advice_hours" ).collapse( "show" ) ;
+                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+        }
+        else if ( "lamiral.info" === location.hostname )
+        {
+                $( "#local_bandwidth" ).collapse( "show" ) ;
+                $( "#local_status_dbmon" ).collapse( "show" ) ;
+                $( "#local_status_hetrix" ).collapse( "show" ) ;
+                $( "#imapsync_advice_hours" ).collapse( "show" ) ;
+                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+        }
     }
 
-        var tests_bilan = function tests_bilan()
+        var tests_bilan = function tests_bilan( nb_attended_test )
         {
-            // attended number of tests
-            var nb_attended_test = 29 ;
+            // attended number of tests: nb_attended_test
+            
             $("#tests").append( "1.." + test.counter_all + "\n" ) ;
             if ( test.counter_nok > 0 )
             {
@@ -681,22 +793,32 @@ $(document).ready(
             }
         } ;
 
-        function tests()
+        var tests = function tests( nb_attended_test )
         {
             if ( $("#tests").length !== 0 )
             {
                 tests_store_retrieve(  ) ;
                 tests_last_eta(  ) ;
                 tests_decompose_eta_line(  ) ;
+                tests_last_x_lines( ) ;
+                // tests_cryptojs(  ) ;
+                
+                // The following test can be used to check that if a test fails
+                // then all the tests are shown to the user.
                 //is( 0, 1, "this test always fails" ) ;
-                tests_bilan(  ) ;
+                
+                tests_bilan( nb_attended_test ) ;
+                
+                // If you want to always see the tests, uncomment the following 
+                // line
                 //$("#tests").collapse("show") ;
 
             }
         }
 
         init(  ) ;
-        tests(  ) ;
+        tests( 38 ) ;
+        retrieve_form(  ) ;
 
     }
 

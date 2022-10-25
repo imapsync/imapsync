@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Emptying.txt,v 1.12 2021/09/09 11:53:53 gilles Exp gilles $
+$Id: FAQ.Emptying.txt,v 1.14 2022/06/08 11:08:39 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -7,7 +7,7 @@ https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.Emptying.txt
 
 =======================================================================
-               Imapsync tip to empty an account.
+               Imapsync tips about deletions.
 =======================================================================
 
 Questions answered in this FAQ are:
@@ -24,6 +24,8 @@ Q. How to delete emails older than 90 days with imapsync?
 
 Q. How to delete emails matching a certain criterium with imapsync?
 
+Q. Is there a way to delete the destination folders when the source 
+   folders are no longer there?
 
 Now the questions again with their answers.
 
@@ -127,6 +129,25 @@ Example:
     --host1 test.lamiral.info --user1 foo --password1 secret \
     --host2 test.lamiral.info --user2 foo --password2 secret \
     --delete1 --noexpungeaftereach --search "SENTBEFORE 31-Dec-2010"
+
+======================================================================
+Q. Is there a way to delete the destination folders when the source 
+   folders are no longer there?
+
+R. Yes, use --delete2folders
+
+ --delete2folders    : Delete folders in host2 that are not in host1.
+                       For safety, first try it like this, it is safe:
+                       --delete2folders --dry --justfolders --nofoldersizes
+                       and see what folders will be deleted.
+
+ --delete2foldersonly   reg : Delete only folders matching the regex reg.
+                              Example: --delete2foldersonly "/^Junk$|^INBOX.Junk$/"
+                              This option activates --delete2folders
+
+ --delete2foldersbutnot reg : Do not delete folders matching the regex rex.
+                              Example: --delete2foldersbutnot "/Tasks$|Contacts$|Foo$/"
+                              This option activates --delete2folders
 
 =======================================================================
 =======================================================================

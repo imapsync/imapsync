@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!-- $Id: imapsync_form_extra.html,v 1.28 2022/05/07 13:51:28 gilles Exp gilles $ -->
+<!-- $Id: proximapsync_form_extra_free.html,v 1.3 2022/05/07 13:53:00 gilles Exp gilles $ -->
 
 <html lang="en" id="top">
 
@@ -13,7 +13,7 @@
         </script>
 -->
 
-        <title>Imapsync Online Unlimited</title>
+        <title>Mailbox Imapsync Online</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -57,16 +57,74 @@
             <img alt="Imapsync home" title="Imapsync home page" src="https://imapsync.lamiral.info/X/logo_imapsync_Xn.png" height="38" width="60">
             </a>
             <a href="#top" title="Top of the page" class="btn btn-info " role="button">Top</a>
+            <a href="#payment"  class="btn btn-success" data-toggle="collapse">Pricing</a>
+            <!-- <a href="#buttons"  class="btn btn-info scripton"  role="button">Consoles</a> -->
             <a href="#bottom" title="Bottom of the page" class="btn btn-info active" role="button">Bottom</a>
         </div>
     </div>
 
-    <h1 class="text-center">Imapsync Online Unlimited</h1>
+    <h1 class="text-center">Mailbox Imapsync Online</h1>
 
-    <p class="text-center larger"> <strong>Copy</strong>/synchronize a <strong>complete</strong> Mailbox to another, without <strong>duplicates!</strong></p>
+    <p class="text-center larger"><strong>Copy/synchronize</strong> a <strong>Mailbox</strong> (below 3 GB) to another, 
+    without <strong>duplicates!</strong><br>
+    <strong>Buying</strong> gives <strong>unlimited</strong> syncs of <strong>any size</strong>.</p>
     
+<!-- Paypal part start 
+new: NDGMR6TLFZ926
+old: H2YTURNFT4XT4
+-->
 
-    <form id="form" action="/cgi-bin/imapsync" method="post" autocomplete="on">
+        <!-- A button above the pricing form, not very beautiful... 
+        I should give it a try anyway because nearly no one buy this service...
+        <div class="text-center">
+        <a href="#payment" class="btn btn-warning btn-lg" data-toggle="collapse">Pricing</a>
+        </div>
+        -->
+
+<!-- the "in" makes the form not collapsed by default 
+     Remove the "in" in order to mask the pricing section 
+     <div id="payment" class="well text-center collapse in" > 
+     <div id="payment" class="well text-center collapse out" > -->
+     <div id="payment" class="well text-center collapse out" >
+        <p class="lead">Pay by usage type</p>
+        <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+            <input type="hidden" name="cmd" value="_s-xclick" />
+            <input type="hidden" name="hosted_button_id" value="H2YTURNFT4XT4" />
+            <input type="hidden" name="on0" value="imapsync choice" />
+            <fieldset>
+            <!--
+            <label data-toggle="tooltip" data-placement="top" title="Fair enough"
+            class="radio-inline"><input type="radio" name="os0" value="Tiny"          > €1,00     </label>
+            <label data-toggle="tooltip" data-placement="top" title="A big mailbox"
+            class="radio-inline"><input type="radio" name="os0" value="Small" checked > €6,00  </label>
+            -->            
+            <label data-toggle="tooltip" data-placement="top" title="Many mailboxes to migrate"
+            class="radio-inline"><input type="radio" name="os0" value="High" checked > €120,00   </label>
+            <label data-toggle="tooltip" data-placement="top" title="Some big mailboxes to migrate"
+            class="radio-inline"><input type="radio" name="os0" value="Normal"       >  €30,00  </label>
+            <br>
+            <input type="hidden" name="currency_code" value="EUR" />
+            <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_buynowCC_LG.gif" name="submit" alt="PayPal - A safe, easy way to pay online!" />
+            </fieldset>
+        <p>
+                <strong>30-day money back guarantee!</strong> <br>
+                <em><b>No question</b> nor condition to get a <b>refund</b>, really, <b>just request</b> it and you'll <b>sure</b> get a refund!</em>
+        </p>
+
+<p>
+<input  type="hidden"  value="VAT if professional in Europe"  name="on1" />
+If you're a <b>European professional</b> buyer, please enter your <b>VAT number</b>:
+<input  type="text"  maxlength="17"  size="17"  name="os1" />
+
+It's for the <b>invoice</b> and customs declaration.<br />
+It's <b>ok</b> if you <b>don't</b> have a VAT number.<br />
+</p>
+        </form>
+    </div>
+<!-- Paypal part end -->
+
+
+    <form id="form" action="/cgi-bin/proximapsync" method="post" autocomplete="on">
         <div id="form_row" class="row">
             <div id="account1" class="col-md-5" >
                 <fieldset>
@@ -272,6 +330,7 @@
 
         <input type="hidden" name="automap"   value="on">
         <input type="hidden" name="addheader" value="on">
+        <input type="hidden" name="exitwhenover" value="3000000000">
         <!-- -#->
         <input type="hidden" name="simulong" value="360">
         <!-#- -->
@@ -283,7 +342,7 @@
         If you <b>close</b> this <b>window</b> (or tab) <b>during</b> the synchronization, 
         it will <b>abort</b> the synchronization, it's like <b>hitting</b> the red button <b>"Abort!"</b> below.
         </div>
-
+        
         <!-- Classical button to go to the log only, when javascript is turned off -->
         <noscript>
                 <div class="row">
@@ -324,7 +383,7 @@
     <div class="row scripton" id="consoles" >
 
         <pre id="imapsync_current" class="center-block text-center"></pre>
-		
+
         <span id="imapsync_advice_hours" class="text-center collapse">
         Best <a href="#local_bandwidth"><b>bandwidth available hours</b></a> are from <b>11h PM to 11h AM UTC</b> on Mondays to Fridays, <b>all hours</b> on Saturdays and <b>Sundays</b>.
         </span>
@@ -347,6 +406,7 @@
 
 
             </pre>
+            
         </div>
 
         <div class="col-sm-6 well">
@@ -365,7 +425,6 @@
 <div class="text-center scripton">
 <a href="#imapsync_log_bottom">Link to the <b>bottom</b> of the imapsync log file</a>
 </div>
-
 <pre id="output" class="scripton">
 
 
@@ -442,7 +501,7 @@ monitor page powered by the <a href="https://hetrixtools.com/414322.html">Hetrix
             <!-- <a href="#buttons"  class="btn btn-info scripton" role="button">Consoles</a> -->
             <a href="#bottom" title="Bottom of the page" class="btn btn-info active" role="button">Bottom</a>
             <br>
-        <small> ($Id: imapsync_form_extra.html,v 1.28 2022/05/07 13:51:28 gilles Exp gilles $) </small><br>
+        <small> ($Id: proximapsync_form_extra_free.html,v 1.3 2022/05/07 13:53:00 gilles Exp gilles $) </small><br>
         Terms and conditions for anything: <a href="https://imapsync.lamiral.info/LICENSE">No limits to do anything with this work and this license!</a><br>
         </div>
     </div>
@@ -468,9 +527,10 @@ crossorigin="anonymous"
 -->
 
 <script
-src="imapsync_form.js"
+src="proximapsync_form.js"
 >
 </script>
+
 
 </body>
 </html>

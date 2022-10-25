@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.ISP.txt,v 1.13 2021/12/06 20:02:39 gilles Exp gilles $
+$Id: FAQ.ISP.txt,v 1.14 2022/05/22 08:04:05 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -9,7 +9,8 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.ISP.txt
       Imapsync tips for ISP. Specific issues and solutions.
 =======================================================================
 
-* IMAPSync - usage scenario with ISP - by Flavio Zarur Lucarelli (https://www.lucanet.com.br)
+* IMAPSync - usage scenario with ISP - by Flavio Zarur Lucarelli
+  (https://www.lucanet.com.br)
 
 I thought I had to write a quick step by step on my attempts to learn
 the imapsync features that matter the most, so it works as we expected
@@ -20,9 +21,10 @@ Lamiral for all his help and hard work.
 First of all, remember to use --dry to test things first always and
 check the log file to see what would actually happen.
 
-This type of copy keeps destination exactly like source (except, it doesn't 
-copy duplicates), so use it ONLY before changing your MX to the new server, 
-as it will delete whatever is in destination which isn't in source.
+This type of copy keeps destination exactly like source (except, it
+doesn't copy duplicates), so use it ONLY before changing your MX to
+the new server, as it will delete whatever is in destination which
+isn't in source.
 
   imapsync --host1 imap.myisp.com --user1 user@domain.com --password1 pwd \
            --host2 imap.myisp.com --user2 user@domain.com --password2 pwd \
@@ -119,8 +121,9 @@ If your last full sync was 2 days ago, then use --maxage 2
 Goal is to get all the new emails (2 last days) from source.
 
 Another alternative for syncing after the MX change, which Lamiral
-suggests, involves deleting emails from source from the last day.
-I prefer the method explained above. Anyway, here is this other cenario...
+suggests, involves deleting emails from source from the last day.  I
+prefer the method explained above. Anyway, here is this other
+scenario...
 
 Something like this:
 
@@ -186,17 +189,50 @@ Option --automap is also good to do most of the translate job.
 
 3) Folders to exclude, to speed up syncs, etc.
 
---exclude "^Backups" --exclude "(?i)spam" --exclude "(?i)junk" --exclude "(?i)trash" --exclude "(?i)lixeira" --exclude "(?i)Deleted Items"
+  imapsync ... --exclude "^Backups" --exclude "(?i)spam" --exclude "(?i)junk" --exclude "(?i)trash" --exclude "(?i)lixeira" --exclude "(?i)Deleted Items"
 
 4) Delete older than 1 year from an account.
 
 Use the account itself as source and destination and use:
 
---minage 365 --delete1
+  imapsync ... --minage 365 --delete1
 
-5) Check size of folders in an account. Use Imapsync with same account as source and destination, with this parameter:
+5) Check size of folders in an account. Use Imapsync with same account
+   as source and destination, with this parameter:
 
---justfoldersizes
+  imapsync ... --justfoldersizes
+
+
+6) If you have problems copying messages that have labels which are
+   not supported, there are a few ways out.
+
+We use Dovecot and it doesn't support a series of labels, except the
+standard ones. By default, imapsync won't copy messages that have
+labels not supported by the recipient server. For that reason, I now
+always use --filterbuggyflags and tell customers that not all labels
+are copied.
+
+There are other alternatives, such as replacing problematic flags with
+other names or copying just standard flags, detailing which ones to
+copy, however, --filterbuggyflags was the easiest solution, which
+worked fine for us.
+
+7) Definitely worth reading about dupes, here
+https://imapsync.lamiral.info/FAQ.d/FAQ.Duplicates.txt, if you have
+problems.  Always try to check, even if by sampling, if dupes
+occur. In a big migration, when you do several passes, try to check a
+few accounts.
+
+The one issue we had with many duplicated emals in the destinatio, was
+solved with the first solution in the above FAQ, using this syntax,
+when copying from source to the destination, hence effectively
+removing the dupes.
+
+  imapsync ... --useheader "Message-Id" --delete2duplicates
+
+Note that --delete2duplicates is on when --delete2 is used, unless
+--syncduplicates is used or --nodelete2duplicates is used.
+
 
 =======================================================================
 =======================================================================
