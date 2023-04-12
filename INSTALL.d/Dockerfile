@@ -56,7 +56,6 @@ RUN set -xe && \
   libfile-tail-perl \
   libio-compress-perl \
   libio-socket-ssl-perl \
-  libio-socket-inet6-perl \
   libio-tee-perl \
   libhtml-parser-perl \
   libjson-webtoken-perl \
