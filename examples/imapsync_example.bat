@@ -54,7 +54,7 @@
 @REM start syncing messages.
 
 @REM In case you are impatient, just remove  --justfolders --dry 
-@REM in the firt place and go. Imapsync is not that bad by default anyway!
+@REM in the first place and go. Imapsync is not that bad by default anyway!
 
 
 .\imapsync.exe --host1 "test1.lamiral.info"  --user1 "test1" --password1  "secret1"  ^
