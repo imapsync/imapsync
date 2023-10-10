@@ -86,8 +86,8 @@
 
 
 # "$@" will be replaced by the parameters of this script itself,
-# the one you are reading now. It's usefull if you want to
-# add temporarly a parameter for all runs without editing any file.
+# the one you are reading now. It's useful if you want to
+# add temporarily a parameter for all runs without editing any file.
 # For example, 
 #   sync_parallel_curl.sh --justlogin 
 # will run all imapsync with the --justlogin parameter added.
@@ -98,7 +98,7 @@ check_parallel_is_here() {
         parallel --version > /dev/null || { echo "parallel command is not installed. Install it first."; return 1; }
 }
 
-# First, there is no need to go further if the parallel command is not avalable
+# First, there is no need to go further if the parallel command is not available
 # one the current system.
 
 check_parallel_is_here || exit 1 ;
