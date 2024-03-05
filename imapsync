@@ -1001,7 +1001,6 @@ use File::stat ;
 use Getopt::Long (  ) ;
 use IO::File ;
 use IO::Socket qw( :crlf SOL_SOCKET SO_KEEPALIVE ) ;
-use IO::Socket::INET6 ;
 use IO::Socket::SSL ;
 use IO::Tee ;
 use IPC::Open3 'open3' ;
@@ -7075,7 +7074,6 @@ sub modulesversion
                 'HTML::Entities'        => sub { $HTML::Entities::VERSION },
                 'IO::Socket'            => sub { $IO::Socket::VERSION },
                 'IO::Socket::INET'      => sub { $IO::Socket::INET::VERSION },
-                'IO::Socket::INET6'     => sub { $IO::Socket::INET6::VERSION },
                 'IO::Socket::IP'        => sub { $IO::Socket::IP::VERSION },
                 'IO::Socket::SSL'       => sub { $IO::Socket::SSL::VERSION },
                 'IO::Tee'               => sub { $IO::Tee::VERSION },
@@ -7870,13 +7868,14 @@ sub tests_connect_socket
                         skip( 'Tests avoided on CUILLERE/pcHPDV7-HP/macosx.polarhome.com/docker cannot do ipv6', 2 ) ;
                 }
 
-                $socket = IO::Socket::INET6->new(
-                        PeerAddr => 'ks6ipv6.lamiral.info',
+                $socket = IO::Socket::IP->new(
+                        PeerHost => 'ks6ipv6.lamiral.info',
                         PeerPort => 143,
+                        V6Only => 1,
                 ) ;
 
 
-                ok( $imap = connect_socket( $socket ), 'connect_socket: ks6ipv6.lamiral.info port 143 IO::Socket::INET6' ) ;
+                ok( $imap = connect_socket( $socket ), 'connect_socket: ks6ipv6.lamiral.info port 143 IO::Socket::IP' ) ;
                 #$imap->Debug( 1 ) ;
                 # myprint( $imap->capability(  ) ) ;
                 if ( $imap ) {

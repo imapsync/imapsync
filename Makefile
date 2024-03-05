@@ -716,7 +716,7 @@ $(BIN_NAME): imapsync
 	imapsync ; \
 	}
 	# Maybe add -M Test2::Event::Info Mail::IMAPClient \
-	#-M Net::SSLeay -M IO::Socket -M IO::Socket::INET6 -M IO::Socket::SSL \
+	#-M Net::SSLeay -M IO::Socket -M IO::Socket::SSL \
 	#-M Digest::MD5 -M Digest::HMAC_MD5 -M Term::ReadKey \
 	#-M Authen::NTLM -M HTML::Entities -M JSON::WebToken \
 	#-M Test2::Event -M Test2::Formatter -M Test2::Formatter::TAP \
