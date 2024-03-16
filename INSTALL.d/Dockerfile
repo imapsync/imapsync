@@ -50,6 +50,7 @@ RUN set -xe && \
   libauthen-ntlm-perl \
   libcgi-pm-perl \
   libcrypt-openssl-rsa-perl \
+  libcrypt-openssl-pkcs12-perl \
   libdata-uniqid-perl \
   libencode-imaputf7-perl \
   libfile-copy-recursive-perl \
