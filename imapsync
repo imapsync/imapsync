@@ -8590,6 +8590,11 @@ sub authenticate_imap
                 return 1 ;
         }
 
+        if ('XGWTRUSTEDAPP' eq $acc->{ authmech } )
+        {
+                xgwtrustedapp( $imap );
+                return 1 ;
+        }
 
         if ( defined $acc->{ oauthdirect } )
         {
@@ -9041,6 +9046,89 @@ sub xmasterauth
 
         return ;
 }
+
+sub xgwtrustedapp
+{
+   my $imap = shift ;
+   my $code = "err" ;
+   my $count = 0 ;
+
+   $imap->Authmechanism( "XGWTRUSTEDAPP" ) ;
+   $imap->_imap_command( 'AUTHENTICATE XGWTRUSTEDAPP', '+' ) ;
+   foreach my $line ( $imap->Results )
+   {
+      if ( $line =~ /^\+\s*(.*?)\s*$/ )
+      {
+         $code = $1;
+         last;
+      }
+   }
+   if ( $code eq '' )
+   {
+      $sync->{ debug } and myprint( "AUTHENTICATE XGWTRUSTEDAPP capable\n" ) ;      
+      $imap->_imap_command( { addcrlf => 1, addtag => 0, tag => $imap->Count }, 
+                            'XGWTRUSTEDAPP '. $imap->Password( ) , "OK" ) ;
+      $code = "err";
+      $count = $imap->Count - 1 ;
+      foreach my $line ( $imap->Results )
+      {
+         if ( $line =~ /^$count\s+(OK)\b\s+(XGWTRUSTEDAPP)\b\s+(authentication)\b\s+(successful)\b/i )
+         {
+            $code = uc($1);
+            last;
+         }
+      }
+      if ( $code eq "OK" )
+      {
+         $sync->{ debug } and myprint( "XGWTRUSTEDAPP authentication successful\n" ) ;
+         $imap->_imap_command( 'LOGIN ' . $imap->User( ) , 'OK' ) ;
+         $code = "err";
+         $count = $imap->Count ;
+         foreach my $line ( $imap->Results )
+         {
+            if ( $line =~ /^$count\s+(OK)\b\s+(LOGIN)\b\s+(completed)\b/i )
+            {
+               $code = uc($1);
+               last;
+            }
+         }
+         if ( $code eq "OK" )
+         {
+            $sync->{ debug } and myprint( 'LOGIN ' . $imap->User( ) . " successful\n" ) ;
+            $imap->State( Mail::IMAPClient::Authenticated ) ;
+         }
+         else
+         {
+            $sync->{nb_errors}++ ;
+            exit_clean( $sync, $EXIT_AUTHENTICATION_FAILURE,
+                       'Failure to authenticate with user: ' . $imap->User( ) . "\n" ,
+                       $imap->LastError, "\n"
+                      ) ;
+         }
+      }
+      else
+      {
+         $sync->{nb_errors}++ ;
+         exit_clean( $sync, $EXIT_AUTHENTICATION_FAILURE,
+                     "Failure to authenticate with XGWTRUSTEDAPP: wrong key\n",
+                     $imap->LastError, "\n"
+                   ) ;
+      }
+   }
+   else
+   {
+      $sync->{nb_errors}++ ;
+      exit_clean( $sync, $EXIT_AUTHENTICATION_FAILURE,
+                  "Failure to authenticate with XGWTRUSTEDAPP: not capable\n",
+                  $imap->LastError, "\n"
+                ) ;
+   } ;
+
+   return ( $code eq "OK" );
+}
+
+
+
 
 sub keepalive1
 {
