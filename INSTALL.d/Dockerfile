@@ -99,7 +99,8 @@ RUN set -xe \
   && chmod +x imapsync oauth2.py \
   && /usr/bin/imapsync --testslive && /usr/bin/imapsync --tests # just_a_comment_to_force_update 2022_04_04_21_16_50
 
-COPY webserver /usr/local/bin/servimapsync
+COPY webserver /servimapsync
+
 COPY X /X/
 
 EXPOSE 8080
