@@ -83,6 +83,7 @@ RUN set -xe && \
   ncat \
   openssl \
   ca-certificates \
+  libnet-server-perl \
   && rm -rf /var/lib/apt/lists/* \
   && cpanm IO::Socket::SSL
 
@@ -97,6 +98,11 @@ RUN set -xe \
         https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py \
   && chmod +x imapsync oauth2.py \
   && /usr/bin/imapsync --testslive && /usr/bin/imapsync --tests # just_a_comment_to_force_update 2022_04_04_21_16_50
+
+COPY webserver /usr/local/bin/servimapsync
+COPY X /X/
+
+EXPOSE 8080
 
 USER nobody:nogroup
 
