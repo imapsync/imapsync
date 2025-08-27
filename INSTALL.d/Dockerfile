@@ -42,7 +42,7 @@ LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
 # It can help maintenance, isn't it?
 # Also put optionally my local and usually more recent imapsync on /, for testing purpose
 
-COPY Dockerfile imapsyn[c] prerequisites_imapsyn[c] /
+COPY INSTALL.d/Dockerfile imapsyn[c] INSTALL.d/prerequisites_imapsyn[c] /
 
 RUN set -xe && \
   apt-get update \
