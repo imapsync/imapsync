@@ -231,6 +231,8 @@ async function listFolderMessages(client: ImapClient, folder: string): Promise<M
   const imapFlowClient = client.getClient();
   const lock = await imapFlowClient.getMailboxLock(folder);
   try {
+    const mb = imapFlowClient.mailbox;
+    if (!mb || mb.exists === 0) return [];
     const messages: MessageInfo[] = [];
     for await (const msg of imapFlowClient.fetch('1:*', {
       uid: true,
