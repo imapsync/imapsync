@@ -2,7 +2,6 @@ import { Command } from 'commander';
 import { runSync } from './sync.js';
 import { buildDefaultConfig, mergePresets } from './config/defaults.js';
 import { validateConfig } from './config/validate.js';
-import { refreshAccessToken, applyOAuth2ToAccount } from './auth/oauth2.js';
 
 function collect(value: string, previous: string[]): string[] {
   return [...previous, value];

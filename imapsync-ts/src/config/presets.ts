@@ -1,5 +1,3 @@
-import type { ImapAccount } from '../types/account.js';
-
 export interface PresetConfig {
   host: string;
   port: number;

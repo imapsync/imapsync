@@ -9,7 +9,6 @@ import { CacheStore } from './cache/store.js';
 import { createLogger, type Logger } from './logger/index.js';
 import { createSyncState, buildResult } from './types/sync.js';
 import { MessageCopyError, FolderError, CacheError, classifyError } from './errors.js';
-import type { ErrorRecord } from './types/sync.js';
 
 export async function runSync(config: SyncConfig): Promise<SyncResult> {
   const state = createSyncState();
