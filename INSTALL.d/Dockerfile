@@ -42,7 +42,7 @@ LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
 # It can help maintenance, isn't it?
 # Also put optionally my local and usually more recent imapsync on /, for testing purpose
 
-COPY Dockerfile imapsyn[c] prerequisites_imapsyn[c] /
+COPY INSTALL.d/Dockerfile imapsyn[c] INSTALL.d/prerequisites_imapsyn[c] /
 
 RUN set -xe && \
   apt-get update \
@@ -83,6 +83,7 @@ RUN set -xe && \
   ncat \
   openssl \
   ca-certificates \
+  libnet-server-perl \
   && rm -rf /var/lib/apt/lists/* \
   && cpanm IO::Socket::SSL
 
@@ -97,6 +98,12 @@ RUN set -xe \
         https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py \
   && chmod +x imapsync oauth2.py \
   && /usr/bin/imapsync --testslive && /usr/bin/imapsync --tests # just_a_comment_to_force_update 2022_04_04_21_16_50
+
+COPY webserver /servimapsync
+
+COPY X /X/
+
+EXPOSE 8080
 
 USER nobody:nogroup
 
