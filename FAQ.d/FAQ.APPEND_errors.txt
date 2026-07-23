@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.APPEND_errors.txt,v 1.14 2024/06/02 21:31:57 gilles Exp gilles $
+$Id: FAQ.APPEND_errors.txt,v 1.15 2025/09/09 14:55:23 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -12,7 +12,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.APPEND_errors.txt
 Questions answered in this FAQ are:
 
 
-Q. I have an "could not append" error with 
+Q. I have a "could not append" error with 
    "Message contains invalid header" at the end, like:
    Err 1/20: - msg INBOX/6 {40666} could not append ... NO Message contains invalid header
    What can I do to transfer these emails?
@@ -27,43 +27,43 @@ Q. The append error message is "NO Message contains NUL characters"
    What can I do?
 
 Q. I have this APPEND error:
-   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom .
+   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom
    What can I do?
 
 Now the questions again with their answers.
 
 
 ======================================================================
-Q. I have an "could not append" error with 
+Q. I have a "could not append" error with 
    "Message contains invalid header" at the end, like:
    Err 1/20: - msg INBOX/6 {40666} could not append ... NO Message contains invalid header
    What can I do to transfer these emails?
 
 
-R0. Append in the IMAP protocol is the command to add a message in the folder.
+R0. Append in the IMAP protocol is the command to add a message to the folder.
     The error string "NO. Message contains invalid header" comes from the 
     destination IMAP server at host2, it doesn't like the message and rejects it.
    
-R1. Header lines must be in 7bit encoding.
-   If they aren't in 7bit the IMAP server can refuse them as they break 
-   the IMAP RFC specification.
+R1. Header lines must be in 7-bit encoding.
+    If they aren't in 7-bit, the IMAP server can refuse them as they break 
+    the IMAP RFC specification.
 
-   A solution is to transform all 8bit characters to the Z character with:
+    A solution is to transform all 8-bit characters to the Z character with:
    
-   imapsync ... --regexmess "tr [\x80-\xff] [Z]"
+      imapsync ... --regexmess "tr [\x80-\xff] [Z]"
 
-   Caveat: this transformation transforms both the email header and its body.
-   It's not perfect but I guess it's better than no message transferred.
-   So consider using it in a second pass, not the first, as 8-bit 
-   characters in the body message are allowed and changing them when
-   not needed is not a good thing.
+    Caveat: this transformation transforms both the email header and its body.
+    It's not perfect, but it is better than no message transferred.
+    So consider using it in a second pass, not the first, as 8-bit 
+    characters in the body message are allowed, and changing them when
+    not needed is not a good thing.
 
 
 R2. Some crappy email systems, like virus checkers or any other crappy 
     software tool dealing with your messages, can add headers to tell 
     the world that they've done a great job. But sometimes they didn't,
     and they fucked up your messages by not respecting the standard
-    and added ugly non-rfc compliant headers.
+    and adding ugly non-RFC-compliant headers.
     
     To remove an ugly header, let's call it "X-Spam-Report", that spreads over 
     several lines beginning or, that's the ugly part, not beginning with a space:
@@ -82,17 +82,17 @@ Q. For some messages, the imapsync log says
 
 R0. Append errors are host2 problems, append is the imap term to copy 
     a message to the destination account. 
-    A problem is that the assosiated "socket closed ..." error message happens
+    A problem is that the associated "socket closed ..." error message happens
     for several different issues. So I list here several potential issues
-    and their solutions if they exist.
-    R1 deals about too long lines in messages on Windows.
-    R2 deals about too long lines in messages on Unix.
-    R3 deals with quota reached.
+    and their solutions, if they exist.
+    R1 deals with too-long lines in messages on Windows.
+    R2 deals with too-long lines in messages on Unix.
+    R3 deals with the quota reached.
 
 R1. On Windows, add --regexmess "s,(.{9900}),$1\r\n,g"
 
 Some messages have too long lines; for example, 
-Exchange supports only 9900 characters line length.
+Exchange supports only 9900 characters per line.
 Use this option to add "new line" characters (also called CRLF)
 to wrap lines longer than 9900 characters. 
 The regex means "add one CRLF every 9900".
@@ -104,8 +104,8 @@ R2. On Unix, add --pipemess "reformime -r7". The command reformime
 
   imapsync ... --pipemess "reformime -r7"
 
-I reproduce here the "reformime" manual part explaining what does 
-the option "-r7" 
+I reproduce here the "reformime" manual part explaining what  
+the option "-r7" does:
 
 $ man reformime |more
 REFORMIME(1)                Double Precision, Inc.                REFORMIME(1)
@@ -128,7 +128,7 @@ OPTIONS
            Rewrite message, adding or standardizing RFC 2045[1] MIME headers.
 
        -r7
-           Like -r but also convert 8bit-encoded MIME sections to
+           Like -r but also convert 8-bit-encoded MIME sections to
            quoted-printable.
 ...
    Adding RFC 2045 MIME headers
@@ -139,9 +139,9 @@ OPTIONS
 
        If the Content-Transfer-Encoding: header contains 8bit or raw, but only
        seven-bit data is found, reformime changes the
-       Content-Transfer-Encoding header to 7bit.
+       Content-Transfer-Encoding header to 7-bit.
 
-       -r7 does the same thing, but also converts 8bit-encoded content that
+       -r7 does the same thing, but also converts 8-bit-encoded content that
        contains eight-bit characters to quoted-printable encoding.
 
        
@@ -156,9 +156,9 @@ R. Use:
 
   imapsync ...  --skipmess "m/(\x00)+\Z/"
 
-The option --skipmess skips messages matching a pattern, the 
-messages are not synced, you just avoid the error messages concerning
-those messages.
+The option --skipmess skips messages matching a pattern; the 
+messages are not synced, you just avoid the error messages 
+concerning those messages.
 
 If you want to sync them, use instead:
 
@@ -167,10 +167,10 @@ If you want to sync them, use instead:
 
 =======================================================================
 Q. I have this APPEND error:
-   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom .
+   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom
    What can I do?
 
-A. Use this to remove all 8bit characters from the flags:
+A. Use this to remove all 8-bit characters from the flags:
 
   imapsync ... --regexflag "tr [\x80-\xff] []d"
 

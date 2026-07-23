@@ -1,5 +1,5 @@
 
-$Id: README_oauth2.txt,v 1.35 2025/07/14 14:23:05 gilles Exp gilles $
+$Id: README_oauth2.txt,v 1.36 2025/09/08 12:18:39 gilles Exp gilles $
  
 How to generate an OAUTH2 access token to access an Office365 
 account or a Gmail account with imapsync? See below.
@@ -18,8 +18,15 @@ https://imapsync.lamiral.info/oauth2/oauth2_imap/
 
 If you're on Linux/Unix, you have to install the Perl module 
   HTTP::Daemon::SSL
+
 On Debian, it's done with the command 
   apt install libhttp-daemon-ssl-perl
+
+On any system, you can install it with the command cpanm,
+also called cpanminus:
+
+  cpanm HTTP::Daemon::SSL
+
 
 ======================================================================
 B) Background

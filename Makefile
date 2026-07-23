@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.390 2025/08/29 15:17:03 gilles Exp gilles $	
+# $Id: Makefile,v 1.391 2025/09/12 23:31:36 gilles Exp gilles $	
 
 .PHONY: help usage all doc
 
@@ -178,7 +178,7 @@ dev: test functree crit cover nytprof bin
 
 deb: doc
 	cd INSTALL.d/deb_building && rm -fv imapsync-?.???.deb && sh build_imapsync_deb \
-        && rm -fv ../../dist2/imapsync-?.???.deb && cp -v imapsync-?.???.deb ../../dist2/ \
+        && rm -fv ../../dist2/imapsync-?.???.deb ../../dist2/imapsync.deb && cp -v imapsync-?.???.deb ../../dist2/ \
         && cd ../../dist2/ && ln -s imapsync-?.???.deb imapsync.deb
 
 upload_deb:

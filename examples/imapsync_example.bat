@@ -1,4 +1,4 @@
-@REM $Id: imapsync_example.bat,v 1.13 2023/10/14 12:56:08 gilles Exp gilles $
+@REM $Id: imapsync_example.bat,v 1.14 2025/09/23 21:24:34 gilles Exp gilles $
 
 @REM Here is an imapsync example batch for Windows users.
 @REM Lines beginning with @REM are just comments.

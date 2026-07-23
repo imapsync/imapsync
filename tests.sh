@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.396 2025/08/26 19:35:59 gilles Exp gilles $  
+# $Id: tests.sh,v 1.397 2025/09/23 21:25:31 gilles Exp gilles $  
 
 # To run these tests, you need a running imap server somewhere
 # with several accounts. And be on Linux or Unix.
@@ -6819,6 +6819,19 @@ yahoo_all()
 }
 
 
+mail_com()
+# https://support.mail.com/premium/imap/server.html
+{
+        echo mail.com
+        ./imapsync \
+                --host1 imap.mail.com \
+                --user1 gilles.lamiral@mail.com \
+                --passfile1 ../../var/pass/secret.gilles_mail.com \
+                --host2 imap.mail.com \
+                --user2 gilles.lamiral@mail.com \
+                --passfile2 ../../var/pass/secret.gilles_mail.com \
+                --debugimap1 --showpasswords --justlogin 
+}
 
 aol()
 {

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: prerequisites_imapsync,v 1.39 2025/04/16 05:56:27 gilles Exp gilles $
+# $Id: prerequisites_imapsync,v 1.40 2025/09/20 13:35:11 gilles Exp gilles $
 
 MODULES_MANDATORY='
 App::cpanminus
@@ -68,8 +68,6 @@ Smart::Comments
 '
 
 
-
-
 test_perl() {
 # First we need perl
 
@@ -134,32 +132,45 @@ test_mandatory_modules() {
 }
 
 
-search_modules_any() {
+search_modules_any()
+{
 	test -n "$*" || {
 		echo "All needed modules are already installed"
 		return
 	}
         
+        # Darwin
+        sw_vers > /dev/null 2>&1 && 
+        {
+		search_modules_cpanm "$@"
+		return
+	}
+
+        
         # Debian, Ubuntu & Co
-	apt-cache -h > /dev/null 2>&1 && {
+	apt-cache -h > /dev/null 2>&1 &&
+        {
 		search_modules_apt "$@"
 		return
 	}
         
         # Centos & Co
-	yum -h > /dev/null 2>&1 && {
+	yum -h > /dev/null 2>&1 &&
+        {
 		search_modules_yum  "$@"
 		return
 	}
         
         # ArchLinux & Co
-        pacman -h > /dev/null 2>&1 && {
+        pacman -h > /dev/null 2>&1 &&
+        {
 		search_modules_pacman  "$@"
 		return
 	}
         
         # FreeBSD
-	pkg version > /dev/null 2>&1 && {
+	pkg version > /dev/null 2>&1 &&
+        {
 		search_modules_freebsd  "$@"
 		return
 	}
@@ -169,7 +180,9 @@ search_modules_any() {
 		search_modules_cpanm "$@"
 		return
 	}
-}
+} 
+
+
 
 search_modules_cpanm() {
 		cat <<EOD
@@ -274,25 +287,30 @@ test_unix() {
 }
 
 
+main()
+{
+        test_unix
+        test_perl || return 1
+        test_make || return
+        test_mandatory_modules
+        list_to_install
+        EXIT=$?
 
-test_unix
-#exit
-test_perl || exit 1
-test_make || exit
-test_mandatory_modules
-list_to_install
-EXIT=$?
+        # Help the user to install missing modules
+        search_modules_any $LIST_TO_INSTALL
 
-# Help the user to install missing modules
-search_modules_any $LIST_TO_INSTALL
+        if test "$1" = "MODULES_MANDATORY"
+        then
+                search_modules_any $MODULES_MANDATORY
+        elif test -n "$1" 
+        then
+                search_modules_any "$@"
+        fi
 
-if test "$1" = "MODULES_MANDATORY"
-then
-        search_modules_any $MODULES_MANDATORY
-elif test -n "$1" 
-then
-        search_modules_any "$@"
-fi
+        test_cpanm
+        return $EXIT
+}
 
-test_cpanm
-exit $EXIT
+main "$@"
+
+

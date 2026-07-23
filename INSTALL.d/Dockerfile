@@ -1,6 +1,6 @@
 ## Dockerfile for building a docker imapsync image
 
-# $Id: Dockerfile,v 1.56 2025/04/24 14:24:18 gilles Exp gilles $
+# $Id: Dockerfile,v 1.57 2025/09/12 13:29:26 gilles Exp gilles $
 #
 # This file is also located at 
 # https://imapsync.lamiral.info/INSTALL.d/Dockerfile
@@ -14,7 +14,7 @@
 #
 # where this Dockerfile is in the current directory
 # 
-# This Dockerfile build an image with two imapsync
+# This Dockerfile builds an image with two imapsync
 # 1) One comes from https://imapsync.lamiral.info/imapsync
 #    and goes to /usr/bin/imapsync in the Docker image
 #    It is used with the command:
