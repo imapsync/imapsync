@@ -1,12 +1,8 @@
 
-$Id: README_oauth2.txt,v 1.26 2024/08/20 18:25:33 gilles Exp gilles $
+$Id: README_oauth2.txt,v 1.35 2025/07/14 14:23:05 gilles Exp gilles $
  
 How to generate an OAUTH2 access token to access an Office365 
 account or a Gmail account with imapsync? See below.
-
-How to generate an admin OAUTH2 access token to access several Office365 
-accounts with imapsync? quick answer:
-https://github.com/imapsync/imapsync/issues/250#issuecomment-1996765075
 
 
 
@@ -20,6 +16,10 @@ and extract it anywhere.
 The zip archive "oauth2_imap.zip" is an exact archive of 
 https://imapsync.lamiral.info/oauth2/oauth2_imap/
 
+If you're on Linux/Unix, you have to install the Perl module 
+  HTTP::Daemon::SSL
+On Debian, it's done with the command 
+  apt install libhttp-daemon-ssl-perl
 
 ======================================================================
 B) Background
@@ -40,24 +40,40 @@ you about an insecure https CA authority. It's also normal since I
 created it myself using the script localhost_CA_cert, which is also
 available in the directory.
 
-B1) Useless read, for now.
-
-In Azure, I created an Application called imapsync.  Its client_id is
-c46947ca-867f-48b7-9231-64213fdd765e This client_id is used in the
-command oauth2_imap when the script detects the email address is
-managed by Office365 and when the option "--app imapsync" is used.
-This application is not public, not approved by Microsoft, so you
-won't find it in the Azure portal, so forget it for now.
+Third point, if you don't have a browser available where you run the
+oauth2_imap command then you will have some manual copy/paste to do
+from the remote browser you use. See the section below named
+"F) For all users, remote browser situation."
+To avoid to wait the timeouts of the remote browser situation, use
+the option --remotebrowser, it will skip the waits.
 
 
-In Google, https://console.cloud.google.com/ website, I created a project
-called imapsync. It is managed by gilles.lamiral@gmail.com. I added an
-"OAuth 2.0 Client IDs" for a "Desktop" type application in it via the
-link https://console.cloud.google.com/apis/credentials This Desktop
-app has a client_id and a client_secret used in oauth2_imap when the
-script detects the email address is managed by Gmail and when the
-option "--app imapsync" is used.  This application is not fully
-approved by Google so forget it for now.
+B1) In Azure,
+https://portal.azure.com/
+I created an Application called imapsync.
+Its client_id is
+c46947ca-867f-48b7-9231-64213fdd765e
+This client_id is used in the command oauth2_imap when the script
+detects that the email address is managed by Office365 and when the
+option "--app imapsync" is used.  This application is public, not
+approved by Microsoft, you won't find it in the Azure portal, but
+you can use it if you accept the warnings about it during the 
+approval sequence.
+
+B2) Useless read, for now.
+
+In Google,
+https://console.cloud.google.com/
+
+I created a project called imapsync. It is managed by
+gilles.lamiral@gmail.com. I added an "OAuth 2.0 Client IDs" for a
+"Desktop" type application in it via the link
+https://console.cloud.google.com/apis/credentials 
+
+This Desktop app has a client_id and a client_secret used in
+oauth2_imap when the script detects the email address is managed by
+Gmail and when the option "--app imapsync" is used.  This application
+is not fully approved by Google so forget it for now.
 
 
 ======================================================================
@@ -108,6 +124,20 @@ belongs:
     
     .\oauth2_imap.exe  foo@example.com
 
+2c) oauth2_imap guesses the provider of the tokens by using a DNS
+resolution on the domain of the email address.
+
+In case you keep the same email address on both sides, one side
+is Gmail, the other side Office365, you can force the tokens provider 
+with:
+
+  ./oauth2_imap --provider office365 foo@example.com
+
+  ./oauth2_imap --provider gmail     foo@example.com 
+
+and so, it generates tokens for each side for the same email address.
+
+
 3) The tokens are generated in the sub-directory "tokens" which has to
 exist before. Do not worry, the batch scripts
 oauth2_example_office365.bat and oauth2_example_gmail.bat create it
@@ -119,12 +149,12 @@ chosen by the script, use the parameter --token_file
 4) With imapsync, use the token file path as a value for the
 parameters --oauthaccesstoken1 or --oauthaccesstoken2
 
-Go to read section C) below for more detailed explanations.
+Go to read section E) below for more detailed explanations.
 
 5) Token refreshing.
 
 The Office365 access token lasts only one hour and Office365 cuts the
-connexion when this time is over. Imapsync usually reconnects
+connection when this time is over. Imapsync usually reconnects
 automatically but the access token has to be valid. So, you need to
 regenerate it by running again the oauth2_imap command every half
 hour, let's say.
@@ -134,7 +164,6 @@ https://imapsync.lamiral.info/oauth2/oauth2_imap/oauth2_example_loop.bat
 Download and edit this script like the others. Replace the email
 address gilles.lamiral@outlook.com with yours. Run it by a double-click
 and keep it running until the imapsync process of this mailbox is finished.
-
 
 Same thing to refresh a Gmail access token.
 
@@ -156,6 +185,11 @@ Thunderbird for example.
 
 2) The tokens are generated in the sub-directory "tokens" which has to
 exist before.
+
+3) To refresh the access token, edit and run the script:
+
+https://imapsync.lamiral.info/oauth2/oauth2_imap/oauth2_example_loop.sh
+
 
 ======================================================================
 E) For all users
@@ -230,3 +264,53 @@ I will integrate this tool inside imapsync later.
    privately at gilles@lamiral.info
    or publicly at https://github.com/imapsync/imapsync/issues/250
 
+======================================================================
+F) For all users, remote browser situation.
+
+When you don't have a browser available on the host you run 
+the oauth2_imap command, you have two solutions to make it 
+succeed.
+
+1) You make a local browser available and use it. Local means "where
+you run the oauth2_imap command". Install a browser. Since a browser is 
+a graphical tool, you may have some work and knowledge to make it usable.
+Ssh users would appreciate the "ssh -Y ..." or "ssh -X ..." options.
+
+2) Do some manual copy/paste to and from a foreign browser located 
+anywhere on the internet. The first copy/paste is the url given by 
+oauth2_imap. Copy it and paste it to your remote browser. Then follow
+the authentication process. When finally your browser complains about 
+an url, usually a localhost one, that can't find its server, you're 
+good. Your final job  is to manually copy/paste the "code" embedded
+inside this final url. See below for an example.
+
+
+  At one point, you may encounter the following when using the 
+  oauth2_imap script:
+
+...
+Now I try to collect the code. Will give up in 120 seconds (maybe 4x).
+Entering oauth2_collect_code_localhost
+Leaving  oauth2_collect_code_localhost
+...
+Leaving  oauth2_collect_code_localhost
+
+Failed to collect the code
+Paste the code here and press ENTER:
+
+
+The code to enter is given in the final redirect url at the end of the
+authentication process in your browser.  For example, you end up with
+the url:
+
+  https://localhost:60454/?code=M.C552_BL2.2.U.e63dbda3-980d-2c99-11c5-52b6193c5b0a&state=isgfvkgazimngpwxgqrskjivxjubksyw
+
+Here, the code to give to oauth2_imap is
+M.C552_BL2.2.U.e63dbda3-980d-2c99-11c5-52b6193c5b0a
+It is the .... part in the string ?code=....&state=xxxx
+It is what is between ?code= and the next &
+
+It's like this because you don't use a browser where you run the
+./oauth2_imap command so the redirect fails. But giving the code in
+the terminal should work and provide both an access token and a
+refresh token.

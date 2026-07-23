@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.383 2024/08/21 13:38:53 gilles Exp gilles $	
+# $Id: Makefile,v 1.390 2025/08/29 15:17:03 gilles Exp gilles $	
 
 .PHONY: help usage all doc
 
@@ -146,7 +146,6 @@ clean_bak:
 	rm -fv index.shtml.bak ./S/style.css.bak
 
 clean_oauth2:
-	rm -fv oauth2/oauth2_gmail/typescript oauth2/oauth2_gmail/D_*txt
 	rm -fv oauth2/oauth2_imap/tokens/oauth2_tokens_*.txt
 
 .PHONY: install dist man
@@ -176,6 +175,15 @@ install: testp W/imapsync.1
 
 dev: test functree crit cover nytprof bin
 
+
+deb: doc
+	cd INSTALL.d/deb_building && rm -fv imapsync-?.???.deb && sh build_imapsync_deb \
+        && rm -fv ../../dist2/imapsync-?.???.deb && cp -v imapsync-?.???.deb ../../dist2/ \
+        && cd ../../dist2/ && ln -s imapsync-?.???.deb imapsync.deb
+
+upload_deb:
+	rsync -aHv  --delete ./dist2/        ../imapsync_website/dist2/
+	rsync -aHvz --delete ../imapsync_website/ root@ks8.lamiral.info:/var/www/html/imapsync/
 
 dailytests: linuxtests win32tests win64tests mactests
 
@@ -799,6 +807,7 @@ tarball: cidone
 	echo making tarball ../prepa_dist/$(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
+	# The main part
 	rsync -aCvH --delete --delete-excluded --omit-dir-times --exclude dist2/ --exclude-from=W/rsync_exclude_dist.txt  ./ ../prepa_dist/$(DIST_NAME)/
 	cd ../prepa_dist && tar czfv $(DIST_FILE) $(DIST_NAME)
 	cd ../prepa_dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
@@ -808,7 +817,7 @@ tarball: cidone
 ci: cidone
 
 cidone: auto_ci
-	rcsdiff X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt X/imapsync_form.* X/imapsync_form_extra.html X/noscript.css
+	rcsdiff X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt X/imapsync_form.* X/imapsync_form_extra.html X/*.css
 	rcsdiff W/*.bat W/*.sh W/*.txt W/*.htaccess
 	cd W && rcsdiff RCS/*
 	cd oauth2/oauth2_imap/ && rcsdiff *.bat oauth2_imap *.txt RCS/*
@@ -818,7 +827,7 @@ cidone: auto_ci
 	rcsdiff examples/*.sh examples/*.bat examples/*.txt 
 	cd examples && rcsdiff RCS/*
 	rcsdiff W/tools/backup_old_dist W/tools/gen_README_dist W/tools/validate_html4 W/tools/validate_xml_html5 W/tools/fix_email_for_exchange.py
-	rcsdiff S/*.txt S/*.shtml S/*.html
+	rcsdiff S/*.txt S/*.shtml S/*.html S/*.css 
 	rcsdiff RCS/*
 
 
@@ -979,8 +988,8 @@ cle: ./W/checklinkext.txt
 W/.valid.index.shtml: index.shtml S/*.shtml
 	for f in index.shtml S/*.shtml; do echo tidy -e -q $$f; tidy -e -q  $$f ; done
 	./W/tools/validate_xml_html5 index.shtml S/*.shtml
-	./W/tools/validate index.shtml S/donate.shtml S/external.shtml S/imapservers.shtml \
-        S/news.shtml S/no_download.shtml S/paypal_return.shtml S/poll.shtml \
+	./W/tools/validate S/donate.shtml S/external.shtml S/imapservers.shtml \
+        S/news.shtml S/no_download.shtml  S/poll.shtml \
         S/template_xhtml1.shtml 
 	touch W/.valid.index.shtml
 
@@ -1005,7 +1014,7 @@ upload_index: valid_index clean_permissions
 ci_imapsync:
 	rcsdiff imapsync
 
-upload_latest: unitests ci_imapsync bin
+upload_latest: unitests ci_imapsync
 	rsync -av imapsync imapsync_bin_Darwin_x86_64 imapsync_bin_Darwin_i386 imapsync.exe imapsync_32bit.exe ./INSTALL.d/prerequisites_imapsync ../imapsync_website/
 	rsync -aHvzP --delete ../imapsync_website/ root@imapsync.lamiral.info:/var/www/html/imapsync/
 
@@ -1036,6 +1045,10 @@ upload_proximapsync:
 	sed -i".bak" '/^[[:space:]]*$$/d' X/stat_patterns.txt X/server_survey_patterns.txt
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks8:/var/tmp/imapsync_cgi/
 
+upload_cgi_memo:
+	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks8:/var/tmp/imapsync_cgi/
+
+
 upload_cgi_memo_all:
 	rcsdiff X/cgi_memo
 	dos2unix X/stat_patterns.txt X/server_survey_patterns.txt
@@ -1043,6 +1056,7 @@ upload_cgi_memo_all:
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks5:/var/tmp/imapsync_cgi/
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks7:/var/tmp/imapsync_cgi/
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks8:/var/tmp/imapsync_cgi/
+	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks9:/var/tmp/imapsync_cgi/
 	! ping -c1 -W1 i050 || rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@i050:/var/tmp/imapsync_cgi/
 	! ping -c1 -W1 i021 || rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@i021:/var/tmp/imapsync_cgi/
 
@@ -1148,21 +1162,32 @@ i050ping:
 
 
 upload_imapsync_all:
-	scp imapsync INSTALL.d/prerequisites_imapsync W/learn/processtable root@i005.lamiral.info:
-	scp imapsync INSTALL.d/prerequisites_imapsync W/learn/processtable root@i007.lamiral.info:
-	scp imapsync INSTALL.d/prerequisites_imapsync W/learn/processtable root@i008.lamiral.info:
+	scp imapsync INSTALL.d/prerequisites_imapsync  root@i005.lamiral.info:
+	scp imapsync INSTALL.d/prerequisites_imapsync  root@i007.lamiral.info:
+	scp imapsync INSTALL.d/prerequisites_imapsync  root@i008.lamiral.info:
 
 
-upload_X:
+validate_X:
 	./W/tools/validate_xml_html5 X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html X/proximapsync_form_extra_free.html
 	rcsdiff                      X/imapsync_form.html X/imapsync_form_extra.html X/imapsync_form_extra_free.html X/imapsync_form_wrapper.html X/proximapsync_form_extra_free.html
 	rcsdiff X/imapsync_form.css X/noscript.css 
 	rcsdiff X/imapsync_form.js X/imapsync_form_wrapper.js X/proximapsync_form.js
 	rcsdiff INSTALL.d/INSTALL.OnlineUI.txt
+
+
+upload_X: validate_X
 	rsync -a ./INSTALL.d/INSTALL.OnlineUI.txt ../imapsync_website/INSTALL.d/INSTALL.OnlineUI.txt
 	rsync -av   --delete   X/ ../imapsync_website/X/
 	rsync -aHvz --delete  ../imapsync_website/ root@imapsync.lamiral.info:/var/www/html/imapsync/
 
+
+upload_X_all: validate_X upload_X_i005 upload_X_i007 upload_X_i008 upload_X_i009
+
+
+upload_X_i005:
+	rsync -av S/style.css   root@i005.lamiral.info:/var/www/html/imapsync/S/
+	rsync -av S/favicon.ico root@i005.lamiral.info:/var/www/html/
+	rsync -av X/imapsync_form_extra.html X/imapsync_form.js X/imapsync_form.css X/noscript.css root@i005.lamiral.info:/var/www/html/imapsync/X/
 
 upload_X_i007:
 	rsync -av S/style.css   root@i007.lamiral.info:/var/www/html/imapsync/S/
@@ -1173,7 +1198,14 @@ upload_X_i008:
 	ssh root@i008.lamiral.info 'mkdir -p /var/www/html/imapsync/S/ /var/www/html/imapsync/X/'
 	rsync -av S/style.css   root@i008.lamiral.info:/var/www/html/imapsync/S/
 	rsync -av S/favicon.ico root@i008.lamiral.info:/var/www/html/
-	rsync -av X/imapsync_form_extra.html X/imapsync_form.js X/imapsync_form.css X/noscript.css root@i008.lamiral.info:/var/www/html/imapsync/X/
+	rsync -av X/imapsync_form_extra.html X/imapsync_form.js X/proximapsync_form.js X/imapsync_form.css X/noscript.css root@i008.lamiral.info:/var/www/html/imapsync/X/
+
+upload_X_i009:
+	rsync -av S/style.css   root@i009.lamiral.info:/var/www/html/imapsync/S/
+	rsync -av S/favicon.ico root@i009.lamiral.info:/var/www/html/
+	rsync -av X/imapsync_form_extra.html X/imapsync_form.js X/imapsync_form.css X/noscript.css root@i009.lamiral.info:/var/www/html/imapsync/X/
+
+
 
 upload_csv:
 	./W/tools/validate_xml_html5    X/sandbox_csv.html
@@ -1181,9 +1213,15 @@ upload_csv:
 	rsync -a     X/sandbox_csv.html X/sandbox_csv.js X/imapsync_csv_wrapper ../imapsync_website/X/
 	rsync -aHvz  X/sandbox_csv.html X/sandbox_csv.js X/imapsync_csv_wrapper root@ks8.lamiral.info:/var/www/html/imapsync/X/
 	rsync X/imapsync_csv_wrapper root@ks8.lamiral.info:/usr/lib/cgi-bin/
+	rsync -aHvz  X/sandbox_csv.html X/sandbox_csv.js X/imapsync_csv_wrapper root@ks9.lamiral.info:/var/www/html/imapsync/X/
+	rsync X/imapsync_csv_wrapper root@ks9.lamiral.info:/usr/lib/cgi-bin/
 
 
-upload_FAQ:
+html_FAQ:
+	cd FAQ.d/ && pwd && . ./memo_html_generate && generate_html FAQ.Gmail_imapsync_online.txt FAQ.OnlineUI.txt
+	./W/tools/validate FAQ.d/FAQ.Gmail_imapsync_online.html FAQ.d/FAQ.OnlineUI.html
+
+upload_FAQ: html_FAQ
 	rcsdiff FAQ.d/*.txt  LICENSE CREDITS TODO INSTALL.d/*.txt 
 	rsync -avH FAQ INSTALL  CREDITS TODO ../imapsync_website/
 	rsync -aHv  --delete  ./INSTALL.d/          ../imapsync_website/INSTALL.d/
@@ -1196,7 +1234,7 @@ upload_oauth2_ci:
 	rcsdiff oauth2/oauth2_imap/oauth2_imap oauth2/oauth2_imap/*.txt oauth2/oauth2_imap/*.bat 
 
 upload_oauth2_exe:
-	cd oauth2/oauth2_imap/ && test oauth2_imap.exe -nt oauth2_imap
+	cd oauth2/oauth2_imap/ && test oauth2_imap.exe -nt oauth2_imap || { echo 'Rebuild oauth2_imap.exe please!'; exit 1 ; }
 
 
 oauth2_tests:
@@ -1213,6 +1251,9 @@ upload_ks_W_memo:
 	rsync -av W/memo gilles@ks8.lamiral.info:public_html/imapsync/W/memo
 
 .PHONY: imapsync_website upload_ks upload_ks8 upload_ks_W_memo
+
+
+
 
 imapsync_website: ci 
 	rsync -aHv           $(PUBLIC)       ../imapsync_website/

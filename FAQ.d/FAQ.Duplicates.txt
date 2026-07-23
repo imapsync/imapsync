@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Duplicates.txt,v 1.27 2022/10/18 10:43:51 gilles Exp gilles $
+$Id: FAQ.Duplicates.txt,v 1.28 2024/09/24 12:25:56 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -59,30 +59,37 @@ A. Imapsync by default identify messages by their headers "Message-Id"
 Q. Can Imapsync use other headers than "Message-Id" or "Received" to 
    identify messages? Which ones? How?
    
-A. Imapsync can use any header to identify messages. Which ones?
-   The Date header, the Subject header, etc. The problem is that 
-   imapsync may then consider different messages as the same.
-   The Date looks like a good one but, sometimes, I saw imap servers
-   changing it. So Date is not a good general header to identify
-   messages.
+A. Imapsync can use any header to identify messages. Which ones?  The
+   Date header, the Subject header, etc. The problem is that imapsync
+   may then consider different messages as the same messages.  The
+   Date header looks like a good criterion to identify messages but,
+   sometimes, I see imap servers changing it. So Date is not a good
+   general header to identify messages. Messages with the same Subject
+   are common, especially those with an empty Subject.
    
-   How?
-   For example, following the previous paragraph, use:
+   How to use specific header to identify messages?
+   
+   The default imapsync behavior is like:
+   
+   imapsync ... --useheader Message-Id --useheader Received
+   
+   An identification with Date and Subject headers is done by:
    
    imapsync ... --useheader Date --useheader Subject
-   
+
+
 =======================================================================
 Q. How can I know if imapsync will generate duplicates on a second run?
 
 A. To see if imapsync will generate duplicates on a second run, start
-   a second run with the --dry option added. With --dry, imapsync will 
-   show whether it would mistakenly copy messages again, but without 
+   a second run with the --dry option added. With --dry, imapsync will
+   show whether it would mistakenly copy messages again, but without
    really copying them:
 
      imapsync ... --dry 
 
-   The final stats should also show a positive value for the line 
-   "Messages skipped:" since most of the skipped messages are skipped 
+   The final stats should also show a positive value for the line
+   "Messages skipped:" since most of the skipped messages are skipped
    because they are already on host2. Example of final stats:
    
 ++++ Statistics
@@ -98,160 +105,164 @@ Q: I found multiple message duplicates when I run imapsync twice or
    more. What the hell is happening?
 
 A0. First, some explanations to understand the issue.  Normally and by
-default, imapsync doesn't generate duplicates.  So, if it does
-generate duplicates it means a problem occurs with message
-identification. It happens sometimes with IMAP servers changing the
-"Message-Id" header line or one or more of the "Received:" header
-lines in the header part of messages.  By default, Imapsync uses the
-"Message-Id" header line and "Received:" header lines to identify
-messages on both sides.
+   default, imapsync doesn't generate duplicates.  So, if it does
+   generate duplicates it means a problem occurs with message
+   identification. It happens sometimes with IMAP servers changing the
+   "Message-Id: ..." header line or one or more of the "Received: ..."
+   header lines in the header part of the messages.  By default,
+   Imapsync uses the "Message-Id:" header line and "Received:" header
+   lines to identify messages on both sides.
 
-A1. This solution is R3 simplified.
+A1. This solution is the A3 answer simplified.
 
-A quick practical solution is to change the way imapsync identify
-messages that work most of the time. But since you're reading this
-because you encountered a messages duplicated issue, let's safely
-check this solution.
+   A quick practical solution is to change the way imapsync identify
+   messages, a change that works most of the time. But since you're
+   reading this because you encountered some messages duplicated
+   issue, let's check this solution safely.
 
-First, use the same command with additional options:
+   First, use the same command you already used, with two additional
+   options:
 
      imapsync ... --useheader "Message-Id" --dry 
 
-The previous command does nothing real but it will show you if
-imapsync handles duplicates in a better way.  The criterium is to
-search at the end of the sync for a line like this one:
+   The previous command does nothing real, ie, no change on the
+   mailboxes, but it shows whether imapsync handles duplicates in a
+   better way, or not.  The clue is to look at the end of the sync and
+   search for a line like this one:
 
 Messages skipped                  : 1555
-where 1555 is an example but reflects mostly the number
-of all messages already transferred.
 
-If you end with:
+   where 1555 is a made up example but reflects mostly the number of
+   all messages already transferred.
+
+   If you end with:
 
 Messages skipped                  : 0
 
-then don't go on, it means imapsync is still suffering to identify
-messages.
+   then don't go on, it means imapsync is still suffering to identify
+   messages.
 
-If you end with many messages skipped then it's very good and now you
-can safely resync the mailbox and get rid of the duplicated messages
-on host2 with:
+   If you end with many messages skipped, nearly all of them, then
+   it's a very good point and now you can safely resync the mailbox
+   and get rid of the duplicated messages on host2 with:
 
-    imapsync ... --useheader "Message-Id" --delete2duplicates
+   imapsync ... --useheader "Message-Id" --delete2duplicates
 
-End of the problem!
+   End of the problem!
 
-A2.  A second solution is to use the option --useuid.  With the option
---useuid, imapsync doesn't use header lines to identify and compare
-messages in folders.  Instead of some headers, the option --useuid
-tell imapsync to use the imap UIDs given by imap servers on both
-sides.  To avoid duplicates on next runs, imapsync uses a local cache
-where it keeps UIDs already transferred.
+A2. A second solution is to use the option --useuid.  With the option
+   --useuid, imapsync doesn't use header lines to identify and compare
+   messages in folders.  Instead of some headers, the option --useuid
+   tell imapsync to use the imap UIDs given by imap servers on both
+   sides.  To avoid duplicates on next runs, imapsync uses a local
+   cache where it keeps UIDs already transferred.
 
-  imapsync ... --useuid
+   imapsync ... --useuid
 
-There is an issue when --useuid is not used the first time.  A big
-issue with --useuid is that it doesn't generate duplicates if used
-from the first time but it does generate duplicates after a previous
-run without --useuid (because it then uses a different method to
-identify the messages).
+   There is an issue when --useuid is not used the first time.  A big
+   issue with --useuid is that it doesn't generate duplicates if used
+   from the first time but it does generate duplicates after a
+   previous run without --useuid (because it then uses a different
+   method to identify the messages).
 
-A solution? Two solutions.
+   A solution? Two solutions.
 
-The easiest is --delete2 if you are permitted to use it.  Option
---delete2 removes messages on host2 that are not on host1. So, with
---delete2 you go for resyncing all messages again. All previously
-transferred messages are deleted, but also messages previously there
-without imapsync.  So, --useuid --delete2 is an easy way to remove
-duplicates but it is not suitable in all contexts. The good context is
-that the host2 account must be considered as a strict replication of
-the host1 account, ie, host2 not active yet.
+   The easiest is --delete2 if you are permitted to use it.  Option
+   --delete2 removes messages on host2 that are not on host1. So, with
+   --delete2 you go for resyncing all messages again. All previously
+   transferred messages are deleted, but also messages previously
+   there without imapsync.  So, --useuid --delete2 is an easy way to
+   remove duplicates but it is not suitable in all contexts. The good
+   context is that the host2 account must be considered as a strict
+   replication of the host1 account, ie, host2 not active yet.
 
-A second solution, better if R3 works (see R3 below), is to build the
-cache before using --useuid
+   A second solution, better if R3 works (see R3 below), is to build
+   the cache before using --useuid
 
-First sync:
+   First sync:
 
-  imapsync ... --useheader "Message-Id" --addheader --usecache
+   imapsync ... --useheader "Message-Id" --addheader --usecache
 
-Next syncs:
+   Next syncs:
 
-  imapsync ... --useuid
-  imapsync ... --useuid
-  ...
+   imapsync ... --useuid
+   imapsync ... --useuid
+   ...
 
 A3. The best way, in case you're able to follow it. 
 
-Multiple copies of the emails are on the destination server. Some IMAP
-servers (Domino for example) change some headers for each message
-transferred. All messages are transferred again and again each time
-you run imapsync. This is bad of course. The explanation is that
-imapsync considers messages are not the same on each side, default
-headers used to identify the messages have changed.
+   Multiple copies of the emails are on the destination server. Some
+   IMAP servers (Domino for example) change some headers for each
+   message transferred. All messages are transferred again and again
+   each time you run imapsync. This is bad of course. The explanation
+   is that imapsync considers messages are not the same on each side,
+   default headers used to identify the messages have changed.
 
-You can look at the headers found by imapsync by using the --debug
-option. Then search for the message on both parts. In the imapsync
-output, header lines from the source server begin with an "FH:" prefix
-and header lines from the destination server begin with a "TH:"
-prefix. Since --debug is very verbose, I suggest isolating an email in
-a specific folder in case you want to forward me the output.
+   You can look at the headers found by imapsync by using the --debug
+   option. Then search for the message on both parts. In the imapsync
+   output, header lines from the source server begin with an "FH:"
+   prefix and header lines from the destination server begin with a
+   "TH:" prefix. Since --debug is very verbose, I suggest isolating an
+   email in a specific folder in case you want to forward me the
+   output.
 
-A way to avoid this problem is by using option --useheader with a
-different set than the default ones used by imapsync.
+   A way to avoid this problem is by using option --useheader with a
+   different set than the default ones used by imapsync.
 
-The default setting is equivalent to:
+   The default setting is equivalent to:
 
-  imapsync ... --useheader "Message-Id" --useheader "Received"
+   imapsync ... --useheader "Message-Id" --useheader "Received"
 
-The problem now is what can be used instead of Message-Id and Received
-lines? Often standalone Message-Id works:
+   The problem now is what can be used instead of Message-Id and
+   Received lines? Often standalone Message-Id works:
 
-  imapsync ... --useheader "Message-Id"
+   imapsync ... --useheader "Message-Id"
 
-Once imapsync does not generate duplicates, the previous duplicates
-can be deleted with option --delete2duplicates
+   Once imapsync does not generate duplicates, the previous duplicates
+   can be deleted with option --delete2duplicates
 
   imapsync ... --useheader "Message-Id" --delete2duplicates
 
-Another good way toward a solution is to isolate two or three messages
-in a BUG folder and send me the --debug output by email to
-gilles@lamiral.info
+   Another good way toward a solution is to isolate two or three
+   messages in a BUG folder and send me the --debug output by email to
+   gilles@lamiral.info
 
   imapsync ... --debug  --folder BUG
 
-I will take a close look at the log and modify imapsync to fix this
-faulty duplicate behavior.
+   I will take a close look at the log and modify imapsync to fix this
+   faulty duplicate behavior.
 
-Here is a trick found by Tomasz Kaczmarski
+   Here is a trick found by Tomasz Kaczmarski
 
-The option --useheader "Message-Id" asks the server to send only
-header lines beginning with "Message-Id".  Some buggy servers send the
-whole header, all lines, instead of the "Message-Id" line. In that
-case, a trick to keep the --useheader filtering behavior is to use
---skipheader with a negative lookahead pattern:
+   The option --useheader "Message-Id" asks the server to send only
+   header lines beginning with "Message-Id".  Some buggy servers send
+   the whole header, all lines, instead of the "Message-Id" line. In
+   that case, a trick to keep the --useheader filtering behavior is to
+   use --skipheader with a negative lookahead pattern:
 
-  imapsync ... --skipheader "^(?!Message-Id)"
+   imapsync ... --skipheader "^(?!Message-Id)"
 
-Read it as "skip every header except Message-Id".
+   Read it as "skip every header except Message-Id".
 
 =======================================================================
 Q. imapsync calculates 479 messages in a folder but only transfers 400 
    messages. What is happening?
 
 A1. Unless --useuid is used, imapsync considers a header part of a
-message to identify a message on both sides.  By default, the header
-part used is lines "Message-Id:" "Message-ID:" and "Received:" or
-specific lines depending on --useheader --skipheader. The whole header
-can be set by --useheader ALL
+   message to identify a message on both sides.  By default, the
+   header part used is lines "Message-Id:" "Message-ID:" and
+   "Received:" or specific lines depending on --useheader
+   --skipheader. The whole header can be set by --useheader ALL
 
-Consequences:
+   Consequences:
 
-  1) Duplicate messages on host1 (identical header) are not transferred.
+   1) Duplicate messages on host1 (identical header) are not transferred.
 
-The result is that you can have more messages on host1 than on host2.
+   The result is that you can have more messages on host1 than on host2.
 
 A2. With option --useuid imapsync doesn't use headers to identify
-messages on both sides but it uses their imap uid identifier.  In that
-case duplicates on host1 are also transferred on host2.
+   messages on both sides but it uses their imap uid identifier.  In
+   that case duplicates on host1 are also transferred on host2.
 
 =======================================================================
 Q. imapsync doesn't synchronize duplicates by default but I want to.
@@ -261,16 +272,17 @@ A1. Use the option  --syncduplicates
 
 A2. Use the option --useuid
 
-If you have already synchronized two mailboxes without --useuid then
-using it right away will generate duplicates on host2. To avoid that
-behavior, you have to perform the first run with --usecache to build
-the local UID cache. Then the next runs with --useuid
+   If you have already synchronized two mailboxes without --useuid
+   then using it right away will generate duplicates on host2. To
+   avoid that behavior, you have to perform the first run with
+   --usecache to build the local UID cache. Then the next runs with
+   --useuid
 
-There are potential issues with --usecache. They can be solved.  Read
-the document FAQ.Use_cache.txt
-https://imapsync.lamiral.info/FAQ.d/FAQ.Use_cache.txt
+   There are potential issues with --usecache. They can be solved.
+   Read the document FAQ.Use_cache.txt
+   https://imapsync.lamiral.info/FAQ.d/FAQ.Use_cache.txt
 
-So, to finalize how to synchronize duplicates:
+   So, to finalize how to synchronize duplicates:
    
    imapsync ... --tmpdir . --usecache 
 
@@ -278,19 +290,19 @@ So, to finalize how to synchronize duplicates:
    imapsync ... --tmpdir . --useuid
    ...
 
-Here --tmpdir value is the dot "." meaning "current directory".
-Surrounding it with double quotes is optional.
+   Here --tmpdir value is the dot "." meaning "current directory".
+   Surrounding it with double quotes is optional.
 
-If the two mailboxes haven't been already synchronized, then the first
-run with --usecache is useless.
-
+   If the two mailboxes haven't been already synchronized, then the
+   first run with --usecache is useless.
+ 
 =======================================================================
 Q. How can I remove duplicates in a lone account?
 
 A. To remove duplicates in a lone account, just run imapsync on the
-same account as the source and the destination, plus the option
---delete2duplicates, ie, with host1 == host2, user1 == user2,
-password1 == password2
+   same account as the source and the destination, plus the option
+   --delete2duplicates, ie, with host1 == host2, user1 == user2,
+   password1 == password2
  
   imapsync ... --delete2duplicates
 

@@ -1,4 +1,4 @@
-$Id: FAQ.Two_Ways_Sync.txt,v 1.8 2022/07/25 14:03:49 gilles Exp gilles $
+$Id: FAQ.Two_Ways_Sync.txt,v 1.9 2024/09/10 10:31:55 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -6,14 +6,14 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Two_Ways_Sync.txt
 
 
 =======================================================================
-================  Two ways sync with Imapsync =========================
+================  Two-way sync with Imapsync =========================
 =======================================================================
 
 =======================================================================
 Q. Can Imapsync do a good "two ways" sync? 
    Short answer: no, not a good one. Why?
 
-R. Imapsync can't do good two ways syncs.
+R. Imapsync can't do good two-way syncs.
 
 A good "two ways" sync is impossible with imapsync because imapsync is
 stateless.
@@ -21,26 +21,26 @@ stateless.
 Each time imapsync runs, it considers messages and folders as if it
 were the first time it encounters them. Imapsync looks at messages,
 flags, and folders as they are now, not considering what they were
-before the current. Imapsync has no memory outside the current running
-sync.
+before the current synchronization. Imapsync has no memory outside the
+current running synchronization.
 
-So now, why a stateless behavior cannot handle well a two ways sync
-between an account A and an account B?
+So now, why a stateless behavior cannot handle well a two-way sync
+between account A and account B?
 
-The problem arises with deletions, messages deletions, folders
-deletions, or with moves, messages moves across folders, folders
-moves, and also folders renamings. Deletions and moves are ambiguous
-changes when combined with creations on the opposite side.
+The problem arises with deletions, messages deletions, folder
+deletions, or with moves like messages displacements across folders,
+folder displacements, and folder renaming. Deletions and moves are
+ambiguous changes when combined with creations on the opposite side.
  
 For example, if a message is deleted from A by a user, then imapsync
 cannot know whether it is a message deleted from A that has to be
-deleted in B (what the user actually did) or a missing message on A
-that has to be copied from B.
+deleted in B (what the user did) or a missing message in A that has to
+be copied from B.
 
 But if you know the answer yourself, that missing messages on one side
 A are deleted messages that have to be deleted on the other side then
-run a sync with the --delete2 option from A to B. This assumes there 
-is no new messages on B because --delete2 will delete them.
+run a sync with the --delete2 option from A to B. This assumes there
+are no new messages on B because --delete2 will delete them.
 
 If you know that the missing messages on A are messages from B
 that has to be copied to A, then run a sync from B to A.
@@ -48,27 +48,27 @@ that has to be copied to A, then run a sync from B to A.
 If you know it's a mixed scenario, that there are some deletions/moves
 on A, and there are some deletions/moves on B, but not the same, then
 you are in trouble and it ends up with a not very good "two ways"
-sync.  In that case, two runs of imapsync, one from A to B, one from B
-to A, put the two accounts in a synchronized state. The deletions of
-messages on either side get cancelled, deleted messages come back. A
-folder renaming on either side brings back the old folder.  It's not a
-good two ways synchronization.
+sync.  In that case, two runs of imapsync, one from A to B, and one
+from B to A, put the two accounts in a synchronized state. The
+deletions of messages on either side get canceled, and deleted
+messages come back. A folder renaming on either side brings back the
+old folder.  It's not a good two-way synchronization.
 
 
 My suggestion is:
 
 a) Use a single active imap account that fits all your needs,
    available from anywhere, at any time.  Access it from both your
-   laptop and your iphone.
+   laptop and your iPhone.
 
 b) Feed this active account with foreign and passive accounts with any
    tool that can handle the transfer, imapsync being one of them.
 
-c) Have a slave imap backup account of the active one, available also
-   from anywhere, at any time. Use it only as a failsafe account, when
-   the active one is broken or to bring back misguidely deleted
-   messages to the active account. Use any tool that can handle the
-   synchronization, imapsync being a good one of them.
+c) Have a slave imap backup account of the active one, available from
+   anywhere at any time. Use it only as a failsafe account, when the
+   active one is broken or to bring back misguidedly deleted messages
+   to the active account. Use any tool that can handle the
+   synchronization, imapsync being a good one.
 
 
 =======================================================================
@@ -77,21 +77,21 @@ Q. What can I do instead of having two ways synchronizations?
 R. My suggestion is:
 
 a) Use only one single active imap account that fits all your needs,
-   available from anywhere, at any time.  Access it from all your 
-   devices, laptops, phones, tablets.
+   available from anywhere, at any time.  Access it from all your
+   devices, laptops, phones, and tablets.
 
 b) Feed this active account with foreign and passive accounts with any
-   tool that can handle the transfer, imapsync being one of them.
+   tool that can handle the transfer, imapsync being one.
 
-c) Have a slave imap backup account of the active one, available also
-   from anywhere, at any time. Use it only as a failsafe account, when
-   the active one is broken or to bring back misguidely deleted
-   messages to the active account. Use any tool that can handle the
+c) Have a slave imap backup account of the active one, available from
+   anywhere, at any time. Use it only as a failsafe account, when the
+   active one is broken or to bring back misguidedly deleted messages
+   to the active account. Use any tool that can handle the
    synchronization, imapsync being a good one of them.
 
 
 =======================================================================
-Q. What tools can I use to handle two ways synchronizations?
+Q. What tools can I use to handle two-way synchronizations?
 
 R. There are offlineimap and mbsync/isync tools:
 
@@ -101,4 +101,3 @@ mbsync/isync is located at https://isync.sourceforge.io/
 
 =======================================================================
 =======================================================================
-

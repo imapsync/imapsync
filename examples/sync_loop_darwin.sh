@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: sync_loop_darwin.sh,v 1.3 2022/01/10 08:03:46 gilles Exp gilles $
+# $Id: sync_loop_darwin.sh,v 1.4 2024/09/08 12:55:28 gilles Exp gilles $
 
 # Example for imapsync massive migration on Unix systems.
 # See also http://imapsync.lamiral.info/FAQ.d/FAQ.Massive.txt
@@ -51,7 +51,7 @@ line_counter=0
         line_counter=`expr 1 + $line_counter` 
         { echo "$h1" | tr -d '\r' | egrep '^#|^ *$' ; } > /dev/null && continue # this skip commented lines in file.txt
         echo "==== Starting imapsync with --host1 $h1 --user1 $u1 --host2 $h2 --user2 $u2 $extra $@ ===="
-        if ../imapsync_bin_Darwin --host1 "$h1" --user1 "$u1" --password1 "$p1" \
+        if ../imapsync_bin_Darwin_x86_64 --host1 "$h1" --user1 "$u1" --password1 "$p1" \
                     --host2 "$h2" --user2 "$u2" --password2 "$p2" $extra "$@" 
         then
                 echo "success sync for line $line_counter "

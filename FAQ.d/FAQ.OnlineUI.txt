@@ -1,5 +1,4 @@
-#!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.46 2023/12/31 18:19:39 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.51 2025/08/07 11:38:17 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -27,6 +26,10 @@ Q. I want to switch from the visual interface /X to the
    https://imapsync.lamiral.info/#DOC_BASIC
    What should I know?
 
+Q. I want to add extra parameters to the online interface,
+   like the parameters used on the command line.
+   How can I do?
+
 Q. Shall I have issues when the browser times out?
    What happens if the browser connection is closed for whatever reason?
 
@@ -38,7 +41,7 @@ Q. The sync stalls at the beginning, just after a line like:
    What is the problem?
 
 Q. The synchronization fails with the error message like:
-   Err 1/1: Host1 failure: Error login on [10.1.161.155] with user [webmaster@truc.com] auth [LOGIN]: 2 NO [ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED
+   Err 1/1: Host1 failure: Error login on [10.1.161.155] with user [webmaster] auth [LOGIN]: 2 NO [ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED
 
 Now the questions again with their answers.
 
@@ -220,6 +223,61 @@ There is no need to type this in a command prompt window, just use the example s
 https://imapsync.lamiral.info/examples/imapsync_example.sh
 
 =====================================================================
+Q. I want to add extra parameters to the online interface,
+   like the parameters used on the command line.
+   How can I do?
+
+A. On the online interface, in the central column, click on the button
+labeled "Show / Hide extra parameters". It displays more widgets on
+the screen. One is a blank text-field labeled "Enter extra
+parameters".  It spans the entire page from left to right. In this
+text-field, enter parameters the same way as on the command line. 
+
+For example:
+  
+  --search "SENTSINCE 1-Jan-2023" 
+
+or 
+
+  --folder INBOX
+  
+or cumulate several options
+
+  --search "SENTSINCE 1-Jan-2023" --folder INBOX
+
+or 
+
+  --search "SENTSINCE 1-Jan-2023" --folder INBOX --blabla pouetpouet
+  
+Looking at the last example, there is an unreal option, an unknown
+option called --blabla with a rubbish value as pouetpouet.
+
+In the log file, the extra parameters will be echoed like this:
+
+Command line used, run by /usr/bin/perl:
+/usr/lib/cgi-bin/imapsync --addheader --automap --extra --search "SENTSINCE 1-Jan-2023" --folder INBOX --blabla pouetpouet --host1 test1.lamiral.info ... 
+Under cgi context
+Umask set with 0077 (was 0022)
+Reading or overwriting options from parameter --extra: --search "SENTSINCE 1-Jan-2023" --folder INBOX --blabla pouetpouet
+The following options were ignored from parameter --extra: --blabla pouetpouet
+
+
+You see that the unrecognized option is mentioned in a different line,
+as ignored.  This unrecognized option won't be applied by imapsync.
+
+The previous options, --search and --folder, and their values, will be
+taken into account in the run.
+
+It is possible that good options on the command line are not
+recognized in the extra field, in the online context. They will be
+mentioned as ignored.  In that case, double-check the syntax and if
+it's okay, then ask me to add this unrecognized option on the online
+service. Not all command line options are accepted in the online
+service, for security reasons. I have to think about it before adding
+them in imapsync online.
+
+
+=====================================================================
 Q. Shall I have issues with the browser timing out?
    What happens if the browser connection is closed for whatever reason?
 
@@ -281,31 +339,29 @@ alphanumeric characters ABC-YZ abc-yz 012-89.
 
 =====================================================================
 Q. The synchronization fails with the error message like:
-   Err 1/1: Host1 failure: Error login on [10.1.161.155] with user [webmaster@truc.com] auth [LOGIN]: 2 NO [ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED
+   Err 1/1: Host1 failure: Error login on [10.1.161.155] with user [webmaster] auth [LOGIN]: 2 NO [ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED
 
 A. The message "[ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED" comes directly 
    from the IMAP server at 10.1.161.155
 
 It looks like that the 10.1.161.155 imap server filters incoming 
-connexions based on their IPS. In that case, here are the current 
-IPs of the imapsync online service (September 2022):
+connexions based on their IPS. 
 
-ks5.lamiral.info      has address      91.121.221.224
-ks5ipv6.lamiral.info  has IPv6 address 2001:41d0:2:84e0::1
-ks6.lamiral.info      has address      5.39.87.81
-ks6ipv6.lamiral.info  has IPv6 address 2001:41d0:8:9951::1
-ks7.lamiral.info      has address      5.135.177.225
-ks7ipv6.lamiral.info  has IPv6 address 2001:41d0:8:b8e1::1
-ks8.lamiral.info      has address      5.135.176.149
-ks8ipv6.lamiral.info  has IPv6 address 2001:41d0:8:b795::1
-i050.lamiral.info     has address      213.32.72.139
-i050ipv6.lamiral.info has IPv6 address 2001:41d0:302:1000::155d
-vp3.lamiral.info      has address      51.178.81.27
-vp3ipv6.lamiral.info  has IPv6 address 2001:41d0:404:200::4d81
-vp4.lamiral.info      has address      51.38.34.201
-vp4ipv6.lamiral.info  has IPv6 address 2001:41d0:305:2100::4c46
 
-The imapsync online service may contact your imap server with one
+In that case, here are the current IPs of the imapsync 
+online service (October 2024):
+
+myhosts 
+ks5.lamiral.info has address 91.121.221.224
+ks5ipv6.lamiral.info has IPv6 address 2001:41d0:2:84e0::1
+ks7.lamiral.info has address 5.135.177.225
+ks8.lamiral.info has address 5.135.176.149
+ks9.lamiral.info has address 167.114.157.78
+i021.lamiral.info has address 213.32.77.44
+i050.lamiral.info has address 213.32.72.139
+
+
+The imapsync online service may contact your imap servers with one
 or more of those IP addresses.
 
 CPhulk of Cpannel has a buildin country block that can cause this behavior.

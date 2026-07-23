@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.99 2024/08/20 21:17:00 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.112 2025/08/30 02:18:17 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -21,7 +21,7 @@ Q. Even after several syncs the number of messages differs
 Q. How many days does it take to transfer X GB?
 
 Q. What is the Gmail free maximum storage size? 
-R. 15 GB in 2020. Need more?
+A. 15 GB in 2025. Need more?
    https://gsuite.google.com/pricing.html
 
 Q. How to synchronize from Gmail to Gmail?
@@ -85,8 +85,8 @@ Now the questions again with their answers.
 =======================================================================
 Q. Can I use imapsync to transfer from or to Gmail accounts?
 
-R. Yes. But IMAP access to a Gmail account is not allowed by default so 
-it has to be allowed in the Gmail configuration part:
+A. Yes. The IMAP access to a Gmail account is not always allowed 
+by default so here is how to allow IMAP for a Gmail account:
  -> Do not go to "Manage your Google Account" (the upper right icon with your Google face)
  -> Instead, go to Gmail at https://mail.google.com/
  -> Click on Settings, the gear button on the upper right of Gmail.
@@ -97,27 +97,27 @@ it has to be allowed in the Gmail configuration part:
  -> Click on the button "Save changes" at the bottom of the page.
 
 That's not finished, there is also the authentication issue to consider.
-There are two different ways to authenticate to Gmail with Imapsync,
+There are three different ways to authenticate to Gmail with Imapsync,
 either:
 
-1) "App password with 2-step verification"
+1) "App password with 2-step verification", which is currently the
+only way to authenticate on Gmail with the imapsync online service
+https://imapsync.lamiral.info/X/
+An app password is only available for an individual account.
 
-or
+2) OAUTH2 for individual Gmail authentication, see
+https://imapsync.lamiral.info/oauth2/oauth2_imap/README_oauth2.txt
 
-2) XOauth2 ready for groups on any OS or 
-   for individual Gmail authentication on Linux.
-
-For the second one, XOauth2, see the document 
+3) for Gmail groups, on any OS, see
 https://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
 
 
-1) "App password with 2-step verification" is the first way to 
-   authenticate to Gmail with Imapsync.
+Back to 
+1) So, how to setup an "app password" on Gmail?
 
-Summary. First, you have to activate "2-step verification". 
-Then, once activated, "2-step verification" will allow you
-to generate an "App password" at
-https://myaccount.google.com/apppasswords
+Short answer: first, you have to activate "2-step verification".
+Then, once activated, "2-step verification" will allow you to generate
+an "App password" at https://myaccount.google.com/apppasswords
 
 Now, the details.
 Go to
@@ -148,14 +148,20 @@ useful tips about app passwords:
 https://support.google.com/accounts/answer/185833?hl=en 
 
 Even if Google says "Every App Password is only used once", it's false
-and the password can be used many times.
+and the same password can be used many times.
+
+Here is another document about Gmail app passwords, more graphical:
+https://www.limilabs.com/blog/using-app-passwords-with-gmail
+
+Other questions related to Gmail and imapsync at
+https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
 =======================================================================
 Q. Even after several syncs the number of messages differs
    largely between imapsync and the Gmail web interface.
    What can I do?
 
-R. Turned off "Conversation views" on Gmail.
+A. Turned off "Conversation views" on Gmail.
 With "Conversation views" turned off, Gmail shows the exact message 
 count for each folder and it matches what imapsync shows. 
 With "Conversation views" on, a single conversation can have 
@@ -165,28 +171,37 @@ multiple messages and it doesn't match what imapsync presents.
 =======================================================================
 Q. How many days does it take to transfer X GB?
 
-R. Basically it takes X days to transfer X GB per account.
-   Gmail has usage limits per day and use throttles when
+A. Gmail has usage limits per day and can use throttles when
    they are overtaken
    https://support.google.com/a/answer/1071518?hl=en
    From the previous link:
 
    * Upload with IMAP: 500 MB per day.
-   It's 2X days to upload  X GB to Gmail, it's why I suggest to add
-   --maxbytespersecond 20000 --maxbytesafter 1_000_000_000
-   for uploading messages to Gmail
-   (should be --maxbytespersecond 5787 --maxbytesafter 500_000_000
-   but the higher values given work well)
+   It should be 2X days to upload  X GB to Gmail.
+   That's not much, isn't it?
+   
+   Imapsync throttle options should be 
+   --maxbytespersecond 5787 --maxbytesafter 500_000_000
+   
+   but instead, I suggest to use 
+   --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000
+   for uploading messages to Gmail because those higher values
+   work well. Option --gmail2 implies those values.
    
    * Download with IMAP: 2500 MB per day.
-   It's X/2.5 days to download X GB from Gmail, it's why I suggest to add
-   --maxbytespersecond 40_000 --maxbytesafter 3_000_000_000
-   for downloading messages from Gmail
-   (should be --maxbytespersecond 28_935 --maxbytesafter 2_500_000_000
+   It's X/2.5 days to download X GB from Gmail.
+   
+   Imapsync throttle options should be
+   --maxbytespersecond 28_935 --maxbytesafter 2_500_000_000
+   
+   but instead, I suggest to use
+   --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000
+   for downloading messages from Gmail because those higher values
+   work well. Option --gmail1 implies those values.
   
-   That's empirical values that work in practice.
+   They are empirical values that work in practice.
    Try upper values and see if they still work. 
-   I would be grateful if you report them to me.
+   I would be grateful when you report them to me.
 
    How Gmail says limits are reached?
    This is either a disconnection with
@@ -197,35 +212,41 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. How to synchronize from Gmail to Gmail?
 
-R. Use the following example:
+A. Use the following example:
 
-imapsync  \
-           --user1 account1@gmail.com \
-           --password1 gmailsecret1 \
-           --user2 account2@gmail.com \
-           --password2 gmailsecret2 \
-           --gmail1 --gmail2 
+imapsync --user1 account1@gmail.com \
+         --password1 gmailsecret1 \
+         --user2 account2@gmail.com \
+         --password2 gmailsecret2 \
+         --gmail1 --gmail2 
 
-Or, replacing what does --gmail1 --gmail2 (values are from imapsync 2.178):
+Or, replacing what does --gmail1 --gmail2 (values are from imapsync 2.290):
 
-imapsync \
-           --host1 imap.gmail.com \
-           --ssl1 \
-           --user1 account1@gmail.com \
-           --password1 gmailsecret1 \
-           --host2 imap.gmail.com \
-           --ssl2 \
-           --user2 account2@gmail.com \
-           --password2 gmailsecret2 \
-           --maxbytespersecond 300_000  \
-           --maxbytesafter 3_000_000_000 \
-           --automap \
-           --maxsleep 2 \
-           --useheader X-Gmail-Received --useheader Message-Id \
-           --synclabels \
-           --resynclabels \
-           --exclude "\[Gmail\]$" \
-           --folderlast  "[Gmail]/All Mail"
+imapsync --host1 imap.gmail.com \
+         --ssl1 \
+         --user1 account1@gmail.com \
+         --password1 gmailsecret1 \
+         --host2 imap.gmail.com \
+         --ssl2 \
+         --user2 account2@gmail.com \
+         --password2 gmailsecret2 \          --maxbytespersecond 300_000  \
+         --maxbytesafter 3_000_000_000 \
+         --automap \
+         --maxsleep 2 \
+         --useheader X-Gmail-Received \
+         --useheader Message-Id \
+         --synclabels \
+         --resynclabels \
+         --idatefromheader \
+         --exclude "\[Gmail\]$" \
+         --folderlast  "[Gmail]/Sent Mail" \
+         --folderlast  "[Gmail]/Important" \
+         --folderlast  "[Gmail]/Starred" \
+         --folderlast  "[Gmail]/Drafts" \
+         --folderlast  "[Gmail]/Trash" \
+         --folderlast  "[Gmail]/Spam" \
+         --folderlast  "[Gmail]/Chats" \
+         --folderlast  "[Gmail]/All Mail"
 
 With --gmail1 --gmail2 you can override the parameters
 that are activated by them, for example:
@@ -248,6 +269,11 @@ account size is less than 3 GB.
 
 --maxsleep 2 is to avoid sleeping more than 2 seconds when 
 the --maxbytespersecond value implies a long sleep between 2 copies.
+
+--idatefromheader sets the internal dates on host2 to the same as the
+ones in "Date:" headers. It is because Gmail displays the listing of 
+messages ordered by their internal dates, which can be a mess sometimes.
+Sorting by the "Date:" headers gives a better presentation.
 
 --automap is not mandatory but it's a feature to automatically
 map folder names based on the Gmail user configuration itself, par account.
@@ -281,7 +307,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. How to synchronize from XXX to Gmail?
 
-R. Use the following example:
+A. Use the following example:
 
 imapsync --host1 mail.oldhost.com     \
          --user1 my_email@oldhost.com \
@@ -290,7 +316,7 @@ imapsync --host1 mail.oldhost.com     \
          --password2 gmailsecret \
          --gmail2
 
-Or, replacing what does --gmail2 (values are from imapsync 2.178):
+Or, replacing what does --gmail2 (values are from imapsync 2.290):
 (For Linux only because of the quotes)
 
 imapsync --host1 mail.oldhost.com     \
@@ -306,12 +332,19 @@ imapsync --host1 mail.oldhost.com     \
          --expunge1   \
          --addheader  \
          --maxsleep 2 \
-         --maxsize 35_651_584
+         --idatefromheader \
          --exclude "\[Gmail\]$"  \
          --regextrans2 's,\[Gmail\].,,' \
-         --regextrans2 's,^ +| +$,,g'
-         --regextrans2 's,/ +| +/,/,g'
-         --regextrans2 's/['"'"'\\^"]/_/g'
+         --regextrans2 's,^ +| +$,,g'   \
+         --regextrans2 's,/ +| +/,/,g'  \
+         --regextrans2 's/['"'"'\\^"]/_/g' \
+         --folderlast  "[Gmail]/Sent Mail" \
+         --folderlast  "[Gmail]/Important" \
+         --folderlast  "[Gmail]/Starred" \
+         --folderlast  "[Gmail]/Drafts" \
+         --folderlast  "[Gmail]/Trash" \
+         --folderlast  "[Gmail]/Spam" \
+         --folderlast  "[Gmail]/Chats" \
          --folderlast  "[Gmail]/All Mail"
 
 
@@ -345,6 +378,11 @@ the --maxbytespersecond value implies a long sleep between 2 copies.
 --maxsleep 0 cancels any imapsync bandwidth restriction given by
 the options --maxbytespersecond or --maxmessagespersecond
 It does not cancel the imap server bandwidth restrictions.
+
+--idatefromheader sets the internal dates on host2 to the same as the
+ones in "Date:" headers. It is because Gmail displays the listing of 
+messages ordered by their internal dates, which can be a mess sometimes.
+Sorting by the "Date:" headers gives a better presentation.
 
 --automap is optional but it will save manual folders names
 changes or the use of --regextrans2 or --f1f2 to map folder names.
@@ -394,7 +432,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =======================================================================
 Q. How to synchronize from Gmail to XXX?
 
-R. Use this example:
+A. Use this example:
 
 imapsync \
            --user1     foo@gmail.com \
@@ -404,7 +442,7 @@ imapsync \
            --password2 tatasecret \
            --gmail1
 
-Or, replacing what does --gmail1 (values are from imapsync 2.178):
+Or, replacing what does --gmail1 (values are from imapsync 2.290):
 
 imapsync \
            --host1     imap.gmail.com \
@@ -468,8 +506,10 @@ messages labelled "Work" before messages labelled "CanWait" or
 "Urgent". By default imapsync syncs folders (Gmail labels) using the
 classical alphanumeric order.
 
-Option --folderlast "CanWait" will sync only messages that only have
-the label CanWait.
+Option --folderlast "CanWait" will sync to the folder CanWait the
+messages that only have the label CanWait, doing it at the end of 
+the sync.
+
 
 Option --folderlast "[Gmail]/All Mail", in conjunction with option
 --skipcrossduplicates will only put in "[Gmail]/All Mail" the messages
@@ -484,23 +524,23 @@ Q. I can't authenticate with Gmail via IMAP
    or it says 
    "Application-specific password required: https://support.google.com/accounts/answer/185833 (Failure)"
 
-R0. My current settings on two Gmail accounts are made
+A0. My current settings on two Gmail accounts are made
 with three steps 0) 1) 2)
 
 0) Login via a web browser to the Gmail account concerned.
 
-1) The 2-step verification is OFF
+1) The 2-step verification is ON
 https://myaccount.google.com/security?hl=en&pli=1&nlr=1#signin
 
 2) Access for less secure apps is turned ON
 https://www.google.com/settings/security/lesssecureapps
 https://support.google.com/accounts/answer/6010255?hl=en
 
-R1. See Coert Grobbelaar solution:
+A1. See Coert Grobbelaar solution:
 https://web.archive.org/web/20150906230041/http://security.stackexchange.com/questions/86404/how-do-i-interact-with-google-to-import-email-via-imapsync
 https://support.google.com/accounts/answer/185833
 
-R2. I had the same issue one time (mars 2015) logging to Gmail 
+A2. I had the same issue one time (mars 2015) logging to Gmail 
 with imapsync.
 The Gmail imap message error said "Please log in via your web browser"
 so I logged for this account via a web browser. Then,
@@ -508,7 +548,7 @@ it asked me to receive a code via a mobile, I said yes,
 I entered the code and everything went ok on next syncs
 with imapsync. 
 
-R1 again. Since people rarely follow links in a txt file, I reproduce
+A1 again. Since people rarely follow links in a txt file, I reproduce
 Google documentation from the link
 https://support.google.com/accounts/answer/185833
 
@@ -549,13 +589,11 @@ your Google Account, an App Password may solve the problem.
 Most of the time, you’ll only have to enter an App Password once per 
 app or device, so don’t worry about memorizing it.
 
-
-
 =======================================================================
 Q. Can not open imap connection on [imap.gmail.com]: 
    Unable to connect to imap.gmail.com
 
-R0. It looks like this issue is related to ipv6. Both ipv4 and ipv6 
+A0. It looks like this issue is related to ipv6. Both ipv4 and ipv6 
 protocols should work with gmail and imapsync, I test that regularly, 
 imapsync works fine for both ipv4 and ipv6. 
 If you disable ipv6 then disable also ipv6 resolution! 
@@ -564,11 +602,11 @@ The default names resolution order is to present ipv6 name resolutions
 first. If you know how to make ipv4 answers be taken before ipv6 
 then tell me.
 
-R1. First solution, run imapsync with the option --inet4:
+A1. First solution, run imapsync with the option --inet4:
 
    imapsync ... --inet4
 
-R2. A second solution is to use directly gmail ipv4 ip address:
+A2. A second solution is to use directly gmail ipv4 ip address:
 
   imapsync ... --host1 64.233.184.108 
 
@@ -588,18 +626,18 @@ Thanks to Chris Nolan to report, understand and fix this issue!
 =======================================================================
 Q. I want to sync the Sent folder only, what is it on Gmail?
 
-R1. Use:
+A1. Use:
 
   imapsync ... --folder "[Gmail]/Sent Mail"
 
-R2. In fact, by configuration from the user, it can be another folder 
+A2. In fact, by configuration from the user, it can be another folder 
     name presented in IMAP. Use --automap --dry to see this mapping.
     See below 
 
 =======================================================================
 Q. From Gmail to Gmail, I want to keep Categories. What can I do?
 
-R. First, read a document to learn how to play with Gmail Categories:
+A. First, read a document to learn how to play with Gmail Categories:
 https://support.google.com/mail/answer/3094499
 
 Categories are not presented in IMAP in Gmail, so synchronizing them 
@@ -669,7 +707,7 @@ destination. I want cross-duplicates, different Gmail folders/labels
 generating duplicate messages across folders on the destination,
 except for the "All Mail" folder.
 
-R. This behavior, different Gmail labels generating duplicates across
+A. This behavior, different Gmail labels generating duplicates across
 folders except for the "All Mail" folder, is obtained with a
 synchronization with no --gmail1 but instead --exclude "All Mail"
 followed by another synchronization with --gmail1 but without
@@ -698,7 +736,7 @@ and I have other priorities).
 Q. I can't sync more than 1000 messages in each Gmail folder.
    What can I do?
 
-R. It's a Gmail configuration feature that someone set for your
+A. It's a Gmail configuration feature that someone set for your
 Gmail account. Go to 
 https://mail.google.com/mail/u/0/?tab=wm#settings/fwdandpop
 and select 
@@ -708,7 +746,7 @@ and select
 Q. What are the Gmail imap names of the folders 
    "Sent" "Trash" "Drafts" "Junk" "Flagged" and "All"?
 
-R. By default, Gmail imap names of the folders 
+A. By default, Gmail imap names of the folders 
    "Sent" "Trash" "Drafts" "Junk" "Flagged" and "All"
    are like this:
 
@@ -738,7 +776,7 @@ web interface so the result may vary.
 =======================================================================
 Q. Can I transfer Gmail "Chat" messages with imapsync?
 
-R. No. 
+A. No. 
    Even if you think you can because the Chat folder is seen in IMAP,
    with Chat messages in them, they won't be well transferred.
    Chat messages are not well presented and not well transferred 
@@ -747,7 +785,7 @@ R. No.
 =======================================================================
 Q. Can I safely use --useuid or --usecache for Gmail transfers?
 
-R. Yes, but I suggest to not use --useuid nor --usecache 
+A. Yes, but I suggest to not use --useuid nor --usecache 
    for Gmail transfers.
 
 Using UIDs is useless with Gmail in the case of global duplicates
@@ -762,7 +800,7 @@ which is the opposite goal of --usecache implied by --useuid.
 =======================================================================
 Q. Can I use --syncduplicates Gmail transfers?
 
-R. Yes, but Gmail will accept the new duplicate message and 
+A. Yes, but Gmail will accept the new duplicate message and 
 throw away the new copy. It ends up with no duplicates on Gmail but 
 a waste of bandwidth and time.
 
@@ -770,7 +808,7 @@ a waste of bandwidth and time.
 Q. Gmail does not really delete messages in folder [Gmail]/All Mail
    What happens? What can I do?
 
-R. It's true and explained in Gmail documentation at
+A. It's true and explained in Gmail documentation at
 https://support.google.com/mail/answer/7401?hl=en#zippy=%2Cempty-your-trash
 
 To really remove messages in folder "[Gmail]/All Mail", they have to
@@ -822,7 +860,7 @@ Q. Can I use the Extension of the SEARCH command: X-GM-RAW described at
    https://support.google.com/mail/answer/7190?hl=en
    https://developers.google.com/gmail/imap_extensions#extension_of_the_search_command_x-gm-raw
 
-R. Sure. Example, to search only emails with attachment and in unread state:
+A. Sure. Example, to search only emails with attachment and in unread state:
 
 On Unix:
 
@@ -838,53 +876,55 @@ Q. How to avoid the [IMAP] prefix on Gmail side?
 How to stop creating folder with this prefix?
 Any switch we can use? e.g. [IMAP]/Archive
 
-R. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
+A. No switch in imapsync since [IMAP]/ prefix is done by Gmail,
    it might be configurable within Gmail parameters configuration.
 
 
 =======================================================================
 Q. Does imapsync have the capability to do 2 stage authentication?
 
-R. No, imapsync doesn't support 2 stage authentication. 
+A. No, imapsync doesn't support 2 stage authentication. 
 Reading https://support.google.com/mail/answer/1173270?hl=en
 it looks like it can't because imapsync uses imap protocol.
 
 So you have to follow the Google recommendation and generate an 
 application-specific password or normal authentication 
-or use XOAUTH or XOAUTH2.
+or use XOAUTH2.
 
 
 =======================================================================
 Q. How to use XOAUTH2 to globally authenticate gmail users?
 
-R. Yes, but really tested on Unix systems, not sure on Windows. See:
+A. See:
    http://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
-
+   
+Really tested on Unix systems, not sure on Windows.
 
 =======================================================================
 Q. How to use XOAUTH to globally authenticate gmail users?
 
-R0. XOAUTH is considered obsolete and superseded by XOAUTH2
+A0. XOAUTH is considered obsolete and superseded by XOAUTH2
     See http://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
 
 
 =======================================================================
 Q. How to use a Gmail account to backup several different imap accounts?
 
-R. For each account named xxx use:
+A. For each account named xxx use:
 
   imapsync ... --subfolder2 xxx/xxx
 
-It syncs the account xxx under a sub-subfolder xxx/xxx. This way there
-is no supplementary label created on the multi-archive Gmail 
-destination account. No labels all over the place and all original
-xxx sub-folders show up nested within xxx/xxx.
+It syncs the account xxx under the sub-subfolder xxx/xxx. 
+This way, there is no supplementary label created on the 
+multi-archive Gmail destination account. No labels all 
+over the place and all original xxx sub-folders show up 
+nested within xxx/xxx.
 
 
 =======================================================================
 Q. How to migrate email from gmail to google apps?
 
-R. Take a look at:
+A. Take a look at:
 
 http://biasecurities.com/2009/02/migrate-email-from-gmail-to-google-apps/
 http://www.thamtech.com/blog/2008/03/29/gmail-to-google-apps-email-migration/

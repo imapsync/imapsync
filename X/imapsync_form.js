@@ -1,5 +1,5 @@
 
-// $Id: imapsync_form.js,v 1.34 2024/08/05 23:26:21 gilles Exp gilles $
+// $Id: imapsync_form.js,v 1.35 2025/06/14 13:11:42 gilles Exp gilles $
 
 /*jslint browser: true*/ /*global  $*/
 
@@ -348,27 +348,29 @@ $(document).ready(
 
     var handleRun = function handleRun(xhr, timerRefreshLog)
     {
-
+        const time = new Date();
         $("#console").text(
             "Status: " + xhr.status + " " + xhr.statusText + "\n"
-            + "State: " + readyStateStr[xhr.readyState] + "\n" ) ;
+            + "State: " + readyStateStr[xhr.readyState] + "\n" 
+            + "Time: " + time + "\n" 
+            ) ;
 
-        if ( xhr.readyState === 4 ) {
-        // var headers = xhr.getAllResponseHeaders();
-        // $("#console").append(headers);
-        // $("#console").append("See the completed log\n");
-        clearInterval( timerRefreshLog ) ;
-        refreshLog( xhr ) ; // a last time
-        // back to enable state for next run
-        $("#bt-sync").prop("disabled", false) ;
-
+        if ( xhr.readyState === 4 )
+        {
+                // var headers = xhr.getAllResponseHeaders();
+                // $("#console").append(headers);
+                // $("#console").append("See the completed log\n");
+                clearInterval( timerRefreshLog ) ;
+                refreshLog( xhr ) ; // a last time
+                // back to enable state for next run
+                $("#bt-sync").prop("disabled", false) ;
         }
     }
 
     var imapsync = function imapsync()
     {
         var querystring = $("#form").serialize() ;
-        $("#abort").text("\n\n") ; // clean abort console
+        $("#abort").text("\n\n\n") ; // clean abort console
         $("#output").text("Here comes the log!\n\n") ;
 
         if ( "imap.gmail.com" === $("#host1").val() )
@@ -415,10 +417,12 @@ $(document).ready(
 
     var handleAbort = function handleAbort( xhr )
     {
-
+        const time = new Date() ;
         $( "#abort" ).text(
             "Status: " + xhr.status + " " + xhr.statusText + "\n"
-            + "State: " + readyStateStr[xhr.readyState] + "\n\n" ) ;
+            + "State: " + readyStateStr[xhr.readyState] + "\n"
+            + "Time: " + time + "\n"
+            ) ;
 
         if ( xhr.readyState === 4 )
         {

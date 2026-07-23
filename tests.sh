@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.388 2024/08/18 12:41:16 gilles Exp gilles $  
+# $Id: tests.sh,v 1.396 2025/08/26 19:35:59 gilles Exp gilles $  
 
 # To run these tests, you need a running imap server somewhere
 # with several accounts. And be on Linux or Unix.
@@ -442,6 +442,19 @@ ll_folderrec_in_host1()
          --justconnect | grep -F -- '--folderrec'
 }
 
+
+ll_folderrec_in_host1_and_folderrec()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost/INBOX.yop --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folderrec INBOX.yopX 
+}
+
+
+
 ll_port1_143()
 {
         $CMD_PERL  ./imapsync \
@@ -652,16 +665,17 @@ ll_nosearch()
          --host1 $HOST1 --user1 nosearch \
          --passfile1 ../../var/pass/secret.nosearch \
          --host2 $HOST2 --user2 titi \
-         --passfile2 ../../var/pass/secret.titi 
+         --passfile2 ../../var/pass/secret.titi --folder INBOX
 }
 
-ll_search_larger() {
+ll_search_larger()
+{
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-		 --search 'LARGER 1000' --folder INBOX
+        --search 'LARGER 1000' --folder INBOX
 }
 
 ll_search_keyword() {
@@ -1011,6 +1025,19 @@ ll_nouid1() {
 }
 
 
+ll_checkmessageexists() {
+        can_send && sendtestmessage
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX --checkmessageexists --debug 
+}
+
+
+
+
 
 ll_eta() {
         can_send && sendtestmessage
@@ -1049,7 +1076,8 @@ ll_with_flags_errors() {
 
 
 
-ll_errorsmax() {
+ll_errorsmax()
+{
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -1057,10 +1085,20 @@ ll_errorsmax() {
          --passfile2 ../../var/pass/secret.titi \
 	 --nofoldersizes --folder INBOX.errors --regexflag 's/.*/PasGlop \\PasGlopRe/' --errorsmax 5 \
          | grep 'Maximum number of errors 5 reached'
-	 #--pipemess 'grep lalalala' --nopipemesscheck --dry  --debugcontent --debugflags
-         #test "$EXIT_WITH_ERRORS_MAX" = "$?" # no longer used since errors classification
-         #test "$EXIT_ERR_FLAGS" = "$?"
 }
+
+
+ll_errorsmax_view()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+	 --nofoldersizes --folder INBOX.errors --regexflag 's/.*/PasGlop \\PasGlopRe/' --errorsmax 4 # --dry
+}
+
+
 
 ll_debug()
 {
@@ -1942,7 +1980,8 @@ gmail_l_automap() {
 
 
 
-ll_justfolders() {
+ll_justfolders()
+{
         $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -1951,6 +1990,28 @@ ll_justfolders() {
                 --justfolders  
         echo "sudo rm -rf /home/vmail/titi/.new_folder/"
 }
+
+ll_fixInboxINBOX()
+{
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolderlists | grep 'Looking at INBOX or Inbox'
+}
+
+ll_nofixInboxINBOX()
+{
+        ! $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolderlists --nofixInboxINBOX | grep 'Looking at INBOX or Inbox'
+}
+
+
 
 
 ll_create_folder_New1()
@@ -2067,6 +2128,7 @@ ll_delete2folders_focus()
         && ll_delete2foldersbutnot \
         && ll_delete2foldersonly_NEW_3 \
         && ll_delete2foldersonly_subfolder2 \
+        && ll_delete2folders_subfolder2 \
         && true
 }
 
@@ -2139,6 +2201,29 @@ ll_delete2foldersonly_subfolder2_all()
                 test -d /home/vmail/titi/.NEW_2/  || return 1
 }
 
+# In mandatory_tests
+ll_delete2folders_subfolder2() 
+{
+        test -d /home/vmail/titi/.NEW_2.nested/ || \
+                ./W/learn/create_folder localhost titi `cat /g/var/pass/secret.titi` INBOX.NEW_2 INBOX.NEW_2.nested INBOX.NEW_2.nested.yop
+        test -d /home/vmail/titi/.NEW_3.nested/ || \
+                ./W/learn/create_folder localhost titi `cat /g/var/pass/secret.titi` INBOX.NEW_3 INBOX.NEW_3.nested INBOX.NEW_3.nested.yop
+
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders  --nofoldersizes \
+                --subfolder2 NEW_2 \
+                --delete2folders --folder INBOX --debug
+
+        # NEW_2 should be still there because of --subfolder2 NEW_2
+        test -d /home/vmail/titi/.NEW_2/  || return 1
+        # NEW_3 should also be there because of --subfolder2 NEW_2 # starting imapsync 2.303
+        test -d /home/vmail/titi/.NEW_3/  || return 1
+}
+
 
 
 # In mandatory_tests
@@ -2201,7 +2286,8 @@ ll_delete2foldersonly_bug()
 
 
 
-ll_bug_folder_name_with_blank() {
+ll_bug_folder_name_with_blank()
+{
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -2212,7 +2298,8 @@ ll_bug_folder_name_with_blank() {
 }
 
 
-ll_bug_folder_name_with_backslash() {
+ll_bug_folder_name_with_backslash()
+{
 # Bug with Mail-IMAPClient-2.2.9
 # Fixed using Mail-IMAPClient-3.28
                 $CMD_PERL ./imapsync \
@@ -2230,7 +2317,8 @@ ll_bug_folder_name_with_backslash() {
 
 
 
-ll_prefix12() {
+ll_prefix12()
+{
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -2243,7 +2331,8 @@ ll_prefix12() {
 
 
 
-ll_nosyncinternaldates() {
+ll_nosyncinternaldates()
+{
         can_send && sendtestmessage toto
         $CMD_PERL ./imapsync \
          --host1 $HOST1  --user1 toto \
@@ -2251,8 +2340,24 @@ ll_nosyncinternaldates() {
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
          --folder INBOX  \
-         --nosyncinternaldates  --delete2  
+         --delete2  --debug --maxage 1 --nosyncinternaldates
 }
+
+ll_syncinternaldates()
+{
+        can_send && sendtestmessage toto
+        $CMD_PERL ./imapsync \
+         --host1 $HOST1  --user1 toto \
+         --passfile1 ../../var/pass/secret.toto \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --folder INBOX  \
+         --delete2  --debug --maxage 1 --syncinternaldates
+}
+
+
+
+
 # bug:
 # $d=""; # no bug with $d=undef
 # $imap2->append_string($h2_fold,$string, $h1_flags, $d);
@@ -2261,20 +2366,22 @@ ll_nosyncinternaldates() {
 # 3.25 noidate: Sending: 16 APPEND INBOX () "" {428} # Fails: NO IMAP!
 # 2.xx noidate: Sending: 62 APPEND INBOX {428}
 
-ll_idatefromheader() {
+ll_idatefromheader()
+{
 
-        # can_send && sendtestmessage
+        can_send && sendtestmessage
 
         $CMD_PERL ./imapsync \
          --host1 $HOST1  --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi \
-         --folder INBOX.oneemail2  \
-         --idatefromheader  --debug --dry 
+         --folder INBOX  \
+         --idatefromheader  --debug  --maxage 1 
 }
 
-ll_idatefromheader_barker() {
+ll_idatefromheader_barker()
+{
 
         # can_send && sendtestmessage
 
@@ -2290,7 +2397,8 @@ ll_idatefromheader_barker() {
 
 
 
-ll_folder_rev() {
+ll_folder_rev()
+{
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 titi \
                 --passfile1 ../../var/pass/secret.titi \
@@ -2703,7 +2811,7 @@ ll_maxage()
 
 ll_maxage_0() 
 {
-        can_send && sendtestmessage
+        #can_send && sendtestmessage
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
@@ -2724,10 +2832,9 @@ ll_maxage_0_float_1min()
 }
 
 
-
 ll_minage_0() 
 {
-        can_send && sendtestmessage
+        #can_send && sendtestmessage
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
         --passfile1 ../../var/pass/secret.tata \
@@ -2940,6 +3047,41 @@ ll_search_HEADER_attachment()
         --folder INBOX
 }
 
+ll_search_HEADER_attachment_quotes()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search 'OR HEADER "Content-Disposition" "attachment" HEADER "Content-Type" "multipart/mixed"' \
+        --folder INBOX
+}
+
+ll_search_HEADER_attachment_body()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search "BODY Barrister OR HEADER Content-Disposition attachment HEADER Content-Type multipart/mixed" \
+        --folder INBOX.attachment --debugcontent --dry --nodry1 --debugimap1
+}
+
+
+ll_search_NOT_HEADER_attachment_2()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --search "NOT OR HEADER Content-Disposition attachment HEADER Content-Type multipart/mixed" \
+        --folder INBOX.attachment --debugcontent --dry --nodry1 --debugimap1
+}
+
+
 ll_search_NOT_HEADER_attachment()
 {
         $CMD_PERL ./imapsync \
@@ -3029,7 +3171,7 @@ ll_noabletosearch()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX.few_emails --noabletosearch
+        --folder INBOX.few_emails --noabletosearch 
 	# --debugdev --debugimap
 }
 
@@ -3040,7 +3182,7 @@ ll_fetch_hash_set()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX --justfoldersizes --noabletosearch --fetch_hash_set '1:*' 
+        --folder INBOX --justfoldersizes --nochecknoabletosearch --noabletosearch --fetch_hash_set '1:*' 
 	# --debugdev --debugimap
 }
 
@@ -3051,7 +3193,31 @@ ll_fetch_hash_set_abletosearch()
         --passfile1 ../../var/pass/secret.tata \
         --host2 $HOST2 --user2 titi \
         --passfile2 ../../var/pass/secret.titi \
-        --folder INBOX --justfoldersizes --abletosearch --fetch_hash_set '1:*' 
+        --folder INBOX --justfoldersizes --nochecknoabletosearch --abletosearch --fetch_hash_set '1:*' 
+	# --debugdev --debugimap
+}
+
+# noabletosearch so --fetch_hash_set is taken into account 
+ll_fetch_hash_set_11() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --justfoldersizes --nochecknoabletosearch --noabletosearch --fetch_hash_set '1:1' 
+	# --debugdev --debugimap
+}
+
+# abletosearch so --fetch_hash_set is ignored
+ll_fetch_hash_set_abletosearch_11() 
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --host2 $HOST2 --user2 titi \
+        --passfile2 ../../var/pass/secret.titi \
+        --folder INBOX --justfoldersizes --nochecknoabletosearch --abletosearch --fetch_hash_set '1:1' 
 	# --debugdev --debugimap
 }
 
@@ -3196,18 +3362,6 @@ ll_maxlinelength()
                 --passfile2 ../../var/pass/secret.titi \
                 --maxlinelength 8 --nofoldersizes --folder INBOX
 }
-
-ll_maxlinelengthcmd() 
-{       
-        can_send && sendtestmessage
-        $CMD_PERL ./imapsync \
-                --host1 $HOST1 --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --maxlinelength 8 --maxlinelengthcmd cat --nofoldersizes --folder INBOX 
-}
-
 
 
 ll_minmaxlinelength() 
@@ -3559,12 +3713,8 @@ ll_subfolder2_self()
 }
 
 
-
-
-
 ll_subfolder1()
 {
-# reverse of ll_subfolder2
                 $CMD_PERL ./imapsync \
                 --host1 $HOST2 --user1 titi  \
                 --passfile1 ../../var/pass/secret.titi \
@@ -3729,16 +3879,70 @@ ll_regextrans2_ALLIN_useuid()
 
 
 
-ll_sep2() 
+
+
+ll_sep2_two_backslash()
 {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.yop.yap \
-                --sep2 '\\' --dry
+                --folderrec INBOX.yop.yap \
+                --sep2 '\\' 
 }
+
+
+
+ll_sep1_two_backslashes()
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 titi \
+                --passfile1 ../../var/pass/secret.titi \
+                --host2 $HOST2 --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --folderrec 'INBOX.yop\\yap' \
+                --sep1 '\\' 
+}
+
+
+
+ll_sep2_one_backslash()
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folderrec INBOX.yop.yap \
+                --sep2 '\' 
+}
+
+
+ll_sep1_one_backslash()
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 titi \
+                --passfile1 ../../var/pass/secret.titi \
+                --host2 $HOST2 --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --folderrec 'INBOX.yop\yap' \
+                --sep1 '\' 
+}
+
+ll_tr_backslash_to_underscore()
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 titi \
+                --passfile1 ../../var/pass/secret.titi \
+                --host2 $HOST2 --user2 tata \
+                --passfile2 ../../var/pass/secret.tata \
+                --folderrec 'INBOX.yop\yap' --regextrans2 'tr,\\,_,' --dry --justfolders
+}
+
+
+
+
 
 ll_bad_login()
 {
@@ -3833,7 +4037,7 @@ ll_useheader()
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
                 --useheader 'Message-ID' \
-                --dry --debug
+                --debug --delete2
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
@@ -3874,7 +4078,7 @@ ll_useheader_noheader()
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.yop.yap \
                 --useheader 'NoExist' \
-                --debug --delete2 --addheader
+                --debug --delete2 --addheader --dry 
                 echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
@@ -4240,9 +4444,10 @@ ll_disarmreadreceipts()
                 --passfile2 ../../var/pass/secret.titi \
                 --folder INBOX.disarm \
 		--nofoldersizes \
-                --disarmreadreceipts \
-                --debugcontent  --debug --dry
-                echo "sudo sh -c 'rm /home/vmail/titi/.disarm/cur/*'"
+                --debugcontent  --debug --dry --nodry1  \
+                --disarmreadreceipts | { ! egrep '^Disposition-Notification-To: Gilles LAMIRAL' ; }
+                
+                #echo "sudo sh -c 'rm /home/vmail/titi/.disarm/cur/*'"
 }
 
 
@@ -4277,7 +4482,7 @@ ll_regexmess_wong()
 ll_regexmess_wong_2() 
 {
 #Received: from hkuhp22.hku.hk
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4290,7 +4495,7 @@ ll_regexmess_wong_2()
 
 ll_flags() 
 {
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4298,12 +4503,12 @@ ll_flags()
                 --folder INBOX.yop.yap \
                 --debugflags
                 
-                echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+        echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
 ll_resyncflags() 
 {
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4311,13 +4516,14 @@ ll_resyncflags()
                 --folder INBOX.yop.yap \
                 --debugflags --resyncflags | grep 'Host1: flags init msg' || return 1
                 
-                echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+        echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
 ll_syncflagsaftercopy() 
 {
-# courier doesn't gives the flags just after an copy
-                $CMD_PERL ./imapsync \
+# courier doesn't give the flags just after an copy
+                
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4325,14 +4531,14 @@ ll_syncflagsaftercopy()
                 --folder INBOX.yop.yap --nofoldersizes \
                 --debugflags --syncflagsaftercopy # | grep 'replacing h2 flags' || return 1
                                                   # | grep 'could not get its flags' || return 1
-                echo 'sudo rm /home/vmail/titi/.yop.yap/cur/*'
+        echo 'sudo rm -v /home/vmail/titi/.yop.yap/cur/*'
 }
 
 
 
 ll_noresyncflags() 
 {
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4340,13 +4546,13 @@ ll_noresyncflags()
                 --folder INBOX.yop.yap \
                 --debugflags --noresyncflags | grep 'Host1: flags init msg' && return 1
                 
-                echo 'rm /home/vmail/titi/.yop.yap/cur/*'
+        echo 'rm /home/vmail/titi/.yop.yap/cur/*'
 }
 
 
 ll_regex_flag() 
 {
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4354,12 +4560,12 @@ ll_regex_flag()
                 --folder INBOX.yop.yap \
                 --regexflag 's/\\Answered/\$Forwarded/g' --debugflags
                 
-                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+        echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
 
 ll_regex_flag_remove() 
 {
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4367,12 +4573,12 @@ ll_regex_flag_remove()
                 --folder INBOX.yop.yap \
                 --regexflag 's/\\Indexed//gi' --debugflags
                 
-                echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
+        echo 'rm -f /home/vmail/titi/.yop.yap/cur/*'
 }
 
 ll_regex_flag_bad() 
 {
-                ! $CMD_PERL ./imapsync \
+        ! $CMD_PERL ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -4380,7 +4586,7 @@ ll_regex_flag_bad()
                 --folder INBOX.yop.yap \
                 --regexflag 'I am bad' --debugflags
                 
-                echo 'sudo rm -fv /home/vmail/titi/.yop.yap/cur/*'
+        echo 'sudo rm -fv /home/vmail/titi/.yop.yap/cur/*'
 }
 
 
@@ -5030,7 +5236,8 @@ ll_delete1_twoemails_dry()
         --folder INBOX.twoemails --delete1 --dry --debug
 }
 
-ll_delete1_delete2() {
+ll_delete1_delete2()
+{
         ! $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
@@ -5040,7 +5247,8 @@ ll_delete1_delete2() {
 }
 
 
-ll_delete2() {
+ll_delete2()
+{
         can_send && sendtestmessage titi
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 tata \
@@ -5051,7 +5259,8 @@ ll_delete2() {
         --delete2
 }
 
-ll_delete2_reverse() {
+ll_delete2_reverse()
+{
         $CMD_PERL ./imapsync \
         --host1 $HOST1 --user1 titi \
         --passfile1 ../../var/pass/secret.titi \
@@ -5499,18 +5708,19 @@ xxxxx_gmail_useuid() {
 		--folder 'INBOX.Sent' --useuid --dry
 }
 
-xxxxx_gmail_02() {
+xxxxx_gmail_02()
+{
 
                 ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
                 --host1 $HOST2 \
                 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
-                --host2 imap.gmail.com \
-                --ssl2 \
+                --gmail2 \
                 --user2 gilles.lamiral@gmail.com \
                 --passfile2 ../../var/pass/secret.gilles_gmail \
-		--nofoldersizes \
-                --regextrans2 's,(.*),SMS,'
+                --nochecknoabletosearch --nofoldersizes \
+		--f1f2 INBOX=DELETEME \
+                --folder INBOX --search "SENTBEFORE 1-Jan-2008" --debug
 }
 
 xxxxx_gmail_03() {
@@ -5890,7 +6100,7 @@ all_login_tests()
         ll_tls_justlogin \
         ll_tls_justlogin_sslargs_failure_EXIT_TLS_FAILURE \
         yahoo_xxxx_login \
-        yahoo_xxxx_login_tls  \
+        yahoo_export_xxxx_login \
         yahoo_xxxx_login_tls \
         ll_justlogin \
         ll_justlogin_notls \
@@ -6149,11 +6359,6 @@ gmail_gmail_search_NOT_HEADER_attachment()
         --search "NOT HEADER Content-Disposition attachment" \
         --folder INBOX --dry 
 
-        # Also works
-        # --search 'HEADER Content-Type multipart/mixed' \
-
-        # Does not work the OR
-        # --search 'OR HEADER "Content-Disposition attachment" HEADER "Content-Type multipart/mixed"' \
 }
 
 
@@ -6346,27 +6551,23 @@ gmail_gl1_gl2_labels()
 
 gmail_gl1_gl2_labels_subfolder2()
 {
-        #sendtestmessage imapsync.gl1@gmail.com
+        sendtestmessage imapsync.gl1@gmail.com
         
         # The backup
         $CMD_PERL ./imapsync \
-                --host1 imap.gmail.com \
                 --user1 imapsync.gl1@gmail.com \
                 --passfile1 ../../var/pass/secret.imapsync.gl1_gmail \
-                --host2 imap.gmail.com \
                 --user2 imapsync.gl2@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
-                --synclabels  --resynclabels --debuglabels --delete2\
-                --subfolder2 "Archive/Bob"  --nofoldersizes --gmail1 --gmail2 --dry # --exclude "\[Gmail\]" 
+                --synclabels  --resynclabels \
+                --subfolder2 "Archive/Bob"  --nofoldersizes --gmail1 --gmail2  --debuglabels 
 
         return
         
         #sendtestmessage imapsync.gl1@gmail.com
         $CMD_PERL ./imapsync \
-                --host1 imap.gmail.com \
                 --user1 imapsync.gl1@gmail.com \
                 --passfile1 ../../var/pass/secret.imapsync.gl1_gmail \
-                --host2 imap.gmail.com \
                 --user2 imapsync.gl2@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
                 --gmail1 --gmail2 --synclabels --resynclabels --delete2 --folder INBOX --subfolder2 "Archive/Zuz"
@@ -6389,13 +6590,11 @@ gmail_gl3_gl1_labels_subfolder1()
 {
         # The restoration process
         $CMD_PERL ./imapsync \
-                --host1 imap.gmail.com \
                 --user1 imapsync.gl3@gmail.com \
                 --passfile1 ../../var/pass/secret.imapsync.gl3_gmail \
-                --host2 imap.gmail.com \
                 --user2 imapsync.gl1@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl1_gmail \
-                --subfolder1 "Archive/Bob" --debuglabels --resynclabels --nofoldersizes --justfolders #--dry 
+                --subfolder1 "Archive/Bob" --gmail1 --gmail2 --nofoldersizes # --debuglabels
 }
 
 gmail_deuscustoms()
@@ -6464,7 +6663,23 @@ yahoo_xxxx_login()
                 --justlogin 
 }
 
-yahoo_xxxx_login_tls() {
+
+yahoo_export_xxxx_login()
+{
+                ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
+                --host1 export.imap.mail.yahoo.com \
+                --user1 glamiral \
+                --passfile1 ../../var/pass/secret.gilles_yahoo \
+                --host2 $HOST2 \
+                --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justlogin 
+}
+
+
+
+yahoo_xxxx_login_tls()
+{
                 # tls1 no longer works on Yahoo
                 ! ping -c1 imap.mail.yahoo.com || ! $CMD_PERL ./imapsync \
                 --host1 imap.mail.yahoo.com \
@@ -6479,7 +6694,8 @@ yahoo_xxxx_login_tls() {
 
 
 
-yahoo_xxxx() {
+yahoo_xxxx()
+{
 # Yahoo works only with ssl (november 2011)
 # Could do plain port 143 before
                 ! ping -c1 imap.mail.yahoo.com || $CMD_PERL ./imapsync \
@@ -6492,7 +6708,8 @@ yahoo_xxxx() {
                 --addheader --exclude Archive
 }
 
-yahoo_fail_UNAVAILABLE() { 
+yahoo_fail_UNAVAILABLE()
+{ 
 # Those are messages from yahoo:
 # Err 1/11: - msg Archive/470002 {0} S[12903] F[$NotJunk] I[25-Oct-2016 00:19:28 +0000] could not be fetched: 29 NO [UNAVAILABLE] UID FETCH Server error while fetching messages
 # Update 2018/5/5: it now works well on those messages
@@ -6588,9 +6805,11 @@ yahoo_yahoo_search_ALL_Inbox()
 
 
 
-yahoo_all() {
+yahoo_all()
+{
         yahoo_xxxx_login_tls    || return 1
         yahoo_xxxx_login        || return 1
+        yahoo_export_xxxx_login || return 1
         yahoo_xxxx              || return 1
         yahoo_fail_UNAVAILABLE  || return 1
         yahoo_search_SENTSINCE  || return 1
@@ -6626,7 +6845,8 @@ aol_folders_list()
 }
 
 
-archiveopteryx_1() {
+archiveopteryx_1()
+{
 	if can_send; then
                 #echo3 Here is plume
                 sendtestmessage je@lupus.aox.org
@@ -6641,7 +6861,8 @@ archiveopteryx_1() {
                 --folder INBOX --regextrans2 's/INBOX/copy/' 
 }
 
-dkimap_1() {
+dkimap_1()
+{
                 $CMD_PERL  ./imapsync \
                 --host1 Mail.fourfrontsales.com --user1 dktest \
                 --passfile1 ../../var/pass/secret.dktest \
@@ -6651,7 +6872,8 @@ dkimap_1() {
 		--foldersize --nouid1
 }
 
-ll_justlogin() {
+ll_justlogin()
+{
                 $CMD_PERL  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -6660,7 +6882,8 @@ ll_justlogin() {
                 --justlogin 
 }
 
-ll_justlogin_notls() {
+ll_justlogin_notls()
+{
                 $CMD_PERL  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -6669,7 +6892,8 @@ ll_justlogin_notls() {
                 --justlogin --notls1 --notls2 
 }
 
-ll_justlogin_nocompress() {
+ll_justlogin_nocompress()
+{
                 $CMD_PERL  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -6681,7 +6905,8 @@ ll_justlogin_nocompress() {
 
 
 
-ll_justlogin_backslash_char() {
+ll_justlogin_backslash_char()
+{
 # Look in the file ../../var/pass/secret.tptp to see 
 # strange \ character behavior
                 $CMD_PERL  ./imapsync \
@@ -6692,7 +6917,8 @@ ll_justlogin_backslash_char() {
                 --justlogin 
 }
 
-ll_justlogin_dollar_char() {
+ll_justlogin_dollar_char()
+{
                 $CMD_PERL  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -6701,7 +6927,8 @@ ll_justlogin_dollar_char() {
                 --justlogin --showpasswords --debugimap2
 }
 
-ll_justlogin_equal_char() {
+ll_justlogin_equal_char()
+{
                 $CMD_PERL  ./imapsync \
                 --host1 $HOST1 --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
@@ -6728,7 +6955,8 @@ ll_usecache()
          --folder INBOX 
 }
 
-ll_usecache_INBOX() {
+ll_usecache_INBOX()
+{
         if can_send; then
                 sendtestmessage
         else
@@ -6755,7 +6983,8 @@ ll_usecache_all()
          --usecache --nofoldersizes
 }
 
-ll_usecache_bracket() {
+ll_usecache_bracket()
+{
         $CMD_PERL  ./imapsync \
          --host1 $HOST1 --user1 tata \
          --passfile1 ../../var/pass/secret.tata \
@@ -6766,7 +6995,8 @@ ll_usecache_bracket() {
 
 
 # In mandatory_tests
-ll_nousecache() {
+ll_nousecache()
+{
         if can_send; then
                 sendtestmessage
         else
@@ -6782,12 +7012,8 @@ ll_nousecache() {
          --folder INBOX 
 }
 
-
-
-
-
-
-ll_usecache_noheader() {
+ll_usecache_noheader()
+{
         if can_send; then
                 sendtestmessage
         else
@@ -6803,7 +7029,8 @@ ll_usecache_noheader() {
          --folder INBOX --useheader ''
 }
 
-ll_usecache_debugcache() {
+ll_usecache_debugcache()
+{
         if can_send; then
                 sendtestmessage
         else
@@ -6819,7 +7046,44 @@ ll_usecache_debugcache() {
          --folder INBOX --useheader '' --debugcache
 }
 
-ll_usecache_debugcache_useuid() {
+ll_usecache_cacheaftercopy()
+{
+        if can_send; then
+                sendtestmessage
+        else
+                :
+        fi
+	
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --usecache --nofoldersizes \
+         --folder INBOX --maxage 1 --debugcache --cacheaftercopy | grep 'touch new'
+}
+
+ll_usecache_nocacheaftercopy()
+{
+        if can_send; then
+                sendtestmessage
+        else
+                :
+        fi
+	
+        $CMD_PERL  ./imapsync \
+         --host1 $HOST1 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --usecache --nofoldersizes \
+         --folder INBOX --maxage 1 --debugcache --nocacheaftercopy | grep -v 'touch new' 
+}
+
+
+
+ll_usecache_debugcache_useuid()
+{
         if can_send; then
                 sendtestmessage
         else
@@ -7037,7 +7301,7 @@ office1_office2_justlogin_wintive()
 
 #
 
-office1_office2_justlogin_wintive_oauth2()
+office1_office2_justlogin_wintive_oauth2() 
 {
         $CMD_PERL ./imapsync \
         --office1   \
@@ -7045,12 +7309,12 @@ office1_office2_justlogin_wintive_oauth2()
         --office2   \
 	--user2 gilles.lamiral@exchangebywintive.com \
 	--justlogin --debugimap --showpasswords \
-        --oauthaccesstoken1 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@exchangebywintive.com.txt \
-        --oauthaccesstoken2 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@exchangebywintive.com.txt
-}
+        --oauthaccesstoken1 oauth2/oauth2_imap/tokens/oauth2_tokens_gilles.lamiral@exchangebywintive.com.txt \
+        --oauthaccesstoken2 oauth2/oauth2_imap/tokens/oauth2_tokens_gilles.lamiral@exchangebywintive.com.txt
+} 
 
 
-office1_office2_justlogin_gilles_oauth2()
+office1_office2_justlogin_gilles_oauth2() 
 {
         $CMD_PERL ./imapsync \
         --office1   \
@@ -7058,9 +7322,9 @@ office1_office2_justlogin_gilles_oauth2()
         --office2   \
 	--user2 gilles.lamiral@outlook.com \
 	--justlogin --debugimap --showpasswords \
-        --oauthaccesstoken1 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt \
+        --oauthaccesstoken1 oauth2/oauth2_imap/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt \
         --oauthaccesstoken2 oauth2/oauth2_imap/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt
-}
+} 
 
 
 
@@ -7730,7 +7994,15 @@ bigfolder()
 }
 
 
-
+bigfolder_debugimap()
+{         
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --foldersizes  --folder INBOX.Junk.2010 # --debugimap 
+}
 
 
 dprof_bigfolder()
@@ -7960,6 +8232,19 @@ proximapsync_remote_down()
         ./W/learn/proximapsync --remote https://imapsync.lamiral.info/cgi-bin/imapsync --remote https://kkk/cgi-bin/imapsync 
 }
 
+proximapsync_kk()
+{
+        # Error about the unknown option 
+        { ./W/learn/proximapsync --kk   | grep 'Found 1 supplementary arguments' ; } || return 1
+        # No normal run in this case
+        ! { ./W/learn/proximapsync --kk | grep 'Here is proximapsync' ; }            || return 2
+        # 64 ; #/* command line usage error */
+        ./W/learn/proximapsync --kk 
+        test "$?" -eq 64 
+}
+
+
+
 
 ##########################
 ##########################
@@ -8003,6 +8288,7 @@ gmail_glX_all_justlogin
 
 yahoo_xxxx_login_tls
 yahoo_xxxx_login
+yahoo_export_xxxx_login
 yahoo_xxxx
 yahoo_fail_UNAVAILABLE
 
@@ -8048,6 +8334,12 @@ ll_authmd51
 ll_authmd52
 ll_noauthmd5
 ll_maxage
+ll_maxage_0_float_1min
+ll_maxage_10000_minage_9999
+ll_maxage_9999_minage_10000
+ll_minage_0
+ll_maxage_10000_minage_9999_noabletosearch
+ll_maxage_9999_minage_10000_noabletosearch
 ll_maxsize
 ll_skipsize
 ll_skipheader
@@ -8055,7 +8347,9 @@ ll_include
 ll_exclude
 ll_exclude_INBOX
 ll_regextrans2
-ll_sep2
+ll_sep2_two_backslash
+ll_sep2_one_backslash
+ll_sep1_one_backslash
 ll_bad_login
 ll_authentication_failure_user1
 ll_authentication_failure_user2
@@ -8072,6 +8366,7 @@ ll_regexmess_bad_regex
 ll_regexmess_add_header
 ll_regexmess_add_header_path
 ll_regexmess_scwchu
+ll_disarmreadreceipts
 ll_skipmess
 ll_skipmess_8bits
 ll_skipmess_Content_Type_Message_partial
@@ -8143,6 +8438,7 @@ ll_nousecache
 ll_delete2foldersonly_NEW_3
 ll_delete2foldersonly_dry
 ll_delete2foldersonly_subfolder2
+ll_delete2folders_subfolder2
 ll_delete2foldersbutnot
 ll_folder_create
 ll_folder_create_INBOX_Inbox
@@ -8176,6 +8472,7 @@ curl_online_args
 curl_online_file
 proximapsync
 proximapsync_remote_down
+proximapsync_kk
 ksks_reset_test1
 memory_stress
 '

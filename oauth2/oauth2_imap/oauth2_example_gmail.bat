@@ -1,5 +1,5 @@
 
-REM $Id: oauth2_example_gmail.bat,v 1.4 2024/06/18 15:48:42 gilles Exp gilles $
+REM $Id: oauth2_example_gmail.bat,v 1.5 2025/05/19 14:18:31 gilles Exp gilles $
 
 @REM I hope you can read
 @REM A line beginning with @REM is a comment
@@ -27,6 +27,8 @@ CALL .\oauth2_imap.exe  gilles.lamiral@gmail.com
 
 @REM END OF PART TO EDIT
 
+
+
 @REM Some extra features:
 @REM You can specify the token file with the option --token_file
 @REM example:
@@ -34,7 +36,7 @@ CALL .\oauth2_imap.exe  gilles.lamiral@gmail.com
 @REM CALL .\oauth2_imap.exe --token_file my_token_file.txt   gilles.lamiral@gmail.com
 
 
-@REM CALL perl .\oauth2_imap --local gilles.lamiral@gmail.com
+@REM CALL perl .\oauth2_imap gilles.lamiral@gmail.com
 
 
 

@@ -1,0 +1,81 @@
+#!/usr/bin/perl
+
+# $Id: auth,v 1.8 2025/06/23 12:23:10 gilles Exp gilles $
+
+use strict ;
+use warnings ;
+use English ;
+use CGI ;
+use Data::Dumper ;
+use POSIX ;
+use File::Basename ;
+
+
+register_code(  ) ;
+
+sub register_code
+{
+        my $query = CGI->new(  ) ;
+
+        print $query->header(  ) ;
+
+        print "<pre>\n" ;
+        print "Hello Imapsync/Office365 users!\n\n" ;
+
+        my $code  = $query->param( 'code' ) ;
+        my $state = $query->param( 'state' ) ;
+
+        if ( $code and $state )
+        {
+                if ( save_code( $code, $state ) )
+                {
+                        print "The authentication is ok, now you can press enter where you started\n\n"
+                        . "If it does not work, here is the code to copy and past:\n\n"
+                        . $code . "\n\n"
+                        . "Have a nice day!\n\n\n\n\n\n" ;
+                }
+                else
+                {
+                        print "Copy the following code and paste it to the DOS window, when asked to:\n\n" 
+                        . $code . "\n\n"
+                        . "Have a nice day!\n\n\n\n\n\n" ;
+                }
+        }
+        
+        #print Data::Dumper->Dump( [ \$query ] ) ;
+        print "</pre>\n" ;
+        return ;
+}
+
+
+
+sub save_code
+{
+        my ( $code, $state ) = @ARG ;
+        
+        my $return = string_to_file( $code, "/home/www-data/imapsync_auth/$state" ) ;
+        
+        return $return ;
+}
+
+
+sub string_to_file
+{
+        my( $string, $file ) = @_ ;
+	if( ! defined $string ) { return ; }
+	if( ! defined $file )   { return ; }
+
+	if ( ! -e $file && ! -w File::Basename::dirname( $file ) ) {
+		print( "string_to_file: directory of $file is not writable\n" ) ;
+		return ;
+	}
+
+        if ( ! sysopen( FILE, $file, POSIX::O_WRONLY|POSIX::O_TRUNC|POSIX::O_CREAT, 0600) ) {
+		print( "string_to_file: failure writing to $file with error: $OS_ERROR\n" ) ;
+		return ;
+	}
+        
+        print FILE $string ;
+        close FILE ;
+        return $string ;
+}

@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Security.txt,v 1.27 2023/08/29 22:47:47 gilles Exp gilles $
+# $Id: FAQ.Security.txt,v 1.29 2025/08/04 20:55:19 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -44,7 +44,11 @@ Q. How can I manually test login using --ssl?
 Q. Imapsync used to use SSL_VERIFY_PEER now it uses SSL_VERIFY_NONE.
    How can I change this back to the more secure SSL_VERIFY_PEER?
 
-Q: How can I have an imaps server?
+Q. How can I have an imaps server?
+
+Q. All default secure mechanisms fail.
+   I don't want a clear text connection.
+   How can I establish an ssh tunnel to the remote IMAP server?
 
 Now the questions again with their answers.
 
@@ -52,7 +56,7 @@ Now the questions again with their answers.
 Q. Is running this program a secure method of transferring emails?  
    Are there any security concerns?
 
-R. Well, it depends. Use encryption and secure access to the host running
+A. Well, it depends. Use encryption and secure access to the host running
    imapsync then everything shall be safe.
 
 =======================================================================
@@ -61,7 +65,7 @@ Q. Does imapsync refer to SSL security protocols with --ssl1 and --ssl2
    options? 
    Short answer: No.
 
-R. No.
+A. No.
 
 Imapsync behaviour:
 
@@ -134,21 +138,21 @@ IPs.
 Q. Are transferred emails/attachments stored on any other 
    server/location aside from my originating/destination server(s)?
 
-R. No!
+A. No!
 
 =======================================================================
 Q. Other than changing passwords on the originating/destination email
    accounts once the relevant emails have been moved,
    are there any other security tips I should know?
 
-R. Yes. Secure the host where imapsync is running since credentials
+A. Yes. Secure the host where imapsync is running since credentials
    are on it.
 
 =======================================================================
 Q. I need to transfer mail from an imap server to another imap server.
    Which ports need to be open on the firewall to make this possible?
 
-R. It depends. Open either:
+A. It depends. Open either:
     * port 143 in basic (no special option) or tls mode (--tls1 or --tls2)
     * port 993 in ssl mode (--ssl1 or --ssl2)
 
@@ -171,7 +175,7 @@ R2. Since imapsync release 1.755 STARTTLS mode is activated
 =======================================================================
 Q. Does imapsync support IMAP over SSL/TLS (IMAPS)?
 
-R. Yes natively since release 1.161. 
+A. Yes natively since release 1.161. 
    Still, there are 2 ways, at least, to use ssl:
 
 a) Use native --ssl1 and/or --ssl2 options
@@ -230,7 +234,7 @@ to finish them. If you want to finish automatically, then use:
 =======================================================================
 Q. How can I manually test login using --ssl?
 
-R. Use either ncat or telnet-ssl or openssl commands like in the 
+A. Use either ncat or telnet-ssl or openssl commands like in the 
     following examples with imap.gmail.com server:
 
   ncat --ssl -C imap.gmail.com 993
@@ -239,21 +243,32 @@ R. Use either ncat or telnet-ssl or openssl commands like in the
 
   openssl s_client -crlf  -connect imap.gmail.com:993
 
-Typical dialog for an imap LOGIN command:
-  
+
+Typical dialog for an imap LOGIN command with any of these three
+command line tools, once you launch one on a terminal:
+
+
 * OK Gimap ready for requests from 78.196.254.58 q1mb175739668wix
 A1 LOGIN "gilles.lamiral@gmail.com" "secret" 
 * CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE ... ESEARCH
-A1 OK gilles.lamiral@gmail.com Gilles Lamiral authenticated (Success)
-A2 LOGOUT
+A1 OK gilles.lamiral@gmail.com authenticated (Success)
+A2 CREATE FooFolder
+A2 OK Success
+A3 LOGOUT
 * BYE LOGOUT Requested
 A2 OK 73 good day (Success)
+Hit Ctrl-d or Ctrl-c
 
 The client part you have to type is 
 A1 LOGIN ... 
-A2 LOGOUT
+A2 CREATE FooFolder
+A3 LOGOUT
 while replacing ... by your credentials values,
 other lines are the server responses.
+
+For Windows users, The ncat command is available in Nmap 
+https://nmap.org/download#windows
+
 
 =======================================================================
 Q. How can I test a STARTTLS imap connection without imapsync?
@@ -275,7 +290,7 @@ Q. Imapsync used to use SSL_VERIFY_PEER now it uses SSL_VERIFY_NONE.
    How can I change this back to the more secure SSL_VERIFY_PEER?
 
 
-R. After imapsync 1.673, 
+A. After imapsync 1.673, 
     to set SSL_verify_mode to SSL_VERIFY_PEER on host1
     and    SSL_verify_mode to SSL_VERIFY_NONE on host2
 
@@ -308,9 +323,9 @@ certificates directly in imapsync.
 Drop me a note to encourage me, I'm lazy.
 
 =======================================================================
-Q: How can I have an imaps server?
+Q. How can I have an imaps server?
 
-R. Three solutions.
+A. Three solutions.
 
 a) Install one 
 
@@ -321,5 +336,27 @@ b) or use stunnel :
 c) or use stunnel on inetd
    imaps stream  tcp nowait cyrus /usr/sbin/stunnel -s cyrus -p /etc/ssl/certs/imapd.pem -r localhost:imap2
 
+
+=======================================================================
+Q. All default secure mechanisms fail.
+   I don't want a clear text connection.
+   How can I establish an ssh tunnel to the remote IMAP server?
+
+
+A. On the host you run imapsync, find a free port, for example 5432.
+   Run on it the command:
+
+  ssh -L 5432:old.mailserver.com:143 root@old.mailserver.com
+
+For this, you need to have an ssh access to root@old.mailserver.com.
+
+Then ran imapsync, using the following address for the IMAP server:
+
+  imapsync --host1 localhost:5432 ...
+
+This way, talking to localhost on port 5432 will talk to 
+old.mailserver.com on port 143 via a secure channel.
+
+Thanks to Ron Pfister for this trick.
 =======================================================================
 =======================================================================

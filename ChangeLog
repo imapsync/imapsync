@@ -1,17 +1,116 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 2.290
+head: 2.312
 branch:
 locks: strict
-	gilles: 2.290
+	gilles: 2.312
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 1190;	selected revisions: 1190
+total revisions: 1212;	selected revisions: 1212
 description:
 ----------------------------
-revision 2.290	locked by: gilles;
+revision 2.312	locked by: gilles;
+date: 2025/08/25 22:40:36;  author: gilles;  state: Exp;  lines: +116 -111
+Grammarly
+----------------------------
+revision 2.311
+date: 2025/08/20 05:35:10;  author: gilles;  state: Exp;  lines: +59 -22
+Splited sub remove_tmp_files() in sub remove_pidfile() and sub remove_abortfile()
+----------------------------
+revision 2.310
+date: 2025/08/18 22:05:01;  author: gilles;  state: Exp;  lines: +41 -38
+Just syntaxic sugar.
+----------------------------
+revision 2.309
+date: 2025/08/17 15:59:05;  author: gilles;  state: Exp;  lines: +18 -8
+Added inline help when the sync needs --delete2 again
+----------------------------
+revision 2.308
+date: 2025/07/16 12:25:48;  author: gilles;  state: Exp;  lines: +39 -73
+Bugfix. Allow space in --host imap.foo.kk:114433/co co/cucu/ 
+Refactor. Renamed random_string() to generate_a_random_string()
+2176 unit tests.
+----------------------------
+revision 2.307
+date: 2025/06/21 13:29:09;  author: gilles;  state: Exp;  lines: +82 -68
+Bugfix. All Gmail labels prints now done with --debuglabels only.
+----------------------------
+revision 2.306
+date: 2025/04/22 21:25:23;  author: gilles;  state: Exp;  lines: +35 -28
+Added a printing in firstline_or_string() saying if the output is the string itself or the first line of the file.
+----------------------------
+revision 2.305
+date: 2025/04/19 22:59:18;  author: gilles;  state: Exp;  lines: +67 -12
+Added many options to --extra, the ones allowed in CGI context.
+----------------------------
+revision 2.304
+date: 2025/04/19 20:35:43;  author: gilles;  state: Exp;  lines: +21 -14
+Added STARTTLS detection in sub connect_imap(), like in sub login_imap()
+----------------------------
+revision 2.303
+date: 2025/02/24 15:52:54;  author: gilles;  state: Exp;  lines: +163 -29
+Enhancement. --sufolder2 FOO --delete2folders adds --delete2foldersonly m{FOO}. It facilitates syncing strictly to subfolders.
+----------------------------
+revision 2.302
+date: 2024/12/11 13:27:23;  author: gilles;  state: Exp;  lines: +29 -11
+Added --minsize --maxsize --maxage --minage --search --search1 --search2 to get_options_from_string() and get_options_cgi()
+  meaning they are usable online.
+----------------------------
+revision 2.301
+date: 2024/11/27 23:20:17;  author: gilles;  state: Exp;  lines: +43 -43
+New API for fix_Inbox_INBOX_mapping()
+----------------------------
+revision 2.300
+date: 2024/11/27 22:43:20;  author: gilles;  state: Exp;  lines: +17 -16
+Shorter presentation.
+----------------------------
+revision 2.299
+date: 2024/11/14 13:01:29;  author: gilles;  state: Exp;  lines: +222 -195
+Refactoring. Deglobalized $fixcolonbug, $create_folder_old, $useuid, $debugcache, $cacheaftercopy, $idatefromheader, $syncinternaldates, $disarmreadreceipts, \$fixInboxINBOX
+----------------------------
+revision 2.298
+date: 2024/11/10 11:11:18;  author: gilles;  state: Exp;  lines: +158 -122
+Deglobalized $prefix1, $prefix2, $pipemesscheck, $help, $nb_msg_skipped_dry_mode, $checkmessageexists, $fetch_hash_set
+Added --testslive2 which is the reverse of --testslive. Useful to back and forth tests.
+----------------------------
+revision 2.297
+date: 2024/10/28 18:33:32;  author: gilles;  state: Exp;  lines: +94 -73
+Deglobalized  $minsize, $maxage, $minage
+2156 unit tests
+----------------------------
+revision 2.296
+date: 2024/10/22 20:31:40;  author: gilles;  state: Exp;  lines: +10 -13
+Refactoring. Deglobalized $search
+----------------------------
+revision 2.295
+date: 2024/10/16 21:08:12;  author: gilles;  state: Exp;  lines: +13 -13
+Refactoring. typo about $sync->{ folderrec }
+----------------------------
+revision 2.294
+date: 2024/10/16 21:04:45;  author: gilles;  state: Exp;  lines: +58 -54
+Usability. Always log by default, even in Docker context.
+Refactoring. Deglobalized @folderrec, now $mysync->{ folderrec }
+----------------------------
+revision 2.293
+date: 2024/10/15 20:39:10;  author: gilles;  state: Exp;  lines: +21 -13
+Added in --extra the possibility of --delete2folders --delete1emptyfolders --delete2duplicates --delete2 --delete1
+----------------------------
+revision 2.292
+date: 2024/10/15 16:13:53;  author: gilles;  state: Exp;  lines: +98 -112
+CGI context. Now --useheader can be set in CGI context.
+Bugfix. Final statistic are printed when imapsync exits because of too many errors.
+Enhancement. In --extra can be passed --expunge1 --expunge2 --syncduplicates --skipcrossduplicates --debugcrossduplicates --useheader --errorsmax --folder --oauthaccesstoken1 --oauthaccesstoken2 --ssl1 --ssl2 --tls1 --tls2 --compress1 --compress2 --debugimap --debugflags. I am not sure of this goodness....
+----------------------------
+revision 2.291
+date: 2024/10/01 11:36:21;  author: gilles;  state: Exp;  lines: +71 -32
+Added printing of REQUEST_URI in CGI context.
+Added unit test 'regexmess: date replaced by first received date'
+Added --idatefromheader for --gmail2 and --gmail1 --gmail2, unless --noidatefromheader
+Better debug output in sub get_options_cmd()
+----------------------------
+revision 2.290
 date: 2024/08/20 10:37:23;  author: gilles;  state: Exp;  lines: +116 -117
 --gmail1  implies --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000
 --gmail2  implies --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000

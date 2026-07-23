@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Authentication_failure.txt,v 1.16 2022/08/17 09:18:17 gilles Exp gilles $
+$Id: FAQ.Authentication_failure.txt,v 1.17 2024/12/18 21:58:22 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -17,6 +17,9 @@ Host1 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2
 Q. Imapsync fails with the following error, what can I do?
    Host2 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 BAD Invalid characters in atom 
 
+Q. I am already pre-authenticated, how to tell imapsync to not issue 
+   a LOGIN command?
+
 Now the questions again with their answers.
 
 
@@ -25,7 +28,7 @@ Q. Imapsync fails with the following error, what can I do?
 Host1 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 NO [AUTHENTICATIONFAILED] Authentication failed
 
 
-R. One over four imapsync synchronizations end up quickly with the error message 
+A. One over four imapsync synchronizations end up quickly with the error message 
    "Authentication failed" or "NO LOGIN failed" or a similar message.
    Authentication failure is the primary failure with imapsync
    and since nothing tangible can be done without authentication, 
@@ -126,9 +129,17 @@ Some other examples:
 Q. Imapsync fails with the following error, what can I do?
    Host2 failure: Error login on [imap.example.com] with user [foo] auth [LOGIN]: 2 BAD Invalid characters in atom 
 
-R. It might be a Dovecot imap server. The password string might 
+A. It might be a Dovecot imap server. The password string might 
    contain special characters that Dovecot doesn't like. Change them.
  
- =======================================================================
- =======================================================================
+=======================================================================
+Q. I am already pre-authenticated, how to tell imapsync to not issue 
+   a LOGIN command?
+
+A. Try:
+
+  imapsync ... --authmech1 PREAUTH
+
+=======================================================================
+=======================================================================
  

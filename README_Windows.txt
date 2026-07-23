@@ -1,4 +1,4 @@
-# $Id: README_Windows.txt,v 1.29 2023/09/21 18:09:42 gilles Exp gilles $
+# $Id: README_Windows.txt,v 1.31 2025/08/27 13:40:41 gilles Exp gilles $
 # 
 # This is the README_Windows.txt file for imapsync 
 # imapsync: IMAP syncing and migration tool.
@@ -11,26 +11,26 @@
 
  Standard users should take the A) way, the simplest way.
 
- Developers, or power users that want to build their imapsync.exe
- or modify it, have to consider the B) way, the complex and powerful way.
+ Developers or power users who want to build their own imapsync.exe or
+ modify it have to consider the B) way, the complex and powerful way.
 
-
----------------
+----------------
 A) Simplest way
----------------
+----------------
 
 A.0) Preamble for visual users looking for a visual tool.
 
  First, the visual thing I am talking about here is not the online
  visual interface I call /X that you might have seen and used at the
- URL https://imapsync.lamiral.info/X/ 
+ URL https://imapsync.lamiral.info/X/
 
- This /X visual interface is not yet available on Windows as a service
- that you can install and use in your system.  I plan to make a visual
- tool available on Windows but, for now, I encountered technical
- issues.
-
- So what visual thing am I talking about?
+ This /X visual interface is not yet available natively on Windows as
+ a service that you can install and use on your system.  I plan to
+ make a visual tool available on Windows, but for now, I encountered
+ technical issues. But you can use the imapsync Docker image on
+ Windows, and have an online /X visual interface with it.
+ 
+ So, what visual thing am I talking about?
  
  Imapsync itself is not a visual tool. The visual tool is Notepad or
  any text editor. Many pure visual users have succeeded in using
@@ -42,15 +42,16 @@ A.0) Preamble for visual users looking for a visual tool.
 
 A.1) Get imapsync.
 
- Get imapsync at https://imapsync.lamiral.info/
- You'll then have access to a zip archive file named imapsync_2.260.zip
- where 2.260 is the imapsync release number. It may be a different number
- at the time you download it.
+ Get imapsync at https://imapsync.lamiral.info/ 
 
-A.2) Extract the zip file in a folder where you will work with imapsync.
+ You'll then have access to a zip archive file named
+ imapsync_2.312.zip where 2.312 is the imapsync release number. It may
+ be a different number at the time you download it.
 
- You can work on the Desktop since the zip file extraction creates
- a unique folder named imapsync_2.260/
+A.2) Extract the zip file into a folder where you will work with imapsync.
+
+ You can work on the Desktop since the zip file extraction creates a
+ unique folder named imapsync_2.312/
  
  Do not unzip the archive in what is called a "system" directory since
  you may encounter permission issues.
@@ -65,7 +66,7 @@ A.3) Check the folder
 
  In the folder extracted and called imapsync_2.260, you see 7 files
  and 2 directories.  Those files and directories may be presented in a
- different order than the following, the order is not important
+ different order than the following; the order is not important
  anyway. There are only two important files to get your mailbox
  transfer job started in a few minutes, the first two files of the
  following list:
@@ -78,18 +79,17 @@ A.3) Check the folder
  * sync_loop_windows.bat  is a batch file example for syncing many accounts.
  * file.txt               is an input file example for syncing many accounts.
  * imapsync.exe           is the imapsync 64-bit binary. You don't have to run it directly.
- * imapsync_32bit.exe     is the imapsync 32-bit binary. You don't have to run it directly.
  * Cook\                  is the directory to build imapsync.exe from its source, 
                           for the B) way and expert users.
- * oauth2_office365\*     is a directory to get oauth2 tokens for Office365
+ * oauth2_imap\*          is a directory to get oauth2 tokens for Office365 and Gmail.
 
- You can copy or rename the file imapsync_example.bat as you wish,
- as long as its extension remains ".bat", for example, mysync.bat
+ You can copy or rename the file imapsync_example.bat as you wish, as
+ long as its extension remains ".bat", for example, mysync.bat
 
  On Windows systems, a file name ending with a .bat extension means
- "I'm a batch script".  A batch script is a file containing commands,
- it is a program. Don't be afraid to be a programmer, a program can
- be very simple to modify and I hope imapsync_example.bat is one of
+ "I'm a batch script".  A batch script is a file containing commands;
+ it is a program. Don't be afraid to be a programmer; a program can be
+ very simple to modify, and I hope imapsync_example.bat is one of
  them.
 
  The batch scripts have to stay in the same directory as imapsync.exe
@@ -103,7 +103,7 @@ A.3) Check the folder
  For the rest of this documentation, I assume you copied
  imapsync_example.bat to a file named mysync.bat
 
- If you don't know how to copy and rename a file then use
+ If you don't know how to copy and rename a file, then use
  imapsync_example.bat itself, it's ok. The original file is still in
  the zip file in case you want to restart from scratch.
 
@@ -115,17 +115,17 @@ A.4) Edit the batch file
  To edit mysync.bat, you have to right-click on it and select "modify"
  in the list presented in the small window menu.
 
- Notepad or Notepadd++ are very good editor candidates to modify the
- script.  Notepad is already installed on any Windows system,
- Notepadd++ is not usually installed but if you have it, then use it.
+ Notepad or Notepad++ are very good editor candidates to modify the
+ script.  Notepad is already installed on any Windows system.
+ Notepad++ is not usually installed, but if you have it, then use it.
 
  Office Word or any powerful text processor is NOT good for that job.
- Text processors transform files in a special format that is wrong to
- make them stay a good batch file, so don't use them!
+ Text processors transform files into a special format that is wrong
+ to make them stay a good batch file, so don't use them!
 
  The documents FAQ.txt and FAQ.d/* contain many tips. They describe
  some special options that are sometimes needed by specific imap
- software servers like Exchange, Office365, or Gmail.
+ software servers like Exchange, Office 365, or Gmail.
 
  Those documents are also available online at
  https://imapsync.lamiral.info/FAQ.d/
@@ -133,7 +133,7 @@ A.4) Edit the batch file
 
 A.5) Run the batch file
 
- To run imapsync with your values just double-click on the batch file
+ To run imapsync with your values, just double-click on the batch file
  mysync.bat
 
  There is no need to have administrator privileges to run imapsync.
@@ -142,17 +142,17 @@ A.5) Run the batch file
 
  If imapsync.exe returns immediately with the ERRORLEVEL -1, it may be
  because you have a Group Policy in place to prevent the execution of
- programs in the %TEMP% directory. Temporarily remove this restriction
- and imapsync will work as expected. Thanks to Walter H. for this
- input!
+ programs in the %TEMP% directory. Temporarily remove this
+ restriction, and imapsync will work as expected. 
+ Thanks to Walter H. for this input!
 
  Technically speaking, imapsync.exe is an embedded Perl script with
- the Perl interpreter itself added and many Perl modules, all glued together
- in an archive auto-extracted at run time. So it needs write-access to
- the temporary directory. The temporary directory name depends on the
- user but its value is in the variable %TEMP%. You can have the value
- by running the command ECHO %TEMP% in a DOS window. You can have a
- DOS window by launching the command cmd.exe
+ the Perl interpreter itself added and many Perl modules, all glued
+ together in an archive auto-extracted at run time. So, it needs write
+ access to the temporary directory. The temporary directory name
+ depends on the user, but its value is in the variable %TEMP%. You can
+ have the value by running the command ECHO %TEMP% in a DOS
+ window. You can have a DOS window by launching the command cmd.exe
 
 A.6) Look at the sync running. 
 
@@ -162,14 +162,14 @@ A.6) Look at the sync running.
  A single ctrl-c will reconnect to both imap servers.
  
  You can also simply abort the sync by closing the DOS window, using
- the cross situated at the up-right corner.
+ the cross situated at the upper-right corner.
 
  What you see in this DOS terminal is also put in a logfile located
  in the subdirectory LOG_imapsync/
 
 A.7) Control what happened.
 
- When the sync is finished you can find the whole log file of the
+ When the sync is finished, you can find the whole log file of the
  output in the folder named "LOG_imapsync/".
  
  The log file name is based on the launching date, hour, minute,
@@ -183,8 +183,8 @@ A.7) Control what happened.
 
  IMPORTANT: When there is a problem, the problem is very often
  described at the end of the log file. It means you don't have to read
- all this bloody ununderstandable verbose logfile, just read the end
- first.
+ all of this bloody, incomprehensible, verbose logfile; just read the
+ end first.
 
 
 A.8) Loop on A.4 through A.7
@@ -216,13 +216,15 @@ This is the way to modify imapsync.exe if needed.
 B.1) Install Perl if it isn't already installed.
   Strawberry Perl is a very good candidate
   http://strawberryperl.com/
-  I use 5.32.1.1 (released 2021-01-24) but previous and later releases 
-  should work as well (Perl 5.18 to 5.30 do).
+  I use Perl 5.40.2.1 (released 2025-05-11), but previous and later releases 
+  should work as well (Perl 5.18 to 5.40 do).
 
 B.2) Go into the Cook/ directory
-B.3) Double-click build_exe.bat 
+B.3) Double-click build_exe.bat
 
 It should create a binary imapsync.exe in the current Cook/ directory.
 
 B.4) Move imapsync.exe to the upper directory and follow the instructions
      from A.3) to A.8)
+
+

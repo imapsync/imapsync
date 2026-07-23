@@ -1,5 +1,5 @@
 
-REM $Id: oauth2_example_office365.bat,v 1.11 2024/06/18 11:55:49 gilles Exp gilles $
+REM $Id: oauth2_example_office365.bat,v 1.12 2025/02/24 15:59:25 gilles Exp gilles $
 
 @REM I hope you can read
 @REM A line beginning with @REM is a comment
@@ -24,7 +24,6 @@ REM $Id: oauth2_example_office365.bat,v 1.11 2024/06/18 11:55:49 gilles Exp gill
 @REM For an Office365 account it will be:
 
 CALL .\oauth2_imap.exe    gilles.lamiral@outlook.com
-
 
 @REM END OF PART TO EDIT
 

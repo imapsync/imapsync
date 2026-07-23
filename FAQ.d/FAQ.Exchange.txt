@@ -1,5 +1,5 @@
 
-$Id: FAQ.Exchange.txt,v 1.81 2024/01/11 14:24:49 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.85 2025/06/08 19:53:18 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -167,11 +167,11 @@ using admin credentials even if I've tried and made all the
 configuration mentioned in the FAQ.Exchange.
 The error was always "LOGIN failed".
 
-My problem was that I have been used an admin account which haven’t
+My problem was that I have been used an admin account which haven't
 attached a mailbox in Exchange. This is my admin account which I use
 only for configuration in Exchange, not for emails.
 
-So, after I’ve created in Exchange a mailbox for this user, the sync
+So, after I've created in Exchange a mailbox for this user, the sync
 started to work.  I can confirm that imapsync is working for Exchange
 2019, with plain authentication, and full permissions of admin account
 (this account must have mailbox attached) applied to regular user
@@ -237,6 +237,7 @@ https://adam-hand.com/2017/07/25/connect-a-shared-mailbox-from-o365-to-outlook-v
 https://www.arclab.com/en/kb/email/imap-settings-shared-mailbox-office-exchange-online.html
 https://social.technet.microsoft.com/Forums/en-US/336e02ee-6767-4810-90a0-1352bd7cc9e9/office-365-how-to-access-a-shared-mailbox-using-imap-client?forum=onlineservicesexchange
 
+
 ======================================================================
 Q. How can I use a shared account as a backup account for several
    mailboxes and so avoid spending too many dollars in backup accounts?
@@ -262,6 +263,18 @@ Change the recipient Receive/Send size:
 
 Thanks to Pasternak Denis for this Exchange 2019 tip.
 
+To configure it on organizational level:
+ 
+Set-TransportConfig -MaxSendSize 100MB -MaxReceiveSize 100MB to configure it on organizational level.
+
+Because the Exchange Server has a cache for various settings, this
+change does not take effect immediately. You may have to wait several
+hours before this change is recognized or just restart server or
+services with:
+
+Get-Service *Exchange* | Where {$_.DisplayName -notlike "*Hyper-V*"} | Restart-Service -Force
+
+Thanks to Mladen Parvanov for this addition.
 
 R2. With Exchange 2016
 

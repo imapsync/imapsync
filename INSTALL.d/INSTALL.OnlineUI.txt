@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.OnlineUI.txt,v 1.65 2023/12/29 20:10:54 gilles Exp gilles $
+# $Id: INSTALL.OnlineUI.txt,v 1.69 2025/05/25 23:21:02 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -38,32 +38,36 @@ your own https certificates, see the document:
 https://imapsync.lamiral.info/FAQ.d/FAQ.Docker.txt
 
 =======================================================================
-                    Guenuine installation
+                    Genuine installation
 
 To install your online imapsync service, follow this document, the
 document you're reading now. If you started doing an installation
-without it, scratch what you did and what you guessed about how it
-should be installed.
+without it, scratch what you did and forget what you guessed about how
+it should be installed. I do follow this document myself each time I
+install an online imapsync service, just because if I don't follow it,
+the service doesn't work.
 
 You have to be a little familiar with what a CGI script is and how to
 activate a CGI script on the Apache HTTP server, or any other HTTP
-server. I have received demands to run it on the Ngnix HTTP server but
-I haven't played with it yet.  Linux is also a preferred platform (I
-run /X service on Linux and FreeBSD).
+server. CGI is the acronym of Common Gateway Interface.
+
+I have received demands to run it on the Ngnix HTTP server but I
+haven't played with it yet.  Linux is also a preferred platform. I run
+/X services on Linux systems.
 
 I have tested this visual interface on Mac. It works.  For now, it
 demands some skills few Mac users have.  Drop me a note in case you
 want to do that.
 
 I have tested this visual interface on Windows, it fails on Windows
-because of some hardcoded Unix paths.  I'm working on it to be Windows
-ok but it's not done yet (May 2020).
+because of some hard-coded Unix paths.  I'm working on it sometimes to
+be Windows okay but it's not done yet (April 2025).
 
 Some users have successfully installed a /X visual interface on
 Windows using a Linux VM machine.
 
-The web visual user interface frontend /X is compounded in four files:
-a html5 file, a CSS file, a javascript file, and a logo image:
+The web visual user interface front-end /X is compounded in four
+files: a html5 file, a CSS file, a javascript file, and a logo image:
 
 * https://imapsync.lamiral.info/X/imapsync_form_extra.html
 * https://imapsync.lamiral.info/X/imapsync_form.css
@@ -71,10 +75,11 @@ a html5 file, a CSS file, a javascript file, and a logo image:
 * https://imapsync.lamiral.info/X/logo_imapsync_Xn.png
 
 
-You can do a "view source" to see the HTML file as it is written, and
-a "save" to get it locally.  The three other files can be saved the
-same way or with a command named "wget". I strongly suggest using
-wget and to follow the ready-to-use command lines given below.
+In your browser, you can do a "view source" to see the HTML file as it
+is written, and a "save" action to get it locally.  The three other
+files can be saved the same way or with a command named "wget". I
+strongly suggest using wget and to follow the ready-to-use command
+lines given below.
 
 Those four files can be put anywhere on a web server, as long as they
 stand in the same directory. If you want to put them in different
@@ -83,15 +88,15 @@ reflect the change, ie, change the two lines referencing
 imapsync_form.css and imapsync_form.js href="imapsync_form.css" (near
 the beginning of imapsync_form_extra.html) src="imapsync_form.js"
 (near the end of imapsync_form_extra.html) I let you change the image
-logo as an exercise, it's safe if you fail.
+logo as an exercise, since it's safe if you fail.
 
-The actual imap syncing work is done by imapsync acting as a CGI, the
+The actual IMAP syncing work is done by imapsync acting as a CGI, the
 visual interface is only there to give imapsync the parameters needed
 for the sync.
 
 Use at least Perl module CGI.pm release 4.08 (2014-10-18) to avoid the
 bug "Undefined subroutine CGI::multi_param".  You can use the command
-named cpanm to upgrade CGI.pm to its last version, it's the easiest
+named cpanm to upgrade CGI.pm to its last version, it is the easiest
 way.
 
 Print the CGI.pm release with:
@@ -103,8 +108,8 @@ If it is under release 4.08 (2014-10-18) then upgrade it with
   cpanm CGI
 
 It is a good thing to remove the old one if it was installed by a
-distribution package, I let you this part as an exercise too. Ok, here
-is a way:
+distribution package, I let you this part as an exercise too. Ok, 
+here is a way:
 
   apt remove libcgi-pm-perl # for the Debian family
   dnf remove perl-CGI       # for the Centos family
@@ -127,12 +132,12 @@ user running the webserver.
 Third, the file imapsync has to be considered as a cgi script.
 
 Command lines to provide and verify those three conditions will be
-provided further in this document, for the Debian family systems and
-for the Centos family systems. You are strongly advised to follow this
-commands if you need and want help from me because I will first ask 
-you to run them before searching what you did wrong. I do follow 
-myself this document when I install a new online imapsync service
-and I update it regularly.
+provided further in this document, for both the Debian family systems
+and the Centos family systems. You are strongly advised to follow this
+commands if you need and want help from me because I will first ask
+you to run them before searching what you did wrong. Like already
+said, I follow myself this document when I install a new online
+imapsync service and I update this document when doing so.
 
 The imapsync_form_extra.html file in action calls the CGI location
 /cgi-bin/imapsync
@@ -143,34 +148,38 @@ https://imapsync.lamiral.info/imapsync
 This file is the program file used verbatim for the service given at
 https://imapsync.lamiral.info/X/
 
-You will copy the three files imapsync_form.* on a directory that is exported
-by your HTTP server.
+You will copy the three files imapsync_form.* on a directory that is
+exported by your HTTP server.
 
-You will copy the imapsync script on the cgi-bin/ directory
-allowing CGIs and you'll have your imapsync visual interface
-and service. The cgi-bin/ directory is usually outside the
-hierarchy exported to anybody by the HTTP server.
+You will copy the imapsync script on the cgi-bin/ directory allowing
+CGIs. The cgi-bin/ directory is usually outside the hierarchy exported
+to anybody by the HTTP server.
 
 The default Apache 2.4 timeout is 60 seconds, one minute, and 300
-secondes for older Apache, 5 minutes.  See
+seconds for older Apache, 5 minutes.  See
 https://httpd.apache.org/docs/2.4/mod/core.html#timeout
 
 I use "Timeout 3600", 3600 seconds, an hour. I chose this huge timeout
 value because imapsync can spend a long time without talking while
-getting the headers of huge folders of 100k messages.  If you intend
-to offer this service for huge mailboxes or for a long time, I
-strongly recommand you to set this "Timeout 3600" in the Apache
-configuration right now because you will sure end up with this timeout
-issue in a few months. You can search for timeouts in the Apache error
-log to see if you have timeout issues.
+getting the messages headers of huge folders, containing 100k
+messages.  If you intend to offer this service for huge mailboxes or
+for a long time, I strongly advise you to set this "Timeout 3600" in
+the Apache configuration right now because you will sure end up with
+this timeout issue in a few months, not understanding the issue. You
+can search for timeouts in the Apache error log to see if you have
+timeout issues.
 
 Now that I have explained the general context for any system, I'll
 describe concrete examples on several systems, Debian/Ubuntu and
-Centos. Feedbacks show that the Centos process is easier in case you
-don't know very much any Linux distribution. But if you don't know 
+Centos. Feedback show that the Centos process is easier in case you
+don't know very much any Linux distribution. Well, if you don't know
 very much the Linux distribution you use, then you shouldn't install
 this imapsync service at all.
 
+Last advice on hosting your own imapsync online service: update
+imapsync when a new release is available, have this habit. No security
+update had to be done so far since the online service started but
+maybe one day a security update will happen.
 
 =============================================================================
 A) Concrete example on a Debian server with Apache:
@@ -192,11 +201,10 @@ in the Apache configuration file
 or
 /etc/apache2/sites-available/default
 
-This configuration file contains the following section
-somewhere, maybe in comments for now, ie, with 
-some # characters at the beginning to make them ignored.
-If you don't find the following section, keep reading,
-the solution is below.
+This configuration file contains the following section somewhere,
+maybe in comments for now, ie, with some # characters at the beginning
+to make them ignored.  If you don't find the following section, keep
+reading, the solution is below.
 
 ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
 <Directory "/usr/lib/cgi-bin">
@@ -222,12 +230,16 @@ stuff with the following commands:
 
   a2enmod cgi
   a2enconf  serve-cgi-bin
+  mkdir /etc/apache2/conf-available/RCS/ # optional rcs
+  echo | ci -l /etc/apache2/conf-available/serve-cgi-bin.conf # optional rcs
   vi /etc/apache2/conf-available/serve-cgi-bin.conf # Add the directive SetEnv no-gzip 1
   /etc/init.d/apache2 restart
 
 If the cgi mode and the cgi-bin configuration are not activated then
 you may encounter a 404 error, later, when you will run the command
 wget -nv -S -O-  http://localhost/cgi-bin/imapsync?testslive=1
+If you run the previous wget command now, you should get the 404 error
+since imapsync is not in the cgi-bin/ directory yet.
 
 For now, you have simple web server running on port 80.
 The following command gives the default page located on
@@ -237,18 +249,22 @@ disk at /var/www/html/index.html
 
 The online service handles credential material from the users; so an
 encrypted web server is a good thing to run to protect sniffing and
-man in the middle attacks. Thanks to the LetsEncrypt
-team, an SSL certificate is now an easy and free task to install.
-The constraint with LetsEncrypt is that they don't deliver certificates
-for IP addresses so you must have a FQDN for the host. You can 
-have a free FQDN for the TLD .tk, .ml, .ga, .cf, and .gq at
-https://www.freenom.com/
+man in the middle attacks. Thanks to the LetsEncrypt team, an SSL
+certificate is now an easy and free task to install.  The constraint
+with LetsEncrypt is that they don't deliver certificates for IP
+addresses so you must have a FQDN for the host.
+
+You can no longer have a free FQDN for the TLD .tk, .ml, .ga, .cf, 
+and .gq at https://www.freenom.com/
+That's a pity. If you know about a simple, free and gratis way 
+to get a FQDN for anybody, I'll appreciate the news and will 
+mention it here.
 
 Let's add a dedicated virtual host. This way, it will give room for 
-other stuff on your host. I consider your hostname is 
-imapsync.mydomain.tk
+any other stuff on your host. I consider your hostname is 
+imapsync.mydomain.tk but any other name that you own will be convenient.
 
-Let's create the new website configuration file, its filename has to
+Let's create the new website configuration file. Its filename must
 end with ".conf" 
 
   vi /etc/apache2/sites-available/imapsync.mydomain.tk.conf

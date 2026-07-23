@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Docker.txt,v 1.14 2024/08/06 20:07:19 gilles Exp gilles $
+# $Id: FAQ.Docker.txt,v 1.17 2025/05/03 20:22:50 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -23,6 +23,9 @@ Q. How can I launch the online imapsync service included in the imapsync
 
 Q. Where is the imapsync Docker hub location?
 
+Q. Is the script oauth2_imap available in the imapsync Docker image?
+   How to use it?
+
 Q. How can I mask the passwords on the command line without mounting
    inside the container?
 
@@ -31,9 +34,17 @@ Q. Why imapsync isn't logging to a file in Docker context.
 
 Q. Any tips for the Docker Mailcow distribution?
 
+
 Q. How can I build my own image?
 
 Q. What do you do to update the docker hub image?
+
+Q. Error from cloudflared tunnel: 
+   net/http: HTTP/1.x transport connection broken: 
+   malformed MIME header: missing colon: \
+   What can I do?
+
+
 
 Now the questions again with their answers.
 
@@ -153,6 +164,52 @@ A. Here:
   https://hub.docker.com/r/gilleslamiral/imapsync/
 
 ======================================================================
+Q. Is the script oauth2_imap available in the imapsync Docker image?
+   How to use it?
+
+A1. Yes, the script oauth2_imap is available in the imapsync Docker image.
+
+A2. To use it properly and run imapsync with the tokens you got, you
+    need to maintain the container running.
+
+A3. Here is an example. This example uses two terminals but a user
+    familiar with Docker containers will get the idea and use only
+    one.
+
+First terminal. 
+Run an non-ending command like a shell bash and name it imapsync_stuff
+
+    docker run --it --name imapsync_stuff  gilleslamiral/imapsync  bash
+
+You can forget this terminal for now and leave it alive as long as you
+need to run imapsync with OAUTH2 tokens. Of course, you can use it to
+explore the image, see the imapsync logs etc. If you exit from it,
+then the container will end, the generated tokens will be lost.
+
+Second terminal.
+I use the imap login gilles.lamiral@outlook.com as an example,
+replace it with yours.
+Execute the oauth2_imap and generate the tokens:
+
+    docker exec -it imapsync_stuff  oauth2_imap --remotebrowser  gilles.lamiral@outlook.com
+
+If the tokens generation got right, then you no longer need to
+copy/paste the code from your browser. The refresh token will be
+enough to generate new access tokens without any interaction within a
+browser.
+
+Just repeat the previous command to verify you got good tokens:
+
+    docker exec -it imapsync_stuff  oauth2_imap --remotebrowser  gilles.lamiral@outlook.com
+
+Good? Let's imapsync now:
+
+    docker exec -it imapsync_stuff  imapsync --office1 --user1 gilles.lamiral@outlook.com --oauthaccesstoken1  /var/tmp/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt ...
+
+The previous imapsync command lacks the destination part, --user2 --host2 etc.
+I leave it to you since it depends on the destination account.
+
+======================================================================
 Q. How can I mask the passwords on the command line without mounting 
    anything inside the container?
 
@@ -214,10 +271,6 @@ A. Use the following command to build the image:
 
 The latest Dockerfile can be found at
 https://imapsync.lamiral.info/INSTALL.d/Dockerfile
-or at
-https://hub.docker.com/r/gilleslamiral/imapsync
-or at
-https://imapsync.lamiral.info/INSTALL.d/INSTALL.Docker_build.txt
 
 
 ======================================================================
@@ -232,11 +285,51 @@ Then I go to
 https://hub.docker.com/r/gilleslamiral/imapsync
 
 I edit and update the docker "Readme" with the last Dockerfile I used.
-I also update INSTALL.Docker_build.txt with the last Dockerfile
 
 I also update the last Dockerfile on the imapsync site with:
 
    make upload_index
+
+======================================================================
+Q. Error from cloudflared tunnel: 
+   net/http: HTTP/1.x transport connection broken: 
+   malformed MIME header: missing colon: \
+   What can I do?
+
+A. Workaround from Mohamad R. Akhras:
+
+My workaround to make it work, I put it behind a nginx proxy. 
+It worked fine, but not directly. 
+
+    Directly fails: http://imapsync:8080 or  https://imapsync:8443
+    With NGINX proxy works:  http://imapsync-proxy:8080
+
+
+My Compose file:
+
+services:
+  imapsync:
+    image: gilleslamiral/imapsync:latest
+    command: /servimapsync
+    # restart: unless-stopped
+    networks:
+      - mynetwork
+    container_name: imapsync
+    #ports:
+    #  - "80:8080"
+    #  - "443:8443"
+  imapsync-proxy:
+    image: nginx:alpine
+    container_name: imapsync-proxy
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - mynetwork
+      
+networks:
+  mynetwork:
+    external: true
+
 
 ======================================================================
 ======================================================================

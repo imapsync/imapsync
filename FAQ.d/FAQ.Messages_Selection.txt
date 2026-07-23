@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Messages_Selection.txt,v 1.18 2021/07/04 23:05:24 gilles Exp gilles $
+$Id: FAQ.Messages_Selection.txt,v 1.20 2024/10/14 14:41:08 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -22,21 +22,23 @@ Q. Is there a way we can specify an age to sync emails?
 
 Q. I want to sync messages based on their UID.
 
-Q. Can I migrate only mails with attachments?
+Q. How can I migrate only mails with attachments?
+
+Q. How can I migrate only mails without attachments?
 
 Q. How can I move messages marked \Deleted from all folders to
    a dedicated folder?
 
-Q. What are the selection criteria available with --search option?
+Q. What are the selection criteria available with the --search option?
 
 
 =======================================================================
 Q. What messages imapsync syncs by default?
 
-R1. By default, Imapsync syncs all messages, except duplicates.
+A1. By default, Imapsync syncs all messages, except duplicates.
     If you want to sync duplicates, add the option --syncduplicates
 
-R2. You can alter the default "all messages selected" by using one or 
+A2. You can alter the default "all messages selected" by using one or 
     more of the following options:
 
 Extract from the README https://imapsync.lamiral.info/README
@@ -86,7 +88,7 @@ Extract from the README https://imapsync.lamiral.info/README
 Q. Is there a way we can specify a date range to sync emails? 
    If yes, can you please share an example?
 
-R. Yes, a date range is possible with the --search option.
+A. Yes, a date range is possible with the --search option.
 
   imapsync ... --search "SENTSINCE 1-Jan-2010" 
   
@@ -118,7 +120,7 @@ Q. Is there a way we can specify an age to sync emails?
    If yes, can you please share some examples?
 
 
-R. Yes, with the --maxage or the --minage option. 
+A. Yes, with the --maxage or the --minage option. 
 
    Have in mind that the options --maxage and --minage can NOT be 
    combined successfully with the --search command. If the --search 
@@ -157,12 +159,12 @@ Full explanation:
 Caveat.1 By default,
 
   Option --maxage is implemented as a --search SENTSINCE 
-RFC 3501 says: SENTSINCE <date>
+The RFC 3501 says: SENTSINCE <date>
 Messages whose [RFC-2822] Date: header (disregarding time and
 timezone) is within or later than the specified date.
 
   Option --minage is implemented as a --search SENTBEFORE
-RFC 3501 says: SENTBEFORE <date>
+The RFC 3501 says: SENTBEFORE <date>
 Messages whose [RFC-2822] Date: header (disregarding time and
 timezone) is earlier than the specified date.
 
@@ -175,7 +177,7 @@ in the mailbox. Same remark for --noabletosearch1 and
 =======================================================================
 Q. I want to sync messages based on their UID.
 
-R. First have in mind that UIDs are unique only per folder, so work this
+A. First have in mind that UIDs are unique only per folder, so work this
    way only with one folder at a time, with --folder option.
 
 To show UIDs, there is the --debugLIST parameter.
@@ -200,9 +202,9 @@ If you search n UIDs then you have to put n-1 OR in the search line,
 that's IMAP.
 
 =======================================================================
-Q. Can I migrate only mails with attachments?
+Q. How can I migrate only mails with attachments?
 
-R. Use:
+A. Use:
 
   imapsync ... --search "HEADER Content-Disposition attachment" 
 
@@ -214,21 +216,32 @@ or more generally:
 
   imapsync ... --search "OR HEADER Content-Disposition attachment HEADER Content-Type multipart/mixed" 
 
-The last one doesn't work on all imap servers, not on Gmail at least (tested 2020/06/16)
+=======================================================================
+Q. How can I migrate only mails without attachments?
+
+A. Use:
+
+  imapsync ... --search "NOT OR HEADER Content-Disposition attachment HEADER Content-Type multipart/mixed" 
+
 
 =======================================================================
 Q. How can I move messages marked \Deleted from all folders to
    a dedicated folder?
 
-R. To move \Deleted messages from all folders to a specific folder, 
+A. To move \Deleted messages from all folders to a specific folder, 
    let's call it Trash, use:
 
   imapsync ... --search DELETED --regextrans2 "s/.*/Trash/" 
 
 =======================================================================
-Q. What are the selection criteria available with --search option?
+Q. What are the selection criteria available with the --search option?
 
-R. The list of search criteria are listed below, an excerpt from RFC3501.
+A0. With imapsync, only one --search is taken into account.
+    If you use several --search --search then only the last one will
+    be used. Add --debugimap to see the SEARCH request done by imapsync
+    to the servers. The servers do the search, not imapsync.
+
+A1. The list of search criteria are listed below, an excerpt from RFC3501.
 
 
 https://tools.ietf.org/html/rfc3501#section-6.4.4

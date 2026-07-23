@@ -1,12 +1,12 @@
 #!/bin/cat
-$Id: FAQ.Release_Checklist.txt,v 1.32 2024/08/17 20:58:52 gilles Exp gilles $
+$Id: FAQ.Release_Checklist.txt,v 1.38 2025/09/01 12:10:06 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
 https://imapsync.lamiral.info/FAQ.d/FAQ.Release_Checklist.txt
 
 =======================================================================
-               Imapsync developer notes
+               Imapsync developer(s)* notes
 =======================================================================
 
 
@@ -27,6 +27,8 @@ make -j linuxtests win64tests mactests
 - Make "imapsync --testslive" pass on Linux
 - Make "imapsync --testslive" pass on Mac
 
+- Make "imapsync --testslive" pass on Windows are already done by "make win64tests"
+
 
 make mactestslive mactestslive6
 
@@ -38,7 +40,7 @@ make ChangeLog
 
 - Track any new Perl module dependency with the command:
 
-  diff ../prepa_dist/imapsync-2.264/imapsync imapsync | egrep '^[<>] use'
+  diff ../prepa_dist/imapsync-2.290/imapsync imapsync | egrep '^[<>] use'
   
   
 - In case of a new dependency, add it to all the INSTALL/* files.
@@ -51,10 +53,12 @@ make doc
   pod2text --loose --width=760  imapsync > README_for_grammarly.txt
 
 - Copy/Paste the README_for_grammarly.txt to https://app.grammarly.com/
+- Fix the text directly in imapsync, not only grammarly.
 - Read the README again slowly. Fix all issues, all.
 - Read the OPTIONS section of README and read it very slowly
 - Read slowly README_Windows.txt
 - Read slowly the TUTORIAL_Unix file in html
+- Read INSTALL.ANY.txt
 
 - Make "rcsdiff imapsync" give nothing relevant and exit 0
 
@@ -62,7 +66,9 @@ make doc
 
 - make the binaries.
 
-make bin
+make deb
+
+make docker_build
 
 make mac win 
 
@@ -84,9 +90,13 @@ make mac_i386 mac_x86_64
 - /X verify under noscript with firefox
 - /X verify under private with chrome
 
-- Check the binaries imapsync.exe imapsync_32bit.exe with
+- Check the binary imapsync.exe with
   https://www.virustotal.com/
   https://www.metadefender.com/
+
+- Update the documentation 
+  https://imapsync.lamiral.info/FAQ.d/FAQ.Virus.txt
+
 
 - make biz test nytprof cover crit
 - make dist
@@ -97,3 +107,6 @@ make mac_i386 mac_x86_64
 
 =======================================================================
 =======================================================================
+
+* I'm the only developer since 2001, maybe one day...
+

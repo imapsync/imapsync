@@ -1,0 +1,33 @@
+#/bin/sh
+
+
+
+generate_html()
+{
+        for file in "$@"
+        do
+                html_name=`html_name $file .txt`
+                echo generating "$html_name" from $file, if necessary
+                generate_html_one "$file" "$html_name"
+        done
+}
+
+
+
+html_name()
+{
+        basename=`basename "$1" .txt`
+        html_name=$basename.html
+        echo $html_name
+}
+
+generate_html_one()
+{
+        if test "$1" -nt "$2"; then
+                echo pandoc --standalone -f markdown+autolink_bare_uris+hard_line_breaks "$1"
+                pandoc --standalone -f markdown+autolink_bare_uris+hard_line_breaks "$1" > "$2".tmp
+                mv "$2".tmp "$2"
+        else
+                echo "$2" is already up to date.
+        fi
+}

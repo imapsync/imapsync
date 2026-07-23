@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Memory.txt,v 1.8 2018/08/31 13:29:53 gilles Exp gilles $
+$Id: FAQ.Memory.txt,v 1.10 2025/08/05 13:49:49 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -15,6 +15,10 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Memory.txt
 Q. I got an "Out of memory" error message then imapsync crashes.
    How to fix that?
 
+  These days, year 2025, memory issues are only located 
+  on MacOS hosts. Other systems, Linux, Windows are okay.
+  See R1 to solve memory issues on MacOS/Darwin systems.
+
 R0. Add option --debugmemory to debug memory issues.
     On Windows this option uses a DOS command similar to:
 
@@ -22,11 +26,11 @@ R0. Add option --debugmemory to debug memory issues.
 
     On Unix it uses:
     
-        ps -o vsz -p PID_of_imapsync  # value is in KB
+        ps -o rss -p PID_of_imapsync  # value is in KB
 
     Similar to:
     
-        ps -ax -o vsz,comm | grep imapsync
+        ps -ax -o rss,comm | grep imapsync
 
     Use those commands in a DOS window or a Unix shell in order
     to monitor a imapsync run you know it will crash. 
@@ -37,13 +41,21 @@ R0. Add option --debugmemory to debug memory issues.
     * Does the rise of memory consumption happens suddenly 
       or along the sync?
 
-R1. It's probably a very big message on the host1 account.
+R1. MacOS Darwin crunching memory issue.
+    See:
+    https://imapsync.lamiral.info/INSTALL.d/INSTALL.Darwin.txt
+    G) Running out of memory. Memory leak. Solution.
+    It's a copy/paste from
+    https://github.com/imapsync/imapsync/issues/312#issuecomment-2462754676
+
+
+R2. It's probably a very big message on the host1 account.
    Before imapsync release 1.688 memory usage is at least 5 times 
    the biggest message size. then 2 times with release 1.688.
    So a 700 MB message will crunch 3.5 GB of memory.
    Starting with 1.688 it  will crunch 1.4 GB of memory.
 
-R2. To check if the problem is a big message crunching to much 
+R3. To check if the problem is a big message crunching to much 
    memory, add --maxsize 50_000_000, this will limit the message
    size treated to 50 MB. If the sync succeed while limiting 
    messages sizes it's probably is a big message crunching to much
@@ -52,14 +64,14 @@ R2. To check if the problem is a big message crunching to much
    * Buy memory
    * Build imapsync.exe binary 64bits
 
-R3. If R2 shows that the memory issue is not a big message crunching 
+R4. If R3 shows that the memory issue is not a big message crunching 
     too much memory, then it can be imapsync using too much memory
     to identify messages (a very big folder served by a
     very talkative imap server). A possible solution is to use
     the option --useuid. If it still fails, I have no clue.
     If you have time, drop me a note.
 
-R4. Usually "Out of memory" errors are related to old days,
+R5. Usually "Out of memory" errors are related to old days,
    to old Mail::IMAPClient module releases, before 3.26.
    At that time memory usage was around 17 times the biggest message.
    Look at imapsync output first lines to get the Mail::IMAPClient 

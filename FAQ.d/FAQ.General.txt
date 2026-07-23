@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.General.txt,v 1.250 2023/07/20 09:37:39 gilles Exp gilles $
+# $Id: FAQ.General.txt,v 1.254 2025/08/21 13:22:35 gilles Exp gilles $
 
 =======================================================================
                      General FAQ for imapsync 
@@ -89,7 +89,7 @@ Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
 Q. Is there a way to delete the destination folder when the source 
    folder is no longer there?
 
-Q: How can I write an .rpm with imapsync
+Q. How can I write an .rpm with imapsync
 
 Q. Where I can read up on the various IMAP RFCs?
 
@@ -438,7 +438,7 @@ A. If messages are delivered remotely and you play locally with the
 Q. I need to log every output on a file named log.txt
 
 A1. imapsync logs on a file by default, its name is given at the 
-    beginning and the end of each run. This name is unique since
+    beginning and at the end of each run. This name is unique since
     it is compound of the current date and time and user2 value. 
 
 A2. To change this default name, use --logfile log.txt
@@ -494,10 +494,14 @@ A. imapsync doesn't talk POP3 but I think you mean UID in IMAP.
 =======================================================================
 Q. Is it possible to sync also the UIDs of the IMAP server?
 
-A. No, not with imapsync.
+A. No, not with imapsync, not with any IMAP client software tool.
    UIDs in IMAP are chosen and created by the server, not by the 
-   client software. imapsync is a client software command. 
-   So UIDs cannot be synced by any imap method.
+   client software tool. Imapsync is a client software command. 
+   UIDs cannot be synced by any imap method, by design of the 
+   protocol.
+
+See the IMAP RFC9051 for more details:
+https://datatracker.ietf.org/doc/html/rfc9051#name-unique-identifier-uid-messa
 
    UIDs may be synced via a rsync command between the imap servers but
    it implies they are the same software, among other constraints.
@@ -507,8 +511,8 @@ Q. The option --subscribe does not seem to work
 
 A1. Use it with --subscribed
 
-A2. There is also the --subscribe_all option that subscribe
-    to all folders on host2.
+A2. There is also the --subscribe_all option that subscribe to all 
+    folders on host2, no matter the subscribed folders on host1.
 
 ======================================================================
 Q. Can Imapsync filter Spam during the sync?
@@ -535,7 +539,7 @@ A. Use the following syntax:
 
 
 ======================================================================
-Q: How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
+Q. How to migrate from Sun Java Enterprise System / Sun One / iPlanet /
    Netscape servers with an admin account?
 
 A: Those imap servers don't allow the typical use of --authuser1 to use an
@@ -571,32 +575,6 @@ A. You'll find an RPM imapsync.spec file in the directory learn/rpm/
    It has been tested with imapsync 1.434 (May 2011) on CentOS5 
    and RedHat RHEL5 Linux. (Thanks to Ole Holm Nielsen).
    This imapsync.spec is coming from Neil Brown work in 2007.
-
-=======================================================================
-Q. Where I can read up on the various IMAP RFCs?
-
-A. Here:
-
-RFC 3501 - INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1
-http://www.faqs.org/rfcs/rfc3501.html
-
-RFC 2683 - IMAP4 Implementation Recommendations
-http://www.faqs.org/rfcs/rfc2683.html
-
-RFC 2595 - Using TLS with IMAP, POP3 and ACAP
-http://www.faqs.org/rfcs/rfc2595.html
-
-RFC 2822 - Internet Message Format
-http://www.faqs.org/rfcs/rfc2822.html
-
-RFC 2342 - IMAP4 Namespace
-http://www.faqs.org/rfcs/rfc2342.html
-
-RFC 2180 - IMAP4 Multi-Accessed Mailbox Practice
-http://www.faqs.org/rfcs/rfc2180.html
-
-RFC 4549 - Synchronization Operations for Disconnected IMAP4 Clients
-http://www.faqs.org/rfcs/rfc4549.html
 
 
 =======================================================================

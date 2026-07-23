@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: INSTALL.Darwin.txt,v 1.41 2023/07/02 12:58:55 gilles Exp gilles $
+# $Id: INSTALL.Darwin.txt,v 1.45 2025/08/05 12:49:22 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -15,81 +15,89 @@ C) Installing imapsync script on Darwin / Mac OS X with brew
 D) Installing imapsync script on Darwin / Mac OS X with MacPorts
 E) Installing imapsync script on Darwin / Mac OS X the way I do
 F) Building imapsync binary on Darwin / Mac OS X
+G) Running out of memory. Memory leak. Solution.
 
 
 =======================================================================
 A) Installing imapsync binary on Darwin / Mac OS X
 =======================================================================
 
-There is one standalone imapsync binaries for Mac OS X 
-called "imapsync_bin_Darwin" (without the quotes),
-available in the compressed tarball called imapsync-2.229.tgz
-where 2.229 is the imapsync version number. 
-But this binary is not multi-architectures so it may not work 
-on your system. It is a Mach-O i386 executable.
+There is two standalone imapsync binaries for Mac OS X 
+called "imapsync_bin_Darwin_i386" and "imapsync_bin_Darwin_x86_64" 
+(without the quotes), avavailable in the compressed tarball called 
+imapsync-2.290.tgz where 2.290 is the imapsync version number. 
+Those binaries are not multi-architectures so they may not work 
+on your system. They are the Mach-O i386 executable and the 
+Mach-O 64-bit x86_64 executable.
 
-The compressed tarball is at
+The compressed tarball can be found at
 https://imapsync.lamiral.info/dist/
 
-There are alo two other binaries 
+Here are two direct links to those binaries:
 https://imapsync.lamiral.info/dist/imapsync_bin_Darwin_i386
 https://imapsync.lamiral.info/dist/imapsync_bin_Darwin_x86_64
 
-There is no binary for the M1 processor. You have to install
-imapsync with brew or macports. See C) and D) below.
+There is no binary for the M1 processor. It's because I don't have 
+a M1 host so I can't compile an imapsync M1 binary. If your system
+is an M1 one, you have to install imapsync with brew or macports. 
+See C) and D) below to achieve this.
 
-Now I explain the Mac installation if you're lucky with the
-architecture. Anyway, what I explain here will help you if
-you install imapsync by another way.
+Now, I'm going to explain the Mac installation, if you're lucky 
+with the architecture. Anyway, what I'm going to explain here 
+will help you if you install imapsync by another way.
 
-Download the tarball imapsync-2.229.tgz
+Download the tarball imapsync-2.290.tgz
+A direct link is 
+https://imapsync.lamiral.info/dist2/imapsync-2.290.tgz
 
-The other binaries imapsync_bin_Darwin_i386 
-and imapsync_bin_Darwin_x86_64 can be used instead 
-"imapsync_bin_Darwin" present in the tarball.
-
-I suppose this tarball imapsync-2.229.tgz is downloaded under your $HOME directory, 
+I suppose this tarball imapsync-2.290.tgz is downloaded under your $HOME directory, 
 let say /Users/gilles/, but you can put it anywhere. In real, your $HOME directory 
 is not /Users/gilles/, it maybe /Users/john/ or /Users/zoey/ where John or Zoey
-is you login name.
+is your login name.
 
 Open a terminal: /Applications/Utilities/Terminal double-click on Terminal.
 
 Untar the tarball:
 
-  cd
-  pwd
-  tar xzvf imapsync-2.229.tgz
+  cd  # it should bring you to your $HOME directory
+  pwd # it should show you that you are in your $HOME directory
+  tar xzvf imapsync-2.290.tgz # it will extract imapsync archive in the current directory
 
-In case the previous command fails, it means the tarball file called imapsync-2.229.tgz
+In case the last command fails, it means the tarball file called imapsync-2.290.tgz
 is not in your $HOME directory, you may have downloaded it elsewhere on the file system.
 A way to find it is the command:
 
   find / | grep imapsync 
 
+Now that the tarball is extracted, it created a directory called imapsync-2.290/ 
+Go into the directory imapsync-2.290 with the command:
 
-Now that the tarball is extracted, it created a directory called imapsync-2.229/ 
-Go into the directory imapsync-2.229 with the command:
-
-  cd imapsync-2.229
+  cd imapsync-2.290
 
 
-First let's have a simple run to see if imapsync_bin_Darwin works. 
+First let's have a simple run to see if imapsync_bin_Darwin_x86_64 works. 
 You should see some help about options and an example at the end 
 of this run:
 
-  ./imapsync_bin_Darwin
+  ./imapsync_bin_Darwin_x86_64
 
-To go further, perform a complete test with two
-real IMAP server accounts:  
-  
-  ./imapsync_bin_Darwin --testslive
 
-If this sync works fine then imapsync_bin_Darwin is ready for any 
+If it doesn't work, try the other binary imapsync_bin_Darwin_i386
+
+  ./imapsync_bin_Darwin_i386
+
+If it doesn't work, bad luck, you'll have to see C) and D) below.
+
+To go further, perform a complete test with two real IMAP server
+accounts of mine:  
+
+  ./imapsync_bin_Darwin_x86_64 --testslive
+
+If this sync works fine then imapsync_bin_Darwin_x86_64 is ready for any 
 imap account synchronization. 
 
 When reading the documentation with imapsync command lines examples, 
-you have to replace the command "imapsync" by "imapsync_bin_Darwin"
+you have to replace the command "imapsync" by "imapsync_bin_Darwin_x86_64"
 For example, instead of the command:
 
   ./imapsync \
@@ -98,7 +106,7 @@ For example, instead of the command:
 
 you have to use:
 
-  ./imapsync_bin_Darwin \
+  ./imapsync_bin_Darwin_x86_64 \
     --host1 test1.lamiral.info --user1 test1 --password1 secret1 \
     --host2 test2.lamiral.info --user2 test2 --password2 secret2
 
@@ -110,7 +118,7 @@ it is a copy of examples/imapsync_example.sh adapted to Mac users.
 Be careful the way you edit the script files, use a text editor. 
 Do not use a word processor because word processors add 
 or use special formating characters that will break the shell
-scripts. If you use TextEdit, use the text mode.
+scripts. If you use TextEdit, use the "text" mode.
 
 In the terminal, try:
 
@@ -133,16 +141,16 @@ the script examples/sync_loop_darwin.sh is also ready to use.
 B) Installing imapsync on Catalina
 =======================================================================
 
-Caveat Catalina: The binary imapsync_bin_Darwin is detected as a malware
+Caveat Catalina: The binary imapsync_bin_Darwin_x86_64 is detected as a malware
 or similar on the latest Mac OS X named Catalina. 
 It's Catalina new security policy. Imapsync is not a malware or similar.
 All other Mac OS X releases are ok.
 
 In order to pass away this detection, follow these steps:
 
-Run imapsync_bin_Darwin
+Run imapsync_bin_Darwin_x86_64
 After this first launch, the security asks to authorize the unknown 
-developer program. Setup the root of the imapsync_bin_Darwin file 
+developer program. Setup the root of the imapsync_bin_Darwin_x86_64 file 
 and then run it again or any of the .sh files, it should run ok 
 without any notice any more.
 
@@ -218,7 +226,12 @@ E) Installing imapsync script on Darwin / Mac OS X the way I do
 
 This part is only for advanced Unix users, or brave users.
 
-The "make" command is a prerequisite to build some Perl modules.
+First, you need to install or activate XCode:
+
+  sudo xcodebuild -license
+
+
+The "make" command is also a prerequisite to build some Perl modules.
 Install the "make" command in case it is not already installed.
 
 First let us install cpanminus locally in ~/perl5
@@ -262,6 +275,10 @@ helps to verify what is needed to install on your system
   cpanm Data::Uniqid
   cpanm JSON::WebToken
 
+For some modules like JSON::WebToken you might need to use 
+the --force option when the build fails because of some 
+failed tests. It's ok to use the --force Luke.
+
 We're ready to install and test the latest imapsync
 
   curl -L http://imapsync.lamiral.info/imapsync > imapsync
@@ -291,6 +308,59 @@ pp -x -u -o imapsync.bin imapsync
 ./imapsync.bin  --testslive
 ./imapsync.bin  --tests
 ./imapsync.bin  --module
+
+=======================================================================
+G) Running out of memory. Memory leak. Solution.
+=======================================================================
+
+
+https://github.com/imapsync/imapsync/issues/312#issuecomment-2462754676
+
+I tracked this memory leak recently (November 2024).
+
+When I added a profile tool, for memory debugging purposes, the memory
+leak disappeared.  I couldn't use them, but it indicated that it was a
+low-level issue related to time.  So I used some prints of the memory
+usage to circle what call would eat the memory.  Then, at some point,
+with all my prints, the memory leak disappeared.
+
+I found a workaround. Two lines of code to add in the Perl module
+Mail::IMAPClient, it's just a 1 ms sleep. I don't understand the issue
+for now, somehow I don't care.
+
+One sleep is to be placed in sub _optimal_sleep($$$), called by sub
+_send_bytes($).  The other sleep is to be placed in sub _read_line.
+
+Both are needed, the memory leaks happens when fetching a message from
+host1 and appending it to host2.
+
+
+imapsync@5521:~ 45$ diff -u /Users/imapsync/perl5/lib/perl5/Mail/IMAPClient_orig.pm /Users/imapsync/perl5/lib/perl5/Mail/IMAPClient.pm
+--- /Users/imapsync/perl5/lib/perl5/Mail/IMAPClient_orig.pm     2024-11-06 22:42:22.000000000 +0000
++++ /Users/imapsync/perl5/lib/perl5/Mail/IMAPClient.pm  2024-11-07 16:50:24.000000000 +0000
+@@ -1073,6 +1073,7 @@
+     }
+ 
+     CORE::select( undef, undef, undef, $waittime );
++    CORE::select( undef, undef, undef, 0.001 );
+     $waittime;
+ }
+ 
+@@ -1761,6 +1762,7 @@
+                 undef $maxagain if $maxagain and lc($maxagain) eq 'unlimited';
+ 
+                 while ( $expected_size > $litreadb ) {
++                    CORE::select( undef, undef, undef, 0.001 );
+                     if ($timeout) {
+                         my $rc = $self->_read_more( $socket, $timeout );
+                         return undef unless ( $rc > 0 );
+
+
+
+
+There's a new Mac binary here with Mail::IMAPClient fixed :
+https://imapsync.lamiral.info/imapsync_bin_Darwin_x86_64
+It won't work for all architectures, unfortunately.
 
 
 =======================================================================

@@ -4,16 +4,23 @@
   var YOUR_REDIRECT_URI = 'https://imapsync.lamiral.info/cgi-bin/auth';
 
   // Parse query string to see if page request is coming from OAuth 2.0 server.
-  var fragmentString = location.hash.substring(1);
+  var fragmentString = location.search ;
   var params = {};
-  var regex = /([^&=]+)=([^&]*)/g, m;
+  var regex = /([^?&=]+)=([^&]*)/g, m;
   while (m = regex.exec(fragmentString)) {
     params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
+     console.log( 'url gives ' + m[1] + ' = ' + m[2] );
   }
-  if (Object.keys(params).length > 0 && params['state']) {
-    if (params['state'] == localStorage.getItem('state')) {
+  if (Object.keys(params).length > 0 && params['state'])
+  {
+   console.log( 'localStorage state = ' + localStorage.getItem('state'));
+    if (params['state'] == localStorage.getItem( 'state' ) )
+    {
       localStorage.setItem('oauth2-test-params', JSON.stringify(params) );
-
+        for (var p in params)
+        {
+                console.log('params[' + p + '] = ' + params[p] ) ;
+        }
       trySampleRequest();
     } else {
       console.log('State mismatch. Possible CSRF attack');
@@ -92,6 +99,9 @@
   //      } ;
 
 
+  // # With account gilles.lamiral@outlook.com
+  // # https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Authentication/appId/c46947ca-867f-48b7-9231-64213fdd765e
+
     var params = {'client_id': 'c46947ca-867f-48b7-9231-64213fdd765e',
                   'client_secret': 'LH58Q~vMFFoVTbBmUnOeIDtfcacYNolMJ2cP2cLC',
                   'redirect_uri': 'https://imapsync.lamiral.info/cgi-bin/auth',
@@ -99,8 +109,12 @@
                   'state': state,
                   'response_type': 'code'};
 
+
+
     // Add form parameters as hidden input values.
-    for (var p in params) {
+    for (var p in params)
+    {
+        console.log('params[' + p + '] = ' + params[p] ) ;
       var input = document.createElement('input');
       input.setAttribute('type', 'hidden');
       input.setAttribute('name', p);

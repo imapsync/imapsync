@@ -1,0 +1,96 @@
+#!/bin/cat 
+# $Id: INSTALL.AlpineLinux.txt,v 1.4 2025/05/19 14:15:11 gilles Exp gilles $
+
+This documentation is also located online at 
+https://imapsync.lamiral.info/INSTALL.d/
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.AlpineLinux.txt
+
+============================================
+===  Installing imapsync on AlpineLinux  ===
+============================================
+
+
+See https://alpinelinux.org/about/
+
+Thanks to mpsarakis! 
+
+Here I reproduce his contribution from
+https://github.com/imapsync/imapsync/discussions/470 
+with some updates.
+
+
+In case somebody is interested, these are the Alpine packages required
+if anybody wants to install the latest imapsync release on their
+light-weight system:
+
+echo "**** Install IMAPSYNC required packages ****"
+apk --no-cache --no-progress add \
+    make                         \
+    gcc                          \
+    git                          \
+    db-dev                       \
+    openssl-dev                  \
+    perl-app-cpanminus           \
+    lsb-release-minimal          \
+    procps
+
+apk --no-cache --no-progress add \
+    perl-ntlm                    \
+    perl-class-load              \
+    perl-crypt-ssleay            \
+    perl-data-uniqid             \
+    perl-digest-hmac             \
+    perl-dist-checkconflicts     \
+    perl-encode-imaputf7         \
+    perl-file-copy-recursive     \
+    perl-file-tail               \
+    perl-io-socket-inet6         \
+    perl-io-socket-ssl           \
+    perl-io-tee                  \
+    perl-mail-imapclient         \
+    perl-module-scandeps         \
+    perl-net-ssleay              \
+    perl-net-dns                 \
+    perl-par-packer              \
+    perl-regexp-common           \
+    perl-sys-meminfo             \
+    perl-term-readkey            \
+    perl-test-fatal              \
+    perl-test-mock-guard         \
+    perl-test-mockobject         \
+    perl-test-pod                \
+    perl-test-requires           \
+    perl-test-simple             \
+    perl-unicode-string          \
+    perl-test-nowarnings         \
+    perl-test-deep               \
+    perl-test-warn               \
+    perl-readonly                \
+    perl-crypt-openssl-rsa       \
+    perl-package-stash-xs        \
+    perl-proc-processtable       \
+    perl-cgi                     \
+    perl-json                    \
+    perl-json-webtoken           \
+    perl-net-server              
+
+
+These are packages to be able to use OAUTH2 in case you need it:
+
+echo "**** Install IMAPSYNC OAUTH2 required packages ****"
+apk --no-cache --no-progress add \
+    unzip                        \
+    perl-net-dns                 \
+    perl-email-address           \
+    perl-http-daemon
+
+cpanm --force HTTP::Daemon::SSL
+
+
+
+It would have certainly been possible to use the older existing Alpine
+package for Imapsync + replace the actual script by the latest one but
+I wanted to keep it fully manual since package was outdated
+anyway... maybe not the ideal way but working fine here and avoid
+having to compile any perl module.
+

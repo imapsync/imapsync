@@ -1,7 +1,7 @@
 
 
 
-REM $Id: oauth2_example_dev.bat,v 1.7 2024/06/18 11:55:23 gilles Exp gilles $
+REM $Id: oauth2_example_dev.bat,v 1.11 2025/07/14 14:32:22 gilles Exp gilles $
 
 @REM A line beginning with REM is a comment
 @REM This batch script is for Windows users, not for Linux nor MacOS users.
@@ -28,7 +28,7 @@ REM $Id: oauth2_example_dev.bat,v 1.7 2024/06/18 11:55:23 gilles Exp gilles $
 
 
 @REM Thunderbird client_id for Outlook.  Works well now.
-@CALL perl .\oauth2_imap --startover --localssl  --client_id "9e5f94bc-e8a4-4e73-b8be-63364c29d753" --client_secret "" --redirect_uri "https://localhost"  gilles.lamiral@outlook.com 
+@ECHO @CALL perl .\oauth2_imap --startover --localssl  --client_id "9e5f94bc-e8a4-4e73-b8be-63364c29d753" --client_secret "" --redirect_uri "https://localhost"  gilles.lamiral@outlook.com 
 
 
 @REM  Thunderbird client_id for Gmail. This works well with either Chrome or Firefox 
@@ -37,7 +37,21 @@ REM $Id: oauth2_example_dev.bat,v 1.7 2024/06/18 11:55:23 gilles Exp gilles $
 
 
 
-@ECHO CALL perl .\oauth2_imap --local gilles.lamiral@gmail.com
+@ECHO CALL perl .\oauth2_imap  gilles.lamiral@gmail.com
+@ECHO CALL perl .\oauth2_imap  gilles.lamiral@outlook.com
+
+@ECHO CALL perl .\oauth2_imap --app imapsync gilles.lamiral@gmail.com
+@ECHO CALL perl .\oauth2_imap --app imapsync gilles.lamiral@outlook.com
+@ECHO CALL perl .\oauth2_imap --app imapsync gilles.lamiral@outlook.com
+@ECHO CALL perl .\oauth2_imap --provider gmail gilles.lamiral@outlook.com
+
+CALL .\oauth2_imap.exe --app imapsync gilles.lamiral@outlook.com
+
+
+@ECHO CALL perl .\oauth2_imap --provider gmail gilles.lamiral@outlook.com
+@ECHO CALL perl .\oauth2_imap --provider office365 gilles.lamiral@gmail.com
+
+
 
 @REM offline Desktop Application
 @ECHO CALL perl .\oauth2_imap --local --startover ^

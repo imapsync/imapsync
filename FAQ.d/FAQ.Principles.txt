@@ -1,5 +1,5 @@
 
-$Id: FAQ.Principles.txt,v 1.10 2021/04/18 13:00:00 gilles Exp gilles $
+$Id: FAQ.Principles.txt,v 1.12 2025/08/11 20:42:18 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -20,29 +20,33 @@ Now the questions again with their answers.
 =======================================================================
 Q. Give me some design ideas of imapsync
 
-R.
+A0. The main design ideas of imapsync I keep in mind: 
 
-* No configuration file
-* Stateless
-* Rsync in mind
-* Reliable
-* Robuste
+* No configuration file.
+* Stateless.
+* Rsync spirit.
+* Reliable.
+* Robust.
 * The user is not an expert, help him with:
   * Good behavior by default. 
-  * No harm by default. 
-  * Prefer fixing an issue in the code than documenting the issue
-  * Inline help suggestions
+  * No harm by default.
+  * Prefer fixing an issue in the code than documenting the issue.
+  * Inline help suggestions, along the sync and resumed at the end.
 
-Consequences of those design ideas:
+Good and bad consequences of those design ideas:
 
-* Stateless: 
+A1. Stateless behavior pros and cons: 
 
    * A sync can be done by another tool before or after imapsync, it is
-   safe as long as the other tools don't modify the messages' headers 
-   "Message-Id:" and "Received:", or at least "Message-Id:".
+     safe as long as the other tools don't modify the messages' headers 
+     "Message-Id:" and "Received:", or at least "Message-Id:".
 
-   * Ready to run in a container.
+   * Imapsync is ready to run in a container that disappears completely
+     at each run.
 
+   * A stateless behavior takes longer than maintaining a local cache. 
+     The stateless principle is broken with --usecache or --useuid 
+     options, but then imapsync speeds up on next syncs.
 
 
 =======================================================================

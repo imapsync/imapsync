@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Big_Mailbox.txt,v 1.10 2023/02/06 13:52:33 gilles Exp gilles $
+$Id: FAQ.Big_Mailbox.txt,v 1.13 2024/10/24 23:07:23 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -13,26 +13,60 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Big_Mailbox.txt
 Questions answered in this FAQ are:
 
 Q. How to deal with huge mailboxes, whose size is over dozens of GB?
+Q. How to know if imapsync is stalling or working?
+Q. How to deal with huge mailboxes when imapsync fails to handle them?
 
 Now the questions again with their answers.
 
 =====================================================================
 Q. How to deal with huge mailboxes, whose size is over dozens of GB?
 
-R1. It should be ok with imapsync.  
+A. It should be ok with imapsync. Keep reading if it doesn't.
+
+=====================================================================
+Q. How to know if imapsync is stalling or working?
 
 Sometimes with big folders, imapsync seems to stall when sizing the
 folders or maybe before syncing a huge folder. So you wonder whether
-imapsync is doing something or being just frozen. A solution to
-increase the verbosity is to add the option --debugimap. Option
---debugimap shows what is currently done, it's quite a big output but
-it helps to wait, saying to ourselves "ok it's long but it's working,
-let's wait a little more".  The real purpose of --debugimap is to show
-genuine IMAP commands used and their responses. The problem with
---debugimap is that it is very verbose and so with a big mailbox it
-generates a very BIG logfile.
+imapsync is doing something or just being frozen. 
 
-R2. If it is not ok with imapsync, the sync finally fails, then 
+A1. A solution to increase the verbosity is to add the option
+--debugimap. Option --debugimap shows what is currently done, it's
+quite a big output but it helps to wait, saying to ourselves "ok it's
+long but it's working, let's wait a little more".  The real purpose of
+--debugimap is to show genuine IMAP commands used and their
+responses. The problem with --debugimap is that it is very verbose and
+so with a big mailbox it generates a very BIG logfile.
+
+A2. Another solution is to monitor the imapsync process with standard
+Linux tools like strace, iftop, nethogs etc.:
+
+  strace -f -p 12345 # print all the system calls of process PID 12345
+
+  iftop -f 'port imap or port imaps' -B # then press t p > 
+
+  nethogs # see all processes
+  
+  nethogs -P 12345 # Only the process with PID 12345
+
+You can have the imapsync PID with the command:
+
+  head -1 $HOME/tmp/imapsync.pid 
+
+You can also set the pidfile with the imapsync option --pidfile
+
+  imapsync ... --pidfile whatever.txt
+
+and use it in the previous commands:
+
+  strace -f -p `head -1 whatever.txt`
+  nethogs   -P `head -1 whatever.txt`
+  
+
+=====================================================================
+Q. How to deal with huge mailboxes when imapsync fails to handle them?
+
+A1. If it is not ok with imapsync, the sync finally fails, then 
 consider spliting the whole sync into smaller chunks using 
 the option --search
 
@@ -43,7 +77,7 @@ For example, select messages only for a given year:
   imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018"
   imapsync ... --search "SENTSINCE 1-Jan-2019 SENTBEFORE 31-Dec-2019"
 
-R3. Use option --useuid
+A2. Use option --useuid
 Option --useuid speeds up the process but --useuid implies --usecache
 and --usecache may trigger some issues sometimes. Read:
 https://imapsync.lamiral.info/FAQ.d/FAQ.Use_cache.txt
@@ -52,11 +86,12 @@ Don't use --useuid in Docker context, the cache will be destroyed
 each time, or put it in a stable place, I don't know how to do it,
 I just know it's possible and not very difficult.
 
-R3. Another solution. 
+A3. Another solution.
 We installed Thunderbird, entered the mailbox from which we need to 
 copy emails. We used the "Archive" function for Incoming messages.
 The emails were divided into folders by year. 
 After that, all folders were synchronized.
 Thanks to vasilieva_v for this tip.
+
 =====================================================================
 =====================================================================

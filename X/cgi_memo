@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: cgi_memo,v 1.127 2024/07/18 11:43:42 gilles Exp gilles $
+# $Id: cgi_memo,v 1.134 2025/08/26 13:01:17 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -181,7 +181,7 @@ echoq total_bytes_transferred
 total_bytes_transferred()
 {
     statsfile=`statsfile Total_bytes_transferred $1`
-    datamash_file_op_index "$statsfile" sum 5
+    round `datamash_file_op_index "$statsfile" sum 5`
 }
 
 # Total volume transferred
@@ -192,6 +192,15 @@ total_volume_transferred()
     bytestohuman `total_bytes_transferred $1`
 }
 
+
+
+message_size_mean_bytes()
+{
+        :
+        total_bytes_transferred=`total_bytes_transferred $1`
+        total_messages_transferred=`total_messages_transferred $1`
+        expr $total_bytes_transferred / $total_messages_transferred
+}
 
 echoq total_messages_transferred
 total_messages_transferred()
@@ -381,6 +390,18 @@ memory_used_by_all_imapsync()
 }
 
 
+oom_score_of_pids()
+{
+        for PID in "$@"; do
+                test -f /proc/$PID/oom_score && cat  /proc/$PID/oom_score
+        done
+}
+
+oom_score_of_imapsync_pids()
+{
+        oom_score_of_pids `pids_of_imapsync_running` 
+}
+
 
 
 oom_immune_pid()
@@ -396,12 +417,26 @@ oom_immune_pid()
 
 
 echoq oom_immune_imapsync_running
-oom_immune_imapsync_running() {
+oom_immune_imapsync_running()
+{
     for pidsimapsync in  `pids_of_imapsync_running` 
     do
         oom_immune_pid $pidsimapsync $1
     done
 }
+
+echoq loop_oom_immune_imapsync_running
+loop_oom_immune_imapsync_running()
+{
+    while date
+    do
+        oom_immune_imapsync_running
+        sleep 60
+    done
+}
+
+
+
 
 pidapache()
 {
@@ -571,21 +606,24 @@ grep_all_stat_from_patterns_list() {
 
 sum_first_column_G_HTTP_USER_AGENT_sorted()
 {
+        test -f G_HTTP_USER_AGENT_${1}_sorted.txt || { echo no G_HTTP_USER_AGENT_${1}_sorted.txt ; return 1 ; }
         awk '{sum += $1} END {print sum}'  G_HTTP_USER_AGENT_${1}_sorted.txt
 }
 
-stat_useragent_X()
+stat_useragent_X() 
 {
-         grep -o 'HTTP_USER_AGENT.*' G_HTTP_USER_AGENT_$1.txt \
-         | tail -10000000 | sort | egrep -o -w 'Mozilla/5.0 \([^;]+' \
-         | sort | egrep -o '\([a-zA-Z]+' | sort  | uniq -c | sort -g \
-         | grep -v KHTML | tr -d '(' > G_HTTP_USER_AGENT_${1}_sorted.txt
-}
+    test -f G_HTTP_USER_AGENT_$1.txt && echo G_HTTP_USER_AGENT_$1.txt \
+        && grep -o 'HTTP_USER_AGENT.*' G_HTTP_USER_AGENT_$1.txt \
+                | tail -10000000 | sort | egrep -o -w 'Mozilla/5.0 \([^;]+' \
+                | sort | egrep -o '\([a-zA-Z]+' | sort  | uniq -c | sort -g \
+                | grep -v KHTML | tr -d '(' > G_HTTP_USER_AGENT_${1}_sorted.txt
+} 
 
 echoq 'percent_stat_useragent_X'
-percent_stat_useragent_X()
+percent_stat_useragent_X() 
 {
         stat_useragent_X "$1"
+        test -f G_HTTP_USER_AGENT_${1}_sorted.txt || { echo no G_HTTP_USER_AGENT_${1}_sorted.txt ; return 1 ; }
         sum_first_column_G_HTTP_USER_AGENT=`sum_first_column_G_HTTP_USER_AGENT_sorted $1`
         { while read num_useragent useragent ; do
                 #echo KK $num_useragent $useragent
@@ -594,12 +632,15 @@ percent_stat_useragent_X()
         done 
         } < G_HTTP_USER_AGENT_${1}_sorted.txt
 
-}
+} 
 
 
-stat_load()
+stat_load() 
 {
-	echo G_Load_$1.txt
+    test -n "$1" || { echo usage: stat_load 2024_11 ; return 1 ; }
+    test -f G_Load_$1.txt || { echo G_Load_$1.txt no exists; return 1 ; }
+    
+    echo G_Load_$1.txt
     echo -n 'Load        1 min      5 min   15 min ' ; grep -o 'on.*cores' G_Load_$1.txt |sort| uniq
     echo -n 'Load min:    ' ; LC_NUMERIC=C datamash --format=%3.1f -W min    3 min    4 min    5 < G_Load_$1.txt
     echo -n 'Load q1:     ' ; LC_NUMERIC=C datamash --format=%3.1f -W q1     3 q1     4 q1     5 < G_Load_$1.txt
@@ -607,22 +648,23 @@ stat_load()
     echo -n 'Load mean:   ' ; LC_NUMERIC=C datamash --format=%3.1f -W mean   3 mean   4 mean   5 < G_Load_$1.txt
     echo -n 'Load q3:     ' ; LC_NUMERIC=C datamash --format=%3.1f -W q3     3 q3     4 q3     5 < G_Load_$1.txt
     echo -n 'Load max:    ' ; LC_NUMERIC=C datamash --format=%3.1f -W max    3 max    4 max    5 < G_Load_$1.txt
-}
+} 
 
 
 # I can't believe I was able to write this...
 # My brain is not the same anymore (2024_04_06)
 echoq stat_exit_value
-stat_exit_value()
+stat_exit_value() 
 {
         statsfile=`statsfile Exiting_with_return_value "$1"`
+        test -f "$statsfile" || { echo "$statsfile" no exists ; return 1 ; }
         good_lines_nb=`grep '(EX' $statsfile | wc -l | tr -d ' '`
         grep '(EX' "$statsfile" \
         | datamash  --sort groupby 6 -W count 5 \
         | awk -v good_lines_nb=$good_lines_nb  \
                 '{ printf "%.2g%%  %s\n",  100*$2/good_lines_nb,  $1 }' \
         | sort -n
-}
+} 
 
 echoq stat_exit_value_by_value
 stat_exit_value_by_value()
@@ -633,7 +675,8 @@ stat_exit_value_by_value()
 
 
 
-datamash_file_op_index() { 
+datamash_file_op_index()
+{ 
     file="$1"
     op="${2:-mean}"
     index="${3:-4}" # the four field by default
@@ -647,7 +690,7 @@ datamash_file_op_index() {
 
 stat_any() {
     echo stat_any "$@"
-    test -f "$1" || { echo "usage: stat_any file index" ; return 1 ; }
+    test -f "$1" || { echo "$1 no exists" ; return 1 ; }
     file="$1"
     index=${2:-4} # the four field by default
     func="${3:-}"
@@ -665,39 +708,45 @@ stat_any() {
         echo -n "$file $index $op " ; datamash_file_op_index $file $op $index %16.1f $func
     done
     echo
-}
+} 
 
 
 
 echoq stat_all
-stat_all()
+stat_all() 
 {
+
+    test -n "$1" || { echo usage: stat_all 2024_11 ; return 1 ; }
+    
     stat_load "$1" ; echo
     
-    echo G_REMOTE_ADDR_$1.txt
-    egrep -o 'REMOTE_ADDR is .*' G_REMOTE_ADDR_$1.txt | sort -g |  uniq -c | sort -g | tail -5
+    
+    test -f G_REMOTE_ADDR_$1.txt && echo G_REMOTE_ADDR_$1.txt \
+        && egrep -o 'REMOTE_ADDR is .*' G_REMOTE_ADDR_$1.txt | sort -g |  uniq -c | sort -g | tail -5
 
     echo
-    echo G_REMOTE_HOST_$1.txt
-    egrep -o 'REMOTE_HOST is .*' G_REMOTE_HOST_$1.txt | sort -g |  uniq -c | sort -g | tail -5
+    test -f G_REMOTE_HOST_$1.txt && echo G_REMOTE_HOST_$1.txt \
+        && egrep -o 'REMOTE_HOST is .*' G_REMOTE_HOST_$1.txt | sort -g |  uniq -c | sort -g | tail -5
+    
     
     echo
-    echo G_HTTP_COOKIE_$1.txt 
-    egrep -o 'imapsync_runs=[0-9]+'  G_HTTP_COOKIE_$1.txt  | egrep -o '[0-9]+' | sort -n | tail -1
+    test -f G_HTTP_COOKIE_$1.txt && echo G_HTTP_COOKIE_$1.txt \
+        && egrep -o 'imapsync_runs=[0-9]+'  G_HTTP_COOKIE_$1.txt  | egrep -o '[0-9]+' | sort -n | tail -1
     
     # stat_any  G_HTTP_REFERER.txt
     echo
-    echo G_HTTP_REFERER_$1.txt 
-    egrep -o 'HTTP_REFERER is .*' G_HTTP_REFERER_$1.txt | sort -g |  uniq -c | sort -g
+    test -f G_HTTP_REFERER_$1.txt && echo G_HTTP_REFERER_$1.txt \
+        && egrep -o 'HTTP_REFERER is .*' G_HTTP_REFERER_$1.txt | sort -g |  uniq -c | sort -g
     
     echo
-    echo G_Host1_IMAP_server_$1.txt
-    cat  G_Host1_IMAP_server_$1.txt | datamash -s -W -g 4 count 4 | awk '{ print $2 " " $1 }' | sort -g | tail -5
+    test -f G_Host1_IMAP_server_$1.txt && echo G_Host1_IMAP_server_$1.txt \
+        && cat  G_Host1_IMAP_server_$1.txt | datamash -s -W -g 4 count 4 | awk '{ print $2 " " $1 }' | sort -g | tail -5
 
     echo
-    echo G_Host2_IMAP_server_$1.txt
-    cat  G_Host2_IMAP_server_$1.txt | datamash -s -W -g 4 count 4 | awk '{ print $2 " " $1 }' | sort -g | tail -5
+    test -f G_Host2_IMAP_server_$1.txt && echo G_Host2_IMAP_server_$1.txt \
+        && cat  G_Host2_IMAP_server_$1.txt | datamash -s -W -g 4 count 4 | awk '{ print $2 " " $1 }' | sort -g | tail -5
 
+    #return ;
 
     echo
     stat_any  G_Host1_Nb_messages_$1.txt
@@ -708,8 +757,10 @@ stat_all()
     stat_any  G_Messages_found_in_host2_not_in_host1_$1.txt 9
     
     # stat_any  G_Folders_synced.txt
-    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced_$1.txt | egrep -o '^[0-9]+' > G_Folders_synced__$1.txt
-    egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced_$1.txt | egrep -o '[0-9]+/[0-9]+' | egrep -o '[0-9]+$' > G_Folders_total_seen_$1.txt
+    test -f G_Folders_synced_$1.txt && echo G_Folders_synced_$1.txt \
+        && egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced_$1.txt | egrep -o '^[0-9]+' > G_Folders_synced__$1.txt
+    test -f G_Folders_synced_$1.txt && echo G_Folders_synced_$1.txt \
+        && egrep -o '[0-9]+/[0-9]+ synced' G_Folders_synced_$1.txt | egrep -o '[0-9]+/[0-9]+' | egrep -o '[0-9]+$' > G_Folders_total_seen_$1.txt
     stat_any  G_Folders_synced__$1.txt 1
     stat_any  G_Folders_total_seen_$1.txt 1
 
@@ -734,16 +785,16 @@ stat_all()
     echo '%allcpus'
     stat_any  G_CPU_time_and_cpu_$1.txt 10
     
-    echo G_Host1_banner_$1.txt
-    server_survey_percent G_Host1_banner_$1.txt  | tail -6
+    test -f G_Host1_banner_$1.txt && echo G_Host1_banner_$1.txt \
+        && server_survey_percent G_Host1_banner_$1.txt  | tail -6
     
     echo
-    echo G_Host2_banner_$1.txt
-    server_survey_percent G_Host2_banner_$1.txt  | tail -6
+    test -f G_Host2_banner_$1.txt && echo G_Host2_banner_$1.txt \
+        && server_survey_percent G_Host2_banner_$1.txt  | tail -6
     
     echo
     echo USER_AGENT
-    percent_stat_useragent_X $1 ; 
+    percent_stat_useragent_X $1
     
     echo
     echo EXIT values
@@ -751,7 +802,7 @@ stat_all()
     
     echo
     echo "Data made at" `date -r grep_stats_$1.txt`
-}
+} 
 
 stat_transfer_time_mean()
 {
@@ -823,14 +874,22 @@ logfiles_finished_recently()
 }
 
 
-last_dirs_written()
+last_dirs_written() 
 {
-        ls -tr | tail -1800
-}
+        ls -tr | tail -1800 | grep -v 385d7a4d8d428d7aa2b57c8982629e2bd67698ed
+} 
+
+#385d7a4d8d428d7aa2b57c8982629e2bd67698ed
+#????????????????????????????????????????
 
 last_file_written_in_dir()
 {
         ls -trd $1/*.txt |tail -1
+}
+
+penultimate_file_written_in_dir()
+{
+        ls -trd $1/*.txt |tail -2|head -1
 }
 
 is_dir_running_imapsync()
@@ -840,15 +899,73 @@ is_dir_running_imapsync()
         ps -p $PID -o comm= > /dev/null
 }
 
+is_dir_running_proximapsync()
+{
+        test -d "$1" || return 1
+        test -f  "$1/imapsync_remote_lock.txt"
+}
+
+
+
+
+echoq proxyfiles_running
+proxyfiles_running()
+{
+        last_dirs_written | while read d
+        do
+                is_dir_running_proximapsync "$d" &&
+                        penultimate_file_written_in_dir "$d" | egrep '_proxy.txt$'
+        done
+}
+
+echoq proxyfiles_find_sig_term_or_lock
+proxyfiles_find_sig_term_or_lock()
+{
+        last_dirs_written | while read d
+        do
+                echo ========================================================================
+                test -d "$d" || { echo "$d" is not a directory && continue ; } 
+                is_dir_running_proximapsync "$d" && echo "$d has a lock file"
+                egrep -s -H 'Got a signal TERM' $d/*_proxy.txt && echo && ls -ltrd $d/*
+        done
+}
+
+echoq proxyfiles_find_sig_quit_or_lock
+proxyfiles_find_sig_quit_or_lock()
+{
+        last_dirs_written | while read d
+        do
+                echo ========================================================================
+                test -d "$d" || { echo "$d" is not a directory && continue ; } 
+                is_dir_running_proximapsync "$d" && echo "$d has a lock file"
+                egrep -s -H 'Got a signal QUIT' $d/*_proxy.txt && echo && ls -ltrd $d/*
+        done
+}
+
+
+echoq watch_proxyfiles_running
+watch_proxyfiles_running() {
+        proxyfiles_running=`proxyfiles_running`
+        test -n "$proxyfiles_running" && tail -f $proxyfiles_running
+}
+
+
+
+
+
+
+
 echoq logfiles_running
-logfiles_running()
+logfiles_running() 
 {
         last_dirs_written | while read d
         do
                 is_dir_running_imapsync "$d" && 
                         last_file_written_in_dir "$d"
+                is_dir_running_proximapsync "$d" &&
+                        last_file_written_in_dir "$d"
         done
-}
+} 
 
 epoch_of_file()
 {
@@ -1176,10 +1293,11 @@ ratio_killed_by_TERM() {
 	echo -n "Got a signal     : " && echo $logfiles_finished_recently | xargs grep -i 'Got a signal'      | wc -l
 	echo -n "Among finished   : " && echo $nb_logfiles_finished_recently
         echo "logfiles_finished_recently $1 | xargs grep -i 'Got a signal TERM' "
+        echo "logfiles_finished_recently -1 | xargs grep -i 'Got a signal TERM' | cut -d: -f1 | xargs grep -h -o 'HTTP_USER_AGENT is.*' | sort | uniq -c | sort -g"
 }
 
 echoq 'nb_syncs_badly_finished -1 # last 1 day'
-nb_syncs_badly_finished()
+nb_syncs_badly_finished() 
 {
         logfiles_finished_recently=`logfiles_finished_recently $1`
         nb_logfiles_finished_recently=`echo $logfiles_finished_recently | wc -w | tr -d ' '`
@@ -1193,9 +1311,9 @@ nb_syncs_badly_finished()
         | awk -v nb_logfiles_finished_recently=$nb_logfiles_finished_recently \
         '{ printf "%.2g%%  %s\n",  100*$1/nb_logfiles_finished_recently,  $0 }'
 cat <<EOF
-logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0 ' | cut -d: -f1 | xargs  tail -11
+logfiles_finished_recently $1 | xargs grep -i 'Exiting with return value' | grep -v 'return value 0 ' | cut -d: -f1 | xargs  tail -n 11
 EOF
-}
+} 
 
 echoq 'referrer_of_x  /var/log/apache/access.log_2022*.gz  | sort | uniq -c | sort -n'
 referrer_of_x() {
@@ -1705,9 +1823,8 @@ slots_available()
 
 bandwidth_nominal_bytes_per_second() 
 {
-	test "$hostname" =  vp3 && echo  25000000 && return # 100 mbps + rx 100 mbps tx
-	test "$hostname" =  vp4 && echo  25000000 && return  # 100 mbps + rx 100 mbps tx
-	test "$hostname" =  ks6 && echo  25000000 && return  # 100 mbps + rx 100 mbps tx
+	test "$hostname" =  ks8 && echo  25000000 && return  # 100 mbps + rx 100 mbps tx
+	test "$hostname" =  ks9 && echo  75000000 && return  # 300 mbps + rx 300 mbps tx
 	test "$hostname" = i050 && echo 125000000 && return  # 500 mbps + rx 500 mbps tx
 	echo 25000000 # default 100 mbps + rx 100 mbps tx  
 }

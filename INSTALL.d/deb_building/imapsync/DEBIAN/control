@@ -1,0 +1,33 @@
+Package: imapsync
+Version: 2.312
+Architecture: all 
+Maintainer: Gilles LAMIRAL <gilles@lamiral.info>
+Homepage: https://imapsync.lamiral.info/
+Description: Email tool for syncing two IMAP accounts.
+ Imapsync command is a tool allowing incremental and recursive imap
+ transfers from one mailbox to another. If you don't understand the
+ previous sentence, it's normal, it's pedantic computer-oriented
+ jargon.
+ .
+ All folders are transferred, recursively, meaning the whole folder
+ hierarchy is taken, all sub-folders, all messages in them, and all 
+ message flags (\Seen, \Answered, \Flagged, etc.) are synced too.
+ .
+ Imapsync reduces the amount of data transferred by not transferring a
+ given message if it already resides on the destination side. Messages
+ that are on the destination side but not on the source side stay as
+ they are. There is no deletions by default. See the --delete2 option 
+ to have strict sync and delete them.
+ .
+ How does imapsync know a message is already on both sides? Same
+ specific headers and the transfer is done only once. By default, the
+ identification headers are "Message-Id:" and "Received:" lines but
+ this choice can be changed with the --useheader option, most often a
+ duplicate problem is solved by using --useheader "Message-Id"
+ .
+ All flags are preserved, unread messages will stay unread, read ones
+ will stay read, and deleted ones will stay deleted.
+Section: mail
+Priority: optional
+Depends: libauthen-ntlm-perl, libcgi-pm-perl, libcrypt-openssl-rsa-perl, libdata-uniqid-perl, libencode-imaputf7-perl, libfile-copy-recursive-perl, libfile-tail-perl, libio-socket-inet6-perl, libio-socket-ssl-perl, libio-tee-perl, libhtml-parser-perl, libjson-webtoken-perl, libmail-imapclient-perl, libparse-recdescent-perl, libproc-processtable-perl, libmodule-scandeps-perl, libreadonly-perl, libregexp-common-perl, libsys-meminfo-perl, libterm-readkey-perl, libtest-mockobject-perl, libunicode-string-perl, liburi-perl, libwww-perl, libnet-server-perl, make, time, cpanminus
+

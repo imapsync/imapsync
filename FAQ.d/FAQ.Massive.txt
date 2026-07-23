@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Massive.txt,v 1.34 2022/07/14 16:00:23 gilles Exp gilles $
+$Id: FAQ.Massive.txt,v 1.38 2025/07/20 13:08:59 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -28,56 +28,71 @@ Q. I run multiple imapsync applications at the same time and then get a
    Is this a potential problem when trying to sync multiple 
    IMAP account in parallel?
 
+Q. The first line of my csv file, exported by a spreadsheet software,
+   does not work. Some authentication failure with the host not well
+   spelled in the imapsync log file.
+
+Now the questions again with their answers.
+
 =======================================================================
 Q. How long will take the whole migration? 
 
-R1. First, you have to consider several periods. There is the global 
-    period, from when the migration process is decided to the end,
-    where all mailboxes are migrated. This global period can be divided
-    into three smaller periods.
+A1. First, you have to consider several periods. There's the global
+    period. This is the period from the time the migration process is
+    decided, to the end, when all mailboxes are migrated successfully
+    with all the users using their new accounts. 
+
+    The global period can be divided into three smaller periods.
     
     The first period is the analysis period: you play with the tools 
     available, you estimate the volume to be transferred, the number of
     accounts, you measure how long it takes for one account under
     your context.
     
-    The second period is what I call the presyncing period. 
-    The users are still using
-    the old accounts but nothing prevents you from starting to sync
-    the old accounts, as they are, to the new accounts.
-    With tons of gigabytes to transfer, this period may be the longest one. 
-    There is nothing more than launching the presyncs and monitoring them 
-    until the round is finished.
+    The second period is what I call the presyncing period.  The users
+    are still using the old accounts but nothing prevents you from
+    starting to sync the old accounts, as they are, to the new
+    accounts.  With tons of gigabytes to transfer, this period may be
+    the longest one.  There is nothing more to do than launching the
+    presyncs and monitoring them until the round is finished. It can
+    be done several times, the first time being the longest.
     
-    The last period is the final sync period where only the last 
-    mailboxes' changes  need to be synced before switching
-    the users to their new mailboxes.
+    The last period is the final sync period where only the last
+    mailboxes changes need to be synced before switching the users to
+    their new mailboxes.
 
-R2. To estimate the presyncing period, consider the mean imapsync transfer
-    rate to be around 340 Kbytes/s, ie, 2.8 Mbps, no matter the local 
-    link bandwidth.
-    It's a mean, measured upon various syncs, coming from 
+A2. To estimate the presyncing period, consider the imapsync transfer
+    mean rate to be around 340 Kbytes/s, ie, 2.8 Mbps, no matter the
+    local link bandwidth.
+
+    It's just an evaluation average, measured upon various syncs, coming from 
     the online service /X where the network card flow rate is 200 Mbps 
     (Rx 100 Mbps, Tx 100 Mbps) and the provider bandwidth is also 200 Mbps.
     The maximum global rate seen is 22 MiB/s (176 Mbps).
    
+    340 Kbytes/s is 
+      1.22 Gigabytes per hour, 
+     30    Gigabytes a day, 
+    205    Gigabytes a week,
+    823    Gigabytes a month.
+    
     At 340 Kbytes/s,
     1 TB to transfer and one sync at a time will end in 35 days (1024^3/340/3600/24).
     At  10 transfers at a time, 1 TB will take 3.5 days.
     At 100 transfers at a time, 1 TB will take 8 hours.
-    Double the time because the best scenario never happens.
-    Triple the time because, well, the real world is like that.
+    Double the estimated time because the best scenario never happens.
+    Triple the estinamed time because, well, the real world is more like that.
 
-R3. Another way to better evaluate the end of the presyncing period can 
-    be based on your actual data. Just apply a simple rule of three 
-    on the mailboxes already migrated to estimate the global end.
-    If it took X hours to finish Y% of the mailboxes, then it
+A3. A better way to evaluate the end of the presyncing period is to
+    use your actual data in your context. Just apply a simple rule of
+    three on the mailboxes already migrated to estimate the global
+    end.  If it took X hours to finish Y% of the mailboxes, then it
     will take 100*X/Y hours to finish 100% of the mailboxes.
 
     Following the same idea but using mathematical garbage, 
     the ETA can be estimated like this: 
-    t_0      = time of global start (the start of the first presync)
-    t_now    = time of now.
+    t_0      = the time of the first presync started.
+    t_now    = the time now.
     Nb_total = total number of mailboxes to be migrated.
     Nb_now   = number of mailboxes already migrated.
     
@@ -86,19 +101,19 @@ R3. Another way to better evaluate the end of the presyncing period can
     ETA = t_end = (t_now - t_0) * (Nb_total / Nb_now) + t_0
 
 
-R4. To estimate the last period, the final sync, just rerun a complete 
+A4. To estimate the last period, the final sync, just rerun a complete 
     presync, ie, resync all the mailboxes, the final sync should take 
     the same amount of time.
     
 =======================================================================
 Q. I need to migrate hundreds of accounts, how can I do that?
 
-R. If you have many mailboxes to migrate, think about a little
-script program. Write a file called file.txt (for example)
-containing hosts, users, and passwords on both sides.
-The separator used in this example is ";"
+A. If you have many mailboxes to migrate, think about a little script
+   program. Write a file called file.txt (for example) containing
+   hosts, users, and passwords on both sides.  The separator used in
+   this example is ";"
 
-The file.txt file contains for example:
+   The file.txt file contains for example:
 
 host001_1;user001_1;password001_1;host001_2;user001_2;password001_2;
 host002_1;user002_1;password002_1;host002_2;user002_2;password002_2;
@@ -106,11 +121,11 @@ host003_1;user003_1;password003_1;host003_2;user003_2;password003_2;
 host004_1;user004_1;password004_1;host004_2;user004_2;password004_2;
 etc.
 
-Most of the time, the first column (host001_1, host002_1 ...) will
-contain the same value, the value of --host1 parameter. Same
-thing for the third column (host001_2, host002_2).
+    Most of the time, the first column (host001_1, host002_1 ...) will
+    contain the same value, the value of --host1 parameter. Same thing
+    for the third column (host001_2, host002_2).
 
-On Unix the shell script can be:
+    On Unix the shell script can be:
 
 #!/bin/sh
 { while IFS=';' read  h1 u1 p1 h2 u2 p2 fake
@@ -120,15 +135,15 @@ On Unix the shell script can be:
     done 
 } < file.txt
 
-You can add extra options inside this script, just after the variable "$@".
-You can also pass extra options via the parameters of this script 
-since they will go in "$@"
+    You can add extra options inside this script, just after the
+    variable "$@".  You can also pass extra options via the parameters
+    of this script since they will go in "$@"
 
-Here is a complete Unix example ready to use: 
-http://imapsync.lamiral.info/examples/sync_loop_unix.sh
+    Here is a complete Unix example ready to use:
+    http://imapsync.lamiral.info/examples/sync_loop_unix.sh
 
 
-On Windows the batch script can be:
+    On Windows the batch script can be:
 
 CD /D %~dp0
 SET csvfile=file.txt
@@ -138,37 +153,39 @@ imapsync ^
   --host2 %%J --user2 %%K --password2 %%L %%M  ...
 )
 
-You can add extra options inside this script, just after the variable %%M.
-You can add extra options inside the file.txt, in the last column. Add 
-an extra semicolon at the end (optional)
-Example:
+    You can add extra options inside this script, just after the
+    variable %%M.  You can add extra options inside the file.txt, in
+    the last column. Add an extra semicolon at the end (optional)
+
+    Example:
+
 host001_1;user001_1;password001_1;host001_2;user001_2;password001_2;
 host002_1;user002_1;password002_1;host002_2;user002_2;password002_2;
 becomes
 host001_1;user001_1;password001_1;host001_2;user001_2;password001_2; --automap --addheader
 host002_1;user002_1;password002_1;host002_2;user002_2;password002_2; --automap --addheader
 
-With this solution, options can be added, changed, or removed per account.
-Technically those options will go in %%M in the loop body 
+    With this solution, options can be added, changed, or removed per account.
+    Technically those options will go in %%M in the loop body 
 
-Here is a complete Windows example ready to use: 
-http://imapsync.lamiral.info/examples/sync_loop_windows.bat
+    Here is a complete Windows example ready to use: 
+    http://imapsync.lamiral.info/examples/sync_loop_windows.bat
 
-Another solution to add extra arguments is to write another .bat that 
-calls sync_loop_windows.bat with the extra arguments, like this
-for example:
+    Another solution to add extra arguments is to write another .bat
+    that calls sync_loop_windows.bat with the extra arguments, like
+    this for example:
 
-  sync_loop_windows.bat --automap --addheader --maxmessagespersecond 4 
+sync_loop_windows.bat --automap --addheader --maxmessagespersecond 4 
 
-Technically those options will go in %arguments%  in the loop body
-of sync_loop_windows.bat
+    Technically those options will go in %arguments% in the loop body
+    of sync_loop_windows.bat
 
 
 =======================================================================
 Q. I have to migrate 500k users using 400 TB of disk space. 
    How do I proceed? How about speed?
 
-R. A good solution to this issue is two words: parallelism and measurements.  
+A. A good solution to this issue is two words: parallelism and measurements.  
 
 Since all mailboxes are functionally independent, they can be processed 
 independently, here comes the parallelism, ie, lunching several imapsync 
@@ -235,7 +252,7 @@ Here comes some measurements.
 =======================================================================
 Q. How to determine where is the bottleneck in an imapsync process?
 
-R1. Divide and conquer.
+A1. Divide and conquer.
 
 To detect whether host1/link1 is the bottleneck or
 host2/link2, we have several tests to explore:
@@ -251,7 +268,7 @@ If performances increase a lot then host1/link1 is the bottleneck.
 If performances increase on both tests 1) and 2), I have no clue to explain that.
 Same thing if they both decrease! 
 
-R2. Isolating and overcoming bottlenecks
+A2. Isolating and overcoming bottlenecks
 
 In any process involving several mechanisms, among all elements taking
 part in the process, there is always a bottleneck.  No one knows in
@@ -305,6 +322,7 @@ Other possible bottlenecks:
 - Incompetence.
 - Money.
 - Time.
+- Solar wind.
 - Bad luck.
 - ...
 
@@ -312,7 +330,7 @@ Other possible bottlenecks:
 =======================================================================
 Q. Can I run several instances of imapsync in parallel on a Windows host?
 
-R. Yes!
+A. Yes!
 
 Q. Any performance issues?
 
@@ -343,7 +361,7 @@ Q. I run multiple imapsync applications at the same time and then get a
    Is this a potential problem when trying to sync multiple 
    IMAP account in parallel?
 
-R1. No issue with the file imapsync.pid if you don't use its content
+A1. No issue with the file imapsync.pid if you don't use its content
 by yourself. 
 
 This file can help you to manage multiple runs by sending signals 
@@ -354,5 +372,20 @@ This file is removed at the end of a normal run.
 You can safely ignore the warning if you don't use imapsync.pid file
 to manage imapsync processes.
 
+=======================================================================
+Q. The first line of my csv file, exported by a spreadsheet software,
+   does not work. Some authentication failure with the host not well
+   spelled in the imapsync log file.
+
+A. The first character of the csv file might be a BOM character.
+
+In vim, remove it with the command 
+:set nobomb
+
+Some links about this issue:
+https://softwareengineering.stackexchange.com/questions/372692/should-utf-8-csv-files-contain-a-bom-byte-order-mark
+https://en.wikipedia.org/wiki/Byte_order_mark
+
+Thanks to Olivier Bourgeois for reporting and solving this issue.
 =======================================================================
 =======================================================================

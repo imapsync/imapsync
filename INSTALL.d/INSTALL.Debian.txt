@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.Debian.txt,v 1.42 2023/12/29 23:35:51 gilles Exp gilles $
+# $Id: INSTALL.Debian.txt,v 1.46 2025/08/26 19:31:47 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -44,9 +44,27 @@ See also a more detailed story at
 https://lists.debian.org/debian-user/2016/11/msg00849.html
 
 
+Since 2024, I maintain a Debian package, for an easy install on any Debian system.
+I build it with the command: 
+cd INSTALL.d/deb_building && sh build_imapsync_deb
+
 =========================================================================================
   1) Installing imapsync on Debian 9 Stretch, 10 Buster, 11 Bullseye, Debian 12 Bookworm
+     using apt
 =========================================================================================
+
+
+cd /tmp/
+wget https://imapsync.lamiral.info/dist2/imapsync.deb
+sudo apt install ./imapsync.deb
+
+
+
+=========================================================================================
+  2) Installing imapsync on Debian 9 Stretch, 10 Buster, 11 Bullseye, Debian 12 Bookworm
+     manually
+=========================================================================================
+
 
 How to install imapsync dependencies on a Debian system?
 
@@ -54,7 +72,9 @@ The repositories are the classical ones, ie, a
 /etc/apt/sources.list file with:
 
 # Debian 12 Bookworm
-deb http://deb.debian.org/debian bookworm main contrib
+# /etc/apt/sources.list.d/debian.sources
+...
+Components: main contrib non-free-firmware non-free
 
 or
 
@@ -82,28 +102,28 @@ apt install -y            \
   libencode-imaputf7-perl     \
   libfile-copy-recursive-perl \
   libfile-tail-perl        \
+  libhttp-daemon-perl      \
+  libhttp-daemon-ssl-perl  \
+  libhttp-message-perl     \
   libio-socket-inet6-perl  \
   libio-socket-ssl-perl    \
   libio-tee-perl           \
   libhtml-parser-perl      \
   libjson-webtoken-perl    \
   libmail-imapclient-perl  \
+  libmodule-scandeps-perl  \
+  libnet-server-perl       \
+  libnet-dns-perl          \
   libparse-recdescent-perl \
   libproc-processtable-perl \
-  libmodule-scandeps-perl  \
   libreadonly-perl         \
   libregexp-common-perl    \
   libsys-meminfo-perl      \
   libterm-readkey-perl     \
   libtest-mockobject-perl  \
-  libtest-pod-perl         \
   libunicode-string-perl   \
   liburi-perl              \
   libwww-perl              \
-  libtest-nowarnings-perl  \
-  libtest-deep-perl        \
-  libtest-warn-perl        \
-  libnet-server-perl       \
   make                     \
   time                     \
   cpanminus

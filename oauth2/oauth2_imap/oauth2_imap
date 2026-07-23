@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 
-# $Id: oauth2_imap,v 1.35 2024/08/20 18:26:23 gilles Exp gilles $
+# $Id: oauth2_imap,v 1.44 2025/08/26 13:05:50 gilles Exp gilles $
 
 use strict ;
 use warnings ;
@@ -14,7 +14,7 @@ use HTTP::Request::Common ;
 
 
 use HTTP::Daemon ;
-#use HTTP::Daemon::SSL ; # does not work 
+use HTTP::Daemon::SSL ;
 use HTTP::Request ;
 use HTTP::Response ;
 use HTTP::Status ;
@@ -35,55 +35,68 @@ use Net::DNS ( ) ;
 
 #print search_dyn_lib_locale_MSWin32(  ), "\n" ;
 
+# Unix exit style, 0 means success, non-0 means failure.
+# 2025_08_21 Looking at the code, this exit code is not implemented.
+#
+# Refactoring idea: should return an $oauth object, with failure in it in case a failure happened.
 
-main( @ARGV ) ;
+my $oauth2_imap_result = oauth2_imap( @ARGV ) ;
 
-exit ;
+exit( $oauth2_imap_result || 0 ) ; 
 
 
 
-sub main
+sub oauth2_imap
 {
-        my $options = { } ;
-        my @remaining_ARG = getoptions( $options, @ARG ) ;
+
+        # extract_options sets $oauth2_options->{ failure } if it goes wrong.
+        my ( $oauth2_options, @remaining_ARG ) = parse_command_line( @ARG ) ;
         
-        if ( $options->{ failure } )
+        if ( $oauth2_options->{ failure } )
         {
-                return ;
+                return 64 ; # EX_USAGE => 64 ; /* command line usage error */
         }
         
-        $options->{ debug } and print "main, Options       : " . Data::Dumper->Dump( [ \$options ] ) . "\n" ;
-        $options->{ debug } and print "main, ARG           : " . Data::Dumper->Dump( [ \@ARG ] ) . "\n" ;
-        $options->{ debug } and print "main, remaining_ARG : " . Data::Dumper->Dump( [ \@remaining_ARG ] ) . "\n" ;
-
-        tests( $options ) || return ;
+        # perform tests is --tests or --testone 
+        do_tests( $oauth2_options ) || return ;
         
-        my $oauth2 = {  } ;
-        $oauth2->{ user } = shift @remaining_ARG ;
-
-        if ( ! $oauth2->{ user } )
+        my $user = shift @remaining_ARG ;
+        
+        if ( ! $user )
         {
                 print "\nusage: $0 foo\@example.com\n\n" ;
                 #print "LWP::VERSION=" . $LWP::VERSION . " LWP::Protocol::https::VERSION=" . $LWP::Protocol::https::VERSION . "\n" ;
-                return ;
+                return 64 ; # EX_USAGE => 64 ; /* command line usage error */
         }
+        
+        
+        # Now I should just call a function with $oauth2 as argument and all the remaining in it.
+        # Find a name! And move some lines!
+        
+        
+        my $oauth2 = {  } ;
+        
+        
+        $oauth2->{ user } = $user ;
 
-        $oauth2->{ provider } = $options->{ provider } ;
-        set_provider( $oauth2 ) || return ;
+        
+
+        $oauth2->{ provider } = $oauth2_options->{ provider } ;
+        oauth2_determine_provider( $oauth2 ) || return ;
         
         # Default application is thunderbird
-        $oauth2->{ application } = $options->{ application } || 'thunderbird' ;
+        $oauth2->{ application } = $oauth2_options->{ application } || 'thunderbird' ;
         
-        oauth2_parameters( $oauth2 ) ;
+        oauth2_expand_parameters( $oauth2 ) ;
         
         
         # overwrite $oauth2 with the options values, if any.
         merge_hashes(
                 $oauth2,
-                $options,
+                $oauth2_options,
         ) ;
         
-        oauth2_checklist( $oauth2 ) || return ;
+        oauth2_are_all_parameters_there( $oauth2 ) || return ;
         
         oauth2_init( $oauth2 ) || return ;
 
@@ -91,13 +104,53 @@ sub main
         
         if ( $oauth2 )
         {
-                oauth2_approval( $oauth2 ) ;
+                oauth2_approve( $oauth2 ) ;
         }
         return ;
 }
 
 
-sub oauth2_checklist
+sub tests_parse_command_line
+{
+        note( 'Entering tests_parse_command_line()' ) ;
+
+        is( 0, parse_command_line(  ),  'tests_parse_command_line: no args => 0 in scalar context' ) ;
+        is( 1, parse_command_line( "" ),  'tests_parse_command_line: "" => 1 in scalar context' ) ;
+
+        my ( $oauth2_options, @remaining_ARG ) = parse_command_line(  ) ;
+        is( undef, $oauth2_options->{ debug }, 'tests_parse_command_line: no args => attended option undef' ) ;
+        ok( exists( $oauth2_options->{ debug } ), 'tests_parse_command_line: no args => attended option exists' ) ;
+        is( undef, $oauth2_options->{ rrrrr  }, 'tests_parse_command_line: no args => not attended option undef' ) ;
+        ok( ! exists( $oauth2_options->{ rrrrr } ), 'tests_parse_command_line: no args => not attended option do not exist' ) ;
+        is_deeply( [  ], [ @remaining_ARG ], 'tests_parse_command_line: no args => no remaining_ARG' ) ;
+
+        ( $oauth2_options, @remaining_ARG ) = parse_command_line( '--debug', 'titi@pppp' ) ;
+        is( 1, $oauth2_options->{ debug }, 'tests_parse_command_line: --debug titi@pppp => option debug == 1' ) ;
+        ok( exists( $oauth2_options->{ debug } ), 'tests_parse_command_line: --debug titi@pppp => attended option exists' ) ;
+        is( undef, $oauth2_options->{ rrrrr  }, 'tests_parse_command_line: --debug titi@pppp => not attended option undef' ) ;
+        ok( ! exists( $oauth2_options->{ rrrrr } ), 'tests_parse_command_line: --debug titi@pppp => not attended option do not exist' ) ;
+        is_deeply( [ 'titi@pppp' ], [ @remaining_ARG ], 'tests_parse_command_line: --debug titi@pppp => titi@pppp' ) ;
+
+        note( 'Leaving  tests_parse_command_line()' ) ;
+        return ;
+}
+
+
+sub parse_command_line
+{
+        my $oauth2_options = { } ;
+
+        # extract_options sets $oauth2_options->{ failure } if it goes wrong.
+        my @remaining_ARG = extract_options( $oauth2_options, @ARG ) ;
+        
+        $oauth2_options->{ debug } and print "oauth2_imap, options       : " . Data::Dumper->Dump( [ \$oauth2_options ] ) . "\n" ;
+        $oauth2_options->{ debug } and print "oauth2_imap, ARG           : " . Data::Dumper->Dump( [ \@ARG ] ) . "\n" ;
+        $oauth2_options->{ debug } and print "oauth2_imap, remaining_ARG : " . Data::Dumper->Dump( [ \@remaining_ARG ] ) . "\n" ;
+        
+        return( $oauth2_options, @remaining_ARG ) ;
+}
+
+sub oauth2_are_all_parameters_there
 {
         my $oauth2 = shift @ARG ;
    
@@ -115,18 +168,18 @@ sub oauth2_checklist
 }
 
 
-sub tests
+sub do_tests
 {
         
-        my $options = shift ;
+        my $oauth2_options = shift ;
         
-        if (  $options->{ testsone } )
+        if (  $oauth2_options->{ testsone } )
         {
                 testsone(  ) ;
                 return ;
         }
 
-        if ( ! $options->{ tests } )
+        if ( ! $oauth2_options->{ tests } )
         { 
                 return 1 ; 
         }
@@ -134,13 +187,18 @@ sub tests
         {
                 note( 'Entering tests()' ) ;
                 infos_modules(  ) ;
+                tests_oauth2_generate_code_verifier(  ) ;
+                tests_oauth2_code_challenge(  ) ;
                 tests_merge_hashes(  ) ;
                 tests_find_domain_from_email(  ) ;
                 tests_find_provider_from_domain(  ) ;
                 tests_find_provider_from_email(  ) ;
                 tests_oauth2_lunch_httpd_localhost_ssl(  ) ;
-                tests_set_provider(  ) ;
-                done_testing( 50 ) ;
+                tests_oauth2_determine_provider(  ) ;
+                tests_parse_command_line(  ) ;
+                tests_extract_options(  ) ;
+                tests_token_file(  ) ;
+                done_testing( 82 ) ;
                 note( 'Leaving  tests()' ) ;
         }
         return ;
@@ -149,7 +207,7 @@ sub tests
 sub testsone
 {
         note( 'Entering testsone()' ) ;
-        tests_set_provider(  ) ;
+        tests_token_file(  ) ;
         done_testing(  ) ;
         note( 'Leaving  testsone()' ) ;
 }
@@ -162,35 +220,67 @@ sub infos_modules
         printf( "%-20s %s\n", "Net::SSLeay",       $Net::SSLeay::VERSION )  ;
 }
 
-sub getoptions
+
+
+sub tests_extract_options
 {
-        my $options = shift @ARG ;
+        note( 'Entering tests_extract_options()' ) ;
+
+        is_deeply( [], [ extract_options(  ) ],     'tests_extract_options: {  } => empty array' ) ;
+        is_deeply( [], [ extract_options( {  } ) ], 'tests_extract_options: {  } => empty array' ) ;
+        
+        my $oauth2_options = {  } ;
+        is_deeply( [], [ extract_options( $oauth2_options ) ], 'tests_extract_options: {  } as variable => empty array' ) ;
+        is_deeply( [], [ extract_options( $oauth2_options, '--kkk' ) ], 'tests_extract_options: --kkk => undef' ) ;
+        is( 1, $oauth2_options->{ failure }, 'tests_extract_options: --kkk => failure == 1' ) ;
+        
+        is_deeply( [], [ extract_options( $oauth2_options, '--debug' ) ], 'tests_extract_options: --debug => []' ) ;
+        
+        # Caveat emptor, second call maintains failure.
+        is( 1, $oauth2_options->{ failure }, 'tests_extract_options: second call --debug  => failure == 1' ) ;
+        is_deeply( [ 'toto@casa' ], [ extract_options( $oauth2_options, '--debug', 'toto@casa' ) ], 'tests_extract_options: --debug toto@casa => toto@casa' ) ;
+        
+        # Reset, no failure.
+        $oauth2_options = {  } ;
+        is_deeply( [ 'toto@casa' ], [ extract_options( $oauth2_options, '--debug', 'toto@casa' ) ], 'tests_extract_options: --debug toto@casa => toto@casa' ) ;
+        is( undef, $oauth2_options->{ failure }, 'tests_extract_options: reset + --debug  => undef' ) ;
+        
+        
+        note( 'Leaving  tests_extract_options()' ) ;
+        return ;
+}
+
+
+sub extract_options
+{
+        my $oauth2_options = shift @ARG ;
         my $ret = Getopt::Long::GetOptionsFromArray( \@ARG, 
-                'tests!'          => \$options->{ tests },
-                'testsone!'       => \$options->{ testsone },
-                'debug!'          => \$options->{ debug },
-                'startover!'      => \$options->{ startover },
-                'provider=s'      => \$options->{ provider },
-                'authorize_uri=s' => \$options->{ authorize_uri },
-                'token_uri=s'     => \$options->{ token_uri },
-                'redirect_uri=s'  => \$options->{ redirect_uri },
-                'scope_string=s'  => \$options->{ scope_string },
-                'application=s'   => \$options->{ application },
-                'client_id=s'     => \$options->{ client_id },
-                'client_secret=s' => \$options->{ client_secret },
-                'thunderbird!'    => \$options->{ thunderbird },
-                'token_file=s'    => \$options->{ token_file },
-                'local!'          => \$options->{ local },
-                'localssl!'       => \$options->{ localssl },
-                'imap_server=s'   => \$options->{ imap_server },
+                'tests!'          => \$oauth2_options->{ tests },
+                'testsone!'       => \$oauth2_options->{ testsone },
+                'debug!'          => \$oauth2_options->{ debug },
+                'startover!'      => \$oauth2_options->{ startover },
+                'provider=s'      => \$oauth2_options->{ provider },
+                'authorize_uri=s' => \$oauth2_options->{ authorize_uri },
+                'token_uri=s'     => \$oauth2_options->{ token_uri },
+                'redirect_uri=s'  => \$oauth2_options->{ redirect_uri },
+                'scope_string=s'  => \$oauth2_options->{ scope_string },
+                'application=s'   => \$oauth2_options->{ application },
+                'client_id=s'     => \$oauth2_options->{ client_id },
+                'client_secret=s' => \$oauth2_options->{ client_secret },
+                'thunderbird!'    => \$oauth2_options->{ thunderbird },
+                'token_file=s'    => \$oauth2_options->{ token_file },
+                'local!'          => \$oauth2_options->{ local },
+                'localssl!'       => \$oauth2_options->{ localssl },
+                'imap_server=s'   => \$oauth2_options->{ imap_server },
+                'remotebrowser!'  => \$oauth2_options->{ remotebrowser },
         ) ;
         
-        $options->{ debug } and print "getoptions, ret, ARG: (" . Data::Dumper->Dump( [ $ret, \@ARG ]  ) . ")\n" ;
+        $oauth2_options->{ debug } and print "extract_options, ret, ARG: (" . Data::Dumper->Dump( [ $ret, \@ARG ]  ) . ")\n" ;
         
         # Something went wrong for GetOptionsFromArray
         if ( ! $ret )
         {
-                $options->{ failure } = 1 ;
+                $oauth2_options->{ failure } = 1 ;
                 return ; 
         }
         
@@ -219,7 +309,7 @@ sub oauth2_office365
 # With account gilles.lamiral@outlook.com
 # https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Authentication/appId/c46947ca-867f-48b7-9231-64213fdd765e
 
-sub oauth2_office365_imapsync
+sub oauth2_office365_imapsync 
 {
         my $oauth2_office365_imapsync = 
         {
@@ -228,12 +318,12 @@ sub oauth2_office365_imapsync
                 redirect_uri   => 'https://imapsync.lamiral.info/cgi-bin/auth',
                 scope_string   => 'offline_access https://outlook.office.com/IMAP.AccessAsUser.All',
                 client_id      => 'c46947ca-867f-48b7-9231-64213fdd765e',
-                client_secret  => 'LH58Q~vMFFoVTbBmUnOeIDtfcacYNolMJ2cP2cLC',
+                client_secret  => 'cdX8Q~jy-ynhroJTduZJNM4WulTngWeYcCIIgdkq',
                 imap_server    => 'outlook.office365.com',
         } ;
         
         return $oauth2_office365_imapsync ;
-}
+} 
 
 
 sub oauth2_office365_thunderbird
@@ -299,14 +389,14 @@ sub oauth2_gmail_thunderbird
         return $oauth2_gmail_thunderbird ;
 }
 
-sub oauth2_parameters
+sub oauth2_expand_parameters
 {
         my $oauth2 = shift @ARG ;
 
         if ( ! defined $oauth2 ) { return ; }
         
-        if ( ! defined$oauth2->{ application } ) { return ; }
-        if ( ! defined$oauth2->{ provider } )    { return ; }
+        if ( ! defined $oauth2->{ application } ) { return ; }
+        if ( ! defined $oauth2->{ provider } )    { return ; }
 
         if ( 'thunderbird'    eq $oauth2->{ application } 
               and 'office365' eq $oauth2->{ provider } )
@@ -361,39 +451,39 @@ sub oauth2_parameters
         
 
 
-sub tests_set_provider
+sub tests_oauth2_determine_provider
 {
-        note( 'Entering tests_set_provider()' ) ;
+        note( 'Entering tests_oauth2_determine_provider()' ) ;
 
-        is( undef, set_provider(  ),  'tests_set_provider: no args => undef' ) ;
+        is( undef, oauth2_determine_provider(  ),  'tests_oauth2_determine_provider: no args => undef' ) ;
         my $oauth2 = {  } ;
-        is( undef, set_provider( $oauth2 ),  'tests_set_provider: {  } => undef' ) ;
+        is( undef, oauth2_determine_provider( $oauth2 ),  'tests_oauth2_determine_provider: {  } => undef' ) ;
         
         $oauth2->{ user } = 'gilles@lamiral.info' ;
-        is( undef, set_provider( $oauth2 ), 'tests_set_provider:gilles@lamiral.info => undef' ) ;
+        is( undef, oauth2_determine_provider( $oauth2 ), 'tests_oauth2_determine_provider:gilles@lamiral.info => undef' ) ;
         
         
         $oauth2->{ provider } = 'tartanpion' ;
-        is( 'tartanpion', set_provider( $oauth2 ), 'tests_set_provider:gilles@lamiral.info + provider tartanpion => tartanpion' ) ;
-        is( 'tartanpion', $oauth2->{ provider },   'tests_set_provider: provider tartanpion remains' ) ;
+        is( 'tartanpion', oauth2_determine_provider( $oauth2 ), 'tests_oauth2_determine_provider:gilles@lamiral.info + provider tartanpion => tartanpion' ) ;
+        is( 'tartanpion', $oauth2->{ provider },   'tests_oauth2_determine_provider: provider tartanpion remains' ) ;
         
         
         $oauth2 = {  } ;
         $oauth2->{ user } = 'toto@gmail.com' ;
-        is( 'gmail', set_provider( $oauth2 ), 'tests_set_provider: toto@gmail.com => gmail' ) ;
-        is( 'gmail', $oauth2->{ provider },   'tests_set_provider: toto@gmail.com => gmail' ) ;
+        is( 'gmail', oauth2_determine_provider( $oauth2 ), 'tests_oauth2_determine_provider: toto@gmail.com => gmail' ) ;
+        is( 'gmail', $oauth2->{ provider },   'tests_oauth2_determine_provider: toto@gmail.com => gmail' ) ;
         
         
         $oauth2->{ provider } = 'tartanpion' ;
-        is( 'tartanpion', set_provider( $oauth2 ), 'tests_set_provider: toto@gmail.com + provider tartanpion => tartanpion' ) ;
-        is( 'tartanpion', $oauth2->{ provider },   'tests_set_provider: toto@gmail.com + provider tartanpion => tartanpion' ) ;
+        is( 'tartanpion', oauth2_determine_provider( $oauth2 ), 'tests_oauth2_determine_provider: toto@gmail.com + provider tartanpion => tartanpion' ) ;
+        is( 'tartanpion', $oauth2->{ provider },   'tests_oauth2_determine_provider: toto@gmail.com + provider tartanpion => tartanpion' ) ;
         
 
-        note( 'Leaving  tests_set_provider()' ) ;
+        note( 'Leaving  tests_oauth2_determine_provider()' ) ;
         return ;
 }
 
-sub set_provider
+sub oauth2_determine_provider
 {
         my $oauth2 = shift @ARG ;
    
@@ -429,6 +519,65 @@ sub set_provider
 }
 
 
+
+sub tests_token_file
+{
+        note( 'Entering tests_token_file()' ) ;
+
+        is( undef, token_file(  ),  'tests_token_file: no args => undef' ) ;
+        my $oauth2 = {  } ;
+        is( undef, token_file( $oauth2 ),  'tests_token_file: {  } => undef' ) ;
+        
+        $oauth2->{ user } = 'toto@kaka.com' ;
+        is( 'tokens/oauth2_tokens_toto@kaka.com.txt', token_file( $oauth2 ),  'tests_token_file: user toto@kaka.com => tokens/oauth2_tokens_toto@kaka.com.txt' ) ;
+
+        $oauth2->{ application } = 'app' ;
+        is( 'tokens/oauth2_tokens_app_toto@kaka.com.txt', token_file( $oauth2 ),  'tests_token_file: application appapp => tokens/oauth2_tokens_app_toto@kaka.com.txt' ) ;
+        
+        $oauth2->{ provider } = 'prov' ;
+        is( 'tokens/oauth2_tokens_app_prov_toto@kaka.com.txt', token_file( $oauth2 ),  'tests_token_file: provider prov => tokens/oauth2_tokens_app_prov_toto@kaka.com.txt' ) ;
+        
+        note( 'Leaving  tests_token_file()' ) ;
+        return ;
+}
+
+sub token_file
+{
+        my $oauth2 = shift @ARG ;
+        
+        if ( $oauth2->{ token_file } )
+        {
+                return $oauth2->{ token_file } ;
+        }
+        
+        my $token_file = "tokens/oauth2_tokens_" ;
+        
+        if ( $oauth2->{ application } )
+        {
+                $token_file .= $oauth2->{ application } . '_' ;
+        }
+
+        if ( $oauth2->{ provider } )
+        {
+                $token_file .= $oauth2->{ provider } . '_' ;
+        }
+        
+        if ( $oauth2->{ user } )
+        {
+                $token_file .= $oauth2->{ user } . '.txt' ;
+        }
+        else
+        {
+                $token_file = undef ;
+        }
+      
+        
+        return $token_file ;
+}
+
+
+
+
 sub oauth2_init
 {
         my $oauth2 = shift @ARG || {  } ;
@@ -440,16 +589,15 @@ sub oauth2_init
                 return ;
         }
         
-
-        my $token_file = $oauth2->{ token_file } || "tokens/oauth2_tokens_$user.txt" ;
+        my $token_file = token_file( $oauth2 ) ;
 
         set_local_from_redirect_uri( $oauth2 ) ;
         set_localssl_from_redirect_uri( $oauth2 ) ;
         
-        my $oauth2_code_verifier  = random_string( 128 ) ;  # yeah, guess that man!
+        my $oauth2_code_verifier  = oauth2_generate_code_verifier(  ) ;  # 128 characters. Yeah, guess that man!
         my $oauth2_code_challenge = oauth2_code_challenge( $oauth2_code_verifier ) ; # Just BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
         my $oauth2_code_challenge_method = 'S256' ;
-        my $state = random_string( 32 ) ; 
+        my $state = generate_a_random_string( 32 ) ;
         # less secure way:
         # my $oauth2_code_challenge = $oauth2_code_verifier ;
         # my $oauth2_code_challenge_method = 'plain' ; # or nothing since plain is the default 
@@ -459,8 +607,8 @@ sub oauth2_init
         merge_hashes(
                 $oauth2,
                 {
-                        user       => "$user",
-                        token_file     => "$token_file",
+                        user           => $user,
+                        token_file     => $token_file,
                         code_verifier  => $oauth2_code_verifier,
                         code_challenge => $oauth2_code_challenge,
                         code_challenge_method => $oauth2_code_challenge_method,
@@ -470,6 +618,27 @@ sub oauth2_init
 
        return( $oauth2 ) ;
 }
+
+
+
+
+sub tests_oauth2_generate_code_verifier
+{
+        note( 'Entering tests_oauth2_generate_code_verifier()' ) ;
+
+        is( 128, length( oauth2_generate_code_verifier(  ) ),           'tests_oauth2_generate_code_verifier: 128 characters long' ) ;
+
+        note( 'Leaving  tests_oauth2_generate_code_verifier()' ) ;
+        return ;
+}
+
+
+sub oauth2_generate_code_verifier
+{
+        return( generate_a_random_string( 128 ) ) ;
+}
+
+
 
 sub set_local_from_redirect_uri
 {
@@ -513,12 +682,12 @@ sub set_localssl_from_redirect_uri
         
 
 
-sub oauth2_approval 
+sub oauth2_approve
 { 
         my $oauth2 = shift  ;
 
 
-        if ( oauth2_load_tokens_from_file( $oauth2 ) and oauth2_check_imap_access( $oauth2 ) )
+        if ( oauth2_load_tokens_from_file( $oauth2 ) and oauth2_is_imap_access_ok( $oauth2 ) )
         {
                 print "Access token is ok but let's get a new one anyway.\n" ;
         }
@@ -538,7 +707,7 @@ sub oauth2_approval
                 oauth2_request_tokens( $oauth2 ) ;
         }
         
-        if ( oauth2_check_imap_access( $oauth2 ) )
+        if ( oauth2_is_imap_access_ok( $oauth2 ) )
         {
                 oauth2_save_tokens_to_file( $oauth2 ) ;
                 return 0
@@ -572,7 +741,7 @@ sub oauth2_load_tokens_from_file
 }
 
 
-sub oauth2_authorization_code_uri
+sub oauth2_build_authorization_code_uri
 {
         my $oauth2 = shift ;
         
@@ -590,6 +759,7 @@ sub oauth2_authorization_code_uri
                 '&state=', $oauth2->{ state },
                 ) ;
 
+        $oauth2->{ authorization_code_uri } = $authorization_code_uri ;
         return $authorization_code_uri ;
 }
 
@@ -597,6 +767,8 @@ sub oauth2_authorization_code_uri
 sub oauth2_ask_authorization_code
 {
         my $oauth2 = shift ;
+
+        
 
         if ( $oauth2->{ local } )
         {
@@ -637,42 +809,83 @@ sub oauth2_ask_authorization_code
 sub oauth2_ask_authorization_code_localhost 
 {
         my $oauth2 = shift ;
+
+        oauth2_invite_with_browser( $oauth2 ) ;
+
+        my $code_from_localhost ;
+        my $code_from_stdin ;
+
+        if ( $oauth2->{ remotebrowser } )
+        {
+                print "\n\nLet's collect the code from the terminal\n" ;
+                $code_from_stdin = oauth2_collect_code_from_stdin( $oauth2 ) ;                
+        }
+        else
+        { 
+                print "\n\nNow I try to collect the code. Will give up in 120 seconds (maybe 4x).\n" ;
+                if ( $code_from_localhost = oauth2_collect_code_localhost_insist( $oauth2 ) )
+                {
+                        print "\nGOOD!\n" ;
+                }
+                else
+                {
+                        print "\n\nFailed to collect the code on localhost.\n" ;
+                        $code_from_stdin = oauth2_collect_code_from_stdin( $oauth2 ) ;
+                }
+        }
         
-        
+        return( $code_from_localhost || $code_from_stdin ) ;
+} 
+
+sub oauth2_invite_with_browser
+{
+        my $oauth2 = shift ;
         
         print "Go to the following link with your web browser:\n\n" ;
-        my $authorization_code_uri = oauth2_authorization_code_uri( $oauth2 ) ;
+        my $authorization_code_uri = oauth2_build_authorization_code_uri( $oauth2 ) ;
         print "$authorization_code_uri\n\n" ;
+        
+        if ( ! $oauth2->{ remotebrowser } )
+        {
+                launch_browser_on_url( $authorization_code_uri ) ;
+        }
+}
+
+sub launch_browser_on_url
+{
+        my $url = shift ;
         
         if ( 'MSWin32' eq $OSNAME )
         {
                 print "I help you to open the link with the following, hoping it works\n" ; 
-                print qq{start \"\" \"$authorization_code_uri\"\n} ;
-                `start \"\" \"$authorization_code_uri\"` ;
+                print qq{start \"\" \"$url\"\n} ;
+                `start \"\" \"$url\"` ;
         }
         elsif( 'darwin' eq $OSNAME )
         {
                 print "I help you to open the link with the following, hoping it works\n" ; 
-                print qq{open \'$authorization_code_uri\'\n} ;
-                `open \'$authorization_code_uri\' &` ;
+                print qq{open \'$url\'\n} ;
+                `open \'$url\' \&` ;
         }
         else
         {
                 print "I help you to open the link with the following, hoping it works\n" ; 
-                print qq{firefox \'$authorization_code_uri\'\n} ;
-                `firefox \'$authorization_code_uri\' &` ;
+                print qq{firefox \'$url\'\n} ;
+                `firefox \'$url\' \&` ;
         }
-        
-        #print "\n\nThen, after the authentication is finished, press ENTER: " ;
-        #my $enter = <STDIN> ;
-        print "\n\nThanks. Now I try to collect the code. Will give up in 120 seconds.\n" ;
+        return ;
+}
+
+sub oauth2_collect_code_localhost_insist
+{
+        my $oauth2 = shift ;
+
         my $code_from_localhost ;
-        my $code_from_stdin ;
-       
-        # Yes, sometimes four times is necessary, Gmail.
+        
+        # Yes, sometimes four times is necessary, Gmail...
         if ( $code_from_localhost = oauth2_collect_code_localhost( $oauth2 ) )
         {
-                print "\n\nSuccess collecting the code\n" ;
+                print "\n\nSuccess collecting the code first time\n" ;
                 $oauth2->{ code } = $code_from_localhost ;
         }
         elsif ( $code_from_localhost = oauth2_collect_code_localhost( $oauth2 ) )
@@ -692,45 +905,34 @@ sub oauth2_ask_authorization_code_localhost
         }
         else
         {
-                print "\n\nFailed to collect the code\n" ;
-                print "\n\nPaste the code here and press ENTER: " ;
-                $code_from_stdin = <STDIN> ;
-                chomp( $code_from_stdin ) ;
-                $oauth2->{ code } = $code_from_stdin ;
+                print "\n\nFailed to collect the code on localhost.\n" ;
         }
         
-        return( $code_from_localhost || $code_from_stdin ) ;
-} 
+        return $code_from_localhost ;
+}
 
-
+sub oauth2_collect_code_from_stdin
+{
+        my $oauth2 = shift ;
+        
+        my $code_from_stdin ;
+        
+        print "\n\nYou can find the code in the url at the end of the authentication process in your browser.\n" ;
+        print "\n\nPaste the code here and press ENTER: " ;
+        $code_from_stdin = <STDIN> ;
+        chomp( $code_from_stdin ) ;
+        $oauth2->{ code } = $code_from_stdin ;
+        
+        return $code_from_stdin ;
+      
+}
 
 
 sub oauth2_ask_authorization_code_remote 
 {
         my $oauth2 = shift ;
-        print "Go to the following link with your web browser:\n\n" ;
-        my $authorization_code_uri = oauth2_authorization_code_uri( $oauth2 ) ;
-        print "$authorization_code_uri\n\n" ;
         
-        if ( 'MSWin32' eq $OSNAME )
-        {
-                print "I help you to open the link with the following, hoping it works\n" ; 
-                print qq{start \"\" \"$authorization_code_uri\"\n} ;
-                `start \"\" \"$authorization_code_uri\"` ;
-        }
-        elsif( 'darwin' eq $OSNAME )
-        {
-                print "I help you to open the link with the following, hoping it works\n" ; 
-                print qq{open \'$authorization_code_uri\'\n} ;
-                `open \'$authorization_code_uri\' &` ;
-        }
-        else
-        {
-                print "I help you to open the link with the following, hoping it works\n" ; 
-                print qq{firefox \'$authorization_code_uri\'\n} ;
-                `firefox \'$authorization_code_uri\' &` ;
-        }
-        
+        oauth2_invite_with_browser( $oauth2 ) ;
         
         print "\n\nThen, after the authentication is finished, press ENTER: " ;
         my $enter = <STDIN> ;
@@ -745,11 +947,8 @@ sub oauth2_ask_authorization_code_remote
         }
         else
         {
-                print "\n\nFailed to collect the code\n" ;
-                print "\n\nPaste the code here and press ENTER: " ;
-                $code_from_stdin = <STDIN> ;
-                chomp( $code_from_stdin ) ;
-                $oauth2->{ code } = $code_from_stdin ;
+                print "\n\nFailed to collect the code remotely\n" ;
+                $code_from_stdin = oauth2_collect_code_from_stdin( $oauth2 ) ;
         }
         
         return( $code_from_auth || $code_from_stdin ) ;
@@ -1023,7 +1222,7 @@ sub oauth2_refresh_tokens
         return $access_token ;
 } 
 
-sub oauth2_check_imap_access
+sub oauth2_is_imap_access_ok
 {
         my $oauth2 = shift ;
 
@@ -1102,6 +1301,25 @@ sub oauth2_save_tokens_to_file
                 return 0 ;
         }  
 }
+
+
+sub tests_oauth2_code_challenge
+{
+        note( 'Entering tests_oauth2_code_challenge()' ) ;
+
+        is( '47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', oauth2_code_challenge( '' ),    'tests_oauth2_code_challenge: empty => 47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU' ) ;
+        is( 'ungWv48Bz-pBQUDeXa4iI7ADYaOWF3qctBD_YfIAFa0', oauth2_code_challenge( 'abc' ), 'tests_oauth2_code_challenge:   abc => ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0' ) ;
+        
+        # Example from https://datatracker.ietf.org/doc/html/rfc7636#appendix-B
+        is( 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', oauth2_code_challenge( 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk' ), 
+                'tests_oauth2_code_challenge:   dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk => E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM' ) ;
+        
+        my $code_challenge ;
+        is( '47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', oauth2_code_challenge(  ), 'tests_oauth2_code_challenge: no args => 47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU' ) ;
+        note( 'Leaving  tests_code_challenge()' ) ;
+        return ;
+}
+
 
 sub oauth2_code_challenge
 {
@@ -1417,7 +1635,7 @@ sub file_to_array
 }
 
 
-sub random_string
+sub generate_a_random_string
 {
         my $num = shift || 64 ;
 	my @chars = ( "a".."z" ) ;
@@ -1446,6 +1664,8 @@ sub tests_template
         is( undef, template(  ),  'tests_template: no args => undef' ) ;
         my $oauth2 = {  } ;
         is( undef, template( $oauth2 ),  'tests_template: {  } => undef' ) ;
+        is_deeply( {}, {}, 'tests_template: a hash is a hash' ) ;
+        is_deeply( [], [], 'tests_template: an array is an array' ) ;
 
         note( 'Leaving  tests_template()' ) ;
         return ;

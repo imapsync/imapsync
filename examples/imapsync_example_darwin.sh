@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: imapsync_example_darwin.sh,v 1.1 2019/11/06 09:58:57 gilles Exp gilles $
+# $Id: imapsync_example_darwin.sh,v 1.2 2024/09/08 12:55:41 gilles Exp gilles $
 
 # imapsync example shell for Mac OS users
 # lines beginning with # are just comments 
@@ -41,7 +41,7 @@
 # If everything goes well so far then remove --justfolders to
 # start syncing messages.
 
-./imapsync_bin_Darwin --host1 test1.lamiral.info   --user1 test1   --password1 'secret1' \
+./imapsync_bin_Darwin_x86_64 --host1 test1.lamiral.info   --user1 test1   --password1 'secret1' \
                       --host2 test2.lamiral.info   --user2 test2   --password2 'secret2' \
                       --automap --justfolders --dry "$@"
 

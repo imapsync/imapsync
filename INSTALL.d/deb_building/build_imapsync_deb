@@ -1,0 +1,87 @@
+#!/bin/sh
+
+$Id: build_imapsync_deb,v 1.2 2024/11/27 23:54:02 gilles Exp gilles $
+
+
+build_imapsync_deb()
+{
+
+        set -ex
+
+        VERSION=`../../imapsync --version`
+
+        rm -rfv imapsync/
+
+        mkdir -p imapsync/DEBIAN/ imapsync/usr/share/doc/imapsync/ imapsync/usr/bin/ imapsync/usr/share/man/man1/
+        chmod -R 755 imapsync/
+
+
+        cat > imapsync/DEBIAN/control << EOF
+Package: imapsync
+Version: $VERSION
+Architecture: all 
+Maintainer: Gilles LAMIRAL <gilles@lamiral.info>
+Homepage: https://imapsync.lamiral.info/
+Description: Email tool for syncing two IMAP accounts.
+ Imapsync command is a tool allowing incremental and recursive imap
+ transfers from one mailbox to another. If you don't understand the
+ previous sentence, it's normal, it's pedantic computer-oriented
+ jargon.
+ .
+ All folders are transferred, recursively, meaning the whole folder
+ hierarchy is taken, all sub-folders, all messages in them, and all 
+ message flags (\Seen, \Answered, \Flagged, etc.) are synced too.
+ .
+ Imapsync reduces the amount of data transferred by not transferring a
+ given message if it already resides on the destination side. Messages
+ that are on the destination side but not on the source side stay as
+ they are. There is no deletions by default. See the --delete2 option 
+ to have strict sync and delete them.
+ .
+ How does imapsync know a message is already on both sides? Same
+ specific headers and the transfer is done only once. By default, the
+ identification headers are "Message-Id:" and "Received:" lines but
+ this choice can be changed with the --useheader option, most often a
+ duplicate problem is solved by using --useheader "Message-Id"
+ .
+ All flags are preserved, unread messages will stay unread, read ones
+ will stay read, and deleted ones will stay deleted.
+Section: mail
+Priority: optional
+Depends: libauthen-ntlm-perl, libcgi-pm-perl, libcrypt-openssl-rsa-perl, libdata-uniqid-perl, libencode-imaputf7-perl, libfile-copy-recursive-perl, libfile-tail-perl, libio-socket-inet6-perl, libio-socket-ssl-perl, libio-tee-perl, libhtml-parser-perl, libjson-webtoken-perl, libmail-imapclient-perl, libparse-recdescent-perl, libproc-processtable-perl, libmodule-scandeps-perl, libreadonly-perl, libregexp-common-perl, libsys-meminfo-perl, libterm-readkey-perl, libtest-mockobject-perl, libunicode-string-perl, liburi-perl, libwww-perl, libnet-server-perl, make, time, cpanminus
+
+EOF
+
+
+        ../../imapsync --tests
+
+        rcsdiff ../../imapsync
+        ( cd ../.. && make doc )
+
+        cp ../../ChangeLog imapsync/usr/share/doc/imapsync/changelog
+        gzip -n -9 imapsync/usr/share/doc/imapsync/changelog
+
+        cp ../../NOLIMIT imapsync/usr/share/doc/imapsync/copyright
+        echo 'Copyright 1968-2999 Gilles LAMIRAL <gilles@lamiral.info>' >> imapsync/usr/share/doc/imapsync/copyright
+
+        cp ../../imapsync imapsync/usr/bin/imapsync
+        cp ../../W/imapsync.1 imapsync/usr/share/man/man1/imapsync.1
+        chmod 644 imapsync/usr/share/man/man1/imapsync.1
+        gzip -n -9  imapsync/usr/share/man/man1/imapsync.1
+
+        fakeroot dpkg -b imapsync
+
+        dpkg -I imapsync.deb 
+
+        dpkg-deb -c imapsync.deb
+
+        lintian --no-tag-display-limit imapsync.deb | lintian-info
+
+        mv imapsync.deb imapsync-$VERSION.deb
+
+        # sudo apt remove imapsync || :
+        # sudo apt install ./imapsync-$VERSION.deb
+}
+
+
+build_imapsync_deb
