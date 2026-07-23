@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.David_Tobit.txt,v 1.5 2022/04/05 13:48:52 gilles Exp gilles $
+$Id: FAQ.David_Tobit.txt,v 1.6 2024/01/29 12:22:40 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -10,11 +10,28 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.David_Tobit.txt
              Imapsync tips for David Tobit imap server
 =======================================================================
 
+=======================================================================
+Q. There are slashes / in folder names that are not separators. How can
+   I keep them or change them in the destination account with imapsync?
 
+A. You can't do it properly with imapsync or any other IMAP client.
+
+   By default, imapsync will consider those / characters as separators
+   and get empty folders where they stand.  If you change "/" to
+   another character, say "_", with --regextrans2, then all / are
+   transformed to _ and the folder hierarchy disappears.
+   
+   Solution? Yes. Change the / on the source account manually, using
+   the same email tool that allowed to create them, the David Tobit
+   native email client tool.
+
+   See https://github.com/imapsync/imapsync/issues/440
 
 =======================================================================
 Q. Migrating to David Tobit V12
    (Banner: "* OK IMAP4rev1 David.fx Mail Access Server MA-12.00a (0271)")
+
+A.
 
   imapsync ... --sep2 / --create_folder_old
 
@@ -23,7 +40,7 @@ Thanks to Ludwig Behm
 =======================================================================
 Q. Migrating from David Tobit V10 (DvISE Mail Access Server MA-...)
 
-R. Use the following options:
+A. Use the following options:
 
   imapsync ... --prefix1 ""    --sep1 /  --idatefromheader ^
                --nofoldersizes --useuid --nocheckmessageexists
@@ -35,7 +52,7 @@ Q. Migrating from David Tobit V8
 First try above V10 solution since improvments have been made
 to support Tobit.
 
-R. Use the following options :
+A. Use the following options :
 
   imapsync ... --prefix1 INBOX. --sep1 / --subscribe --subscribed 
 
@@ -46,7 +63,7 @@ Q. Migrating from Tobit David Server 6
 First try above V10 solution since improvments have been made
 to support Tobit.
 
-R. Look at the discussion:
+A. Look at the discussion:
 http://linux-france.tk/prj/imapsync_list/msg00583.html
 http://linux-france.tk/prj/imapsync_list/threads.html#00583
 patch saved in ./patches/imapsync-1.337_tobit_V6.patch

@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.OnlineUI.txt,v 1.60 2023/07/22 09:14:22 gilles Exp gilles $
+# $Id: INSTALL.OnlineUI.txt,v 1.65 2023/12/29 20:10:54 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -21,9 +21,29 @@ RAM used per imapsync process, mean value: 230 MB.
 Average_bandwidth_rate: 345 KiB/s ~ 2.8 Mbps.
 Load mean: 0.8 on a CPU 4 cores "Intel(R) i5-2320 3.00GHz K8-class"
 
+=======================================================================
+                     Docker way
+
+It is the easiest way, it's just one command line if you have Docker
+already installed on your system. This command line:
+
+   docker run -p 80:8080 gilleslamiral/imapsync /servimapsync
+
+then, open your browser to the page http://127.0.0.1/
+or to its host name, like http://example.com/
+
+If you need more examples, like an https server, with or without
+your own https certificates, see the document:
+
+https://imapsync.lamiral.info/FAQ.d/FAQ.Docker.txt
 
 =======================================================================
-                    Installation
+                    Guenuine installation
+
+To install your online imapsync service, follow this document, the
+document you're reading now. If you started doing an installation
+without it, scratch what you did and what you guessed about how it
+should be installed.
 
 You have to be a little familiar with what a CGI script is and how to
 activate a CGI script on the Apache HTTP server, or any other HTTP
@@ -147,9 +167,9 @@ log to see if you have timeout issues.
 Now that I have explained the general context for any system, I'll
 describe concrete examples on several systems, Debian/Ubuntu and
 Centos. Feedbacks show that the Centos process is easier in case you
-don't know very much any Linux distribution. But I have to add that if
-you don't know very much the Linux distribution you use, then you
-shouldn't install this imapsync service at all.
+don't know very much any Linux distribution. But if you don't know 
+very much the Linux distribution you use, then you shouldn't install
+this imapsync service at all.
 
 
 =============================================================================
@@ -302,6 +322,10 @@ Test that imapsync is considered a cgi with:
 
   wget -nv -S -O-  http://localhost/cgi-bin/imapsync?testslive=1
 
+or 
+
+  curl http://localhost/cgi-bin/imapsync?testslive=1
+
 The last command should print something like:
 Status: 200 OK to sync IMAP boxes. Load on bar is ...
 ...
@@ -315,6 +339,10 @@ You can also verify that the webserver is not buffering its output with the
 command:
 
   wget -nv -S -O-  'http://localhost/cgi-bin/imapsync?testslive=1&simulong=10'
+  
+or
+
+  curl 'http://localhost/cgi-bin/imapsync?testslive=1&simulong=10'
 
 You should get the output as time goes on. If you don't get the output
 as time goes on, ie you see no output then all output at once, it
@@ -348,6 +376,11 @@ or the safer
   https://imapsync.mydomain.tk/imapsync/X/imapsync_form_extra.html
 
 
+Set the timeout to one hour
+
+  vi /etc/apache2/apache2.conf # Change it to: Timeout 3600
+  /etc/init.d/apache2 restart
+  
 See the Troubleshooting section to fix the systemd Apache 
 PrivateTmp=true issue.
 
@@ -561,6 +594,8 @@ Then retry
 
 Look now if /var/tmp/imapsync_cgi/ is there and owned by 
 the Apache user, user "www-data" for Debian, user "apache" for Centos.
+
+
 
 =======================================================================
 If you encounter this issue:

@@ -42,8 +42,9 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 </p>
 
 <ul>
-<li><b>Roadmap</b>: Build a docker image including everything, to have a complete online /X in a single command.</li>
-<li><b>Roadmap</b>: Or better: Include a webserver in imapsync to have an online /X integrated. (NB: proof of concept already coded and working)</li>
+<li><b>Done</b>: Build a <a href="https://hub.docker.com/r/gilleslamiral/imapsync">docker image</a> including everything, to have a complete online /X in a single command.</li>
+<li><b>Roadmap</b>: Or better: Include a webserver in imapsync to have an online /X integrated.</li>
+<li><b>Roadmap</b>: Integrate oauth2 token generation inside imapsync, ie, put oauth_imap in imapsync.</li>
 <li><b>Roadmap</b>: Add the sync of multiple accounts inside imapsync itself instead of via an external shell script doing the loop from a csv file.</li>
 <li><b>Roadmap</b>: Build an online tool, like /X, for multiple accounts at once. (NB: proof of concept already coded and working)</li>
 </ul>
@@ -58,7 +59,7 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 
 <!--
 <ul>
-<li><b>2.255</b></li>
+<li><b>2.288</b></li>
 <li><b>General</b>: </li>
 
 <li><b>Dependencies added</b>:   None </li>
@@ -92,10 +93,53 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 
 
 <ul>
-<li><b>2.255</b></li>
+<li><b>2.290</b></li>
 
 <!--
-diff ../prepa_dist/imapsync-2.229/imapsync . | grep use
+diff ../prepa_dist/imapsync-2.264/imapsync imapsync | egrep '^[<>] use'
+-->
+
+<li><b>Dependencies added</b>:   None </li>
+<li><b>Dependencies removed</b>: None </li>
+
+
+<li><b>Usability</b>: new values for Gmail, hoping they're ok.
+<ul>
+<li>--gmail1  implies --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000</li>
+<li>--gmail2  implies --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000</li>
+<li>--gmail1 --gmail2 implies also --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000</li>
+</ul>
+</li>
+
+<li><b>Enhancement</b>: Added the syntax --host1 imap.foo:1234/bar/truc equivalent to --host1 imap.foo --port1 1234 --folderrec bar/truc</li>
+<li><b>Enhancement</b>: Added the syntax --host2 imap.foo:1234/bar/truc equivalent to --host2 imap.foo --port2 1234 --subfolder2 bar/truc</li>
+<li><b>Enhancement</b>: Added tom@mklab patch to have --oauthrefreshcmd1 str : An optional script to call, to refresh the host1 access token before each authentication. Added also --oauthrefreshcmd2 str</li>
+<li><b>Enhancement</b>: Allow  --exitonload in normal context, ie, command line.</li>
+<li><b>Enhancement</b>: Now the ssl check is done systematically on the port given by --port1 and --port2 and allow an automatic connection in ssl. This way, options --ssl1 and --ssl2 are no longer mandatory when using ports different than the usual ones, 143 and 993.</li>
+<li><b>Enhancement</b>: Added the option --extra that allows to add options in the UI like in the command line.</li>
+<li><b>Enhancement</b>: Now logging by default in Docker+CGI context. This allows the "tail -f" mechanism with /servimapsync when two same syncs are requested in parallel.</li></li>
+<li><b>Enhancement</b>: Added an early debugsleep() call to debug timeout with /servimapsync</li>
+<li><b>Enhancement</b>: Added in final stats the number of folders deleted on host2, if any.</li>
+<li><b>Enhancement</b>: Added exit value 121 when most errors are SEARCH errors.</li>
+
+
+<li><b>Usability</b>: Now --subfolder2 FOO implies --exclude FOO to avoid subfoldering recursion.</li>
+<li><b>Usability</b>: Options --gmail1 --gmail2 now implies --folderlast for  '[Gmail]/Sent Mail' '[Gmail]/Important' '[Gmail]/Starred' '[Gmail]/Drafts' '[Gmail]/Trash' '[Gmail]/Spam' '[Gmail]/Chats' '[Gmail]/All Mail', in this order.</li>
+<li><b>Usability</b>: Logging is on with --log, off with --nolog, on in Docker+CGI context, off in Docker only context, on otherwise.</li>
+
+
+<li><b>Bug fix</b>: Button "Abort!" now working in Docker+CGI context. Added a pid file in that context.</li>
+<li><b>Bug fix</b>: Now detect errors in SEARCH command given by --search.</li>
+
+<li><b>Refactoring</b>: 2151 unit tests.</li>
+
+</ul>
+
+<ul>
+<li><b>2.264</b></li>
+
+<!--
+diff ../prepa_dist/imapsync-2.229/imapsync imapsync | egrep '^[<>] use'
 --> 
 
 <li><b>Dependencies added</b>: Perl module Digest::SHA</li>
@@ -105,15 +149,15 @@ diff ../prepa_dist/imapsync-2.229/imapsync . | grep use
 <li><b>Enhancement</b>: Office365 OAUTH2 modern authentication <a href="https://imapsync.lamiral.info/oauth2/oauth2_office365/README.txt">supported</a> with an <a href="https://imapsync.lamiral.info/oauth2/">external script</a>.</li>
 
 <li><b>Bug fix</b>: Reread oauth2 files upon disconnections.</li>
-<li><b>Bug fix</b>: Options --password1 and --password2 are no longer required when --oauthaccesstoken1 and --oauthaccesstoken2 are used, respectively.</li>
-<li><b>Bug fix</b>: Options --user1 and --user2 are no longer required when --oauthdirect1 and --oauthdirect2 are used, respectively.</li>
+<li><b>Bug fix</b>: Options --password1 and --password2 are no longer required when --oauthaccesstoken1 and --oauthaccesstoken2 are used, respectively. (release 2.261 was buggy on this, not 2.264)</li>
+<li><b>Bug fix</b>: Options --user1 and --user2 are no longer required when --oauthdirect1 and --oauthdirect2 are used, respectively. (release 2.261 was buggy on this, not 2.264)</li>
 
 
 
-<li><b>Refactoring</b>: 2061 unit tests.</li>
+<li><b>Refactoring</b>: 2065 unit tests.</li>
 <li><b>Refactoring</b>: 200 functionnal tests.</li>
 
-<li><b>Security</b>: Changed the default tmpdir to $HOME/tmp (instead of /tmp on Linux) CVE-2023-34204 <br/>
+<li><b>Security</b>: Changed the default temporary directory. Now, the temporary directory taken from --tmpdir or $HOME/tmp or current directory, in order if defined (instead of /tmp on Linux) CVE-2023-34204 <br/>
   See <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-34204">https://nvd.nist.gov/vuln/detail/CVE-2023-34204</a><br/>
   and also <a href="https://github.com/imapsync/imapsync/issues/399">https://github.com/imapsync/imapsync/issues/399</a><br/>
   I did not change the default tmpdir in the CGI context because /var/tmp/imapsync_hash is written only if it doesn't exist
@@ -1107,7 +1151,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.88 2023/08/21 22:23:36 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.93 2024/08/20 20:51:56 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

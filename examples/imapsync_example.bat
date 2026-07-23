@@ -1,4 +1,4 @@
-@REM $Id: imapsync_example.bat,v 1.12 2022/02/12 11:00:09 gilles Exp gilles $
+@REM $Id: imapsync_example.bat,v 1.13 2023/10/14 12:56:08 gilles Exp gilles $
 
 @REM Here is an imapsync example batch for Windows users.
 @REM Lines beginning with @REM are just comments.
@@ -54,7 +54,7 @@
 @REM start syncing messages.
 
 @REM In case you are impatient, just remove  --justfolders --dry 
-@REM in the firt place and go. Imapsync is not that bad by default anyway!
+@REM in the first place and go. Imapsync is not that bad by default anyway!
 
 
 .\imapsync.exe --host1 "test1.lamiral.info"  --user1 "test1" --password1  "secret1"  ^

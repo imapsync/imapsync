@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: archive_per_month.sh,v 1.7 2015/11/05 17:31:33 gilles Exp gilles $
+# $Id: archive_per_month.sh,v 1.9 2023/12/25 23:38:08 gilles Exp gilles $
 
 # Translate Jan to 01, Feb to 02 etc.
 month_number() {
@@ -44,7 +44,7 @@ archive_year_month() {
   last_day=`last_day_of_year_month $year $month_n`
   echo imapsync ... \
                  --search "SENTSINCE 1-$month-$year SENTBEFORE $last_day-$month-$year" \
-                 --regextrans2 "s{.*}{Archive/$year/$month_n}"
+                 --skipemptyfolders --regextrans2 "s{.*}{Archive/$year/$month_n}"
 
 }
 
@@ -57,5 +57,6 @@ for year_archive in 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 
 done
 
 
-# End of $Id: archive_per_month.sh,v 1.7 2015/11/05 17:31:33 gilles Exp gilles $
+# End of $Id: archive_per_month.sh,v 1.9 2023/12/25 23:38:08 gilles Exp gilles $
+
 

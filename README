@@ -6,7 +6,7 @@ NAME
 
 VERSION
 
-    This documentation refers to Imapsync $Revision: 2.261 $
+    This documentation refers to Imapsync $Revision: 2.290 $
 
 USAGE
 
@@ -242,28 +242,29 @@ OPTIONS
      --domain1      str  : Domain on host1 (NTLM authentication).
      --domain2      str  : Domain on host2 (NTLM authentication).
 
-     --oauthaccesstoken1 str : The access token to authenticate with OAUTH2.
-                           It will be combined with the --user1 value to form the 
-                           string to pass with XOAUTH2 authentication.
-                           The password given by --password1 or --passfile1
-                           is ignored but needed on the command line.
-                           Instead of the access token itself, the value can be the
-                           file containing the access token on the first line.
+     --oauthaccesstoken1 str : The access token to authenticate with OAUTH2 on 
+                           host1. It will be combined with the --user1 value to 
+                           form the string to pass with XOAUTH2 authentication.
+                           Instead of the access token itself, the value can be 
+                           the file containing the access token on the first line.
                            If the value is a file, imapsync reads its first line
                            and takes this line as the access token. The advantage
                            of the file is that if the access token changes then
                            imapsync can read it again when it needs to reconnect 
                            during a run.
 
+     --oauthaccesstoken2 str : same thing as --oauthaccesstoken1 but for host2.
 
-     --oauthaccesstoken2 str : same thing as --oauthaccesstoken1 
+     --oauthdirect1 str  : The direct string to pass with XOAUTH2 authentication
+                           for host1.
 
-     --oauthdirect1 str  : The direct string to pass with XOAUTH2 authentication.
-                           The password given by --password1 or --passfile1 and 
-                           the user given by --user1 are ignored but they are 
-                           needed to be on the command line. Consider it a bug.
+     --oauthdirect2 str  : same thing as --oauthdirect1 but for host2.
 
-     --oauthdirect2 str  : same thing as oauthdirect1
+     --oauthrefreshcmd1 str : An optional command to call, to refresh the host1
+                              token before any oauth authentication.
+                              It can have arguments like "cmd arg1 arg2 ..."
+
+     --oauthrefreshcmd2 str : same thing as --oauthrefreshcmd1 but for host2.
 
   OPTIONS/folders
 
@@ -301,7 +302,7 @@ OPTIONS
                            --f1f2 overrides --automap and --regextrans2.
                            Use several --f1f2 options to map several folders.
                            Option --f1f2 is a one-to-one-only folder mapping,
-                           and str1 and str2 have to be full path folder names.
+                           and str1 and str2 must be full path folder names.
                            Use --regextrans2 for more general mappings.
 
      --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
@@ -381,18 +382,19 @@ OPTIONS
 
   OPTIONS/log
 
-     --nolog             : Turn off logging on file
+     --nolog             : Turn off logging on file. By default in Docker context.
+     --log               : Turn on  logging on file. By default in normal and CGI contextes.
      --logfile      str  : Change the default log filename (can be dirname/filename).
      --logdir       str  : Change the default log directory. Default is LOG_imapsync/
 
-    The default logfile name is for example
+    The default logfile name is for example:
 
      LOG_imapsync/2019_12_22_23_57_59_532_user1_user2.txt
 
     where:
 
-     2019_12_22_23_57_59_532 is nearly the date of the start
-     YYYY_MM_DD_HH_MM_SS_mmm
+     2019_12_22_23_57_59_532 is nearly the date of the start in the format
+     YYYY_MM_DD_HH_MM_SS_mmm  corresponding to the meaning
      year_month_day_hour_minute_second_millisecond
 
     and user1 user2 are the --user1 --user2 values.
@@ -512,6 +514,8 @@ OPTIONS
                            since it removes only duplicates.
 
      --delete2folders    : Delete folders in host2 that are not in host1.
+                           Only the selected folders are considered, all folders by 
+                           default but not all with --exclude --include --folder etc.
                            For safety, first try it like this, it is safe:
                            --delete2folders --dry --justfolders --nofoldersizes
                            and see what folders will be deleted.
@@ -778,6 +782,8 @@ EXIT STATUS
          EXIT_ERR_SELECT             => 117 ;
          EXIT_TRANSFER_EXCEEDED      => 118 ;
          EXIT_ERR_APPEND_VIRUS       => 119 ;
+         EXIT_ERR_FLAGS              => 120 ;
+         EXIT_ERR_SEARCH             => 121 ;
          EXIT_TESTS_FAILED           => 254 ; # Like Test::More API
          EXIT_CONNECTION_FAILURE_HOST1     =>  101 ;
          EXIT_CONNECTION_FAILURE_HOST2     =>  102 ;

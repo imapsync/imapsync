@@ -1,0 +1,1461 @@
+#!/usr/bin/perl 
+
+# $Id: oauth2_imap,v 1.35 2024/08/20 18:26:23 gilles Exp gilles $
+
+use strict ;
+use warnings ;
+use Data::Dumper ;
+use Digest::SHA ;
+use English ;
+use Fcntl ;
+use File::Basename ;
+use Getopt::Long ( ) ;
+use HTTP::Request::Common ;
+
+
+use HTTP::Daemon ;
+#use HTTP::Daemon::SSL ; # does not work 
+use HTTP::Request ;
+use HTTP::Response ;
+use HTTP::Status ;
+use URI ;
+
+use JSON ;
+use LWP::UserAgent ;
+use LWP::Protocol::https ; # needed for the binaries
+use Mail::IMAPClient ;
+use MIME::Base64 ;
+use URI::Escape ;
+
+use Test::More ;
+
+use Email::Address ( ) ;
+use Net::DNS ( ) ;
+
+
+#print search_dyn_lib_locale_MSWin32(  ), "\n" ;
+
+
+main( @ARGV ) ;
+
+exit ;
+
+
+
+sub main
+{
+        my $options = { } ;
+        my @remaining_ARG = getoptions( $options, @ARG ) ;
+        
+        if ( $options->{ failure } )
+        {
+                return ;
+        }
+        
+        $options->{ debug } and print "main, Options       : " . Data::Dumper->Dump( [ \$options ] ) . "\n" ;
+        $options->{ debug } and print "main, ARG           : " . Data::Dumper->Dump( [ \@ARG ] ) . "\n" ;
+        $options->{ debug } and print "main, remaining_ARG : " . Data::Dumper->Dump( [ \@remaining_ARG ] ) . "\n" ;
+
+        tests( $options ) || return ;
+        
+        my $oauth2 = {  } ;
+        $oauth2->{ user } = shift @remaining_ARG ;
+
+        if ( ! $oauth2->{ user } )
+        {
+                print "\nusage: $0 foo\@example.com\n\n" ;
+                #print "LWP::VERSION=" . $LWP::VERSION . " LWP::Protocol::https::VERSION=" . $LWP::Protocol::https::VERSION . "\n" ;
+                return ;
+        }
+
+        $oauth2->{ provider } = $options->{ provider } ;
+        set_provider( $oauth2 ) || return ;
+        
+        # Default application is thunderbird
+        $oauth2->{ application } = $options->{ application } || 'thunderbird' ;
+        
+        oauth2_parameters( $oauth2 ) ;
+        
+        
+        # overwrite $oauth2 with the options values, if any.
+        merge_hashes(
+                $oauth2,
+                $options,
+        ) ;
+        
+        oauth2_checklist( $oauth2 ) || return ;
+        
+        oauth2_init( $oauth2 ) || return ;
+
+        #exit ;
+        
+        if ( $oauth2 )
+        {
+                oauth2_approval( $oauth2 ) ;
+        }
+        return ;
+}
+
+
+sub oauth2_checklist
+{
+        my $oauth2 = shift @ARG ;
+   
+        if ( ! defined $oauth2 ) { return ; }
+        
+        foreach my $parameter ( qw( authorize_uri token_uri scope_string  client_id client_secret redirect_uri ) )
+        {
+                if ( ! defined $oauth2->{ $parameter } )
+                {
+                        print( "Abort. I need an oauth2 parameter called $parameter\n" ) ; 
+                        return 0 ;
+                }
+        }
+        return 1 ;
+}
+
+
+sub tests
+{
+        
+        my $options = shift ;
+        
+        if (  $options->{ testsone } )
+        {
+                testsone(  ) ;
+                return ;
+        }
+
+        if ( ! $options->{ tests } )
+        { 
+                return 1 ; 
+        }
+        else
+        {
+                note( 'Entering tests()' ) ;
+                infos_modules(  ) ;
+                tests_merge_hashes(  ) ;
+                tests_find_domain_from_email(  ) ;
+                tests_find_provider_from_domain(  ) ;
+                tests_find_provider_from_email(  ) ;
+                tests_oauth2_lunch_httpd_localhost_ssl(  ) ;
+                tests_set_provider(  ) ;
+                done_testing( 50 ) ;
+                note( 'Leaving  tests()' ) ;
+        }
+        return ;
+}
+
+sub testsone
+{
+        note( 'Entering testsone()' ) ;
+        tests_set_provider(  ) ;
+        done_testing(  ) ;
+        note( 'Leaving  testsone()' ) ;
+}
+
+sub infos_modules
+{
+        printf( "%-20s %s\n", "HTTP::Daemon",      $HTTP::Daemon::VERSION )  ;
+        printf( "%-20s %s\n", "HTTP::Daemon::SSL", $HTTP::Daemon::SSL::VERSION )  ;
+        printf( "%-20s %s\n", "IO::Socket::SSL",   $IO::Socket::SSL::VERSION )  ;
+        printf( "%-20s %s\n", "Net::SSLeay",       $Net::SSLeay::VERSION )  ;
+}
+
+sub getoptions
+{
+        my $options = shift @ARG ;
+        my $ret = Getopt::Long::GetOptionsFromArray( \@ARG, 
+                'tests!'          => \$options->{ tests },
+                'testsone!'       => \$options->{ testsone },
+                'debug!'          => \$options->{ debug },
+                'startover!'      => \$options->{ startover },
+                'provider=s'      => \$options->{ provider },
+                'authorize_uri=s' => \$options->{ authorize_uri },
+                'token_uri=s'     => \$options->{ token_uri },
+                'redirect_uri=s'  => \$options->{ redirect_uri },
+                'scope_string=s'  => \$options->{ scope_string },
+                'application=s'   => \$options->{ application },
+                'client_id=s'     => \$options->{ client_id },
+                'client_secret=s' => \$options->{ client_secret },
+                'thunderbird!'    => \$options->{ thunderbird },
+                'token_file=s'    => \$options->{ token_file },
+                'local!'          => \$options->{ local },
+                'localssl!'       => \$options->{ localssl },
+                'imap_server=s'   => \$options->{ imap_server },
+        ) ;
+        
+        $options->{ debug } and print "getoptions, ret, ARG: (" . Data::Dumper->Dump( [ $ret, \@ARG ]  ) . ")\n" ;
+        
+        # Something went wrong for GetOptionsFromArray
+        if ( ! $ret )
+        {
+                $options->{ failure } = 1 ;
+                return ; 
+        }
+        
+        # Returns remaining args 
+        return( @ARG ) ;
+}
+
+# https://web.archive.org/web/20231218111748/https://hg.mozilla.org/comm-central/file/tip/mailnews/base/src/OAuth2Providers.jsm
+# ( was https://hg.mozilla.org/comm-central/file/tip/mailnews/base/src/OAuth2Providers.jsm )
+
+sub oauth2_office365
+{
+        my $oauth2_office365 = 
+        {
+                authorize_uri  => 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+                token_uri      => 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+                redirect_uri   => 'https://localhost',
+                scope_string   => 'offline_access https://outlook.office.com/IMAP.AccessAsUser.All',
+                imap_server    => 'outlook.office365.com',
+        } ;
+        
+        return $oauth2_office365 ;
+}
+
+
+# With account gilles.lamiral@outlook.com
+# https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Authentication/appId/c46947ca-867f-48b7-9231-64213fdd765e
+
+sub oauth2_office365_imapsync
+{
+        my $oauth2_office365_imapsync = 
+        {
+                authorize_uri  => 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+                token_uri      => 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+                redirect_uri   => 'https://imapsync.lamiral.info/cgi-bin/auth',
+                scope_string   => 'offline_access https://outlook.office.com/IMAP.AccessAsUser.All',
+                client_id      => 'c46947ca-867f-48b7-9231-64213fdd765e',
+                client_secret  => 'LH58Q~vMFFoVTbBmUnOeIDtfcacYNolMJ2cP2cLC',
+                imap_server    => 'outlook.office365.com',
+        } ;
+        
+        return $oauth2_office365_imapsync ;
+}
+
+
+sub oauth2_office365_thunderbird
+{
+        my $oauth2_office365_thunderbird = 
+        {
+                authorize_uri  => 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+                token_uri      => 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+                scope_string   => 'offline_access https://outlook.office.com/IMAP.AccessAsUser.All',
+                redirect_uri   => 'https://localhost',
+                client_id      => '9e5f94bc-e8a4-4e73-b8be-63364c29d753',
+                client_secret  => '',
+                imap_server    => 'outlook.office365.com',
+        } ;
+        
+        return $oauth2_office365_thunderbird ;
+        
+}
+
+sub oauth2_gmail
+{
+        my $oauth2_gmail = 
+        {
+                authorize_uri  => 'https://accounts.google.com/o/oauth2/auth',
+                token_uri      => 'https://accounts.google.com/o/oauth2/token',
+                redirect_uri   => 'http://localhost',
+                imap_server    => 'imap.gmail.com',
+        } ;
+        
+        return $oauth2_gmail ;
+}
+
+
+sub oauth2_gmail_imapsync
+{
+        my $oauth2_gmail_imapsync = 
+        {
+                authorize_uri  => 'https://accounts.google.com/o/oauth2/auth',
+                token_uri      => 'https://accounts.google.com/o/oauth2/token',
+                redirect_uri   => 'http://localhost',
+                scope_string   => 'https://mail.google.com/',
+                client_id      => '108687549524-s5ijqmadnmi4qfgfgicuquftv8f8a3da.apps.googleusercontent.com',
+                client_secret  => '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',
+                imap_server    => 'imap.gmail.com',
+        } ;
+        
+        return $oauth2_gmail_imapsync ;
+}
+
+sub oauth2_gmail_thunderbird
+{
+        my $oauth2_gmail_thunderbird = 
+        {
+                authorize_uri  => 'https://accounts.google.com/o/oauth2/auth',
+                token_uri      => 'https://accounts.google.com/o/oauth2/token',
+                scope_string   => 'https://mail.google.com/',
+                redirect_uri   => 'https://localhost',
+                client_id      => '406964657835-aq8lmia8j95dhl1a2bvharmfk3t1hgqj.apps.googleusercontent.com',
+                client_secret  => 'kSmqreRr0qwBWJgbf5Y-PjSU',
+                imap_server    => 'imap.gmail.com',
+         } ;
+        
+        return $oauth2_gmail_thunderbird ;
+}
+
+sub oauth2_parameters
+{
+        my $oauth2 = shift @ARG ;
+
+        if ( ! defined $oauth2 ) { return ; }
+        
+        if ( ! defined$oauth2->{ application } ) { return ; }
+        if ( ! defined$oauth2->{ provider } )    { return ; }
+
+        if ( 'thunderbird'    eq $oauth2->{ application } 
+              and 'office365' eq $oauth2->{ provider } )
+        {
+                merge_hashes(
+                        $oauth2,
+                        oauth2_office365_thunderbird(  ),
+                ) ;
+                
+        }
+        elsif( 'thunderbird' eq $oauth2->{ application } 
+                and 'gmail'  eq $oauth2->{ provider } )
+        {
+                merge_hashes(
+                        $oauth2,
+                        oauth2_gmail_thunderbird(  ),
+                ) ;
+        }
+        elsif ( 'imapsync'      eq $oauth2->{ application } 
+                and 'office365' eq $oauth2->{ provider } )
+        {
+                merge_hashes(
+                        $oauth2,
+                        oauth2_office365_imapsync(  ),
+                ) ;
+        }
+        elsif( 'imapsync'   eq $oauth2->{ application } 
+                and 'gmail' eq $oauth2->{ provider } )
+        {
+                merge_hashes(
+                        $oauth2,
+                        oauth2_gmail_imapsync(  ),
+                ) ;
+        }
+        elsif( 'gmail' eq $oauth2->{ provider } )
+        {
+                merge_hashes(
+                        $oauth2,
+                        oauth2_gmail(  ),
+                ) ;
+        }
+        elsif ( 'office365' eq $oauth2->{ provider } )
+        {
+                merge_hashes(
+                        $oauth2,
+                        oauth2_office365(  ),
+                ) ;
+        }
+        
+        return ;
+}
+        
+
+
+sub tests_set_provider
+{
+        note( 'Entering tests_set_provider()' ) ;
+
+        is( undef, set_provider(  ),  'tests_set_provider: no args => undef' ) ;
+        my $oauth2 = {  } ;
+        is( undef, set_provider( $oauth2 ),  'tests_set_provider: {  } => undef' ) ;
+        
+        $oauth2->{ user } = 'gilles@lamiral.info' ;
+        is( undef, set_provider( $oauth2 ), 'tests_set_provider:gilles@lamiral.info => undef' ) ;
+        
+        
+        $oauth2->{ provider } = 'tartanpion' ;
+        is( 'tartanpion', set_provider( $oauth2 ), 'tests_set_provider:gilles@lamiral.info + provider tartanpion => tartanpion' ) ;
+        is( 'tartanpion', $oauth2->{ provider },   'tests_set_provider: provider tartanpion remains' ) ;
+        
+        
+        $oauth2 = {  } ;
+        $oauth2->{ user } = 'toto@gmail.com' ;
+        is( 'gmail', set_provider( $oauth2 ), 'tests_set_provider: toto@gmail.com => gmail' ) ;
+        is( 'gmail', $oauth2->{ provider },   'tests_set_provider: toto@gmail.com => gmail' ) ;
+        
+        
+        $oauth2->{ provider } = 'tartanpion' ;
+        is( 'tartanpion', set_provider( $oauth2 ), 'tests_set_provider: toto@gmail.com + provider tartanpion => tartanpion' ) ;
+        is( 'tartanpion', $oauth2->{ provider },   'tests_set_provider: toto@gmail.com + provider tartanpion => tartanpion' ) ;
+        
+
+        note( 'Leaving  tests_set_provider()' ) ;
+        return ;
+}
+
+sub set_provider
+{
+        my $oauth2 = shift @ARG ;
+   
+        if ( ! defined $oauth2 ) { return ; }
+        if ( ! defined $oauth2->{ user } ) { return ; }
+   
+        if ( defined(  $oauth2->{ provider } ) )
+        {
+                print( "The provider used comes from --provider $oauth2->{ provider }\n" ) ;
+        }
+        else
+        {
+                my $provider = find_provider_from_email( $oauth2->{ user } ) ;
+
+                if ( ! $provider )
+                {
+                        print( 
+                        "Could not guess the oauth2 provider from the address $oauth2->{ user }\n"
+                        . "Specify it with --provider office365 or --provider gmail\n"
+                        . "or bring all the details like the following example:\n"
+                        . "$0 --authorize_uri value --token_uri value --scope_string value --client_id value --client_secret value --redirect_uri value --imap_server value $oauth2->{ user }\n"
+                        ) ;
+                        return ;
+                }
+                else
+                {
+                        print( "Found provider $provider from address $oauth2->{ user }\n" ) ;
+                        $oauth2->{ provider } = $provider ;
+                }
+        }
+        
+        return $oauth2->{ provider } ;
+}
+
+
+sub oauth2_init
+{
+        my $oauth2 = shift @ARG || {  } ;
+        
+        my $user = $oauth2->{ user } || '' ;
+        
+        if ( ! $user ) 
+        {
+                return ;
+        }
+        
+
+        my $token_file = $oauth2->{ token_file } || "tokens/oauth2_tokens_$user.txt" ;
+
+        set_local_from_redirect_uri( $oauth2 ) ;
+        set_localssl_from_redirect_uri( $oauth2 ) ;
+        
+        my $oauth2_code_verifier  = random_string( 128 ) ;  # yeah, guess that man!
+        my $oauth2_code_challenge = oauth2_code_challenge( $oauth2_code_verifier ) ; # Just BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
+        my $oauth2_code_challenge_method = 'S256' ;
+        my $state = random_string( 32 ) ; 
+        # less secure way:
+        # my $oauth2_code_challenge = $oauth2_code_verifier ;
+        # my $oauth2_code_challenge_method = 'plain' ; # or nothing since plain is the default 
+
+        
+        
+        merge_hashes(
+                $oauth2,
+                {
+                        user       => "$user",
+                        token_file     => "$token_file",
+                        code_verifier  => $oauth2_code_verifier,
+                        code_challenge => $oauth2_code_challenge,
+                        code_challenge_method => $oauth2_code_challenge_method,
+                        state          => $state,
+                },
+        ) ;
+
+       return( $oauth2 ) ;
+}
+
+sub set_local_from_redirect_uri
+{
+        my $oauth2 = shift ;
+        if ( ! defined( $oauth2 ) ) { return ; }
+
+        if ( defined( $oauth2->{ local } ) )
+        {
+                return ;
+        }
+        elsif ( 'http://localhost' eq  $oauth2->{ redirect_uri } )
+        {
+                $oauth2->{ local } = 1 ;
+        }
+        else
+        {
+                $oauth2->{ local } = 0 ;
+        }
+}
+        
+        
+sub set_localssl_from_redirect_uri
+{
+        my $oauth2 = shift ;
+        if ( ! defined( $oauth2 ) ) { return ; }
+              
+        if ( defined( $oauth2->{ localssl } ) )
+        {
+                return ;
+        }
+        elsif ( 'https://localhost' eq  $oauth2->{ redirect_uri } )
+        {
+                $oauth2->{ localssl } = 1 ;
+        }
+        else
+        {
+                $oauth2->{ localssl } = 0 ;
+        }
+}
+        
+        
+
+
+sub oauth2_approval 
+{ 
+        my $oauth2 = shift  ;
+
+
+        if ( oauth2_load_tokens_from_file( $oauth2 ) and oauth2_check_imap_access( $oauth2 ) )
+        {
+                print "Access token is ok but let's get a new one anyway.\n" ;
+        }
+        
+        if ( $oauth2->{ refresh_token } )
+        {
+                print "Found a refresh token. Refreshing the access token with it, and maybe the refresh token.\n" ;
+                if ( ! oauth2_refresh_tokens( $oauth2 ) )
+                {
+                        oauth2_ask_authorization_code( $oauth2 ) ;
+                        oauth2_request_tokens( $oauth2 ) ;
+                }
+        }
+        else
+        {
+                oauth2_ask_authorization_code( $oauth2 ) ;
+                oauth2_request_tokens( $oauth2 ) ;
+        }
+        
+        if ( oauth2_check_imap_access( $oauth2 ) )
+        {
+                oauth2_save_tokens_to_file( $oauth2 ) ;
+                return 0
+        }
+        else
+        {
+                print "Failure\n" ;
+                return 1
+        }
+} 
+
+
+
+sub oauth2_load_tokens_from_file
+{
+        my $oauth2 = shift ;
+        
+        # ignore the tokens file
+        if ( $oauth2->{ startover } ) { return ; }
+        
+        my $token_file = $oauth2->{ token_file } ;
+        
+        print "Reading tokens from file $token_file, if any\n\n" ;
+        my $access_token  = nthline( $token_file, 1 ) ;
+        my $refresh_token = nthline( $token_file, 2 ) ;
+
+        $oauth2->{ access_token }  = $access_token  ;
+        $oauth2->{ refresh_token } = $refresh_token ;
+        
+        return $access_token ;
+}
+
+
+sub oauth2_authorization_code_uri
+{
+        my $oauth2 = shift ;
+        
+        my $authorization_code_uri = join( '',
+                $oauth2->{ authorize_uri },
+                '?',
+                'client_id=', uri_escape( $oauth2->{ client_id } ),
+                '&tenant=common',
+                '&scope=', uri_escape( $oauth2->{ scope_string } ),
+                '&login_hint=', uri_escape( $oauth2->{ user } ),
+                '&response_type=code',
+                '&redirect_uri=', uri_escape( $oauth2->{ redirect_uri } ),
+                '&code_challenge=', $oauth2->{ code_challenge },
+                '&code_challenge_method=', $oauth2->{ code_challenge_method },
+                '&state=', $oauth2->{ state },
+                ) ;
+
+        return $authorization_code_uri ;
+}
+
+
+sub oauth2_ask_authorization_code
+{
+        my $oauth2 = shift ;
+
+        if ( $oauth2->{ local } )
+        {
+                if ( oauth2_lunch_httpd_localhost( $oauth2 ) )
+                {
+                        print "Launched httpd\n" ;
+                }
+                else
+                {
+                        print "Failed to launch localhost httpd\n" ;
+                        return ;
+                }
+                return( oauth2_ask_authorization_code_localhost( $oauth2 ) ) ;
+        }
+        elsif ( $oauth2->{ localssl } )
+        {
+                if ( oauth2_lunch_httpd_localhost_ssl( $oauth2 ) )
+                {
+                        print "Launched httpd ssl\n" ;
+                }
+                else
+                {
+                        print "Failed to launch localhost httpd ssl\n" ;
+                        return ;
+                }
+                return( oauth2_ask_authorization_code_localhost( $oauth2 ) ) ;
+        }
+        else
+        {
+                
+                return( oauth2_ask_authorization_code_remote( $oauth2 )  ) ;
+        }
+}
+
+
+
+
+sub oauth2_ask_authorization_code_localhost 
+{
+        my $oauth2 = shift ;
+        
+        
+        
+        print "Go to the following link with your web browser:\n\n" ;
+        my $authorization_code_uri = oauth2_authorization_code_uri( $oauth2 ) ;
+        print "$authorization_code_uri\n\n" ;
+        
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                print "I help you to open the link with the following, hoping it works\n" ; 
+                print qq{start \"\" \"$authorization_code_uri\"\n} ;
+                `start \"\" \"$authorization_code_uri\"` ;
+        }
+        elsif( 'darwin' eq $OSNAME )
+        {
+                print "I help you to open the link with the following, hoping it works\n" ; 
+                print qq{open \'$authorization_code_uri\'\n} ;
+                `open \'$authorization_code_uri\' &` ;
+        }
+        else
+        {
+                print "I help you to open the link with the following, hoping it works\n" ; 
+                print qq{firefox \'$authorization_code_uri\'\n} ;
+                `firefox \'$authorization_code_uri\' &` ;
+        }
+        
+        #print "\n\nThen, after the authentication is finished, press ENTER: " ;
+        #my $enter = <STDIN> ;
+        print "\n\nThanks. Now I try to collect the code. Will give up in 120 seconds.\n" ;
+        my $code_from_localhost ;
+        my $code_from_stdin ;
+       
+        # Yes, sometimes four times is necessary, Gmail.
+        if ( $code_from_localhost = oauth2_collect_code_localhost( $oauth2 ) )
+        {
+                print "\n\nSuccess collecting the code\n" ;
+                $oauth2->{ code } = $code_from_localhost ;
+        }
+        elsif ( $code_from_localhost = oauth2_collect_code_localhost( $oauth2 ) )
+        {
+                print "\n\nSuccess collecting the code the second time\n" ;
+                $oauth2->{ code } = $code_from_localhost ;
+        }
+        elsif ( $code_from_localhost = oauth2_collect_code_localhost( $oauth2 ) )
+        {
+                print "\n\nSuccess collecting the code the third time\n" ;
+                $oauth2->{ code } = $code_from_localhost ;
+        }
+        elsif ( $code_from_localhost = oauth2_collect_code_localhost( $oauth2 ) )
+        {
+                print "\n\nSuccess collecting the code the fourth time\n" ;
+                $oauth2->{ code } = $code_from_localhost ;
+        }
+        else
+        {
+                print "\n\nFailed to collect the code\n" ;
+                print "\n\nPaste the code here and press ENTER: " ;
+                $code_from_stdin = <STDIN> ;
+                chomp( $code_from_stdin ) ;
+                $oauth2->{ code } = $code_from_stdin ;
+        }
+        
+        return( $code_from_localhost || $code_from_stdin ) ;
+} 
+
+
+
+
+sub oauth2_ask_authorization_code_remote 
+{
+        my $oauth2 = shift ;
+        print "Go to the following link with your web browser:\n\n" ;
+        my $authorization_code_uri = oauth2_authorization_code_uri( $oauth2 ) ;
+        print "$authorization_code_uri\n\n" ;
+        
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                print "I help you to open the link with the following, hoping it works\n" ; 
+                print qq{start \"\" \"$authorization_code_uri\"\n} ;
+                `start \"\" \"$authorization_code_uri\"` ;
+        }
+        elsif( 'darwin' eq $OSNAME )
+        {
+                print "I help you to open the link with the following, hoping it works\n" ; 
+                print qq{open \'$authorization_code_uri\'\n} ;
+                `open \'$authorization_code_uri\' &` ;
+        }
+        else
+        {
+                print "I help you to open the link with the following, hoping it works\n" ; 
+                print qq{firefox \'$authorization_code_uri\'\n} ;
+                `firefox \'$authorization_code_uri\' &` ;
+        }
+        
+        
+        print "\n\nThen, after the authentication is finished, press ENTER: " ;
+        my $enter = <STDIN> ;
+        print "\n\nThanks. Now I try to collect the code.\n" ;
+        my $code_from_auth ;
+        my $code_from_stdin ;
+       
+        if ( $code_from_auth = oauth2_collect_code_remote( $oauth2 ) )
+        {
+                print "\n\nSuccess collecting the code\n" ;
+                $oauth2->{ code } = $code_from_auth ;
+        }
+        else
+        {
+                print "\n\nFailed to collect the code\n" ;
+                print "\n\nPaste the code here and press ENTER: " ;
+                $code_from_stdin = <STDIN> ;
+                chomp( $code_from_stdin ) ;
+                $oauth2->{ code } = $code_from_stdin ;
+        }
+        
+        return( $code_from_auth || $code_from_stdin ) ;
+} 
+
+
+
+sub oauth2_collect_code_remote
+{
+        my $oauth2 = shift ;
+        
+        my $ua = LWP::UserAgent->new( timeout => 10 ) ;
+        $ua->env_proxy() ;
+        
+        # uncomment the next line if you encounter the "500 Can't verify SSL peers..." error.
+        $ua->ssl_opts( verify_hostname => 0, SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE ) ;
+ 
+        my $code_url = 'https://imapsync.lamiral.info/imapsync_auth/' . $oauth2->{ state } ;
+
+        my $response = $ua->get( $code_url ) ;
+ 
+        my $code ;
+        if ( $response->is_success(  ) ) {
+                $code = $response->decoded_content(  ) ;
+                chomp( $code ) ;
+                print "code from $code_url = " . $code . "\n" ;
+                return( $code ) ;
+        }
+        else
+        {
+                print "No code from $code_url : " . $response->status_line(  ) . "\n" ;
+                return ;
+        }
+}
+
+
+
+sub oauth2_lunch_httpd_localhost
+{
+        my $oauth2 = shift ;
+        my $httpd = HTTP::Daemon->new(
+                LocalAddr => 'localhost',
+                #LocalPort => 9999,
+                Timeout   => 120,
+        ) || return ;
+        my $url = 'http://localhost:' . $httpd->sockport(  ) ;
+        print "Now waiting for the code, " . 120 . " sec max, at $url\n" ;
+        $oauth2->{ httpd } = $httpd ;
+        $oauth2->{ redirect_uri } = $url ;
+        return( $httpd ) ;
+}
+
+
+
+
+sub tests_oauth2_lunch_httpd_localhost_ssl
+{
+        note( 'Entering tests_oauth2_lunch_httpd_localhost_ssl()' ) ;
+
+        is( undef, oauth2_lunch_httpd_localhost_ssl(  ),  'tests_oauth2_lunch_httpd_localhost_ssl: no args => undef' ) ;
+        my $oauth2 = {  } ;
+        
+        isa_ok( oauth2_lunch_httpd_localhost_ssl( $oauth2 ), 'HTTP::Daemon::SSL', 'tests_oauth2_lunch_httpd_localhost_ssl: {  } => a HTTP::Daemon::SSL' ) ;
+        isa_ok( $oauth2->{ httpd }, 'HTTP::Daemon::SSL', 'tests_oauth2_lunch_httpd_localhost_ssl: {  } => a HTTP::Daemon::SSL again' ) ;
+        
+        note( $oauth2->{ httpd }->get_fingerprint(  ) ) ;
+        print $oauth2->{ httpd }->get_fingerprint(  ), "\n" ;
+        #$oauth2->{ httpd }->accept(  ) ;
+        note( $oauth2->{ httpd } ) ;
+        
+        #my $wait = <STDIN> ;
+
+        note( 'Leaving  tests_oauth2_lunch_httpd_localhost_ssl()' ) ;
+        return ;
+}
+
+
+sub oauth2_lunch_httpd_localhost_ssl
+{
+        my $oauth2 = shift ;
+        
+        if ( ! defined( $oauth2 ) ) { return ; }
+        require HTTP::Daemon::SSL ;
+        require IO::Socket::SSL ;
+        # Good reads: 
+        # https://letsencrypt.org/docs/certificates-for-localhost/
+        # https://stackoverflow.com/a/60516812/491175
+        
+        #$IO::Socket::SSL::DEBUG = 4 ;
+        my $httpd = HTTP::Daemon::SSL->new(
+                LocalAddr => 'localhost',
+                Timeout   => 120,
+                SSL_cert_file => './localhost.crt',
+                SSL_key_file =>  './localhost.key',
+        ) || do
+        { 
+                print( "failed connect or ssl handshake: $! $IO::Socket::SSL::SSL_ERROR" ) ; 
+                return ;
+        } ;
+        my $url = 'https://localhost:' . $httpd->sockport(  ) ;
+        print "Now waiting for the code, " . 120 . " sec max, at $url\n" ;
+        $oauth2->{ httpd } = $httpd ;
+        $oauth2->{ redirect_uri } = $url ;
+        return( $httpd ) ;
+}
+
+
+
+
+
+sub oauth2_collect_code_localhost
+{
+        my $oauth2 = shift ;
+        my $httpd  = $oauth2->{ httpd } ;
+        
+        my $code = '' ;
+
+        print( "Entering oauth2_collect_code_localhost\n" ) ;
+        
+        
+        while ( my $connection = $httpd->accept(  ) and not $code )
+        {
+                print( "Connection accepted\n" ) ;
+                $oauth2->{ debug } and print "Connection a: " . Data::Dumper->Dump( [ \$connection ] ) . "\n" ;
+                while ( defined( $connection ) and my $request = $connection->get_request(  ) )
+                {
+                        $oauth2->{ debug } and print "Received: " . Data::Dumper->Dump( [ \$request ] ) . "\n" ;
+                        # $request->uri() is a URI::http object. See https://metacpan.org/pod/URI
+                        if ( $request->method(  ) eq 'GET' and $request->uri->path(  ) )
+                        {
+                                $oauth2->{ debug } and print "Received: " . Data::Dumper->Dump( [ \$request ] ) . "\n" ;
+                                my %form = $request->uri->query_form(  ) ;
+                                $code = $form{ 'code' } || '' ;
+                                my $state = $form{ 'state' } || '' ;
+                        
+                                if ( $code )
+                                { 
+                                        $oauth2->{ code } = $code ;
+                                        $oauth2->{ state_back } = $state ;
+                                        my $message = oauth2_collect_code_answer( $code ) ;
+                                        my $response = HTTP::Response->new(  ) ;
+        
+                                        $response->content( $message ) ;
+                                        $connection->send_response( $response ) ;
+                                        defined( $connection ) and $connection->close(  ) ;
+                                        undef( $connection ) ;
+                                }
+                                else
+                                {
+                                        print "No code received.\n" ;
+                                }
+                        }
+                        else 
+                        {
+                        
+                                $connection->send_error( RC_FORBIDDEN ) ;
+                        }
+                }
+                $oauth2->{ debug } and print "Connection e: " . Data::Dumper->Dump( [ \$connection ] ) . "\n" ;
+        }
+        print( "Leaving  oauth2_collect_code_localhost\n" ) ;
+        return( $oauth2->{ code } || '' ) ;
+}
+
+sub oauth2_collect_code_answer
+{
+        my $code = shift ;
+        
+        my $message = "The authentication is ok, now you can go back where you started\n\n"
+                . "If it does not work, here is the code to copy and past:\n\n"
+                . $code . "\n\n"
+                . "Have a nice day!\n\n\n\n\n\n" ;
+        return( $message ) ;
+}
+
+sub oauth2_request_tokens
+{
+        my $oauth2 = shift ;
+        my $ua = LWP::UserAgent->new(  ) ;
+        $ua->timeout( 11 ) ;
+        $ua->env_proxy(  ) ;
+
+        # uncomment the next line if you encounter the "500 Can't verify SSL peers..." error.
+        $ua->ssl_opts( verify_hostname => 0, SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE ) ;
+
+        print "Exchanging the code for an access token and a refresh token...\n";
+        my $token_response = $ua->post( 
+                $oauth2->{ token_uri },
+                'Content_Type' => 'application/x-www-form-urlencoded',
+                'Content' => [
+                        'code'          => $oauth2->{ code },
+                        'client_id'     => $oauth2->{ client_id },
+                        'client_secret' => $oauth2->{ client_secret },
+                        'redirect_uri'  => $oauth2->{ redirect_uri },
+                        'grant_type'    => 'authorization_code',
+                        'code_verifier' => $oauth2->{ code_verifier },
+                ],
+        ) ;
+
+        #print Data::Dumper->Dump( [ $token_response ] ) ;
+
+        print "token_response: ", $token_response->decoded_content, "\n\n" ;
+
+        my $response = decode_json( $token_response->decoded_content ) ;
+
+        my $access_token  = $response->{ access_token  } ;
+        my $refresh_token = $response->{ refresh_token } ;
+
+        if ( $access_token )
+        {
+                print "access token:\n$access_token\n\n" ;
+                $oauth2->{ access_token }  = $access_token  ;
+        }
+        
+        if ( $refresh_token )
+        {
+                print "refresh token:\n$refresh_token\n\n";
+                $oauth2->{ refresh_token } = $refresh_token ;
+
+        }
+        else
+        {
+                print "No refresh token proposed\n\n";
+        }
+        return ;
+}
+
+
+sub oauth2_refresh_tokens
+{ 
+        my $oauth2 = shift ;
+        print "Refreshing the access and refresh tokens\n";
+        my $ua = LWP::UserAgent->new(  ) ;
+        $ua->timeout( 11 ) ;
+        $ua->env_proxy(  ) ;
+        # uncomment the next line if you encounter the "500 Can't verify SSL peers..." error.
+        $ua->ssl_opts( verify_hostname => 0, SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE ) ;
+
+        my $token_response = $ua->post( 
+                $oauth2->{ token_uri },
+                'Content_Type' => 'application/x-www-form-urlencoded',
+                'Content' => [
+                        'client_id'     => $oauth2->{ client_id },
+                        'client_secret' => $oauth2->{ client_secret },
+                        'refresh_token' => $oauth2->{ refresh_token },
+                        'grant_type' => 'refresh_token',
+                ],
+        ) ;
+
+        my $response = decode_json( $token_response->decoded_content ) ;
+        my $access_token  = $response->{ access_token  } ;
+        my $refresh_token = $response->{ refresh_token } ;
+
+        if ( $access_token )
+        {
+                print "access token:\n$access_token\n\n" ;
+                $oauth2->{ access_token }  = $access_token  ;
+        }
+        
+        if ( $refresh_token )
+        {
+                print "refresh token:\n$refresh_token\n\n";
+                $oauth2->{ refresh_token } = $refresh_token ;
+
+        }
+        else
+        {
+                print "No refresh token proposed\n\n";
+        }
+        
+        return $access_token ;
+} 
+
+sub oauth2_check_imap_access
+{
+        my $oauth2 = shift ;
+
+        if ( ! $oauth2->{ user } ) 
+        {
+                print "No user given. It is useless to try an authentication, is not it?\n" ;
+                return ;
+        }
+        
+        if ( ! $oauth2->{ access_token } ) 
+        {
+                print "No access token given. It is useless to try an authentication, is not it?\n" ;
+                return ;
+        }
+        
+        my $oauth_sign = encode_base64( "user=". $oauth2->{ user } . "\x01auth=Bearer ". $oauth2->{ access_token } ."\x01\x01", '' ) ;
+
+        my $imap = Mail::IMAPClient->new(
+                Server => $oauth2->{ imap_server },
+                Port  => 993,
+                Ssl   => 1,
+                Uid   => 1,
+                Debug => 1,
+        ) ;
+        
+        if ( ! $imap )
+        {
+                print( "Can't connect to imap server " . $oauth2->{ imap_server } . "\n\n" ) ;
+                return ;
+        }
+        
+        if ( ! $imap->authenticate( 'XOAUTH2', sub { return $oauth_sign } ) )
+        {
+                print( "Auth error: " . $imap->LastError . "\n\n" ) ;
+                return ;
+        }
+        
+        my @folders = $imap->folders(  ) ;
+        if ( @folders )
+        {
+                print 'Found ' . @folders . ' folders: ' . join( ", ", @folders) . "\n\n" ;
+                print "Success IMAP login to account " . $oauth2->{ user } . " with access token in " . $oauth2->{ token_file } . "\n" ;
+                return 1 ;
+        }
+        else
+        {
+                print "Found no folders. Bad sign.\n" ;
+                return ;
+        }
+}
+
+
+
+sub oauth2_save_tokens_to_file
+{
+        my $oauth2 = shift ;
+        my $token_file = $oauth2->{ token_file } ;
+        
+        my $string = join( "\n", 
+                $oauth2->{ access_token }, 
+                $oauth2->{ refresh_token },
+                '# The first   line is the access  token',
+                '# The second  line is the refresh token',
+                '# Account is ' . $oauth2->{ user },
+                '# File generated on ' . scalar localtime() . " by $0 @ARGV",
+                '',
+        ) ;
+        
+        print "Writing tokens to the file " . $token_file . "\n" ;
+        if ( string_to_file( $string, $token_file ) )
+        {
+                return 1 ;
+        }
+        else
+        {
+                return 0 ;
+        }  
+}
+
+sub oauth2_code_challenge
+{
+        my $code_verifier = shift || '' ;
+        # BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
+        return( MIME::Base64::encode_base64url( Digest::SHA::sha256( $code_verifier ) ) ) ;
+}
+
+
+
+
+sub tests_merge_hashes
+{
+        note( 'Entering tests_merge_hashes()' ) ;
+
+        is( undef, merge_hashes(  ),  'tests_merge_hashes: no args => undef' ) ;
+        is_deeply( {  }, merge_hashes( {  } ),  'tests_merge_hashes: {  } => {  }' ) ;
+        is_deeply( {  }, merge_hashes( {  }, {  } ),  'tests_merge_hashes: {  } + {  } => {  }' ) ;
+        is_deeply( {  }, merge_hashes( {  }, {  }, {  } ),  'tests_merge_hashes: {  } + {  } + {  } => {  }' ) ;
+        
+        my $hash_a = {  } ;
+        is_deeply( $hash_a, merge_hashes( $hash_a ),  'tests_merge_hashes: {  } => {  } 2nd' ) ;
+        
+        my $hash_b = {  } ;
+        my $hash_m = merge_hashes( $hash_a, $hash_b ) ;
+        is_deeply( $hash_m, {}, 'tests_merge_hashes: {  } + {  } => {  }' ) ;
+
+        my $hash_u = { ku => undef } ;
+        $hash_m = merge_hashes( $hash_u ) ;
+        is_deeply( $hash_m, { ku => undef }, 'tests_merge_hashes: { ku undef }  => { ku undef }' ) ;
+       
+
+        $hash_a = { ka => 'va' } ;
+        $hash_m = merge_hashes( $hash_a ) ;
+        is_deeply( $hash_m, $hash_a, 'tests_merge_hashes: { ka va  }  => { ka va }' ) ;
+        
+        $hash_m = merge_hashes( $hash_a, {  } ) ;
+        is_deeply( $hash_m, $hash_a, 'tests_merge_hashes: { ka va  } + {  } => { ka va }' ) ;
+        
+        $hash_m = merge_hashes( {  }, $hash_a ) ;
+        is_deeply( $hash_m, $hash_a, 'tests_merge_hashes:  {  } + { ka va  } => { ka va }' ) ;
+        
+        $hash_m = merge_hashes( $hash_a, $hash_a ) ;
+        is_deeply( $hash_m, $hash_a, 'tests_merge_hashes:  { ka va } + { ka va  } => { ka va }' ) ;
+        
+        $hash_b = { kb1 => 'vb1' } ;
+        $hash_m = merge_hashes( $hash_a, $hash_b ) ;
+        is_deeply( $hash_m, { kb1 => 'vb1', ka => 'va' } , 'tests_merge_hashes:  { ka va } + { kb vb  } => { ka va, kb vb }' ) ;
+        
+        $hash_m = merge_hashes( $hash_b, $hash_a ) ;
+        is_deeply( $hash_m, { kb1 => 'vb1', ka => 'va' } , 'tests_merge_hashes:  { kb vb  } + { ka va } => { ka va, kb vb }' ) ;
+        
+        # same key, value from the second hash.
+        $hash_a = { ka => 'va' } ;
+        $hash_b = { ka => 'vb' } ;
+        $hash_m = merge_hashes( $hash_a, $hash_b ) ;
+        is_deeply( $hash_m, { ka => 'vb' }, 'tests_merge_hashes:  { ka va } + { ka vb  } => { ka vb }' ) ;
+
+        $hash_a = { ka => 'va' } ;
+        $hash_m = merge_hashes( $hash_b, $hash_a ) ;
+        is_deeply( $hash_m, { ka => 'va' }, 'tests_merge_hashes:  { ka vb } + { ka va  } => { ka va }' ) ;
+
+        $hash_b = { kb1 => 'vb1', kb2 => 'vb2' } ;
+        $hash_m = merge_hashes( $hash_b, $hash_a ) ;
+        is_deeply( $hash_m, { kb1 => 'vb1', kb2 => 'vb2', ka => 'va' } , 'tests_merge_hashes:  { kb1 vb1, kb2 vb2  } + { ka va } => { ka va, kb1 vb1, kb2 vb2 }' ) ;
+
+
+        # undef value are not merged
+        
+        $hash_m = merge_hashes( $hash_a, $hash_u ) ;
+        is_deeply( $hash_m, { ka => 'va' } , 'tests_merge_hashes:  { ka va } + { ku undef  } => { ka va }' ) ;
+        
+        $hash_m = merge_hashes( $hash_u, $hash_a ) ;
+        is_deeply( $hash_m, { ku => undef, ka => 'va' } , 'tests_merge_hashes:  { ku undef  } + { ka va }  => { ku undef, ka va }' ) ;
+
+        # same key, undef value fron the second
+        $hash_b = { ka => undef } ;
+        $hash_m = merge_hashes( $hash_a, $hash_b ) ;
+        is_deeply( $hash_m, { ka => 'va' } , 'tests_merge_hashes:  { ka va } + { ka undef  } => { ka va }' ) ;
+
+        # three hashes merge
+        my $hash_c = { kc => 'vc' } ;
+        $hash_m = merge_hashes( $hash_a, $hash_b, $hash_c ) ;
+        is_deeply( $hash_m, { ka => 'va', kc => 'vc' } , 'tests_merge_hashes:  { ka va } + { ka undef } + { kc vc  } => { ka va, kv vc }' ) ;
+        
+        $hash_m = merge_hashes( $hash_b, $hash_a, $hash_c ) ;
+        is_deeply( $hash_m, { ka => 'va', kc => 'vc' } , 'tests_merge_hashes:  { ka undef } + { ka va } + { kc vc  } => { ka va, kv vc }' ) ;
+        
+        $hash_a = { ka => 'va' } ;
+        $hash_b = { ka => 'vb' } ;
+        $hash_c = { ka => 'vc' } ;
+        $hash_m = merge_hashes( $hash_a, $hash_b, $hash_c ) ;
+        is_deeply( $hash_m, { ka => 'vc' } , 'tests_merge_hashes:  { ka va } + { ka vb } + { ka vc } => { ka vc }' ) ;
+        
+        $hash_c = { ka => undef } ;
+        $hash_m = merge_hashes( $hash_a, $hash_b, $hash_c ) ;
+        is_deeply( $hash_m, { ka => 'vb' } , 'tests_merge_hashes:  { ka va } + { ka vb } + { ka undef } => { ka vb }' ) ;
+        
+        $hash_a = { ka => 'va' } ;
+        $hash_b = { ka => undef } ;
+        $hash_m = merge_hashes( $hash_a, $hash_b, $hash_c ) ;
+        is_deeply( $hash_m, { ka => 'va' } , 'tests_merge_hashes:  { ka va } + { ka undef } + { ka undef } => { ka va }' ) ;
+        
+        
+        note( 'Leaving  tests_merge_hashes()' ) ;
+        return ;
+}
+
+
+
+sub merge_hashes
+{
+        my $hash_d =  shift @ARG ;
+        
+        while( my $hash_a =  shift @ARG )
+        {
+                foreach my $key ( keys( %$hash_a ) )
+                {
+                        if ( defined( $hash_a->{ $key } ) ) 
+                        {
+                                $hash_d->{ $key } = $hash_a->{ $key } ;
+                        }
+                }
+        }
+        return $hash_d ;
+}
+
+
+
+
+sub tests_find_domain_from_email
+{
+        note( 'Entering tests_find_domain_from_email()' ) ;
+
+        is( undef, find_domain_from_email(  ),  'tests_find_domain_from_email: no args => undef' ) ;
+        is( undef, find_domain_from_email( '' ), 'tests_find_domain_from_email: "" => undef' ) ;
+        is( 'example.com', find_domain_from_email( 'foo@example.com' ), 'tests_find_domain_from_email: foo@example.com => example.com' ) ;
+        is( undef, find_domain_from_email( 'blabla' ), 'tests_find_domain_from_email: blabla => undef' ) ;
+
+        note( 'Leaving  tests_find_domain_from_email()' ) ;
+        return ;
+}
+
+sub find_domain_from_email
+{
+        my $email = shift @ARG ;
+        
+        if( ! $email ) { return ; }
+        
+        my ( $address ) = Email::Address->parse( $email ) ;
+        
+        my $domain ;
+        
+        if ( defined( $address ) )
+        {
+                $domain = $address->host(  ) ;
+        }
+
+        return $domain ;
+}
+
+
+sub tests_find_provider_from_email
+{
+        note( 'Entering tests_find_provider_from_email()' ) ;
+
+        is( undef, find_provider_from_email(  ),  'tests_find_provider_from_email: no args => undef' ) ;
+        is( undef, find_provider_from_email( '' ),  'tests_find_provider_from_email: "" => undef' ) ;   
+        is( 'office365', find_provider_from_email( 'gilles.lamiral@outlook.com' ),  'tests_find_provider_from_email: gilles.lamiral@outlook.com => office365' ) ;
+        is( 'gmail', find_provider_from_email( 'gilles.lamiral@gmail.com' ),  'tests_find_provider_from_email: gilles.lamiral@gmail.com => gmail' ) ;
+        is( undef, find_provider_from_email( 'gilles@lamiral.info' ),  'tests_find_provider_from_email: gilles@lamiral.info => undef' ) ;
+
+        note( 'Leaving  tests_find_provider_from_email()' ) ;
+        return ;
+}
+
+
+sub find_provider_from_email
+{
+        my $email = shift ;
+        
+        my $provider = find_provider_from_domain( find_domain_from_email( $email ) ) ;
+        return( $provider ) ;    
+}
+
+
+sub tests_find_provider_from_domain
+{
+        note( 'Entering tests_find_provider_from_domain()' ) ;
+
+        is( undef, find_provider_from_domain(  ),  'tests_find_provider_from_domain: no args => undef' ) ;
+        is( undef, find_provider_from_domain( '' ),  'tests_find_provider_from_domain: "" => undef' ) ;   
+        is( 'office365', find_provider_from_domain( 'outlook.com' ),  'tests_find_provider_from_domain: outlook.com => office365' ) ;
+        is( 'gmail', find_provider_from_domain( 'gmail.com' ),  'tests_find_provider_from_domain: gmail.com => gmail' ) ;
+        is( undef, find_provider_from_domain( 'lamiral.info' ),  'tests_find_provider_from_domain: lamiral.info => undef' ) ;
+
+        note( 'Leaving  tests_find_provider_from_domain()' ) ;
+        return ;
+}
+
+# find  /home/vmail/gilles/cur | tail -9999 | xargs grep From: | egrep -o '<[^>]+' | tr -d '<' | egrep -o '@[^@]+' | tr -d '@' | grep -v '"' | sort | uniq | tee domains.txt
+# ( cat domains.txt | while read d ; do host -t mx $d  | head -1 ; done ) | tee domains_mx.txt 
+
+
+sub find_provider_from_domain
+{
+        my $domain = shift @ARG ;
+        
+        if( ! $domain ) { return ; }
+        
+        my $provider ;
+        
+        
+        my $res  = Net::DNS::Resolver->new ;
+        my @mx = Net::DNS::mx( $res, $domain ) ;
+        
+        my $mx_exchange = '' ;
+        if ( @mx )
+        {
+                $mx_exchange = $mx[ 0 ]->exchange ; 
+                #print $mx_exchange, "\n";
+        } 
+        else
+        {
+                print "Can not find MX records for $domain: ", $res->errorstring, "\n";
+        }
+
+        if ( $mx_exchange =~ 'outlook.com' )
+        {
+                $provider = 'office365' ;
+        }
+        elsif ( $mx_exchange =~ 'google.com' )
+        {
+                $provider = 'gmail' ;
+        }
+        
+        return $provider ;
+}
+
+
+
+
+
+# All the reminding is taken from imapsync 
+
+sub string_to_file
+{
+        my( $string, $file ) = @_ ;
+	if( ! defined $string ) { return ; }
+	if( ! defined $file )   { return ; }
+
+	if ( ! -e $file && ! -w dirname( $file ) ) {
+		print( "string_to_file: directory of $file is not writable\n" ) ;
+		return ;
+	}
+
+        if ( ! sysopen( FILE, $file, O_WRONLY|O_TRUNC|O_CREAT, 0600) ) {
+		print( "string_to_file: failure writing to $file with error: $OS_ERROR\n" ) ;
+		return ;
+	}
+        print FILE $string ;
+        close FILE ;
+        return $string ;
+}
+
+
+
+sub nthline
+{
+        # extract the nth line of a file (without \n)
+        # return empty string if error or empty string
+
+        my $file = shift @ARG ;
+        my $num  = shift @ARG ;
+
+        my $line ;
+
+        $line = ( file_to_array( $file ) )[$num - 1] ;
+        if ( ! defined $line )
+        {
+                return q{} ;
+        }
+        else
+        {
+                chomp $line ;
+                return $line ;
+        }
+}
+
+
+sub file_to_array
+{
+
+        my( $file ) = shift @ARG ;
+	if ( ! $file )    { return ; }
+	if ( ! -e $file ) { return ; }
+	if ( ! -f $file ) { return ; }
+	if ( ! -r $file ) { return ; }
+        
+        my @string ;
+
+        if ( open my $FILE, '<', $file )
+        {
+                @string = <$FILE> ;
+                close $FILE ;
+                return( @string ) ;
+        }
+        else
+        {
+		print( "Error reading file $file : $OS_ERROR\n" ) ;
+		return ;
+	}
+}
+
+
+sub random_string
+{
+        my $num = shift || 64 ;
+	my @chars = ( "a".."z" ) ;
+	my $string;
+	$string .= $chars[rand @chars] for 1..$num ;
+	return $string ;
+}
+
+
+sub search_dyn_lib_locale_MSWin32
+{
+        my $command = qq{ Listdlls.exe $PROCESS_ID|findstr Strawberry } ;
+        #my $command = qq{ Listdlls.exe $PROCESS_ID  } ;
+        # $command = qq{ Listdlls.exe $PROCESS_ID|findstr Strawberry } ;
+        print( "Search non embeded dynamic libs with the command: $command\n" ) ;
+        return qx( $command ) ;
+}
+
+
+
+
+sub tests_template
+{
+        note( 'Entering tests_template()' ) ;
+
+        is( undef, template(  ),  'tests_template: no args => undef' ) ;
+        my $oauth2 = {  } ;
+        is( undef, template( $oauth2 ),  'tests_template: {  } => undef' ) ;
+
+        note( 'Leaving  tests_template()' ) ;
+        return ;
+}
+
+sub template
+{
+        my $oauth2 = shift @ARG ;
+        
+        return ;
+}
+
+

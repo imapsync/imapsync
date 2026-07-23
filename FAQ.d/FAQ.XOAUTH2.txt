@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.XOAUTH2.txt,v 1.18 2022/04/05 13:48:52 gilles Exp gilles $
+$Id: FAQ.XOAUTH2.txt,v 1.22 2024/06/27 09:09:04 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -13,10 +13,13 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
 Questions answered in this FAQ are:
 
 Q. Is XOAUTH2 authentication available with imapsync to authenticate
-   my personnal gmail account? (Quick answer: not yet)
+   my personnal gmail account?
 
 Q. Is XOAUTH2 authentication available with imapsync to authenticate
-   my personnal Office365 account? (Quick answer: not yet)
+   my personnal Office365 account?
+
+Q. Is XOAUTH2 authentication available with imapsync to globally 
+   authenticate Office365 users, ie as an admin?
 
 Q. Is XOAUTH2 authentication available with imapsync to globally 
    authenticate gmail users, ie as an admin?
@@ -36,27 +39,58 @@ Now the questions again with their answers.
 
 =======================================================================
 Q. Is XOAUTH2 authentication available with imapsync to authenticate
-   my personnal gmail account? (Quick answer: not yet)
+   my personnal gmail account?
 
-R. No. But I'm working on that. 
-   XOAUTH2 is a mess or at least, each time I look at it, it leaves 
-   my brain like a mess.
+R. Yes. 
+
+First, generate an access token with the tool "oauth2_imap"
+by following the document
+https://imapsync.lamiral.info/oauth2/oauth2_imap/README_oauth2.txt
+
+Once you generated an access token for the user, use
+the option --oauthaccesstoken1 or --oauthaccesstoken2
+
+https://imapsync.lamiral.info/README
+...
+
+     --oauthaccesstoken1 str : The access token to authenticate with OAUTH2 on host1.
+                           It will be combined with the --user1 value to form the 
+                           string to pass with XOAUTH2 authentication.
+                           Instead of the access token itself, the value can be the
+                           file containing the access token on the first line.
+                           If the value is a file, imapsync reads its first line
+                           and takes this line as the access token. The advantage
+                           of the file is that if the access token changes then
+                           imapsync can read it again when it needs to reconnect 
+                           during a run.
+
+
+     --oauthaccesstoken2 str : same thing as --oauthaccesstoken1 but for host2.
+
 
 =======================================================================
 Q. Is XOAUTH2 authentication available with imapsync to authenticate
-   my personnal Office365 account? (Quick answer: not yet)
+   my personnal Office365 account?
 
-R. No. But I'm working on that too.
+R. Yes. 
+   Follow the document 
+   https://imapsync.lamiral.info/oauth2/oauth2_imap/README_oauth2.txt
+
+=======================================================================
+Q. Is XOAUTH2 authentication available with imapsync to globally 
+   authenticate Office365 users, ie as an admin?
+
+A. Yes. See
+https://github.com/imapsync/imapsync/issues/250#issuecomment-1996765075
 
 =======================================================================
 Q. Is XOAUTH2 authentication available with imapsync to globally 
    authenticate gmail users, ie as an admin?
 
-R. Yes, but XOAUTH2 has been really tested on Unix systems, 
-   less profund on Windows but it should work.
+R. Yes.
 
-   Two file formats are available from Gmail: json and pk12.
-   json is easier to manage than pk12.
+   https://github.com/imapsync/imapsync/issues/457
+
 
 =======================================================================
 Q. Imapsync XOAUTH2 fails with the following message, how to fix that?

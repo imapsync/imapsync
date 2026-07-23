@@ -1,17 +1,154 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 2.261
+head: 2.290
 branch:
 locks: strict
-	gilles: 2.261
+	gilles: 2.290
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 1161;	selected revisions: 1161
+total revisions: 1190;	selected revisions: 1190
 description:
 ----------------------------
-revision 2.261	locked by: gilles;
+revision 2.290	locked by: gilles;
+date: 2024/08/20 10:37:23;  author: gilles;  state: Exp;  lines: +116 -117
+--gmail1  implies --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000
+--gmail2  implies --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000
+--gmail1 --gmail2 implies also --maxbytespersecond 300_000 --maxbytesafter 3_000_000_000
+Let's try it.
+----------------------------
+revision 2.289
+date: 2024/08/18 21:54:28;  author: gilles;  state: Exp;  lines: +87 -18
+Bugfix. Log is on is Docker+CGI context, off in Docker only context, on with --log, off with --nolog, on otherwise.
+----------------------------
+revision 2.288
+date: 2024/08/04 21:34:51;  author: gilles;  state: Exp;  lines: +13 -12
+Bugfix. sub setlog myprint calls replaced by output()
+----------------------------
+revision 2.287
+date: 2024/08/04 21:12:59;  author: gilles;  state: Exp;  lines: +211 -138
+Added the option --extra that allows to add options in the UI like in the command line.
+2145 unit tests.
+----------------------------
+revision 2.286
+date: 2024/04/21 21:35:18;  author: gilles;  state: Exp;  lines: +50 -24
+Docker context. No logfile by default. Use --log to turn on logging on a logfile.
+----------------------------
+revision 2.285
+date: 2024/04/10 21:05:51;  author: gilles;  state: Exp;  lines: +42 -22
+Bugfix. Quit on heavy load was not set in CGI context.
+Enhancement. --gmail1 --gmail2 now implies --folderlast for  '[Gmail]/Sent Mail' '[Gmail]/Important' '[Gmail]/Starred' '[Gmail]/Drafts' '[Gmail]/Trash' '[Gmail]/Spam' '[Gmail]/Chats' '[Gmail]/All Mail', in this order.
+----------------------------
+revision 2.284
+date: 2024/03/15 05:51:31;  author: gilles;  state: Exp;  lines: +171 -92
+Bugfix. No exit on heavy load by default in normal context. Was introduced in revision 2.281
+Enhancement. Added the syntax --host1 imap.foo:1234/bar/truc equivalent to --host1 imap.foo --port1 1234 --folderrec bar/truc
+Enhancement. Added the syntax --host2 imap.foo:1234/bar/truc equivalent to --host2 imap.foo --port2 1234 --subfolder2 bar/truc
+Enhancement. Now the ssl check is done systematically on the port given by --port1 and --port2 and allow an automatic connection in ssl. This way, options --ssl1 and --ssl2 are no longer mandatory when using ports different than the usual ones, 143 and 993.
+----------------------------
+revision 2.283
+date: 2024/03/11 14:37:15;  author: gilles;  state: Exp;  lines: +138 -12
+Preparation to add the feature --host1 imap.foo.kk:1234/folderrec 
+2124 unit tests
+----------------------------
+revision 2.282
+date: 2024/02/27 15:49:33;  author: gilles;  state: Exp;  lines: +17 -11
+Applied https://github.com/imapsync/imapsync/pull/381/files
+----------------------------
+revision 2.281
+date: 2024/02/20 16:30:57;  author: gilles;  state: Exp;  lines: +11 -11
+Allow  --exitonload in normal context, ie, command line.
+----------------------------
+revision 2.280
+date: 2024/01/29 22:35:18;  author: gilles;  state: Exp;  lines: +10 -8
+typo
+----------------------------
+revision 2.279
+date: 2024/01/11 19:14:11;  author: gilles;  state: Exp;  lines: +36 -31
+Crit. Some perlcrit fixed.
+----------------------------
+revision 2.278
+date: 2024/01/07 19:10:15;  author: gilles;  state: Exp;  lines: +317 -157
+cosmetic with {
+----------------------------
+revision 2.277
+date: 2024/01/02 16:04:36;  author: gilles;  state: Exp;  lines: +25 -14
+Enhancement. Now --subfolder2 FOO implies --exclude FOO to avoid subfoldering recursion
+----------------------------
+revision 2.276
+date: 2023/12/26 17:37:14;  author: gilles;  state: Exp;  lines: +42 -11
+Bugfix. Pass --tests everywhere
+----------------------------
+revision 2.275
+date: 2023/12/25 23:19:00;  author: gilles;  state: Exp;  lines: +165 -118
+Bugfix. Now detect errors in SEARCH command given by --search. 
+Enhancement. Added exit value 121 when most errors are SEARCH errors.
+Changed all @_ to @ARG
+2093 uit tests.
+----------------------------
+revision 2.274
+date: 2023/12/22 13:04:51;  author: gilles;  state: Exp;  lines: +11 -11
+2 processors detected on petite this time...
+----------------------------
+revision 2.273
+date: 2023/12/12 16:15:43;  author: gilles;  state: Exp;  lines: +9 -9
+Added an early debugsleep to debug timeout with /servimapsync
+----------------------------
+revision 2.272
+date: 2023/12/11 13:47:56;  author: gilles;  state: Exp;  lines: +35 -26
+Bugfix. Now loging by default in Docker context. This allows the "tail -f" mechanism with /servimapsync when two same syncs are requested in parallel.
+----------------------------
+revision 2.271
+date: 2023/11/30 18:51:58;  author: gilles;  state: Exp;  lines: +110 -58
+Bugfix. Button "Abort!" now working in Docker+CGI context. Added a pid file in that context.
+2092 unit tests.
+----------------------------
+revision 2.270
+date: 2023/11/25 20:34:53;  author: gilles;  state: Exp;  lines: +301 -245
+Added in final stats the number of Folders deleted on host2
+Added in final stats the number of Folders failed to be deleted on host2, if any
+Refactoring. Deglobalized $delete2folders $delete2foldersonly $delete2foldersbutnot
+----------------------------
+revision 2.269
+date: 2023/10/27 12:50:09;  author: gilles;  state: Exp;  lines: +8 -8
+word
+----------------------------
+revision 2.268
+date: 2023/10/27 11:55:30;  author: gilles;  state: Exp;  lines: +8 -8
+gram
+----------------------------
+revision 2.267
+date: 2023/10/27 11:48:34;  author: gilles;  state: Exp;  lines: +28 -27
+Renamed option --oauthrefreshscript1 to --oauthrefreshcmd1 and --oauthrefreshscript2 to --oauthrefreshcmd1 (shorter)
+----------------------------
+revision 2.266
+date: 2023/10/26 15:53:01;  author: gilles;  state: Exp;  lines: +59 -17
+Added tom@mklab patch to have --oauthrefreshscript1 str : An optional script to call, to refresh the host1 access token before each authentication. And --oauthrefreshscript2 str
+----------------------------
+revision 2.265
+date: 2023/10/23 18:39:41;  author: gilles;  state: Exp;  lines: +13 -13
+Added charecter & in the filtered characters in sub filter_forbidden_characters()
+----------------------------
+revision 2.264
+date: 2023/10/17 11:09:25;  author: gilles;  state: Exp;  lines: +12 -14
+README part. --password1 and --user1 no more needed.
+----------------------------
+revision 2.263
+date: 2023/10/15 20:13:55;  author: gilles;  state: Exp;  lines: +11 -11
+Bugfix. tests_login_imap_oauth number of tests.
+----------------------------
+revision 2.262
+date: 2023/10/14 10:17:53;  author: gilles;  state: Exp;  lines: +205 -146
+Bugfix.  Moved Readonly $SSL_VERIFY_POLICY => IO::Socket::SSL::SSL_VERIFY_NONE above to make all ssl unit test pass.
+Bugfix. Change oauth2/ directory path to oauth2/oauth2_gmail/ in unit tests.
+Tests. Added tests to show the bug --oauthdirect without --user or without --password not reconnecting well.
+Bugfix. --oauthdirect is ok to reconnect without --user nor --password
+Bugfix. --oauthaccesstoken is is ok to reconnect without --password
+Cosmetic changes.
+2082 unit tests.
+----------------------------
+revision 2.261
 date: 2023/09/27 11:26:09;  author: gilles;  state: Exp;  lines: +10 -10
 Bugfix. typo on eleasecheck.
 ----------------------------

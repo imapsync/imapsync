@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Archiving.txt,v 1.27 2022/05/19 08:56:06 gilles Exp gilles $
+$Id: FAQ.Archiving.txt,v 1.30 2024/08/11 11:13:32 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -16,6 +16,8 @@ Q. How can I archive different accounts on the same destination account,
 
 Q. How can I restore a complete account backuped in a subfolder, like
    a backup done with the option --subfolder2?
+
+Q. How can I merge two or more mailboxes into one?
 
 Q. How to move emails from one IMAP folder to another, either on the 
    same IMAP server or on a different one? Example:
@@ -38,7 +40,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Archiving.txt
 Q. How can I archive different accounts on the same destination account,
    each account on a separate folder?
 
-R. Use --subfolder2 
+A. Use --subfolder2 
 
  --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
                        host2 given folder str.
@@ -56,20 +58,30 @@ To backup the account Bar in a subfolder called BarArchiv:
   imapsync ... --user1 Bar --subfolder2 BarArchiv
 
 In case you need a very strict sync, add options 
---delete2 --delete2foldersonly "FooArchiv"
-(or "BarArchiv" for the second example).
-It will delete on account2 what is not on account1 but only in the right place, 
-ie, the subfolder "FooArchiv".
+--delete2 --delete2foldersonly "/FooArchiv/",
+(or "/BarArchiv/" for the second example).
+It will delete on account2 what is not on account1 but only in
+the right place, ie, the subfolder "FooArchiv".
+
+Slashes around the name value of --delete2foldersonly are mandatory.
+Technically, the value of option --delete2foldersonly is a regex,
+a regular expression, with its Perl regex outbound delimiters, any pair 
+of delimiters. It's why the slashes, or any pair, are mandatory.
+
+  --delete2foldersonly "/FooArchiv/" 
+  is equivalent to
+  --delete2foldersonly "m{FooArchiv}"
+
 
 Examples:
 
 To mirror the account Foo in a subfolder called FooArchiv:
 
-  imapsync ... --user1 Foo --subfolder2 FooArchiv --delete2 --delete2foldersonly "FooArchiv" 
+  imapsync ... --user1 Foo --subfolder2 FooArchiv --delete2 --delete2foldersonly "/FooArchiv/" 
 
 To mirror the account Bar in a subfolder called BarArchiv:
 
-  imapsync ... --user1 Bar --subfolder2 BarArchiv --delete2 --delete2foldersonly "BarArchiv" 
+  imapsync ... --user1 Bar --subfolder2 BarArchiv --delete2 --delete2foldersonly "/BarArchiv/" 
 
 See how to restore those with the next Q/R.
 
@@ -77,7 +89,7 @@ See how to restore those with the next Q/R.
 Q. How can I restore a complete account backuped in a subfolder, like
    a backup done with the option --subfolder2?
 
-R. Use --subfolder1
+A. Use --subfolder1
 
  --subfolder1   str  : Syncs the host1 folders hierarchy under folder str
                         to the root hierarchy of host2.
@@ -102,6 +114,11 @@ To restore the whole folder BarArchiv hierarchy into the Bar account:
 Read the previous FAQ item "How can I archive different accounts on the same 
 destination account, each account on a separate folder?"
 
+=======================================================================
+Q. How can I merge two or more mailboxes into one?
+
+A. Run imapsync twice, one for each mailbox, with the same destination
+   mailbox.
 
 =======================================================================
 Q. How to move emails from one IMAP folder to another, either on the 
@@ -160,7 +177,7 @@ won't go far away.
 =======================================================================
 Q. How to backup a whole year in a subfolder?
 
-R. To backup the whole year 2018 in a subfolder called ARCHIVE_2018:
+A. To backup the whole year 2018 in a subfolder called ARCHIVE_2018:
 
   imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018" \
       --subfolder2 ARCHIVE_2018 
@@ -168,7 +185,7 @@ R. To backup the whole year 2018 in a subfolder called ARCHIVE_2018:
 =======================================================================
 Q. How to archive a whole year in subfolders but without subsubfolders?
 
-R. Instead of the solution with --subfolder2, use:
+A. Instead of the solution with --subfolder2, use:
 
   imapsync ... --search "SENTSINCE 1-Jan-2018 SENTBEFORE 31-Dec-2018" \
              --sep2 _ --regextrans2 's{(.*)}{Archive_$1_2018}' 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.378 2023/08/21 22:24:11 gilles Exp gilles $  
+# $Id: tests.sh,v 1.388 2024/08/18 12:41:16 gilles Exp gilles $  
 
 # To run these tests, you need a running imap server somewhere
 # with several accounts. And be on Linux or Unix.
@@ -419,6 +419,103 @@ ll() {
          --host2 $HOST2 --user2 titi \
          --passfile2 ../../var/pass/secret.titi 
 }
+
+
+ll_port1_in_host1()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost:12345 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin | grep -F 'Host1: connecting and login on host1 [localhost] port [12345]'
+}
+
+
+ll_folderrec_in_host1()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost/INBOX.yop --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justconnect | grep -F -- '--folderrec'
+}
+
+ll_port1_143()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost --port1 143 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin --timeout 3 | grep -F 'Host1: connecting and login on host1 [localhost] port [143]'
+}
+
+
+ll_port1_993()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost --port1 993 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin --timeout 3 | grep -F 'Host1: connecting and login on host1 [localhost] port [993]'
+}
+
+ll_port1_994()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost --port1 994 --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 $HOST2 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin --timeout 3 | grep -F 'Probing imap ssl on host localhost port 994'
+}
+
+
+ll_port2_143()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 localhost --port2 143 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin --timeout 3 | grep -F 'Host2: connecting and login on host2 [localhost] port [143]'
+}
+
+ll_port2_993()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 localhost --port2 993 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin --timeout 3 | grep -F 'Host2: connecting and login on host2 [localhost] port [993]'
+}
+
+ll_port2_994()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 localhost --port2 994 --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justlogin --timeout 3 | grep -F 'Probing imap ssl on host localhost port 994'
+}
+
+
+
+ll_subfolder2_in_host2()
+{
+        $CMD_PERL  ./imapsync \
+         --host1 localhost/INBOX.yop --user1 tata \
+         --passfile1 ../../var/pass/secret.tata \
+         --host2 localhost/INBOX.uuu --user2 titi \
+         --passfile2 ../../var/pass/secret.titi \
+         --justfolders --dry # | grep -F -- '--subfolder2'
+}
+
 
 ll_diff_log_stdout_debugssl() {
         $CMD_PERL  ./imapsync \
@@ -1181,10 +1278,10 @@ justbanner() {
                 --justbanner
 }
 
-nomodules_version() {    
+nomodulesversion() {    
                 $CMD_PERL ./imapsync \
                 --justbanner \
-                --nomodules_version
+                --nomodulesversion
 }
 
 
@@ -1272,14 +1369,30 @@ ll_timeout_very_small() {
 }
 
 
-ll_folder() {
+ll_folder()
+{
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.yop --folder INBOX.Trash 
+                --folder INBOX.yop --folder INBOX.Trash --justfolders
 }
+
+
+ll_folder_via_extra()
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --extra '--folder INBOX.yop 
+                --folder INBOX.Trash' --justfolders
+}
+
+
+
 
 ll_backstar() {
                 $CMD_PERL ./imapsync \
@@ -1336,15 +1449,6 @@ ll_regextrans2_d() {
                 --dry --justfolders --regextrans2 's,INBOX\.,,'
 }
 
-
-lks_trailing_space() {
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1  --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 ks.lamiral.info --user2 tata \
-                --passfile2 ../../var/pass/secret.tata \
-                --justfolders --ssl1 --ssl2
-}
 
 
 lks_doublequote() {
@@ -1439,14 +1543,9 @@ ll_folder_mixfolders() {
 # sh -x tests.sh ll_folder_create ll_delete2folders
 
 # In mandatory_tests
-ll_folder_create() { 
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1  --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --folder INBOX.yop --regextrans2 's/yop/new.nested.yop/' \
-		--justfolders
+ll_folder_create()
+{                
+                ./W/learn/create_folder localhost titi `cat ../../var/pass/secret.titi` INBOX.new INBOX.new.nested INBOX.new.nested.yop 
 }
 
 # In mandatory_tests
@@ -1962,8 +2061,36 @@ ll_justfolders_foldersizes()
 }
 
 
+ll_delete2folders_focus()
+{
+        ll_delete2folders \
+        && ll_delete2foldersbutnot \
+        && ll_delete2foldersonly_NEW_3 \
+        && ll_delete2foldersonly_subfolder2 \
+        && true
+}
+
 # In mandatory_tests
-ll_delete2foldersonly_dry()
+ll_delete2folders() 
+{
+        ./W/learn/create_folder localhost titi `cat ../../var/pass/secret.titi` INBOX.NEW_4 INBOX.NEW_4.nested INBOX.NEW_4.nested.yop 
+                
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders  --nofoldersizes \
+                --delete2folders
+
+        ! test -d /home/vmail/titi/.NEW_4/ || return 1
+} 
+
+
+
+
+# In mandatory_tests
+ll_delete2foldersonly_dry() 
 {
                 $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
@@ -1975,64 +2102,92 @@ ll_delete2foldersonly_dry()
 }
 
 # In mandatory_tests
-ll_delete2foldersonly_subfolder2()
+ll_delete2foldersonly_subfolder2() 
 {
-./W/learn/create_folder localhost titi `cat /g/var/pass/secret.titi` INBOX.NEW_2
-                $CMD_PERL ./imapsync \
+        test -d /home/vmail/titi/.NEW_2.nested/ || \
+                ./W/learn/create_folder localhost titi `cat /g/var/pass/secret.titi` INBOX.NEW_2 INBOX.NEW_2.nested INBOX.NEW_2.nested.yop
+
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes \
                 --subfolder2 NEW_2 \
-                --delete2foldersonly NEW_2 --folder INBOX --debug
-                # NEW_2 should be still there because of --subfolder2 NEW_2
-                test -d /home/vmail/titi/.NEW_2/  || return 1
+                --delete2foldersonly m{NEW_2} --folder INBOX --debug --dry
+
+        # NEW_2 should be still there because of --subfolder2 NEW_2
+        test -d /home/vmail/titi/.NEW_2/  || return 1
 }
 
-# In mandatory_tests
-ll_delete2foldersbutnot()
+
+ll_delete2foldersonly_subfolder2_all() 
 {
-                $CMD_PERL ./imapsync \
+        test -d /home/vmail/titi/.NEW_2.nested/ || \
+                ./W/learn/create_folder localhost titi `cat /g/var/pass/secret.titi` INBOX.NEW_2 INBOX.NEW_2.nested INBOX.NEW_2.nested.yop
+
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes \
-                --delete2foldersbutnot 'm{NEW_2|NEW_3|\[abc\]}' \
-		--dry
+                --subfolder2 NEW_2 \
+                --delete2foldersonly /NEW_2/ 
+                
+                # NEW_2 should be still there because of --subfolder2 NEW_2         
+                test -d /home/vmail/titi/.NEW_2/  || return 1
+}
+
+
+
+# In mandatory_tests
+ll_delete2foldersbutnot()
+{
+        ./W/learn/create_folder localhost titi `cat ../../var/pass/secret.titi` INBOX.NEW_5 INBOX.NEW_5.nested5 INBOX.NEW_5.nested5.yop
+        test -d /home/vmail/titi/.NEW_6/ || ./W/learn/create_folder localhost titi `cat ../../var/pass/secret.titi` INBOX.NEW_6 INBOX.NEW_6.nested6 INBOX.NEW_6.nested6.yop
+
+        test -d /home/vmail/titi/.NEW_5.nested5.yop/  || return 1
+        test -d /home/vmail/titi/.NEW_6.nested6.yop/  || return 1
+        
+        $CMD_PERL ./imapsync \
+                --host1 $HOST1  --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders  --nofoldersizes \
+                --delete2foldersbutnot 'm{NEW_6}'
+
+        ! test -d /home/vmail/titi/.NEW_5/ || return 1
+          test -d /home/vmail/titi/.NEW_6/ || return 1
 }
 
 # In mandatory_tests
 ll_delete2foldersonly_NEW_3()
 {
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1  --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --justfolders  --nofoldersizes \
-		--regextrans2 's,^INBOX.oneemail$,INBOX.NEW_3.oneemail,' \
-		--regextrans2 's,^INBOX.oneemail2$,INBOX.NEW_3.oneemail2,' 
+        test -d /home/vmail/titi/.NEW_3.nested1/ || ./W/learn/create_folder localhost titi `cat ../../var/pass/secret.titi` INBOX.NEW_3.nested1 INBOX.NEW_3.nested1.yop
+        test -d /home/vmail/titi/.NEW_3.nested2/ || ./W/learn/create_folder localhost titi `cat ../../var/pass/secret.titi` INBOX.NEW_3.nested2 INBOX.NEW_3.nested2.yop
+                
 
-		test -d /home/vmail/titi/.NEW_3.oneemail/  || return 1
-		test -d /home/vmail/titi/.NEW_3.oneemail2/  || return 1
+        test -d /home/vmail/titi/.NEW_3.nested1.yop/  || return 1
+        test -d /home/vmail/titi/.NEW_3.nested2.yop/  || return 1
 
-                $CMD_PERL ./imapsync \
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
                 --passfile2 ../../var/pass/secret.titi \
                 --justfolders  --nofoldersizes \
 		--include 'rrrrr' \
-                --delete2foldersonly '/^INBOX.NEW_3.oneemail$/'
+                --delete2foldersonly '/^INBOX.NEW_3.nested1$/'
 
-		! test -d /home/vmail/titi/.NEW_3.oneemail/ || return 1
-		test -d /home/vmail/titi/.NEW_3.oneemail2/ || return 1
+        ! test -d /home/vmail/titi/.NEW_3.nested1/ || return 1
+          test -d /home/vmail/titi/.NEW_3.nested2/ || return 1
 }
 
-ll_delete2foldersonly_bug() {
-                $CMD_PERL ./imapsync \
+ll_delete2foldersonly_bug() 
+{
+        $CMD_PERL ./imapsync \
                 --host1 $HOST1  --user1 tata \
                 --passfile1 ../../var/pass/secret.tata \
                 --host2 $HOST2 --user2 titi \
@@ -2043,22 +2198,6 @@ ll_delete2foldersonly_bug() {
 #                --delete2foldersonly '/^INBOX.Archive$/' --dry
 
 }
-
-
-# In mandatory_tests
-ll_delete2folders()
-{
-                $CMD_PERL ./imapsync \
-                --host1 $HOST1  --user1 tata \
-                --passfile1 ../../var/pass/secret.tata \
-                --host2 $HOST2 --user2 titi \
-                --passfile2 ../../var/pass/secret.titi \
-                --justfolders  --nofoldersizes \
-                --delete2folders 
-
-                ! test -d /home/vmail/titi/.NEW_3/ || return 1
-}
-
 
 
 
@@ -3395,8 +3534,6 @@ ll_regextrans2_dot()
 }
 
 
-
-
 ll_subfolder2() 
 {
                 $CMD_PERL ./imapsync \
@@ -3407,6 +3544,23 @@ ll_subfolder2()
                 --justfolders --foldersizesatend \
                 --subfolder2 SUB 
 }
+
+
+ll_subfolder2_self() 
+{
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 titi \
+                --passfile1 ../../var/pass/secret.titi \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --justfolders --foldersizesatend \
+                --folderrec INBOX.yop --folderrec INBOX.SUB1 \
+                --subfolder2 SUB1.SUB2 #--exclude SUB1.SUB2 
+}
+
+
+
+
 
 ll_subfolder1()
 {
@@ -3621,6 +3775,8 @@ ll_authentication_failure_user12() {
          --password2 wrong
          test "$?" = "$EXIT_AUTHENTICATION_FAILURE_USER1"
 }
+
+
 
 
 ll_bad_host1()
@@ -5603,7 +5759,8 @@ gmail() {
                 --host2 $HOST2 \
                 --user2 tata \
                 --passfile2 ../../var/pass/secret.tata \
-                --exclude Gmail --exclude "blanc\ $"
+                --exclude Gmail 
+
 }
 
 gmail_l_tata() {
@@ -5630,7 +5787,7 @@ gmail_justfolders() {
                 --host2 $HOST2 \
                 --user2 tata \
                 --passfile2 ../../var/pass/secret.tata \
-		--justfolders --exclude Gmail --exclude "blanc\ $"
+		--justfolders --exclude Gmail --exclude 'blanc\ $'
 }
 
 gmail_justfolders_remove_Gmail() {
@@ -5792,7 +5949,7 @@ gmail_gmail()
                 --host2 imap.gmail.com \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
-                --justfolders --exclude Gmail  --exclude "blanc\ $" 
+                --justfolders --exclude Gmail  --exclude 'blanc\ $' 
 }
 
 
@@ -5920,7 +6077,7 @@ gmail_gl_gl2_justfolders() {
                 --host2 imap.gmail.com \
                 --user2 imapsync.gl2@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
-                --justfolders --exclude Gmail  --exclude "blanc\ $" --dry
+                --justfolders --exclude Gmail  --exclude 'blanc\ $' --dry
 }
 
 
@@ -5975,7 +6132,7 @@ gmail_gl_gl2_create_folder_old() {
                 --gmail2 \
                 --user2 imapsync.gl2@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl2_gmail \
-                --justfolders --exclude Gmail  --exclude "blanc\ $" \
+                --justfolders --exclude Gmail  --exclude 'blanc\ $' \
                 --create_folder_old --dry --nofoldersizes
 }
 
@@ -6010,7 +6167,7 @@ gmail_gmail_folderfirst() {
                 --ssl2 \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
-		--exclude "blanc\ $" --exclude Gmail \
+		--exclude 'blanc\ $' --exclude Gmail \
                 --justfolders --folderfirst INBOX --folderfirst zz  --folderlast "[Gmail]/All Mail" --debug
 }
 
@@ -6068,7 +6225,7 @@ gmail_gmail_5_exclude_only_Gmail() {
                 --ssl2 \
                 --user2 imapsync.gl@gmail.com \
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
-                --nofoldersizes --folderrec "[Gmail]" --exclude "\[Gmail\]$"
+                --nofoldersizes --folderrec "[Gmail]" --exclude '\[Gmail\]$'
 }
 
 gmail_gmail_6_search() {
@@ -6442,6 +6599,31 @@ yahoo_all() {
         yahoo_search_SENTBEFORE || return 1
 }
 
+
+
+aol()
+{
+        ./imapsync \
+                --host1 export.imap.aol.com \
+                --user1 gilles.lamiral@aol.com \
+                --passfile1 ../../var/pass/secret.gilles_aol \
+                --host2 export.imap.aol.com \
+                --user2 gilles.lamiral@aol.com \
+                --passfile2 ../../var/pass/secret.gilles_aol \
+                --debugimap1 --showpasswords --justlogin 
+}
+
+aol_folders_list()
+{
+        ./imapsync \
+                --host1 export.imap.aol.com \
+                --user1 gilles.lamiral@aol.com \
+                --passfile1 ../../var/pass/secret.gilles_aol \
+                --host2 export.imap.aol.com \
+                --user2 gilles.lamiral@aol.com \
+                --passfile2 ../../var/pass/secret.gilles_aol \
+                --justfolderlists
+}
 
 
 archiveopteryx_1() {
@@ -6877,10 +7059,8 @@ office1_office2_justlogin_gilles_oauth2()
 	--user2 gilles.lamiral@outlook.com \
 	--justlogin --debugimap --showpasswords \
         --oauthaccesstoken1 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt \
-        --oauthaccesstoken2 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt 
+        --oauthaccesstoken2 oauth2/oauth2_imap/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt
 }
-
-
 
 
 
@@ -7389,6 +7569,22 @@ huge_folder_useuid()
 
 
 
+quota_only()
+{
+    date1=`date`
+    { $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 gilles@est.belle \
+        --passfile1 ../../var/pass/secret.gilles_mbox \
+        --host2 $HOST2 --user2 tete@est.belle \
+        --passfile2 ../../var/pass/secret.tete \
+        --justfolderlists || \
+    true
+    }
+    date2=`date`
+    echo3 "[$date1] [$date2]"
+}
+
+
 huge_folder_sizes_only()
 {
     date1=`date`
@@ -7633,6 +7829,11 @@ dprof2_bigmail()
     mv prof.out      W/dprof2_bigmail_tmon.out
 }
 
+#########################################
+# curl imapsync online tests
+#########################################
+
+
 curl_online_args()
 {
         curl -v --data 'host1=test1.lamiral.info;user1=test1;password1=secret1;host2=test2.lamiral.info;user2=test2;password2=secret2;simulong=2' \
@@ -7743,6 +7944,23 @@ curl_online_external()
 }
 
 
+
+#########################################
+# proximapsync functionnal tests
+#########################################
+
+proximapsync()
+{
+        ./W/learn/proximapsync
+}
+
+
+proximapsync_remote_down()
+{
+        ./W/learn/proximapsync --remote https://imapsync.lamiral.info/cgi-bin/imapsync --remote https://kkk/cgi-bin/imapsync 
+}
+
+
 ##########################
 ##########################
 
@@ -7774,7 +7992,7 @@ pidfile_bad
 ll_pidfilelocking
 test_tail
 justbanner
-nomodules_version
+nomodulesversion
 xxxxx_gmail
 gmail_xxxxx
 gmail
@@ -7807,6 +8025,7 @@ ll_checkselectable_nb_folders
 ll_nocheckfoldersexist
 ll_checkfoldersexist
 ll_subfolder2
+ll_subfolder2_self
 ll_subfolder1
 ll_subfolder1_INBOX_SUB
 ll_subfolder1_DOES_NOT_EXIST
@@ -7885,6 +8104,12 @@ ll_justhost1
 ll_justhost2
 ll_justlogin
 ll_justconnect_devel
+ll_port1_143
+ll_port1_993
+ll_port1_994
+ll_port2_143
+ll_port2_993
+ll_port2_994
 ll_ssl
 ll_ssl_justconnect
 ll_ssl_justlogin
@@ -7949,6 +8174,8 @@ ll_sigreconnect_INT
 ll_diff_log_stdout_debugssl
 curl_online_args
 curl_online_file
+proximapsync
+proximapsync_remote_down
 ksks_reset_test1
 memory_stress
 '

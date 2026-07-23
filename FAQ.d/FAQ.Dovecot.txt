@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Dovecot.txt,v 1.14 2022/06/16 09:06:34 gilles Exp gilles $
+$Id: FAQ.Dovecot.txt,v 1.17 2024/07/08 11:53:45 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -32,12 +32,20 @@ Q. Imapsync encounters timeouts and Dovecot log says
    "mailpiler dovecot: imap(xxx): Error: Timeout (180s) while waiting for dotlock for transaction log file ..."
    What can I do?
 
+Q. I have this APPEND error:
+   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom .
+   What can I do?
+
+Q. Imapsync transfer only a subset of folders from host1.
+   What can I do?
+
+
 Now the questions again with their answers.
 
 =======================================================================
 Q. Is there imapsync specific options to deal with Dovecot?
 
-R. Dovecot is ok with imapsync, nothing special is needed, just the
+A. Dovecot is ok with imapsync, nothing special is needed, just the
    basic options, ie, the credentials, are needed.
 
 =======================================================================
@@ -45,18 +53,44 @@ Q. The login fails with the error:
    Err 1/1: Host2 failure: Error login on [...] with user [...] auth [LOGIN]: timeout waiting 120s for data from server (5x)
    What can it be?
 
-R. It can be special characters in the password. Change it with only
+A. It can be special characters in the password. Change it with only
    normal characters, characters from a-z A-Z 0-9
 
 =======================================================================
 Q. How to migrate to Dovecot with an admin/MasterUser account?
 
-R. Dovecot uses the same syntax as uw-imap
+A. Dovecot uses the same syntax as uw-imap
 
   imapsync ... --user2="loginuser*admin_user" --password2 "admin_user_password"
 
 To setup a Dovecot MasterUser follow the document
 https://doc.dovecot.org/configuration_manual/authentication/master_users/
+
+If you encounter this error message from imapsync:
+Err 1/18: Host1 Folder INBOX: Could not select: 16 NO [SERVERBUG] Internal error occurred. Refer to server log for more information.
+
+See then:
+https://github.com/imapsync/imapsync/issues/148#issuecomment-1982241694
+
+I quote budiantoip
+```
+This happened because I use a master user to transfer the mailboxes, 
+and the master user does not have access to the user's mailboxes. 
+The solution is to modify the dovecot config and add these 2 lines:
+
+plugin {
+    # lines of the existing plugin block
+    ... 
+
+    acl_user=%u
+    master_user=%u
+}
+
+Save the changes, and validate the config with this command:
+    doveconf >/dev/null && echo OK
+If it returns no error or warning messages, restart the dovecot service. 
+You should be able to proceed after that.
+```
 
 =======================================================================
 Q. I have a mailbox that "dovecot backup" gives errors on that
@@ -76,7 +110,7 @@ Thanks to Martin Ward for this input!
 Q. Subfolders are not created by imapsync and the error is
    "Mailbox doesn't allow inferior mailboxes"
 
-R. Dovecot usually supports subfolders with messages and subfolders,
+A. Dovecot usually supports subfolders with messages and subfolders,
    it's a Dovecot configuration issue.
 
 If you can change the Dovecot configuration dovecot.conf, 
@@ -94,10 +128,66 @@ Q. Imapsync encounters timeouts and Dovecot log says
    "mailpiler dovecot: imap(xxx): Error: Timeout (180s) while waiting for dotlock for transaction log file ..."
    What can I do?
 
-R. It looks like an NFS issue with Dovecot. 
+A. It looks like an NFS issue with Dovecot. 
    Solve it with Dovecot support or use something else than NFS.
    I'll be glad to share here any solution you find.
    (Thanks to Mate Skoblar for reporting this issue)
+
+=======================================================================
+Q. I have this APPEND error:
+   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom .
+   What can I do?
+
+A. Use this to remove all 8bit characters from the flags:
+
+  imapsync ... --regexflag "tr [\x80-\xff] []d"
+
+=======================================================================
+Q. Imapsync transfer only a subset of folders from host1.
+   What can I do?
+
+A. Answer from Ionel Spanachi
+
+I noticed that imapsync would transfer only a subset of folders from
+host1. After investigating, I found out that the fault (of course) was
+on the archaic dovecot-server. When listing folders of a user via
+master_user access, it would show only shared folders, INBOX and Sent
+and imapsync would accordingly and naturally transfer only folders
+shown in response of the LIST command.
+
+Dovecot has a file in ~/Maildir/dovecot-acl-list, which for unknown
+reasons does not get updated automatically. Removing this file for
+every user suddenly exhibits ALL the folders, which are then correctly
+identified and processed by imapsync.  I'm doing something like this
+now:
+
+migrate-single-mb:
+ 
+#!/bin/bash
+ 
+if [ -z ${MASTERPASS} ]; then
+     echo "MASTERPASS no set!"
+     exit 255
+fi
+ 
+DOVECOT_HOME=$(doveadm user -u $1 -f home) || { echo "User [$1] has no home!"; exit 1; }
+ 
+DOVECOT_ACL_CACHE=${DOVECOT_HOME}/Maildir/dovecot-acl-list
+ 
+if [ ! -f $DOVECOT_ACL_CACHE ]; then
+     echo "$DOVECOT_ACL_CACHE not found."
+fi
+ 
+rm -f $DOVECOT_ACL_CACHE
+
+# Check, if folders now appear as they should:
+echo -e "a1 login $1*virtual $MASTERPASS\na2 LIST \"\" *\na3 LOGOUT" | openssl s_client -connect localhost:993 -crlf -quiet | grep -v shared
+
+imapsync --host1 localhost --user1 ${1}*virtual --password1 "${MASTERPASS}" \
+         --host2 192.168.110.21 --user2 ${1}*masteruser --password2 "${MASTERPASS}" \
+         --exclude '^shared\.|^shared/' \
+         --delete2 \
+         --nolog
 
 =======================================================================
 =======================================================================

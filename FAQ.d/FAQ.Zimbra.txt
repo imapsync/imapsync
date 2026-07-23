@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Zimbra.txt,v 1.13 2023/07/17 07:50:12 gilles Exp gilles $
+$Id: FAQ.Zimbra.txt,v 1.14 2023/12/01 15:47:43 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -32,6 +32,7 @@ What can I do?
 Q. Zimbra disconnects without reason
    Could not select: * BYE ... Zimbra IMAP4rev1 server closing connection
 
+Q. Imapsync finds 0 folders on a Zimbra account.
 
 Now the questions again with their answers.
 
@@ -53,7 +54,7 @@ A. So far, Zimbra releases reported ok:
 =======================================================================
 Q. How to migrate from Zimbra with an admin account?
 
-R. Use:
+A. Use:
 
   imapsync ... --user1 "normal_user" --authuser1 "admin_user"  --password1 "admin_user_password"
 
@@ -70,7 +71,7 @@ could not append ( Subject:... Flags:[\Flagged \Seen EmailswithStickyNotes:FLAG5
 to folder XXX: 316 NO APPEND failed
 What can I do?
 
-R1.
+A1.
 https://zimbra.github.io/adminguide/8.8.10/index.html
 Flagging
 Users can create flags and assign them to messages, contacts, and files in Briefcase folders.
@@ -83,7 +84,7 @@ If yes, see https://imapsync.lamiral.info/FAQ.d/FAQ.Flags.txt
 Q. Zimbra disconnects without reason
    Could not select: * BYE ... Zimbra IMAP4rev1 server closing connection
 
-R. The cause of this problem may be that some users have a subscription 
+A. The cause of this problem may be that some users have a subscription 
    of a shared folder from a mailbox locked and so the shared folder.
    The access problems may happen in a lot of folders, 
    not only the shared/locked one.
@@ -93,4 +94,15 @@ R. The cause of this problem may be that some users have a subscription
    Thanks to Danny Herrlitz for this input!
 
 =======================================================================
+Q. Imapsync finds 0 folders on a Zimbra account.
+
+A. Check there are no broken mountpoints in the account you are trying 
+   to sync. Broken mountpoints appear strike through in the webmail.
+
+   Just remove the broken mountpoint (clicking on it in the webmail 
+   will show a popup you just have to confirm) and Zimbra will stop 
+   answering there's zero IMAP folder to the LIST "" *.
+
+   From https://github.com/imapsync/imapsync/issues/426
+
 =======================================================================

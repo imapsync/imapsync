@@ -1,5 +1,5 @@
 
-# $Id: Makefile,v 1.368 2023/09/27 11:26:58 gilles Exp gilles $	
+# $Id: Makefile,v 1.383 2024/08/21 13:38:53 gilles Exp gilles $	
 
 .PHONY: help usage all doc
 
@@ -37,7 +37,7 @@ usage:
 	@echo "make upload_csv    # upload online CSV service"
 	@echo "make upload_latest # upload latest imapsync and binaries (dev)" 
 	@echo "make upload_cgi    # upload latest imapsync online, after local and remote --tests success." 
-	@echo "make upload_cgi_memo  # upload cgi_memo stat_patterns.txt to /X servers." 
+	@echo "make upload_cgi_memo_all  # upload cgi_memo stat_patterns.txt to /X servers." 
 	@echo "make valid_index # check index.shtml for good syntax"
 	@echo "make upload_ks"
 	@echo "make imapsync.exe"
@@ -58,9 +58,8 @@ usage:
 
 
 PREFIX ?= /usr
-DIST_PATH := dist2/
 VERSION := $(shell perl ./imapsync --version 2>/dev/null || cat VERSION)
-VERSION_PREVIOUS := $(shell perl ./$(DIST_PATH)/imapsync --version 2>/dev/null || echo ERROR)
+VERSION_PREVIOUS := $(shell perl ./dist2/imapsync --version 2>/dev/null || echo ERROR)
 
 
 DIST_NAME := imapsync-$(VERSION)
@@ -129,10 +128,10 @@ clean: clean_tilde clean_man clean_log clean_bak clean_permissions clean_oauth2
 clean_permissions:
 	chmod a-x Makefile FAQ.d/FAQ.*.txt README_Windows.txt
 	chmod a-x FAQ.d/RCS/FAQ.*.txt,v
-	chmod a-x INSTALL.d/INSTALL.*.txt 
+	chmod a-x INSTALL.d/RCS/INSTALL.*.txt,v
 	chmod a-x X/progress.html X/imapsync_form.html 
 	chmod a-x S/*.shtml S/*.html  index.shtml S/RCS/*.shtml,v S/RCS/*.html,v 
-	chmod a-x doc/*.t2t $(DIST_PATH)/*.txt
+	chmod a-x doc/*.t2t dist2/*.txt
 
 
 clean_tilde:
@@ -148,7 +147,7 @@ clean_bak:
 
 clean_oauth2:
 	rm -fv oauth2/oauth2_gmail/typescript oauth2/oauth2_gmail/D_*txt
-	rm -fv oauth2/oauth2_office365/tokens/oauth2_tokens_*.txt
+	rm -fv oauth2/oauth2_imap/tokens/oauth2_tokens_*.txt
 
 .PHONY: install dist man
 
@@ -193,7 +192,9 @@ testsdebug: linuxtestsdebug win64testsdebug win32testsdebug mactestsdebug
 testslive:  mactestslive
 
 
-
+upload_ChangeLog: ChangeLog
+	rsync -avH ChangeLog ../imapsync_website/
+	rsync -aHvz --delete ../imapsync_website/ root@imapsync.lamiral.info:/var/www/html/imapsync/
 
 docker:
 	@echo "make docker_copy_to_ks5 # copy imapsync Dockerfile memo_docker to ks5"
@@ -204,15 +205,19 @@ docker:
 docker_build: docker_copy_to_ks5
 	ssh ks5 'cd docker/imapsync && . memo_docker && imapsync_docker_build'
 
+docker_run_dev_testslive: docker_build
+	@echo "ssh ks5 'cd docker/imapsync && . memo_docker && imapsync_local_docker --testslive --log'"
 
 docker_copy_to_ks5:
 	ssh ks5 'mkdir -p docker/imapsync/ var/pass/'
 	rsync -av /g/var/pass/secret.docker ks5:var/pass/secret.docker
-	rsync -av imapsync INSTALL.d/Dockerfile INSTALL.d/memo_docker INSTALL.d/prerequisites_imapsync INSTALL.d/secret.txt ks5:docker/imapsync/
+	rsync -av imapsync  INSTALL.d/Dockerfile INSTALL.d/memo_docker INSTALL.d/prerequisites_imapsync INSTALL.d/secret.txt ks5:docker/imapsync/
+	rsync -av X/servimapsync X/imapsync_form_extra.html X/imapsync_form.css X/imapsync_form.js  ks5:docker/imapsync/
 	rsync -av RCS/imapsync,v INSTALL.d/RCS/Dockerfile,v INSTALL.d/RCS/memo_docker,v ks5:docker/imapsync/RCS/
 
-docker_upload_docker_hub: docker_build
+docker_upload_docker_hub: upload_ChangeLog docker_build  
 	ssh ks5 'cd docker/imapsync && . memo_docker && imapsync_docker_upload'
+	echo Go to https://hub.docker.com/r/gilleslamiral/imapsync/
 
 functree: W/imapsync_functions_tree_ppi.txt W/imapsync_functions_tree.txt
 
@@ -225,18 +230,22 @@ W/imapsync_functions_tree.txt: imapsync
 	rcsdiff W/imapsync_functions_tree.txt || { echo 'rcsdiff detected a diff' | ci -l W/imapsync_functions_tree.txt ; }
 
 
-nytprof: nytprof_clean
+nytprof: nytprof.out
+
+nytprof.out: imapsync  
+	rm -rfv nytprof/
 	sh tests.sh ll_nytprof
 	nytprofhtml
 
-nytprof_clean:
-	rm -rfv nytprof/
 
 
-cover:
+cover: cover_db/coverage.html
+
+cover_db/coverage.html: imapsync
 	perl -c ./imapsync
 	perl -MDevel::Cover ./imapsync --tests --testslive
 	cover
+
 
 tidy: W/imapsync.tdy
 
@@ -658,14 +667,15 @@ imapsync_64bit.exe_p24: imapsync
 
 prepa_zip: dosify_bat cidone
 	rm -rfv ../prepa_zip/imapsync_$(VERSION)/
-	mkdir -p ../prepa_zip/imapsync_$(VERSION)/FAQ.d/ ../prepa_zip/imapsync_$(VERSION)/Cook/ ../prepa_zip/imapsync_$(VERSION)/oauth2_office365/ 
+	mkdir -p ../prepa_zip/imapsync_$(VERSION)/FAQ.d/ ../prepa_zip/imapsync_$(VERSION)/Cook/ ../prepa_zip/imapsync_$(VERSION)/oauth2_imap/ 
 	cp -av examples/imapsync_example.bat examples/sync_loop_windows.bat examples/file.txt  examples/imapsync_example_oauth2.bat  ../prepa_zip/imapsync_$(VERSION)/
 	cp -av FAQ.d/*.txt ../prepa_zip/imapsync_$(VERSION)/FAQ.d/
 	cp -av W/build_exe.bat W/install_modules.bat W/test_cook_exe.bat W/test_cook_src.bat imapsync ../prepa_zip/imapsync_$(VERSION)/Cook/
-	cp -av oauth2/oauth2_office365/oauth2_office365_with_imap.exe  oauth2/oauth2_office365/README.txt \
-	    oauth2/oauth2_office365/example.bat oauth2/oauth2_office365/infinite_loop_example.bat \
-	    ../prepa_zip/imapsync_$(VERSION)/oauth2_office365/
-	mkdir ../prepa_zip/imapsync_$(VERSION)/oauth2_office365/tokens/
+	cp -av oauth2/oauth2_imap/oauth2_imap*  oauth2/oauth2_imap/README_oauth2.txt \
+	    oauth2/oauth2_imap/oauth2_example_*.bat oauth2/oauth2_imap/localhost* \
+            oauth2/oauth2_imap/build_oauth2_imap_exe.bat \
+	    ../prepa_zip/imapsync_$(VERSION)/oauth2_imap/
+	mkdir ../prepa_zip/imapsync_$(VERSION)/oauth2_imap/tokens/
 	cp -av imapsync.exe  README_Windows.txt ../prepa_zip/imapsync_$(VERSION)/
 	cp -av README  ../prepa_zip/imapsync_$(VERSION)/README.txt
 	unix2dos ../prepa_zip/imapsync_$(VERSION)/*.txt
@@ -679,16 +689,16 @@ zip: prepa_zip
 
 # C:\Users\mansour\Desktop\imapsync
 
-.PHONY: mac mac_i386 macstadiumcopy macstadiumback maccopy macforce mactests mactestsdebug mactestslive mactestslive_polar mactestslive_stadium mactestslive6 bin win lin win64 
+.PHONY: mac mac_i386 macstadiumcopy macstadiumback maccopy macforce mactests mactestsdebug mactestslive mactestslive_polar mactestslive_stadium bin win lin win64 
 
-mac: mac_i386 mac_x86_64
+mac: mac_x86_64
 
 mac_i386: imapsync_bin_Darwin_i386
 
 mac_x86_64: imapsync_bin_Darwin_x86_64
 
 macstadiumcopy:
-	rsync -pv imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver imapsync@macstadium.lamiral.info:
+	rsync -pv imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync X/servimapsync imapsync@macstadium.lamiral.info:
 	rsync -pv examples/file.txt examples/sync_loop_darwin.sh imapsync@macstadium.lamiral.info:examples/
 	rsync -pv X/ imapsync@macstadium.lamiral.info:X/
 
@@ -702,7 +712,7 @@ macstadiumback:
 
 
 maccopy:
-	rsync -v -p -e 'ssh -4 -p 995' imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync webserver \
+	rsync -v -p -e 'ssh -4 -p 995' imapsync W/build_mac.sh INSTALL.d/prerequisites_imapsync X/servimapsync \
 	gilleslamira@gate.polarhome.com:
 	rsync -v -p -e 'ssh -4 -p 995' examples/file.txt examples/sync_loop_darwin.sh gilleslamira@gate.polarhome.com:examples/
 	rsync -v -p -e 'ssh -4 -p 995' X/ gilleslamira@gate.polarhome.com:X/
@@ -789,7 +799,7 @@ tarball: cidone
 	echo making tarball ../prepa_dist/$(DIST_FILE)
 	mkdir -p dist
 	mkdir -p ../prepa_dist/$(DIST_NAME)
-	rsync -aCvH --delete --delete-excluded --omit-dir-times --exclude $(DIST_PATH) --exclude-from=W/rsync_exclude_dist.txt  ./ ../prepa_dist/$(DIST_NAME)/
+	rsync -aCvH --delete --delete-excluded --omit-dir-times --exclude dist2/ --exclude-from=W/rsync_exclude_dist.txt  ./ ../prepa_dist/$(DIST_NAME)/
 	cd ../prepa_dist && tar czfv $(DIST_FILE) $(DIST_NAME)
 	cd ../prepa_dist && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
 	cd ../prepa_dist && md5sum -c $(DIST_FILE).md5.txt
@@ -801,7 +811,7 @@ cidone: auto_ci
 	rcsdiff X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt X/imapsync_form.* X/imapsync_form_extra.html X/noscript.css
 	rcsdiff W/*.bat W/*.sh W/*.txt W/*.htaccess
 	cd W && rcsdiff RCS/*
-	cd oauth2/oauth2_office365/ && rcsdiff *.bat oauth2_office365_with_imap *.txt RCS/*
+	cd oauth2/oauth2_imap/ && rcsdiff *.bat oauth2_imap *.txt RCS/*
 	rcsdiff doc/*.t2t
 	rcsdiff INSTALL.d/*.txt INSTALL.d/prerequisites_imapsync
 	rcsdiff FAQ.d/*.txt
@@ -816,33 +826,33 @@ dist: cidone test clean all tarball prepa_dist zip dist_zip README_dist
 
 
 md5:
-	cd $(DIST_PATH)/ && md5sum *
+	cd dist2/ && md5sum *
 
 sha:
-	cd $(DIST_PATH)/ && sha512sum *
+	cd dist2/ && sha512sum *
 
-.PHONY: moveoldrelease ks5tests README_dist docker_pull_count
+.PHONY: copyoldrelease ks5tests README_dist docker_pull_count
 
-moveoldrelease:
-	./W/tools/backup_old_dist $(DIST_PATH)
+copyoldrelease:
+	./W/tools/backup_old_dist dist2/
 
 
-prepa_dist:  moveoldrelease
-	ln -f ../prepa_dist/$(DIST_FILE) $(DIST_PATH)/
+prepa_dist:  copyoldrelease
+	ln -f ../prepa_dist/$(DIST_FILE) dist2/
 	rcsdiff imapsync
-	cp -a ../prepa_dist/$(DIST_NAME)/imapsync $(DIST_PATH)/
-	cp -a ../prepa_dist/$(DIST_NAME)/imapsync_bin_Darwin_i386 ../prepa_dist/$(DIST_NAME)/imapsync_bin_Darwin_x86_64   $(DIST_PATH)/
-	#cd $(DIST_PATH)/ && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
-	#cd $(DIST_PATH)/ && md5sum -c $(DIST_FILE).md5.txt
-	ls -l $(DIST_PATH)/
+	cp -a ../prepa_dist/$(DIST_NAME)/imapsync dist2/
+	cp -a ../prepa_dist/$(DIST_NAME)/imapsync_bin_Darwin_i386 ../prepa_dist/$(DIST_NAME)/imapsync_bin_Darwin_x86_64   dist2/
+	#cd dist2/ && md5sum $(DIST_FILE) > $(DIST_FILE).md5.txt
+	#cd dist2/ && md5sum -c $(DIST_FILE).md5.txt
+	ls -l dist2/
 
 
 dist_zip:
-	cp -a ../prepa_zip/imapsync_$(VERSION).zip $(DIST_PATH)/
+	cp -a ../prepa_zip/imapsync_$(VERSION).zip dist2/
 
 README_dist:
-	sh W/tools/gen_README_dist > $(DIST_PATH)/README.txt
-	unix2dos $(DIST_PATH)/README.txt
+	sh W/tools/gen_README_dist > dist2/README.txt
+	unix2dos dist2/README.txt
 
 .PHONY: publish upload_ks ks valid_index biz ks5tests_gilles ks5tests_root auto_ci
 
@@ -860,16 +870,10 @@ S/imapsync_sold_by_country.txt: /g/bin/imapsync_by_country
 ks:
 	rsync -avHz --delete --exclude '*.exe' \
 	  . gilles@ks.lamiral.info:public_html/imapsync/
-	ssh root@ks.lamiral.info 'apachectl configtest && apachectl reload'
 
 ksa:
 	rsync -avHz --delete -P \
 	  . gilles@ks.lamiral.info:public_html/imapsync/
-	ssh root@ks.lamiral.info 'apachectl configtest && apachectl reload'
-
-ks3:
-	rsync -avHz --delete -P \
-	  . gilles@ks3.lamiral.info:public_html/imapsync/
 
 
 upload_tests: tests.sh
@@ -917,7 +921,7 @@ ks5testslive:
 	rsync -aP imapsync gilles@ks5.lamiral.info:public_html/imapsync/imapsync
 	ssh gilles@ks5.lamiral.info 'public_html/imapsync/imapsync --testslive'
 
-publish: dist upload_ks ksa 
+publish: dist imapsync_website upload_ks ksa 
 	echo Now ou can do make ml
 
 centos:
@@ -986,8 +990,8 @@ W/.valid.index.shtml: index.shtml S/*.shtml
 upload_index: valid_index clean_permissions
 	rcsdiff index.shtml README_Windows.txt S/style.css S/*.shtml FAQ.d/*.txt LICENSE CREDITS TODO examples/*.bat examples/*.sh index.shtml INSTALL.d/*.txt
 	rcsdiff S/quiz/quiz_imapsync.html S/quiz/quiz_imapsync.js S/quiz/quiz_imapsync.css
-	rm -f examples/LOG_imapsync/*
-	rsync -avH index.shtml README_Windows.txt FAQ INSTALL  NOLIMIT LICENSE CREDITS TODO S/robots.txt S/favicon.ico ../imapsync_website/
+	rm -vf examples/LOG_imapsync/*
+	rsync -avH index.shtml README_Windows.txt FAQ INSTALL ChangeLog NOLIMIT LICENSE CREDITS TODO S/robots.txt S/favicon.ico ../imapsync_website/
 	rsync -aHv  --delete ./W/ks.htaccess ../imapsync_website/.htaccess
 	rsync -aHv  --delete ./S/ ../imapsync_website/S/
 	rsync -aHv  --delete ./examples/  ../imapsync_website/examples/
@@ -997,8 +1001,6 @@ upload_index: valid_index clean_permissions
 	rsync -avH  --delete ./W/tools/   ../imapsync_website/W/tools/
 	rsync -aHvz --delete ../imapsync_website/ root@imapsync.lamiral.info:/var/www/html/imapsync/
 
-upload_ks8:
-	rsync -aHvz --delete ../imapsync_website/ root@ks8.lamiral.info:/var/www/html/imapsync/
 
 ci_imapsync:
 	rcsdiff imapsync
@@ -1007,13 +1009,14 @@ upload_latest: unitests ci_imapsync bin
 	rsync -av imapsync imapsync_bin_Darwin_x86_64 imapsync_bin_Darwin_i386 imapsync.exe imapsync_32bit.exe ./INSTALL.d/prerequisites_imapsync ../imapsync_website/
 	rsync -aHvzP --delete ../imapsync_website/ root@imapsync.lamiral.info:/var/www/html/imapsync/
 
-upload_latest_script_only: unitests ci_imapsync
-	rsync -av imapsync ../imapsync_website/
+upload_latest_scripts_only: unitests upload_ChangeLog
+	rcsdiff   imapsync ./INSTALL.d/prerequisites_imapsync X/servimapsync 
+	rsync -av imapsync ./INSTALL.d/prerequisites_imapsync X/servimapsync ../imapsync_website/
 	rsync -aHvzP --delete ../imapsync_website/ root@imapsync.lamiral.info:/var/www/html/imapsync/
 
 
 
-.PHONY: upload_cgi upload_cgi_ks5 upload_cgi_memo upload_tmphash_all
+.PHONY: upload_proximapsync upload_cgi_memo_all upload_tmphash_all test_cgi_all upload_cgi upload_cgi_memo 
 
 
 upload_proximapsync:
@@ -1028,35 +1031,47 @@ upload_proximapsync:
 	curl -v --data 'testslive=1' https://imapsync.lamiral.info/cgi-bin/proximapsync     2>/dev/null | grep 'Exiting with return value 0'
 
 
-upload_cgi_memo:
+:
 	dos2unix X/stat_patterns.txt X/server_survey_patterns.txt
 	sed -i".bak" '/^[[:space:]]*$$/d' X/stat_patterns.txt X/server_survey_patterns.txt
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks8:/var/tmp/imapsync_cgi/
 
 upload_cgi_memo_all:
+	rcsdiff X/cgi_memo
+	dos2unix X/stat_patterns.txt X/server_survey_patterns.txt
+	sed -i".bak" '/^[[:space:]]*$$/d' X/stat_patterns.txt X/server_survey_patterns.txt
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks5:/var/tmp/imapsync_cgi/
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks7:/var/tmp/imapsync_cgi/
 	rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@ks8:/var/tmp/imapsync_cgi/
-	! ping -c1 -W1 cl1 || rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@cl1:/var/tmp/imapsync_cgi/
+	! ping -c1 -W1 i050 || rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@i050:/var/tmp/imapsync_cgi/
+	! ping -c1 -W1 i021 || rsync -av X/cgi_memo X/stat_patterns.txt X/server_survey_patterns.txt root@i021:/var/tmp/imapsync_cgi/
+
 
 upload_tmphash_all:
 	scp /var/tmp/imapsync_hash root@ks5:/var/tmp/imapsync_hash && ssh root@ks5 chgrp www-data /var/tmp/imapsync_hash
 	scp /var/tmp/imapsync_hash root@ks7:/var/tmp/imapsync_hash && ssh root@ks7 chgrp www-data /var/tmp/imapsync_hash
 	scp /var/tmp/imapsync_hash root@ks8:/var/tmp/imapsync_hash && ssh root@ks8 chgrp www-data /var/tmp/imapsync_hash
 	ping -c1 i050 && scp /var/tmp/imapsync_hash root@i050:/var/tmp/imapsync_hash && ssh root@i050 chgrp www-data /var/tmp/imapsync_hash
+	ping -c1 i021 && scp /var/tmp/imapsync_hash root@i021:/var/tmp/imapsync_hash && ssh root@i021 chgrp www-data /var/tmp/imapsync_hash
+	ping -c1 gate.polarhome.com && scp -P995 -4 /var/tmp/imapsync_hash  gilleslamira@gate.polarhome.com:/var/tmp/imapsync_hash
+
 
 test_cgi_all:
 	curl -v --data 'testslive=1;exitonload=0' https://i005.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
 	curl -v --data 'testslive=1;exitonload=0' https://i007.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
 	curl -v --data 'testslive=1;exitonload=0' https://i008.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
 
-upload_cgi: upload_cgi_ks5 upload_cgi_ks7 upload_cgi_ks8
+
+
+upload_cgi: upload_cgi_ks5 upload_cgi_ks7 upload_cgi_ks8 
+
+upload_cgi_spare: upload_cgi_i021 upload_cgi_i050
 
 # Debian
 upload_cgi_ks5: ci_imapsync unitests ks5tests
 	rsync -P imapsync root@ks5.lamiral.info:/usr/lib/cgi-bin/imapsync_new
 	curl -v --data 'testslive=1;exitonload=0' https://imapsync.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
-	rsync -P imapsync root@ks5.lamiral.info:/usr/lib/cgi-bin/imapsync_new
+	rsync -P imapsync root@ks5.lamiral.info:/usr/lib/cgi-bin/imapsync
 	curl -v --data 'testslive=1;exitonload=0' https://imapsync.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
 
 
@@ -1075,18 +1090,29 @@ upload_cgi_ks8: ci_imapsync ks8tests
 	rsync -P imapsync      root@ks8.lamiral.info:/usr/lib/cgi-bin/imapsync
 	curl -v --data 'testslive=1;exitonload=0' https://ks8.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
 
+# Debian
+upload_cgi_i021: ci_imapsync i021ping i021tests
+	rsync -P imapsync      root@i021.lamiral.info:/usr/lib/cgi-bin/imapsync_new
+	curl -v --data 'testslive=1;exitonload=0' https://i021.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
+	rsync -P imapsync      root@i021.lamiral.info:/usr/lib/cgi-bin/imapsync
+	curl -v --data 'testslive=1;exitonload=0' https://i021.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+	@echo now do:
+	@echo ". X/cgi_memo && spare && shelve_spare i021"
 
 
 # Debian
-upload_cgi_cl1: ci_imapsync cl1tests
-	rsync -P imapsync      root@cl1.lamiral.info:/usr/lib/cgi-bin/imapsync_new
-	curl -v --data 'testslive=1;exitonload=0' https://cl1.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
-	rsync -P imapsync      root@cl1.lamiral.info:/usr/lib/cgi-bin/imapsync
-	curl -v --data 'testslive=1;exitonload=0' https://cl1.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+upload_cgi_i050: ci_imapsync i050ping i050tests
+	rsync -P imapsync      root@i050.lamiral.info:/usr/lib/cgi-bin/imapsync_new
+	curl -v --data 'testslive=1;exitonload=0' https://i050.lamiral.info/cgi-bin/imapsync_new 2>/dev/null | grep 'Exiting with return value 0'
+	rsync -P imapsync      root@i050.lamiral.info:/usr/lib/cgi-bin/imapsync
+	curl -v --data 'testslive=1;exitonload=0' https://i050.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+	@echo now do:
+	@echo ". X/cgi_memo && spare && shelve_spare i050"
 
+unshelve_i021: not_i021ping
+	. X/cgi_memo && spare && unshelve_spare i021
 
-
-.PHONY: ks7tests ks8tests cl1tests
+.PHONY: ks7tests ks8tests i021tests i050tests
 
 
 ks7tests:
@@ -1099,10 +1125,26 @@ ks8tests:
 	ssh root@ks8.lamiral.info ./imapsync --tests
 	ssh root@ks8.lamiral.info ./imapsync --testslive6
 
-cl1tests:
-	rsync -P imapsync root@cl1.lamiral.info:imapsync
-	ssh root@cl1.lamiral.info ./imapsync --tests
-	ssh root@cl1.lamiral.info ./imapsync --testslive6
+i021tests: i021ping
+	rsync -P imapsync root@i021.lamiral.info:imapsync
+	ssh root@i021.lamiral.info ./imapsync --tests
+	ssh root@i021.lamiral.info ./imapsync --testslive6
+
+i050tests: i050ping
+	rsync -P imapsync root@i050.lamiral.info:imapsync
+	ssh root@i050.lamiral.info ./imapsync --tests
+	ssh root@i050.lamiral.info ./imapsync --testslive6
+
+
+i021ping:
+	ping -c1 i021.lamiral.info
+
+not_i021ping:
+	! ping -c1 i021.lamiral.info
+
+
+i050ping:
+	ping -c1 i050.lamiral.info
 
 
 upload_imapsync_all:
@@ -1133,9 +1175,6 @@ upload_X_i008:
 	rsync -av S/favicon.ico root@i008.lamiral.info:/var/www/html/
 	rsync -av X/imapsync_form_extra.html X/imapsync_form.js X/imapsync_form.css X/noscript.css root@i008.lamiral.info:/var/www/html/imapsync/X/
 
-
-
-
 upload_csv:
 	./W/tools/validate_xml_html5    X/sandbox_csv.html
 	rcsdiff      X/sandbox_csv.html X/sandbox_csv.js X/imapsync_csv_wrapper
@@ -1152,36 +1191,41 @@ upload_FAQ:
 	rsync -avH  --delete  ./doc/                ../imapsync_website/doc/
 	rsync -aHvz ../imapsync_website/   root@ks8.lamiral.info:/var/www/html/imapsync/
 
-upload_oauth2:
-	rcsdiff oauth2/oauth2_office365/oauth2_office365_with_imap oauth2/oauth2_office365/*.txt oauth2/oauth2_office365/*.bat 
-	rm -f oauth2/oauth2_gmail/D_oauth2_* oauth2/oauth2_office365/tokens/oauth2_tokens_*
-	cd oauth2 && rm -f oauth2_office365.zip && zip -r oauth2_office365.zip oauth2_office365/ && unzip -l oauth2_office365.zip
+
+upload_oauth2_ci:
+	rcsdiff oauth2/oauth2_imap/oauth2_imap oauth2/oauth2_imap/*.txt oauth2/oauth2_imap/*.bat 
+
+upload_oauth2_exe:
+	cd oauth2/oauth2_imap/ && test oauth2_imap.exe -nt oauth2_imap
+
+
+oauth2_tests:
+	cd oauth2/oauth2_imap && ./oauth2_imap --testsone && ./oauth2_imap --tests
+
+upload_oauth2: oauth2_tests upload_oauth2_ci upload_oauth2_exe
+	rm -fv  oauth2/oauth2_imap/tokens/oauth2_tokens_*
+	cd oauth2 && rm -f oauth2_imap.zip && zip -r oauth2_imap.zip oauth2_imap/ && unzip -l oauth2_imap.zip
 	rsync -aHv  --delete   ./oauth2/             ../imapsync_website/oauth2/
 	rsync -aHvz --delete  ../imapsync_website/oauth2/   root@ks8.lamiral.info:/var/www/html/imapsync/oauth2/
-
-
 
 
 upload_ks_W_memo:
 	rsync -av W/memo gilles@ks8.lamiral.info:public_html/imapsync/W/memo
 
-upload_ks: ci tarball
+.PHONY: imapsync_website upload_ks upload_ks8 upload_ks_W_memo
+
+imapsync_website: ci 
 	rsync -aHv           $(PUBLIC)       ../imapsync_website/
-	rsync -aHv  --delete ./W/ks.htaccess ../imapsync_website/.htaccess
+	rsync -aHv           ./W/ks.htaccess ../imapsync_website/.htaccess
 	rsync -avH           ./S/            ../imapsync_website/S/
-	rsync -aHv  --delete ./$(DIST_PATH)/ ../imapsync_website/$(DIST_PATH)/
+	rsync -aHv  --delete ./dist2/        ../imapsync_website/dist2/
 	rsync -aHv  --delete ./examples/     ../imapsync_website/examples/
 	rsync -aHv  --delete ./INSTALL.d/    ../imapsync_website/INSTALL.d/
 	rsync -aHv  --delete ./FAQ.d/        ../imapsync_website/FAQ.d/
 	rsync -avH  --delete ./doc/          ../imapsync_website/doc/
 	rsync -avH  --delete ./W/tools/      ../imapsync_website/W/tools/
-	rsync -aHvz --delete ../imapsync_website/ root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
-	ssh root@ks.lamiral.info 'apachectl configtest && apachectl reload'
 
+upload_ks8:
+	rsync -aHvz --delete ../imapsync_website/ root@ks8.lamiral.info:/var/www/html/imapsync/
 
-upload_ks5:
-	rsync -aHvz --delete ../imapsync_website/ root@ks5.lamiral.info:/usr/local/www/apache24/data/imapsync/
-
-
-
-
+upload_ks: upload_ks8

@@ -1,12 +1,12 @@
 
 
 
-REM $Id: build_exe.bat,v 1.2 2023/07/08 08:54:36 gilles Exp gilles $
+REM $Id: build_oauth2_imap_exe.bat,v 1.5 2024/05/22 14:01:18 gilles Exp gilles $
 
 @SETLOCAL
 @ECHO Currently running through %0 %*
 
-@ECHO Building oauth2_office365_with_imap.exe
+@ECHO Building oauth2_imap.exe
 
 
 @REM the following command change current directory to the dirname of the current batch pathname
@@ -14,11 +14,11 @@ REM $Id: build_exe.bat,v 1.2 2023/07/08 08:54:36 gilles Exp gilles $
 
 PUSHD %~dp0
 
-CALL pp -x -o oauth2_office365_with_imap.exe ^
+CALL pp -x -o oauth2_imap.exe ^
  --link  libcrypto-1_1-x64__.dll ^
  --link  zlib1__.dll ^
  --link  libssl-1_1-x64__.dll ^
- .\oauth2_office365_with_imap 
+ .\oauth2_imap 
 
 POPD
 

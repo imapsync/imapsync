@@ -1,5 +1,5 @@
 
-// $Id: proximapsync_form.js,v 1.10 2023/06/27 13:16:56 gilles Exp gilles $
+// $Id: proximapsync_form.js,v 1.13 2024/08/06 18:45:29 gilles Exp gilles $
 
 /*jslint browser: true*/ /*global  $*/
 
@@ -315,25 +315,11 @@ $(document).ready(
         return ;
     } ;
 
-    var refresh_imapsync_current = function refresh_imapsync_current(  )
-    {
-        if ( 
-            "imapsync.lamiral.infoX" === location.hostname 
-            ||
-            "lamiral.infoX"          === location.hostname 
-        )
-        {
-            $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
-        }
-    }
-
 
     var refreshLog = function refreshLog( xhr )
     {
         var eta_obj ;
         var eta_str ;
-
-        refresh_imapsync_current(  ) ;
         
         eta_obj = extract_eta( xhr ) ;
 
@@ -350,7 +336,7 @@ $(document).ready(
         }
         else
         {
-                eta_str = eta_obj.str + " (refresh every " + refresh_interval_s + " s)" ;
+                eta_str = eta_obj.str + " (refresh done every " + refresh_interval_s + " s)" ;
                 eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, "") ; // trim newlines
                 //$("#tests").append( "refreshLog  eta_str: " + eta_str + "\n" ) ;
                 $( "#progress-txt" ).text( eta_str ) ;
@@ -375,8 +361,6 @@ $(document).ready(
         refreshLog( xhr ) ; // a last time
         // back to enable state for next run
         $("#bt-sync").prop("disabled", false) ;
-        
-        refresh_imapsync_current(  ) ;
 
         }
     }
@@ -718,7 +702,6 @@ $(document).ready(
         $("#bt-sync").click(
             function ()
             {
-                refresh_imapsync_current(  ) ;
                 $("#bt-sync").prop("disabled", true) ;
                 $("#bt-abort").prop("disabled", false) ;
                 $("#progress-txt").text( "ETA: coming soon" ) ;
@@ -730,11 +713,9 @@ $(document).ready(
         $("#bt-abort").click(
             function ()
             {
-                refresh_imapsync_current(  ) ;
                 $("#bt-sync").prop("disabled", true);
                 $("#bt-abort").prop("disabled", true);
                 abort();
-                refresh_imapsync_current(  ) ;
             }
         );
 
@@ -769,23 +750,9 @@ $(document).ready(
             }
         ) ;
         
-        refresh_imapsync_current(  ) ;
 
-        if ( "imapsync.lamiral.infoX" === location.hostname )
-        {
-                $( "#local_bandwidth" ).collapse( "show" ) ;
-                $( "#local_status_dbmon" ).collapse( "show" ) ;
-                $( "#local_status_hetrix" ).collapse( "show" ) ;
-                $( "#imapsync_advice_hours" ).collapse( "show" ) ;
+        
         }
-        else if ( "lamiral.infoX" === location.hostname )
-        {
-                $( "#local_bandwidth" ).collapse( "show" ) ;
-                $( "#local_status_dbmon" ).collapse( "show" ) ;
-                $( "#local_status_hetrix" ).collapse( "show" ) ;
-                $( "#imapsync_advice_hours" ).collapse( "show" ) ;
-        }
-    }
 
         var tests_bilan = function tests_bilan( nb_attended_test )
         {

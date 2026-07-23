@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: TODO,v 1.273 2023/05/31 09:30:21 gilles Exp gilles $
+# $Id: TODO,v 1.282 2024/05/29 08:42:49 gilles Exp gilles $
 
 This documentation is also at http://imapsync.lamiral.info/#doc
 
@@ -8,6 +8,51 @@ TODO file for imapsync
 ----------------------
 
 https://imapsync.lamiral.info/TODO
+
+
+SUGGESTED 2024_02_16 by Gilles
+Bugfix. --folderrec in another namespace needs --nocheckfoldersexist or 
+something else. The ETA is not done while it should and the Folders sizes 
+part produces incorrect "does not exist", as they do exist.
+
+SUGGESTED 2023_11_14 by Genialsrl
+https://github.com/imapsync/imapsync/issues/424
+Identify messages having errors for flags resyncs "could not add flags" and 
+maybe append (if not already done).
+How about the content, the beginning at least?
+
+
+SUGGESTED 2023_10_14 by debilin
+https://github.com/imapsync/imapsync/issues/416
+Add PGP support during transfer
+Write a tool to keep STDIN as is like cat except for the pgp parts
+where gpg does its job like this:
+
+gilles@petite:~ 73$ cat toto.txt | LANG= gpg --decrypt  --batch --no-tty  --passphrase=$P  --allow-multiple-messages  2>/dev/null 
+toto
+
+
+
+gilles@petite:~ 74$ cat toto.txt
+From: gilles@lflflf
+Subject: rrrrr
+
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v1
+
+hQEOA+8dQNKixMtCEAP/Qr4TlMPXn72GOKQoPS4Hke3Bt8i5/Vp05u2sJrJopfV1
+MorlhUeMbpZwBEsT+FzQYe0QrBdeH9bg43pjS5UJ83PK970By0hUQWXWprRRcmYC
+XE3DtDXzaWsUguB79PGWNDP+OaUH2PaaapLUw6X3aePkFIk+CjNFBR961yAchUED
+/2hSA6exyLuzWq9BUvU7Iqvei3l+6wZAnWnFbUNloqOR6H92lPTFVhSQj/TK3uxa
+WMlb19SMvXuSMWxaIhCmTKD9uXV3sXptshMSkne7OGTu/RWdwEQhQCQdmMBnBz0e
+9btnB/3brQXchfvsjL6XCowUBzB+w3mdcXeM3Hps7KJ/0kABl8L3KDw0tS92KpGo
+dtiykQebYl/et8gfqemxzOwvakaAzattU75BAPwcNJo2jU9fMdjDxgGntUweJOpT
+z0rF
+=bya7
+-----END PGP MESSAGE-----
+
+Bye!
+
 
 SUGGESTED 2023_05_23 by Michael Orlitzky
 Change default tmpdir location to $HOME/tmp/ or $HOME/
@@ -108,7 +153,6 @@ In order to avoid useless headaches from --regexmess, add
 --regexbody
 
 
-
 SUGGESTED 2021_01_26 by Gilles and Martin L. R. @duelhost.dk
 I am trying to move some e-mail using imapsync but the domain I'm moving 
 to have the Danish "ø"-character which it doesn't seem like imapsync can handle.
@@ -129,9 +173,12 @@ to still allow imap with imapsync. It already works but it is an old account.
 It looks like new O365 accounts are less likely to allow basic LOGIN imap
 with a password.
 
-SUGGESTED 2020_12_11 byTimo Smit 
+SUGGESTED 2020_12_11 by Timo Smit 
 Allow the syntax --host1 "example.com/Sent"
-to sync only the Sent folder.
+to sync the Sent folder recursively.
+Well, what to do when the folder separator is the dot character .
+Solution: syntax --host1 "example.com/INBOX.Sent"
+
 
 SUGGESTED 2020_11_30 by Gilles
 Add a FAQ.Invalid_Argument.txt
@@ -189,6 +236,9 @@ the mails from "Sent/2017" on Host 1 are transferred to "Sent/2017/INBOX" on Hos
 
 ==============================================================================
 OAUTH2 requests
+
+Last Thunderbird list
+https://web.archive.org/web/20231218111748/https://hg.mozilla.org/comm-central/file/tip/mailnews/base/src/OAuth2Providers.jsm
 
 Readings
 https://developers.google.com/identity/protocols/oauth2

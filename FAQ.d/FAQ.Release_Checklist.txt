@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Release_Checklist.txt,v 1.30 2023/09/21 18:08:11 gilles Exp gilles $
+$Id: FAQ.Release_Checklist.txt,v 1.32 2024/08/17 20:58:52 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -28,13 +28,18 @@ make -j linuxtests win64tests mactests
 - Make "imapsync --testslive" pass on Mac
 
 
-make linuxtestslive mactestslive mactestslive6
+make mactestslive mactestslive6
 
 
-- Add a new section in S/news.shtml reading "rlog imapsync".
+make ChangeLog
+
+- Add a new section in S/news.shtml reading "more ChangeLog".
+
+
 - Track any new Perl module dependency with the command:
+
+  diff ../prepa_dist/imapsync-2.264/imapsync imapsync | egrep '^[<>] use'
   
-  diff ../prepa_dist/imapsync-2.229/imapsync imapsync | grep use
   
 - In case of a new dependency, add it to all the INSTALL/* files.
 - Generate the README
@@ -54,6 +59,14 @@ make doc
 - Make "rcsdiff imapsync" give nothing relevant and exit 0
 
 - make ci pass.
+
+- make the binaries.
+
+make bin
+
+make mac win 
+
+make mac_i386 mac_x86_64 
 
 - Review the newsletter by running:
     m4 -P W/ml_announce.in.txt

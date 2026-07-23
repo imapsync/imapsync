@@ -1,5 +1,5 @@
 
-// $Id: imapsync_form_wrapper.js,v 1.2 2020/03/04 14:09:21 gilles Exp gilles $
+// $Id: imapsync_form_wrapper.js,v 1.3 2023/10/25 13:09:16 gilles Exp gilles $
 
 /*jslint browser: true*/ /*global  $*/
 
@@ -296,7 +296,7 @@ $(document).ready(
         }
         else
         {
-            eta_str = eta_obj.str + " (refresh every " + refresh_interval_s + " s)" ;
+            eta_str = eta_obj.str + " (refresh done every " + refresh_interval_s + " s)" ;
             eta_str = eta_str.replace(/(\r\n|\n|\r)/gm, "") ; // trim newline
             //$("#tests").append( "refreshLog  eta_str: " + eta_str + "\n" ) ;
             $("#progress-txt").text( eta_str ) ;

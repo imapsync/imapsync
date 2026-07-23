@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: sync_parallel_unix.sh,v 1.11 2022/01/13 12:56:28 gilles Exp gilles $
+# $Id: sync_parallel_unix.sh,v 1.13 2024/02/20 14:29:02 gilles Exp gilles $
 
 # If you're on Windows there is a possibility to install and use parallel
 # but I have never tested it. I found:
@@ -21,14 +21,17 @@
 # Extra columns can be used to pass extra parameters but the script reading
 # this file have to read them into some variables.
 #
-# Last, don't forget the last semicolon.
-#
-# You can add extra options after the last line 
-# Use character backslash \ at the end of each supplementary line, except for the last one.
+# Last, don't forget the last semicolon on each line of file.txt.
 
 
-# The credentials filename "file.txt" used for the loop can be renamed 
+# The credentials/options filename "file.txt" used for the loop can be renamed 
 # by changing "file.txt" below.
+
+#
+# You can add extra options at the last line of the parallel command below.
+# Use the character backslash \ at the end of each supplementary line, 
+# except for the last one.
+
 
 # Now I explain what come next, the actual stuff, which is barely 
 # a single long command line written on several lines for the reading 
@@ -83,9 +86,9 @@
 
 
 # "$@" will be replaced by the parameters of this script itself,
-# the one you are reading now. It's usefull if you want to
-# add temporarly a parameter for all runs without editing any file.
-# For example, 
+# the one you are reading now. It's useful if you want to
+# add temporarily a parameter for all runs without editing any file.
+# For example,
 #   sync_parallel_unix.sh --justlogin 
 # will run all imapsync with the --justlogin parameter added.
 
@@ -102,7 +105,7 @@ check_parallel_is_here() {
         parallel --version > /dev/null || { echo "parallel command is not installed. Install it first."; return 1; }
 }
 
-# First, there is no need to go further if the parallel command is not avalable
+# First, there is no need to go further if the parallel command is not available
 # one the current system.
 
 check_parallel_is_here || exit 1 ;

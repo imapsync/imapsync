@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# This script generates a local authority and a localhost certificat certified by the local authority.
+
+echo localhost_certificate_by_own_CA
+localhost_certificate_by_own_CA()
+{
+set -x 
+# From https://stackoverflow.com/questions/7580508/getting-chrome-to-accept-self-signed-localhost-certificate
+
+######################
+# Become a Certificate Authority
+######################
+
+# Generate private key
+openssl genrsa -out cert/imapsyncCA.key 2048
+
+# Generate root certificate
+openssl req -x509 -new -nodes -key cert/imapsyncCA.key -sha256 -days 3650 -out cert/imapsyncCA.pem -subj "/C=FR/ST=France/L=Baulon/O=Home/OU=Imapsync/CN=imapsync"
+######################
+# Create CA-signed certs
+######################
+
+
+# Generate a private key
+openssl genrsa -out cert/localhost.key 2048 
+# Create a certificate-signing request
+openssl req -new -key cert/localhost.key -out cert/localhost.csr -subj "/C=FR/ST=France/L=Baulon/O=Home/OU=Imapsync/CN=localhost"
+# Create a config file for the extensions
+> cert/localhost.ext cat <<-EOF
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = $NAME # Be sure to include the domain name here because Common Name is not so commonly honoured by itself
+IP.1 = 127.0.0.1 # Optionally, add an IP address (if the connection which you have planned requires it)
+
+EOF
+
+# Create the signed certificate
+openssl x509 -req -in cert/localhost.csr -CA cert/imapsyncCA.pem -CAkey cert/imapsyncCA.key -CAcreateserial \
+-out cert/localhost.crt -days 3650 -sha256 -extfile cert/localhost.ext
+
+openssl x509 -text  -in cert/localhost.crt 
+
+openssl verify -CAfile cert/imapsyncCA.pem -verify_hostname localhost cert/localhost.crt || : 
+
+cp cert/localhost.crt cert/localhost.key ./
+
+set -x 
+}
+
+
+#echo localhost_certificate_self_signed
+localhost_certificate_self_signed()
+{
+openssl req -x509 -out localhost.crt -keyout localhost.key \
+  -newkey rsa:2048 -nodes -sha256 \
+  -subj '/CN=localhost' -extensions EXT -config <( \
+   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+   
+}
+
+
+
+set -e
+localhost_certificate_by_own_CA

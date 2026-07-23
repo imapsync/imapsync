@@ -1,5 +1,5 @@
 
-$Id: FAQ.Exchange.txt,v 1.80 2022/04/05 13:48:52 gilles Exp gilles $
+$Id: FAQ.Exchange.txt,v 1.81 2024/01/11 14:24:49 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -28,6 +28,11 @@ Q. For Exchange I have double and triple checked the username and
    password spelling but I still get a "LOGIN failed". Any clue?
 
 Q. Exchange fails with "User is authenticated but not connected".
+
+Q. How can I access a shared mailbox?
+
+Q. How can I use a shared account as a backup account for several
+   mailboxes and so avoid spending too many dollars in backup accounts?
 
 Q. Exchange fails with "BAD Command received in Invalid state".
 
@@ -210,6 +215,39 @@ double click on a mailbox, and in the "mailbox delegation" scrolling
 down to the bottom it shows a input field named "Full Access". 
 Add the admin account there."
 
+
+======================================================================
+Q. How can I access a shared mailbox?
+
+R. First, create a shared mailbox, for example shared@example.com. 
+Then give full permissions to a licensed account user@example.com.
+Now with imapsync, use the licensed user login with the syntax: 
+
+  user@example.com\shared@example.com
+
+and the password for user@example.com
+
+Caveat: Character \ is a special character, so
+use double-quotes around the user login, like:
+
+  imapsync ... --user1 "user@example.com\shared@example.com"
+
+Sources:
+https://adam-hand.com/2017/07/25/connect-a-shared-mailbox-from-o365-to-outlook-via-imap/
+https://www.arclab.com/en/kb/email/imap-settings-shared-mailbox-office-exchange-online.html
+https://social.technet.microsoft.com/Forums/en-US/336e02ee-6767-4810-90a0-1352bd7cc9e9/office-365-how-to-access-a-shared-mailbox-using-imap-client?forum=onlineservicesexchange
+
+======================================================================
+Q. How can I use a shared account as a backup account for several
+   mailboxes and so avoid spending too many dollars in backup accounts?
+
+R. Use the option --subfolder2 backup_foo
+
+  imapsync ... --user2 sharedloginsyntax --subfolder2 backup_foo
+
+To restore, do the reverse with:
+
+  imapsync ... --user1 sharedloginsyntax --subfolder1 backup_foo
 
 
 ======================================================================

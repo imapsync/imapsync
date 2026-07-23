@@ -1,6 +1,13 @@
 ## Dockerfile for building a docker imapsync image
 
-# $Id: Dockerfile,v 1.46 2023/08/20 22:37:31 gilles Exp gilles $
+# $Id: Dockerfile,v 1.53 2024/08/06 21:02:21 gilles Exp gilles $
+#
+# This file is also located at 
+# https://imapsync.lamiral.info/INSTALL.d/Dockerfile
+# For more information about this image, see
+# See https://imapsync.lamiral.info/FAQ.d/FAQ.Docker.txt
+#
+#
 # I use the following command to build the image:
 #
 #  docker build -t gilleslamiral/imapsync . 
@@ -20,19 +27,43 @@
 #
 #    docker run gilleslamiral/imapsync /imapsync ...
 
+# There is also an embedded online imapsync service called servimapsync
+# It can be run with the command:
+#
+#    docker run -p 80:8080 -p443:8443 gilleslamiral/imapsync /servimapsync
+# 
+# Then use a browser to http://localhost/ or https://localhost/ or 
+#  http://example.com/ or https://example.com/
+# 
+# It offers the same online service as 
+#   https://imapsync.lamiral.info/X/ 
+# but without using the path /X
+# 
 
-# I thank you very much
+
+
+# Thank you very much
 # I like thanks
 # I like stars
 # I like money to keep on doing this stuff
 
-# Number of imapsync images pulled so far (2022_04_04): 673551
+# Number of imapsync images pulled so far (2024_08_06): 727045
 # Command used:
 # curl -s https://hub.docker.com/v2/repositories/gilleslamiral/imapsync/ | jq '.pull_count'
+#
+# I record the pull_count once a day and I count the day-to-day differrences with:
+#
+#     paste -d- <(tail -n+2 W/docker_pull_count.txt) <(head -n-1 W/docker_pull_count.txt) | bc
+# 
+# Thanks to https://unix.stackexchange.com/a/470069/89270
+# 
 
+# https://www.debian.org/releases/
+# Debian Bullseye is Debian 11
 # Debian Bookworm is Debian 12
 
-FROM debian:bookworm 
+FROM debian:bullseye 
+#FROM debian:bookworm 
 
 LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
         description="Imapsync" \
@@ -40,15 +71,23 @@ LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
 
 # I put a copy of the Dockerfile in the image itself
 # It can help maintenance, isn't it?
-# Also put optionally my local and usually more recent imapsync on /, for testing purpose
+# I optionally put my local and usually more recent imapsync on /, for testing purposes
 
-COPY Dockerfile imapsyn[c] prerequisites_imapsyn[c] /
+COPY Dockerfile imapsyn[c] prerequisites_imapsyn[c] servimapsyn[c] /
+
+# I also put the webserver script, called servimapsync, and its needed files, 
+# This is experimental stuff, http on port 8080, https on port 8443
+# 
+
+COPY imapsyn[c] imapsync_form_extra.htm[l] imapsync_form.cs[s] imapsync_form.j[s] privkey.pe[m] fullchain.pe[m] /var/tmp/
+
 
 RUN set -xe && \
   apt-get update \
   && apt-get install -y \
   libauthen-ntlm-perl \
   libcgi-pm-perl \
+  libcrypt-openssl-pkcs12-perl \
   libcrypt-openssl-rsa-perl \
   libdata-uniqid-perl \
   libencode-imaputf7-perl \
@@ -61,6 +100,7 @@ RUN set -xe && \
   libhtml-parser-perl \
   libjson-webtoken-perl \
   libmail-imapclient-perl \
+  libnet-server-perl \
   libparse-recdescent-perl \
   libmodule-scandeps-perl \
   libpar-packer-perl \
@@ -85,7 +125,9 @@ RUN set -xe && \
   iputils-ping \
   bind9-host \
   && rm -rf /var/lib/apt/lists/* \
-  && cpanm IO::Socket::SSL
+  && cpanm IO::Socket::SSL 
+
+#  && cpanm Crypt::OpenSSL::PKCS12 
 
 # I added the IO::Socket::SSL update to avoid the annoying, confusing and useless warning
 # DEBUG: .../IO/Socket/SSL.pm:1177: global error: Undefined SSL object

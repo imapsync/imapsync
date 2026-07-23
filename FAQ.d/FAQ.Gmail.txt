@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Gmail.txt,v 1.93 2023/02/06 15:29:13 gilles Exp gilles $
+$Id: FAQ.Gmail.txt,v 1.99 2024/08/20 21:17:00 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -114,23 +114,41 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.XOAUTH2.txt
 1) "App password with 2-step verification" is the first way to 
    authenticate to Gmail with Imapsync.
 
+Summary. First, you have to activate "2-step verification". 
+Then, once activated, "2-step verification" will allow you
+to generate an "App password" at
+https://myaccount.google.com/apppasswords
+
+Now, the details.
 Go to
 https://myaccount.google.com/security
 and sign in with the account you want to transfer email to or from.
 Go to the "Signing in to Google" part of the security page and follow
-the process to activate the "2-step verification" until it is ok.
+the process to activate the "2-step verification", until it is ok.
 
-Then, just below "2-step verification" click on the "App passwords"
-and follow the instruction to get a 16 characters password, on the
-pull down button "Select app", choose "Other (Custom name)" and call
-it imapsync for example.  Now use this this password to access the
-mailbox with imapsync.
+Then, in the part "How you sign in to Google" click on the "2-step
+verification" line. There, at the bottom of the page, you will be
+proposed to generate an "App passwords".
 
-The following document details what I've just described:
-https://support.google.com/accounts/answer/185833?hl=en
-Even if Google says "Every App Password is only used once",
-it's false and the password can be used many times.
+As an alternative, you can also go to 
+https://myaccount.google.com/apppasswords
+it will bring you at the same place.
 
+Then, follow the instructions to get a 16 characters password. On the
+pull-down button "Select app", choose "Other (Custom name)" and call
+it imapsync for example. The name doesn't matter.  Now, use this
+password to access the mailbox with imapsync. If you copy/paste the
+password, remove the blanks inside the password, the blanks are not
+part of the password, they're just there to facilitate the reading but
+they're bad to authenticate with imapsync. If you leave the blanks,
+you may encounter an authentication error.
+
+The following document details what I've just described and other
+useful tips about app passwords:
+https://support.google.com/accounts/answer/185833?hl=en 
+
+Even if Google says "Every App Password is only used once", it's false
+and the password can be used many times.
 
 =======================================================================
 Q. Even after several syncs the number of messages differs
@@ -199,8 +217,8 @@ imapsync \
            --ssl2 \
            --user2 account2@gmail.com \
            --password2 gmailsecret2 \
-           --maxbytespersecond 20_000 \
-           --maxbytesafter 1_000_000_000 \
+           --maxbytespersecond 300_000  \
+           --maxbytesafter 3_000_000_000 \
            --automap \
            --maxsleep 2 \
            --useheader X-Gmail-Received --useheader Message-Id \
@@ -217,16 +235,16 @@ imapsync ... --gmail1 --gmail2 --maxbytespersecond 50_000 --noautomap
 Explanations:
 
 
---maxbytespersecond 20_000 ( 20 kBytes/s ) option is here to avoid 
+--maxbytespersecond 300_000  ( 300 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 20_000 is not mandatory in the sense Gmail may 
+--maxbytespersecond 300_000  is not mandatory in the sense Gmail may 
 allow you to use an upper value than 1 GBytes per 24h without 
-disconnections. If you count well, it should be 10_000, not 20_000.
+disconnections. If you count well, it should be 10_000, not 300_000 .
 
---maxbytesafter 1_000_000_000 option is there because 
-option --maxbytespersecond 20000 is unnecessarily slow if the Gmail 
-account size is less than 1 GB.
+--maxbytesafter 3_000_000_000 option is there because 
+option --maxbytespersecond 300_000  is unnecessarily slow if the Gmail 
+account size is less than 3 GB.
 
 --maxsleep 2 is to avoid sleeping more than 2 seconds when 
 the --maxbytespersecond value implies a long sleep between 2 copies.
@@ -282,8 +300,8 @@ imapsync --host1 mail.oldhost.com     \
          --ssl2 \
          --user2 my_email@gmail.com \
          --password2 gmailsecret \
-         --maxbytespersecond 20_000 \
-         --maxbytesafter 1_000_000_000 \
+         --maxbytespersecond 300_000 \
+         --maxbytesafter 3_000_000_000 \
          --automap    \
          --expunge1   \
          --addheader  \
@@ -309,17 +327,17 @@ imapsync ... --gmail2 --maxbytespersecond 50_000 --noautomap --maxsleep 0
 
 Explanations:
 
---maxbytespersecond 20_000 ( 20 kBytes/s ) option is here to avoid 
+--maxbytespersecond 300_000 ( 300 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 20_000 is not mandatory in the sense Gmail may 
+--maxbytespersecond 300_000 is not mandatory in the sense Gmail may 
 allow you to use an upper value than 1 GBytes per 24h without 
-disconnections. If you count well, it should be 10_000, not 20_000.
+disconnections. If you count well, it should be 10_000, not 300_000.
 
---maxbytesafter 1_000_000_000 option is there because 
-option --maxbytespersecond 20000 is unnecessarily slow if the Gmail 
-account size is less than 1 GB. Counting well, it should 
-be 500_000_000, not 1_000_000_000, but 1GB is usually ok.
+--maxbytesafter 3_000_000_000 option is there because 
+option --maxbytespersecond 300_000 is unnecessarily slow if the Gmail 
+account size is less than 3 GB. Counting well, it should 
+be 500_000_000, not 3_000_000_000, but 3 GB is usually ok.
 
 --maxsleep 2 is to avoid sleeping more than 2 seconds when 
 the --maxbytespersecond value implies a long sleep between 2 copies.
@@ -396,7 +414,7 @@ imapsync \
            --host2     imap.example.org \
            --user2     tata \
            --password2 tatasecret \
-           --maxbytespersecond 40_000 \
+           --maxbytespersecond 300_000 \
            --maxbytesafter 3_000_000_000 \
            --automap \
            --maxsleep 2 \
@@ -409,16 +427,15 @@ imapsync \
 With --gmail1 you can override the parameters
 that are activated by them, for example:
 
-imapsync ... --gmail1 --maxbytespersecond 50_000 --noskipcrossduplicates --noautomap
+imapsync ... --gmail1 --maxbytespersecond 500_000 --noskipcrossduplicates --noautomap
 
 Explanations:
 
---maxbytespersecond 40_000 ( 40 kBytes/s ) option is here to avoid 
+--maxbytespersecond 300_000 ( 300 kBytes/s ) option is here to avoid 
 locking or errors when imap transfers exceed Gmail maximum limit. 
 See http://support.google.com/a/bin/answer.py?hl=en&answer=1071518
---maxbytespersecond 40_000 is not mandatory in the sense Gmail may
-allow you to use an upper value than 2 GBytes per 24h without
-disconnections.
+--maxbytespersecond 300_000 is not mandatory in the sense Gmail may
+allow you to use an upper value without disconnections.
 
 --useheader="X-Gmail-Received" --useheader "Message-Id" are not
 mandatory. I use them because I found (several years ago, it may have

@@ -1,5 +1,5 @@
 
-@REM $Id: infinite_loop_example.bat,v 1.2 2023/09/18 20:18:35 gilles Exp gilles $
+@REM $Id: oauth2_example_loop.bat,v 1.5 2024/05/22 15:41:58 gilles Exp gilles $
 
 @REM An infinite loop with a sleep of 3600 seconds between each run
 
@@ -15,7 +15,11 @@ SET sleep=1800
 :loop
 
 @ECHO %date% %time%
-CALL .\oauth2_office365_with_imap.exe  gilles.lamiral@outlook.com
+CALL .\oauth2_imap.exe gilles.lamiral@outlook.com
+
+@REM CALL .\oauth2_imap.exe gilles.lamiral@gmail.com
+
+
 
 @ECHO %date% %time% 
 @ECHO Now sleeping for %sleep% seconds

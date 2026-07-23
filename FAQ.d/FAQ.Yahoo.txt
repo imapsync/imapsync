@@ -1,5 +1,5 @@
 
-$Id: FAQ.Yahoo.txt,v 1.15 2022/05/05 14:17:22 gilles Exp gilles $
+$Id: FAQ.Yahoo.txt,v 1.19 2024/01/26 11:40:25 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -16,12 +16,24 @@ Q. Synchronizing from Yahoo to XXX
 
 Q. Synchronizing from XXX to Yahoo
 
+Q. Why use Yahoo?
+
+Q. The imapsync run now always fails with the errors like:
+   "could not append ... NO. [SERVERBUG] APPEND Server error - Please try again later"
+
+Q. Yahoo via imap.mail.yahoo.com can contain no more that 10_000 
+   messages per folder. How can I deal with that restriction?
+
+Q. Yahoo via export.imap.yahoo.com can contain no more that 100_000 
+   messages per folder. How can I deal with that restriction?
+
+
 Now the questions again with their answers.
 
 =======================================================================
 Q. Synchronizing from Yahoo to XXX
 
-R. Use --host1 imap.mail.yahoo.com 
+A. Use --host1 imap.mail.yahoo.com 
 
 Example:
 
@@ -43,7 +55,7 @@ To enable less secure apps to login:
   * click on the account name or the avatar and select "Account Info",
   * click on "Account security",
   * turn off "Two steps verification"
-  * turn on "Allow apps that use less secure authentication".​
+  * turn on "Allow apps that use less secure authentication".
 
 Thanks to Eugen Mayer for this last point.
 
@@ -62,7 +74,7 @@ Another solution:
 =======================================================================
 Q. Synchronizing from XXX to Yahoo
 
-R. Example:
+A. Example:
 
 On Linux:
   ./imapsync \
@@ -85,7 +97,6 @@ On Windows:
     --regexmess "s{(?<![\n])\z}{\r\n}gxms"
 
 
-
 You wonder why there is this ugly regex, what it does and where does it 
 come from?
 
@@ -100,6 +111,45 @@ https://imapsync.lamiral.info/README
  --regexmess    reg  : Apply the whole regex to each message before transfer.
                        Example: 's/\000/ /g' # to replace null by space.
  --regexmess    reg  : and this one, etc.
+
+=======================================================================
+Q. Why use Yahoo?
+
+A. Yahoo is a good candidate to archive emails.
+   Yahoo free storage limits are:
+   * 1 Tera bytes.
+   * 100_000 messages per folder.
+   * 25 Mega bytes maximum for a single message.
+
+=======================================================================
+Q. The imapsync run now always fails with the errors like:
+   "could not append ... NO. [SERVERBUG] APPEND Server error - Please try again later"
+
+A. The Yahoo imap server replies: 
+   "NO. [SERVERBUG] APPEND Server error - Please try again later"
+   because, likely, the folder has now reached 10k emails.
+   See the Q/A below to fix it.
+
+=======================================================================
+Q. Yahoo via imap.mail.yahoo.com can contain no more that 10_000 
+   messages per folder. How can I deal with that restriction?
+
+A. Use the imap server export.imap.yahoo.com and the limit
+   becomes 100_000 messages per folder. See below for the 
+   100_000 limit.
+
+Thanks to Joelle Stickney for this input.
+
+=======================================================================
+Q. Yahoo via export.imap.yahoo.com can contain no more that 100_000 
+   messages per folder. How can I deal with that restriction?
+
+A1. Go with the script
+    https://imapsync.lamiral.info/examples/archive_per_year.sh
+    It will archive your mailbox per year, hoping there will be
+    less than 100_000 messages in each folder.
+    If not, go with
+    https://imapsync.lamiral.info/examples/archive_per_month.sh
 
 =======================================================================
 =======================================================================

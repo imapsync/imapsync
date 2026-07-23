@@ -1,26 +1,49 @@
 #!/usr/bin/perl
 
-# $Id: webserver,v 1.6 2019/11/28 14:45:09 gilles Exp gilles $
+# $Id: servimapsync,v 1.16 2023/12/14 00:13:56 gilles Exp gilles $
 package Imapsync;
 
 use base qw(Net::Server::HTTP);
 use strict ;
 use warnings ;
+use Cwd ;
 use Data::Dumper ;
 use English qw( -no_match_vars ) ;
 
-my $server = Imapsync->new(
-        'port'  => [8080],
+
+local $Data::Dumper::Sortkeys  = 1 ;
+
+http_server(  ) ;
+
+sub http_server
+{
+        print "Net::Server::VERSION $Net::Server::VERSION\n" ;
+        my $server = Imapsync->new(
+        'port'  => [
+                {
+                'ipv'  => '4', # Because 6 or * does not work in Docker context
+                'port' => 8080,
+                },
+                {
+                'ipv'  => '4', # Because 6 or * does not work in Docker context                
+                'port' => 8443,
+                'proto'     => 'ssl',
+                'SSL_key_file'  => 'privkey.pem',
+                'SSL_cert_file' => 'fullchain.pem',
+                },
+        ],
         'access_log_file' => 'STDERR',
-        'log_level' => 4,
-        'timeout_header'  => 20,
-        'timeout_idle'    => 60,
-) ;
+        'log_level'       =>    4,
+        'timeout_header'  =>   20,
+        'timeout_idle'    =>   60,
+        'default_content_type' => 'text/html',
+        'timeout_header'  =>   60,
+        'timeout_idle'    => 3600,
+        ) ;
 
-
-$server->run() ;
-
-
+        $server->log( 2, "Current directory is " . cwd() ) ;
+        $server->run() ;
+}
 
 
 sub default_server_type { 'Fork' }
@@ -43,19 +66,27 @@ sub output_file
         my( $status, $msg, $body ) ;
         if ( defined $string )
         {
-                $output  = "Content-type: $type\r\n\r\n" ;
+                # I can not believe I have to write this condition.
+                if ( $self->can( 'default_content_type' ) )
+                {
+                        $self->{'server'}->{'default_content_type'} = $type ;
+                }
+                else
+                {
+                        $output  = "Content-type: $type\r\n\r\n" ;                        
+                }
                 $output .= $string ;
                 # body can not be sent by send_status() because then it
                 # sets Content-type to text/html
+                
                 $self->send_status( '200', 'OK' ) ;
                 print $output ;
-                
         }
         else
         {
                 $self->send_status( '404', 'Not found', "File not found: $file " ) ;
         }
-        
+
         return ;
 }
 
@@ -68,31 +99,31 @@ sub process_path_info
         my $sitemap = 
         {
                 '/imapsync_form_extra.html' => sub { 
-                        output_file( $self, './X/imapsync_form_extra.html', 'text/html' )
+                        output_file( $self, './imapsync_form_extra.html', 'text/html' )
                 },
                 '/imapsync_form.html'       => sub { 
-                        output_file( $self, './X/imapsync_form.html', 'text/html' )
+                        output_file( $self, './imapsync_form.html', 'text/html' )
                 },
                 '/imapsync_form.css'        => sub {
-                        output_file( $self, './X/imapsync_form.css', 'text/css' )
+                        output_file( $self, './imapsync_form.css', 'text/css' )
                 },
                 '/imapsync_form.js'         => sub {
-                        output_file( $self, './X/imapsync_form.js', 'text/javascript' )
+                        output_file( $self, './imapsync_form.js', 'text/javascript' )
                 },
                 '/imapsync_form_new.js'     => sub {
-                        output_file( $self, './X/imapsync_form_new.js', 'text/javascript' )
+                        output_file( $self, './imapsync_form_new.js', 'text/javascript' )
                 },
                 '/' => sub {
-                        output_file( $self, './X/imapsync_form_extra.html', 'text/html' )
+                        output_file( $self, './imapsync_form_extra.html', 'text/html' )
                 },
                 '/vnstat/vnstati.html' => sub {
-                        output_file( $self, './X/vnstati.html', 'text/html' )
+                        output_file( $self, './vnstati.html', 'text/html' )
                 },
-                
         } ;
         
         if ( defined $sitemap->{ $path_info } )
         {
+                #$self->log( 2, Data::Dumper->Dump( [ $self ], ['self'] ) ) ;
                 $sitemap->{ $path_info }->() ;
         }
         else
@@ -100,7 +131,6 @@ sub process_path_info
                 $self->send_status( '404', 'Not found', "Error: $path_info not found!\n" ) ;
         }
         return ;
-
 }
 
 sub process_http_request
@@ -108,29 +138,24 @@ sub process_http_request
         my $self = shift ;
         
         $self->log( 2, "In process_http_request PID $$\n" ) ;
-        local $Data::Dumper::Sortkeys = 1;
+
         #$self->log( 2, Data::Dumper->Dump( [ $self ], ['self'] ) ) ;
 
         $ENV{'SERVER_SOFTWARE'} = $PROGRAM_NAME ;
 
-        if ( '/cgi-bin/imapsync' eq $ENV{'PATH_INFO'} ) {
+        if ( '/cgi-bin/imapsync' eq $ENV{'PATH_INFO'} )
+        {
                 #$self->exec_trusted_perl( './imapsync' ) ;
+                #$self->log( 2, "In process_http_request PID $$ after exec_trusted_perl\n" ) ;
+                
                 $self->exec_cgi( './imapsync' ) ;
-                #$self->exec_cgi( './imapsync_bin_Linux_i686' ) ;
-                
-                #$self->exec_trusted_perl( '.\imapsync.pl' );
-                $self->log( 2, "In process_http_request PID $$ after exec_trusted_perl\n" ) ;
-                #return ;
-                #return $self->exec_cgi( 'C:\Strawberry\perl\bin\perl.exe .\imapsync.pl' );
-                #return $self->exec_cgi( 'imapsyncbat' );
-                #return $self->exec_trusted_perl( 'imapsyncbat' );
-                
+                $self->log( 2, "In process_http_request PID $$ after exec_cgi( './imapsync' )\n" ) ;
         }
         else
         {
                 process_path_info( $self, $ENV{'PATH_INFO'} ) ;
         }
-        #$self->log( 4, Data::Dumper->Dump( [ $self ], ['self'] ) ) ;
+        #$self->log( 2, Data::Dumper->Dump( [ $self ], ['self'] ) ) ;
         $self->log( 2, "End of process_http_request PID $$\n" ) ;
 }
 

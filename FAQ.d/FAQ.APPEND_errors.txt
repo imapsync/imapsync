@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.APPEND_errors.txt,v 1.13 2021/05/29 07:58:44 gilles Exp gilles $
+$Id: FAQ.APPEND_errors.txt,v 1.14 2024/06/02 21:31:57 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -26,6 +26,9 @@ Q. For some messages, the imapsync log says
 Q. The append error message is "NO Message contains NUL characters"
    What can I do?
 
+Q. I have this APPEND error:
+   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom .
+   What can I do?
 
 Now the questions again with their answers.
 
@@ -161,6 +164,15 @@ If you want to sync them, use instead:
 
   imapsync ...  --regexmess "s/(\x00)+\Z//g"
 
+
+=======================================================================
+Q. I have this APPEND error:
+   Err 98/100: - msg INBOX/277 {29390} could not append ... Flags:[\Seen blob ] ) ...: 280 BAD Error in IMAP command APPEND: 8bit data in atom .
+   What can I do?
+
+A. Use this to remove all 8bit characters from the flags:
+
+  imapsync ... --regexflag "tr [\x80-\xff] []d"
 
 ======================================================================
 ======================================================================
