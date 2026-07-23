@@ -1,18 +1,17 @@
 
-# $Id: README_OAUTH2.txt,v 1.2 2022/07/25 16:44:43 gilles Exp gilles $
+# $Id: README_OAUTH2.txt,v 1.3 2023/05/31 09:32:06 gilles Exp gilles $
 
 1) Do you have a refresh_token?
 Yes: Good!
 
 No:  Get one. How? Run the commands:
 
-    cd oauth2/
     ./generate_gmail_token  youremail@gmail.com 
 
 You will be asked to go to a long url with a browser, like this:
 
 To authorize token, visit this url and follow the directions:
-https://accounts.google.com/o/oauth2/auth?client_id=108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&response_type=code&scope=https%3A%2F%2Fmail.google.com%2F
+https://accounts.google.com/o/oauth2/auth?client_id=108687549524-s5ijqmadnmi4qfgfgicuquftv8f8a3da.apps.googleusercontent.com&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&response_type=code&scope=https%3A%2F%2Fmail.google.com%2F
 
 
 Go to this url, the url above should be the same as presented by the script.
@@ -69,7 +68,6 @@ used by imapsync to generate the oauthdirect token.
 
 Run the same command:
 
-    cd oauth2/
     ./generate_gmail_token  youremail@gmail.com 
 
 It will generate a new access_token (and the oauthdirect one) 

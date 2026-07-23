@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: cgi_memo,v 1.99 2022/09/15 08:25:31 gilles Exp gilles $
+# $Id: cgi_memo,v 1.110 2023/08/21 22:13:42 gilles Exp gilles $
 
 if test -n "$1"; then 
         echoq() { echo "$@" ; } # not quiet mode
@@ -55,7 +55,11 @@ tests()
                 tests_grep_last_modified \
                 tests_grep_date \
                 tests_date_to_epoch \
-                tests_diff_current_vs_last_modified
+                tests_diff_current_vs_last_modified \
+                tests_round \
+                tests_cpu_slots_available_nbcores_load_rounded \
+                tests_cpu_slots_available_nbcores_load \
+                
 }
 
 
@@ -127,6 +131,13 @@ list_all_logs()
 {
     cat list_all_logs_auto.txt | grep -a -v 385d7a4d8d428d7aa2b57c8982629e2bd67698ed/ | grep -a "$1" 
 }
+
+echoq list_all_logs_with_transfer_time
+list_all_logs_with_transfer_time()
+{
+    cat G_Transfer_time_$1.txt | cut -d: -f1
+}
+
 
 echoq list_all_logs_generate
 list_all_logs_generate()
@@ -230,6 +241,32 @@ memory_used_by_all_proximapsync_KiB()
 }
 
 
+echoq number_of_proximapsync_running_memory_used
+number_of_proximapsync_running_memory_used()
+{
+    number_of_proximapsync_running=`number_of_proximapsync_running`
+    memory_used_by_all_proximapsync_KiB=`memory_used_by_all_proximapsync_KiB`
+    echo "$number_of_proximapsync_running $memory_used_by_all_proximapsync_KiB"
+    : # always return true
+}
+
+
+
+echoq loop_number_of_proximapsync_running_memory_used
+loop_number_of_proximapsync_running_memory_used()
+{
+    while :
+    do
+        line_number_of_proximapsync_running_memory_used=`number_of_proximapsync_running_memory_used`
+        date=`date_ymdhms`
+        echo $date $line_number_of_proximapsync_running_memory_used
+        echo $date $line_number_of_proximapsync_running_memory_used >> /var/tmp/number_of_proximapsync_running_every_${1:-1}s.txt
+        sleep ${1:-1}
+    done
+}
+
+
+
 echoq number_and_pids_of_imapsync_running
 number_and_pids_of_imapsync_running()
 {
@@ -276,13 +313,15 @@ memory_used_by_all_processes()
         echo memory_used_by_all_processes_human=$memory_used_by_all_processes_human
 }
 
-memory_available_var()
+memory_available_var() 
 {
         memory_used_by_all_processes_KiB=`memory_used_by_all_processes_KiB`
         memory_used_by_all_processes_bytes=`KiBytes_to_Bytes $memory_used_by_all_processes_KiB`
         memory_available_in_bytes=`expr $ram_total_in_bytes - $memory_used_by_all_processes_bytes`
         memory_available_human=`bytestohuman $memory_available_in_bytes`
-        memory_available_in_slots=`expr $memory_available_in_bytes / 250000000`
+        # I remove 2 memory slots because imapsync itself does it. 
+        # I remove 1 more because the imapsync doing it takes 1 slot! 
+        memory_available_in_slots=`expr $memory_available_in_bytes / 250000000 - 3`
 }
 
 memory_available()
@@ -665,6 +704,8 @@ stat_all()
     
     echo cpu time
     stat_any  G_CPU_time_and_cpu_$1.txt  6
+    echo '%cpu'
+    stat_any  G_CPU_time_and_cpu_$1.txt  8
     echo '%allcpus'
     stat_any  G_CPU_time_and_cpu_$1.txt 10
     
@@ -693,42 +734,27 @@ stat_transfer_time_mean()
         datamash_file_op_index "$statsfile" mean
 }
 
-stat_throuput_since_day_one_in_days()
-{
-        number_of_syncs=`number_of_syncs "$1"`
-        days_since_first_use=`days_since_first_use "$1"`
-        c "$number_of_syncs / $days_since_first_use"
-}
-
-stat_queue_mean_old()
-{
-        stat_throuput_since_day_one_in_days=`stat_throuput_since_day_one_in_days`
-        stat_transfer_time_mean=`stat_transfer_time_mean "$1"`
-        stat_queue_mean_raw=`c "$stat_throuput_since_day_one_in_days * $stat_transfer_time_mean / 3600 / 24"`
-        LC_ALL=C printf "%2.2f\n" $stat_queue_mean_raw
-}
-
 
 stat_queue_mean()
 {
         first_log=`first_log "$1"`
         last_log=`last_log "$1"`
-        number_of_syncs=`number_of_syncs "$1"`
+        number_of_syncs_with_transfer_time=`number_of_syncs_with_transfer_time "$1"`
         seconds_between_files=`seconds_between_files $first_log $last_log`
         stat_transfer_time_mean=`stat_transfer_time_mean "$1"`
-        stat_queue_mean_raw=`c "$number_of_syncs / $seconds_between_files * $stat_transfer_time_mean"`
+        stat_queue_mean_raw=`c "$number_of_syncs_with_transfer_time / $seconds_between_files * $stat_transfer_time_mean"`
         LC_ALL=C printf "%2.2f\n" $stat_queue_mean_raw
 }
 
 
 first_log()
 {
-        list_all_logs "$1"_ | grep -a /"$1" | head -1
+        list_all_logs_with_transfer_time "$1" | head -1
 }
 
 last_log()
 {
-        list_all_logs "$1"_ | grep -a /"$1" | tail -1
+        list_all_logs_with_transfer_time "$1" | tail -1
 }
 
 start_date()
@@ -956,10 +982,14 @@ pidfiles_not_running() {
     done
 }
 
+first_use_all_times() {
+    # Day one of the /X service
+    echo "${1:-2017} ${2:-01} ${3:-09}"
+}
 
 first_use() {
     test -f first_use && cat first_use && return
-    echo "${1:-2017} ${2:-01} ${3:-09}"
+    first_use_all_times
 }
 
 filedate()
@@ -992,6 +1022,12 @@ days_since_first_use() {
     #echo $[$[$(date +%s)-$(epoch_of_y_m_d_h_m_s 2017 01 09 00 00 00)]/60/60/24]
     echo $[$[$(date +%s)-$(epoch_of_y_m_d_h_m_s $first_use 00 00 00)]/60/60/24]
 }
+
+days_since_first_use_all_times() {
+    first_use_all_times=`first_use_all_times`
+    echo $[$[$(date +%s)-$(epoch_of_y_m_d_h_m_s $first_use_all_times 00 00 00)]/60/60/24]
+}
+
 
 
 epoch_of_y_m_d_h_m_s() {
@@ -1216,6 +1252,12 @@ number_of_syncs()
 }
 
 
+number_of_syncs_with_transfer_time()
+{
+        cat G_Transfer_time_$1.txt | wc -l 
+}
+
+
 count_expression()
 {
         #echo count_expression "[$1]" "[$2]"
@@ -1366,7 +1408,6 @@ watch_number_of_imapsync_running()
 }
 
 
-
 #echoq number_of_bytes_sent_received_per_second_during
 number_of_bytes_sent_received_per_second_during()
 {
@@ -1385,6 +1426,7 @@ tx_file_linux()
 {
         test -r /sys/class/net/eth0/statistics/tx_bytes && echo /sys/class/net/eth0/statistics/tx_bytes
         test -r /sys/class/net/eno0/statistics/tx_bytes && echo /sys/class/net/eno0/statistics/tx_bytes
+        test -r /sys/class/net/eno1/statistics/tx_bytes && echo /sys/class/net/eno1/statistics/tx_bytes
         test -r /sys/class/net/ens3/statistics/tx_bytes && echo /sys/class/net/ens3/statistics/tx_bytes
 }
 
@@ -1392,6 +1434,7 @@ rx_file_linux()
 {
         test -r /sys/class/net/eth0/statistics/rx_bytes && echo /sys/class/net/eth0/statistics/rx_bytes
         test -r /sys/class/net/eno0/statistics/rx_bytes && echo /sys/class/net/eno0/statistics/rx_bytes
+        test -r /sys/class/net/eno1/statistics/rx_bytes && echo /sys/class/net/eno1/statistics/rx_bytes
         test -r /sys/class/net/ens3/statistics/rx_bytes && echo /sys/class/net/ens3/statistics/rx_bytes
 }
 
@@ -1452,12 +1495,186 @@ number_of_cores()
         echo "$number_of_cores"
 }
 
-cpu_slots_available()
+
+
+tests_round()
 {
-        # rule of thumb: 4 imapsync processes per cpu
-        echo "scale=0; ( `number_of_cores` - `load_1_minute` ) * 4 / 1 " | bc
+        run_test test "0" = "`round 0`"
+        run_test test "0" = "`round 0.1`"
+        run_test test "1" = "`round 0.9`"
+        run_test test "12" = "`round 12.34`"
+        run_test test "57" = "`round 56.78`"
+
+        run_test test "-0"  = "`round -0`"
+        run_test test "-0"  = "`round -0.1`"
+        run_test test "-1" = "`round -0.9`"
+        run_test test "-12" = "`round -12.34`"
+        run_test test "-57" = "`round -56.78`"
 }
 
+round()
+{
+        LANG=C printf '%.0f\n' $1
+}
+
+
+
+tests_cpu_slots_available_nbcores_load_rounded()
+{
+        # Tests with load_max_per_core = 1 and number_of_imapsync_attended_per_cpu = 4
+        # 0 core 0 load => 0
+        run_test test "0" = "`cpu_slots_available_nbcores_load_rounded 0 0 1 4`"
+        # 1 core 0 load => 4 slots available 
+        run_test test "4" = "`cpu_slots_available_nbcores_load_rounded 1 0 1 4`" 
+        # 1 core 1 load => 0 slots available 
+        run_test test "0" = "`cpu_slots_available_nbcores_load_rounded 1 1 1 4`"
+        # 1 core 2 load => -4 slots available 
+        run_test test "-4" = "`cpu_slots_available_nbcores_load_rounded 1 2 1 4`"
+        # 1 core 3 load => -8 slots available, can not be less
+        run_test test "-8" = "`cpu_slots_available_nbcores_load_rounded 1 3 1 4`"
+
+        # 4 core 0 load => 16 slots available 
+        run_test test "16" = "`cpu_slots_available_nbcores_load_rounded 4 0 1 4`"
+        # 4 core 4 load => 0 slots available 
+        run_test test "0" = "`cpu_slots_available_nbcores_load_rounded 4 4 1 4`"
+        # 4 core 8 load => -16 slots available 
+        run_test test "-16" = "`cpu_slots_available_nbcores_load_rounded 4 8 1 4`"
+        # 4 core 18 load => -56 slots available, can not be less
+        run_test test "-56" = "`cpu_slots_available_nbcores_load_rounded 4 18 1 4`"
+
+
+        # Tests with load_max_per_core = 1.5 and number_of_imapsync_attended_per_cpu = 4
+        # 0 core 0 load => 0
+        run_test test "0" = "`cpu_slots_available_nbcores_load_rounded 0 0 1.5 4`"
+        # 1 core 0 load => 4 slots available 
+        run_test test "4" = "`cpu_slots_available_nbcores_load_rounded 1 0 1.5 4`" 
+        # 1 core 1.5 load => 0 slots available 
+        run_test test "0" = "`cpu_slots_available_nbcores_load_rounded 1 1.5 1.5 4`"
+        # 1 core 2 load => -1.33 slots available but rounded to -1 
+        run_test test "-1" = "`cpu_slots_available_nbcores_load_rounded 1 2 1.5 4`"
+        # 1 core 3 load => -4 slots available 
+        run_test test "-4" = "`cpu_slots_available_nbcores_load_rounded 1 3 1.5 4`"
+        # 1 core 13 load => -31 slots available, can not be less
+        run_test test "-31" = "`cpu_slots_available_nbcores_load_rounded 1 13 1.5 4`"
+        
+        
+        # 4 core 0 load => 16 slots available 
+        run_test test "16" = "`cpu_slots_available_nbcores_load_rounded 4 0 1.5 4`"
+        # 4 core 4 load => 5.55 slots available but rounded to 5 
+        run_test test "5" = "`cpu_slots_available_nbcores_load_rounded 4 4 1.5 4`"
+        # 4 core 6 load => 0 slots available
+        run_test test "0" = "`cpu_slots_available_nbcores_load_rounded 4 6 1.5 4`"
+        # 4 core 12 load => -16 slots available
+        run_test test "-16" = "`cpu_slots_available_nbcores_load_rounded 4 12 1.5 4`"
+        # 4 core 22 load => -43 slots available, can not be less
+        run_test test "-43" = "`cpu_slots_available_nbcores_load_rounded 4 22 1.5 4`"
+        
+}
+
+
+cpu_slots_available_nbcores_load_precise()
+{
+        # $1 = number_of_cores
+        # $2 = load_1_minute
+        # $3 = load_max_per_core
+        # $4 = number_of_imapsync_attended_per_cpu
+        bc_formula="( $1 - ( $2 / $3 ) ) * $4 / 1 "
+        echo "$bc_formula"  | bc -l 
+}
+
+
+cpu_slots_available_nbcores_load_rounded()
+{
+        # $1 = number_of_cores
+        # $2 = load_1_minute
+        # $3 = load_max_per_core
+        # $4 = number_of_imapsync_attended_per_cpu
+        cpu_slots_available_nbcores_load_precise=`cpu_slots_available_nbcores_load_precise $1 $2 $3 $4`
+        round $cpu_slots_available_nbcores_load_precise
+}
+
+
+
+tests_cpu_slots_available_nbcores_load()
+{
+        # Tests with load_max_per_core = 1 and number_of_imapsync_attended_per_cpu = 4
+        # 0 core 0 load => 0
+        run_test test "0" = "`cpu_slots_available_nbcores_load 0 0 1 4`"
+        # 1 core 0 load => 4 slots available 
+        run_test test "4" = "`cpu_slots_available_nbcores_load 1 0 1 4`" 
+        # 1 core 1 load => 0 slots available 
+        run_test test "0" = "`cpu_slots_available_nbcores_load 1 1 1 4`"
+        # 1 core 2 load => -1 slots available 
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 1 2 1 4`"
+        # 1 core 3 load => -1 slots available, can not be less
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 1 3 1 4`"
+
+        # 4 core 0 load => 16 slots available 
+        run_test test "16" = "`cpu_slots_available_nbcores_load 4 0 1 4`"
+        # 4 core 4 load => 0 slots available 
+        run_test test "0" = "`cpu_slots_available_nbcores_load 4 4 1 4`"
+        # 4 core 8 load => -1 slots available 
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 4 8 1 4`"
+        # 4 core 18 load => -1 slots available, can not be less
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 4 18 1 4`"
+
+
+        # Tests with load_max_per_core = 1.5 and number_of_imapsync_attended_per_cpu = 4
+        # 0 core 0 load => 0
+        run_test test "0" = "`cpu_slots_available_nbcores_load 0 0 1.5 4`"
+        # 1 core 0 load => 4 slots available 
+        run_test test "4" = "`cpu_slots_available_nbcores_load 1 0 1.5 4`" 
+        # 1 core 1.5 load => 0 slots available 
+        run_test test "0" = "`cpu_slots_available_nbcores_load 1 1.5 1.5 4`"
+        # 1 core 2 load => -1.33 slots available but rounded to -1 
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 1 2 1.5 4`"
+        # 1 core 3 load => -1 slots available 
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 1 3 1.5 4`"
+        # 1 core 13 load => -1 slots available, can not be less
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 1 13 1.5 4`"
+        
+        
+        # 4 core 0 load => 16 slots available 
+        run_test test "16" = "`cpu_slots_available_nbcores_load 4 0 1.5 4`"
+        # 4 core 4 load => 5.55 slots available but rounded to 5 
+        run_test test "5" = "`cpu_slots_available_nbcores_load 4 4 1.5 4`"
+        # 4 core 6 load => 0 slots available
+        run_test test "0" = "`cpu_slots_available_nbcores_load 4 6 1.5 4`"
+        # 4 core 12 load => -1 slots available
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 4 12 1.5 4`"
+        # 4 core 22 load => -1 slots available, can not be less
+        run_test test "-1" = "`cpu_slots_available_nbcores_load 4 22 1.5 4`"
+        
+}
+
+
+
+cpu_slots_available_nbcores_load()
+{
+        # $1 = number_of_cores
+        # $2 = load_1_minute
+        # $3 = load_max_per_core
+        # $4 = number_of_imapsync_attended_per_cpu
+
+        # The following cpu_slots_lower_limit is too heavy
+        #cpu_slots_lower_limit=`echo "scale=0; $1 * $4 * -1" | bc`
+        # 
+        cpu_slots_lower_limit=-1
+        cpu_slots_available_nbcores_load_rounded=`cpu_slots_available_nbcores_load_rounded $1 $2 $3 $4`
+        cpu_slots_available_nbcores_load_limited=`maxint $cpu_slots_available_nbcores_load_rounded $cpu_slots_lower_limit`
+        round $cpu_slots_available_nbcores_load_limited
+}
+
+
+
+cpu_slots_available()
+{
+        # rule of thumb: 4 imapsync processes per cpu core,
+        # even if 10 seems to be the mean.
+        # imapsync quits when load per core is >= 1.0
+        # so this value must follow imapsync value, sometimes it changes
+        cpu_slots_available_nbcores_load "`number_of_cores`" "`load_1_minute`" "1.0" "4"
+}
 
 
 maxint()
@@ -1479,9 +1696,10 @@ slots_available()
 
 bandwidth_nominal_bytes_per_second() 
 {
-	test "$hostname" = vp3 && echo 25000000 # 100 mbps + rx 100 mbps tx
-	test "$hostname" = vp4 && echo 25000000 # 100 mbps + rx 100 mbps tx
-	test "$hostname" = ks6 && echo 25000000 # 100 mbps + rx 100 mbps tx
+	test "$hostname" =  vp3 && echo  25000000 && return # 100 mbps + rx 100 mbps tx
+	test "$hostname" =  vp4 && echo  25000000 && return  # 100 mbps + rx 100 mbps tx
+	test "$hostname" =  ks6 && echo  25000000 && return  # 100 mbps + rx 100 mbps tx
+	test "$hostname" = i050 && echo 125000000 && return  # 500 mbps + rx 500 mbps tx
 	echo 25000000 # default 100 mbps + rx 100 mbps tx  
 }
 
@@ -1662,42 +1880,84 @@ freshness()
 
 imapsync_spots_single()
 {
-        :
+        # the remote file must exist, ie, have a Last-Modified header.
         freshness=`freshness "$1"`
         test -n "$freshness" || return
+        # the remote file must have been modified less than 30 secondes ago
         if test 30 -gt "$freshness"
         then
                 get_url "$1"
+        else
+                :
         fi
 }
 
 
-imapsync_spots_available()
+imapsync_slots_available()
 {
-        imapsync_hosts=`curl --silent https://i005.lamiral.info/imapsync_remote.txt`
+        imapsync_hosts=`curl --silent https://proximapsync.lamiral.info/imapsync_remote.txt`
         #echo $imapsync_hosts
+        # Check it is some https urls
+        { echo $imapsync_hosts | grep '^https://' > /dev/null ; } || { return 1 ; }
         for imapsync_host in $imapsync_hosts 
         do
+                # Do not count several times the same host
+                test "$imapsync_host" = "$imapsync_host_previous" && continue
+                imapsync_host_previous="$imapsync_host"
                 imapsync_spots_link=`https_and_host_part "$imapsync_host"`/imapsync_mem_cpu_bandwidth_6.txt
                 #echo $imapsync_spots_link
                 imapsync_spots_single "$imapsync_spots_link"
-        done | egrep -o 'slots [0-9]+' | awk '{ sum+=$2  } END { print sum }'
+        done | egrep -o 'slots -?[0-9]+' | awk '{ sum+=$2  } END { print sum }'
+}
+
+
+
+
+proximapsync_not_ok()
+{
+        ! ( curl -v --data '' https://proximapsync.lamiral.info/cgi-bin/proximapsync  2>/dev/null   | grep 'Exiting with return value 0' )
+}
+
+not_enough_imapsync_slots_available()
+{
+        :
+        imapsync_slots_available=`imapsync_slots_available`
+        echo "imapsync_slots_available=$imapsync_slots_available"
+        test 0 -gt "$imapsync_slots_available"
 }
 
 add_spare_if_needed()
 {
         :
-        imapsync_spots_available=`imapsync_spots_available`
-        echo "imapsync_spots_available=$imapsync_spots_available"
-        if test 0 -gt "$imapsync_spots_available"
+        imapsync_slots_available=`imapsync_slots_available`
+        echo "imapsync_slots_available=$imapsync_slots_available"
+        if test 0 -gt "$imapsync_slots_available"
         then
-                add_spare
+                add_spare i050
         fi
 }
 
-imapsync_spare_running()
+
+
+
+imapsync_number_running_on_spares()
 {
-        imapsync_spare_host=`curl --silent https://i005.lamiral.info/imapsync_remote_spare.txt`
+        #imapsync_spare_hosts=`curl --silent https://proximapsync.lamiral.info/imapsync_remote_spare.txt`
+        imapsync_spare_hosts=`curl --silent https://lamiral.info/imapsync_remote_spare.txt`
+        #echo $imapsync_spare_hosts
+        test -n "$imapsync_spare_hosts" || return 
+        for imapsync_spare_host in $imapsync_spare_hosts
+        do
+                imapsync_spare_link=`https_and_host_part "$imapsync_spare_host"`/imapsync_mem_cpu_bandwidth_6.txt
+        #echo $imapsync_spare_link
+                imapsync_spots_single "$imapsync_spare_link" | cut -d' ' -f3
+        done
+}
+
+
+imapsync_number_running_on_spare()
+{
+        imapsync_spare_host=`curl --silent https://proximapsync.lamiral.info/imapsync_remote_spare.txt`
         #echo $imapsync_spare_host
         test -n "$imapsync_spare_host" || return 
         imapsync_spare_link=`https_and_host_part "$imapsync_spare_host"`/imapsync_mem_cpu_bandwidth_6.txt
@@ -1706,128 +1966,360 @@ imapsync_spare_running()
 }
 
 
-remove_spare_if_not_needed()
+
+
+
+imapsync_number_running_on_host_rough()
 {
-        imapsync_spare_running=`imapsync_spare_running`
-        imapsync_spots_available=`imapsync_spots_available`
-        echo imapsync_spare_running   = $imapsync_spare_running
-        echo imapsync_spots_available = $imapsync_spots_available
-        
-        if test "0" = "$imapsync_spare_running" && test "1" -lt "$imapsync_spots_available"
-        then
-                echo remove_spare
-                remove_spare
-        fi
-        
+        imapsync_spots_single https://"$1".lamiral.info/imapsync_mem_cpu_bandwidth_6.txt | cut -d' ' -f3
 }
 
 
+imapsync_number_running_on_host()
+{
+        imapsync_number_running_on_host_rough=`imapsync_number_running_on_host_rough "$1"`
+        echo "$imapsync_number_running_on_host_rough"
+        test -n "$imapsync_number_running_on_host_rough" || return 1
+        return 0
+}
+
+
+remove_spare_if_not_needed()
+{
+        imapsync_number_running_on_spare=`imapsync_number_running_on_spare`
+        imapsync_slots_available=`imapsync_slots_available`
+        echo imapsync_number_running_on_spare   = $imapsync_number_running_on_spare
+        echo imapsync_slots_available = $imapsync_slots_available
+        
+        if test "0" = "$imapsync_number_running_on_spare" && test "1" -lt "$imapsync_slots_available"
+        then
+                echo remove_spare $1
+                remove_spare $1
+        fi
+}
 
 
 remove_spare()
 {
-        imapsync_remote_spare_be_void
-        echo wait_runs_to_be_finished to be coded
-        shelve_spare
+        echo Doing remove_spare $1
+        echo imapsync_remote_spare_be_void && imapsync_remote_spare_be_void
+        echo shelve_spare $1 && shelve_spare $1 
 }
 
 
 add_spare()
 {
-        unshelve_spare
-        imapsync_remote_spare_be_i050
+        echo Doing remove_spare $1
+        unshelve_spare $1 && imapsync_remote_spare_be_host $1 && echo "sleep 300" && sleep 300
 }
 
-imapsync_remote_spare_be_i050()
+imapsync_remote_spare_be_host()
 {
-        ssh root@i005.lamiral.info  'ln -sfv /var/tmp/imapsync_remote_i050.txt /var/tmp/imapsync_remote_spare.txt'
+        test "" != "$1" || { echo usage: imapsync_remote_spare_be_host host; return 1 ; }
+        echo ssh -oBatchMode=yes root@imapsync.lamiral.info  "ln -sfv /var/tmp/imapsync_remote_$1.txt /var/tmp/imapsync_remote_spare.txt"
+        ssh -oBatchMode=yes root@imapsync.lamiral.info  "ln -sfv /var/tmp/imapsync_remote_$1.txt /var/tmp/imapsync_remote_spare.txt"
 }
+
+
 
 imapsync_remote_spare_be_void()
 {
-        ssh root@i005.lamiral.info  'ln -sfv /var/tmp/imapsync_remote_void.txt /var/tmp/imapsync_remote_spare.txt'
+        echo "ssh root@imapsync.lamiral.info  'ln -sfv /var/tmp/imapsync_remote_void.txt /var/tmp/imapsync_remote_spare.txt'"
+        ssh root@imapsync.lamiral.info  'ln -sfv /var/tmp/imapsync_remote_void.txt /var/tmp/imapsync_remote_spare.txt'
 }
 
 
-unshelve_spare()
+openstack_installed()
 {
-        openstack server list
-        check_i050 && echo "i050 is already up and running" && return 0
-        openstack server unshelve i050
-        openstack server list
-        openstack server show     i050
-        while ! ping -c 1 i050.lamiral.info ; do : ; done
-        sleep 10
-        check_i050 && echo "i050 is up and running" || { echo "i050 failed waking up" ; return 1 ; }
+        openstack --version > /dev/null 
 }
+
+openstack_host_listed()
+{
+        test "" != "$1" || { echo usage: openstack_host_listed host ; return 1 ; }
+        echo 'openstack server list' && 
+                { openstack_server_list=`openstack server list` && echo "$openstack_server_list" ; } || 
+                { echo "Failure: openstack server list failed" ; return 1 ; }
+        
+        echo "$openstack_server_list" | grep "$1" > /dev/null || 
+                { echo "Failure: $1 not listed with openstack server list" ; return 1 ; }
+        return 0
+}
+
+unshelve_spare() 
+{ 
+        test "" != "$1" || { echo usage: unshelve_spare host; return 1 ; }
+        
+        echo Entering unshelve_spare "$1"
+
+        openstack_installed || 
+        { 
+                echo Failure: openstack is not installed; 
+                echo Leaving unshelve_spare "$1"
+                return 1 ;
+        }
+        
+        host $1.lamiral.info || { echo Failure: host not known $1.lamiral.info ; return 1 ; }
+        
+        openstack_host_listed "$1" && echo "$1 listed" || 
+        { 
+                echo Failure: openstack_host_listed "$1" failed ; 
+                return 1 ; 
+        }
+        
+        check_imapsync_host "$1" && echo "$1 is already up and running" && return 0
+        
+        spare_active "$1" && echo "$1 is already active BUT not running well" && return 1
+        
+        date_1_unshelve_spare=`date +%s`
+        echo Doing openstack server unshelve "$1" && openstack server unshelve "$1" || { echo Failure: openstack server unshelve "$1" failed; return 1 ; }
+        
+        echo spare_task_state      "$1" && spare_task_state "$1"
+        
+        wait_host_is_up_by_ping "$1".lamiral.info
+        
+        echo spare_task_state      "$1" && spare_task_state "$1"
+        
+        date_2_unshelve_spare=`date +%s`
+        time_to_unshelve=`expr $date_2_unshelve_spare - $date_1_unshelve_spare`
+        sleep 10
+        echo "$1 is up. Took $time_to_unshelve sec."
+        return 0
+} 
+
+############################################################
+# From ks5 
+# OS-EXT-STS:power_state              | Shutdown
+# OS-EXT-STS:power_state              | Running
+
+# OS-EXT-STS:vm_state                 | shelved_offloaded
+# OS-EXT-STS:vm_state                 | active
+
+# OS-EXT-STS:task_state               | None
+# OS-EXT-STS:task_state               | spawning
+
+############################################################
+# From petite
+# OS-EXT-STS:power_state               | 4                 
+# OS-EXT-STS:power_state               | 1
+
+# OS-EXT-STS:vm_state                  | shelved_offloaded
+# OS-EXT-STS:vm_state                  | active
+
+# OS-EXT-STS:task_state                | None
+# OS-EXT-STS:task_state                | spawning
+
+spare_active()
+{
+        { spare_vm_state "$1" | egrep 'active' ; }
+}
+
+spare_shelved_offloaded()
+{
+        { spare_vm_state "$1" | egrep 'shelved_offloaded' ; }
+}
+
+spare_vm_state() 
+{ 
+        { openstack server show "$1" | tr -s ' ' | egrep 'OS-EXT-STS:vm_state' ; }
+} 
+
+
+spare_task_state() 
+{ 
+        { openstack server show "$1" | tr -s ' ' | egrep 'OS-EXT-STS:task_state' ; }
+} 
+
 
 shelve_spare()
-{
-        ssh root@i050.lamiral.info halt
-        while ping -c 1 i050.lamiral.info ; do sleep 1 ; done
-        echo i050 is down
-        openstack server shelve i050
-        openstack server show   i050
-        openstack server list
-        echo openstack server list
+{ 
+        test "" != "$1" || { echo usage: shelve_spare host; return 1 ; }
+        echo Doing shelve_spare "$1" 
+
+        openstack_installed || { echo openstack is not installed; return 1 ; }
+        
+        spare_shelved_offloaded "$1" && { echo "$1 is already shelved" && return 0 ; }
+        
+        host "$1".lamiral.info || { echo host not known "$1".lamiral.info ; return 1 ; }
+        date_1_shelve_spare=`date +%s`
+        
+        if ssh -oBatchMode=yes root@"$1".lamiral.info halt ; then
+                wait_host_is_down_by_ping  "$1".lamiral.info
+                echo "$1" is down
+        else
+                echo "Failed to ssh $1.lamiral.info halt"
+                echo "Shelving anyway"
+        fi
+        
+        echo openstack server shelve "$1" && openstack server shelve "$1"
+        
+        while spare_active "$1" ; do sleep 10 ; done
+        
+        date_2_shelve_spare=`date +%s`
+        echo spare_task_state      "$1" && spare_task_state "$1"
+        echo openstack server list "$1" && openstack server list
+        time_to_shelve=`expr $date_2_shelve_spare - $date_1_shelve_spare`
+        echo took $time_to_shelve sec to shelve $1
 }
 
-check_i050()
+
+
+echoq spare
+spare()
+{ 
+        :
+        cat << EOF
+ssh root@ks5 # or petite
+
+openstack server list
+
+shelve_spare i050
+shelve_spare i021
+
+unshelve_spare i050
+unshelve_spare i021
+
+openstack server show   i050 | tr -s ' '
+openstack server show   i021 | tr -s ' '
+
+xterm -e ssh root@i050 &
+xterm -e ssh root@i021 &
+
+EOF
+}
+
+
+host_reply_to_ping()
 {
-        curl -v --max-time 7 --data 'testslive=1;exitonload=0' https://i050.lamiral.info/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0'
+        ping -c1 "$1" > /dev/null || {  echo ping "$1" failed ; return 1 ; } 
+}
+
+
+check_imapsync_host_by_service_ok()
+{
+        curl -v --max-time 7 --data 'testslive=1;exitonload=0' https://$1/cgi-bin/imapsync 2>/dev/null | grep 'Exiting with return value 0' > /dev/null
+}
+
+check_imapsync_host() 
+{ 
+        echo "Checking https://$1.lamiral.info/cgi-bin/imapsync"
+        host_reply_to_ping $1.lamiral.info || { return 1 ; }
+        echo ping "$1.lamiral.info succeeded, a good start"
+        if check_imapsync_host_by_service_ok $1.lamiral.info; then
+                echo Success for https://$1.lamiral.info/cgi-bin/imapsync 
+                return 0
+        else
+                echo Failure for https://$1.lamiral.info/cgi-bin/imapsync 
+                return 1
+        fi
+} 
+
+
+wait_host_is_down_by_ping() 
+{
+        while host_reply_to_ping "$1" ; do sleep 6 ; done
+} 
+
+wait_host_is_up_by_ping() 
+{
+        while ! host_reply_to_ping "$1" ; do sleep 6 ; done
+} 
+
+
+spare_check_ssh_access_imapsync()
+{
+        echo check ssh access to imapsync.lamiral.info
+        ssh -oBatchMode=yes root@imapsync.lamiral.info hostname 
+}
+
+spare_check_ssh_access_host()
+{
+        test -n "$1" || { echo "usage: spare_check_ssh_access_host host" ; return 1 ; }
+        ssh -oBatchMode=yes root@"$1".lamiral.info hostname 
 }
 
 
 
-
-loop_add_or_remove_spare()
+spare_prerequisites()
 {
+        test -n "$1" || { echo "usage: spare_prerequisites host" ; return 1 ; }
+        
+        echo "Entering spare_prerequisites $1"
+        spare_check_ssh_access_imapsync || { echo "Failed ssh access to imapsync.lamiral.info. Leaving spare_prerequisites." ; return 1 ; }
+        
+        # TODO: Check if there is imapsync is prepared to run or run on $1, if yes, return 0
+        imapsync_number_running_on_host "$1" && 
+        { 
+                echo "There is already imapsync running on $1 host." ; 
+                echo "Leaving spare_prerequisites." ; 
+                return 0 ; 
+        }
+        
+        unshelve_spare "$1" &&
+        spare_check_ssh_access_host "$1" &&
+        check_imapsync_host "$1" &&
+        shelve_spare "$1" &&
+        echo "Ok to spare with $1 on shelve" || 
+                { shelve_spare "$1" ; echo "Bad $1 as spare" ; return 1 ; }
+        
+        echo "Declaring $1 on imapsync.lamiral.info /var/tmp/imapsync_remote_$1.txt"
+        ssh -oBatchMode=yes root@imapsync.lamiral.info "echo https://$1.lamiral.info/cgi-bin/imapsync > /var/tmp/imapsync_remote_$1.txt"
+        ssh -oBatchMode=yes root@imapsync.lamiral.info "cat /var/tmp/imapsync_remote_$1.txt"
+        
+        echo "Leaving  spare_prerequisites $1"
+        return 0
+}
+
+loop_add_or_remove_spare() 
+{
+        test -n "$1" || { echo "usage: loop_add_or_remove_spare host" ; return 1 ; }
+        spare_prerequisites "$1" || {  echo "Failure $1" ; return 1 ; }
         while :
         do
-                :
-                imapsync_spare_running=`imapsync_spare_running`
-                imapsync_spots_available=`imapsync_spots_available`
-                echo imapsync_spare_running   = $imapsync_spare_running
-                echo imapsync_spots_available = $imapsync_spots_available
-                add_or_remove_spare "$imapsync_spots_available" "$imapsync_spare_running" | tee -a /var/tmp/add_or_remove_spare_$$.txt
+                imapsync_number_running_on_spare=`imapsync_number_running_on_host "$1"`
+                imapsync_slots_available=`imapsync_slots_available`
+                echo imapsync_number_running_on_spare   = $imapsync_number_running_on_spare
+                echo imapsync_slots_available = $imapsync_slots_available
+                add_or_remove_spare "$imapsync_slots_available" "$imapsync_number_running_on_spare" "$1" | tee -a /var/tmp/add_or_remove_spare_$$.txt
                 sleep 60
         done
-}
+} 
 
 
-tests_add_or_remove_spare()
+tests_add_or_remove_spare() 
 {
         dothis=echo
-        run_test test "add_spare"      = "`add_or_remove_spare -2 ''`" #
-        run_test test "add_spare"      = "`add_or_remove_spare -1 ''`" #
-        run_test test "add_spare"      = "`add_or_remove_spare  0 ''`" #
-        run_test test "echo can sleep" = "`add_or_remove_spare  1 ''`" #
-        run_test test "echo can sleep" = "`add_or_remove_spare  2 ''`" #
-        run_test test "remove_spare"   = "`add_or_remove_spare  5 0`"  #
-        run_test test "remove_spare"   = "`add_or_remove_spare  2 0`"  #
-        run_test test "echo can sleep" = "`add_or_remove_spare  0 0`"  #
-        run_test test "echo can sleep" = "`add_or_remove_spare  1 0`"  #
-        run_test test "echo can sleep" = "`add_or_remove_spare  5 5`"  #
-}
+        run_test test "add_spare iii"      = "`add_or_remove_spare -2 '' iii`" #
+        run_test test "add_spare iii"      = "`add_or_remove_spare -1 '' iii`" #
+        run_test test "add_spare iii"      = "`add_or_remove_spare  0 '' iii`" #
+        run_test test "echo can sleep, avail 1 iii " = "`add_or_remove_spare  1 '' iii`" #
+        run_test test "echo can sleep, avail 2 iii " = "`add_or_remove_spare  2 '' iii`" #
+        run_test test "remove_spare iii"   = "`add_or_remove_spare  5 0 iii`"  #
+        run_test test "remove_spare iii"   = "`add_or_remove_spare  2 0 iii`"  #
+        run_test test "echo can sleep, avail 0 iii 0" = "`add_or_remove_spare  0 0 iii`"  #
+        run_test test "echo can sleep, avail 1 iii 0" = "`add_or_remove_spare  1 0 iii`"  #
+        run_test test "echo can sleep, avail 5 iii 5" = "`add_or_remove_spare  5 5 iii`"  #
+} 
 
-add_or_remove_spare()
+add_or_remove_spare() 
 {
         :
         spots_available="$1"
         spare_running="$2"
+        spare_host="$3"
         #echo spots_available="$1" spare_running="$2"
         # No spot available, no spare running 
         if   test 0 -ge "$spots_available" && test "" = "$spare_running"
         then
-                $dothis add_spare
+                $dothis add_spare "$spare_host"
         # At leat 2 spots available, no spare running
         elif test 2 -le "$spots_available" && test 0 = "$spare_running"
         then
-                $dothis remove_spare
+                $dothis remove_spare "$spare_host"
         else
-                $dothis echo can sleep
+                $dothis echo "can sleep, avail $spots_available $spare_host $spare_running"
         fi
-}
+} 
 
 
 openstack_memo()
@@ -1847,25 +2339,38 @@ EOF
 }
 
 
-echoq imapsync_current
-imapsync_current()
+echoq imapsync_current https://proximapsync.lamiral.info/imapsync_remote.txt
+imapsync_current() 
 {
-        imapsync_hosts=`curl --silent https://i005.lamiral.info/imapsync_remote.txt https://i005.lamiral.info/imapsync_remote_spare.txt https://i005.lamiral.info/imapsync_remote_extra.txt`
+        test -n "$1" || { echo usage example: imapsync_current https://proximapsync.lamiral.info/imapsync_remote.txt ... ; return 1 ; }
+        imapsync_hosts=`curl --silent "$@"`
         #echo $imapsync_hosts
+        # Check it is some https urls
+        { echo $imapsync_hosts | grep '^https://' > /dev/null ; } || { echo No https:// data in "$@" ; return 1 ; }
         for imapsync_host in $imapsync_hosts 
         do
+                test "$imapsync_host" = "$imapsync_host_previous" && echo ... && continue
                 imapsync_current_link=`https_and_host_part "$imapsync_host"`/imapsync_current_6.txt
                 #echo $imapsync_current_link
                 imapsync_current_single "$imapsync_current_link"
+                imapsync_host_previous="$imapsync_host"
         done
-}
+} 
 
-imapsync_current_save()
+imapsync_current_save() 
 {
-        :
-        imapsync_current | tee /var/tmp/imapsync_current_6s_all.txt.tmp
+        : 
+        { imapsync_current https://proximapsync.lamiral.info/imapsync_remote.txt https://proximapsync.lamiral.info/imapsync_remote_spare.txt ; 
+          echo 
+          imapsync_current https://proximapsync.lamiral.info/imapsync_remote_extra.txt ;
+        } | tee /var/tmp/imapsync_current_6s_all.txt.tmp
+        # On host https://proximapsync.lamiral.info/ there is:
+        # ls -l /var/www/html/imapsync/X/imapsync_current.txt  /var/tmp/imapsync_current.txt 
+        # lrwxrwxrwx 1 gilles gilles 29 Jan 31 14:55 /var/www/html/imapsync/X/imapsync_current.txt -> /var/tmp/imapsync_current.txt
+        # lrwxrwxrwx 1 root   root   27 Mar 22 18:16 /var/tmp/imapsync_current.txt -> imapsync_current_6s_all.txt
+
         mv /var/tmp/imapsync_current_6s_all.txt.tmp /var/tmp/imapsync_current_6s_all.txt
-}
+} 
 
 
 https_and_host_part()
@@ -1882,7 +2387,7 @@ imapsync_current_single()
 {
         :
         freshness=`freshness "$1"`
-        test -n "$freshness" || return
+        test -n "$freshness" || { echo "No $1" ; return ; }
         if test 30 -gt "$freshness"
         then
                 get_url "$1"
@@ -1937,20 +2442,22 @@ echoq summary_display lognamepattern
 summary_display() {
     echo    "Start date : " `start_date "$1"`
     echo    "End   date : " `end_date   "$1"`
-    echo -n "Number of /X users:            " ; number_of_X_users "$1"
-    echo -n "Number of /X accounts synced:  " ; nb_migrations_launched "$1"
-    echo -n "Number of /X syncs:            " ; number_of_syncs "$1"
-    echo -n "Total volume /X transferred:   " ; total_volume_transferred "$1"
-    echo -n "Total messages /X transferred: " ; total_messages_transferred "$1"
-    echo -n "Biggest transfer:              " ; biggest_transfer "$1"
-    echo -n "Biggest message seen:          " ; biggest_message_seen "$1"
-    echo -n "Biggest message transferred:   " ; biggest_message_transferred "$1"
-    echo -n "Biggest bandwidth rate:        " ; biggest_bandwidth_rate "$1"
-    echo -n "Average bandwidth rate:        " ; average_bandwidth_rate "$1"
-    echo -n "Max messages transferred:      " ; max_number_of_messages_transferred "$1"
-    echo -n "Max messages skipped:          " ; max_number_of_messages_skipped "$1"
-    echo -n "Longest transfer:              " ; seconds_to_days_hours `longest_transfer "$1"`
-    echo -n "Queue length mean is:          " ; stat_queue_mean "$1"
+    echo -n "Number of /X users:                    " ; number_of_X_users "$1"
+    echo -n "Number of /X accounts synced:          " ; nb_migrations_launched "$1"
+    echo -n "Number of /X syncs:                    " ; number_of_syncs "$1"
+    echo -n "Number of /X syncs with transfer time: " ; number_of_syncs_with_transfer_time "$1"
+    
+    echo -n "Total volume /X transferred:           " ; total_volume_transferred "$1"
+    echo -n "Total messages /X transferred:         " ; total_messages_transferred "$1"
+    echo -n "Biggest transfer:                      " ; biggest_transfer "$1"
+    echo -n "Biggest message seen:                  " ; biggest_message_seen "$1"
+    echo -n "Biggest message transferred:           " ; biggest_message_transferred "$1"
+    echo -n "Biggest bandwidth rate:                " ; biggest_bandwidth_rate "$1"
+    echo -n "Average bandwidth rate:                " ; average_bandwidth_rate "$1"
+    echo -n "Max messages transferred:              " ; max_number_of_messages_transferred "$1"
+    echo -n "Max messages skipped:                  " ; max_number_of_messages_skipped "$1"
+    echo -n "Longest transfer:                      " ; seconds_to_days_hours `longest_transfer "$1"`
+    echo -n "Queue length mean is:                  " ; stat_queue_mean "$1"
     echo "Data made at" `date -r grep_stats_"$1".txt`
 }
 
@@ -1985,6 +2492,7 @@ list_all_logs|tail -50000 | xargs egrep '{.?[56789]........}    copied'
 
 # online processes stats
 cat /var/tmp/number_of_imapsync_running_every_60s.txt | datamash -W min 2 max 2 mean 2 median 2 q1 2 q3 2
+cat /var/tmp/number_of_proximapsync_running_every_60s.txt | datamash -W min 2 max 2 mean 2 median 2 q1 2 q3 2
 for v in 2 3 4; do cat  /var/tmp/number_of_imapsync_running_every_6s.txt | datamash --format=%10.0f -W min  $v max $v mean $v median $v q1 $v q3 $v ; done
 netstat -I em0 -b -n -w 6 -q 1
 while :; do ssh root@ks5 'cd /var/tmp/imapsync_cgi/ ; . cgi_memo ; loop_number_of_imapsync_running_bandwidth 6' ; echo $?; done

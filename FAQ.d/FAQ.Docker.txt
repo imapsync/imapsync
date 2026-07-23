@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Docker.txt,v 1.10 2021/07/12 21:22:14 gilles Exp gilles $
+# $Id: FAQ.Docker.txt,v 1.11 2023/04/04 08:56:22 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -40,14 +40,14 @@ Q. How can I install and use the imapsync Docker image on my amd64 system?
 R. Install Docker on your system. Once Docker is installed on your system,
    all you have to do in order install and run imapsync is the command line:
 
-  docker run gilleslamiral/imapsync imapsync <usual imapsync arguments>
+  docker run --rm gilleslamiral/imapsync imapsync <usual imapsync arguments>
 
 ======================================================================
 Q. How can I install and use the imapsync Docker image on my i386 system?
 
 R1. You can't do it directly for now. It will throw this error when running it:
 
-  docker run gilleslamiral/imapsync imapsync
+  docker run --rm gilleslamiral/imapsync imapsync
   standard_init_linux.go:211: exec user process caused "exec format error"
 
 I plan to make the image multi-plateform. Drop me a note if you are
@@ -83,7 +83,7 @@ IMAPSYNC_PASSWORD2=secret2
 
 Use that file like this for a run:
 
-  docker run --env-file ./secret.txt gilleslamiral/imapsync imapsync ...
+  docker run --rm --env-file ./secret.txt gilleslamiral/imapsync imapsync ...
 
 See:
 https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file
@@ -141,7 +141,7 @@ https://imapsync.lamiral.info/INSTALL.d/INSTALL.Docker_build.txt
 ======================================================================
 Q. What do you do to update the docker hub image?
 
-R. I do in my imapsync directory:
+R. In my imapsync directory, I do the following
 
     make docker_build
     make docker_upload_docker_hub

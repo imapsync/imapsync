@@ -1,4 +1,4 @@
-$Id: FAQ.Capacity_Planning.txt,v 1.6 2022/04/23 13:45:59 gilles Exp gilles $
+$Id: FAQ.Capacity_Planning.txt,v 1.10 2023/04/25 08:48:32 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -10,14 +10,21 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Capacity_Planning.txt
 ======================================================================
 
 
-I plan to go to a distributed architecture for the online service. I'm
-doing some capacity planning. Imapsync takes memory, cpu and bandwidth
+I planned to go to a distributed architecture for the online service. 
+I did, it is in place since May 2022, using proximapsync as a frontend
+to handle the requests and distribute the jobs to a pool of hosts.
+
+Let's do some capacity planning. Imapsync takes memory, cpu and bandwidth
 in a relatively deterministic values.
 
 My current question is: Shall I use 
 * N   2GB hosts
 * N/2 4GB hosts
 * N/4 8GB hosts
+
+or another choice. My goal is to minimize the bill, the money spent.
+
+
 
 Let's do some observations and maths
 
@@ -28,7 +35,7 @@ CPU: Intel i5-2300 with 4 cores
 
 RAM: 16 GB
 
-NET: 100 Mbps symmetrical, 12.5 MBytes/s symmetrical, 
+NET: 100 Mbps symetrical, 12.5 MBytes/s symetrical, 
      so 25 MBytes/s max for a global imapsync rate.
 
 Disks: I don't know.
@@ -53,7 +60,7 @@ the performances are ok.
 
 The RAM can be an issue. On average, an imapsync run takes 250 MB.  So
 4 imapsync processes per GB is the limit before swapping to disk,
-which is a known phenomenon telling when memory becomes the bottleneck.
+which is a known phenomenum telling when memory becomes the bottleneck.
 16 GB allows 64 imapsync processes.
 
 On the 16GB, so far, the maximum memory usage taken by imapsync processes was
@@ -71,19 +78,19 @@ network link is twice this value, one time when getting the message
 from host1, rx, and one time sending the message to host2, tx.
 
 On average, an imapsync runs at 3 Mbps both ways, rx and tx, so 6 Mbps
-in total.  So a 100 Mbps symmetric link allows 33 imapsync processes
+in total.  So a 100 Mbps symetric link allows 33 imapsync processes
 before the link becomes the bottleneck.
 
 The best minutes observed so far are a global 187 Mpbs rate (~23 MiB/s) 
-on a 100 Mbps symmetrical link done by 28 imapsync processes in parallel, 
+on a 100 Mbps symetrical link done by 28 imapsync processes in parallel, 
 6.7 Mbps per process at that minute.  But the best minutes observed for a
 single imapsync process is at 103 Mbps (~13 MiB/s), the rx/tx link limit.
 
 ===== DISKS =====
 
 The harddisk I/O can be an issue. I don't measure it yet because
-imapsync doesn't perform heavy I/0 where it runs. Well, I don't know,
-no measure is no knowledge, just guesses.
+imapsync doesn't perform heavy I/0 where it runs. Well, I really 
+don't know, since no measure means no knowledge, just guesses.
 
 
 ===== Repartition ======
@@ -92,12 +99,61 @@ no measure is no knowledge, just guesses.
 Let's consider we have a bunch of different hosts able to run imapsync 
 processes. How should we distribute imapsync jobs among them?
 
-A simple rule is "do not add more load to a host when one of the resources
-has reached its maximal. The resources are memory, bandwidth, cpu, disk.
+A simple rule is "do not add more load to a host when one of the ressources
+has reached its maximal. The ressources are memory, bandwidth, cpu, disk.
 I ignore the disk part for now.
 
 maximum number of imapsync processes for a host 
-= min( 4 * RAM_in_GB, 10 * nb_cores, bandwidth_in_mbps / 3 )
+= min( 4 * RAM_in_GB - 4, 10 * nb_cores, bandwidth_in_mbps / 3 )
 
 
+
+Here are some ovh servers with their characteristics and their prices.
+
+https://www.ovhcloud.com/fr/vps/
+
+vps starter   RAM  2 GB cpu 1 vCore Link 100 Mbps 42 EUR/year 
+imapsync_nominal = min( 4, 10, 33 ) = 6 ; 42/4 = 10.50 EUR/year/imapsync
+
+vps value     RAM  2 GB cpu 1 vCore Link 250 Mbps 59 EUR/year 
+imapsync_nominal = min( 4, 10, 83 ) = 4 ; 59/4 = 14.75 EUR/year/imapsync
+
+vps essential RAM  4 GB cpu 2 vCore Link 500 Mbps 128 EUR/year 
+imapsync_nominal = min( 12, 20, 166 ) = 12 ; 128/12 = 10.66 EUR/year/imapsync
+
+vps comfort   RAM  8 GB cpu 4 vCore Link 1000 Mbps 240 EUR/year 
+imapsync_nominal = min( 28, 40, 333 ) = 28 ; 240/28 = 8.57 EUR/year/imapsync
+
+
+https://eco.ovhcloud.com/fr/
+
+kimsufi       RAM  4 GB cpu 4 Link 100 Mbps  60 EUR/year 
+imapsync_nominal = min( 12, 40, 33 ) = 12 ;  60/12 = 5.00 EUR/year/imapsync
+
+kimsufi       RAM 16 GB cpu 4 Link 100 Mbps 172 EUR/year 
+imapsync_nominal = min( 60, 40, 33 ) = 33 ; 172/33 = 5.21 EUR/year/imapsync
+
+kimsufi       RAM 32 GB cpu 8 Link 100 Mbps 264 EUR/year 
+imapsync_nominal = min( 124, 80, 33 ) = 33 ; 240/33 = 8.00 EUR/year/imapsync
+
+soyoustart    RAM 32 GB cpu 8 Link 250 Mbps 300 EUR/year 
+imapsync_nominal = min( 124, 80, 83 ) = 80 ;  300/80  =  3.75  EUR/year/imapsync
+
+soyoustart    RAM 32 GB cpu 16 Link 250 Mbps 324 EUR/year 
+imapsync_nominal = min( 124, 160, 83 ) = 83 ;  324/83  =  3.90  EUR/year/imapsync
+
+
+https://www.ovhcloud.com/fr/public-cloud/prices/#388
+
+Sandbox S1-2  RAM  2 GB cpu 1 Link 100 Mbps 77 EUR/year
+imapsync_nominal = min( 4, 10, 33 ) = 4 ;  77/4  =  19.25  EUR/year/imapsync
+
+Discovery     RAM  2 GB cpu 1 Link 100 Mbps 87 EUR/year 
+imapsync_nominal = min( 4, 10, 33 ) = 4 ;  87/4  =  21.75  EUR/year/imapsync
+
+Discovery     RAM  4 GB cpu 2 Link 250 Mbps 174 EUR/year 
+imapsync_nominal = min( 12, 20, 83 ) = 12 ;  174/12  =  14.5  EUR/year/imapsync
+
+Discovery     RAM  8 GB cpu 4 Link 500 Mbps 313 EUR/year 
+imapsync_nominal = min( 28, 40, 166 ) = 28 ;  313/28  =  11.18  EUR/year/imapsync
 

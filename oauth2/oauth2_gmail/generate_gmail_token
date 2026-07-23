@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# $Id: generate_gmail_token,v 1.12 2023/05/31 09:31:42 gilles Exp gilles $
+
 refresh_token_file()
 {
         echo ./D_oauth2_refresh_token_"$1".txt
@@ -15,7 +17,7 @@ oauthdirect_file()
         echo ./D_oauth2_oauthdirect_"$1".txt
 }
 
-
+PYTHON3=
 
 #echo 
 #echo "get_refresh_token youremail@gmail.com # First time, then once in a while when the refresh_token is no longer working"
@@ -25,9 +27,9 @@ get_refresh_token()
         access_token_file="`access_token_file $1`"
         # 1 Get an access_token and a refresh_token
         
-        ${my_dirname}/oauth2_google.py --user="$1" \
-                --client_id="108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com" \
-                --client_secret=zAJO4PLxzeJ4yOaiJRk6f69k \
+        $PYTHON3 ${my_dirname}/oauth2_google.py --user="$1" \
+                --client_id="108687549524-s5ijqmadnmi4qfgfgicuquftv8f8a3da.apps.googleusercontent.com" \
+                --client_secret=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 \
                 --generate_oauth2_token --quiet
                 
         cat typescript | grep -i 'Refresh Token:' | tail -1 | sed -e 's/Refresh Token: *//' | tr -d '\r' | tee "$refresh_token_file"
@@ -44,16 +46,25 @@ regenerate_access_token()
         access_token_file="`access_token_file $1`"
         # 2 Regenerate an access_token if time passes too long (3600s)
         refresh_token="`cat $refresh_token_file|tr -d '\r'`"
-        echo ${my_dirname}/oauth2_google.py  --quiet --user="$1" \
-                --client_id="108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com" \
-                --client_secret=zAJO4PLxzeJ4yOaiJRk6f69k \
-                --refresh_token="$refresh_token"
+        echo $PYTHON3 ${my_dirname}/oauth2_google.py   --user="$1" \
+                --client_id="108687549524-s5ijqmadnmi4qfgfgicuquftv8f8a3da.apps.googleusercontent.com" \
+                --client_secret=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 \
+                --refresh_token="$refresh_token" --quiet
             
-        ${my_dirname}/oauth2_google.py  --quiet --user="$1" \
-                --client_id="108687549524-86sjq07f3ch8otl9fnr56mjnniltdrvn.apps.googleusercontent.com" \
-                --client_secret=zAJO4PLxzeJ4yOaiJRk6f69k \
-                --refresh_token="$refresh_token" | tee "$access_token_file"
-                
+        if $PYTHON3 ${my_dirname}/oauth2_google.py   --user="$1" \
+                --client_id="108687549524-s5ijqmadnmi4qfgfgicuquftv8f8a3da.apps.googleusercontent.com" \
+                --client_secret=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 \
+                --refresh_token="$refresh_token" --quiet 
+        then
+                echo GOOD
+                $PYTHON3 ${my_dirname}/oauth2_google.py   --user="$1" \
+                --client_id="108687549524-s5ijqmadnmi4qfgfgicuquftv8f8a3da.apps.googleusercontent.com" \
+                --client_secret=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 \
+                --refresh_token="$refresh_token" --quiet | tee "$access_token_file"
+        else
+                echo failed regenerate_access_token $1
+                return 1
+        fi
         echo access_token saved in "$access_token_file"
 }
 
@@ -86,7 +97,7 @@ generate_oauthdirect()
         access_token="`cat $access_token_file`"
         oauthdirect_file="`oauthdirect_file $1`"
         # 3 Generate oauth2_string for imap authentication
-        ${my_dirname}/oauth2_google.py --generate_oauth2_string --user="$1" \
+        $PYTHON3 ${my_dirname}/oauth2_google.py --generate_oauth2_string --user="$1" \
                 --access_token="$access_token" | tail -1 | tee "$oauthdirect_file"
         echo oauth2_string saved in "$oauthdirect_file"
         echo Give this to imapsync --oauthdirect1 or --oauthdirect2
@@ -112,7 +123,7 @@ authenticate_imap_google_from_access_token()
         access_token_file="`access_token_file $1`"
         access_token="`cat $access_token_file`"
         echo "$access_token"
-        ${my_dirname}/oauth2_google.py --user="$1" \
+        $PYTHON3 ${my_dirname}/oauth2_google.py --user="$1" \
                 --access_token="$access_token" --test_imap_authentication
 }
 
@@ -173,8 +184,7 @@ generate_token()
         #
         usage "$1" || return 1
         
-        if refresh_token_is_here "$1" "$2" ; then
-                regenerate_access_token "$1"
+        if refresh_token_is_here "$1" "$2" && regenerate_access_token "$1" ; then
                 generate_oauthdirect "$1"
                 authenticate_imap_google_from_access_token "$1"
                 authenticate_imap "$1"

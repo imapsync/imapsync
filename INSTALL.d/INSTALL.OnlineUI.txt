@@ -1,5 +1,5 @@
 #!/bin/cat 
-# $Id: INSTALL.OnlineUI.txt,v 1.56 2022/05/19 08:55:50 gilles Exp gilles $
+# $Id: INSTALL.OnlineUI.txt,v 1.60 2023/07/22 09:14:22 gilles Exp gilles $
 
 This documentation is also located online at 
 https://imapsync.lamiral.info/INSTALL.d/
@@ -54,7 +54,7 @@ a html5 file, a CSS file, a javascript file, and a logo image:
 You can do a "view source" to see the HTML file as it is written, and
 a "save" to get it locally.  The three other files can be saved the
 same way or with a command named "wget". I strongly suggest using
-wget, see below the ready-to-use command lines.
+wget and to follow the ready-to-use command lines given below.
 
 Those four files can be put anywhere on a web server, as long as they
 stand in the same directory. If you want to put them in different
@@ -109,8 +109,10 @@ Third, the file imapsync has to be considered as a cgi script.
 Command lines to provide and verify those three conditions will be
 provided further in this document, for the Debian family systems and
 for the Centos family systems. You are strongly advised to follow this
-commands if need and want help from me because I will first ask you to
-run them before searching what you did wrong.
+commands if you need and want help from me because I will first ask 
+you to run them before searching what you did wrong. I do follow 
+myself this document when I install a new online imapsync service
+and I update it regularly.
 
 The imapsync_form_extra.html file in action calls the CGI location
 /cgi-bin/imapsync
@@ -121,10 +123,10 @@ https://imapsync.lamiral.info/imapsync
 This file is the program file used verbatim for the service given at
 https://imapsync.lamiral.info/X/
 
-Copy the three files imapsync_form.* on a directory that is exported
+You will copy the three files imapsync_form.* on a directory that is exported
 by your HTTP server.
 
-Copy the imapsync script on the cgi-bin/ directory
+You will copy the imapsync script on the cgi-bin/ directory
 allowing CGIs and you'll have your imapsync visual interface
 and service. The cgi-bin/ directory is usually outside the
 hierarchy exported to anybody by the HTTP server.
@@ -137,7 +139,7 @@ I use "Timeout 3600", 3600 seconds, an hour. I chose this huge timeout
 value because imapsync can spend a long time without talking while
 getting the headers of huge folders of 100k messages.  If you intend
 to offer this service for huge mailboxes or for a long time, I
-strongly recommend you to set this "Timeout 3600" in the Apache
+strongly recommand you to set this "Timeout 3600" in the Apache
 configuration right now because you will sure end up with this timeout
 issue in a few months. You can search for timeouts in the Apache error
 log to see if you have timeout issues.
@@ -153,7 +155,11 @@ shouldn't install this imapsync service at all.
 =============================================================================
 A) Concrete example on a Debian server with Apache:
 
-First, install Apache on your Debian system:
+
+First, follow and apply the section "Installing imapsync on Debian" at
+https://imapsync.lamiral.info/INSTALL.d/INSTALL.Debian.txt
+
+Second, install Apache on your Debian system:
 
   apt install apache2
 
@@ -196,11 +202,69 @@ stuff with the following commands:
 
   a2enmod cgi
   a2enconf  serve-cgi-bin
+  vi /etc/apache2/conf-available/serve-cgi-bin.conf # Add the directive SetEnv no-gzip 1
   /etc/init.d/apache2 restart
 
 If the cgi mode and the cgi-bin configuration are not activated then
-you may encounter a 404 error when, later, you will run the command
+you may encounter a 404 error, later, when you will run the command
 wget -nv -S -O-  http://localhost/cgi-bin/imapsync?testslive=1
+
+For now, you have simple web server running on port 80.
+The following command gives the default page located on
+disk at /var/www/html/index.html
+
+  wget -nv -S -O-  http://localhost/
+
+The online service handles credential material from the users; so an
+encrypted web server is a good thing to run to protect sniffing and
+man in the middle attacks. Thanks to the LetsEncrypt
+team, an SSL certificate is now an easy and free task to install.
+The constraint with LetsEncrypt is that they don't deliver certificates
+for IP addresses so you must have a FQDN for the host. You can 
+have a free FQDN for the TLD .tk, .ml, .ga, .cf, and .gq at
+https://www.freenom.com/
+
+Let's add a dedicated virtual host. This way, it will give room for 
+other stuff on your host. I consider your hostname is 
+imapsync.mydomain.tk
+
+Let's create the new website configuration file, its filename has to
+end with ".conf" 
+
+  vi /etc/apache2/sites-available/imapsync.mydomain.tk.conf
+
+Add the following lines in this file:
+
+<VirtualHost *:80>
+    ServerName imapsync.mydomain.tk
+    DocumentRoot /var/www/html/
+</VirtualHost>
+
+Then:
+
+  a2ensite imapsync.mydomain.tk
+  /etc/init.d/apache2 restart
+
+Now, you should be able to success with the following command
+from anywhere on the internet:
+
+  curl http://imapsync.mydomain.tk/
+
+
+Now I follow the instructions given at
+https://certbot.eff.org/
+
+  cat /etc/debian_version
+
+  apt install snapd
+  snap install core
+  snap refresh core
+  snap install --classic certbot
+  ln -s /snap/bin/certbot /usr/bin/certbot
+
+  certbot --apache # it should propose the new site imapsync.mydomain.tk
+  certbot renew --dry-run
+  systemctl list-timers |grep certbot # should show "snap.certbot.renew.timer"
 
 That's all for the Apache Debian family configuration side.
 
@@ -213,6 +277,16 @@ Now get, test, and install the latest imapsync:
   # some basic tests
   ./imapsync 
   ./imapsync --testslive
+
+To get rid of the fake messages
+DEBUG: .../IO/Socket/SSL.pm:1177: global error: Undefined SSL object
+(See https://imapsync.lamiral.info/FAQ.d/FAQ.SSL_errors.txt)
+then update the Perl module IO::Socket::SSL release >= 2.073
+with the commands:
+
+  cpanm --test-only IO::Socket::SSL
+  cpanm             IO::Socket::SSL
+
 
   cp imapsync /usr/lib/cgi-bin/
 
@@ -253,8 +327,8 @@ The UI front-end file place on the server disk in this example is
 but it can be placed anywhere on the disk, the important thing is that
 it has to be served by the webserver.
 
-  mkdir /var/www/html/X/
-  cd /var/www/html/X/
+  mkdir -p /var/www/html/imapsync/X/
+  cd /var/www/html/imapsync/X/
   wget -N \
   https://imapsync.lamiral.info/X/imapsync_form_extra.html \
   https://imapsync.lamiral.info/X/imapsync_form.css \
@@ -269,12 +343,10 @@ hard-coded in imapsync.  In this directory will go the log files and
 the pid files.
 
 Check 
-   http://yourhost/X/imapsync_form_extra.html
+   http://imapsync.mydomain.tk/imapsync/X/imapsync_form_extra.html
 or the safer
-  https://yourhost/X/imapsync_form_extra.html
+  https://imapsync.mydomain.tk/imapsync/X/imapsync_form_extra.html
 
-Let's encrypt your site because credentials should never travel in
-clear form. Go to https://certbot.eff.org/instructions
 
 See the Troubleshooting section to fix the systemd Apache 
 PrivateTmp=true issue.
@@ -450,8 +522,9 @@ found in /etc/systemd/system/multi-user.target.wants/apache2.service
 or
 /usr/lib/systemd/system/httpd.service
 
-with the line:
+with the lines:
 
+[Service]
 PrivateTmp=false
 
 The right way to do it is by using the "systemctl edit ..." command
@@ -486,7 +559,8 @@ Then retry
 
   wget -nv -S -O-  http://localhost/cgi-bin/imapsync?testslive=1
 
-Look now if /var/tmp/imapsync_cgi/ is there.
+Look now if /var/tmp/imapsync_cgi/ is there and owned by 
+the Apache user, user "www-data" for Debian, user "apache" for Centos.
 
 =======================================================================
 If you encounter this issue:

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id: tests.sh,v 1.374 2022/09/15 08:43:20 gilles Exp gilles $  
+# $Id: tests.sh,v 1.378 2023/08/21 22:24:11 gilles Exp gilles $  
 
 # To run these tests, you need a running imap server somewhere
 # with several accounts. And be on Linux or Unix.
@@ -2189,7 +2189,94 @@ ll_justconnect()
                 --justconnect --debugimap
 }
 
+ll_justconnect_devel_nojustconnect()
+{
+        ll_justconnect_host1 &&
+        ll_justconnect_host1_bad &&
+        ll_justconnect_host2 &&
+        ll_justconnect_host2_bad &&
+        ll_justconnect_host1_host2 &&
+        ll_justconnect_host1_host2_badhost &&
+        ll_justlogin_host1 &&
+        ll_justlogin_host1_bad &&
+        ll_justlogin_host2 &&
+        ll_justlogin_host2_bad
+}
 
+ll_justconnect_host1() 
+{
+                $CMD_PERL ./imapsync    \
+                --host1 $HOST1 
+}
+
+
+ll_justconnect_host1_bad() 
+{
+                $CMD_PERL ./imapsync    \
+                --host1 badhost
+                test "$EXIT_CONNECTION_FAILURE" = "$?"
+}
+
+
+ll_justconnect_host2() 
+{
+                $CMD_PERL ./imapsync    \
+                --host2 $HOST1 
+}
+
+ll_justconnect_host2_bad() 
+{
+                $CMD_PERL ./imapsync    \
+                --host2 badhost
+                test "$EXIT_CONNECTION_FAILURE" = "$?"
+}
+
+
+ll_justconnect_host1_host2() 
+{
+                $CMD_PERL ./imapsync    \
+                --host1 $HOST1 --host2 $HOST1 
+}
+
+ll_justconnect_host1_host2_badhost() 
+{
+                $CMD_PERL ./imapsync    \
+                --host1 $HOST1 --host2 badhost
+                test "$EXIT_CONNECTION_FAILURE" = "$?"
+}
+
+
+ll_justlogin_host1() 
+{
+                $CMD_PERL ./imapsync    \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata
+}
+
+ll_justlogin_host1_bad() 
+{
+                $CMD_PERL ./imapsync    \
+                --host1 $HOST1 --user1 tatabad \
+                --passfile1 ../../var/pass/secret.tata
+                test "$EXIT_AUTHENTICATION_FAILURE_USER1" = "$?" 
+}
+
+
+
+ll_justlogin_host2() 
+{
+                $CMD_PERL ./imapsync    \
+                --host2 $HOST1 --user2 tata \
+                --passfile2 ../../var/pass/secret.tata
+}
+
+ll_justlogin_host2_bad() 
+{
+                $CMD_PERL ./imapsync    \
+                --host2 $HOST1 --user2 tatabad \
+                --passfile2 ../../var/pass/secret.tata
+                test "$EXIT_AUTHENTICATION_FAILURE_USER2" = "$?" 
+}
 
 
 
@@ -3199,6 +3286,33 @@ ll_regextrans2()
        --folder 'INBOX.yop.yap' --debug
 }
 
+
+ll_regextrans2_y_BAR()
+{
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --justfolders \
+       --regextrans2 "s,y,BAR," \
+       --folder 'INBOX.yop.yap' --debug --dry
+}
+
+ll_regextrans2_y_BAR_g()
+{
+       $CMD_PERL ./imapsync \
+       --host1 $HOST1 --user1 tata \
+       --passfile1 ../../var/pass/secret.tata \
+       --host2 $HOST2 --user2 titi \
+       --passfile2 ../../var/pass/secret.titi \
+       --justfolders \
+       --regextrans2 "s,y,BAR,g" \
+       --folder 'INBOX.yop.yap' --debug --dry
+}
+
+
+
 ll_add_suffix() 
 {
        $CMD_PERL ./imapsync \
@@ -3850,9 +3964,31 @@ ll_regexmess_change_header()
                 --folder INBOX.yop.yap \
                 --regexmess 's{\A(.*?(?! ^$))^Date:\ \(Invalid\)(.*?)$}{$1Date: Thu, 1 Jun 2017 23:59:59 +0000}xms' \
 				--search "HEADER Date Invalid"  \
-                --debugcontent --dry
+                --debugcontent --dry --nodry1
                 
 }
+
+ll_regexmess_change_header_subject() 
+{
+# 
+        if at_home; then
+                rm -f /home/vmail/titi/.yop.yap/cur/*
+        fi
+                $CMD_PERL ./imapsync \
+                --host1 $HOST1 --user1 tata \
+                --passfile1 ../../var/pass/secret.tata \
+                --host2 $HOST2 --user2 titi \
+                --passfile2 ../../var/pass/secret.titi \
+                --folder INBOX.yop.yap \
+                --regexmess "s,Subject: ,Subject: [MAILBOX_NAME] ," \
+				--search "HEADER Date Invalid"  \
+                --debugcontent --dry --nodry1
+                
+}
+
+
+
+
 
 ll_regexmess_truncate_long_message_regex() 
 {
@@ -4514,6 +4650,17 @@ ll_authmech_XOAUTH2_gmail_proxy() {
 }
 ll_authmech_xoauth2_gmail_proxy() { ll_authmech_XOAUTH2_gmail_proxy; }
 
+
+
+oauthaccesstoken_office365()
+{
+        :
+        imapsync  --office1 --user1 charline.lamiral@outlook.com --password1 fake \
+        --oauthaccesstoken1 TOKEN.txt \
+        --host2 $HOST2 --user2 titi --passfile2 ../../var/pass/secret.titi \
+        --justlogin \
+        --debugimap1 --showpasswords
+}
 
 ll_authmech_NTLM() {
                 # It fails since I don't have NTLM available
@@ -5549,39 +5696,28 @@ gmail_gl0_justlogin()
                 --justlogin
 }
 
-gmail_gl0_justlogin_oauthdirect()
+gmail_gl0_justlogin_oauthdirect() 
 {
-        cd /home/gilles/public_html/imapsync/W/learn
-        pwd
-        . ./oauth2.memo
-        regenerate_access_token
-        access_token=`cat oauth2_access_token.txt`
-        echo "$access_token"
-        
-        generate_oauth2_string_for_imap_from_access_token "$access_token"
-        oauth2_string=`cat oauth2_string_for_oauthdirect.txt`
-        echo oauth2_string="$oauth2_string"
-        cd -
-        pwd
-        echo "2oauth2_string=$oauth2_string"
+        #( cd oauth2/oauth2_gmail/ && ./generate_gmail_token  imapsync.gl0@gmail.com )
         $CMD_PERL ./imapsync \
-                --gmail1 --user1 imapsync.gl0@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl0_gmail \
-                --gmail2 --user2 imapsync.gl0@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl0_gmail \
-                --justlogin --oauthdirect1 "$oauth2_string" --oauthdirect2 "$oauth2_string" --debugimap --showpasswords
-        pwd
-}
+                --gmail1 \
+                --gmail2 \
+                --justlogin \
+                --oauthdirect1 oauth2/oauth2_gmail/D_oauth2_oauthdirect_imapsync.gl0@gmail.com.txt \
+                --oauthdirect2 oauth2/oauth2_gmail/D_oauth2_oauthdirect_imapsync.gl0@gmail.com.txt \
+                --debugimap --showpasswords
+} 
 
-gmail_gl0_oauthdirect_failure_login_success()
+gmail_gl0_oauthdirect_failure_login_success() 
 {
-
-        oauth2_string="kaka"
-        echo "2oauth2_string=$oauth2_string"
         $CMD_PERL ./imapsync \
-                --gmail1 --user1 imapsync.gl0@gmail.com --passfile1 ../../var/pass/secret.imapsync.gl0_gmail \
-                --gmail2 --user2 imapsync.gl0@gmail.com --passfile2 ../../var/pass/secret.imapsync.gl0_gmail \
-                --justlogin --oauthdirect1 "$oauth2_string" --oauthdirect2 "$oauth2_string" --debugimap --showpasswords
-
-}
+                --gmail1 \
+                --gmail2 \
+                --justlogin \
+                --oauthdirect1 kaka \
+                --oauthdirect2 kaka \
+                --debugimap --showpasswords
+} 
 
 
 all_login_tests()
@@ -5658,6 +5794,21 @@ gmail_gmail()
                 --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
                 --justfolders --exclude Gmail  --exclude "blanc\ $" 
 }
+
+
+gmail_gmail_delete2_All_Mail()
+{
+                ! ping -c1 imap.gmail.com || $CMD_PERL ./imapsync \
+                --gmail1 \
+                --user1 gilles.lamiral@gmail.com \
+                --passfile1 ../../var/pass/secret.gilles_gmail \
+                --gmail2 \
+                --user2 imapsync.gl@gmail.com \
+                --passfile2 ../../var/pass/secret.imapsync.gl_gmail \
+                --folder "[Gmail]/All Mail" --debuglabels --delete2 
+}
+
+
 
 gmail_gmail_exclude()
 {
@@ -6586,6 +6737,8 @@ l_office365()
         --folder INBOX --tmpdir /var/tmp --usecache --regextrans2 's/INBOX/tata/' --delete2 
 }
 
+
+
 l_office365_deleted_flag() 
 {
         $CMD_PERL ./imapsync \
@@ -6672,8 +6825,105 @@ office1_office2()
         --office2   \
 	--user2 gilles.lamiral@outlook.com \
         --passfile2 ../../var/pass/secret.outlook.com \
-	--justfolders
+	--justfolders 
 }
+
+office1_office2_justlogin()
+{
+        $CMD_PERL ./imapsync \
+        --office1   \
+	--user1 gilles.lamiral@outlook.com \
+	--passfile1 ../../var/pass/secret.outlook.com \
+        --office2   \
+	--user2 gilles.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.outlook.com \
+	--justlogin --debugimap --showpasswords
+}
+
+office1_office2_justlogin_wintive()
+{
+        $CMD_PERL ./imapsync \
+        --office1   \
+	--user1 gilles.lamiral@exchangebywintive.com \
+	--passfile1 ../../var/pass/secret.wintive \
+        --office2   --authmech2 PLAIN \
+	--user2 gilles.lamiral@exchangebywintive.com \
+        --passfile2 ../../var/pass/secret.wintive \
+	--justlogin --debugimap --showpasswords 
+}
+
+
+#
+
+office1_office2_justlogin_wintive_oauth2()
+{
+        $CMD_PERL ./imapsync \
+        --office1   \
+	--user1 gilles.lamiral@exchangebywintive.com \
+        --office2   \
+	--user2 gilles.lamiral@exchangebywintive.com \
+	--justlogin --debugimap --showpasswords \
+        --oauthaccesstoken1 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@exchangebywintive.com.txt \
+        --oauthaccesstoken2 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@exchangebywintive.com.txt
+}
+
+
+office1_office2_justlogin_gilles_oauth2()
+{
+        $CMD_PERL ./imapsync \
+        --office1   \
+	--user1 gilles.lamiral@outlook.com \
+        --office2   \
+	--user2 gilles.lamiral@outlook.com \
+	--justlogin --debugimap --showpasswords \
+        --oauthaccesstoken1 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt \
+        --oauthaccesstoken2 oauth2/oauth2_office365/tokens/oauth2_tokens_gilles.lamiral@outlook.com.txt 
+}
+
+
+
+
+
+
+
+office1_office2_justlogin_charline()
+{
+        $CMD_PERL ./imapsync \
+        --office1   \
+	--user1 charline.lamiral@outlook.com \
+	--passfile1 ../../var/pass/secret.charline.lamiral.outlook.com \
+        --office2   \
+	--user2 charline.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.charline.lamiral.outlook.com \
+	--justlogin
+}
+
+office1_office2_justlogin_charline_oauth2()
+{
+        $CMD_PERL ./imapsync \
+        --office1 --host1 p26 --port1 1143 --nossl1  \
+	--user1 charline.lamiral@outlook.com \
+	--passfile1 ../../var/pass/secret.charline.lamiral.outlook.com \
+        --office2   \
+	--user2 charline.lamiral@outlook.com \
+        --passfile2 ../../var/pass/secret.charline.lamiral.outlook.com \
+	--justlogin
+}
+
+
+office1_office2_davmail_justlogin()
+{
+        $CMD_PERL ./imapsync \
+        --host1 $HOST1 --user1 tata \
+        --passfile1 ../../var/pass/secret.tata \
+        --office2 --host2 p26 --port2 1143 --nossl2 \
+	--user2 gilles.imapsync@outlook.com \
+        --passfile2 ../../var/pass/secret.gilles.imapsync.outlook.com \
+	--justlogin --debugimap2
+}
+
+
+
 
 office1_office2_sentbefore()
 {
@@ -6791,7 +7041,7 @@ office365_justconnect_stunnel_i005() {
 }
 
 
-office365_justconnect_inet4_inet6()
+office365_justconnect_inet4_inet6() 
 {
         echo force ipv4
         $CMD_PERL ./imapsync \
@@ -6807,29 +7057,29 @@ office365_justconnect_inet4_inet6()
         --justconnect --inet6
 
 		echo
-        # outlook.office365.com gives ipv6 2a01:111:f400:2fa2::2
+        # outlook.office365.com gives ipv6 2603:1026:c06:148c::2
         echo this one should fail but is does not
         $CMD_PERL ./imapsync \
         --host1 imap-mail.outlook.com  \
-        --host2  2603:1026:4:51::2  \
+        --host2  2603:1026:c06:148c::2  \
         --justconnect --inet4
 
-		echo
-        # outlook.office365.com gives ipv4 40.101.42.82
+        echo
+        # outlook.office365.com gives ipv4 40.99.217.66
         echo this one should fail but is does not
         $CMD_PERL ./imapsync \
         --host1 imap-mail.outlook.com \
-        --host2 40.101.42.82  \
+        --host2 40.99.217.66 \
         --justconnect --inet6
 
 		echo
         # outlook.office365.com gives ipv6 2603:1026:4:50::2
         echo this one should succeed
         $CMD_PERL ./imapsync \
-        --host1 2603:1026:4:51::2  \
+        --host1 2603:1026:c06:148c::2  \
         --host2 imap-mail.outlook.com  \
         --justconnect
-}
+} 
 
 inet4_inet6() 
 {
@@ -7540,7 +7790,6 @@ yahoo_fail_UNAVAILABLE
 
 free_ssl
 office365_justconnect_inet4_inet6
-office365_justconnect_tls_SSL_verify_mode_1
 ll_unknow_option
 ll_ask_password
 ll_env_password
@@ -7620,6 +7869,16 @@ ll_regex_flag
 ll_regex_flag_bad
 ll_regex_flag_keep_only
 ll_justconnect
+ll_justconnect_host1
+ll_justconnect_host1_bad
+ll_justconnect_host2
+ll_justconnect_host2_bad
+ll_justconnect_host1_host2
+ll_justconnect_host1_host2_badhost
+ll_justlogin_host1
+ll_justlogin_host1_bad
+ll_justlogin_host2
+ll_justlogin_host2_bad
 ll_justconnect_ipv6
 ll_justconnect_ipv6_nossl
 ll_justhost1
@@ -7635,8 +7894,6 @@ ll_tls_justlogin
 ll_tls
 ll_tls_justlogin_sslargs_failure_EXIT_TLS_FAILURE
 ll_authmech_PLAIN
-ll_authmech_xoauth2_gmail
-ll_authmech_xoauth2_json_gmail
 ll_authmech_LOGIN
 ll_authmech_CRAMMD5
 ll_authmech_PREAUTH
@@ -7696,7 +7953,10 @@ ksks_reset_test1
 memory_stress
 '
 
-# 2019_12 Removed
+# 2023_07_20 removed:
+# office365_justconnect_tls_SSL_verify_mode_1
+
+# 2019_12 removed:
 # ks_justconnect_ipv6_nossl
 # ks_justconnect_ipv6
 

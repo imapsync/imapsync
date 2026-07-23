@@ -59,7 +59,7 @@
 
 @REM For Parallel executions, there is also a PowerShell script written by 
 @REM CARTER Alex explained and located on the imapsync archive list:
-@REM https://web.archive.org/web/20190917193548/http://www.linux-france.org/prj/imapsync_list/msg02137.html
+@REM http://www.linux-france.org/prj/imapsync_list/msg02137.html
 
 @REM ==== The real stuff is below ====
 

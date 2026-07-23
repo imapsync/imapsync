@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.SSL_errors.txt,v 1.18 2022/01/14 21:20:37 gilles Exp gilles $
+$Id: FAQ.SSL_errors.txt,v 1.21 2023/08/29 22:46:04 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -68,6 +68,8 @@ Those errors happen with some hosts but not with others,
 it's often Exchange or Office365. I don't know what exactly happens.
 Those errors happen more often on Windows than on Linux.
 
+Users having this issue should try to upgrade the SSL.pm module to 2.075
+(Thanks to Bernhard Ertler for this tip!)
 
 ======================================================================
 Q. What can I do to avoid those "SSL read/write errors"?
@@ -102,8 +104,14 @@ Q. What are the errors
    SSL connect attempt failed SSL
    SSL routines:ssl_choose_client_version:unsupported protocol
 
+R1. On Linux, edit /etc/ssl/openssl.cnf and at the end of the file,
+   comment the line about MinProtocol, and save it:
 
-R1. Use: 
+    #MinProtocol = TLSv1.2
+
+then retry the same imapsync command.
+
+R2. Use: 
 
    imapsync ...  --sslargs1 SSL_cipher_list=DEFAULT
    or    
@@ -111,7 +119,8 @@ R1. Use:
 
    depending on where the error occurs, host1 or host2 or both.
 
-R2. If it doesn't work, I let you try other things, 
+
+R3. Let's try other things, 
     I quote the "SSL_version" section of
     https://metacpan.org/pod/IO::Socket::SSL (Module version: 2.066)
 
@@ -129,10 +138,9 @@ Feedback on what worked for you is welcome!
 
 A loop to check every version and print the good ones:
 
-for v in SSLv2 SSLv23 SSLv3 TLSv1 TLSv1_1 TLSv1_2 TLSv1_3; do
+GOOD=; for v in SSLv2 SSLv23 SSLv3 TLSv1 TLSv1_1 TLSv1_2 TLSv1_3; do
         imapsync ...  --sslargs1 SSL_version=$v && GOOD="$GOOD $v"
-done
-echo "$GOOD"
+done ; echo "GOOD=$GOOD"
 
 I reproduce below the documentation of the underlying Perl 
 module IO::Socket::SSL used by imapsync:

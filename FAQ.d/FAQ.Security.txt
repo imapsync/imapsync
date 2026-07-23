@@ -1,5 +1,5 @@
 #!/bin/cat
-# $Id: FAQ.Security.txt,v 1.26 2021/07/11 12:11:38 gilles Exp gilles $
+# $Id: FAQ.Security.txt,v 1.27 2023/08/29 22:47:47 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -65,15 +65,17 @@ R. No.
 
 Imapsync behaviour:
 
---ssl: Goes to encryption before the imap session start. 
+--ssl: Goes to encryption BEFORE the imap session start. 
      The connection is on port 993. 
+     It is IMAP over SSL/TLS, also called IMAPS.
      Can use the TLS or SSL security protocols.
      Fails if encryption cannot be established.
 
---tls: Goes to encryption after the imap session start but before the
-     credential are sent. 
-     The connection is on port 143.  
-     Can use the TLS or SSL securityprotocols.  
+--tls: Goes to encryption AFTER the imap session start but 
+     before the credentials are sent. 
+     The connection is on port 143. A STARTTLS imap
+     command is done to switch to encryption.
+     Can use the TLS or SSL security protocols.
      Fails if encryption cannot be established.
 
 Explanation:
@@ -92,10 +94,20 @@ Current endorsed versions of TLS are only TLS 1.2 and TLS 1.3 (July 2021).
 The whole story is detailed here:
 https://en.wikipedia.org/wiki/Transport_Layer_Security
 
+In imapsync context, --ssl refers to 
+
 Options --ssl1 and --ssl2 are a little more paranoid than --tls1 and
 --tls2 because they verify that the hostname of the certificate is the
 same as the one used by imapsync. Other than that, the security
 behavior is the same.
+
+Why imapsync is confusing about this?
+
+It looks like it is historical heritage. 
+In my mind, --tls refers to the STARTTLS command,
+--ssl refers to imaps, aka IMAP over SSL/TLS.
+
+
 
 =======================================================================
 Q. I noticed that the online UI has no option for TLS/SSL. 

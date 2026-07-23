@@ -1,12 +1,12 @@
 NAME
 
-    imapsync - Email IMAP tool for syncing, copying, migrating and archiving
-    email mailboxes between two imap servers, one way, and without
+    imapsync - Email IMAP tool for syncing, copying, migrating, and
+    archiving email mailboxes between two imap servers, one way, and without
     duplicates.
 
 VERSION
 
-    This documentation refers to Imapsync $Revision: 2.229 $
+    This documentation refers to Imapsync $Revision: 2.261 $
 
 USAGE
 
@@ -22,16 +22,15 @@ USAGE
 
 DESCRIPTION
 
-    We sometimes need to transfer mailboxes from one imap server to one
-    another.
+    We sometimes need to transfer mailboxes from one imap server to another.
 
     Imapsync command is a tool allowing incremental and recursive imap
     transfers from one mailbox to another. If you don't understand the
     previous sentence, it's normal, it's pedantic computer-oriented jargon.
 
     All folders are transferred, recursively, meaning the whole folder
-    hierarchy is taken, all messages in them, and all message flags (\Seen
-    \Answered \Flagged etc.) are synced too.
+    hierarchy is taken, all messages in them, and all message flags (\Seen,
+    \Answered, \Flagged, etc.) are synced too.
 
     Imapsync reduces the amount of data transferred by not transferring a
     given message if it already resides on the destination side. Messages
@@ -45,22 +44,22 @@ DESCRIPTION
     duplicate problem is solved by using --useheader "Message-Id"
 
     All flags are preserved, unread messages will stay unread, read ones
-    will stay read, deleted will stay deleted. In the IMAP protocol, a
-    deleted message is not deleted, it is marked \Deleted and can be
-    undeleted. Real destruction comes with the EXPUNGE or UIDEXPUNGE IMAP
-    commands.
+    will stay read, and deleted ones will stay deleted. In the IMAP
+    protocol, a deleted message is not deleted, it is marked \Deleted and
+    can be undeleted. Real destruction comes with the EXPUNGE or UIDEXPUNGE
+    IMAP commands.
 
     You can abort the transfer at any time and restart it later, imapsync
     works well with bad connections and interruptions, by design. On a
     terminal hit Ctr-c twice within two seconds to abort the program. Hit
-    Ctr-c just once makes imapsync reconnect to both imap servers.
+    Ctr-c just once to make imapsync reconnect to both imap servers.
 
     How do you know the sync is finished and well done? When imapsync ends
     by itself it mentions it with lines like those:
 
-      Exiting with return value 0 (EX_OK: successful termination) 0/50 nb_errors/max_errors PID 301
-      Removing pidfile /tmp/imapsync.pid
-      Log file is LOG_imapsync/2020_11_17_15_59_22_761_test1_test2.txt ( to change it, use --logfile filepath ; or use --nolog to turn off logging )
+      Exiting with return value 0 (EX_OK: successful termination) 0/50 nb_errors/max_errors PID 20332
+      Removing pidfile /home/gilles/tmp/imapsync.pid
+      Log file is LOG_imapsync/2023_08_21_11_51_27_651_test1_test2.txt ( to change it, use --logfile filepath ; or use --nolog to turn off logging )
 
     If you don't have those lines it means that either the sync process is
     still running (or eventually hanging indefinitely) or that it ended
@@ -83,12 +82,12 @@ DESCRIPTION
 
     Why? That's because message sizes given by the imap servers are not
     always accurate, they are not always the same as the actual message
-    sizes of the messages transferred by imapsync. Imapsync use the sizes
-    given by the imap servers to calculate the big total size. They can
-    differ. In the early days, Imapsync used the sizes of the messages as
-    one of the criteria to identify the messages, different sizes implied
-    different messages; but it was a mistake, the same message had different
-    sizes on both sides sometimes, depending on the imap servers.
+    sizes of the messages transferred by imapsync. Imapsync uses the sizes
+    given by the imap servers to calculate the total size. They can differ.
+    In the early days, Imapsync used the sizes of the messages as one of the
+    criteria to identify the messages, different sizes implied different
+    messages. But it was a mistake, the same message had different sizes on
+    both sides sometimes, depending on the imap servers.
 
     Another explanation for a big total size difference is that Gmail
     doesn't count the size of duplicate messages across folders twice, while
@@ -109,7 +108,7 @@ DESCRIPTION
     A different scenario is to delete the messages from the source mailbox
     after a successful transfer, it can be a good feature when migrating
     mailboxes since messages will be only on one side. The source account
-    will only have messages that are not on the destination yet, ie,
+    will only have messages that are not on the destination yet, i.e.,
     messages that arrived after a sync or that failed to be transferred.
 
     In that case, use the --delete1 option. Option --delete1 implies also
@@ -150,15 +149,24 @@ OPTIONS
 
   OPTIONS/credentials
 
-     --host1        str  : Source or "from" imap server.
+     --host1        str  : Source or "from" imap server. 
+                           It can be a hostname or an IP address.
+
      --port1        int  : Port to connect on host1.
-                           Optional since default ports are the
-                           well known ports imap/143 or imaps/993.
+                           Optional since the default port is the
+                           well-known port imap/143 or imaps/993.
+                           Add --ssl1 if you want an SSL/TLS connection on host1.
+
      --user1        str  : User to login on host1.
+
      --password1    str  : Password of user1.
 
      --host2        str  : "destination" imap server.
-     --port2        int  : Port to connect on host2. Optional
+     --port2        int  : Port to connect on host2.
+                           Optional since the default port is the
+                           well-known port imap/143 or imaps/993.
+                           Add --ssl2 if you want an SSL/TLS connection on host2.
+ 
      --user2        str  : User to login on host2.
      --password2    str  : Password of user2.
 
@@ -176,31 +184,44 @@ OPTIONS
     You can also pass the passwords in the environment variables
     IMAPSYNC_PASSWORD1 and IMAPSYNC_PASSWORD2. If you don't pass the user1
     password via --password1 nor --passfile1 nor $IMAPSYNC_PASSWORD1 then
-    imapsync will prompt to enter the password on the terminal. Same thing
-    for user2 password.
+    imapsync will prompt you to enter the password on the terminal. Same
+    thing for the user2 password.
 
   OPTIONS/encryption
 
-     --nossl1            : Do not use a SSL connection on host1.
-     --ssl1              : Use a SSL connection on host1. On by default if possible.
+     --nossl1            : Do not use an IMAP over SSL/TLS connection on host1.
 
-     --nossl2            : Do not use a SSL connection on host2.
-     --ssl2              : Use a SSL connection on host2. On by default if possible.
+     --ssl1              : Use an IMAP over SSL/TLS connection on host1.
+                           It is imaps. The default port is 993.
+                           Used by default, if possible.
 
-     --notls1            : Do not use a TLS connection on host1.
-     --tls1              : Use a TLS connection on host1. On by default if possible.
+     --nossl2            : Do not use an IMAP over SSL/TLS connection on host2.
 
-     --notls2            : Do not use a TLS connection on host2.
-     --tls2              : Use a TLS connection on host2. On by default if possible.
+     --ssl2              : Use an IMAP over SSL/TLS connection on host2.
+                           Same as --ssl1 but for host2.
 
-     --debugssl     int  : SSL debug mode from 0 to 4.
+     --notls1            : Do not try a "STARTTLS" SSL/TLS connection on host1.
 
-     --sslargs1     str  : Pass any ssl parameter for host1 ssl or tls connection. Example:
-                           --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
+     --tls1              : Use a "STARTTLS" SSL/TLS encryption on host1.
+                           The default port is 143.
+                           Used by default, after imaps probing failed, 
+                           and if possible.
+
+     --notls2            : Do not use a "STARTTLS" SSL/TLS connection on host2.
+
+     --tls2              : Use a STARTTLS SSL/TLS encryption on host2.
+                           Same as --tls1 but for host2.
+
+     --debugssl     int  : SSL/TLS debug mode from 0 to 4.
+
+     --sslargs1     str  : Pass any SSL/TLS parameter for the host1 connection.
+                           Example:
+                           --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=TLSv1_3
                            See all possibilities in the new() method of IO::Socket::SSL
                            http://search.cpan.org/perldoc?IO::Socket::SSL#Description_Of_Methods
-     --sslargs2     str  : Pass any ssl parameter for host2 ssl or tls connection.
-                           See --sslargs1
+
+     --sslargs2     str  : Pass any SSL/TLS parameter for the host2 connection.
+                           Same as --sslargs1 but for host2.
 
   OPTIONS/authentication
 
@@ -226,10 +247,10 @@ OPTIONS
                            string to pass with XOAUTH2 authentication.
                            The password given by --password1 or --passfile1
                            is ignored but needed on the command line.
-                           Instead of the access token itself, the value can be a
+                           Instead of the access token itself, the value can be the
                            file containing the access token on the first line.
                            If the value is a file, imapsync reads its first line
-                           and take this line as the access token. The advantage
+                           and takes this line as the access token. The advantage
                            of the file is that if the access token changes then
                            imapsync can read it again when it needs to reconnect 
                            during a run.
@@ -273,20 +294,21 @@ OPTIONS
                             --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
      --exclude      reg  : or this one, etc.
 
-     --automap           : guesses folders mapping, for folders well known as
+     --automap           : guesses folder mapping, for folders well known as
                            "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
 
      --f1f2    str1=str2 : Force folder str1 to be synced to str2,
                            --f1f2 overrides --automap and --regextrans2.
                            Use several --f1f2 options to map several folders.
-                           Option --f1f2 is a one to one only folder mapping,
-                           str1 and str2 have to be full path folder names.
+                           Option --f1f2 is a one-to-one-only folder mapping,
+                           and str1 and str2 have to be full path folder names.
+                           Use --regextrans2 for more general mappings.
 
      --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
                            host2 folder named str.
                            It does it internally by adding three
                            --regextrans2 options before all others.
-                           Add --debug to see what's really going on.
+                           Add --debug to see what's going on.
 
      --subfolder1   str  : Syncs the host1 folders hierarchy which is under folder
                            str to the root hierarchy of host2.
@@ -307,7 +329,7 @@ OPTIONS
 
      --prefix1      str  : Remove prefix str to all destination folders,
                            usually "INBOX." or "INBOX/" or an empty string "".
-                           imapsync guesses the prefix if host1 imap server
+                           imapsync guesses the prefix if the host1 imap server
                            does not have NAMESPACE capability. So this option
                            should not be used most of the time.
      --prefix2      str  : Add prefix to all host2 folders. See --prefix1
@@ -316,12 +338,12 @@ OPTIONS
                            most of the time.
                            Imapsync gets the separator from the server itself,
                            by using NAMESPACE, or it tries to guess it
-                           from the folders listing (it counts
+                           from the folder listing (it counts
                            characters / . \\ \ in folder names and choose the
                            more frequent, or finally / if nothing is found.
      --sep2         str  : Host2 separator. See --sep1
 
-     --regextrans2  reg  : Apply the whole regex to each destination folders.
+     --regextrans2  reg  : Apply the whole regex to each destination folder.
      --regextrans2  reg  : and this one. etc.
                            When you play with the --regextrans2 option, first
                            add also the safe options --dry --justfolders
@@ -344,9 +366,11 @@ OPTIONS
 
      --tmpdir       str  : Where to store temporary files and subdirectories.
                            Will be created if it doesn't exist.
-                           Default is system specific, Unix is /tmp but
-                           /tmp is often too small and deleted at reboot.
-                           --tmpdir /var/tmp should be better.
+                           Default is $HOME/tmp, used to be /tmp on Unix
+                           (before imapsync 2.250) but /tmp is not safe.
+                           https://github.com/imapsync/imapsync/issues/399
+                           https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-34204
+                       
 
      --pidfile      str  : The file where imapsync pid is written,
                            it can be dirname/filename complete path.
@@ -413,6 +437,11 @@ OPTIONS
                            Have in mind that this way, messages become 
                            uncoherent somehow.
 
+      --nodry1           : makes imapsync fetching messages from host1, 
+                           even when --dry is on.
+                           --dry --nodry1 is useful when debugging transformation 
+                           options like --pipemess or --regexmess
+
   OPTIONS/labels
 
     Gmail present labels as folders in imap. Imapsync can accelerate the
@@ -452,8 +481,8 @@ OPTIONS
 
      --delete1           : Deletes messages on host1 server after a successful
                            transfer. Option --delete1 has the following behavior:
-                           it marks messages as deleted with the IMAP flag
-                           \Deleted, then messages are really deleted with an
+                           it marks messages with the IMAP flag
+                           \Deleted, then messages are deleted with an
                            EXPUNGE IMAP command. If expunging after each message
                            slows down too much the sync then use
                            --noexpungeaftereach to speed up, expunging will then be
@@ -462,8 +491,8 @@ OPTIONS
 
      --expunge1          : Expunge messages on host1 just before syncing a folder.
                            Expunge is done per folder.
-                           Expunge aims is to really delete messages marked deleted.
-                           An expunge is also done after each message copied
+                           Expunge aims to really delete messages marked \Deleted.
+                           An expunge is also done after each message is copied
                            if option --delete1 is set (unless --noexpungeaftereach).
 
      --noexpunge1        : Do not expunge messages on host1.
@@ -478,7 +507,7 @@ OPTIONS
 
      --delete2duplicates : Deletes messages in host2 that are duplicates in host2.
                            Works only without --useuid since duplicates are
-                           detected with an header part of each message.
+                           detected with a header part of each message.
                            NB: --delete2duplicates is far less violent than --delete2
                            since it removes only duplicates.
 
@@ -505,9 +534,9 @@ OPTIONS
      https://imapsync.lamiral.info/FAQ.d/FAQ.Dates.txt
 
      --syncinternaldates : Sets the internal dates on host2 as the same as host1.
-                           Turned on by default. Internal date is the date
-                           a message arrived on a host (Unix mtime usually).
-     --idatefromheader   : Sets the internal dates on host2 as same as the
+                           Turned on by default. The internal date is the date
+                           when a message arrives on a host (Unix mtime usually).
+     --idatefromheader   : Sets the internal dates on host2 as the same as the
                            ones in "Date:" headers.
 
   OPTIONS/message selection
@@ -516,19 +545,19 @@ OPTIONS
      --minsize      int  : Skip messages smaller (or equal) than  int  bytes
 
      --maxage       int  : Skip messages older than  int days.
-                           final stats (skipped) don't count older messages
-                           see also --minage
+                           The final stats (skipped) don't count the older messages.
+                           See also --minage
      --minage       int  : Skip messages newer than  int  days.
-                           final stats (skipped) don't count newer messages
-                           You can do (+ zone are the messages selected):
+                           The final stats (skipped) don't count newer messages
+                           What you can do (+ zone are the messages selected):
                            past|----maxage+++++++++++++++>now
                            past|+++++++++++++++minage---->now
                            past|----maxage+++++minage---->now (intersection)
-                           past|++++minage-----maxage++++>now (union)
+                           past|++++minage-----maxage++++>now (union, magic!)
 
      --search       str  : Selects only messages returned by this IMAP SEARCH
                            command. Applied on both sides.
-                           For a complete set of what can be search see
+                           For a complete set of what can be searched see
                            https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
 
      --search1      str  : Same as --search but for selecting host1 messages only.
@@ -537,16 +566,16 @@ OPTIONS
 
      --noabletosearch    : Makes --minage and --maxage options use the internal
                            dates given by a FETCH imap command instead of the
-                           "Date:" header. Internal date is the arrival date
+                           "Date:" header. The internal date is the arrival date
                            in the mailbox.
                            --noabletosearch equals --noabletosearch1 --noabletosearch2
 
      --noabletosearch1   : Like --noabletosearch but for host1 only.
      --noabletosearch2   : Like --noabletosearch but for host2 only.
 
-     --maxlinelength int : skip messages with a line length longer than  int  bytes.
+     --maxlinelength int : skip messages with a line length longer than int bytes.
                            RFC 2822 says it must be no more than 1000 bytes but
-                           real life servers and email clients do more.
+                           real life servers and email clients do much more.
 
 
      --useheader    str  : Use this header to compare messages on both sides.
@@ -565,11 +594,11 @@ OPTIONS
 
   OPTIONS/miscellaneous
 
-     --syncacls          : Synchronizes acls (Access Control Lists).
-                           Acls in IMAP are not standardized, be careful
+     --syncacls          : Synchronizes ACLs (Access Control Lists).
+                           ACLs in IMAP are not standardized, be careful
                            since one acl code on one side may signify something
                            else on the other one.
-     --nosyncacls        : Does not synchronize acls. This is the default.
+     --nosyncacls        : Does not synchronize ACLs. This is the default.
 
      --addheader         : When a message has no headers to be identified,
                            --addheader adds a "Message-Id" header,
@@ -579,21 +608,25 @@ OPTIONS
 
   OPTIONS/debugging
 
-     --debug             : Debug mode.
-     --debugfolders      : Debug mode for the folders part only.
-     --debugcontent      : Debug content of the messages transferred. Huge output.
-     --debugflags        : Debug mode for flags.
-     --debugimap1        : IMAP debug mode for host1. Very verbose.
-     --debugimap2        : IMAP debug mode for host2. Very verbose.
-     --debugimap         : IMAP debug mode for host1 and host2. Twice very verbose.
-     --debugmemory       : Debug mode showing memory consumption after each copy.
+     --debug             : Show debug notes.
+     --debugfolders      : Show debug notes for the folders part only.
+     --debugcontent      : Show content of the messages transferred. Huge output.
+     --debugflags        : Show debug notes for flags.
+     --debugimap1        : Show IMAP notes for host1. Very verbose.
+     --debugimap2        : Show IMAP notes for host2. Very verbose.
+     --debugimap         : Show IMAP notes for host1 and host2. Twice very verbose.
+     --debugmemory       : Show the memory consumption after each copy.
 
-     --errorsmax     int : Exit when int number of errors is reached. Default is 50.
+     --errorsmax     int : Exit when int number of errors is reached. 
+                           The default is 50 errors to quit.
 
-     --tests             : Run local non-regression tests. Exit code 0 means all ok.
+     --tests             : Run local non-regression tests.
+                           Exit code 0 means everything is ok.
+
      --testslive         : Run a live test with test1.lamiral.info imap server.
-                           Useful to check the basics. Needs internet connection.
-     --testslive6        : Run a live test with ks6ipv6.lamiral.info imap server.
+                           Useful to check the basics. It needs an internet connection.
+
+     --testslive6        : Run a live test with tests1ipv6.lamiral.info imap server.
                            Useful to check the ipv6 connectivity. Needs internet.
 
   OPTIONS/specific
@@ -617,8 +650,8 @@ OPTIONS
      --timeout2     flo  : Connection timeout in seconds for host2.
                            Default is 120 and 0 means no timeout at all.
 
-                           Caveat, under CGI context, you may encounter a timeout
-                           from the webserver, killing imapsync and the imap connections.
+                           Caveat emptor. Under CGI context, you may encounter a timeout
+                           from the web server, killing imapsync and the imap connections.
                            See the document INSTALL.OnlineUI.txt and search
                            for "Timeout" for how to deal with this issue.
 
@@ -651,7 +684,7 @@ OPTIONS
      --version           : Print only the software version.
      --noreleasecheck    : Do not check for any new imapsync release.
      --releasecheck      : Check for new imapsync release.
-                           it's an http request to
+                           It is an HTTP GET request to
                            http://imapsync.lamiral.info/prj/imapsync/VERSION
 
       --emailreport1     : Put the email final report in host1 INBOX
@@ -660,7 +693,8 @@ OPTIONS
       --noemailreport1   : Do not put the email final report in host1 INBOX
       --noemailreport2   : Do not put the email final report in host2 INBOX
 
-     --noid              : Do not send/receive IMAP "ID" command to imap servers.
+     --noid              : Do not send/receive the IMAP "ID" command 
+                           to the imap servers.
 
      --justconnect       : Just connect to both servers and print useful
                            information. Need only --host1 and --host2 options.
@@ -686,35 +720,36 @@ OPTIONS
 SECURITY
 
     You can use --passfile1 instead of --password1 to mention the password
-    since it is safer. With --password1 option, on Linux, any user on your
-    host can see the password by using the 'ps auxwwww' command. Using a
-    variable (like IMAPSYNC_PASSWORD1) is also dangerous because of the 'ps
-    auxwwwwe' command. So, saving the password in a well protected file (600
-    or rw-------) is the best solution.
+    since it is safer. With the --password1 option, on Linux, any user on
+    your host can see the password by using the 'ps auxwwww' command. Using
+    a variable (like IMAPSYNC_PASSWORD1) is also dangerous because of the
+    'ps auxwwwwe' command. So, saving the password in a well-protected file
+    (600 or rw-------) is the best solution.
 
-    Imapsync activates ssl or tls encryption by default, if possible.
+    Imapsync activates SSL/TLS encryption by default, if possible.
 
     What detailed behavior is under this "if possible"?
 
-    Imapsync activates ssl if the well known port imaps port (993) is open
-    on the imap servers. If the imaps port is closed then it open a normal
-    (clear) connection on port 143 but it looks for TLS support in the
-    CAPABILITY list of the servers. If TLS is supported then imapsync goes
-    to encryption with STARTTLS.
+    Imapsync activates the SSL/TLS mechanism if the well-known port imaps
+    port (993) is open on the imap servers. If the imaps port is closed then
+    imapsync opens a normal (clear) connection on port 143 but it looks for
+    STARTTLS support in the CAPABILITY list of the servers. If STARTTLS is
+    supported then imapsync goes to an SSL/TLS encryption with the STARTTLS
+    IMAP command.
 
-    If the automatic ssl and the tls detections fail then imapsync will not
-    protect against sniffing activities on the network, especially for
-    passwords.
+    If the automatic SSL/TLS detections fail then imapsync uses clear-text
+    communication. Clear-text communication does not protect against
+    sniffing activities on the network, especially the passwords.
 
-    If you want to force ssl or tls just use --ssl1 --ssl2 or --tls1 --tls2
+    If you want to force SSL/TLS just use --ssl1 --ssl2 or --tls1 --tls2
 
     See also the document FAQ.Security.txt in the FAQ.d/ directory or at
     https://imapsync.lamiral.info/FAQ.d/FAQ.Security.txt
 
 EXIT STATUS
 
-    Imapsync will exit with a 0 status (return code) if everything went
-    good. Otherwise, it exits with a non-zero status. That's classical Unix
+    Imapsync will exit with a 0 status (return code) if everything goes
+    well. Otherwise, it exits with a non-zero status. That's classical Unix
     behavior. Here is the list of the exit code values (an integer between 0
     and 255). In Bourne Shells, this exit code value can be retrieved within
     the variable value "$?" if you read it just after the imapsync call.
@@ -751,10 +786,10 @@ EXIT STATUS
 
 LICENSE AND COPYRIGHT
 
-    Imapsync is free, open, public but not always gratis software cover by
-    the NOLIMIT Public License, now called NLPL. See the LICENSE file
-    included in the distribution or just read the following simple sentence
-    as it IS the license text:
+    Imapsync is a free, open, and public but not always gratis software tool
+    covered by the NOLIMIT Public License, now called NLPL. See the LICENSE
+    file included in the distribution or just read the following simple
+    sentence as it IS the license text:
 
      "No limits to do anything with this work and this license."
 
@@ -770,11 +805,11 @@ AUTHOR
 
     Good feedback is always welcome. Bad feedback is very often welcome.
 
-    Gilles LAMIRAL earns his living by writing, installing, configuring and
+    Gilles LAMIRAL earns his living by writing, installing, configuring, and
     sometimes teaching free, open, and often gratis software. Imapsync used
-    to be "always gratis" but now it is only "often gratis" because imapsync
-    is sold by its author, your servitor, a good way to maintain and support
-    free open public software tools over decades.
+    to be always gratis but now it is only often gratis. It's because
+    imapsync is sold by its author, your servitor, a good way to maintain
+    and support free open public software tools over decades.
 
 BUGS AND LIMITATIONS
 
@@ -824,26 +859,27 @@ INSTALL
      Imapsync works under most Windows (2000, XP, Vista, Seven, Eight, Ten
      and all Server releases 2000, 2003, 2008 and R2, 2012 and R2, 2016)
      as a standalone binary software called imapsync.exe, usually launched
-     from a batch file in order to avoid always typing the options. There
-     is also a 32bit binary called imapsync_32bit.exe
+     from a batch file to avoid always typing the options.
+     See https://imapsync.lamiral.info/README_Windows.txt
 
      Imapsync works under OS X as a standalone binary software called
      imapsync_bin_Darwin
+     See https://imapsync.lamiral.info/INSTALL.d/INSTALL.Darwin.txt
 
-     Purchase latest imapsync at
+     Purchase the latest imapsync at
      https://imapsync.lamiral.info/
 
      You'll receive a link to a compressed tarball called
-     imapsync-x.xx.tgz where x.xx is the version number. 
+     imapsync-2.xxx.tgz where 2.xxx is the version number. 
      Untar the tarball where you want (on Unix):
 
-      tar xzvf  imapsync-x.xx.tgz
+      tar xzvf  imapsync-2.xxx.tgz
 
      Go into the directory imapsync-x.xx and read the INSTALL file.
      As mentioned at https://imapsync.lamiral.info/#install
      the INSTALL file can also be found at
      https://imapsync.lamiral.info/INSTALL.d/INSTALL.ANY.txt
-     It is now split in several files for each system
+     It is now split into several files for each system
      https://imapsync.lamiral.info/INSTALL.d/
 
 CONFIGURATION
@@ -857,42 +893,7 @@ HACKING
 
 SIMILAR SOFTWARE
 
-      See also https://imapsync.lamiral.info/S/external.shtml
-      for a better up to date list.
-
-    List verified on Friday July 1, 2021.
-
-     imapsync: https://github.com/imapsync/imapsync (this is an imapsync copy, sometimes delayed, with --noreleasecheck by default since release 1.592, 2014/05/22)
-     imap_tools: https://web.archive.org/web/20161228145952/http://www.athensfbc.com/imap_tools/. The imap_tools code is now at https://github.com/andrewnimmo/rick-sanders-imap-tools
-     imaputils: https://github.com/mtsatsenko/imaputils (very old imap_tools fork)
-     Doveadm-Sync: https://wiki2.dovecot.org/Tools/Doveadm/Sync ( Dovecot sync tool )
-     davmail: http://davmail.sourceforge.net/
-     offlineimap: http://offlineimap.org/
-     fdm: https://github.com/nicm/fdm
-     mbsync: http://isync.sourceforge.net/
-     mailsync: http://mailsync.sourceforge.net/
-     mailutil: https://www.washington.edu/imap/ part of the UW IMAP toolkit. (well, seems abandoned now)
-     imaprepl: https://bl0rg.net/software/ http://freecode.com/projects/imap-repl/
-     imapcopy (Pascal): http://www.ardiehl.de/imapcopy/
-     imapcopy (Java): https://code.google.com/archive/p/imapcopy/
-     imapsize: http://www.broobles.com/imapsize/
-     migrationtool: http://sourceforge.net/projects/migrationtool/
-     imapmigrate: http://sourceforge.net/projects/cyrus-utils/
-     larch: https://github.com/rgrove/larch (derived from wonko_imapsync, good at Gmail)
-     wonko_imapsync: http://wonko.com/article/554 (superseded by larch)
-     pop2imap: https://pop2imap.lamiral.info/ (I wrote that too)
-     exchange-away: http://exchange-away.sourceforge.net/
-     SyncBackPro: http://www.2brightsparks.com/syncback/sbpro.html
-     ImapSyncClient: https://github.com/ridaamirini/ImapSyncClient
-     MailStore: https://www.mailstore.com/en/products/mailstore-home/
-     mnIMAPSync: https://github.com/manusa/mnIMAPSync
-     imap-upload: http://imap-upload.sourceforge.net/ (A tool for uploading a local mbox file to IMAP4 server)
-     imapbackup: https://github.com/rcarmo/imapbackup (A Python script for incremental backups of IMAP mailboxes)
-     BitRecover email-backup 99 USD, 299 USD https://www.bitrecover.com/email-backup/.
-     ImportExportTools: https://addons.thunderbird.net/en-us/thunderbird/addon/importexporttools/ ImportExportTools for Mozilla Thunderbird by Paolo Kaosmos. ImportExportTools does not do IMAP.
-     rximapmail: https://sourceforge.net/projects/rximapmail/
-     Shoviv: https://www.shoviv.com/email-backup.html Allows backup from various sources including Office 365 (Exchange Online, Exchange On-Premises), IMAP, and Google Workspace.
-     CodeTwo: https://www.codetwo.com/ but CodeTwo does imap source to Office365 only.
+      See https://imapsync.lamiral.info/S/external.shtml
 
 HISTORY
 
@@ -901,7 +902,7 @@ HISTORY
     mailboxes located in a far away remote imap server, accessible by an
     often broken low-bandwidth ISDN link.
 
-    I had to verify every mailbox was well transferred, all folders, all
+    I had to verify every mailbox was well transferred, all folders, and all
     messages, without wasting bandwidth or creating duplicates upon resyncs.
     The imapsync design was made with the beautiful rsync command in mind.
 
@@ -911,5 +912,5 @@ HISTORY
     Mail-IMAPClient tarball).
 
     So many changes happened since then that I wonder if it remains any
-    lines of the original copy_folder.pl in imapsync source code.
+    lines of the original copy_folder.pl in the imapsync source code.
 

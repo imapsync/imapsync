@@ -58,7 +58,7 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 
 <!--
 <ul>
-<li><b>2.230</b></li>
+<li><b>2.255</b></li>
 <li><b>General</b>: </li>
 
 <li><b>Dependencies added</b>:   None </li>
@@ -89,6 +89,45 @@ If you are very interrested in those projects, don't hesitate to solicit me!
 
 </ul>
 -->
+
+
+<ul>
+<li><b>2.255</b></li>
+
+<!--
+diff ../prepa_dist/imapsync-2.229/imapsync . | grep use
+--> 
+
+<li><b>Dependencies added</b>: Perl module Digest::SHA</li>
+<li><b>Dependencies removed</b>: Perl module IO::Socket::INET6</li>
+
+<li><b>Enhancement</b>: It is now possible to check login with one side. Example: imapsync --host1 test1.lamiral.info --user1 test1 --password1 secret1</li>
+<li><b>Enhancement</b>: Office365 OAUTH2 modern authentication <a href="https://imapsync.lamiral.info/oauth2/oauth2_office365/README.txt">supported</a> with an <a href="https://imapsync.lamiral.info/oauth2/">external script</a>.</li>
+
+<li><b>Bug fix</b>: Reread oauth2 files upon disconnections.</li>
+<li><b>Bug fix</b>: Options --password1 and --password2 are no longer required when --oauthaccesstoken1 and --oauthaccesstoken2 are used, respectively.</li>
+<li><b>Bug fix</b>: Options --user1 and --user2 are no longer required when --oauthdirect1 and --oauthdirect2 are used, respectively.</li>
+
+
+
+<li><b>Refactoring</b>: 2061 unit tests.</li>
+<li><b>Refactoring</b>: 200 functionnal tests.</li>
+
+<li><b>Security</b>: Changed the default tmpdir to $HOME/tmp (instead of /tmp on Linux) CVE-2023-34204 <br/>
+  See <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-34204">https://nvd.nist.gov/vuln/detail/CVE-2023-34204</a><br/>
+  and also <a href="https://github.com/imapsync/imapsync/issues/399">https://github.com/imapsync/imapsync/issues/399</a><br/>
+  I did not change the default tmpdir in the CGI context because /var/tmp/imapsync_hash is written only if it doesn't exist
+  and /var/tmp/imapsync_cgi/ is created under the supervision of an admin. And I am lazy to change all my hosts for now.
+  </li>
+
+
+<li><b>Portability</b>: removed "use IO::Socket::INET6 ;"</li>
+
+<li><b>CGI context</b>: CGI context. Exit with a "503 Service Unavailable" when no disk space is available.</li>
+<li><b>CGI context</b>: Now the logfile name can only be composed with characters a-zA-Z0-9_-</li>
+
+</ul>
+
 
 <ul>
 <li><b>2.229</b></li>
@@ -1068,7 +1107,7 @@ by ignoring PERMANENTFLAGS (Exchange tests)</li>
 <!--#config timefmt="%D" -->
 <!--#config timefmt="%A %B %d, %Y" -->
 <b>This document last modified on <!--#echo var="LAST_MODIFIED" --></b>
-($Id: news.shtml,v 1.87 2022/09/15 08:42:40 gilles Exp gilles $)<br />
+($Id: news.shtml,v 1.88 2023/08/21 22:23:36 gilles Exp gilles $)<br />
 <a  href="#TOP">Top of the page</a>
 </p>
 </body></html>

@@ -1,0 +1,148 @@
+#!/bin/cat
+# $Id: FAQ.Use_regexmess.txt,v 1.4 2023/07/20 11:41:09 gilles Exp gilles $
+
+=======================================================================
+                     Option --regexmess with imapsync 
+=======================================================================
+
+This document is also available online at
+https://imapsync.lamiral.info/FAQ.d/
+https://imapsync.lamiral.info/FAQ.d/FAQ.Use_regexmess.txt
+
+Questions answered in this FAQ are:
+
+Q. How can I play safely with the option --regexmess?
+
+Q. I would love to have a function to inject lines in the header. 
+   Things like "X-migrated-from-foo: 20100617"
+
+Q. I want to play with headers line and --regexmess but I want to leave
+   the body as is.
+
+Q. My imap server does not accept a message and warns
+   "Invalid header". What is the problem?
+
+Now the questions again with their answers.
+
+=======================================================================
+Q. How can I play safely with the option --regexmess?
+
+A1. First, focus on a "TestMyRegex" folder with --folder "TestMyRegex" 
+
+Put some email messages in a folder "TestMyRegex" that you want
+to play with. Then use --folder "TestMyRegex", the mess will
+be limited to this folder.
+   
+A2. Second, use the following options:
+   
+   imapsync ... --debugcontent --dry --nodry1 --folder TestMyRegex
+
+Explanations:
+
+--debugcontent : Debug content of the messages transferred.
+
+--dry          : Makes imapsync do nothing for real; it just prints 
+                 what would be done without --dry.
+                     
+--nodry1       : makes imapsync fetching messages from host1, 
+                 even when --dry is on.
+                 Usage of --dry --nodry1 is useful when debugging 
+                 transformation options like --pipemess or --regexmess
+
+A3. Limit the changes to only the messages you know they need it.
+
+It's not always easy but sometimes it is. 
+
+For example, to limit the changes to messages having the 
+header "Sender:  john@example.com", use:
+
+    imapsync ... --search1 "HEADER Sender john@example.com"
+
+See the document FAQ.Messages_Selection.txt to learn more ways
+to search messages
+https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
+
+A4. When you're confident with your --regexmess option, apply it by
+    removing --dry --nodry1 
+
+=======================================================================
+Q. I would love to have a function to inject lines in the header. 
+   Things like "X-migrated-from-foo: 20100617"
+
+A. You can do that with:
+
+  imapsync ... --regexmess 's/\A/X-migrated-from-foo: 20100617\n/'
+
+It will insert a first header line containing "X-migrated-from-foo: 20100617" 
+
+=======================================================================
+Q. I want to play with headers line and --regexmess but I want to leave
+   the body as is.
+
+A. The header/body separation is a blank line so an example:
+   --regexmess 's{\A(.*?(?! ^$))^Date:(.*?)$}{$1Date:$2\nX-Date:$2}gxms'
+
+Will replace the next three lines
+
+Message-ID: <499EF800.4030002@blabla.fr>
+Date: Fri, 20 Feb 2009 19:35:44 +0100
+From: Gilles LAMIRAL <lamiral@linux-france.org>
+
+by the next four lines
+
+Message-ID: <499EF800.4030002@blabla.fr>
+Date: Fri, 20 Feb 2009 19:35:44 +0100
+X-Date: Fri, 20 Feb 2009 19:35:44 +0100
+From: Gilles LAMIRAL <lamiral@linux-france.org>
+
+
+This example just add an header line "X-Date:" based on "Date:" line.
+
+=======================================================================
+Q. My imap server does not accept a message and warns
+   "Invalid header". What is the problem?
+
+A. You fall in the classical mbox versus Maildir/ format
+   problem. May be you use a misconfigured procmail rule.
+
+A header beginning like the following one is in the mbox
+format, header line 1 has no colon behind "From", header
+lines 2 through N do have a colon :
+
+From foo@yoyo.org  Sat Jun 22 01:10:21 2002
+Return-Path: <foo@yoyo.org>
+Received: ...
+
+Any Maildir/ configured imap server may refuse this message since its
+header is invalid. The first "From " line is not valid. It lacks a
+colon character ":". To solve this issue you have several solutions
+
+a) Remove manually this first "From " line for each message before
+   using imapsync. 
+
+b) Replace manually the whitespace by a colon in string "From " but you
+   might end with two "From:" lines (just have a look at the other 
+   header lines of the message)
+
+c) Run imapsync with the following option (this replaces "From "by "From:"):
+   --regexmess 's/\AFrom /From: /'
+
+or may be better (no other "From:" collision):
+
+d) Run imapsync with the following option (this replaces "From "by "X-om:"):
+   --regexmess 's/\AFrom /X-From: /'
+
+e) Run imapsync with the following option (this removes the whole "From " line):
+   --regexmess 's{\AFrom\ [^\n]*(\n)?}{}gxms'
+
+Solution e) is solution a) made by imapsync itself.
+Solutions c) and d) keep "From " lines information
+(normally it's useless to keep them)
+
+Best solutions are e) or d). 
+I prefer the d) solution because it fixes the issue
+and keeps the old "From" value while the e) solution removes 
+the old "From" value definitively.
+
+
+=======================================================================

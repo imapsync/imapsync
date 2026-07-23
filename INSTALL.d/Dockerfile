@@ -1,6 +1,6 @@
 ## Dockerfile for building a docker imapsync image
 
-# $Id: Dockerfile,v 1.43 2022/05/17 14:29:36 gilles Exp gilles $
+# $Id: Dockerfile,v 1.46 2023/08/20 22:37:31 gilles Exp gilles $
 # I use the following command to build the image:
 #
 #  docker build -t gilleslamiral/imapsync . 
@@ -30,9 +30,9 @@
 # Command used:
 # curl -s https://hub.docker.com/v2/repositories/gilleslamiral/imapsync/ | jq '.pull_count'
 
-# Debian Bullseye is Debian 11
+# Debian Bookworm is Debian 12
 
-FROM debian:bullseye 
+FROM debian:bookworm 
 
 LABEL   maintainer="Gilles LAMIRAL <gilles@lamiral.info>" \
         description="Imapsync" \
@@ -50,7 +50,6 @@ RUN set -xe && \
   libauthen-ntlm-perl \
   libcgi-pm-perl \
   libcrypt-openssl-rsa-perl \
-  libcrypt-openssl-pkcs12-perl \
   libdata-uniqid-perl \
   libencode-imaputf7-perl \
   libfile-copy-recursive-perl \
@@ -83,6 +82,8 @@ RUN set -xe && \
   ncat \
   openssl \
   ca-certificates \
+  iputils-ping \
+  bind9-host \
   && rm -rf /var/lib/apt/lists/* \
   && cpanm IO::Socket::SSL
 
@@ -92,10 +93,8 @@ RUN set -xe && \
 RUN set -xe \
   && cd /usr/bin/ \
   && pwd \
-  && wget -N --no-check-certificate https://imapsync.lamiral.info/imapsync \
-        https://imapsync.lamiral.info/prerequisites_imapsync \
-        https://raw.githubusercontent.com/google/gmail-oauth2-tools/master/python/oauth2.py \
-  && chmod +x imapsync oauth2.py \
+  && { cp /imapsync . || wget -N --no-check-certificate https://imapsync.lamiral.info/imapsync \
+        https://imapsync.lamiral.info/prerequisites_imapsync ; } \
   && /usr/bin/imapsync --testslive && /usr/bin/imapsync --tests # just_a_comment_to_force_update 2022_04_04_21_16_50
 
 USER nobody:nogroup

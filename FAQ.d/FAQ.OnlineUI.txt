@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.OnlineUI.txt,v 1.36 2022/09/14 11:18:05 gilles Exp gilles $
+$Id: FAQ.OnlineUI.txt,v 1.44 2023/05/09 13:05:44 gilles Exp gilles $
 
 This document is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -19,6 +19,8 @@ Q. How secure is the online visual user interface /X?
 
 Q. Does the online service store any sensitive information 
    like my passwords?
+
+Q. Where is the entered data on the website be stored?
 
 Q. I want to switch from the visual interface /X to the 
    imapsync command line or to the script examples
@@ -56,16 +58,18 @@ Let's do it anyway, you'll be the judge.
 
 A1. Some figures
 
-Date of this report: 24 December 2021. Happy Christmas!
+Date of this report: 20 February 2023
 
 The online imapsync service /X started 9 January 2017,
-5 years ago (1810 days of service).
+6 years ago (2233 days of service, days_since_first_use_all_times).
 
-On average, /X has 51 users per day, each user launches on average
-6 account migrations, from just 1 launch to many (hundreds).
+On average in 2022, /X has 138 users per day, each user lunches on average
+3 account migrations, from just one launch to many (hundreds).
 
-The total volume /X transferred so far is around 240 TiB coming 
-from nearly 520 000 imap account migrations and 810 million email messages.
+The total volume /X transferred in 2022 is around 102 TiB coming 
+from nearly 164 000 imap account migrations and 306 million email messages.
+Data provided from commands "summary_display 2022" and "stat_all 2022".
+
 
 A2. Pros & Cons
 
@@ -82,7 +86,7 @@ port 143 if the servers announce TLS, then no encryption at all.
 Concerning encryption, what is done with the source imap server host1
 is independent of what is done with the destination imap server host2.
 
-On the date of 24 December 2021, there is no security problem detected
+On the date of 20 February 2023, there is no security problem detected
 or reported to me (Gilles LAMIRAL), so far.
 
 Concerning the Log4j threats, the imapsync server doesn't use Log4j at
@@ -91,11 +95,11 @@ all, so it should be safe about this issue.
 Feel free to attack the service and feel free to report any hole
 encountered. Have in mind that I can watch what you do from the
 server-side, and then take measures if the service suffers from your
-acts. Drop me a note before will be fair play and I will let you act
+acts. Droping me a note before will be fair play and I will let you act
 as harsh as you can.
 
-As the owner of the service, it could have been 520 000 pairs of
-credentials collected and nearly 240 terabytes of email messages.
+As the owner of the service, it could have been 700 000 pairs of
+credentials collected and nearly 340 terabytes of email messages.
 That's massive. I haven't kept them but I can't prove I haven't. It's
 just trust, like nearly every online service in the universe.
 
@@ -105,7 +109,7 @@ crappy configured regarding their certified certificates.
 
 This default behavior is chosen like this because users of /X
 want their emails transferred, instead of being not transferred
-because of an incompetent imap server sysadmin.
+because of an incompetent or absent imap server sysadmin.
 
 I admit that this part, checking imap ssl/tls certificates,
 could be improved from my side by including well known
@@ -134,16 +138,24 @@ started its job.
 Q. Does the online service store any sensitive information 
    like my passwords?
 
-No.
+A. No. The online passwords are kept by your browser. The goal is that
+   the next time you run a sync from your browser, all the parameters
+   are already there without having to re-enter them.  The save is
+   done when you click on the "Sync or resync" green button. So, if
+   you don't want your browser to keep your password, enter a wrong
+   one or empty the password field and click on the "Sync or resync"
+   green button, the wrong password will be saved in your browser and
+   no sync will be done, since a correct login is mandatory to do
+   anything on your mailboxes.
 
-The online passwords are kept by your browser. The goal is that the
-next time you run a sync from your browser, all the parameters are
-already there without having to re-enter them.  The save is done when
-you click on the "Sync or resync" green button. So, if you don't want
-your browser to keep your password, enter a wrong one or empty the
-password field and click on the "Sync or resync" green button, the
-wrong password will be saved in your browser and no sync will be done,
-since a correct login is mandatory to do anything on your mailboxes.
+=====================================================================
+Q. Where is the entered data on the website stored?
+
+A. The logfile of the imapsync session, the output you see along the
+   sync, also all dumped out at the end of a sync, is kept for a while
+   in a dedicated temporary directory.  It helps me diagnosis what
+   happened when you contact me for a problem. I also extract data to
+   calculate statistics at the end of the month.
 
 =====================================================================
 Q. I want to switch from the visual interface /X to the 
@@ -270,7 +282,7 @@ A. The message "[ALERT] LOGIN DENIED -- COUNTRY IS BLACKLISTED" comes directly
    from the IMAP server at 10.1.161.155
 
 It looks like that the 10.1.161.155 imap server filters incoming 
-connections based on their IPS. In that case, here are the current 
+connexions based on their IPS. In that case, here are the current 
 IPs of the imapsync online service (September 2022):
 
 ks5.lamiral.info      has address      91.121.221.224
@@ -279,6 +291,8 @@ ks6.lamiral.info      has address      5.39.87.81
 ks6ipv6.lamiral.info  has IPv6 address 2001:41d0:8:9951::1
 ks7.lamiral.info      has address      5.135.177.225
 ks7ipv6.lamiral.info  has IPv6 address 2001:41d0:8:b8e1::1
+ks8.lamiral.info      has address      5.135.176.149
+ks8ipv6.lamiral.info  has IPv6 address 2001:41d0:8:b795::1
 i050.lamiral.info     has address      213.32.72.139
 i050ipv6.lamiral.info has IPv6 address 2001:41d0:302:1000::155d
 vp3.lamiral.info      has address      51.178.81.27

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# $Id: imapsync,v 2.229 2022/09/14 18:08:24 gilles Exp gilles $
+# $Id: imapsync,v 2.261 2023/09/27 11:26:09 gilles Exp gilles $
 # structure
 # pod documentation
 # use pragmas
@@ -19,13 +19,13 @@
 
 =head1 NAME
 
-imapsync - Email IMAP tool for syncing, copying, migrating
+imapsync - Email IMAP tool for syncing, copying, migrating,
 and archiving email mailboxes between two imap servers, one way,
 and without duplicates.
 
 =head1 VERSION
 
-This documentation refers to Imapsync $Revision: 2.229 $
+This documentation refers to Imapsync $Revision: 2.261 $
 
 =head1 USAGE
 
@@ -42,7 +42,7 @@ This documentation refers to Imapsync $Revision: 2.229 $
 =head1 DESCRIPTION
 
 We sometimes need to transfer mailboxes from one imap server to
-one another.
+another.
 
 Imapsync command is a tool allowing incremental and recursive imap
 transfers from one mailbox to another.  If you don't understand the
@@ -50,8 +50,8 @@ previous sentence, it's normal, it's pedantic computer-oriented
 jargon.
 
 All folders are transferred, recursively, meaning the whole folder
-hierarchy is taken, all messages in them, and all message flags (\Seen
-\Answered \Flagged etc.)  are synced too.
+hierarchy is taken, all messages in them, and all message flags (\Seen,
+\Answered, \Flagged, etc.) are synced too.
 
 Imapsync reduces the amount of data transferred by not transferring a
 given message if it already resides on the destination side.  Messages
@@ -67,7 +67,7 @@ duplicate problem is solved by using --useheader "Message-Id"
 
 
 All flags are preserved, unread messages will stay unread, read ones
-will stay read, deleted will stay deleted.  In the IMAP protocol, a
+will stay read, and deleted ones will stay deleted. In the IMAP protocol, a
 deleted message is not deleted, it is marked \Deleted and can be
 undeleted. Real destruction comes with the EXPUNGE or UIDEXPUNGE IMAP
 commands.
@@ -75,14 +75,14 @@ commands.
 You can abort the transfer at any time and restart it later, imapsync
 works well with bad connections and interruptions, by design. On a
 terminal hit Ctr-c twice within two seconds to abort the program. Hit
-Ctr-c just once makes imapsync reconnect to both imap servers.
+Ctr-c just once to make imapsync reconnect to both imap servers.
 
 How do you know the sync is finished and well done?
 When imapsync ends by itself it mentions it with lines like those:
 
-  Exiting with return value 0 (EX_OK: successful termination) 0/50 nb_errors/max_errors PID 301
-  Removing pidfile /tmp/imapsync.pid
-  Log file is LOG_imapsync/2020_11_17_15_59_22_761_test1_test2.txt ( to change it, use --logfile filepath ; or use --nolog to turn off logging )
+  Exiting with return value 0 (EX_OK: successful termination) 0/50 nb_errors/max_errors PID 20332
+  Removing pidfile /home/gilles/tmp/imapsync.pid
+  Log file is LOG_imapsync/2023_08_21_11_51_27_651_test1_test2.txt ( to change it, use --logfile filepath ; or use --nolog to turn off logging )
 
 If you don't have those lines it means that either the sync process is
 still running (or eventually hanging indefinitely) or that it ended
@@ -105,11 +105,11 @@ difference is not a good criterion to conclude the sync went wrong.
 
 Why? That's because message sizes given by the imap servers are not
 always accurate, they are not always the same as the actual message
-sizes of the messages transferred by imapsync. Imapsync use the sizes
-given by the imap servers to calculate the big total size. They can
+sizes of the messages transferred by imapsync. Imapsync uses the sizes
+given by the imap servers to calculate the total size. They can
 differ. In the early days, Imapsync used the sizes of the messages as
 one of the criteria to identify the messages, different sizes implied
-different messages; but it was a mistake, the same message had
+different messages. But it was a mistake, the same message had
 different sizes on both sides sometimes, depending on the imap
 servers.
 
@@ -133,7 +133,7 @@ IMAP so imapsync doesn't even try to remove it.
 A different scenario is to delete the messages from the source mailbox
 after a successful transfer, it can be a good feature when migrating
 mailboxes since messages will be only on one side. The source account
-will only have messages that are not on the destination yet, ie,
+will only have messages that are not on the destination yet, i.e.,
 messages that arrived after a sync or that failed to be transferred.
 
 In that case, use the --delete1 option. Option --delete1 implies also
@@ -177,15 +177,24 @@ options:
 =head2 OPTIONS/credentials
 
 
- --host1        str  : Source or "from" imap server.
+ --host1        str  : Source or "from" imap server. 
+                       It can be a hostname or an IP address.
+
  --port1        int  : Port to connect on host1.
-                       Optional since default ports are the
-                       well known ports imap/143 or imaps/993.
+                       Optional since the default port is the
+                       well-known port imap/143 or imaps/993.
+                       Add --ssl1 if you want an SSL/TLS connection on host1.
+
  --user1        str  : User to login on host1.
+
  --password1    str  : Password of user1.
 
  --host2        str  : "destination" imap server.
- --port2        int  : Port to connect on host2. Optional
+ --port2        int  : Port to connect on host2.
+                       Optional since the default port is the
+                       well-known port imap/143 or imaps/993.
+                       Add --ssl2 if you want an SSL/TLS connection on host2.
+ 
  --user2        str  : User to login on host2.
  --password2    str  : Password of user2.
 
@@ -203,33 +212,46 @@ options:
 You can also pass the passwords in the environment variables
 IMAPSYNC_PASSWORD1 and IMAPSYNC_PASSWORD2. If you don't pass
 the user1 password via --password1 nor --passfile1 nor $IMAPSYNC_PASSWORD1
-then imapsync will prompt to enter the password on the terminal.
-Same thing for user2 password.
+then imapsync will prompt you to enter the password on the terminal.
+Same thing for the user2 password.
 
 =head2 OPTIONS/encryption
 
- --nossl1            : Do not use a SSL connection on host1.
- --ssl1              : Use a SSL connection on host1. On by default if possible.
+ --nossl1            : Do not use an IMAP over SSL/TLS connection on host1.
 
- --nossl2            : Do not use a SSL connection on host2.
- --ssl2              : Use a SSL connection on host2. On by default if possible.
+ --ssl1              : Use an IMAP over SSL/TLS connection on host1.
+                       It is imaps. The default port is 993.
+                       Used by default, if possible.
 
- --notls1            : Do not use a TLS connection on host1.
- --tls1              : Use a TLS connection on host1. On by default if possible.
+ --nossl2            : Do not use an IMAP over SSL/TLS connection on host2.
 
- --notls2            : Do not use a TLS connection on host2.
- --tls2              : Use a TLS connection on host2. On by default if possible.
+ --ssl2              : Use an IMAP over SSL/TLS connection on host2.
+                       Same as --ssl1 but for host2.
 
- --debugssl     int  : SSL debug mode from 0 to 4.
+ --notls1            : Do not try a "STARTTLS" SSL/TLS connection on host1.
 
- --sslargs1     str  : Pass any ssl parameter for host1 ssl or tls connection. Example:
-                       --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=SSLv3
+ --tls1              : Use a "STARTTLS" SSL/TLS encryption on host1.
+                       The default port is 143.
+                       Used by default, after imaps probing failed, 
+                       and if possible.
+
+ --notls2            : Do not use a "STARTTLS" SSL/TLS connection on host2.
+
+ --tls2              : Use a STARTTLS SSL/TLS encryption on host2.
+                       Same as --tls1 but for host2.
+
+ --debugssl     int  : SSL/TLS debug mode from 0 to 4.
+
+ --sslargs1     str  : Pass any SSL/TLS parameter for the host1 connection.
+                       Example:
+                       --sslargs1 SSL_verify_mode=1 --sslargs1 SSL_version=TLSv1_3
                        See all possibilities in the new() method of IO::Socket::SSL
                        http://search.cpan.org/perldoc?IO::Socket::SSL#Description_Of_Methods
- --sslargs2     str  : Pass any ssl parameter for host2 ssl or tls connection.
-                       See --sslargs1
 
- 
+ --sslargs2     str  : Pass any SSL/TLS parameter for the host2 connection.
+                       Same as --sslargs1 but for host2.
+
+
 =head2 OPTIONS/authentication
 
  --authmech1    str  : Auth mechanism to use with host1:
@@ -254,10 +276,10 @@ Same thing for user2 password.
                        string to pass with XOAUTH2 authentication.
                        The password given by --password1 or --passfile1
                        is ignored but needed on the command line.
-                       Instead of the access token itself, the value can be a
+                       Instead of the access token itself, the value can be the
                        file containing the access token on the first line.
                        If the value is a file, imapsync reads its first line
-                       and take this line as the access token. The advantage
+                       and takes this line as the access token. The advantage
                        of the file is that if the access token changes then
                        imapsync can read it again when it needs to reconnect 
                        during a run.
@@ -303,24 +325,25 @@ Same thing for user2 password.
                         --exclude 'fold1|fold2|f3' skips fold1, fold2 and f3.
  --exclude      reg  : or this one, etc.
 
- --automap           : guesses folders mapping, for folders well known as
+ --automap           : guesses folder mapping, for folders well known as
                        "Sent", "Junk", "Drafts", "All", "Archive", "Flagged".
 
  --f1f2    str1=str2 : Force folder str1 to be synced to str2,
                        --f1f2 overrides --automap and --regextrans2.
                        Use several --f1f2 options to map several folders.
-                       Option --f1f2 is a one to one only folder mapping,
-                       str1 and str2 have to be full path folder names.
+                       Option --f1f2 is a one-to-one-only folder mapping,
+                       and str1 and str2 have to be full path folder names.
+                       Use --regextrans2 for more general mappings.
 
  --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
                        host2 folder named str.
                        It does it internally by adding three
                        --regextrans2 options before all others.
-                       Add --debug to see what's really going on.
+                       Add --debug to see what's going on.
 
  --subfolder1   str  : Syncs the host1 folders hierarchy which is under folder
                        str to the root hierarchy of host2.
-                       It's the couterpart of a sync done by --subfolder2
+                       It's the counterpart of a sync done by --subfolder2
                        when doing it in the reverse order.
                        Backup/Restore scenario:
                        Use --subfolder2 str for a backup to the folder str
@@ -337,7 +360,7 @@ Same thing for user2 password.
 
  --prefix1      str  : Remove prefix str to all destination folders,
                        usually "INBOX." or "INBOX/" or an empty string "".
-                       imapsync guesses the prefix if host1 imap server
+                       imapsync guesses the prefix if the host1 imap server
                        does not have NAMESPACE capability. So this option
                        should not be used most of the time.
  --prefix2      str  : Add prefix to all host2 folders. See --prefix1
@@ -346,12 +369,12 @@ Same thing for user2 password.
                        most of the time.
                        Imapsync gets the separator from the server itself,
                        by using NAMESPACE, or it tries to guess it
-                       from the folders listing (it counts
+                       from the folder listing (it counts
                        characters / . \\ \ in folder names and choose the
                        more frequent, or finally / if nothing is found.
  --sep2         str  : Host2 separator. See --sep1
 
- --regextrans2  reg  : Apply the whole regex to each destination folders.
+ --regextrans2  reg  : Apply the whole regex to each destination folder.
  --regextrans2  reg  : and this one. etc.
                        When you play with the --regextrans2 option, first
                        add also the safe options --dry --justfolders
@@ -376,9 +399,11 @@ Same thing for user2 password.
 
  --tmpdir       str  : Where to store temporary files and subdirectories.
                        Will be created if it doesn't exist.
-                       Default is system specific, Unix is /tmp but
-                       /tmp is often too small and deleted at reboot.
-                       --tmpdir /var/tmp should be better.
+                       Default is $HOME/tmp, used to be /tmp on Unix
+                       (before imapsync 2.250) but /tmp is not safe.
+                       https://github.com/imapsync/imapsync/issues/399
+                       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-34204
+                       
 
  --pidfile      str  : The file where imapsync pid is written,
                        it can be dirname/filename complete path.
@@ -446,6 +471,11 @@ and user1 user2 are the --user1 --user2 values.
                        Have in mind that this way, messages become 
                        uncoherent somehow.
 
+  --nodry1           : makes imapsync fetching messages from host1, 
+                       even when --dry is on.
+                       --dry --nodry1 is useful when debugging transformation 
+                       options like --pipemess or --regexmess
+
 =head2 OPTIONS/labels
 
 Gmail present labels as folders in imap. Imapsync can accelerate the sync
@@ -486,8 +516,8 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
  --delete1           : Deletes messages on host1 server after a successful
                        transfer. Option --delete1 has the following behavior:
-                       it marks messages as deleted with the IMAP flag
-                       \Deleted, then messages are really deleted with an
+                       it marks messages with the IMAP flag
+                       \Deleted, then messages are deleted with an
                        EXPUNGE IMAP command. If expunging after each message
                        slows down too much the sync then use
                        --noexpungeaftereach to speed up, expunging will then be
@@ -496,8 +526,8 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
  --expunge1          : Expunge messages on host1 just before syncing a folder.
                        Expunge is done per folder.
-                       Expunge aims is to really delete messages marked deleted.
-                       An expunge is also done after each message copied
+                       Expunge aims to really delete messages marked \Deleted.
+                       An expunge is also done after each message is copied
                        if option --delete1 is set (unless --noexpungeaftereach).
 
  --noexpunge1        : Do not expunge messages on host1.
@@ -512,7 +542,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
  --delete2duplicates : Deletes messages in host2 that are duplicates in host2.
                        Works only without --useuid since duplicates are
-                       detected with an header part of each message.
+                       detected with a header part of each message.
                        NB: --delete2duplicates is far less violent than --delete2
                        since it removes only duplicates.
 
@@ -540,9 +570,9 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
  https://imapsync.lamiral.info/FAQ.d/FAQ.Dates.txt
 
  --syncinternaldates : Sets the internal dates on host2 as the same as host1.
-                       Turned on by default. Internal date is the date
-                       a message arrived on a host (Unix mtime usually).
- --idatefromheader   : Sets the internal dates on host2 as same as the
+                       Turned on by default. The internal date is the date
+                       when a message arrives on a host (Unix mtime usually).
+ --idatefromheader   : Sets the internal dates on host2 as the same as the
                        ones in "Date:" headers.
 
 
@@ -553,19 +583,19 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
  --minsize      int  : Skip messages smaller (or equal) than  int  bytes
 
  --maxage       int  : Skip messages older than  int days.
-                       final stats (skipped) don't count older messages
-                       see also --minage
+                       The final stats (skipped) don't count the older messages.
+                       See also --minage
  --minage       int  : Skip messages newer than  int  days.
-                       final stats (skipped) don't count newer messages
-                       You can do (+ zone are the messages selected):
+                       The final stats (skipped) don't count newer messages
+                       What you can do (+ zone are the messages selected):
                        past|----maxage+++++++++++++++>now
                        past|+++++++++++++++minage---->now
                        past|----maxage+++++minage---->now (intersection)
-                       past|++++minage-----maxage++++>now (union)
+                       past|++++minage-----maxage++++>now (union, magic!)
 
  --search       str  : Selects only messages returned by this IMAP SEARCH
                        command. Applied on both sides.
-                       For a complete set of what can be search see
+                       For a complete set of what can be searched see
                        https://imapsync.lamiral.info/FAQ.d/FAQ.Messages_Selection.txt
 
  --search1      str  : Same as --search but for selecting host1 messages only.
@@ -574,16 +604,16 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
  --noabletosearch    : Makes --minage and --maxage options use the internal
                        dates given by a FETCH imap command instead of the
-                       "Date:" header. Internal date is the arrival date
+                       "Date:" header. The internal date is the arrival date
                        in the mailbox.
                        --noabletosearch equals --noabletosearch1 --noabletosearch2
 
  --noabletosearch1   : Like --noabletosearch but for host1 only.
  --noabletosearch2   : Like --noabletosearch but for host2 only.
 
- --maxlinelength int : skip messages with a line length longer than  int  bytes.
+ --maxlinelength int : skip messages with a line length longer than int bytes.
                        RFC 2822 says it must be no more than 1000 bytes but
-                       real life servers and email clients do more.
+                       real life servers and email clients do much more.
 
 
  --useheader    str  : Use this header to compare messages on both sides.
@@ -603,11 +633,11 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
 =head2 OPTIONS/miscellaneous
 
- --syncacls          : Synchronizes acls (Access Control Lists).
-                       Acls in IMAP are not standardized, be careful
+ --syncacls          : Synchronizes ACLs (Access Control Lists).
+                       ACLs in IMAP are not standardized, be careful
                        since one acl code on one side may signify something
                        else on the other one.
- --nosyncacls        : Does not synchronize acls. This is the default.
+ --nosyncacls        : Does not synchronize ACLs. This is the default.
 
  --addheader         : When a message has no headers to be identified,
                        --addheader adds a "Message-Id" header,
@@ -618,21 +648,25 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 
 =head2 OPTIONS/debugging
 
- --debug             : Debug mode.
- --debugfolders      : Debug mode for the folders part only.
- --debugcontent      : Debug content of the messages transferred. Huge output.
- --debugflags        : Debug mode for flags.
- --debugimap1        : IMAP debug mode for host1. Very verbose.
- --debugimap2        : IMAP debug mode for host2. Very verbose.
- --debugimap         : IMAP debug mode for host1 and host2. Twice very verbose.
- --debugmemory       : Debug mode showing memory consumption after each copy.
+ --debug             : Show debug notes.
+ --debugfolders      : Show debug notes for the folders part only.
+ --debugcontent      : Show content of the messages transferred. Huge output.
+ --debugflags        : Show debug notes for flags.
+ --debugimap1        : Show IMAP notes for host1. Very verbose.
+ --debugimap2        : Show IMAP notes for host2. Very verbose.
+ --debugimap         : Show IMAP notes for host1 and host2. Twice very verbose.
+ --debugmemory       : Show the memory consumption after each copy.
 
- --errorsmax     int : Exit when int number of errors is reached. Default is 50.
+ --errorsmax     int : Exit when int number of errors is reached. 
+                       The default is 50 errors to quit.
 
- --tests             : Run local non-regression tests. Exit code 0 means all ok.
+ --tests             : Run local non-regression tests.
+                       Exit code 0 means everything is ok.
+
  --testslive         : Run a live test with test1.lamiral.info imap server.
-                       Useful to check the basics. Needs internet connection.
- --testslive6        : Run a live test with ks6ipv6.lamiral.info imap server.
+                       Useful to check the basics. It needs an internet connection.
+
+ --testslive6        : Run a live test with tests1ipv6.lamiral.info imap server.
                        Useful to check the ipv6 connectivity. Needs internet.
 
 
@@ -658,8 +692,8 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
  --timeout2     flo  : Connection timeout in seconds for host2.
                        Default is 120 and 0 means no timeout at all.
 
-                       Caveat, under CGI context, you may encounter a timeout
-                       from the webserver, killing imapsync and the imap connections.
+                       Caveat emptor. Under CGI context, you may encounter a timeout
+                       from the web server, killing imapsync and the imap connections.
                        See the document INSTALL.OnlineUI.txt and search
                        for "Timeout" for how to deal with this issue.
 
@@ -692,7 +726,7 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
  --version           : Print only the software version.
  --noreleasecheck    : Do not check for any new imapsync release.
  --releasecheck      : Check for new imapsync release.
-                       it's an http request to
+                       It is an HTTP GET request to
                        http://imapsync.lamiral.info/prj/imapsync/VERSION
 
   --emailreport1     : Put the email final report in host1 INBOX
@@ -701,7 +735,8 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
   --noemailreport1   : Do not put the email final report in host1 INBOX
   --noemailreport2   : Do not put the email final report in host2 INBOX
 
- --noid              : Do not send/receive IMAP "ID" command to imap servers.
+ --noid              : Do not send/receive the IMAP "ID" command 
+                       to the imap servers.
 
  --justconnect       : Just connect to both servers and print useful
                        information. Need only --host1 and --host2 options.
@@ -735,27 +770,27 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Gmail.txt
 =head1 SECURITY
 
 You can use --passfile1 instead of --password1 to mention the password
-since it is safer. With --password1 option, on Linux, any user on your
+since it is safer. With the --password1 option, on Linux, any user on your
 host can see the password by using the 'ps auxwwww' command. Using a
 variable (like IMAPSYNC_PASSWORD1) is also dangerous because of the
-'ps auxwwwwe' command. So, saving the password in a well protected
+'ps auxwwwwe' command. So, saving the password in a well-protected
 file (600 or rw-------) is the best solution.
 
-Imapsync activates ssl or tls encryption by default, if possible.
+Imapsync activates SSL/TLS encryption by default, if possible.
 
 What detailed behavior is under this "if possible"?
 
-Imapsync activates ssl if the well known port imaps port (993) is open
-on the imap servers. If the imaps port is closed then it open a normal
-(clear) connection on port 143 but it looks for TLS support in the
-CAPABILITY list of the servers. If TLS is supported then imapsync goes
-to encryption with STARTTLS.
+Imapsync activates the SSL/TLS mechanism if the well-known port imaps port (993) is open
+on the imap servers. If the imaps port is closed then imapsync opens a normal
+(clear) connection on port 143 but it looks for STARTTLS support in the
+CAPABILITY list of the servers. If STARTTLS is supported then imapsync goes
+to an SSL/TLS encryption with the STARTTLS IMAP command.
 
-If the automatic ssl and the tls detections fail then imapsync will
-not protect against sniffing activities on the network, especially for
+If the automatic SSL/TLS detections fail then imapsync uses clear-text communication.
+Clear-text communication does not protect against sniffing activities on the network, especially the
 passwords.
 
-If you want to force ssl or tls just use --ssl1 --ssl2 or --tls1
+If you want to force SSL/TLS just use --ssl1 --ssl2 or --tls1
 --tls2
 
 See also the document FAQ.Security.txt in the FAQ.d/ directory or at
@@ -763,8 +798,8 @@ https://imapsync.lamiral.info/FAQ.d/FAQ.Security.txt
 
 =head1 EXIT STATUS
 
-Imapsync will exit with a 0 status (return code) if everything went
-good.  Otherwise, it exits with a non-zero status. That's classical
+Imapsync will exit with a 0 status (return code) if everything goes 
+well.  Otherwise, it exits with a non-zero status. That's classical
 Unix behavior.  Here is the list of the exit code values (an integer
 between 0 and 255).  In Bourne Shells, this exit code value can be
 retrieved within the variable value "$?" if you read it just after the
@@ -806,7 +841,7 @@ egrep '^Readonly my.*\$EX' imapsync | egrep -o 'EX.*' | sed 's_^_     _'
 
 =head1 LICENSE AND COPYRIGHT
 
-Imapsync is free, open, public but not always gratis software cover by
+Imapsync is a free, open, and public but not always gratis software tool covered by
 the NOLIMIT Public License, now called NLPL.  See the LICENSE file
 included in the distribution or just read the following simple
 sentence as it IS the license text:
@@ -826,9 +861,9 @@ Gilles LAMIRAL <gilles@lamiral.info>
 Good feedback is always welcome.
 Bad feedback is very often welcome.
 
-Gilles LAMIRAL earns his living by writing, installing, configuring
+Gilles LAMIRAL earns his living by writing, installing, configuring,
 and sometimes teaching free, open, and often gratis software. Imapsync
-used to be "always gratis" but now it is only "often gratis" because
+used to be always gratis but now it is only often gratis. It's because
 imapsync is sold by its author, your servitor, a good way to maintain
 and support free open public software tools over decades.
 
@@ -881,26 +916,27 @@ https://imapsync.lamiral.info/examples/
  Imapsync works under most Windows (2000, XP, Vista, Seven, Eight, Ten
  and all Server releases 2000, 2003, 2008 and R2, 2012 and R2, 2016)
  as a standalone binary software called imapsync.exe, usually launched
- from a batch file in order to avoid always typing the options. There
- is also a 32bit binary called imapsync_32bit.exe
+ from a batch file to avoid always typing the options.
+ See https://imapsync.lamiral.info/README_Windows.txt
 
  Imapsync works under OS X as a standalone binary software called
  imapsync_bin_Darwin
+ See https://imapsync.lamiral.info/INSTALL.d/INSTALL.Darwin.txt
 
- Purchase latest imapsync at
+ Purchase the latest imapsync at
  https://imapsync.lamiral.info/
 
  You'll receive a link to a compressed tarball called
- imapsync-x.xx.tgz where x.xx is the version number. 
+ imapsync-2.xxx.tgz where 2.xxx is the version number. 
  Untar the tarball where you want (on Unix):
 
-  tar xzvf  imapsync-x.xx.tgz
+  tar xzvf  imapsync-2.xxx.tgz
 
  Go into the directory imapsync-x.xx and read the INSTALL file.
  As mentioned at https://imapsync.lamiral.info/#install
  the INSTALL file can also be found at
  https://imapsync.lamiral.info/INSTALL.d/INSTALL.ANY.txt
- It is now split in several files for each system
+ It is now split into several files for each system
  https://imapsync.lamiral.info/INSTALL.d/
 
 =head1 CONFIGURATION
@@ -916,41 +952,8 @@ Feel free to hack imapsync as the NOLIMIT license permits it.
 
 =head1 SIMILAR SOFTWARE
 
-  See also https://imapsync.lamiral.info/S/external.shtml
-  for a better up to date list.
+  See https://imapsync.lamiral.info/S/external.shtml
 
-List verified on Friday July 1, 2021.
-
- imapsync: https://github.com/imapsync/imapsync (this is an imapsync copy, sometimes delayed, with --noreleasecheck by default since release 1.592, 2014/05/22)
- imap_tools: https://web.archive.org/web/20161228145952/http://www.athensfbc.com/imap_tools/. The imap_tools code is now at https://github.com/andrewnimmo/rick-sanders-imap-tools
- imaputils: https://github.com/mtsatsenko/imaputils (very old imap_tools fork)
- Doveadm-Sync: https://wiki2.dovecot.org/Tools/Doveadm/Sync ( Dovecot sync tool )
- davmail: http://davmail.sourceforge.net/
- offlineimap: http://offlineimap.org/
- fdm: https://github.com/nicm/fdm
- mbsync: http://isync.sourceforge.net/
- mailsync: http://mailsync.sourceforge.net/
- mailutil: https://www.washington.edu/imap/ part of the UW IMAP toolkit. (well, seems abandoned now)
- imaprepl: https://bl0rg.net/software/ http://freecode.com/projects/imap-repl/
- imapcopy (Pascal): http://www.ardiehl.de/imapcopy/
- imapcopy (Java): https://code.google.com/archive/p/imapcopy/
- imapsize: http://www.broobles.com/imapsize/
- migrationtool: http://sourceforge.net/projects/migrationtool/
- imapmigrate: http://sourceforge.net/projects/cyrus-utils/
- larch: https://github.com/rgrove/larch (derived from wonko_imapsync, good at Gmail)
- wonko_imapsync: http://wonko.com/article/554 (superseded by larch)
- pop2imap: https://pop2imap.lamiral.info/ (I wrote that too)
- exchange-away: http://exchange-away.sourceforge.net/
- SyncBackPro: http://www.2brightsparks.com/syncback/sbpro.html
- ImapSyncClient: https://github.com/ridaamirini/ImapSyncClient
- MailStore: https://www.mailstore.com/en/products/mailstore-home/
- mnIMAPSync: https://github.com/manusa/mnIMAPSync
- imap-upload: http://imap-upload.sourceforge.net/ (A tool for uploading a local mbox file to IMAP4 server)
- imapbackup: https://github.com/rcarmo/imapbackup (A Python script for incremental backups of IMAP mailboxes)
- BitRecover email-backup 99 USD, 299 USD https://www.bitrecover.com/email-backup/.
- ImportExportTools: https://addons.thunderbird.net/en-us/thunderbird/addon/importexporttools/ ImportExportTools for Mozilla Thunderbird by Paolo Kaosmos. ImportExportTools does not do IMAP.
- rximapmail: https://sourceforge.net/projects/rximapmail/
- CodeTwo: https://www.codetwo.com/ but CodeTwo does imap source to Office365 only.
 
 =head1 HISTORY
 
@@ -959,7 +962,7 @@ BaSystemes, paid me to install a new imap server without losing huge
 old mailboxes located in a far away remote imap server, accessible by
 an often broken low-bandwidth ISDN link.
 
-I had to verify every mailbox was well transferred, all folders, all
+I had to verify every mailbox was well transferred, all folders, and all
 messages, without wasting bandwidth or creating duplicates upon
 resyncs. The imapsync design was made with the beautiful rsync command
 in mind.
@@ -970,7 +973,7 @@ tarball source (more precisely in the examples/ directory of the
 Mail-IMAPClient tarball).
 
 So many changes happened since then that I wonder if it remains any
-lines of the original copy_folder.pl in imapsync source code.
+lines of the original copy_folder.pl in the imapsync source code.
 
 
 =cut
@@ -987,6 +990,7 @@ use Compress::Zlib ;
 use Data::Dumper ;
 use Digest::HMAC_SHA1 qw( hmac_sha1 hmac_sha1_hex ) ;
 use Digest::MD5  qw( md5 md5_hex md5_base64 ) ;
+use Digest::SHA ;
 use Encode ;
 use Encode::IMAPUTF7 ;
 use English qw( -no_match_vars ) ;
@@ -1001,7 +1005,7 @@ use File::stat ;
 use Getopt::Long (  ) ;
 use IO::File ;
 use IO::Socket qw( :crlf SOL_SOCKET SO_KEEPALIVE ) ;
-use IO::Socket::INET6 ;
+#use IO::Socket::INET6 ;
 use IO::Socket::SSL ;
 use IO::Tee ;
 use IPC::Open3 'open3' ;
@@ -1393,7 +1397,7 @@ $acc2->{ N } = '2' ;
 
 $sync->{timestart} = time ; # Is a float because of use Time::HiRres
 
-$sync->{rcs} = q{$Id: imapsync,v 2.229 2022/09/14 18:08:24 gilles Exp gilles $} ;
+$sync->{rcs} = q{$Id: imapsync,v 2.261 2023/09/27 11:26:09 gilles Exp gilles $} ;
 
 $sync->{ memory_consumption_at_start } = memory_consumption_of_myself(  ) || 0 ;
 
@@ -1453,6 +1457,8 @@ my $options_good = get_options( $sync, @ARGV ) ;
 
 $sync->{ cpu_number } = cpu_number(  ) ;
 $sync->{ heavy_load_reached } = heavy_load_reached( $sync ) ;
+#$sync->{ heavy_load_reached} = 0 ; # uncomment this line if you want to go on no matter the load.
+$sync->{ diskspace_available } = diskspace_available( '/var/tmp/imapsync_test_diskspace_available' ) ;
 
 $sync->{ loadavg } = join( q{ }, $loadavg[ 0 ] )
                    . " on $sync->{cpu_number} cores and "
@@ -1466,26 +1472,30 @@ print_output_if_needed( $sync ) ;
 output_reset_with( $sync ) ;
 
 
-# don't go on if options are not all known.
+# Do not go on if options are not all known.
 if ( ! defined $options_good ) { exit $EX_USAGE ; }
+
+# Do not go on if no disk space available in CGI context.
+cgi_exit_on_no_disk_space( $sync ) ;
 
 # If you want releasecheck not to be done by default (like the github maintainer),
 # then just uncomment the first "$sync->{releasecheck} =" line, the line ending with "0 ;",
-# the second line (ending with "1 ;") can then stay active or be commented,
-# the result will be the same: no releasecheck by default (because 0 is then the defined value).
+# the second line (ending with "1 ;") can stay active or be commented,
+# the result will be the same: no releasecheck by default (because 0 is then a defined value).
 
-$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 0 ;
-#$sync->{releasecheck} = defined  $sync->{releasecheck}  ? $sync->{releasecheck} : 1 ;
+#$sync->{ releasecheck } = defined  $sync->{ releasecheck }  ? $sync->{ releasecheck } : 0 ;
+$sync->{ releasecheck } = defined  $sync->{ releasecheck }  ? $sync->{ releasecheck } : 1 ;
+
+
+#$sync->{debugenv} = 1 ;
+$sync->{debugenv} and printenv( $sync ) ; # if option --debugenv
+load_modules(  ) ;
 
 # just the version
 if ( $sync->{ version } ) {
         myprint( imapsync_version( $sync ), "\n" ) ;
         return 0 ;
 }
-
-#$sync->{debugenv} = 1 ;
-$sync->{debugenv} and printenv( $sync ) ; # if option --debugenv
-load_modules(  ) ;
 
 # after_get_options call usage and exit if --help or options were not well got
 after_get_options( $sync, $options_good ) ;
@@ -1494,7 +1504,6 @@ after_get_options( $sync, $options_good ) ;
 #output( $sync, localtime(time) . " " . gmtime(time) . "\n" ) ;
 
 make_var_array_to_a_hash( $sync ) ;
-
 
 # Under CGI environment, fix caveat emptor potential issues
 cgisetcontext( $sync ) ;
@@ -1508,7 +1517,16 @@ easyany( $sync ) ;
 $sync->{ sanitize } = defined $sync->{ sanitize } ? $sync->{ sanitize } : 1 ;
 sanitize( $sync ) ;
 
-$sync->{ tmpdir } ||= File::Spec->tmpdir(  ) ;
+#$sync->{ tmpdir } ||= File::Spec->tmpdir(  ) ; 
+$sync->{ tmpdir } = tmpdir( $sync ) ;
+
+output( $sync, 'Current directory is ' . getcwd(  ) . "\n" ) ;
+output( $sync, "Temp directory is $sync->{ tmpdir } ( to change it use --tmpdir dirpath )\n" ) ;
+output( $sync, "Creating temp directory $sync->{ tmpdir }\n" ) ;
+
+eval { mkpath( $sync->{ tmpdir } ) } ;
+
+
 
 # Unit tests
 my $unittestssuite = unittestssuite( $sync ) ;
@@ -1587,7 +1605,7 @@ myprint( "PID is $PROCESS_ID my PPID is ", mygetppid(  ), "\n" ) ;
 announcelogfile( $sync ) ;
 myprint( "Load is " . ( join( q{ }, loadavg(  ) ) || 'unknown' ), " on $sync->{cpu_number} cores\n" ) ;
 #myprintf( "Memory consumption so far: %.1f MiB\n", memory_consumption_of_myself(  ) / $KIBI / $KIBI ) ;
-myprint( 'Current directory is ' . getcwd(  ) . "\n" ) ;
+#myprint( 'Current directory is ' . getcwd(  ) . "\n" ) ;
 myprint( 'Real user id is ' . getpwuid_any_os( $REAL_USER_ID ) . " (uid $REAL_USER_ID)\n" ) ;
 myprint( 'Effective user id is ' . getpwuid_any_os( $EFFECTIVE_USER_ID ). " (euid $EFFECTIVE_USER_ID)\n" ) ;
 
@@ -1631,7 +1649,6 @@ $sync->{sslcheck} = defined $sync->{sslcheck} ? $sync->{sslcheck} : 1 ;
 
 myprint( banner_imapsync( $sync, @ARGV ) ) ;
 
-myprint( "Temp directory is $sync->{ tmpdir } ( to change it use --tmpdir dirpath )\n" ) ;
 
 myprint( output( $sync ) ) ;
 output_reset_with( $sync ) ;
@@ -1728,11 +1745,9 @@ sslcheck( $sync ) ;
 $split1 ||= $SPLIT ;
 $split2 ||= $SPLIT ;
 
-#$sync->{host1} || missing_option( $sync, '--host1' ) ;
 $sync->{host1} = sanitize_host( $sync->{host1} ) ;
 $sync->{port1} ||= ( $sync->{ssl1} ) ? $IMAP_SSL_PORT : $IMAP_PORT ;
 
-#$sync->{host2} || missing_option( $sync, '--host2' ) ;
 $sync->{host2} = sanitize_host( $sync->{host2} ) ;
 $sync->{port2} ||= ( $sync->{ssl2} ) ? $IMAP_SSL_PORT : $IMAP_PORT ;
 
@@ -1770,56 +1785,63 @@ Readonly %SSL_VERIFY_STR => (
 $IO::Socket::SSL::DEBUG = defined( $sync->{debugssl} ) ? $sync->{debugssl} : 1 ;
 
 
-if ( $sync->{ssl1} or $sync->{ssl2} or $sync->{tls1} or $sync->{tls2}) {
+if ( $sync->{ ssl1 } or $sync->{ ssl2 } or $sync->{ tls1 } or $sync->{ tls2 } )
+{
         myprint( "SSL debug mode level is --debugssl $IO::Socket::SSL::DEBUG (can be set from 0 meaning no debug to 4 meaning max debug)\n" ) ;
 }
 
-if ( $sync->{ssl1} ) {
+if ( $sync->{ ssl1 } )
+{
         myprint( qq{Host1: SSL default mode is like --sslargs1 "SSL_verify_mode=$SSL_VERIFY_POLICY", meaning for host1 $SSL_VERIFY_STR{$SSL_VERIFY_POLICY}\n} ) ;
         myprint( 'Host1: Use --sslargs1 SSL_verify_mode=' . IO::Socket::SSL::SSL_VERIFY_PEER(  ) . " to have $SSL_VERIFY_STR{IO::Socket::SSL::SSL_VERIFY_PEER(  )} of host1\n" ) ;
         # $sync->{ acc1 }->{sslargs}->{SSL_verify_mode}
 }
 
-if ( $sync->{ssl2} ) {
+if ( $sync->{ ssl2 } ) {
         myprint( qq{Host2: SSL default mode is like --sslargs2 "SSL_verify_mode=$SSL_VERIFY_POLICY", meaning for host2 $SSL_VERIFY_STR{$SSL_VERIFY_POLICY}\n} ) ;
         myprint( 'Host2: Use --sslargs2 SSL_verify_mode=' . IO::Socket::SSL::SSL_VERIFY_PEER(  ) . " to have $SSL_VERIFY_STR{IO::Socket::SSL::SSL_VERIFY_PEER(  )} of host2\n" ) ;
 }
 
 # ID on by default since 1.832
-$sync->{id} = defined  $sync->{id}  ? $sync->{id} : 1 ;
+$sync->{ id } = defined  $sync->{ id }  ? $sync->{ id } : 1 ;
 
-if ( $sync->{justconnect}
-        or not $sync->{user1}
-        or not $sync->{user2}
-        or not $sync->{host1}
-        or not $sync->{host2}
-        )
+my $justconnect1 = '' ;
+my $justconnect2 = '' ;
+
+if ( trigger_justconnect1( $sync ) )
 {
-        my $justconnect = justconnect( $sync ) ;
+        $justconnect1 = justconnect1( $sync ) ;
+}
 
-        myprint( debugmemory( $sync, " after justconnect() call" ) ) ;
+if ( trigger_justconnect2( $sync ) )
+{
+        $justconnect2 = justconnect2( $sync ) ;
+}
+
+
+if ( $justconnect1 and $justconnect2 )
+{
         exit_clean( $sync, $EX_OK,
-                "Exiting after a justconnect on host(s): $justconnect\n"
+                "Exiting after a justconnect on host(s): $justconnect1 $justconnect2\n"
         ) ;
 }
 
 
-#$sync->{user1} || missing_option( $sync, '--user1' ) ;
-#$sync->{user2} || missing_option( $sync, '--user2' ) ;
-
-$syncinternaldates = defined $syncinternaldates ? $syncinternaldates : 1;
+$syncinternaldates = defined $syncinternaldates ? $syncinternaldates : 1 ;
 
 # Turn on expunge if there is not explicit option --noexpunge1 and option
 # --delete1 is given.
 # Done because --delete1 --noexpunge1 is very dangerous on the second run:
 # the Deleted flag is then synced to all previously transferred messages.
 # So --delete1 implies --expunge1 is a better usability default behavior.
-if ( $sync->{ delete1 } ) {
-        if ( ! defined  $sync->{ expunge1 }  ) {
+if ( $sync->{ delete1 } )
+{
+        if ( ! defined  $sync->{ expunge1 }  )
+        {
                 myprint( "Info: turning on --expunge1 because --delete1 --noexpunge1 is very dangerous on the second run.\n" ) ;
                 $sync->{ expunge1 } = 1 ;
         }
-                myprint( "Info: if expunging after each message slows down too much the sync then use --noexpungeaftereach to speed up\n" ) ;
+        myprint( "Info: if expunging after each message slows down too much the sync then use --noexpungeaftereach to speed up\n" ) ;
 }
 
 if ( $sync->{ uidexpunge2 } and not Mail::IMAPClient->can( 'uidexpunge' ) ) {
@@ -1952,16 +1974,8 @@ for ( @useheader ) { $sync->{useheader}->{ uc  $_  } = undef } ;
 #myprint( Data::Dumper->Dump( [ \%useheader ] )  ) ;
 #exit ;
 
-myprint( "Host1: IMAP server [$sync->{host1}] port [$sync->{port1}] user [$sync->{user1}]\n" ) ;
-myprint( "Host2: IMAP server [$sync->{host2}] port [$sync->{port2}] user [$sync->{user2}]\n" ) ;
 
-get_password1( $sync ) ;
-get_password2( $sync ) ;
-
-# --dry1 make imapsync not fetching messages from host1, it is on when --dry is on.
-# Use --dry --nodry1 to make imapsync fetching messages from host1,
-# It is useful when debugging transformation options like --pipemess or --regexmess
-$sync->{dry1} = defined $sync->{dry1} ? $sync->{dry1} : $sync->{dry} ;
+$sync->{ dry1 } = defined $sync->{ dry1 } ? $sync->{ dry1 } : $sync->{ dry } ;
 
 $sync->{dry_message} = q{} ;
 if( $sync->{dry} ) {
@@ -2047,24 +2061,37 @@ if ( $sync->{ regexflag } ) {
         myprint( "Ok with each --regexflag\n"  ) ;
 }
 
-$sync->{imap1} = login_imap( $sync->{host1}, $sync->{port1}, $sync->{user1}, $sync->{password1},
-                   $sync->{ssl1}, $sync->{tls1},
+if ( $sync->{ host1 } )
+{
+        myprint( "Host1: IMAP server [$sync->{ host1 }] port [$sync->{ port1 }] user [" . ( $sync->{ user1 } || '?' ) . "]\n" ) ;
+}
+
+if ( $sync->{ host2 } )
+{
+        myprint( "Host2: IMAP server [$sync->{ host2 }] port [$sync->{ port2 }] user [" . ( $sync->{ user2 } || '?' ) . "]\n" ) ;
+}
+
+get_password1( $sync ) ;
+get_password2( $sync ) ;
+
+
+$sync->{ imap1 } = login_imap( $sync->{ host1 }, $sync->{ port1 }, $sync->{ user1 }, $sync->{ password1 },
+                   $sync->{ ssl1 }, $sync->{ tls1 },
                    $uid1, $split1, $sync->{ acc1 }, $sync ) ;
 
-$sync->{imap2} = login_imap( $sync->{host2}, $sync->{port2}, $sync->{user2}, $sync->{password2},
-                 $sync->{ssl2}, $sync->{tls2},
+$sync->{ imap2 } = login_imap( $sync->{ host2 }, $sync->{ port2 }, $sync->{ user2 }, $sync->{ password2 },
+                 $sync->{ ssl2 }, $sync->{ tls2 },
                  $uid2, $split2, $sync->{ acc2 }, $sync ) ;
 
 
-$sync->{ debug } and $sync->{imap1} and myprint( 'Host1 Buffer I/O: ', $sync->{imap1}->Buffer(), "\n" ) ;
-$sync->{ debug } and $sync->{imap2} and myprint( 'Host2 Buffer I/O: ', $sync->{imap2}->Buffer(), "\n" ) ;
+$sync->{ debug } and $sync->{ imap1 } and myprint( 'Host1 Buffer I/O: ', $sync->{ imap1 }->Buffer( ), "\n" ) ;
+$sync->{ debug } and $sync->{ imap2 } and myprint( 'Host2 Buffer I/O: ', $sync->{ imap2 }->Buffer( ), "\n" ) ;
 
 
-if ( ! $sync->{imap1} || ! $sync->{imap2} )
+if ( ! $sync->{ imap1 } || ! $sync->{ imap2 } )
 {
         exit_most_errors( $sync ) ;
 }
-
 
 myprint( "Host1: state Authenticated\n" ) ;
 myprint( "Host2: state Authenticated\n" ) ;
@@ -2085,6 +2112,8 @@ maxsize_setting( $sync ) ;
 
 acc_compress_imap( $acc1 ) ;
 acc_compress_imap( $acc2 ) ;
+myprint( "Compression often generates annoying errors, especially with SSL connexions, Gmail, Office365. So, avoid it.\n" ) ;
+
 
 if ( $sync->{ justlogin } ) {
         $sync->{imap1}->logout(  ) ;
@@ -3297,8 +3326,8 @@ sub abortfile
         return $abortfile ;
 }
 
-sub tests_kill_zero
-{
+sub tests_kill_zero 
+{ 
         note( 'Entering tests_kill_zero()' ) ;
 
 
@@ -3310,7 +3339,7 @@ sub tests_kill_zero
         is( 1, kill( 'ZERO', $PROCESS_ID ), "kill ZERO : myself $PROCESS_ID => 1" ) ;
         is( 2, kill( 'ZERO', $PROCESS_ID, $PROCESS_ID ), "kill ZERO : myself $PROCESS_ID $PROCESS_ID => 2" ) ;
 
-        if ( (-e '/.dockerenv' ) or ( 0 == $EFFECTIVE_USER_ID) )
+        if ( skip_docker(  ) or ( 0 == $EFFECTIVE_USER_ID) )
         {
                 is( 1, kill( 'ZERO', 1 ), "kill ZERO : pid 1 => 1 (docker context or root)" ) ;
                 is( 2, kill( 'ZERO', $PROCESS_ID, 1 ), "kill ZERO : myself + pid 1, $PROCESS_ID 1 => 2 (docker context or root)" ) ;
@@ -3361,7 +3390,7 @@ sub tests_kill_zero
 
         note( 'Leaving  tests_kill_zero()' ) ;
         return ;
-}
+} 
 
 
 
@@ -3616,7 +3645,7 @@ sub under_docker_context
                 return( $mysync->{ dockercontext } ) ;
         }
 
-        if ( -e '/.dockerenv' )
+        if ( -e '/Dockerfile' )
         {
                 return 1 ;
         }
@@ -3630,7 +3659,7 @@ sub under_docker_context
 
 
 sub docker_context 
-{
+{  
         my $mysync = shift @ARG ;
 
         if ( ! under_docker_context( $mysync ) )
@@ -3638,7 +3667,7 @@ sub docker_context
                 return ;
         }
 
-        output( $mysync, "Docker context detected with the file /.dockerenv\n" ) ;
+        output( $mysync, "Docker context detected with the file /Dockerfile\n" ) ;
         # No pidfile by default
         
         $mysync->{ pidfile } = defined( $mysync->{ pidfile } ) ? $mysync->{ pidfile } : q{} ;
@@ -3657,9 +3686,10 @@ sub docker_context
         my $tmp_dir = "/var/tmp/uid_$EFFECTIVE_USER_ID" ;
         mkpath( $tmp_dir ) ; # silly? No. it is for imapsync --version being ok.
         do_valid_directory( $tmp_dir ) ;
-        output( $mysync, "Changing current directory to $tmp_dir\n" ) ;
+        output( $mysync, "Changing current directory from " . getcwd() . " to $tmp_dir\n" ) ;
         chdir $tmp_dir ;
-
+        #$mysync->{ tmpdir } = $tmp_dir ;
+        
         return ;
 }
 
@@ -3736,11 +3766,18 @@ sub cgibuildheader
 			-status => '200 OK to abort syncing IMAP boxes. ' . load_message( $mysync ),
 		) ;
 	}
+	elsif( ! $mysync->{ diskspace_available } )
+	{
+		$httpheader = $mysync->{cgi}->header(
+			-type   => 'text/plain; charset=UTF-8',
+			-status => '503 Service Unavailable. ' . "Be back later. " . 'No disk space available',
+		) ;
+	}
 	elsif( $mysync->{ heavy_load_reached } )
 	{
-# https://tools.ietf.org/html/rfc2616#section-10.5.4
-# 503 Service Unavailable
-# The server is currently unable to handle the request due to a temporary overloading or maintenance of the server.
+        # https://tools.ietf.org/html/rfc2616#section-10.5.4
+        # 503 Service Unavailable
+        # The server is currently unable to handle the request due to a temporary overloading or maintenance of the server.
 		$httpheader = $mysync->{cgi}->header(
 			-type   => 'text/plain; charset=UTF-8',
 			-status => '503 Service Unavailable. ' . "Be back later. " . load_message( $mysync ),
@@ -3778,6 +3815,22 @@ sub cgi_exit_on_heavy_load
                 $mysync->{ nb_errors }++ ;
                 exit_clean( $mysync, $EX_UNAVAILABLE,
                         "Server is on heavy load. Be back later. " . load_message( $mysync ) . "\n"
+                ) ;
+        }
+        return ;
+} 
+
+
+sub cgi_exit_on_no_disk_space
+{
+        # Exit on no disk space in CGI context
+        my $mysync = shift @ARG ;
+        if ( ! under_cgi_context( $mysync ) ) { return ; }
+        if ( ! $mysync->{ diskspace_available } )
+        {
+                $mysync->{ nb_errors }++ ;
+                exit_clean( $mysync, $EX_UNAVAILABLE,
+                        "Server is in bad shape. Be back later. " . 'No disk space available' . "\n"
                 ) ;
         }
         return ;
@@ -3863,22 +3916,22 @@ sub  heavy_load_reached_by_cpu
 }
 
 
-sub tests_load_per_cpu
+sub tests_load_per_cpu 
 {
         note( 'Entering tests_load_per_cpu()' ) ;
         
         note( join( " ", 'loadavg:', loadavg(  ), 'cpu_number:', cpu_number(  ), 'load_per_cpu ', load_per_cpu(  ) ) ) ;
-        like( load_per_cpu(  ), qr{^([0-9.]+)$}xms,  'load_per_cpu: no args => number' ) ;
+        like( load_per_cpu(  ), qr{^([0-9.]+)$}xms,  'tests_load_per_cpu: no args => number' ) ;
         
         my $mysync = {  } ;
-        like( load_per_cpu( $mysync ), qr{^([0-9.]+)$}xms,  'load_per_cpu: {  } => number' ) ;
+        like( load_per_cpu( $mysync ), qr{^([0-9.]+)$}xms,  'tests_load_per_cpu: {  } => number' ) ;
 
         note( 'Leaving  tests_load_per_cpu()' ) ;
         return ;
-}
+} 
 
 
-sub load_per_cpu 
+sub load_per_cpu
 {
         my $mysync = shift @ARG ;
         
@@ -3939,10 +3992,104 @@ sub heavy_load_percent_threshold
 
         my $total_memory_bytes = total_ram_memory_bytes(  ) || return 0 ;
         my $memory_footprint_average_bytes = 250_000_000 ;
+        # This threshold leaves 4 memory imapsync memory footprints to the host, ie 1000 MB free for anything else. 
+        # Small systems like 2 GB ones or even less can then present poor imapsync capacity, that's life man.
         my $heavy_load_percent_threshold = max( 0, int( 100 * ( $total_memory_bytes - ( 4 * $memory_footprint_average_bytes ) ) / $total_memory_bytes ) ) ;
 
         return $heavy_load_percent_threshold ;
 }
+
+
+sub tests_diskspace_available
+{
+        note( 'Entering tests_diskspace_available()' ) ;
+
+        is( 1, diskspace_available(  ),  'tests_diskspace_available: no args => 1, could touch /var/tmp/imapsync_test_diskspace_available' ) ;
+        
+        SKIP:
+        {
+                if ( 'MSWin32' eq $OSNAME ) { skip( 'Tests not done under MSWin32', 4 ) ; }
+                is( undef, -e '/var/tmp/imapsync_test_diskspace_available',  'tests_diskspace_available: removed /var/tmp/imapsync_test_diskspace_available' ) ;
+
+                # with a parameter
+                is( 1, diskspace_available( '/var/tmp/imapsync_test_diskspace_available2' ),  'tests_diskspace_available: no args => 1, could touch /var/tmp/imapsync_test_diskspace_available2' ) ;
+                is( undef, -e '/var/tmp/imapsync_test_diskspace_available2',  'tests_diskspace_available: removed /var/tmp/imapsync_test_diskspace_available2' ) ;
+
+                is( 0, diskspace_available( '/no/no/no/no' ),  'tests_diskspace_available: /no/no/no/no => undef' ) ;
+	}
+        note( 'Leaving  tests_diskspace_available()' ) ;
+        return ;
+}
+
+
+sub diskspace_available
+{
+        # return 1 if diskspace available or under windows
+        if ( 'MSWin32' eq $OSNAME )
+        {
+                return 1 ;
+        }
+        my $file = shift || '/var/tmp/imapsync_test_diskspace_available' ;
+        my $touch_test = mkdir( $file ) ;
+        rmdir( $file ) ;
+        return( $touch_test ) ;
+}
+
+
+
+sub tests_tmpdir
+{
+        note( 'Entering tests_tmpdir()' ) ;
+
+        is( './', tmpdir(  ),  'tests_tmpdir: no args => ./' ) ;
+        my $mysync = {  } ;
+        
+        #
+        {
+                
+                
+                local $ENV{ 'HOME' } = 'Beurk' ;
+                is( 'Beurk/tmp', tmpdir( $mysync ),  'tests_tmpdir: {} + $HOME => $HOME/tmp' ) ;
+
+                undef(  $ENV{ 'HOME' } ) ;
+                is( './', tmpdir( $mysync ),  'tests_tmpdir: {} + no $HOME => ./' ) ;
+                
+                $mysync->{ tmpdir } = 'MyBeurk/truc' ;
+                is( 'MyBeurk/truc', tmpdir( $mysync ),  'tests_tmpdir: {}->{tmpdir} + $HOME => {}->{tmpdir}' ) ;
+                
+                
+        
+        }
+        note( 'Leaving  tests_tmpdir()' ) ;
+        return ;
+}
+
+sub tmpdir
+{
+        my $mysync = shift @ARG ;
+        
+        if ( ! defined( $mysync ) ) 
+        {
+                return( './' ) ;
+        }
+        elsif ( defined( $mysync->{ tmpdir } ) )
+        {
+                return( $mysync->{ tmpdir } ) ;
+        }
+        elsif ( defined( $ENV{ 'HOME' } ) )
+        {
+                return( $ENV{ 'HOME' } . '/tmp' ) ;
+        }
+        else
+        {
+                return( './' ) ;
+        }
+        
+        
+        
+        return ;
+}
+
 
 
 
@@ -3992,14 +4139,15 @@ sub tests_umask_str
 	is( '0400', umask_str(  '0400' ),  'umask_str:  0400 => 0400' ) ;
 	is( '0600', umask_str(  '0600' ),  'umask_str:  0600 => 0600' ) ;
 
-	SKIP: {
-	if ( 'MSWin32' eq $OSNAME ) { skip( 'Tests success only for Unix', 6 ) ; }
-	is( '0100', umask_str(  '0100' ),  'umask_str:  0100 => 0100' ) ;
-	is( '0001', umask_str(  '0001' ),  'umask_str:  0001 => 0001' ) ;
-	is( '0777', umask_str(  '0777' ),  'umask_str:  0777 => 0777' ) ;
-	is( '0777', umask_str( '00777' ),  'umask_str: 00777 => 0777' ) ;
-	is( '0777', umask_str( ' 777 ' ),  'umask_str:  777  => 0777' ) ;
-	is( "$UMASK_PARANO", umask_str( $UMASK_PARANO ),   "umask_str: UMASK_PARANO $UMASK_PARANO => $UMASK_PARANO" ) ;
+	SKIP:
+        {
+                if ( 'MSWin32' eq $OSNAME ) { skip( 'Tests success only for Unix', 6 ) ; }
+                is( '0100', umask_str(  '0100' ),  'umask_str:  0100 => 0100' ) ;
+                is( '0001', umask_str(  '0001' ),  'umask_str:  0001 => 0001' ) ;
+                is( '0777', umask_str(  '0777' ),  'umask_str:  0777 => 0777' ) ;
+                is( '0777', umask_str( '00777' ),  'umask_str: 00777 => 0777' ) ;
+                is( '0777', umask_str( ' 777 ' ),  'umask_str:  777  => 0777' ) ;
+                is( "$UMASK_PARANO", umask_str( $UMASK_PARANO ),   "umask_str: UMASK_PARANO $UMASK_PARANO => $UMASK_PARANO" ) ;
 	}
 
 	is( $save_umask_str, umask_str( $save_umask_str ),  'umask_str: restore with str' ) ;
@@ -5730,7 +5878,7 @@ sub tests_createhashfileifneeded
 sub createhashfileifneeded
 {
 	my $hashfile = shift @ARG ;
-	my $hashkey  = shift || rand32(  ) ;
+	my $hashkey  = shift || random_string( 32 ) ;
 
 	# no name
 	if ( ! $hashfile ) {
@@ -5761,26 +5909,81 @@ sub createhashfileifneeded
 	return ;
 }
 
-sub tests_rand32
+sub tests_random_string
 {
-	note( 'Entering tests_rand32()' ) ;
+        note( 'Entering tests_random_string()' ) ;
 
-	my $string = rand32(  ) ;
-	myprint( "$string\n" ) ;
-	is( 32, length( $string ),    'rand32: 32 characters long' ) ;
-	is( 32, length( rand32(  ) ), 'rand32: 32 characters long, another one' ) ;
-
-	note( 'Leaving  tests_rand32()' ) ;
-	return ;
+        my $str_a ; 
+        my $str_b ; 
+        ok( $str_a = random_string(  ),  'tests_random_string: give me a random string' ) ;
+        is( 64, length( $str_a ),        'tests_random_string: 64 characters long' ) ;
+        ok( $str_b = random_string(  ),  'tests_random_string: give another one' ) ;
+        is( 64, length( $str_b ),        'tests_random_string: 64 characters long' ) ;
+        note( "$str_a $str_b" ) ;
+        isnt( $str_a, $str_b,            'tests_random_string: hope they are different' ) ;
+        
+        my $str_c ; 
+        ok( $str_c = random_string( 11 ),  'tests_random_string: give me a 11 characters random string' ) ;
+        is( 11, length( $str_c ),          'tests_random_string: 11 characters long' ) ;
+        note( "$str_c" ) ;
+        note( 'Leaving  tests_random_string()' ) ;
+        return ;
 }
 
-sub rand32
+
+sub random_string
 {
+        my $num = shift || 64 ;
 	my @chars = ( "a".."z" ) ;
 	my $string;
-	$string .= $chars[rand @chars] for 1..32 ;
+	$string .= $chars[rand @chars] for 1..$num ;
 	return $string ;
 }
+
+
+
+sub tests_oauth2_code_verifier
+{
+        note( 'Entering tests_oauth2_code_verifier()' ) ;
+
+        is( 128, length( oauth2_code_verifier(  ) ),           'tests_oauth2_code_verifier: 128 characters long' ) ;
+
+        note( 'Leaving  tests_oauth2_code_verifier()' ) ;
+        return ;
+}
+
+
+sub oauth2_code_verifier
+{
+        return( random_string( 128 ) ) ;
+}
+
+
+sub tests_oauth2_code_challenge
+{
+        note( 'Entering tests_oauth2_code_challenge()' ) ;
+
+        is( '47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', oauth2_code_challenge( '' ),    'tests_oauth2_code_challenge: empty => 47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU' ) ;
+        is( 'ungWv48Bz-pBQUDeXa4iI7ADYaOWF3qctBD_YfIAFa0', oauth2_code_challenge( 'abc' ), 'tests_oauth2_code_challenge:   abc => ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0' ) ;
+        
+        # Example from https://datatracker.ietf.org/doc/html/rfc7636#appendix-B
+        is( 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', oauth2_code_challenge( 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk' ), 
+                'tests_oauth2_code_challenge:   dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk => E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM' ) ;
+        
+        my $code_challenge ;
+        is( '47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', oauth2_code_challenge(  ), 'tests_oauth2_code_challenge: no args => 47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU' ) ;
+        note( 'Leaving  tests_code_challenge()' ) ;
+        return ;
+}
+
+
+sub oauth2_code_challenge
+{
+        my $code_verifier = shift || '' ;
+        # BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
+        return( MIME::Base64::encode_base64url( Digest::SHA::sha256( $code_verifier ) ) ) ;
+}
+
 
 sub imap_id_stuff
 {
@@ -5838,7 +6041,7 @@ sub imapsync_id
                 vendor        => 'Gilles LAMIRAL',
                 'support-url' => 'https://imapsync.lamiral.info/',
                 # Example of date-time:  19-Sep-2015 08:56:07
-                date          => date_from_rcs( q{$Date: 2022/09/14 18:08:24 $ } ),
+                date          => date_from_rcs( q{$Date: 2023/09/27 11:26:09 $ } ),
         } ;
 
         my $imapsync_id_github  = {
@@ -5847,7 +6050,7 @@ sub imapsync_id
                 os            => $OSNAME,
                 vendor        => 'github',
                 'support-url' => 'https://github.com/imapsync/imapsync',
-                date          => date_from_rcs( q{$Date: 2022/09/14 18:08:24 $ } ),
+                date          => date_from_rcs( q{$Date: 2023/09/27 11:26:09 $ } ),
         } ;
 
         $imapsync_id = $imapsync_id_lamiral ;
@@ -6662,7 +6865,7 @@ sub errors_listing
         if ( $mysync->{ errorsdump }  )
         {
                 $errors_listing = join( '',
-                "++++ Listing $mysync->{nb_errors} errors encountered during the sync ( avoid this listing with --noerrorsdump ).\n",
+                "++++ Listing $mysync->{ nb_errors } errors encountered during the sync ( avoid this listing with --noerrorsdump ).\n",
                 errorsdump( errors_log( $mysync ) ),
                 ) ;
         }
@@ -7066,7 +7269,8 @@ sub modulesversion
                 'Data::Uniqid'          => sub { $Data::Uniqid::VERSION },
                 'Digest::HMAC_MD5'      => sub { $Digest::HMAC_MD5::VERSION },
                 'Digest::HMAC_SHA1'     => sub { $Digest::HMAC_SHA1::VERSION },
-                'Digest::MD5'           => sub { $Digest::MD5::VERSION },
+                'Digest::MD5'           => sub { $Digest::MD5::VERSION }, 
+                'Digest::SHA'           => sub { $Digest::SHA::VERSION }, 
                 'Encode'                => sub { $Encode::VERSION },
                 'Encode::IMAPUTF7'      => sub { $Encode::IMAPUTF7::VERSION },
                 'File::Copy::Recursive' => sub { $File::Copy::Recursive::VERSION },
@@ -7090,7 +7294,6 @@ sub modulesversion
                 'Test::MockObject'      => sub { $Test::MockObject::VERSION },
                 'Time::HiRes'           => sub { $Time::HiRes::VERSION },
                 'Unicode::String'       => sub { $Unicode::String::VERSION },
-                'URI::Escape'           => sub { $URI::Escape::VERSION },
                 #'Lalala'                => sub { $Lalala::VERSION },
         ) ;
 
@@ -7224,16 +7427,20 @@ sub ask_for_password
 
 # Have to refactor get_password1() get_password2()
 # to have only get_password() and two calls
-sub get_password1
+sub get_password1 
 {
 
 	my $mysync = shift @ARG ;
 
-	$mysync->{ password1 }
+        ! $mysync->{ host1 }
+        || ! $mysync->{ user1 }
+	|| $mysync->{ password1 }
 	|| $mysync->{ passfile1 }
 	|| 'PREAUTH'  eq $mysync->{ acc1 }->{ authmech }
 	|| 'EXTERNAL' eq $mysync->{ acc1 }->{ authmech }
-	|| $ENV{IMAPSYNC_PASSWORD1}
+        || $mysync->{ acc1 }->{ oauthaccesstoken }
+        || $mysync->{ acc1 }->{ oauthdirect }
+	|| $ENV{ IMAPSYNC_PASSWORD1 }
 	|| do
         {
                 myprint( << 'FIN_PASSFILE'  ) ;
@@ -7246,36 +7453,40 @@ FIN_PASSFILE
                 my $user = $mysync->{ acc1 }->{ authuser } || $mysync->{ user1 } ;
                 my $host = $mysync->{ host1 } ;
                 my $prompt = "What's the password for $user" . ' at ' . "$host? (not visible while you type, then enter RETURN) " ;
-                $mysync->{password1} = ask_for_password( $prompt ) ;
+                $mysync->{ password1 } = ask_for_password( $prompt ) ;
         } ;
 
 	if ( defined  $mysync->{ passfile1 }  ) {
 		if ( ! -e -r $mysync->{ passfile1 } ) {
 			myprint( "Failure: file from parameter --passfile1 $mysync->{ passfile1 } does not exist or is not readable\n" ) ;
-                        $mysync->{nb_errors}++ ;
+                        $mysync->{ nb_errors }++ ;
 			exit_clean( $mysync, $EX_NOINPUT ) ;
 		}
 		# passfile1 readable
-		$mysync->{password1} = firstline ( $mysync->{ passfile1 } ) ;
+		$mysync->{ password1 } = firstline ( $mysync->{ passfile1 } ) ;
 		return ;
 	}
-	if ( $ENV{IMAPSYNC_PASSWORD1} ) {
-		$mysync->{password1} = $ENV{IMAPSYNC_PASSWORD1} ;
+	if ( $ENV{ IMAPSYNC_PASSWORD1 } ) {
+		$mysync->{ password1 } = $ENV{ IMAPSYNC_PASSWORD1 } ;
 		return ;
 	}
 	return ;
-}
+} 
 
-sub get_password2
+sub get_password2 
 {
 
 	my $mysync = shift @ARG ;
 
-	$mysync->{password2}
+	! $mysync->{ host2 }
+        || ! $mysync->{ user2 }
+	|| $mysync->{ password2 }
 	|| $mysync->{ passfile2 }
 	|| 'PREAUTH'  eq $mysync->{ acc2 }->{ authmech }
 	|| 'EXTERNAL' eq $mysync->{ acc2 }->{ authmech }
-	|| $ENV{IMAPSYNC_PASSWORD2}
+        || $mysync->{ acc2 }->{ oauthaccesstoken }
+        || $mysync->{ acc2 }->{ oauthdirect }
+	|| $ENV{ IMAPSYNC_PASSWORD2 }
 	|| do
         {
                 myprint( << 'FIN_PASSFILE'  ) ;
@@ -7288,45 +7499,45 @@ FIN_PASSFILE
                 my $user = $mysync->{ acc2 }->{ authuser } || $mysync->{ user2 } ;
                 my $host =  $mysync->{ host2 } ;
                 my $prompt = "What's the password for $user" . ' at ' . "$host? (not visible while you type, then enter RETURN) " ;
-                $mysync->{password2} = ask_for_password( $prompt ) ;
+                $mysync->{ password2 } = ask_for_password( $prompt ) ;
         } ;
 
 
 	if ( defined  $mysync->{ passfile2 }  ) {
 		if ( ! -e -r $mysync->{ passfile2 } ) {
 			myprint( "Failure: file from parameter --passfile2 $mysync->{ passfile2 } does not exist or is not readable\n" ) ;
-                        $mysync->{nb_errors}++ ;
+                        $mysync->{ nb_errors }++ ;
 			exit_clean( $mysync, $EX_NOINPUT ) ;
 		}
 		# passfile2 readable
-		$mysync->{password2} = firstline ( $mysync->{ passfile2 } ) ;
+		$mysync->{ password2 } = firstline ( $mysync->{ passfile2 } ) ;
 		return ;
 	}
-	if ( $ENV{IMAPSYNC_PASSWORD2} ) {
-		$mysync->{password2} = $ENV{IMAPSYNC_PASSWORD2} ;
+	if ( $ENV{ IMAPSYNC_PASSWORD2 } ) {
+		$mysync->{ password2 } = $ENV{ IMAPSYNC_PASSWORD2 } ;
 		return ;
 	}
 	return ;
-}
+} 
 
 
 
 
-sub remove_tmp_files
+sub remove_tmp_files 
 {
         my $mysync = shift or return ;
-        $mysync->{pidfile} or return ;
+        $mysync->{ pidfile } or return ;
 
-        if ( -e $mysync->{pidfile} ) {
-                myprint( "Removing pidfile $mysync->{pidfile}\n" ) ;
-                unlink $mysync->{pidfile} ;
+        if ( -e $mysync->{ pidfile } ) {
+                myprint( "Removing pidfile $mysync->{ pidfile }\n" ) ;
+                unlink $mysync->{ pidfile } ;
         }
-        if ( -e $mysync->{abortfile} ) {
-                myprint( "Removing pidfile $mysync->{abortfile}\n" ) ;
-                unlink $mysync->{abortfile} ;
+        if ( -e $mysync->{ abortfile } ) {
+                myprint( "Removing pidfile $mysync->{ abortfile }\n" ) ;
+                unlink $mysync->{ abortfile } ;
         }
         return ;
-}
+} 
 
 sub cleanup_before_exit 
 {
@@ -7374,6 +7585,7 @@ sub tests_exit_value
         
         is( $EXIT_CATCH_ALL, exit_value( $mysync, 'Blabla_unknown' ),  'exit_value: Blabla => EXIT_CATCH_ALL' ) ;
         is( $EXIT_CATCH_ALL, exit_value( $mysync, '' ),                'exit_value: empty  => EXIT_CATCH_ALL' ) ;
+        is( $EXIT_CATCH_ALL, exit_value( $mysync, '' ),                'exit_value: undef  => EXIT_CATCH_ALL' ) ;
         
         
         is( $EXIT_OVERQUOTA,         exit_value( $mysync, 'ERR_OVERQUOTA' ),         'exit_value: ERR_OVERQUOTA => EXIT_OVERQUOTA' ) ;
@@ -7388,7 +7600,9 @@ sub exit_value
         my $mysync = shift @ARG ;
         my $most_common_error = shift @ARG ;
         
+        if ( ! defined $mysync ) { return $EXIT_CATCH_ALL ; }
         if ( ! defined $most_common_error ) { return $EXIT_CATCH_ALL ; }
+        if ( ! $most_common_error ) { return $EXIT_CATCH_ALL ; }
         my $exit_value = $EXIT_VALUE_OF_ERR_TYPE{ $most_common_error } || $EXIT_CATCH_ALL ;
         
         return $exit_value ;
@@ -7400,9 +7614,16 @@ sub exit_most_errors
 {
         my $mysync = shift @ARG ;
 
-        myprint( errors_listing( $mysync ) ) ;
-        my $exit_value = exit_value( $mysync, $mysync->{ most_common_error } ) ;
-        exit_clean( $mysync, $exit_value ) ;
+        if ( $mysync->{ nb_errors } )
+        {
+                myprint( errors_listing( $mysync ) ) ;
+                my $exit_value = exit_value( $mysync, $mysync->{ most_common_error } ) ;
+                exit_clean( $mysync, $exit_value ) ;
+        }
+        else
+        {
+                exit_clean( $mysync, $EX_OK ) ;
+        }
         return ;
 }
 
@@ -7690,17 +7911,19 @@ sub justconnect
 sub justconnect1
 {
         my $mysync = shift @ARG ;
-        if ( $mysync->{host1} )
+        if ( $mysync->{ host1 } )
         {
-                myprint( "Host1: Will just connect to $mysync->{host1} without login\n" ) ;
-                $mysync->{imap1} = connect_imap(
-                        $mysync->{host1}, $mysync->{port1},
-                        $mysync->{ssl1}, $mysync->{tls1},
-                        $mysync->{ acc1 } ) ;
+                myprint( "Host1: Will just connect to $mysync->{ host1 } without login\n" ) ;
+                $mysync->{ imap1 } = connect_imap(
+                        $mysync->{ host1 }, $mysync->{ port1 },
+                        $mysync->{ ssl1 }, $mysync->{ tls1 },
+                        $mysync->{ acc1 }
+                ) ;
 
-                imap_id( $mysync, $mysync->{imap1}, $mysync->{ acc1 }->{ Side } ) ;
-                $mysync->{imap1}->logout(  ) ;
-                return $mysync->{host1} ;
+                imap_id( $mysync, $mysync->{ imap1 }, $mysync->{ acc1 }->{ Side } ) ;
+                $mysync->{ imap1 }->logout(  ) ;
+                $mysync->{ acc1 }->{ justconnectdone } = 1 ;
+                return $mysync->{ host1 } ;
         }
 
         return q{} ;
@@ -7709,21 +7932,119 @@ sub justconnect1
 sub justconnect2
 {
         my $mysync = shift @ARG ;
-        if ( $mysync->{host2} )
+        if ( $mysync->{ host2 } )
         {
-                myprint( "Host2: Will just connect to $mysync->{host2} without login\n" ) ;
-                $mysync->{imap2} = connect_imap(
-                        $mysync->{host2}, $mysync->{port2},
-                        $mysync->{ssl2}, $mysync->{tls2},
-                        $mysync->{ acc2 } ) ;
+                myprint( "Host2: Will just connect to $mysync->{ host2 } without login\n" ) ;
+                $mysync->{ imap2 } = connect_imap(
+                        $mysync->{ host2 }, $mysync->{ port2 },
+                        $mysync->{ ssl2 }, $mysync->{ tls2 },
+                        $mysync->{ acc2 }
+                ) ;
 
-                imap_id( $mysync, $mysync->{imap2}, $mysync->{ acc2 }->{ Side } ) ;
-                $mysync->{imap2}->logout(  ) ;
-                return $mysync->{host2} ;
+                imap_id( $mysync, $mysync->{ imap2 }, $mysync->{ acc2 }->{ Side } ) ;
+                $mysync->{ imap2 }->logout(  ) ;
+                $mysync->{ acc2 }->{ justconnectdone } = 1 ;
+                return $mysync->{ host2 } ;
         }
 
         return q{} ;
 }
+
+
+sub tests_trigger_justconnect1
+{
+        note( 'Entering tests_trigger_justconnect1()' ) ;
+
+        is( undef, trigger_justconnect1(  ),  'tests_trigger_justconnect1: no args => undef' ) ;
+        my $mysync = {  } ;
+        
+        is( undef, trigger_justconnect1( $mysync ),  'tests_trigger_justconnect1: {  } => undef' ) ;
+
+        $mysync->{ justconnect } = 1 ;
+        is( 1, trigger_justconnect1( $mysync ),  'tests_trigger_justconnect1: --justconnect => 1' ) ;
+        
+        delete $mysync->{ justconnect } ;
+        is( undef, trigger_justconnect1( $mysync ),  'tests_trigger_justconnect1: no more --justconnect => undef' ) ;
+        
+        $mysync->{ host1 } = 'hhh' ;
+        is( 1, trigger_justconnect1( $mysync ),  'tests_trigger_justconnect1: just --host1  => 1' ) ;
+        
+        $mysync->{ user1 } = 'uuu' ;
+        is( undef, trigger_justconnect1( $mysync ),  'tests_trigger_justconnect1: --host1 --user1 => 1' ) ;
+        
+        note( 'Leaving  tests_trigger_justconnect1()' ) ;
+        return ;
+}
+
+
+sub trigger_justconnect1
+{
+        my $mysync = shift @ARG ;
+        
+        if ( ! $mysync  )  { return ; }
+        
+        if ( ! scalar( %{ $mysync } ) )  { return ; }
+        
+        if ( $mysync->{ justconnect } ) { return 1 ; }
+        
+        if (
+                not $mysync->{ user1 } and not $mysync->{ acc1 }->{ oauthdirect }
+        )
+        {
+                return 1 ;
+        }
+        
+        return ;
+}
+
+
+sub tests_trigger_justconnect2
+{
+        note( 'Entering tests_trigger_justconnect2()' ) ;
+
+        is( undef, trigger_justconnect2(  ),  'tests_trigger_justconnect2: no args => undef' ) ;
+        my $mysync = {  } ;
+        
+        is( undef, trigger_justconnect2( $mysync ),  'tests_trigger_justconnect2: {  } => undef' ) ;
+
+        $mysync->{ justconnect } = 1 ;
+        is( 1, trigger_justconnect2( $mysync ),  'tests_trigger_justconnect2: --justconnect => 1' ) ;
+        
+        delete $mysync->{ justconnect } ;
+        is( undef, trigger_justconnect2( $mysync ),  'tests_trigger_justconnect2: no more --justconnect => undef' ) ;
+        
+        $mysync->{ host2 } = 'aaa' ;
+        is( 1, trigger_justconnect2( $mysync ),  'tests_trigger_justconnect2: just --host2  => 1' ) ;
+        
+        $mysync->{ user2 } = 'uuu' ;
+        is( undef, trigger_justconnect2( $mysync ),  'tests_trigger_justconnect1: --host2 --user2 => 1' ) ;
+        
+        note( 'Leaving  tests_trigger_justconnect2()' ) ;
+        return ;
+}
+
+
+sub trigger_justconnect2
+{
+        my $mysync = shift @ARG ;
+        
+        if ( ! $mysync  )  { return ; }
+        
+        if ( ! scalar( %{ $mysync } ) )  { return ; }
+        
+        if ( $mysync->{ justconnect } ) { return 1 ; }
+        
+        if (
+                not $mysync->{ user2 } and not $mysync->{ acc2 }->{ oauthdirect }
+        )
+        {
+                return 1 ;
+        }
+        
+        return ;
+}
+
+
 
 sub skip_macosx
 {
@@ -7739,132 +8060,137 @@ sub skip_macosx_binary
         return( skip_macosx(  ) && ( $PROGRAM_NAME =~ m{imapsync_bin_Darwin} ) ) ;
 }
 
-
-
-sub tests_mailimapclient_connect
+sub skip_ks5
 {
+        return( 'ks5' eq hostname(  ) );
+}
+
+sub skip_docker
+{
+        return( -e '/Dockerfile' ) ;
+}
+
+
+sub tests_mailimapclient_connect 
+{ 
         note( 'Entering tests_mailimapclient_connect()' ) ;
 
         my $imap ;
         # ipv4
-        ok( $imap = Mail::IMAPClient->new(  ), 'mailimapclient_connect ipv4: new' ) ;
-        is( 'Mail::IMAPClient', ref( $imap ), 'mailimapclient_connect ipv4: ref is Mail::IMAPClient' ) ;
+        ok( $imap = Mail::IMAPClient->new(  ), 'tests_mailimapclient_connect: ipv4 new' ) ;
+        is( 'Mail::IMAPClient', ref( $imap ), 'tests_mailimapclient_connect: ipv4 ref is Mail::IMAPClient' ) ;
 
         # Mail::IMAPClient 3.40 die on this... So we skip it, thanks to "mature" IO::Socket::IP
         # Mail::IMAPClient 3.42 is ok so this test is back.
-        is( undef, $imap->connect(  ), 'mailimapclient_connect ipv4: connect with no server => failure' ) ;
+        is( undef, $imap->connect(  ), 'tests_mailimapclient_connect: ipv4 connect with no server => failure' ) ;
 
 
-        is( 'test.lamiral.info', $imap->Server( 'test.lamiral.info' ), 'mailimapclient_connect ipv4: setting Server(test.lamiral.info)' ) ;
-        is( 1, $imap->Debug( 1 ), 'mailimapclient_connect ipv4: setting Debug( 1 )' ) ;
-        is( 143, $imap->Port( 143 ), 'mailimapclient_connect ipv4: setting Port( 143 )' ) ;
-        is( 10, $imap->Timeout( 10 ), 'mailimapclient_connect ipv4: setting Timeout( 10 )' ) ;
-        like( ref( $imap->connect(  ) ), qr/IO::Socket::INET|IO::Socket::IP/, 'mailimapclient_connect ipv4: connect to test.lamiral.info' ) ;
-        like( $imap->logout( ), qr/Mail::IMAPClient/, 'mailimapclient_connect ipv4: logout' ) ;
-        is( undef, undef $imap, 'mailimapclient_connect ipv4: free variable' ) ;
+        is( 'test.lamiral.info', $imap->Server( 'test.lamiral.info' ), 'tests_mailimapclient_connect: ipv4 setting Server(test.lamiral.info)' ) ;
+        is( 1, $imap->Debug( 1 ), 'tests_mailimapclient_connect: ipv4 setting Debug( 1 )' ) ;
+        is( 143, $imap->Port( 143 ), 'tests_mailimapclient_connect: ipv4 setting Port( 143 )' ) ;
+        is( 10, $imap->Timeout( 10 ), 'tests_mailimapclient_connect: ipv4 setting Timeout( 10 )' ) ;
+        like( ref( $imap->connect(  ) ), qr/IO::Socket::INET|IO::Socket::IP/, 'tests_mailimapclient_connect: ipv4 connect to test.lamiral.info' ) ;
+        like( $imap->logout( ), qr/Mail::IMAPClient/, 'tests_mailimapclient_connect: ipv4 logout' ) ;
+        is( undef, undef $imap, 'tests_mailimapclient_connect: ipv4 free variable' ) ;
 
         # ipv4 + ssl
-        ok( $imap = Mail::IMAPClient->new(  ), 'mailimapclient_connect ipv4 + ssl: new' ) ;
-        is( 'test.lamiral.info', $imap->Server( 'test.lamiral.info' ), 'mailimapclient_connect ipv4 + ssl: setting Server(test.lamiral.info)' ) ;
-        is( 1, $imap->Debug( 1 ), 'mailimapclient_connect ipv4 + ssl: setting Debug( 1 )' ) ;
-        ok( $imap->Ssl( [ SSL_verify_mode => SSL_VERIFY_NONE, SSL_cipher_list => 'DEFAULT:!DH' ] ), 'mailimapclient_connect ipv4 + ssl: setting Ssl( SSL_VERIFY_NONE )' ) ;
-        is( 993, $imap->Port( 993 ), 'mailimapclient_connect ipv4 + ssl: setting Port( 993 )' ) ;
-        like( ref( $imap->connect(  ) ), qr/IO::Socket::SSL/, 'mailimapclient_connect ipv4 + ssl: connect to test.lamiral.info' ) ;
-        like( $imap->logout( ), qr/Mail::IMAPClient/, 'mailimapclient_connect ipv4 + ssl: logout in ssl does not cause failure' ) ;
-        is( undef, undef $imap, 'mailimapclient_connect ipv4 + ssl: free variable' ) ;
+        ok( $imap = Mail::IMAPClient->new(  ), 'tests_mailimapclient_connect: ipv4 + ssl: new' ) ;
+        is( 'test.lamiral.info', $imap->Server( 'test.lamiral.info' ), 'tests_mailimapclient_connect: ipv4 + ssl: setting Server(test.lamiral.info)' ) ;
+        is( 1, $imap->Debug( 1 ), 'tests_mailimapclient_connect: ipv4 + ssl: setting Debug( 1 )' ) ;
+        ok( $imap->Ssl( [ SSL_verify_mode => SSL_VERIFY_NONE, SSL_cipher_list => 'DEFAULT:!DH' ] ), 'tests_mailimapclient_connect: ipv4 + ssl: setting Ssl( SSL_VERIFY_NONE )' ) ;
+        is( 993, $imap->Port( 993 ), 'tests_mailimapclient_connect: ipv4 + ssl: setting Port( 993 )' ) ;
+        like( ref( $imap->connect(  ) ), qr/IO::Socket::SSL/, 'tests_mailimapclient_connect: ipv4 + ssl: connect to test.lamiral.info' ) ;
+        like( $imap->logout( ), qr/Mail::IMAPClient/, 'tests_mailimapclient_connect: ipv4 + ssl: logout in ssl does not cause failure' ) ;
+        is( undef, undef $imap, 'tests_mailimapclient_connect: ipv4 + ssl: free variable' ) ;
 
         # ipv6 + ssl
 
-        ok( $imap = Mail::IMAPClient->new(  ), 'mailimapclient_connect ipv6 + ssl: new' ) ;
-        is( 'petiteipv6.lamiral.info', $imap->Server( 'petiteipv6.lamiral.info' ), 'mailimapclient_connect ipv6 + ssl: setting Server petiteipv6.lamiral.info' ) ;
-        is( 10, $imap->Timeout( 10 ), 'mailimapclient_connect ipv6: setting Timeout( 10 )' ) ;
-        ok( $imap->Ssl( [ SSL_verify_mode => SSL_VERIFY_NONE, SSL_cipher_list => 'DEFAULT:!DH' ] ), 'mailimapclient_connect ipv6 + ssl: setting Ssl( SSL_VERIFY_NONE )' ) ;
-        is( 993, $imap->Port( 993 ), 'mailimapclient_connect ipv6 + ssl: setting Port( 993 )' ) ;
+        ok( $imap = Mail::IMAPClient->new(  ), 'tests_mailimapclient_connect: ipv6 + ssl: new' ) ;
+        is( 'test1ipv6.lamiral.info', $imap->Server( 'test1ipv6.lamiral.info' ), 'tests_mailimapclient_connect: ipv6 + ssl: setting Server test1ipv6.lamiral.info' ) ;
+        is( 10, $imap->Timeout( 10 ), 'tests_mailimapclient_connect: ipv6 setting Timeout( 10 )' ) ;
+        ok( $imap->Ssl( [ SSL_verify_mode => SSL_VERIFY_NONE, SSL_cipher_list => 'DEFAULT:!DH' ] ), 'tests_mailimapclient_connect: ipv6 + ssl: setting Ssl( SSL_VERIFY_NONE )' ) ;
+        is( 993, $imap->Port( 993 ), 'tests_mailimapclient_connect: ipv6 + ssl: setting Port( 993 )' ) ;
         SKIP: {
-        if (
-                'CUILLERE' eq hostname()
-                or
-                skip_macosx()
-                or
-                -e '/.dockerenv'
-                or
-                'pcHPDV7-HP' eq hostname()
+                if (
+                        'CUILLERE' eq hostname(  )
+                        or
+                        skip_macosx(  )
+                        or
+                        skip_docker(  )
+                        or
+                        'pcHPDV7-HP' eq hostname(  )
+                        or '5521.local' eq hostname(  )
                 )
-        {
-                skip( 'Tests avoided on CUILLERE/pcHPDV7-HP/macosx.polarhome.com/docker cannot do ipv6', 4 ) ;
+                {
+                        skip( 'Tests avoided on CUILLERE/pcHPDV7-HP/polarhome/macstadium/docker cannot do ipv6', 4 ) ;
+                }
+
+                is( 1, $imap->Debug( 1 ), 'tests_mailimapclient_connect: ipv4 + ssl: setting Debug( 1 )' ) ;
+
+                # It sounds stupid but sometimes it avoids failures on the next test about $imap->connect
+                is( '2001:41d0:2:84e0::1', resolv( 'test1ipv6.lamiral.info' ), 'resolv: test1ipv6.lamiral.info => 2a01:e0a:c59:f090:f5eb:1776:332:41d5' ) ;
+                like( ref( $imap->connect(  ) ), qr/IO::Socket::SSL/, 'tests_mailimapclient_connect: ipv6 + ssl: connect to test1ipv6.lamiral.info' ) ;
+                # This one is ok on petite, not on ks2, do not know why, so commented.
+                like( ref( $imap->logout(  ) ), qr/Mail::IMAPClient/, 'tests_mailimapclient_connect: ipv6 + ssl: logout in ssl is ok on test1ipv6.lamiral.info' ) ;
         }
 
-        is( 1, $imap->Debug( 1 ), 'mailimapclient_connect ipv4 + ssl: setting Debug( 1 )' ) ;
-
-        # It sounds stupid but it avoids failures on the next test about $imap->connect
-        is( '2a01:e34:ecde:70d0:223:54ff:fec2:36d7', resolv( 'petiteipv6.lamiral.info' ), 'resolv: petiteipv6.lamiral.info => 2a01:e34:ecde:70d0:223:54ff:fec2:36d7' ) ;
-
-        like( ref( $imap->connect(  ) ), qr/IO::Socket::SSL/, 'mailimapclient_connect ipv6 + ssl: connect to petiteipv6.lamiral.info' ) ;
-        # This one is ok on petite, not on ks2, do not know why, so commented.
-        like( ref( $imap->logout(  ) ), qr/Mail::IMAPClient/, 'mailimapclient_connect ipv6 + ssl: logout in ssl is ok on petiteipv6.lamiral.info' ) ;
-        }
-
-        is( undef, undef $imap, 'mailimapclient_connect ipv6 + ssl: free variable' ) ;
-
-
+        is( undef, undef $imap, 'tests_mailimapclient_connect: ipv6 + ssl: free variable' ) ;
         note( 'Leaving  tests_mailimapclient_connect()' ) ;
         return ;
-}
+} 
 
 
-sub tests_mailimapclient_connect_bug
-{
+sub tests_mailimapclient_connect_bug 
+{ 
         note( 'Entering tests_mailimapclient_connect_bug()' ) ;
 
         my $imap ;
 
         # ipv6
-        ok( $imap = Mail::IMAPClient->new(  ), 'mailimapclient_connect_bug ipv6: new' ) ;
-        is( 'ks6ipv6.lamiral.info', $imap->Server( 'ks6ipv6.lamiral.info' ), 'mailimapclient_connect_bug ipv6: setting Server(ks6ipv6.lamiral.info)' ) ;
-        is( 143, $imap->Port( 143 ), 'mailimapclient_connect_bug ipv6: setting Port( 993 )' ) ;
+        ok( $imap = Mail::IMAPClient->new(  ), 'tests_mailimapclient_connect_bug: ipv6: new' ) ;
+        is( 'ks6ipv6.lamiral.info', $imap->Server( 'ks6ipv6.lamiral.info' ), 'tests_mailimapclient_connect_bug: ipv6: setting Server(ks6ipv6.lamiral.info)' ) ;
+        is( 143, $imap->Port( 143 ), 'tests_mailimapclient_connect_bug: ipv6: setting Port( 993 )' ) ;
 
         SKIP: {
                 if (
-                        'CUILLERE' eq hostname()
+                        'CUILLERE' eq hostname(  )
                 or
-                        skip_macosx()
+                        skip_macosx(  )
                 or
-                        -e '/.dockerenv'
-                or
-                'pcHPDV7-HP' eq hostname()
+                'pcHPDV7-HP' eq hostname(  )
                 )
                 {
                         skip( 'Tests avoided on CUILLERE/pcHPDV7-HP/macosx.polarhome.com/docker cannot do ipv6', 1 ) ;
                 }
-                like( ref( $imap->connect(  ) ), qr/IO::Socket::INET/, 'mailimapclient_connect_bug ipv6: connect to ks6ipv6.lamiral.info' )
-                or diag( 'mailimapclient_connect_bug ipv6: ', $imap->LastError(  ), $!,  ) ;
+                like( ref( $imap->connect(  ) ), qr/IO::Socket::INET/, 'tests_mailimapclient_connect_bug: ipv6: connect to ks6ipv6.lamiral.info' )
+                or diag( 'tests_mailimapclient_connect_bug: ipv6: ', $imap->LastError(  ), $!,  ) ;
         }
-        #is( $imap->logout( ), undef, 'mailimapclient_connect_bug ipv6: logout in ssl causes failure' ) ;
-        is( undef, undef $imap, 'mailimapclient_connect_bug ipv6: free variable' ) ;
+        #is( $imap->logout( ), undef, 'tests_mailimapclient_connect_bug: ipv6: logout in ssl causes failure' ) ;
+        is( undef, undef $imap, 'tests_mailimapclient_connect_bug: ipv6: free variable' ) ;
 
         note( 'Leaving  tests_mailimapclient_connect_bug()' ) ;
         return ;
-}
+} 
 
 
 
-sub tests_connect_socket
-{
+sub tests_connect_socket 
+{ 
         note( 'Entering tests_connect_socket()' ) ;
 
-	is( undef, connect_socket(  ), 'connect_socket: no args' ) ;
+	is( undef, connect_socket(  ), 'tests_connect_socket: no args' ) ;
 
         my $socket ;
         my $imap ;
         SKIP: {
                 if (
-                        'CUILLERE' eq hostname()
+                        'CUILLERE' eq hostname(  )
                 or
-                        skip_macosx()
+                        skip_macosx(  )
                 or
-                        -e '/.dockerenv'
+                        skip_docker(  )
                 or
-                        'pcHPDV7-HP' eq hostname()
+                        'pcHPDV7-HP' eq hostname(  )
                 )
                 {
                         skip( 'Tests avoided on CUILLERE/pcHPDV7-HP/macosx.polarhome.com/docker cannot do ipv6', 2 ) ;
@@ -7876,14 +8202,14 @@ sub tests_connect_socket
                 ) ;
 
 
-                ok( $imap = connect_socket( $socket ), 'connect_socket: ks6ipv6.lamiral.info port 143 IO::Socket::INET6' ) ;
+                ok( $imap = connect_socket( $socket ), 'tests_connect_socket: ks6ipv6.lamiral.info port 143 IO::Socket::INET6' ) ;
                 #$imap->Debug( 1 ) ;
                 # myprint( $imap->capability(  ) ) ;
                 if ( $imap ) {
                         $imap->logout(  ) ;
                 }
 
-                $IO::Socket::SSL::DEBUG = 4 ;
+                #$IO::Socket::SSL::DEBUG = 4 ;
                 $socket = IO::Socket::SSL->new(
                         PeerHost => 'ks6ipv6.lamiral.info',
                         PeerPort => 993,
@@ -7891,7 +8217,7 @@ sub tests_connect_socket
                         SSL_cipher_list => 'DEFAULT:!DH',
                 ) ;
                 # myprint( $socket ) ;
-                ok( $imap = connect_socket( $socket ), 'connect_socket: ks6ipv6.lamiral.info port 993 IO::Socket::SSL' ) ;
+                ok( $imap = connect_socket( $socket ), 'tests_connect_socket: ks6ipv6.lamiral.info port 993 IO::Socket::SSL' ) ;
                 #$imap->Debug( 1 ) ;
                 # myprint( $imap->capability(  ) ) ;
                 # $socket->close(  ) ;
@@ -7905,7 +8231,7 @@ sub tests_connect_socket
         }
         note( 'Leaving  tests_connect_socket()' ) ;
         return ;
-}
+} 
 
 sub connect_socket
 {
@@ -7925,41 +8251,41 @@ sub connect_socket
 }
 
 
-sub tests_probe_imapssl
-{
+sub tests_probe_imapssl 
+{ 
         note( 'Entering tests_probe_imapssl()' ) ;
 
-        is( undef, probe_imapssl(  ),          'probe_imapssl: no args => undef' ) ;
-        is( undef, probe_imapssl( 'unknown' ), 'probe_imapssl: unknown => undef' ) ;
+        is( undef, probe_imapssl(  ),          'tests_probe_imapssl: no args => undef' ) ;
+        is( undef, probe_imapssl( 'unknown' ), 'tests_probe_imapssl: unknown => undef' ) ;
 
-        note( "hostname is: ", hostname() ) ;
+        note( "hostname is: ", hostname(  ) ) ;
         SKIP: {
                 if (
-                        'CUILLERE' eq hostname()
+                        'CUILLERE' eq hostname(  )
                 or
-                        skip_macosx()
+                        skip_macosx(  )
                 or
-                        -e '/.dockerenv'
+                        skip_docker(  )
                 or
-                        'pcHPDV7-HP' eq hostname()
+                        'pcHPDV7-HP' eq hostname(  )
                 )
                 {
                         skip( 'Tests avoided on CUILLERE or pcHPDV7-HP or Mac or docker: cannot do ipv6', 0 ) ;
                 }
                 # fed up with this one
-                #like( probe_imapssl( 'ks6ipv6.lamiral.info' ), qr/^\* OK/, 'probe_imapssl: ks6ipv6.lamiral.info matches "* OK"' ) ;
+                #like( probe_imapssl( 'ks6ipv6.lamiral.info' ), qr/^\* OK/, 'tests_probe_imapssl: ks6ipv6.lamiral.info matches "* OK"' ) ;
         } ;
 
 
         # It sounds stupid but it avoids failures on the next test about $imap->connect
-        ok( resolv( 'imap.gmail.com' ), 'resolv: imap.gmail.com => something' ) ;
-        like( probe_imapssl( 'imap.gmail.com' ),       qr/^\* OK/, 'probe_imapssl: imap.gmail.com matches "* OK"' ) ;
+        ok( resolv( 'imap.gmail.com' ), 'tests_probe_imapssl: resolv imap.gmail.com => something' ) ;
+        like( probe_imapssl( 'imap.gmail.com' ),       qr/^\* OK/, 'tests_probe_imapssl: imap.gmail.com matches "* OK"' ) ;
 
-        like( probe_imapssl( 'test1.lamiral.info' ),   qr/^\* OK/, 'probe_imapssl: test1.lamiral.info matches "* OK"' ) ;
+        like( probe_imapssl( 'test1.lamiral.info' ),   qr/^\* OK/, 'tests_probe_imapssl: test1.lamiral.info matches "* OK"' ) ;
 
         note( 'Leaving  tests_probe_imapssl()' ) ;
         return ;
-}
+} 
 
 
 sub probe_imapssl
@@ -7967,7 +8293,7 @@ sub probe_imapssl
         my $host = shift @ARG ;
 
         if ( ! $host ) { return ; }
-        $sync->{ debug } and $IO::Socket::SSL::DEBUG = 4 ;
+        #$sync->{ debug } and $IO::Socket::SSL::DEBUG = 4 ;
   	my $socket = IO::Socket::SSL->new(
 		PeerHost => $host,
 		PeerPort => $IMAP_SSL_PORT,
@@ -8034,60 +8360,106 @@ sub connect_imap
         return( $imap ) ;
 } 
 
+
+
+
+
+sub tests_compress_starttls 
+{ 
+        note( 'Entering tests_compress_starttls()' ) ;
+
+        SKIP: 
+        {
+                if ( skip_macosx(  ) )
+                {
+                        skip( 'Tests avoided on host polarhome macosx, no clue "ssl3_get_server_certificate:certificate verify failed"', 8 ) ;
+                }
+                else
+                {
+                        my $myimap ;
+                        my $acc = {} ;
+                        $acc->{ Side }      =  'HostK' ;
+                        $acc->{ authmech }  = 'LOGIN' ;
+                        $acc->{ debugimap } = 1 ;
+                        $acc->{ compress }  = 1 ;
+                        $acc->{ N }  = 'K' ;
+                        $acc->{ sslargs } = { 
+                                SSL_verify_mode => 0,
+                        } ;
+
+                        #$IO::Socket::SSL::DEBUG = 4 ;
+                        ok(
+                                $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
+                                0, 1,
+                                1, 100, $acc, {},
+                                ),  'tests_compress_starttls: test1.lamiral.info test1 tls'
+                        ) ;
+                        ok( $myimap && $myimap->IsAuthenticated( ), 'tests_compress_starttls: test1.lamiral.info test1 tls IsAuthenticated' ) ;
+
+                        is( $acc->{ imap }, acc_compress_imap( $acc ), "tests_compress_starttls: test1.lamiral.info tls compression ok" ) ;
+                        is( undef, acc_compress_imap( $acc ), "tests_compress_starttls: test1.lamiral.info tls compression 2nd time call nok" ) ;
+        
+                        # Third, no compression
+                        $acc->{ compress }  = 0 ;
+                        ok(
+                                $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
+                                0, 1,
+                                1, 100, $acc, {},
+                                ),  'tests_compress_starttls: test1.lamiral.info test1 tls no compression'
+                        ) ;
+                        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_compress_starttls: test1.lamiral.info test1 tls no compression IsAuthenticated' ) ;
+
+                        is( undef, acc_compress_imap( $acc ), "tests_compress_starttls: test1.lamiral.info no compression ok" ) ;
+                        is( undef, acc_compress_imap( $acc ), "tests_compress_starttls: test1.lamiral.info 2nd no compression ok" ) ;
+                }
+        }
+        note( 'Leaving  tests_compress_starttls()' ) ;
+        return ;
+} 
+
+
 sub tests_compress_ssl
 {
         note( 'Entering tests_compress_ssl()' ) ;
 
         SKIP: {
-        if ( skip_macosx(  ) )
-        {
-                skip( 'Tests avoided on host polarhome macosx, no clue "ssl3_get_server_certificate:certificate verify failed"', 12 ) ;
-        }
-        else
-        {
-        my $myimap ;
-        my $acc = {} ;
-        $acc->{ Side }      =  'HostK' ;
-        $acc->{ authmech }  = 'LOGIN' ;
-        $acc->{ debugimap } = 1 ;
-        $acc->{ compress }  = 1 ;
-        $acc->{ N }  = 'K' ;
+                if ( skip_macosx(  ) )
+                {
+                        skip( 'Tests avoided on host polarhome macosx, no clue "ssl3_get_server_certificate:certificate verify failed"', 8 ) ;
+                }
+                else
+                {
+                        my $myimap ;
+                        my $acc = {} ;
+                        $acc->{ Side }      =  'HostK' ;
+                        $acc->{ authmech }  = 'LOGIN' ;
+                        $acc->{ debugimap } = 1 ;
+                        $acc->{ compress }  = 1 ;
+                        $acc->{ N }  = 'K' ;
         
-        ok(
-                $myimap = login_imap( 'test1.lamiral.info', 993, 'test1', 'secret1',
-                1, undef,
-                1, 100, $acc, {},
-                ),  'acc_compress_imap: test1.lamiral.info test1 ssl' ) ;
-        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'acc_compress_imap: test1.lamiral.info test1 ssl IsAuthenticated' ) ;
+                        ok(
+                                $myimap = login_imap( 'test1.lamiral.info', 993, 'test1', 'secret1',
+                                1, undef,
+                                1, 100, $acc, {},
+                                ),  'tests_compress_ssl: test1.lamiral.info test1 ssl' 
+                        ) ;
+                        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_compress_ssl: test1.lamiral.info test1 ssl IsAuthenticated' ) ;
 
-
-        is( $acc->{ imap }, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info ok" ) ;
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info 2nd nok" ) ;
-
-        ok(
-                $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
-                0, undef,
-                1, 100, $acc, {},
-                ),  'acc_compress_imap: test1.lamiral.info test1 tls' ) ;
-        ok( $myimap && $myimap->IsAuthenticated( ), 'acc_compress_imap: test1.lamiral.info test1 tls IsAuthenticated' ) ;
-
-        is( $acc->{ imap }, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info tls ok" ) ;
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info tls 2nd nok" ) ;
+                        is( $acc->{ imap }, acc_compress_imap( $acc ), "tests_compress_ssl: test1.lamiral.info compression ok" ) ;
+                        is( undef, acc_compress_imap( $acc ), "tests_compress_ssl: test1.lamiral.info compression 2nd time call nok" ) ;
         
-        # Third, no compression
-        $acc->{ compress }  = 0 ;
-        ok(
-                $myimap = login_imap( 'test1.lamiral.info', 993, 'test1', 'secret1',
-                1, undef,
-                1, 100, $acc, {},
-                ),  'acc_compress_imap: test1.lamiral.info test1 ssl' ) ;
-        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'acc_compress_imap: test1.lamiral.info test1 ssl IsAuthenticated' ) ;
-
-
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info off ok" ) ;
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info 2nd off ok" ) ;
-        
-        }
+                        # Third, no compression
+                        $acc->{ compress }  = 0 ;
+                        ok(
+                                $myimap = login_imap( 'test1.lamiral.info', 993, 'test1', 'secret1',
+                                1, undef,
+                                1, 100, $acc, {},
+                                ),  'tests_compress_ssl: test1.lamiral.info test1 ssl'
+                        ) ;
+                        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_compress_ssl: test1.lamiral.info test1 ssl no compression IsAuthenticated' ) ;
+                        is( undef, acc_compress_imap( $acc ), "tests_compress_ssl: test1.lamiral.info no compression ok" ) ;
+                        is( undef, acc_compress_imap( $acc ), "tests_compress_ssl: test1.lamiral.info 2nd no compression ok" ) ;
+                }
         }
         note( 'Leaving  tests_compress_ssl()' ) ;
         return ;
@@ -8109,22 +8481,22 @@ sub tests_compress
                 $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
                 0, 0,
                 1, 100, $acc, {},
-                ),  'acc_compress_imap: test1.lamiral.info test1' ) ;
-        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'acc_compress_imap: test1.lamiral.info test1 IsAuthenticated' ) ;
+                ),  'tests_compress: test1.lamiral.info test1' ) ;
+        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_compress: test1.lamiral.info test1 IsAuthenticated' ) ;
 
 
-        is( $acc->{ imap }, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info ok" ) ;
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info 2nd nok" ) ;
+        is( $acc->{ imap }, acc_compress_imap( $acc ), "tests_compress: test1.lamiral.info ok" ) ;
+        is( undef, acc_compress_imap( $acc ), "tests_compress: test1.lamiral.info 2nd nok" ) ;
 
         ok(
                 $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
                 0, 0,
                 1, 100, $acc, {},
-                ),  'acc_compress_imap: test1.lamiral.info test1 tls' ) ;
-        ok( $myimap && $myimap->IsAuthenticated( ), 'acc_compress_imap: test1.lamiral.info test1 tls IsAuthenticated' ) ;
+                ),  'tests_compress: test1.lamiral.info test1 tls' ) ;
+        ok( $myimap && $myimap->IsAuthenticated( ), 'tests_compress: test1.lamiral.info test1 tls IsAuthenticated' ) ;
 
-        is( $acc->{ imap }, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info tls ok" ) ;
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info tls 2nd nok" ) ;
+        is( $acc->{ imap }, acc_compress_imap( $acc ), "tests_compress: test1.lamiral.info tls ok" ) ;
+        is( undef, acc_compress_imap( $acc ), "tests_compress: test1.lamiral.info tls 2nd nok" ) ;
         
         # Third, no compression
         $acc->{ compress }  = 0 ;
@@ -8132,12 +8504,12 @@ sub tests_compress
                 $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
                 0, 0,
                 1, 100, $acc, {},
-                ),  'acc_compress_imap: test1.lamiral.info test1 ssl' ) ;
-        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'acc_compress_imap: test1.lamiral.info test1 ssl IsAuthenticated' ) ;
+                ),  'tests_compress: test1.lamiral.info test1 ssl' ) ;
+        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_compress: test1.lamiral.info test1 ssl IsAuthenticated' ) ;
 
 
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info off ok" ) ;
-        is( undef, acc_compress_imap( $acc ), "acc_compress_imap: test1.lamiral.info 2nd off ok" ) ;
+        is( undef, acc_compress_imap( $acc ), "tests_compress: test1.lamiral.info off ok" ) ;
+        is( undef, acc_compress_imap( $acc ), "tests_compress: test1.lamiral.info 2nd off ok" ) ;
         
         note( 'Leaving  tests_compress()' ) ;
         return ;
@@ -8174,112 +8546,216 @@ sub acc_compress_imap
         return $ret ;
 }
 
-sub tests_login_imap
+
+# Each month (trimester?):
+# echo | openssl s_client -crlf -connect test1.lamiral.info:993
+# ...
+# certificate has expired
+# Fix: ssh root@test1.lamiral.info 'apt update && apt upgrade && /etc/init.d/dovecot restart'
+#
+# or this one:
+# echo | openssl s_client -crlf -connect test1.lamiral.info:993
+# ...
+# Verify return code: 9 (certificate is not yet valid)
+# Fix: /etc/init.d/openntpd restart
+# 2021_09_04 done 
+
+
+sub tests_login_imap_notls_nossl
 {
-        note( 'Entering tests_login_imap()' ) ;
+        note( 'Entering tests_login_imap_notls_nossl()' ) ;
 
-        is( undef, login_imap(  ),  'login_imap: no args => undef' ) ;
+        is( undef, login_imap(  ),  'tests_login_imap_notls_nossl: no args => undef' ) ;
 
-        SKIP: {
-        if ( skip_macosx(  ) )
+        SKIP: 
         {
-                skip( 'Tests avoided only on binary on host polarhome macosx, no clue "ssl3_get_server_certificate:certificate verify failed"', 15 ) ;
-        }
-        else{
+                if ( skip_macosx(  ) )
+                {
+                        skip( 'Tests avoided only on binary on host polarhome macosx, no clue "ssl3_get_server_certificate:certificate verify failed"', 10 ) ;
+                }
+                else
+                {
+                        my $myimap ;
+                        my $acc = {} ;
+                        $acc->{ Side }     = 'HostK' ;
+                        $acc->{ authmech } = 'LOGIN' ;
+
+
+                        #login_imap( $host, $port, $user, $password,
+                        #       $ssl, $tls,
+                        #       $uid, $split, $acc, $mysync      
         
-        my $myimap ;
-        my $acc = {} ;
-        $acc->{ Side }     =  'HostK' ;
-        $acc->{ authmech } = 'LOGIN' ;
-        #$IO::Socket::SSL::DEBUG = 4 ;
-        # Each month (trimester?):
-        # echo | openssl s_client -crlf -connect test1.lamiral.info:993
-        # ...
-        # certificate has expired
-        # Fix: ssh root@test1.lamiral.info 'apt update && apt upgrade && /etc/init.d/dovecot restart'
-        #
-        # or this one:
-        # echo | openssl s_client -crlf -connect test1.lamiral.info:993
-        # ...
-        # Verify return code: 9 (certificate is not yet valid)
-        # Fix: /etc/init.d/openntpd restart
-        # 2021_09_04 done 
-        ok(
-                $myimap = login_imap( 'test1.lamiral.info', 993, 'test1', 'secret1',
-                1, undef,
-                1, 100, $acc, {},
-                ),  'login_imap: test1.lamiral.info test1 ssl' ) ;
-        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'login_imap: test1.lamiral.info test1 ssl IsAuthenticated' ) ;
+                        #$IO::Socket::SSL::DEBUG = 4 ;
+                        ok(
+                                $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
+                                0, 0,
+                                1, 100, $acc, {},
+                                ),  'tests_login_imap_notls_nossl: test1.lamiral.info test1 tls' 
+                        ) ;
+                        ok( $myimap && $myimap->IsAuthenticated( ), 'tests_login_imap_notls_nossl: test1.lamiral.info test1 tls IsAuthenticated' ) ;
+                        is( $myimap, $acc->{ imap }, "tests_login_imap_notls_nossl: acc->{ imap } ok test1 tls") ;
 
-        is( $myimap, $acc->{ imap }, "login_imap: acc->{ imap } ok test1 ssl") ;
 
-        ok(
-                $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
-                0, undef,
-                1, 100, $acc, {},
-                ),  'login_imap: test1.lamiral.info test1 tls' ) ;
-        ok( $myimap && $myimap->IsAuthenticated( ), 'login_imap: test1.lamiral.info test1 tls IsAuthenticated' ) ;
-        is( $myimap, $acc->{ imap }, "login_imap: acc->{ imap } ok test1 tls") ;
+                        # No name resolution
+                        my $mysync = {} ;
+                        $acc = {} ;
+                        $acc->{ Side } =  'Host2' ;
+                        $acc->{ authmech } = 'LOGIN' ;
+                        is(
+                                undef, login_imap( 'noresol.lamiral.info', 143, 'test1', 'secret1',
+                                0, 0,
+                                1, 100, $acc,  $mysync,
+                                ),  'tests_login_imap_notls_nossl: noresol.lamiral.info undef'
+                        ) ;
 
-        #$IO::Socket::SSL::DEBUG = 4 ;
-        $acc->{sslargs} = { SSL_version => 'SSLv2' } ;
-        # SSLv2 not supported
-        is(
-                undef, $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
-                0, undef,
-                1, 100, $acc, {},
-                ),  'login_imap: test1.lamiral.info test1 tls SSLv2 not supported' ) ;
-#SSL_verify_mode => 1
-#SSL_version => 'TLSv1_1'
-        is( undef, $acc->{ imap }, "login_imap: acc->{ imap } test1 tls error => undef") ;
+                        is( 'ERR_CONNECTION_FAILURE_HOST2', errorsanalyse( errors_log( $mysync ) ), 'tests_login_imap_notls_nossl: Host2 noresol.lamiral.info => ERR_CONNECTION_FAILURE_HOST2' ) ;
+                        is( undef, $acc->{ imap }, "tests_login_imap_notls_nossl: acc->{ imap } noresol error => undef") ;
         
+                        # authentication failure for user2
+                        $mysync = {} ;
+                        is(
+                                undef, login_imap( 'test1.lamiral.info', 143, 'test1', 'Ce crétin',
+                                0, 0,
+                                1, 100, $acc,  $mysync,
+                                ),  'tests_login_imap_notls_nossl: user2 bad passord => undef' 
+                        ) ;
 
-        # I have left ? exit_clean to be replaced by errors_incr( $mysync, 'error message' )
-        # 1 in login_imap()
+                        is( 'ERR_AUTHENTICATION_FAILURE_USER2', errorsanalyse( errors_log( $mysync ) ), 'tests_login_imap_notls_nossl: Host2 bad password => ERR_AUTHENTICATION_FAILURE_USER2' ) ;
 
+                        # authentication failure for user1
+                        $mysync = {} ;
+                        $acc = {} ;
+                        $acc->{ Side } =  'Host1' ;
+                        $acc->{ authmech } = 'LOGIN' ;
+                        is(
+                                undef, login_imap( 'test1.lamiral.info', 143, 'test1', 'Ce crétin',
+                                0, 0,
+                                1, 100, $acc,  $mysync,
+                                ),  'tests_login_imap_notls_nossl: user1 bad passord => undef' 
+                        ) ;
 
-        my $mysync = {} ;
-        $acc = {} ;
-        $acc->{ Side } =  'Host2' ;
-        $acc->{ authmech } = 'LOGIN' ;
-        is(
-                undef, login_imap( 'noresol.lamiral.info', 143, 'test1', 'secret1',
-                0, undef,
-                1, 100, $acc,  $mysync,
-                ),  'login_imap: noresol.lamiral.info undef' ) ;
-
-        is( 'ERR_CONNECTION_FAILURE_HOST2', errorsanalyse( errors_log( $mysync ) ), 'login_imap: Host2 noresol.lamiral.info => ERR_CONNECTION_FAILURE_HOST2' ) ;
-        is( undef, $acc->{ imap }, "login_imap: acc->{ imap } noresol error => undef") ;
-        
-        # authentication failure for user2
-        $mysync = {} ;
-        is(
-                undef, login_imap( 'test1.lamiral.info', 143, 'test1', 'Ce crétin',
-                0, undef,
-                1, 100, $acc,  $mysync,
-                ),  'login_imap: user2 bad passord => undef' ) ;
-
-        is( 'ERR_AUTHENTICATION_FAILURE_USER2', errorsanalyse( errors_log( $mysync ) ), 'login_imap: Host2 bad password => ERR_AUTHENTICATION_FAILURE_USER2' ) ;
-
-        # authentication failure for user1
-        $mysync = {} ;
-        $acc = {} ;
-        $acc->{ Side } =  'Host1' ;
-        $acc->{ authmech } = 'LOGIN' ;
-        is(
-                undef, login_imap( 'test1.lamiral.info', 143, 'test1', 'Ce crétin',
-                0, undef,
-                1, 100, $acc,  $mysync,
-                ),  'login_imap: user1 bad passord => undef' ) ;
-
-        is( 'ERR_AUTHENTICATION_FAILURE_USER1', errorsanalyse( errors_log( $mysync ) ), 'login_imap: Host1 bad password => ERR_AUTHENTICATION_FAILURE_USER1' ) ;
-
-        }
+                        is( 'ERR_AUTHENTICATION_FAILURE_USER1', errorsanalyse( errors_log( $mysync ) ), 'tests_login_imap_notls_nossl: Host1 bad password => ERR_AUTHENTICATION_FAILURE_USER1' ) ;
+                }
         }
         
-        note( 'Leaving  tests_login_imap()' ) ;
+        note( 'Leaving  tests_login_imap_notls_nossl()' ) ;
         return ;
 }
+
+
+sub tests_login_imap_starttls 
+{ 
+        note( 'Entering tests_login_imap_starttls()' ) ;
+
+        SKIP: 
+        {
+                if ( skip_macosx(  ) )
+                {
+                        skip( 'Tests avoided only on binary on host polarhome macosx, no clue "ssl3_get_server_certificate:certificate verify failed"', 8 ) ;
+                }
+                else
+                {
+                        my $myimap ;
+                        my $acc = {} ;
+                        $acc->{ Side }     = 'HostK' ;
+                        $acc->{ authmech } = 'LOGIN' ;
+
+                        $acc->{ sslargs } = { 
+                                SSL_verify_mode => 0,
+                        } ;
+
+                        #login_imap( $host, $port, $user, $password,
+                        #       $ssl, $tls,
+                        #       $uid, $split, $acc, $mysync      
+        
+                        #$IO::Socket::SSL::DEBUG = 4 ;
+                        ok(
+                                $myimap = login_imap( 
+                                        'test1.lamiral.info', 143, 'test1', 'secret1',
+                                        0, 1,
+                                        1, 100, $acc, {},
+                                ),  'tests_login_imap_starttls: test1.lamiral.info test1 tls' 
+                        ) ;
+                        ok( $myimap && $myimap->IsAuthenticated( ), 'tests_login_imap_starttls: test1.lamiral.info test1 tls IsAuthenticated' ) ;
+                        is( $myimap, $acc->{ imap }, "tests_login_imap_starttls: acc->{ imap } ok test1 tls") ;
+
+                        # STARTTLS port 143        
+                        # SSLv2 not supported
+                        #$IO::Socket::SSL::DEBUG = 4 ;
+                        $acc->{ sslargs } = { 
+                                SSL_version => 'SSLv2',
+                        } ;
+                        
+                        is(
+                                undef, $myimap = login_imap( 'test1.lamiral.info', 143, 'test1', 'secret1',
+                                0, 1,
+                                1, 100, $acc, {},
+                                ),  'tests_login_imap_starttls: test1.lamiral.info test1 tls SSLv2 not supported'
+                        ) ;
+                        #SSL_verify_mode => 1
+                        #SSL_version => 'TLSv1_1'
+                        is( undef, $acc->{ imap }, "tests_login_imap_starttls: acc->{ imap } test1 tls error => undef") ;
+        
+
+                        # No name resolution
+                        my $mysync = {} ;
+                        $acc = {} ;
+                        $acc->{ Side } =  'Host2' ;
+                        $acc->{ authmech } = 'LOGIN' ;
+                        is(
+                                undef, login_imap( 'noresol.lamiral.info', 143, 'test1', 'secret1',
+                                0, 1,
+                                1, 100, $acc,  $mysync,
+                                ),  'tests_login_imap_starttls: noresol.lamiral.info undef'
+                        ) ;
+
+                        is( 'ERR_CONNECTION_FAILURE_HOST2', errorsanalyse( errors_log( $mysync ) ), 'tests_login_imap_starttls: Host2 noresol.lamiral.info => ERR_CONNECTION_FAILURE_HOST2' ) ;
+                        is( undef, $acc->{ imap }, "tests_login_imap_starttls: acc->{ imap } noresol error => undef") ;
+                }
+        }
+        
+        note( 'Leaving  tests_login_imap_starttls()' ) ;
+        return ;
+} 
+
+
+
+
+
+sub tests_login_imap_ssl_993
+{
+        note( 'Entering tests_login_imap_ssl_993()' ) ;
+
+        SKIP: 
+        {
+                if ( skip_macosx(  ) )
+                {
+                        skip( 'Tests avoided only on binary on host polarhome macosx, no clue "ssl3_get_server_certificate:certificate verify failed"', 3 ) ;
+                }
+                else
+                {
+        
+                        my $myimap ;
+                        my $acc = {} ;
+                        $acc->{ Side }     =  'HostK' ;
+                        $acc->{ authmech } = 'LOGIN' ;
+        
+                # SSL mode port 993
+                        ok(
+                                $myimap = login_imap( 'test1.lamiral.info', 993, 'test1', 'secret1',
+                                1, undef,
+                                1, 100, $acc, {},
+                                ),  'tests_login_imap_ssl_993: test1.lamiral.info test1 ssl' ) ;
+                        ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_login_imap_ssl_993: test1.lamiral.info test1 ssl IsAuthenticated' ) ;
+                        is( $myimap, $acc->{ imap }, "tests_login_imap_ssl_993: acc->{ imap } ok test1 ssl") ;
+                }
+        
+                note( 'Leaving  tests_login_imap_ssl_993()' ) ;
+                return ;
+        }
+}
+
+
 
 sub oauthgenerateaccess
 {
@@ -8292,11 +8768,11 @@ sub oauthgenerateaccess
         return ;
 }
 
-sub tests_login_imap_oauth
+sub tests_login_imap_oauth 
 {
         note( 'Entering tests_login_imap_oauth()' ) ;
         
-        oauthgenerateaccess() ;
+        oauthgenerateaccess(  ) ;
 
         SKIP: {
         if ( skip_macosx_binary(  ) )
@@ -8320,9 +8796,9 @@ sub tests_login_imap_oauth
                 undef, login_imap( 'imap.gmail.com', 993, 'test1', 'Ce crétin',
                 1, undef,
                 1, 100, $acc,  $mysync,
-                ),  'login_imap: user2 bad oauthdirect => undef' ) ;
+                ),  'tests_login_imap_oauth: user2 bad oauthdirect => undef' ) ;
 
-        is( 'ERR_AUTHENTICATION_FAILURE_USER2', errorsanalyse( errors_log( $mysync ) ), 'login_imap: Host2 bad oauthdirect => ERR_AUTHENTICATION_FAILURE_USER2' ) ;
+        is( 'ERR_AUTHENTICATION_FAILURE_USER2', errorsanalyse( errors_log( $mysync ) ), 'tests_login_imap_oauth: Host2 bad oauthdirect => ERR_AUTHENTICATION_FAILURE_USER2' ) ;
 
         # oauthdirect authentication failure for user1
         $mysync = {} ;
@@ -8336,9 +8812,9 @@ sub tests_login_imap_oauth
                 undef, login_imap( 'imap.gmail.com', 993, 'test1', 'Ce crétin',
                 1, undef,
                 1, 100, $acc,  $mysync,
-                ),  'login_imap: user1 bad oauthdirect => undef' ) ;
+                ),  'tests_login_imap_oauth: user1 bad oauthdirect => undef' ) ;
 
-        is( 'ERR_AUTHENTICATION_FAILURE_USER1', errorsanalyse( errors_log( $mysync ) ), 'login_imap: Host1 bad oauthdirect => ERR_AUTHENTICATION_FAILURE_USER1' ) ;
+        is( 'ERR_AUTHENTICATION_FAILURE_USER1', errorsanalyse( errors_log( $mysync ) ), 'tests_login_imap_oauth: Host1 bad oauthdirect => ERR_AUTHENTICATION_FAILURE_USER1' ) ;
 
         # oauthdirect authentication failure for user1
         $mysync = {} ;
@@ -8352,9 +8828,9 @@ sub tests_login_imap_oauth
                 undef, login_imap( 'imap.gmail.com', 993, 'test1', 'Ce crétin',
                 1, undef,
                 1, 100, $acc,  $mysync,
-                ),  'login_imap: user1 bad oauthdirect => undef' ) ;
+                ),  'tests_login_imap_oauth: user1 bad oauthdirect => undef' ) ;
 
-        is( 'ERR_AUTHENTICATION_FAILURE_USER1', errorsanalyse( errors_log( $mysync ) ), 'login_imap: Host1 no oauthdirect value => ERR_AUTHENTICATION_FAILURE_USER1' ) ;
+        is( 'ERR_AUTHENTICATION_FAILURE_USER1', errorsanalyse( errors_log( $mysync ) ), 'tests_login_imap_oauth: Host1 no oauthdirect value => ERR_AUTHENTICATION_FAILURE_USER1' ) ;
 
         }
         }
@@ -8363,7 +8839,7 @@ sub tests_login_imap_oauth
         SKIP: {
                 if ( ! -r 'oauth2/D_oauth2_oauthdirect_imapsync.gl0@gmail.com.txt' ) 
                 {
-                        skip( 'oauthdirect: no oauthdirect file', 6  ) ;
+                        skip( 'oauthdirect: no oauthdirect file', 12  ) ;
                 }
                 my $myimap ;
                 my $mysync = {} ;
@@ -8377,14 +8853,27 @@ sub tests_login_imap_oauth
                         $myimap = login_imap( 'imap.gmail.com', 993, 'user_useless', 'password_useless',
                         1, undef,
                         1, 100, $acc,  $mysync,
-                        ), 'Mail::IMAPClient', 'login_imap: user1 good oauthdirect => Mail::IMAPClient' ) ;
+                        ), 'Mail::IMAPClient', 'tests_login_imap_oauth: user1 good oauthdirect => Mail::IMAPClient' ) ;
 
-                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'login_imap: gmail oauth2 oauthdirect IsAuthenticated' ) ;
+                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect IsAuthenticated' ) ;
                 
-                ok( defined( $myimap ) && $myimap->logout( ), 'login_imap: gmail oauth2 oauthdirect logout' ) ;
-                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'login_imap: gmail oauth2 oauthdirect not IsAuthenticated after logout' ) ;
-                ok( defined( $myimap ) && $myimap->reconnect( ), 'login_imap: gmail oauth2 oauthdirect reconnect ok' ) ;
-                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'login_imap: gmail oauth2 oauthdirect IsAuthenticated after reconnect' ) ;
+                ok( defined( $myimap ) && $myimap->logout( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect logout' ) ;
+                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect not IsAuthenticated after logout' ) ;
+                ok( defined( $myimap ) && $myimap->reconnect( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect reconnect ok' ) ;
+                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect IsAuthenticated after reconnect' ) ;
+                
+                ok( defined( $myimap ) && $myimap->logout( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect logout 2' ) ;
+                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect not IsAuthenticated after logout 2' ) ;
+                
+                # failure 
+                $acc->{ oauthdirect } = 'caca3' ;
+                ok( defined( $myimap ) && ! $myimap->reconnect( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect reconnect nok 2' ) ;
+                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect not IsAuthenticated after reconnect 2' ) ;
+                
+                # success 
+                $acc->{ oauthdirect } = 'oauth2/D_oauth2_oauthdirect_imapsync.gl0@gmail.com.txt' ;
+                ok( defined( $myimap ) && $myimap->reconnect( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect reconnect ok 3' ) ;
+                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthdirect IsAuthenticated after reconnect 3' ) ;
         }
         
         
@@ -8393,7 +8882,7 @@ sub tests_login_imap_oauth
         SKIP: {
                 if ( ! -r 'oauth2/D_oauth2_access_token_imapsync.gl0@gmail.com.txt' ) 
                 {
-                        skip( 'oauthaccesstoken: no access_token file', 6  ) ;
+                        skip( 'oauthaccesstoken: no access_token file', 12  ) ;
                 }
                 my $myimap ;
                 my $mysync = {} ;
@@ -8407,21 +8896,34 @@ sub tests_login_imap_oauth
                         $myimap = login_imap( 'imap.gmail.com', 993, 'imapsync.gl0@gmail.com', 'password_useless',
                         1, undef,
                         1, 100, $acc,  $mysync,
-                        ), 'Mail::IMAPClient', 'login_imap: user1 good oauthaccesstoken => Mail::IMAPClient' ) ;
+                        ), 'Mail::IMAPClient', 'tests_login_imap_oauth: user1 good oauthaccesstoken => Mail::IMAPClient' ) ;
 
-                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'login_imap: gmail oauth2 oauthaccesstoken IsAuthenticated' ) ;
+                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken IsAuthenticated' ) ;
         
-                ok( defined( $myimap ) && $myimap->logout( ), 'login_imap: gmail oauth2 oauthaccesstoken logout' ) ;
-                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'login_imap: gmail oauth2 oauthaccesstoken not IsAuthenticated after logout' ) ;
-                ok( defined( $myimap ) && $myimap->reconnect( ), 'login_imap: gmail oauth2 oauthaccesstoken reconnect ok' ) ;
-                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'login_imap: gmail oauth2 oauthaccesstoken IsAuthenticated after reconnect' ) ;
+                ok( defined( $myimap ) && $myimap->logout( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken logout' ) ;
+                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken not IsAuthenticated after logout' ) ;
+                ok( defined( $myimap ) && $myimap->reconnect( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken reconnect ok' ) ;
+                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken IsAuthenticated after reconnect' ) ;
+
+                ok( defined( $myimap ) && $myimap->logout( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken logout 2' ) ;
+                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken not IsAuthenticated after logout 2' ) ;
+                
+                # failure 
+                $acc->{ oauthaccesstoken } = 'caca4' ;
+                ok( defined( $myimap ) && ! $myimap->reconnect( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken reconnect nok 2' ) ;
+                ok( defined( $myimap ) && ! $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken not IsAuthenticated after reconnect 2' ) ;
+                
+                # success
+                $acc->{ oauthaccesstoken } = 'oauth2/D_oauth2_access_token_imapsync.gl0@gmail.com.txt' ;
+                ok( defined( $myimap ) && $myimap->reconnect( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken reconnect ok 3' ) ;
+                ok( defined( $myimap ) && $myimap->IsAuthenticated( ), 'tests_login_imap_oauth: gmail oauth2 oauthaccesstoken IsAuthenticated after reconnect 3' ) ;
+
         }
         
         
         note( 'Leaving  tests_login_imap_oauth()' ) ;
         return ;
-}
-
+} 
 
 
 sub login_imap 
@@ -8434,7 +8936,12 @@ sub login_imap
 
         $acc->{ imap } = undef ;
         
-        if ( ! all_defined( $host, $port, $user, $acc->{ Side } ) )
+        if ( ! all_defined( $host, $port, $acc->{ Side } ) )
+        {
+                return ;
+        }
+        
+        if ( $acc->{ justconnectdone } ) 
         {
                 return ;
         }
@@ -8690,26 +9197,13 @@ sub failure_proxyauth
 }
 
 
-
-
 sub oauthdirect
 {
         my( $mysync, $acc, $imap, $host, $user ) = @_ ;
 
-        my $oauthdirect_str ;
-        if ( -f -r $acc->{ oauthdirect } )
-        {
-                $oauthdirect_str = firstline( $acc->{ oauthdirect } ) ;
-        }
-        else
-        {
-                $oauthdirect_str = $acc->{ oauthdirect } || 'Please define oauthdirect value' ;
-        }
-        
         $imap->Authmechanism( 'XOAUTH2' ) ;
-        $imap->Authcallback( sub { return $oauthdirect_str } ) ;
+        $imap->Authcallback( sub { return firstline_or_string( $acc->{ oauthdirect } ) } ) ;
         
-        #if ( $imap->authenticate('XOAUTH2', sub { return $oauthdirect_str } ) )
         if ( $imap->login(  ) )
         {
                 return 1 ;
@@ -8723,34 +9217,41 @@ sub oauthdirect
 }
 
 
+sub tests_oauth2_bearer_string
+{
+        note( 'Entering tests_oauth2_bearer_string()' ) ;
+
+        is( undef, oauth2_bearer_string(  ),  'tests_oauth2_bearer_string: no args => undef' ) ;
+
+        is( 'dXNlcj0BYXV0aD1CZWFyZXIgcGxlYXNlLCBnaXZlIGEgdmFsdWUBAQ==', oauth2_bearer_string( '' ),  'tests_oauth2_bearer_string: empty string => ' ) ;
+
+        note( 'Leaving  tests_oauth2_bearer_string()' ) ;
+        return ;
+}
+
+sub oauth2_bearer_string
+{
+        my $oauthaccesstoken = shift @ARG ;
+        my $user = shift @ARG ;
+        
+        if ( ! defined $oauthaccesstoken ) { return ; }
+        
+        my $oauthaccesstoken_str = firstline_or_string( $oauthaccesstoken ) ;
+        my $oauth_string = "user=" . $user . "\x01auth=Bearer ".  $oauthaccesstoken_str . "\x01\x01" ;
+
+        my $oauthdirect_str = encode_base64( $oauth_string , '' ) ;
+
+        return $oauthdirect_str ;
+}
 
 
-sub oauthaccesstoken
+sub oauthaccesstoken 
 {
         my( $mysync, $acc, $imap, $host, $user ) = @_ ;
 
-        my $oauthaccesstoken_str ;
-        if ( -f -r $acc->{ oauthaccesstoken } )
-        {
-                $oauthaccesstoken_str = firstline( $acc->{ oauthaccesstoken } ) ;
-        }
-        else
-        {
-                $oauthaccesstoken_str = $acc->{ oauthaccesstoken } || 'Please define oauthaccesstoken value' ;
-        }
-        
-        my $oauth_string = "user=" . $user . "\x01auth=Bearer ".  $oauthaccesstoken_str . "\x01\x01" ;
-        #myprint "oauth_string: $oauth_string\n" ;
-
-        my $oauth_string_base64 = encode_base64( $oauth_string , '' ) ;
-        #myprint "oauth_string_base64: $oauth_string_base64\n" ;
-
-        my $oauthdirect_str = $oauth_string_base64 ;
-        
         $imap->Authmechanism( 'XOAUTH2' ) ;
-        $imap->Authcallback( sub { return $oauthdirect_str } ) ;
+        $imap->Authcallback( sub { return oauth2_bearer_string( $acc->{ oauthaccesstoken }, $user ) } ) ;
         
-        #if ( $imap->authenticate('XOAUTH2', sub { return $oauthdirect_str } ) )
         if ( $imap->login(  ) )
         {
                 return 1 ;
@@ -8761,7 +9262,7 @@ sub oauthaccesstoken
                 return ;
         }
         return ;
-}
+} 
 
 
 
@@ -8902,7 +9403,6 @@ sub xoauth2
         require HTML::Entities ;
         require JSON ;
         require JSON::WebToken::Crypt::RSA ;
-        require Crypt::OpenSSL::PKCS12 ;
         require Crypt::OpenSSL::RSA ;
         require Encode::Byte ;
         require IO::Socket::SSL ;
@@ -8943,9 +9443,8 @@ sub xoauth2
 
             $sync->{ debug } and myprint( "Service account: $iss\nKey file: $keyfile\nKey password: $keypass\n");
 
-            # Get private key from p12 file
-            my $pkcs12 = Crypt::OpenSSL::PKCS12->new_from_file($keyfile);
-            $key = $pkcs12->private_key($keypass);
+            # Get private key from p12 file (would be better in perl...)
+            $key = `openssl pkcs12 -in "$keyfile" -nodes -nocerts -passin pass:$keypass -nomacver`;
 
             $sync->{ debug } and myprint( "Private key:\n$key\n");
         }
@@ -9087,8 +9586,8 @@ sub banner_imapsync
 
         my $banner_imapsync = join q{},
                 q{$RCSfile: imapsync,v $ },
-                q{$Revision: 2.229 $ },
-                q{$Date: 2022/09/14 18:08:24 $ },
+                q{$Revision: 2.261 $ },
+                q{$Date: 2023/09/27 11:26:09 $ },
                 "\n",
                 "Command line used, run by $EXECUTABLE_NAME:\n",
                 "$PROGRAM_NAME ", command_line_nopassword( $mysync, @argv ), "\n" ;
@@ -9619,7 +10118,7 @@ sub tests_jux_utf8
         # This test is because the binary can fail on it, a PAR.pm issue.
         # The failure was with the underlying Encode::IMAPUTF7 module line 66 release 1.05
         # Was solved by including Encode in imapsync and using "pp -x".
-        ok( find_encoding( "UTF-16BE"), 'jux_utf8: Encode::find_encoding: UTF-16BE' ) ;
+        ok( Encode::find_encoding( "UTF-16BE"), 'jux_utf8: Encode::find_encoding: UTF-16BE' ) ;
 
         #
         is( '[]', jux_utf8( q{} ), 'jux_utf8: void => []' ) ;
@@ -10936,13 +11435,13 @@ sub tests_timenext
 {
         note( 'Entering tests_timenext()' ) ;
 
-        is( undef, timenext(  ),  'timenext: no args => undef' ) ;
+        is( undef, timenext(  ),  'tests_timenext: no args => undef' ) ;
         my $mysync ;
-        is( undef, timenext( $mysync ),  'timenext: undef => undef' ) ;
+        is( undef, timenext( $mysync ),  'tests_timenext: undef => undef' ) ;
         $mysync = {} ;
-        ok( time - timenext( $mysync ) <= 1e-02,  'timenext: defined first time => ~ time' ) ;
-        ok( timenext( $mysync ) <= 1e-02,  'timenext: second time => less than 1e-02' ) ;
-        ok( timenext( $mysync ) <= 1e-02,  'timenext: third time => less than 1e-02' ) ;
+        ok( time - timenext( $mysync ) <= 1e-02,  'tests_timenext: defined first time => ~ time' ) ;
+        ok( timenext( $mysync ) <= 1e-02,  'tests_timenext: second time => less than 1e-02' ) ;
+        ok( timenext( $mysync ) <= 1e-02,  'tests_timenext: third time => less than 1e-02' ) ;
 
         note( 'Leaving  tests_timenext()' ) ;
         return ;
@@ -10972,9 +11471,9 @@ sub tests_timesince
 {
         note( 'Entering tests_timesince()' ) ;
 
-        ok( timesince( time - 1 ) - 1 <= 1e-02,  'timesince: time - 1 => <= 1 + 1e-02'  ) ;
-        ok( timesince( time )    <= 1e-02,     'timesince: time => <= 1e-02'  ) ;
-        ok( timesince(  ) - time <= 1e-02,  'timesince: no args => <= time + 1e-02'  ) ;
+        ok( timesince( time - 1 ) - 1 <= 1e-02,  'tests_timesince: time - 1 => <= 1 + 1e-02'  ) ;
+        ok( timesince( time )    <= 1e-02,     'tests_timesince: time => <= 1e-02'  ) ;
+        ok( timesince(  ) - time <= 1e-02,  'tests_timesince: no args => <= time + 1e-02'  ) ;
         note( 'Leaving  tests_timesince()' ) ;
         return ;
 }
@@ -11000,55 +11499,55 @@ sub tests_regexflags
 
         my $mysync = {} ; 
         
-        ok( q{} eq regexflags( $mysync, q{} ), 'regexflags, null string q{}' ) ;
-        ok( q{\Seen NonJunk $Spam} eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{regexflags, nothing to do} ) ;
+        ok( q{} eq regexflags( $mysync, q{} ), 'tests_regexflags, null string q{}' ) ;
+        ok( q{\Seen NonJunk $Spam} eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{tests_regexflags, nothing to do} ) ;
 
         @{ $mysync->{ regexflag } } = ('I am BAD' ) ;
-        ok( not ( defined regexflags( $mysync, q{} ) ), 'regexflags, bad regex' ) ;
+        ok( not ( defined regexflags( $mysync, q{} ) ), 'tests_regexflags, bad regex' ) ;
 
         @{ $mysync->{ regexflag } } = ( 's/NonJunk//g' ) ;
-        ok( q{\Seen  $Spam} eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{regexflags, remove NonJunk: 's/NonJunk//g'} ) ;
+        ok( q{\Seen  $Spam} eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{tests_regexflags, remove NonJunk: 's/NonJunk//g'} ) ;
         @{ $mysync->{ regexflag } } = ( q{s/\$Spam//g} ) ;
-        ok( q{\Seen NonJunk } eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{regexflags, remove $Spam: 's/\$Spam//g'} ) ;
+        ok( q{\Seen NonJunk } eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{tests_regexflags, remove $Spam: 's/\$Spam//g'} ) ;
 
         @{ $mysync->{ regexflag } } = ( 's/\\\\Seen//g' ) ;
 
-        ok( q{ NonJunk $Spam} eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{regexflags, remove \Seen: 's/\\\\\\\\Seen//g'} ) ;
+        ok( q{ NonJunk $Spam} eq regexflags( $mysync, q{\Seen NonJunk $Spam} ), q{tests_regexflags, remove \Seen: 's/\\\\\\\\Seen//g'} ) ;
 
         @{ $mysync->{ regexflag } } = ( 's/(\s|^)[^\\\\]\w+//g' ) ;
-        ok( q{\Seen \Middle \End}   eq regexflags( $mysync, q{\Seen NonJunk \Middle $Spam \End} ), q{regexflags: only \word among \Seen NonJunk \Middle $Spam \End} ) ;
+        ok( q{\Seen \Middle \End}   eq regexflags( $mysync, q{\Seen NonJunk \Middle $Spam \End} ), q{tests_regexflags: only \word among \Seen NonJunk \Middle $Spam \End} ) ;
         ok( q{ \Seen \Middle \End1} eq regexflags( $mysync, q{Begin \Seen NonJunk \Middle $Spam \End1 End} ),
-                     q{regexflags: only \word among Begin \Seen NonJunk \Middle $Spam \End1 End} ) ;
+                     q{tests_regexflags: only \word among Begin \Seen NonJunk \Middle $Spam \End1 End} ) ;
 
         @{ $mysync->{ regexflag } } = ( q{s/.*?(Keep1|Keep2|Keep3)/$1 /g} ) ;
-        ok( 'Keep1 Keep2  ReB' eq regexflags( $mysync, 'ReA Keep1 REM Keep2 ReB' ), 'Keep only regex' ) ;
+        ok( 'Keep1 Keep2  ReB' eq regexflags( $mysync, 'ReA Keep1 REM Keep2 ReB' ), 'tests_regexflags, Keep only regex' ) ;
 
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM REM Keep1 Keep2' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 REM REM Keep2' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 REM REM  Keep2' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 Keep2' ), 'Keep only regex' ) ;
-        ok( 'Keep1 ' eq regexflags( $mysync, 'REM Keep1' ), 'Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM REM Keep1 Keep2' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 REM REM Keep2' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 REM REM  Keep2' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 Keep2' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 ' eq regexflags( $mysync, 'REM Keep1' ), 'tests_regexflags,Keep only regex' ) ;
 
         @{ $mysync->{ regexflag } } = ( q{s/(Keep1|Keep2|Keep3) (?!(Keep1|Keep2|Keep3)).*/$1 /g} ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 Keep2 ReB' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 Keep2 REM REM  REM' ), 'Keep only regex' ) ;
-        ok( 'Keep2 ' eq regexflags( $mysync, 'Keep2 REM REM  REM' ), 'Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 Keep2 ReB' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 Keep2 REM REM  REM' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep2 ' eq regexflags( $mysync, 'Keep2 REM REM  REM' ), 'tests_regexflags,Keep only regex' ) ;
 
 
         @{ $mysync->{ regexflag } } = ( q{s/.*?(Keep1|Keep2|Keep3)/$1 /g},
            's/(Keep1|Keep2|Keep3) (?!(Keep1|Keep2|Keep3)).*/$1 /g' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 REM Keep2 REM' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 REM Keep2 REM' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 Keep2 REM' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 REM Keep2' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep2 Keep3 ' eq regexflags( $mysync, 'REM Keep1 REM Keep2 REM REM Keep3 REM' ), 'Keep only regex' ) ;
-        ok( 'Keep1 ' eq regexflags( $mysync, 'REM  REM Keep1 REM REM REM ' ), 'Keep only regex' ) ;
-        ok( 'Keep1 Keep3 ' eq regexflags( $mysync, 'RE1 Keep1 RE2 Keep3 RE3 RE4 RE5 ' ), 'Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 REM Keep2 REM' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'Keep1 REM Keep2 REM' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 Keep2 REM' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 ' eq regexflags( $mysync, 'REM Keep1 REM Keep2' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep2 Keep3 ' eq regexflags( $mysync, 'REM Keep1 REM Keep2 REM REM Keep3 REM' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 ' eq regexflags( $mysync, 'REM  REM Keep1 REM REM REM ' ), 'tests_regexflags,Keep only regex' ) ;
+        ok( 'Keep1 Keep3 ' eq regexflags( $mysync, 'RE1 Keep1 RE2 Keep3 RE3 RE4 RE5 ' ), 'tests_regexflags,Keep only regex' ) ;
 
         @{ $mysync->{ regexflag } } = ( 's/(.*)/$1 jrdH8u/' ) ;
-        ok('REM  REM  REM REM REM jrdH8u' eq regexflags( $mysync, 'REM  REM  REM REM REM' ), q{Add jrdH8u 's/(.*)/\$1 jrdH8u/'} ) ;
+        ok('REM  REM  REM REM REM jrdH8u' eq regexflags( $mysync, 'REM  REM  REM REM REM' ), q{tests_regexflags, Add jrdH8u 's/(.*)/\$1 jrdH8u/'} ) ;
         @{ $mysync->{ regexflag } } = ('s/jrdH8u *//' );
-        ok('REM  REM  REM REM REM ' eq regexflags( $mysync, 'REM  REM  REM REM REM jrdH8u' ), q{Remove jrdH8u s/jrdH8u *//} ) ;
+        ok('REM  REM  REM REM REM ' eq regexflags( $mysync, 'REM  REM  REM REM REM jrdH8u' ), q{tests_regexflags, Remove jrdH8u s/jrdH8u *//} ) ;
 
         @{ $mysync->{ regexflag } } = (
         's/.*?(?:(\\\\(?:Answered|Flagged|Deleted|Seen|Draft)\s?)|$)/defined($1)?$1:q()/eg'
@@ -11056,27 +11555,27 @@ sub tests_regexflags
 
         ok( '\\Deleted \\Answered '
         eq regexflags( $mysync, 'Blabla \$Junk \\Deleted machin \\Answered truc' ),
-        'Keep only regex: Exchange case (Phil)' ) ;
+        'tests_regexflags, Keep only regex: Exchange case (Phil)' ) ;
 
-        ok( q{} eq regexflags( $mysync, q{} ), 'Keep only regex: Exchange case, null string (Phil)' ) ;
+        ok( q{} eq regexflags( $mysync, q{} ), 'tests_regexflags, Keep only regex: Exchange case, null string (Phil)' ) ;
 
         ok( q{}
         eq regexflags( $mysync, 'Blabla $Junk  machin  truc' ),
-        'Keep only regex: Exchange case, no accepted flags (Phil)' ) ;
+        'tests_regexflags, Keep only regex: Exchange case, no accepted flags (Phil)' ) ;
 
         ok('\\Deleted \\Answered \\Draft \\Flagged '
         eq regexflags( $mysync, '\\Deleted    \\Answered  \\Draft \\Flagged ' ),
-        'Keep only regex: Exchange case (Phil)' ) ;
+        'tests_regexflags, Keep only regex: Exchange case (Phil)' ) ;
 
         @{ $mysync->{ regexflag } } = ( 's/\\\\Flagged//g' ) ;
 
         is('\Deleted \Answered \Draft  ',
         regexflags( $mysync, '\\Deleted \\Answered \\Draft \\Flagged ' ),
-        'regexflags: remove \Flagged 1' ) ;
+        'tests_regexflags, remove \Flagged 1' ) ;
 
         is('\\Deleted  \\Answered \\Draft',
         regexflags( $mysync, '\\Deleted \\Flagged \\Answered \\Draft' ),
-        'regexflags: remove \Flagged 2' ) ;
+        'tests_regexflags, remove \Flagged 2' ) ;
 
         # I didn't understand why it gives \F
         # https://perldoc.perl.org/perlrebackslash.html
@@ -11090,7 +11589,7 @@ sub tests_regexflags
         #regexflags( '\Deleted Flagged \Answered \Flagged \Draft \Flagged' ),
         # 'regexflags: remove \Flagged 3 mistery...' ) ;
 
-        is( '\\ \ ', '\ \\ ', 'regexflags: \\ \ is \ \\ ' ) ;
+        is( '\\ \ ', '\ \\ ', 'tests_regexflags, \\ \ is \ \\ ' ) ;
         note( 'Leaving  tests_regexflags()' ) ;
         return ;
 }
@@ -11116,7 +11615,7 @@ sub regexflags
 
 sub tests_filterbuggyflags
 {
-        note( 'Entering tests_regexflags()' ) ;
+        note( 'Entering tests_filterbuggyflags()' ) ;
 
         my $mysync = {} ; 
         
@@ -11128,17 +11627,17 @@ sub tests_filterbuggyflags
         # 
         is( '\Deleted \Answered  \Draft  \Flagged  ',
         regexflags( $mysync, '\\Deleted \\Answered \\RECEIPTCHECKED \\Draft \\Indexed \\Flagged \\JUNK \\Junk' ),
-        'regexflags: remove famous /X 1' ) ;
+        'tests_filterbuggyflags: remove famous /X 1' ) ;
 
         is( '\\Deleted  \\Flagged \\Answered  \\Draft',
         regexflags( $mysync, '\\Deleted \\RECEIPTCHECKED \\Flagged \\Answered \\Indexed \\Draft' ),
-        'regexflags: remove famous /X 2' ) ; 
+        'tests_filterbuggyflags: remove famous /X 2' ) ; 
 
-        is( '\ ', '\\ ',  'regexflags: \ is \\ ' ) ;
-        is( '\\ ', '\\ ', 'regexflags: \\ is \\ ' ) ;
+        is( '\ ', '\\ ',  'tests_filterbuggyflags: \ is \\ ' ) ;
+        is( '\\ ', '\\ ', 'tests_filterbuggyflags: \\ is \\ ' ) ;
         
         
-        note( 'Leaving  tests_regexflags()' ) ;
+        note( 'Leaving  tests_filterbuggyflags()' ) ;
         return ;
 
 
@@ -11168,24 +11667,24 @@ sub tests_remove_doublequotes_if_any
 {
         note( 'Entering tests_remove_doublequotes_if_any()' ) ;
         # the number of tests is stupid here
-        is( undef, remove_doublequotes_if_any(  ),  'remove_doublequotes_if_any: no args => undef' ) ;
-        is( q{}, remove_doublequotes_if_any( q{} ),  'remove_doublequotes_if_any: empty string => empty string' ) ;
-        is( q{}, remove_doublequotes_if_any( q{""} ),  'remove_doublequotes_if_any: double-quotes => empty string' ) ;
-        is( q{}, remove_doublequotes_if_any( q{"""} ),  'remove_doublequotes_if_any: double-quotes => empty string' ) ;
-        is( q{}, remove_doublequotes_if_any( q{"""} ),  'remove_doublequotes_if_any: double-quotes => empty string' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{"toto"} ),   'remove_doublequotes_if_any: "toto"   => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{toto} ),     'remove_doublequotes_if_any: toto     => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{to"to} ),    'remove_doublequotes_if_any: to"to    => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{toto"} ),    'remove_doublequotes_if_any: toto"    => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{"toto} ),    'remove_doublequotes_if_any: "toto    => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{"to"to} ),   'remove_doublequotes_if_any: "to"to   => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{to"to"} ),   'remove_doublequotes_if_any: to"to"   => toto' ) ;
+        is( undef, remove_doublequotes_if_any(  ),  'tests_remove_doublequotes_if_any: no args => undef' ) ;
+        is( q{}, remove_doublequotes_if_any( q{} ),  'tests_remove_doublequotes_if_any: empty string => empty string' ) ;
+        is( q{}, remove_doublequotes_if_any( q{""} ),  'tests_remove_doublequotes_if_any: double-quotes => empty string' ) ;
+        is( q{}, remove_doublequotes_if_any( q{"""} ),  'tests_remove_doublequotes_if_any: double-quotes => empty string' ) ;
+        is( q{}, remove_doublequotes_if_any( q{"""} ),  'tests_remove_doublequotes_if_any: double-quotes => empty string' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{"toto"} ),   'tests_remove_doublequotes_if_any: "toto"   => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{toto} ),     'tests_remove_doublequotes_if_any: toto     => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{to"to} ),    'tests_remove_doublequotes_if_any: to"to    => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{toto"} ),    'tests_remove_doublequotes_if_any: toto"    => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{"toto} ),    'tests_remove_doublequotes_if_any: "toto    => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{"to"to} ),   'tests_remove_doublequotes_if_any: "to"to   => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{to"to"} ),   'tests_remove_doublequotes_if_any: to"to"   => toto' ) ;
 
-        is( q{toto}, remove_doublequotes_if_any( q{to\"to} ),   'remove_doublequotes_if_any: to\"to   => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{toto\"} ),   'remove_doublequotes_if_any: toto\"   => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{\"toto} ),   'remove_doublequotes_if_any: \"toto   => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{\"to\"to} ), 'remove_doublequotes_if_any: \"to\"to => toto' ) ;
-        is( q{toto}, remove_doublequotes_if_any( q{to\"to\"} ), 'remove_doublequotes_if_any: to\"to"  => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{to\"to} ),   'tests_remove_doublequotes_if_any: to\"to   => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{toto\"} ),   'tests_remove_doublequotes_if_any: toto\"   => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{\"toto} ),   'tests_remove_doublequotes_if_any: \"toto   => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{\"to\"to} ), 'tests_remove_doublequotes_if_any: \"to\"to => toto' ) ;
+        is( q{toto}, remove_doublequotes_if_any( q{to\"to\"} ), 'tests_remove_doublequotes_if_any: to\"to"  => toto' ) ;
 
 
         note( 'Leaving  tests_remove_doublequotes_if_any()' ) ;
@@ -11863,8 +12362,6 @@ sub message_for_host2
 # @skipmess
 # @regexmess
 # @pipemess
-# $debugcontent
-# $debug
 #
 # API current
 #
@@ -13753,7 +14250,7 @@ sub touch
                 if ( $fh->open(">> $file" ) ) {
                         $fh->close ;
                 }else{
-                        myprint( "Could not open file $file in write/append mode\n"  ) ;
+                        #myprint( "Could not open file $file in write/append mode\n"  ) ;
                         $failures++ ;
                 }
         }
@@ -13902,6 +14399,7 @@ sub tests_filter_forbidden_characters
         return ;
 }
 
+
 sub filter_forbidden_characters
 {
         my $string = shift @ARG ;
@@ -13915,6 +14413,50 @@ sub filter_forbidden_characters
         #myprint( "[$string]\n"  ) ;
         return( $string ) ;
 }
+
+
+
+sub tests_filter_forbidden_characters_cgi_context
+{
+        note( 'Entering tests_filter_forbidden_characters()' ) ;
+
+        is( undef , filter_forbidden_characters_cgi_context(  ), 'tests_filter_forbidden_characters_cgi_context: no args -> undef' ) ;
+        is( '' , filter_forbidden_characters_cgi_context( '' ),  'tests_filter_forbidden_characters_cgi_context: empty string -> empty string' ) ;
+
+        is( 'a______________b', filter_forbidden_characters_cgi_context( q{a*|?:(){}[]"<>'b} ), q{tests_filter_forbidden_characters_cgi_context: a*|?:"<>'b -> a________b} ) ;
+
+
+        is( 'a_b_' , filter_forbidden_characters_cgi_context( 'a b ' ), 'tests_filter_forbidden_characters_cgi_context: "a b " -> "a_b_"' ) ;
+
+        is( 'a_b' , filter_forbidden_characters_cgi_context( "a\tb" ), 'tests_filter_forbidden_characters_cgi_context: a\tb -> a_b' ) ;
+        is( "a_b" , filter_forbidden_characters_cgi_context( "a\rb" ), 'tests_filter_forbidden_characters_cgi_context: a\rb -> a_b' ) ;
+        is( "a_b" , filter_forbidden_characters_cgi_context( "a\nb" ), 'tests_filter_forbidden_characters_cgi_context: a\nb -> a_b' ) ;
+        is( "a_b" , filter_forbidden_characters_cgi_context( "a\\b" ), 'tests_filter_forbidden_characters_cgi_context: a\b -> a_b' ) ;
+
+        is( 'a-b' , filter_forbidden_characters_cgi_context( 'a-b' ), 'tests_filter_forbidden_characters_cgi_context: a-b -> a-b' ) ;
+        is( 'a__-__-__-__-__b' , filter_forbidden_characters_cgi_context( 'aé-è-à-ç-Öb' ), 'tests_filter_forbidden_characters_cgi_context: aé-è-à-ç-Öb -> a__-__-__-__-__b' ) ;
+
+        is( 'abcd_ABCDwxyz-WXYZ012789' , filter_forbidden_characters_cgi_context( 'abcd_ABCDwxyz-WXYZ012789' ),
+                'tests_filter_forbidden_characters_cgi_context: abcd_ABCDwxyz-WXYZ012789 -> abcd_ABCDwxyz-WXYZ012789' ) ;
+
+        note( 'Leaving  tests_filter_forbidden_characters()' ) ;
+        return ;
+}
+
+
+
+sub filter_forbidden_characters_cgi_context
+{
+        my $string = shift @ARG ;
+
+        if ( ! defined $string ) { return ; }
+
+        $string =~ s{[^a-zA-Z0-9_-]}{_}xg ;
+
+        #myprint( "[$string]\n"  ) ;
+        return( $string ) ;
+}
+
 
 sub tests_convert_sep_to_slash
 {
@@ -16079,29 +16621,72 @@ sub tests_header_line_normalize
 }
 
 
-sub tests_firstline
+
+sub tests_firstline_or_string
+{
+        note( 'Entering tests_firstline_or_string()' ) ;
+
+        is( undef, firstline_or_string(  ),  'tests_firstline_or_string: no args => undef' ) ;
+        
+        is( q{please, give a value}, firstline_or_string( q{} ),  'tests_firstline_or_string: empty string => please, give a value' ) ;
+
+        is( q{W/tmp/tests/noexist.txt}, firstline_or_string( 'W/tmp/tests/noexist.txt' ), 'tests_firstline_or_string: get W/tmp/tests/noexist.txt string from inexisting W/tmp/tests/noexist.txt' ) ;
+
+        ok( (-d 'W/tmp/tests/' or  mkpath( 'W/tmp/tests/' ) ), 'tests_firstline_or_string: mkpath W/tmp/tests/' ) ;
+        
+        is( "blabla\n" , string_to_file( "blabla\n", 'W/tmp/tests/firstline.txt' ), 'tests_firstline_or_string: put blabla in W/tmp/tests/firstline.txt' ) ;
+        is( 'blabla' , firstline_or_string( 'W/tmp/tests/firstline.txt' ), 'tests_firstline_or_string: get blabla from W/tmp/tests/firstline.txt' ) ;
+        
+        
+        note( 'Leaving  tests_firstline_or_string()' ) ;
+        return ;
+}
+
+
+sub firstline_or_string
+{
+        my $file = shift @ARG ;
+        
+        if ( ! defined $file ) { return undef } 
+        
+        my $string ;
+        
+        if ( -f -r $file )
+        {
+                $string = firstline( $file ) ;
+        }
+        else
+        {
+                $string = $file || 'please, give a value' ;
+        }
+        
+        return $string ;
+}
+
+
+sub tests_firstline 
 {
         note( 'Entering tests_firstline()' ) ;
 
-        is( q{}, firstline( 'W/tmp/tests/noexist.txt' ), 'firstline: getting empty string from inexisting W/tmp/tests/noexist.txt' ) ;
+        is( q{}, firstline( 'W/tmp/tests/noexist.txt' ), 'tests_firstline: get empty string from inexisting W/tmp/tests/noexist.txt' ) ;
 
-        ok( (-d 'W/tmp/tests/' or  mkpath( 'W/tmp/tests/' ) ), 'firstline: mkpath W/tmp/tests/' ) ;
+        ok( (-d 'W/tmp/tests/' or  mkpath( 'W/tmp/tests/' ) ), 'tests_firstline: mkpath W/tmp/tests/' ) ;
 
-        is( "blabla\n" , string_to_file( "blabla\n", 'W/tmp/tests/firstline.txt' ), 'firstline: put blabla in W/tmp/tests/firstline.txt' ) ;
-        is( 'blabla' , firstline( 'W/tmp/tests/firstline.txt' ), 'firstline: get blabla from W/tmp/tests/firstline.txt' ) ;
+        is( "blabla\n" , string_to_file( "blabla\n", 'W/tmp/tests/firstline.txt' ), 'tests_firstline: put blabla in W/tmp/tests/firstline.txt' ) ;
+        is( 'blabla' , firstline( 'W/tmp/tests/firstline.txt' ), 'tests_firstline: get blabla from W/tmp/tests/firstline.txt' ) ;
 
-        is( q{} , string_to_file( q{}, 'W/tmp/tests/firstline2.txt' ), 'firstline: put empty string in W/tmp/tests/firstline2.txt' ) ;
-        is( q{} , firstline( 'W/tmp/tests/firstline2.txt' ), 'firstline: get empty string from W/tmp/tests/firstline2.txt' ) ;
+        is( q{} , string_to_file( q{}, 'W/tmp/tests/firstline2.txt' ), 'tests_firstline: put empty string in W/tmp/tests/firstline2.txt' ) ;
+        is( q{} , firstline( 'W/tmp/tests/firstline2.txt' ), 'tests_firstline: get empty string from W/tmp/tests/firstline2.txt' ) ;
 
-        is( "\n" , string_to_file( "\n", 'W/tmp/tests/firstline3.txt' ), 'firstline: put CR in W/tmp/tests/firstline3.txt' ) ;
-        is( q{} , firstline( 'W/tmp/tests/firstline3.txt' ), 'firstline: get empty string from W/tmp/tests/firstline3.txt' ) ;
+        is( "\n" , string_to_file( "\n", 'W/tmp/tests/firstline3.txt' ), 'tests_firstline: put CR in W/tmp/tests/firstline3.txt' ) ;
+        is( q{} , firstline( 'W/tmp/tests/firstline3.txt' ), 'tests_firstline: get empty string from W/tmp/tests/firstline3.txt' ) ;
 
-        is( "blabla\nTiti\n" , string_to_file( "blabla\nTiti\n", 'W/tmp/tests/firstline4.txt' ), 'firstline: put blabla\nTiti\n in W/tmp/tests/firstline4.txt' ) ;
-        is( 'blabla' , firstline( 'W/tmp/tests/firstline4.txt' ), 'firstline: get blabla from W/tmp/tests/firstline4.txt' ) ;
+        is( "blabla\nTiti\n" , string_to_file( "blabla\nTiti\n", 'W/tmp/tests/firstline4.txt' ), 'tests_firstline: put blabla\nTiti\n in W/tmp/tests/firstline4.txt' ) ;
+        is( 'blabla' , firstline( 'W/tmp/tests/firstline4.txt' ), 'tests_firstline: get blabla from W/tmp/tests/firstline4.txt' ) ;
 
         note( 'Leaving  tests_firstline()' ) ;
         return ;
-}
+} 
 
 sub firstline
 {
@@ -16367,7 +16952,7 @@ sub pipemess
 
 
 
-sub tests_pipemess
+sub tests_pipemess 
 {
 	note( 'Entering tests_pipemess()' ) ;
 
@@ -16378,11 +16963,11 @@ sub tests_pipemess
                 # Windows
                 # "type" command does not accept redirection of STDIN with <
                 # "sort" does
-                ok( "nochange\n" eq pipemess( 'nochange', 'sort' ), 'pipemess: nearly no change by sort' ) ;
-                ok( "nochange2\n" eq pipemess( 'nochange2', qw( sort sort ) ), 'pipemess: nearly no change by sort,sort' ) ;
+                ok( "nochange\n" eq pipemess( 'nochange', 'sort' ), 'tests_pipemess: nearly no change by sort' ) ;
+                ok( "nochange2\n" eq pipemess( 'nochange2', qw( sort sort ) ), 'tests_pipemess: nearly no change by sort,sort' ) ;
                 # command not found
                 #diag( 'Warning and failure about cacaprout are on purpose' ) ;
-                ok( ! defined( pipemess( q{}, 'cacaprout' ) ), 'pipemess: command not found' ) ;
+                ok( ! defined( pipemess( q{}, 'cacaprout' ) ), 'tests_pipemess: command not found' ) ;
 
         } ;
 
@@ -16392,75 +16977,75 @@ sub tests_pipemess
                 Readonly my $NB_UNX_tests_pipemess => 25 ;
                 skip( 'Not on Unix', $NB_UNX_tests_pipemess ) if ('MSWin32' eq $OSNAME) ;
                 # Unix
-                ok( 'nochange' eq pipemess( 'nochange', 'cat' ), 'pipemess: no change by cat' ) ;
+                ok( 'nochange' eq pipemess( 'nochange', 'cat' ), 'tests_pipemess: no change by cat' ) ;
 
-                ok( 'nochange2' eq pipemess( 'nochange2', 'cat', 'cat' ), 'pipemess: no change by cat,cat' ) ;
+                ok( 'nochange2' eq pipemess( 'nochange2', 'cat', 'cat' ), 'tests_pipemess: no change by cat,cat' ) ;
 
-                ok( "     1\tnumberize\n" eq pipemess( "numberize\n", 'cat -n' ), 'pipemess: numberize by cat -n' ) ;
-                ok( "     1\tnumberize\n     2\tnumberize\n" eq pipemess( "numberize\nnumberize\n", 'cat -n' ), 'pipemess: numberize by cat -n' ) ;
+                ok( "     1\tnumberize\n" eq pipemess( "numberize\n", 'cat -n' ), 'tests_pipemess: numberize by cat -n' ) ;
+                ok( "     1\tnumberize\n     2\tnumberize\n" eq pipemess( "numberize\nnumberize\n", 'cat -n' ), 'tests_pipemess: numberize by cat -n' ) ;
 
-                ok( "A\nB\nC\n" eq pipemess( "A\nC\nB\n", 'sort' ), 'pipemess: sort' ) ;
+                ok( "A\nB\nC\n" eq pipemess( "A\nC\nB\n", 'sort' ), 'tests_pipemess: sort' ) ;
 
                 # command not found
                 #diag( 'Warning and failure about cacaprout are on purpose' ) ;
-                is( undef, pipemess( q{}, 'cacaprout' ), 'pipemess: command not found' ) ;
+                is( undef, pipemess( q{}, 'cacaprout' ), 'tests_pipemess: command not found' ) ;
 
                 # success with true but no output at all
-                is( undef, pipemess( q{blabla}, 'true' ), 'pipemess: true but no output' ) ;
+                is( undef, pipemess( q{blabla}, 'true' ), 'tests_pipemess: true but no output' ) ;
 
                 # failure with false and no output at all
-                is( undef, pipemess( q{blabla}, 'false' ), 'pipemess: false and no output' ) ;
+                is( undef, pipemess( q{blabla}, 'false' ), 'tests_pipemess: false and no output' ) ;
 
                 # Failure since pipemess is not a real pipe, so first cat wait for standard input
-                is( q{blabla}, pipemess( q{blabla}, '( cat|cat ) ' ), 'pipemess: ok by ( cat|cat )' ) ;
+                is( q{blabla}, pipemess( q{blabla}, '( cat|cat ) ' ), 'tests_pipemess: ok by ( cat|cat )' ) ;
 
 
                 ( $stringT, $errorT ) = pipemess( 'nochange', 'cat' ) ;
-                is( $stringT, 'nochange', 'pipemess: list context, no change by cat, string' ) ;
-                is( $errorT, q{}, 'pipemess: list context, no change by cat, no error' ) ;
+                is( $stringT, 'nochange', 'tests_pipemess: list context, no change by cat, string' ) ;
+                is( $errorT, q{}, 'tests_pipemess: list context, no change by cat, no error' ) ;
 
                 ( $stringT, $errorT ) = pipemess( 'dontcare', 'true' ) ;
-                is( $stringT, undef, 'pipemess: list context, true but no output, string' ) ;
-                like( $errorT, qr{\QFailure: --pipemess command "true" ended with "0" characters exit value "0" and STDERR ""\E}xm, 'pipemess: list context, true but no output, error' ) ;
+                is( $stringT, undef, 'tests_pipemess: list context, true but no output, string' ) ;
+                like( $errorT, qr{\QFailure: --pipemess command "true" ended with "0" characters exit value "0" and STDERR ""\E}xm, 'tests_pipemess: list context, true but no output, error' ) ;
 
                 ( $stringT, $errorT ) = pipemess( 'dontcare', 'false' ) ;
-                is( $stringT, undef, 'pipemess: list context, false and no output, string' ) ;
+                is( $stringT, undef, 'tests_pipemess: list context, false and no output, string' ) ;
                 like( $errorT, qr{\QFailure: --pipemess command "false" ended with "0" characters exit value "1" and STDERR ""\E}xm,
-		'pipemess: list context, false and no output, error' ) ;
+		'tests_pipemess: list context, false and no output, error' ) ;
 
                 ( $stringT, $errorT ) = pipemess( 'dontcare', '/bin/echo -n blablabla' ) ;
-                is( $stringT, q{blablabla}, 'pipemess: list context, "echo -n blablabla", string' ) ;
-                is( $errorT, q{},  'pipemess: list context, "echo blablabla", error' ) ;
+                is( $stringT, q{blablabla}, 'tests_pipemess: list context, "echo -n blablabla", string' ) ;
+                is( $errorT, q{},  'tests_pipemess: list context, "echo blablabla", error' ) ;
 
 
                 ( $stringT, $errorT ) = pipemess( 'dontcare', '( echo -n blablabla 3>&1 1>&2 2>&3 )' ) ;
-                is( $stringT, undef, 'pipemess: list context, "no output STDERR blablabla", string' ) ;
-                like( $errorT,  qr{blablabla"}xm, 'pipemess: list context, "no output STDERR blablabla", error' ) ;
+                is( $stringT, undef, 'tests_pipemess: list context, "no output STDERR blablabla", string' ) ;
+                like( $errorT,  qr{blablabla"}xm, 'tests_pipemess: list context, "no output STDERR blablabla", error' ) ;
 
 
                 ( $stringT, $errorT ) = pipemess( 'dontcare', '( echo -n blablabla 3>&1 1>&2 2>&3 )', 'false' ) ;
-                is( $stringT, undef, 'pipemess: list context, "no output STDERR blablabla then false", string' ) ;
-                like( $errorT,  qr{blablabla"}xm, 'pipemess: list context, "no output STDERR blablabla then false", error' ) ;
+                is( $stringT, undef, 'tests_pipemess: list context, "no output STDERR blablabla then false", string' ) ;
+                like( $errorT,  qr{blablabla"}xm, 'tests_pipemess: list context, "no output STDERR blablabla then false", error' ) ;
 
                 ( $stringT, $errorT ) = pipemess( 'dontcare', 'false', '( echo -n blablabla 3>&1 1>&2 2>&3 )' ) ;
-                is( $stringT, undef, 'pipemess: list context, "false then STDERR blablabla", string' ) ;
+                is( $stringT, undef, 'tests_pipemess: list context, "false then STDERR blablabla", string' ) ;
                 like( $errorT,  qr{\QFailure: --pipemess command "false" ended with "0" characters exit value "1" and STDERR ""\E}xm,
-		'pipemess: list context, "false then STDERR blablabla", error' ) ;
+		'tests_pipemess: list context, "false then STDERR blablabla", error' ) ;
 
                 ( $stringT, $errorT ) = pipemess( 'dontcare', '( echo rrrrr ; echo -n error_blablabla 3>&1 1>&2 2>&3 )' ) ;
-                like( $stringT, qr{rrrrr}xm, 'pipemess: list context, "STDOUT rrrrr STDERR error_blablabla", string' ) ;
-                like( $errorT,  qr{STDERR.*error_blablabla}xm,  'pipemess: list context, "STDOUT rrrrr STDERR error_blablabla", error' ) ;
+                like( $stringT, qr{rrrrr}xm, 'tests_pipemess: list context, "STDOUT rrrrr STDERR error_blablabla", string' ) ;
+                like( $errorT,  qr{STDERR.*error_blablabla}xm,  'tests_pipemess: list context, "STDOUT rrrrr STDERR error_blablabla", error' ) ;
 
         }
 
         ( $stringT, $errorT ) = pipemess( 'dontcare', 'cacaprout' ) ;
-        is( $stringT, undef, 'pipemess: list context, cacaprout not found, string' ) ;
+        is( $stringT, undef, 'tests_pipemess: list context, cacaprout not found, string' ) ;
         like( $errorT, qr{\QFailure: --pipemess command "cacaprout" ended with "0" characters exit value\E}xm,
-	'pipemess: list context, cacaprout not found, error' ) ;
+	'tests_pipemess: list context, cacaprout not found, error' ) ;
 
 	note( 'Leaving  tests_pipemess()' ) ;
         return ;
-}
+} 
 
 
 
@@ -16735,16 +17320,16 @@ sub localhost_info
         return( $infos ) ;
 }
 
-sub tests_cpu_number
+sub tests_cpu_number 
 {
 	note( 'Entering tests_cpu_number()' ) ;
 
-        is( 1, is_integer( cpu_number(  ) ), "cpu_number: is_integer" ) ;
-	ok( 1 <= cpu_number(  ), "cpu_number: 1 or more" ) ;
-        is( 1, cpu_number( 1 ), "cpu_number: 1 => 1" ) ;
-        is( 1, cpu_number( $MINUS_ONE ), "cpu_number: -1 => 1" ) ;
-        is( 1, cpu_number( 'lalala' ), "cpu_number: lalala => 1" ) ;
-        is( $NUMBER_42, cpu_number( $NUMBER_42 ), "cpu_number: $NUMBER_42 => $NUMBER_42" ) ;
+        is( 1, is_integer( cpu_number(  ) ), "tests_cpu_number: is_integer" ) ;
+	ok( 1 <= cpu_number(  ), "tests_cpu_number: 1 or more" ) ;
+        is( 1, cpu_number( 1 ), "tests_cpu_number: 1 => 1" ) ;
+        is( 1, cpu_number( $MINUS_ONE ), "tests_cpu_number: -1 => 1" ) ;
+        is( 1, cpu_number( 'lalala' ), "tests_cpu_number: lalala => 1" ) ;
+        is( $NUMBER_42, cpu_number( $NUMBER_42 ), "tests_cpu_number: $NUMBER_42 => $NUMBER_42" ) ;
 
         note( "cpu_number = " . cpu_number(  ) . "\n" ) ;
         note( "hostname   = " . hostname(  ) . "\n" ) ;
@@ -16753,7 +17338,7 @@ sub tests_cpu_number
                 {
                         skip( 'cpu_number on host != i005 (FreeBSD)', 1  ) ;
                 }
-                is( 4, cpu_number(  ), "cpu_number: on i005 (FreeBSD) => 4" ) ;
+                is( 4, cpu_number(  ), "tests_cpu_number: on i005 (FreeBSD) => 4" ) ;
         } ;
  
         SKIP: {
@@ -16761,8 +17346,8 @@ sub tests_cpu_number
                 {
                         skip( 'cpu_number on host != petite (Linux)', 1  ) ;
                 }
-                is( 2, cpu_number(  ), "cpu_number: on petite (Linux) => 2" ) ;
-                #is( 1, cpu_number(  ), "cpu_number: on petite (Linux) => 2" ) ;
+                is( 2, cpu_number(  ), "tests_cpu_number: on petite (Linux) => 2" ) ;
+                #is( 1, cpu_number(  ), "tests_cpu_number: on petite (Linux) => 1" ) ;
         } ;
 
         SKIP: {
@@ -16770,7 +17355,7 @@ sub tests_cpu_number
                 {
                         skip( 'cpu_number on host != polarhome macosx (Darwin MacOS X 10.7.5 Lion)', 1  ) ;
                 }
-                is( 2, cpu_number(  ), "cpu_number: on polarhome macosx (Darwin MacOS X 10.7.5 Lion) => 2" ) ;
+                is( 2, cpu_number(  ), "tests_cpu_number: on polarhome macosx (Darwin MacOS X 10.7.5 Lion) => 2" ) ;
         } ;
         
         SKIP: {
@@ -16778,7 +17363,7 @@ sub tests_cpu_number
                 {
                         skip( 'cpu_number on host != pcHPDV7-HP (Windows 7, 64bits)', 1  ) ;
                 }
-                is( 2, cpu_number(  ), "cpu_number: on pcHPDV7-HP (Windows 7, 64bits) => 2" ) ;
+                is( 2, cpu_number(  ), "tests_cpu_number: on pcHPDV7-HP (Windows 7, 64bits) => 2" ) ;
         } ;
         
         SKIP: {
@@ -16786,13 +17371,13 @@ sub tests_cpu_number
                 {
                         skip( 'cpu_number on host != CUILLERE (Windows XP, 32bits)', 1  ) ;
                 }
-                is( 1, cpu_number(  ), "cpu_number: on CUILLERE (Windows XP, 32bits) => 1" ) ;
+                is( 1, cpu_number(  ), "tests_cpu_number: on CUILLERE (Windows XP, 32bits) => 1" ) ;
         } ;
         
 
         note( 'Leaving  tests_cpu_number()' ) ;
 	return ;
-}
+} 
 
 
 sub cpu_number {
@@ -17196,22 +17781,22 @@ sub cpu_percent
         
 }
 
-sub tests_cpu_percent_global 
+sub tests_cpu_percent_global
 {
         note( 'Entering tests_cpu_percent_global()' ) ;
 
-        is( '0.0',  cpu_percent_global(  ),  'cpu_percent_global: no args => 0' ) ;
+        is( '0.0',  cpu_percent_global(  ),  'tests_cpu_percent_global: no args => 0' ) ;
         my $mysync = {  } ;
         $mysync->{ debug } = 1 ;
-        is( '0.0',  cpu_percent_global( $mysync      ),     'cpu_percent_global: {} => 0' ) ;
-        is( '0.0',  cpu_percent_global( $mysync,   0 ),  'cpu_percent_global: {} 0 => 0' ) ;
+        is( '0.0',  cpu_percent_global( $mysync      ),     'tests_cpu_percent_global: {} => 0' ) ;
+        is( '0.0',  cpu_percent_global( $mysync,   0 ),  'tests_cpu_percent_global: {} 0 => 0' ) ;
 
         SKIP: {
                 if ( ! ( 'i005' eq hostname() ) )
                 {
                         skip( 'cpu_percent_global on host != i005', 1  ) ;
                 }
-                is( '25.0', cpu_percent_global( $mysync, 100 ), 'cpu_percent_global: {} 100 => 25 on host i005' ) ;
+                is( '25.0', cpu_percent_global( $mysync, 100 ), 'tests_cpu_percent_global: {} 100 => 25 on host i005' ) ;
         } ;
  
         SKIP: {
@@ -17219,13 +17804,13 @@ sub tests_cpu_percent_global
                 {
                         skip( 'cpu_percent_global on host != petite', 1  ) ;
                 }
-                is( '50.0', cpu_percent_global( $mysync, 100 ), 'cpu_percent_global: {} 100 => 50 on host petite' ) ;
-                #is( '100.0', cpu_percent_global( $mysync, 100 ), 'cpu_percent_global: {} 100 => 100 on host petite' ) ;
+                is( '50.0', cpu_percent_global( $mysync, 100 ), 'tests_cpu_percent_global: {} 100 => 50 on host petite' ) ;
+                #is( '100.0', cpu_percent_global( $mysync, 100 ), 'tests_cpu_percent_global: {} 100 => 100 on host petite' ) ;
         } ;
 
         note( 'Leaving  tests_cpu_percent_global()' ) ;
         return ;
-} 
+}
 
 sub cpu_percent_global
 {
@@ -19104,13 +19689,13 @@ sub tests_logfilesuffix
 {
         note( 'Entering tests_logfilesuffix()' ) ;
 
-        is( '_', logfilesuffix(  ),  'logfilesuffix: no args => _' ) ;
+        is( '_', logfilesuffix(  ),  'tests_logfilesuffix: no args => _' ) ;
         my $mysync = {  } ;
-        is( '_', logfilesuffix( $mysync ),  'logfilesuffix: undef => _' ) ;
+        is( '_', logfilesuffix( $mysync ),  'tests_logfilesuffix: undef => _' ) ;
         $mysync->{ user1 } = 'valuser1' ;
         $mysync->{ user2 } = 'valuser2' ;
-        is( 'valuser1_valuser2', logfilesuffix( $mysync ),  'logfilesuffix: valuser1 valuser2 => valuser1_valuser2' ) ;
-        is( 'valuser1_valuser2_suppl', logfilesuffix( $mysync, '_suppl' ),  'logfilesuffix: valuser1 valuser2 _suppl => valuser1_valuser2_suppl' ) ;
+        is( 'valuser1_valuser2', logfilesuffix( $mysync ),  'tests_logfilesuffix: valuser1 valuser2 => valuser1_valuser2' ) ;
+        is( 'valuser1_valuser2_suppl', logfilesuffix( $mysync, '_suppl' ),  'tests_logfilesuffix: valuser1 valuser2 _suppl => valuser1_valuser2_suppl' ) ;
         
         note( 'Leaving  tests_logfilesuffix()' ) ;
         return ;
@@ -19122,9 +19707,9 @@ sub logfilesuffix
         my $supplement = shift @ARG || '' ;
         
         my $suffix = (
-                filter_forbidden_characters( slash_to_underscore( $mysync->{ user1 } ) ) || q{} )
+                filter_forbidden_characters_cgi_context( slash_to_underscore( $mysync->{ user1 } ) ) || q{} )
                 . '_'
-                . ( filter_forbidden_characters( slash_to_underscore( $mysync->{ user2 } ) ) || q{} )
+                . ( filter_forbidden_characters_cgi_context( slash_to_underscore( $mysync->{ user2 } ) ) || q{} )
                 . $supplement ;
         
         return $suffix ;
@@ -20294,10 +20879,10 @@ sub testslive_init
 sub testslive6_init
 {
         my $mysync = shift @ARG ;
-        $mysync->{host1}     ||= 'ks6ipv6.lamiral.info' ;
+        $mysync->{host1}     ||= 'test1ipv6.lamiral.info' ;
         $mysync->{user1}     ||= 'test1' ;
         $mysync->{password1} ||= 'secret1' ;
-        $mysync->{host2}     ||= 'ks6ipv6.lamiral.info' ;
+        $mysync->{host2}     ||= 'test2ipv6.lamiral.info' ;
         $mysync->{user2}     ||= 'test2' ;
         $mysync->{password2} ||= 'secret2' ;
         return ;
@@ -21418,7 +22003,7 @@ sub tests_get_options
 	note( 'Entering tests_get_options()' ) ;
 
 	# CAVEAT: still setting global variables, be careful
-	# with tests, the context increases! $debug stays on for example.
+	# with tests, the context increases! $debug used to stay on for example.
 	# API:
 	# * input arguments: two ways, command line or CGI
 	#    * the program arguments
@@ -21675,7 +22260,8 @@ sub testsdebug
         # imapsync ... --testsunit "anyfunction"
         my $mysync = shift @ARG ;
         if ( ! $mysync->{ testsdebug } ) { return ; }
-        SKIP: {
+        SKIP: 
+        {
                 if ( ! $mysync->{ testsdebug } ) {
                         skip 'No test in normal run' ;
                 }
@@ -21694,15 +22280,15 @@ sub testsdebug
                 #tests_year_month_day_hour_min_sec_ms(  ) ;
                 #tests_date_rfc822(  ) ;
                 #tests_email_report_message_id(  ) ;
-                tests_all_pids(  ) ;
-                tests_memory_consumption_of_myself(  ) ;
-                tests_ram_memory_info(  ) ;
-                tests_memory_consumption_of_all_pids(  ) ;
-                tests_memory_consumption_all_pids_percent(  ) ;
+                #tests_all_pids(  ) ;
+                #tests_memory_consumption_of_myself(  ) ;
+                #tests_ram_memory_info(  ) ;
+                #tests_memory_consumption_of_all_pids(  ) ;
+                #tests_memory_consumption_all_pids_percent(  ) ;
                 
                 #tests_memory_stress(  ) ;
                 
-                tests_memory_consumption_of_pids_win32(  ) ;
+                #tests_memory_consumption_of_pids_win32(  ) ;
                 
                 #tests_load_and_delay(  ) ;
                 #tests_cpu_number(  ) ;
@@ -21712,6 +22298,9 @@ sub testsdebug
                 #tests_remove_qq(  ) ;
                 #tests_remove_not_num(  ) ;
                 
+                #tests_compress_starttls(  ) ;
+                #tests_diskspace_available(  ) ;
+                tests_tmpdir(  ) ;
                 tests_infos(  ) ;
                 
                 note( 'Leaving  testsdebug()' ) ;
@@ -21729,6 +22318,7 @@ sub tests
         SKIP: {
                 skip 'No test in normal run' if ( ! $mysync->{ tests } ) ;
                 note( 'Entering tests()' ) ;
+                printenv( $mysync ) ;
                 tests_folder_routines(  ) ;
                 tests_compare_lists(  ) ;
                 tests_regexmess(  ) ;
@@ -21804,7 +22394,6 @@ sub tests
 		tests_match(  ) ;
 		tests_get_options(  ) ;
 		tests_get_options_cgi_context(  ) ;
-		tests_rand32(  ) ;
 		tests_hashsynclocal(  ) ;
 		tests_hashsync(  ) ;
 		tests_output(  ) ;
@@ -21899,7 +22488,9 @@ sub tests
                 tests_total_bytes_max_reached(  ) ;
                 tests_header_construct(  ) ;
                 tests_remove_doublequotes_if_any(  ) ;
-                tests_login_imap(  ) ;
+                tests_login_imap_ssl_993(  ) ;
+                tests_login_imap_starttls(  ) ;
+                tests_login_imap_notls_nossl(  ) ;
                 tests_login_imap_oauth(  ) ;
                 tests_skipmess_neg(  ) ;
                 tests_localtimez(  ) ;
@@ -21913,6 +22504,7 @@ sub tests
                 tests_comment_of_error_type(  ) ;
                 tests_debugcontent(  ) ;
                 tests_compress_ssl(  ) ;
+                tests_compress_starttls(  ) ;
                 tests_compress(  ) ;
                 tests_get_options_extra(  ) ;
                 tests_get_options_from_string(  ) ;
@@ -21943,7 +22535,16 @@ sub tests
                 tests_remove_qq(  ) ;
                 tests_memory_consumption_all_pids_percent(  ) ;
                 tests_ram_memory_info(  ) ;
-                
+                tests_firstline_or_string(  ) ;
+                tests_oauth2_bearer_string(  ) ;
+                tests_diskspace_available(  ) ;
+                tests_random_string(  ) ;
+                tests_filter_forbidden_characters_cgi_context(  ) ;
+                tests_oauth2_code_verifier(  ) ;
+                tests_oauth2_code_challenge(  ) ;
+                tests_trigger_justconnect1(  ) ;
+                tests_trigger_justconnect2(  ) ;
+                tests_tmpdir(  ) ;
                 tests_infos(  ) ;
                 #tests_resolv(  ) ;
 
@@ -21955,11 +22556,12 @@ sub tests
 
                 #tests_always_fail(  ) ;
                 
-                done_testing( 1992 ) ;
+                done_testing( 2065 ) ;
                 note( 'Leaving  tests()' ) ;
         }
         return ;
 } 
+
 
 sub tests_template
 {
@@ -21974,6 +22576,8 @@ sub tests_template
         note( 'Leaving  tests_template()' ) ;
         return ;
 }
+
+
 
 sub template
 {

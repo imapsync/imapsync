@@ -1,4 +1,4 @@
-# $Id: README_Windows.txt,v 1.27 2022/04/05 19:45:21 gilles Exp gilles $
+# $Id: README_Windows.txt,v 1.29 2023/09/21 18:09:42 gilles Exp gilles $
 # 
 # This is the README_Windows.txt file for imapsync 
 # imapsync: IMAP syncing and migration tool.
@@ -11,7 +11,7 @@
 
  Standard users should take the A) way, the simplest way.
 
- Developers, or power users that want to build their own imapsync.exe
+ Developers, or power users that want to build their imapsync.exe
  or modify it, have to consider the B) way, the complex and powerful way.
 
 
@@ -35,7 +35,7 @@ A.0) Preamble for visual users looking for a visual tool.
  Imapsync itself is not a visual tool. The visual tool is Notepad or
  any text editor. Many pure visual users have succeeded in using
  imapsync to transfer their email accounts. As you can guess, only the
- ones that tried have succeeded, so don't give up before trying at
+ ones who tried have succeeded, so don't give up before trying at
  least once. Another assumption is that visual users can read.
  
  Let's go for some reading!
@@ -43,13 +43,14 @@ A.0) Preamble for visual users looking for a visual tool.
 A.1) Get imapsync.
 
  Get imapsync at https://imapsync.lamiral.info/
- You'll then have access to a zip archive file named imapsync_2.200.zip
- where 2.200 is the imapsync release number.
+ You'll then have access to a zip archive file named imapsync_2.260.zip
+ where 2.260 is the imapsync release number. It may be a different number
+ at the time you download it.
 
 A.2) Extract the zip file in a folder where you will work with imapsync.
 
  You can work on the Desktop since the zip file extraction creates
- a unique folder named imapsync_2.200/
+ a unique folder named imapsync_2.260/
  
  Do not unzip the archive in what is called a "system" directory since
  you may encounter permission issues.
@@ -62,7 +63,7 @@ In short, any user on your system can use imapsync.
 
 A.3) Check the folder
 
- In the folder extracted and called imapsync_2.200, you see 7 files
+ In the folder extracted and called imapsync_2.260, you see 7 files
  and 2 directories.  Those files and directories may be presented in a
  different order than the following, the order is not important
  anyway. There are only two important files to get your mailbox
@@ -73,21 +74,23 @@ A.3) Check the folder
  * imapsync_example.bat   is a simple batch file example that you will copy and edit.
 
  * README.txt             is the imapsync general document.
- * FAQ.d/*                FAQs are a good read when something goes wrong.
+ * FAQ.d\*                FAQs are a good read when something goes wrong.
  * sync_loop_windows.bat  is a batch file example for syncing many accounts.
  * file.txt               is an input file example for syncing many accounts.
- * imapsync.exe           is the imapsync 64bit binary. You don't have to run it directly.
- * imapsync_32bit.exe     is the imapsync 32bit binary. You don't have to run it directly.
- * Cook/                  is the directory to build imapsync.exe from its source, 
+ * imapsync.exe           is the imapsync 64-bit binary. You don't have to run it directly.
+ * imapsync_32bit.exe     is the imapsync 32-bit binary. You don't have to run it directly.
+ * Cook\                  is the directory to build imapsync.exe from its source, 
                           for the B) way and expert users.
+ * oauth2_office365\*     is a directory to get oauth2 tokens for Office365
 
  You can copy or rename the file imapsync_example.bat as you wish,
  as long as its extension remains ".bat", for example, mysync.bat
 
  On Windows systems, a file name ending with a .bat extension means
  "I'm a batch script".  A batch script is a file containing commands,
- it's a program.  Don't be afraid, a program can be very simple to
- modify and I hope imapsync_example.bat is one of them.
+ it is a program. Don't be afraid to be a programmer, a program can
+ be very simple to modify and I hope imapsync_example.bat is one of
+ them.
 
  The batch scripts have to stay in the same directory as imapsync.exe
  because of the way they call imapsync.exe.  They use the string
@@ -144,7 +147,7 @@ A.5) Run the batch file
  input!
 
  Technically speaking, imapsync.exe is an embedded Perl script with
- also the Perl interpreter and many Perl modules, all glued together
+ the Perl interpreter itself added and many Perl modules, all glued together
  in an archive auto-extracted at run time. So it needs write-access to
  the temporary directory. The temporary directory name depends on the
  user but its value is in the variable %TEMP%. You can have the value
@@ -169,7 +172,7 @@ A.7) Control what happened.
  When the sync is finished you can find the whole log file of the
  output in the folder named "LOG_imapsync/".
  
- The logfile name is based on the launching date, hour, minute,
+ The log file name is based on the launching date, hour, minute,
  second, milliseconds, plus the user1 and user2 parameters. 
 
  For example, a file name can be
@@ -186,15 +189,15 @@ A.7) Control what happened.
 
 A.8) Loop on A.4 through A.7
 
- * A.4) edit the batch file
- * A.5) run the batch file
- * A.6) look at the run and the log file
- * A.7) control what happened.
+ * A.4) Edit the batch file.
+ * A.5) Run the batch file.
+ * A.6) Look at the run and the log file.
+ * A.7) Control what happened.
 
- Loop on the process of editing, running and controlling imapsync
+ Loop on the process of editing, running, and controlling imapsync
  until you solve all issues and the sync is over.
 
-A good sign that the sync went very well is when the nearly last lines are like:
+A good sign that the sync went very well is when the last lines are like:
 
 " The sync looks good, all 123456 identified messages in host1 are on host2.
 " There is no unidentified message
@@ -208,7 +211,7 @@ B) Hard way
 ------------
 
 It is the hard way because it installs all software dependencies.
-This is the way for modifying imapsync.exe if needed.
+This is the way to modify imapsync.exe if needed.
 
 B.1) Install Perl if it isn't already installed.
   Strawberry Perl is a very good candidate
@@ -221,5 +224,5 @@ B.3) Double-click build_exe.bat
 
 It should create a binary imapsync.exe in the current Cook/ directory.
 
-B.4) Move imapsync.exe in the upper directory and follow instructions
+B.4) Move imapsync.exe to the upper directory and follow the instructions
      from A.3) to A.8)

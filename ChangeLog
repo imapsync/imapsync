@@ -1,17 +1,160 @@
 
 RCS file: RCS/imapsync,v
 Working file: imapsync
-head: 2.229
+head: 2.261
 branch:
 locks: strict
-	gilles: 2.229
+	gilles: 2.261
 access list:
 symbolic names:
 keyword substitution: kv
-total revisions: 1129;	selected revisions: 1129
+total revisions: 1161;	selected revisions: 1161
 description:
 ----------------------------
-revision 2.229	locked by: gilles;
+revision 2.261	locked by: gilles;
+date: 2023/09/27 11:26:09;  author: gilles;  state: Exp;  lines: +10 -10
+Bugfix. typo on eleasecheck.
+----------------------------
+revision 2.260
+date: 2023/09/19 23:49:37;  author: gilles;  state: Exp;  lines: +8 -8
+Fakefix. Use Encode::find_encoding instead of find_encoding. Look at PAR::Packer -x needed even with -M Encode. Strange.
+----------------------------
+revision 2.259
+date: 2023/09/18 19:57:26;  author: gilles;  state: Exp;  lines: +76 -15
+temporary directory is --tmpdir or $HOME/tmp or current directory, in order if defined.
+----------------------------
+revision 2.258
+date: 2023/09/11 12:27:09;  author: gilles;  state: Exp;  lines: +104 -127
+Reviewed with Grammarly
+----------------------------
+revision 2.257
+date: 2023/08/29 23:51:58;  author: gilles;  state: Exp;  lines: +16 -14
+Bugfix. Docker context ignored --tmpdir https://github.com/imapsync/imapsync/issues/413
+----------------------------
+revision 2.256
+date: 2023/08/29 23:03:06;  author: gilles;  state: Exp;  lines: +41 -23
+Bugfix. Updated the README part to disambiguate the --ssl and --tls options.
+        Both are SSL/TLS. --ssl is imaps. --tls is STARTTLS behavior.
+----------------------------
+revision 2.255
+date: 2023/08/21 10:40:56;  author: gilles;  state: Exp;  lines: +48 -46
+Bugfix. tests_pipemess() failed under Docker context. Not sure this fix the issue.
+----------------------------
+revision 2.254
+date: 2023/08/20 21:41:09;  author: gilles;  state: Exp;  lines: +40 -44
+Replaced most "-e '/Dockerfile'" with skip_docker( )
+----------------------------
+revision 2.253
+date: 2023/08/18 20:29:32;  author: gilles;  state: Exp;  lines: +15 -15
+Docker context detection is now /Dockerfile instead of /.dockerenv
+----------------------------
+revision 2.252
+date: 2023/08/17 14:54:12;  author: gilles;  state: Exp;  lines: +31 -21
+Bugfix. Made tests pass. tests_login_imap_starttls tests_compress_starttls on ks5 and docker context
+----------------------------
+revision 2.251
+date: 2023/08/16 21:30:17;  author: gilles;  state: Exp;  lines: +243 -104
+Bugfix. --password1 and --password2 are no longer required when --oauthaccesstoken1 and --oauthaccesstoken2 are used, respectively.
+Bugfix. --user1 and --user2 are no longer required when --oauthdirect1 and --oauthdirect2 are used, respectively.
+Enhancement. It is now possible to check login with one side. Example: imapsync --host1 test1.lamiral.info --user1 test1 --password1 secret1
+----------------------------
+revision 2.250
+date: 2023/07/19 08:52:22;  author: gilles;  state: Exp;  lines: +99 -63
+Security. Changed the default tmpdir to $HOME/tmp (instead of /tmp on Linux) CVE-2023-34204
+  See https://nvd.nist.gov/vuln/detail/CVE-2023-34204
+  See https://github.com/imapsync/imapsync/issues/399
+  I did not changed the default in the CGI context because /var/tmp/imapsync_hash is written only if it doesn't exist
+  and /var/tmp/imapsync_cgi/ is created under the supervision of an admin.
+  and I am lazy to change all my hosts.
+
+Refactoring. Changed sub random_string()
+Added sub oauth2_code_verifier
+Added sub oauth2_code_challenge
+Began oauth2 integration.
+----------------------------
+revision 2.249
+date: 2023/06/01 11:55:14;  author: gilles;  state: Exp;  lines: +98 -87
+Made --tests pass under Windows
+Cosmetics
+----------------------------
+revision 2.248
+date: 2023/05/31 23:11:52;  author: gilles;  state: Exp;  lines: +9 -9
+no more $IO::Socket::SSL::DEBUG = 4
+----------------------------
+revision 2.247
+date: 2023/05/31 22:54:01;  author: gilles;  state: Exp;  lines: +79 -81
+Made --tests pass on macosx
+----------------------------
+revision 2.246
+date: 2023/05/31 21:36:11;  author: gilles;  state: Exp;  lines: +267 -113
+made --tests pass under Docker context.
+----------------------------
+revision 2.245
+date: 2023/05/30 17:53:34;  author: gilles;  state: Exp;  lines: +70 -70
+Made --tests pass after ks6ipv6.lamiral.info is down
+----------------------------
+revision 2.244
+date: 2023/04/27 11:14:39;  author: gilles;  state: Exp;  lines: +8 -8
+commented "use IO::Socket::INET6 ;"
+----------------------------
+revision 2.243
+date: 2023/04/25 08:05:58;  author: gilles;  state: Exp;  lines: +60 -14
+CGI context. Now the logfile can only be a-zA-Z0-9_-
+----------------------------
+revision 2.242
+date: 2023/04/16 17:04:48;  author: gilles;  state: Exp;  lines: +10 -10
+Bugfix. Changed diskspace test with mkdir instead of touch
+----------------------------
+revision 2.241
+date: 2023/04/16 14:55:49;  author: gilles;  state: Exp;  lines: +8 -8
+2020 unit tests.
+----------------------------
+revision 2.240
+date: 2023/04/16 14:52:58;  author: gilles;  state: Exp;  lines: +94 -13
+Bugfix. CGI context. Exit with a "503 Service Unavailable" when no disk space is available.
+----------------------------
+revision 2.239
+date: 2023/04/13 08:45:56;  author: gilles;  state: Exp;  lines: +8 -8
+CGI context. Max load from 1.5 to 1
+----------------------------
+revision 2.238
+date: 2023/04/06 14:00:33;  author: gilles;  state: Exp;  lines: +11 -11
+tests_cpu_number: on petite (Linux) => 2
+----------------------------
+revision 2.237
+date: 2023/04/06 12:34:33;  author: gilles;  state: Exp;  lines: +10 -10
+Back to 4 memory imapsync memory footprints left to the host as a quit criterium, 1 GB.
+----------------------------
+revision 2.236
+date: 2023/04/05 08:18:01;  author: gilles;  state: Exp;  lines: +9 -9
+CGI context. Max load from 2 to 1.5
+----------------------------
+revision 2.235
+date: 2023/03/30 09:03:44;  author: gilles;  state: Exp;  lines: +12 -12
+Bugfix. Made --tests pass.
+----------------------------
+revision 2.234
+date: 2023/03/30 08:34:06;  author: gilles;  state: Exp;  lines: +11 -11
+CGI context. Load 2 per cpu instead of load 1 max per cpu.
+CGI context. Memory threshold leaves 500 MB to the host instead of 1 GB.
+----------------------------
+revision 2.233
+date: 2023/03/01 16:20:38;  author: gilles;  state: Exp;  lines: +9 -8
+No ipv6 available on macstadium lent Mac mini G3D
+----------------------------
+revision 2.232
+date: 2023/03/01 12:09:58;  author: gilles;  state: Exp;  lines: +11 -8
+Comment about CGI memory threshold "leaves 4 memory imapsync memory footprints to the host, ie 1 GB free for anything else."
+----------------------------
+revision 2.231
+date: 2023/01/24 22:23:42;  author: gilles;  state: Exp;  lines: +12 -12
+moved load_modules()
+----------------------------
+revision 2.230
+date: 2023/01/24 14:36:04;  author: gilles;  state: Exp;  lines: +190 -119
+Bugfix. Reread oauth2 files upon disconnections
+----------------------------
+revision 2.229
 date: 2022/09/14 18:08:24;  author: gilles;  state: Exp;  lines: +16 -16
 Make pass "make linuxtests win32tests win64tests mactests"
 ----------------------------

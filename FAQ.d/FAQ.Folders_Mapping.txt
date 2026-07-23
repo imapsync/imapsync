@@ -1,5 +1,5 @@
 #!/bin/cat
-$Id: FAQ.Folders_Mapping.txt,v 1.23 2021/04/28 23:42:04 gilles Exp gilles $
+$Id: FAQ.Folders_Mapping.txt,v 1.26 2023/02/15 17:31:08 gilles Exp gilles $
 
 This documentation is also available online at
 https://imapsync.lamiral.info/FAQ.d/
@@ -22,6 +22,9 @@ Q. How can I encode folder names for imapsync without getting a headache?
 Q. What are the easy ways to change folder names?
 
 Q. What should I know before playing with the --regextrans2 option?
+
+Q. Option --f1f2 is a one to one only folder mapping, how imapsync can 
+   change recursively the folder FOO to the folder BAR?
 
 Q. How to remove the string "INBOX." in the name of destination folders?
 
@@ -107,6 +110,10 @@ to understand and use.
 
  --f1f2    str1=str2 : Force folder str1 to be synced to str2,
                        --f1f2 overrides --automap and --regextrans2.
+                       Use several --f1f2 options to map several folders.
+                       Option --f1f2 is a one to one only folder mapping,
+                       and str1 and str2 have to be full path folder names.
+                       Use --regextrans2 for more general mappings.
 
  --subfolder2   str  : Syncs the whole host1 folders hierarchy under the
                        host2 folder named str.
@@ -169,6 +176,24 @@ Here
    imapsync will also transfer messages.
    Showing folders sizes is good then transferring messages, it allows
    ETA calculation and it's a supplementary check on folders.
+
+
+=======================================================================
+Q. Option --f1f2 is a one to one only folder mapping, how imapsync can 
+   change recursively the folder FOO to the folder BAR?
+
+R. Use:
+
+   imapsync ... --regextrans2 "s,FOO,BAR,"
+   
+   Have in mind that this regex means "replace the first string FOO in a 
+   whole folder name by the string BAR".
+   
+   If you want to replace all FOO strings in all folders names by the 
+   BAR string, add the g pragma like this:
+   
+   imapsync ... --regextrans2 "s,FOO,BAR,g"
+   
 
 =======================================================================
 Q. How to remove the string "INBOX." in the name of destination folders?

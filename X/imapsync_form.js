@@ -1,8 +1,15 @@
 
-// $Id: imapsync_form.js,v 1.28 2022/04/16 16:51:07 gilles Exp gilles $
+// $Id: imapsync_form.js,v 1.32 2023/06/27 13:16:36 gilles Exp gilles $
 
 /*jslint browser: true*/ /*global  $*/
 
+
+/* 
+1) How the hell is structured this code?
+2) What is its behavior?
+
+
+*/
 
 $(document).ready(
     function ()
@@ -308,12 +315,25 @@ $(document).ready(
         return ;
     } ;
 
+    var refresh_imapsync_current = function refresh_imapsync_current(  )
+    {
+        if ( 
+            "imapsync.lamiral.infoX" === location.hostname 
+            ||
+            "lamiral.infoX"          === location.hostname 
+        )
+        {
+            $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+        }
+    }
+
+
     var refreshLog = function refreshLog( xhr )
     {
         var eta_obj ;
         var eta_str ;
 
-        $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+        refresh_imapsync_current(  ) ;
         
         eta_obj = extract_eta( xhr ) ;
 
@@ -356,7 +376,7 @@ $(document).ready(
         // back to enable state for next run
         $("#bt-sync").prop("disabled", false) ;
         
-        $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+        refresh_imapsync_current(  ) ;
 
         }
     }
@@ -651,7 +671,7 @@ $(document).ready(
             }
         }
     }
-    
+
     var sha256 = function sha256( string )
     {
             var hash = CryptoJS.SHA256( string ) ;
@@ -698,7 +718,7 @@ $(document).ready(
         $("#bt-sync").click(
             function ()
             {
-                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+                refresh_imapsync_current(  ) ;
                 $("#bt-sync").prop("disabled", true) ;
                 $("#bt-abort").prop("disabled", false) ;
                 $("#progress-txt").text( "ETA: coming soon" ) ;
@@ -710,11 +730,11 @@ $(document).ready(
         $("#bt-abort").click(
             function ()
             {
-                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+                refresh_imapsync_current(  ) ;
                 $("#bt-sync").prop("disabled", true);
                 $("#bt-abort").prop("disabled", true);
                 abort();
-                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
+                refresh_imapsync_current(  ) ;
             }
         );
 
@@ -749,21 +769,21 @@ $(document).ready(
             }
         ) ;
         
-        if ( "imapsync.lamiral.info" === location.hostname )
+        refresh_imapsync_current(  ) ;
+
+        if ( "imapsync.lamiral.infoX" === location.hostname )
         {
                 $( "#local_bandwidth" ).collapse( "show" ) ;
                 $( "#local_status_dbmon" ).collapse( "show" ) ;
                 $( "#local_status_hetrix" ).collapse( "show" ) ;
                 $( "#imapsync_advice_hours" ).collapse( "show" ) ;
-                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
         }
-        else if ( "lamiral.info" === location.hostname )
+        else if ( "lamiral.infoX" === location.hostname )
         {
                 $( "#local_bandwidth" ).collapse( "show" ) ;
                 $( "#local_status_dbmon" ).collapse( "show" ) ;
                 $( "#local_status_hetrix" ).collapse( "show" ) ;
                 $( "#imapsync_advice_hours" ).collapse( "show" ) ;
-                $( "#imapsync_current" ).load( "imapsync_current.txt" ) ;
         }
     }
 
