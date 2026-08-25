@@ -17372,11 +17372,46 @@ sub header_construct
         my( $mysync, $head, $side, $folder, $m_uid ) = @ARG ;
 
         my @headstr ;
+
+        # Exchange mailbox rules can replace Message-Id but preserve
+        # the original in X-MS-Exchange-Parent-Message-Id.
+        # If present, use the parent value as Message-Id.
+        my $exchange_parent ;
+
+        foreach my $h ( keys %{ $head } )
+        {
+                if ( 'X-MS-EXCHANGE-PARENT-MESSAGE-ID' eq uc $h )
+                {
+                        $exchange_parent = $head->{ $h } ;
+                        last ;
+                }
+        }
+
         foreach my $h ( sort keys  %{ $head }  )
         {
                 next if ( not ( exists $mysync->{ useheader_h }->{ uc  $h  } )
                       and ( not exists $mysync->{ useheader_h }->{ 'ALL' } )
                 ) ;
+
+                # Parent header is used only as a replacement for Message-Id.
+                next if ( $exchange_parent
+                          and 'X-MS-EXCHANGE-PARENT-MESSAGE-ID' eq uc $h ) ;
+
+                # Exchange replaced Message-Id. Use its preserved
+                # parent Message-Id instead.
+                if ( $exchange_parent and 'MESSAGE-ID' eq uc $h )
+                {
+                        foreach my $val ( @{ $exchange_parent } )
+                        {
+                                my $H = header_line_normalize( 'Message-Id', $val ) ;
+                                $mysync->{ debug } and myprint(
+                                        "$side: folder/uid $folder/$m_uid Exchange parent header [$H]\n"
+                                ) ;
+                                push @headstr, $H ;
+                        }
+                        next ;
+                }
+
                 foreach my $val ( @{ $head->{ $h } } )
                 {
 
