@@ -45,13 +45,13 @@ A.1) Get imapsync.
  Get imapsync at https://imapsync.lamiral.info/ 
 
  You'll then have access to a zip archive file named
- imapsync_2.312.zip where 2.312 is the imapsync release number. It may
+ imapsync_2.314.zip where 2.314 is the imapsync release number. It may
  be a different number at the time you download it.
 
 A.2) Extract the zip file into a folder where you will work with imapsync.
 
  You can work on the Desktop since the zip file extraction creates a
- unique folder named imapsync_2.312/
+ unique folder named imapsync_2.314/
  
  Do not unzip the archive in what is called a "system" directory since
  you may encounter permission issues.
@@ -65,23 +65,24 @@ In short, any user on your system can use imapsync.
 A.3) Check the folder
 
  In the folder extracted and called imapsync_2.260, you see 7 files
- and 2 directories.  Those files and directories may be presented in a
+ and 3 directories.  Those files and directories may be presented in a
  different order than the following; the order is not important
  anyway. There are only two important files to get your mailbox
  transfer job started in a few minutes, the first two files of the
  following list:
 
- * README_Windows.txt     is the current file you are reading.
- * imapsync_example.bat   is a simple batch file example that you will copy and edit.
+ * README_Windows.txt           is the current file you are reading.
+ * imapsync_example.bat         is a simple batch file example that you will copy and edit.
+ * imapsync_example_oauth2.bat  is a simple batch file example that you will copy and edit for oauth.
 
- * README.txt             is the imapsync general document.
- * FAQ.d\*                FAQs are a good read when something goes wrong.
- * sync_loop_windows.bat  is a batch file example for syncing many accounts.
- * file.txt               is an input file example for syncing many accounts.
- * imapsync.exe           is the imapsync 64-bit binary. You don't have to run it directly.
- * Cook\                  is the directory to build imapsync.exe from its source, 
-                          for the B) way and expert users.
- * oauth2_imap\*          is a directory to get oauth2 tokens for Office365 and Gmail.
+ * README.txt                   is the imapsync general document.
+ * FAQ.d\*                      FAQs are a good read when something goes wrong.
+ * sync_loop_windows.bat        is a batch file example for syncing many accounts.
+ * file.txt                     is an input file example for syncing many accounts.
+ * imapsync.exe                 is the imapsync 64-bit binary. You don't have to run it directly.
+ * Cook\                        is the directory to build imapsync.exe from its source, 
+                                for the B) way and expert users.
+ * oauth2_imap\*                is a directory to get oauth2 tokens for Office365 and Gmail.
 
  You can copy or rename the file imapsync_example.bat as you wish, as
  long as its extension remains ".bat", for example, mysync.bat
